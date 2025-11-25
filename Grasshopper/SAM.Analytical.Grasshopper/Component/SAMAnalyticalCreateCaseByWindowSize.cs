@@ -199,61 +199,63 @@ EXAMPLE
                 dataAccess.GetData(index, ref apertureScaleFactor);
             }
 
-            // Resolve aperture list from model when not provided
-            if (apertures.Count == 0)
-            {
-                apertures = analyticalModel.GetApertures();
-            }
-            else
-            {
-                // Clean input list and re-fetch from model to ensure consistency
-                for (int i = apertures.Count - 1; i >= 0; i--)
-                {
-                    if (apertures[i] is null)
-                    {
-                        apertures.RemoveAt(i);
-                        continue;
-                    }
+            analyticalModel = Create.AnalyticalModel_ByWindowSize(analyticalModel, apertureScaleFactor);
 
-                    Aperture aperture = analyticalModel.GetAperture(apertures[i].Guid, out Panel panel);
-                    if (aperture is null)
-                    {
-                        apertures.RemoveAt(i);
-                        continue;
-                    }
+            //// Resolve aperture list from model when not provided
+            //if (apertures.Count == 0)
+            //{
+            //    apertures = analyticalModel.GetApertures();
+            //}
+            //else
+            //{
+            //    // Clean input list and re-fetch from model to ensure consistency
+            //    for (int i = apertures.Count - 1; i >= 0; i--)
+            //    {
+            //        if (apertures[i] is null)
+            //        {
+            //            apertures.RemoveAt(i);
+            //            continue;
+            //        }
 
-                    apertures[i] = new Aperture(aperture);
-                }
-            }
+            //        Aperture aperture = analyticalModel.GetAperture(apertures[i].Guid, out Panel panel);
+            //        if (aperture is null)
+            //        {
+            //            apertures.RemoveAt(i);
+            //            continue;
+            //        }
 
-            // Apply scaling when we have targets and a valid factor
-            if (apertures != null && apertures.Count != 0 && !double.IsNaN(apertureScaleFactor))
-            {
-                AdjacencyCluster adjacencyCluster = new(analyticalModel.AdjacencyCluster, true);
+            //        apertures[i] = new Aperture(aperture);
+            //    }
+            //}
 
-                foreach (Aperture aperture in apertures)
-                {
-                    Aperture aperture_Temp = aperture.Rescale(apertureScaleFactor);
-                    if (aperture_Temp is null)
-                    {
-                        continue;
-                    }
+            //// Apply scaling when we have targets and a valid factor
+            //if (apertures != null && apertures.Count != 0 && !double.IsNaN(apertureScaleFactor))
+            //{
+            //    AdjacencyCluster adjacencyCluster = new(analyticalModel.AdjacencyCluster, true);
 
-                    if (adjacencyCluster.GetAperture(aperture_Temp.Guid, out Panel panel_Temp) is null || panel_Temp is null)
-                    {
-                        continue;
-                    }
+            //    foreach (Aperture aperture in apertures)
+            //    {
+            //        Aperture aperture_Temp = aperture.Rescale(apertureScaleFactor);
+            //        if (aperture_Temp is null)
+            //        {
+            //            continue;
+            //        }
 
-                    panel_Temp = Create.Panel(panel_Temp);
+            //        if (adjacencyCluster.GetAperture(aperture_Temp.Guid, out Panel panel_Temp) is null || panel_Temp is null)
+            //        {
+            //            continue;
+            //        }
 
-                    panel_Temp.RemoveAperture(aperture_Temp.Guid);
-                    panel_Temp.AddAperture(aperture_Temp);
+            //        panel_Temp = Create.Panel(panel_Temp);
 
-                    adjacencyCluster.AddObject(panel_Temp);
-                }
+            //        panel_Temp.RemoveAperture(aperture_Temp.Guid);
+            //        panel_Temp.AddAperture(aperture_Temp);
 
-                analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
-            }
+            //        adjacencyCluster.AddObject(panel_Temp);
+            //    }
+
+            //    analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+            //}
 
             index = Params.IndexOfOutputParam("CaseDescription");
             if (index != -1)
@@ -294,18 +296,18 @@ EXAMPLE
                 dataAccess.SetData(index, value);
             }
 
-            if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
-            {
-                caseDataCollection = new CaseDataCollection();
-            }
-            else
-            {
-                caseDataCollection = new CaseDataCollection(caseDataCollection);
-            }
+            //if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            //{
+            //    caseDataCollection = new CaseDataCollection();
+            //}
+            //else
+            //{
+            //    caseDataCollection = new CaseDataCollection(caseDataCollection);
+            //}
 
-            caseDataCollection.Add(new WindowSizeCaseData(apertureScaleFactor));
+            //caseDataCollection.Add(new WindowSizeCaseData(apertureScaleFactor));
 
-            analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+            //analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
             // Output
             index = Params.IndexOfOutputParam("CaseAModel");
