@@ -505,6 +505,141 @@ namespace SAM.Analytical
             return result;
         }
 
+        public static AnalyticalModel AnalyticalModel_ByVentilation(this AnalyticalModel analyticalModel,
+            string function,
+            double ach,
+            double m3h,
+            double factor,
+            double setback,
+            string description,
+            IEnumerable<IAnalyticalObject> analyticalObjects)
+        {
+            if (analyticalModel is null)
+            {
+                return null;
+            }
+
+            List<IAnalyticalObject> analyticalObjects_Temp = analyticalObjects == null ? [] : [.. analyticalObjects];
+            if (analyticalObjects_Temp is null || analyticalObjects_Temp.Count == 0)
+            {
+                analyticalObjects_Temp = analyticalModel.GetSpaces()?.ConvertAll(x => x as IAnalyticalObject);
+            }
+
+            if (analyticalObjects_Temp == null || analyticalObjects_Temp.Count == 0)
+            {
+                return new AnalyticalModel(analyticalModel);
+            }
+
+            if (analyticalModel?.AdjacencyCluster is not AdjacencyCluster adjacencyCluster)
+            {
+                return new AnalyticalModel(analyticalModel);
+            }
+
+            adjacencyCluster = new AdjacencyCluster(adjacencyCluster, true);
+
+            List<Space> spaces = [];
+
+            foreach (IAnalyticalObject analyticalObject_Temp in analyticalObjects)
+            {
+                if (analyticalObject_Temp is not SAMObject sAMObject)
+                    continue;
+
+                List<Space> spaces_Temp = [];
+                if (analyticalObject_Temp is Space space)
+                {
+                    spaces_Temp.Add(adjacencyCluster.GetObject<Space>(sAMObject.Guid));
+                }
+                else if (analyticalObject_Temp is Zone zone)
+                {
+                    spaces_Temp = adjacencyCluster.GetSpaces(zone);
+                }
+
+                spaces.AddRange(spaces_Temp);
+            }
+
+            AnalyticalModel result = new(analyticalModel, adjacencyCluster);
+
+            if (spaces == null || spaces.Count == 0)
+            {
+                return result;
+            }
+
+            //List<InternalCondition> internalConditions = [];
+
+            foreach (Space space in spaces)
+            {
+                if (space?.InternalCondition is not InternalCondition internalCondition)
+                    continue;
+
+                if (function is null)
+                {
+                    internalCondition.RemoveValue(InternalConditionParameter.VentilationFunction);
+                }
+                else
+                {
+                    Function function_Temp = Analytical.Convert.ToSAM_Function(function);
+                    if (function_Temp is not null)
+                    {
+                        FunctionType functionType = function_Temp.GetFunctionType();
+
+                        if (functionType == FunctionType.tcmvc || functionType == FunctionType.tcmvn || functionType == FunctionType.tmmvn)
+                        {
+                            int vent_Index = 3; // ACH token index for these function types
+
+                            if (!double.IsNaN(ach))
+                            {
+                                function_Temp[vent_Index] = ach;
+                            }
+                            else if (!double.IsNaN(m3h))
+                            {
+                                double volume = space.Volume(adjacencyCluster);
+                                if (!double.IsNaN(volume))
+                                {
+                                    function_Temp[vent_Index] = Core.Query.Round(m3h / volume, Tolerance.MacroDistance);
+                                }
+                            }
+                        }
+                    }
+
+                    internalCondition.SetValue(InternalConditionParameter.VentilationFunction, function_Temp?.ToString() ?? function);
+                }
+
+                if (description is null)
+                    internalCondition.RemoveValue(InternalConditionParameter.VentilationFunctionDescription);
+                else
+                    internalCondition.SetValue(InternalConditionParameter.VentilationFunctionDescription, description);
+
+                if (double.IsNaN(factor))
+                    internalCondition.RemoveValue(InternalConditionParameter.VentilationFunctionFactor);
+                else
+                    internalCondition.SetValue(InternalConditionParameter.VentilationFunctionFactor, factor);
+
+                if (double.IsNaN(setback))
+                    internalCondition.RemoveValue(InternalConditionParameter.VentilationFunctionSetback);
+                else
+                    internalCondition.SetValue(InternalConditionParameter.VentilationFunctionSetback, setback);
+
+                space.InternalCondition = internalCondition;
+                //internalConditions.Add(internalCondition);
+                adjacencyCluster.AddObject(space);
+            }
+
+            if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            {
+                caseDataCollection = [];
+            }
+            else
+            {
+                caseDataCollection = [.. caseDataCollection];
+            }
+
+            caseDataCollection.Add(new VentilationCaseData(ach));
+
+            result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+            return result;
+        }
+
         /// <summary>Try to find the ratio whose interval contains the given azimuth.</summary>
         private static bool TryGetRatio(Dictionary<Range<double>, Tuple<double, ApertureConstruction>> map, double azimuthDeg, out double ratio, out ApertureConstruction apertureConstruction)
         {
