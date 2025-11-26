@@ -1,7 +1,6 @@
 ﻿using Grasshopper.Kernel;
 using SAM.Analytical.Grasshopper.Properties;
 using SAM.Core.Grasshopper;
-using SAM.Weather;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -342,106 +341,116 @@ EXAMPLE
                 dataAccess.GetData(index, ref paneSizeOnly);
             }
 
-            // Process apertures
-            List<Aperture> apertures_Result = null;
-            List<double> dischargeCoefficients_Result = null;
-            List<IOpeningProperties> openingProperties_Result = null;
+            analyticalModel = Create.AnalyticalModel_ByOpening(analyticalModel, 
+                openingAngles,
+                descriptions,
+                functions,
+                colors,
+                factors,
+                profiles,
+                paneSizeOnly,
+                apertures);
 
-            if (apertures != null && openingAngles != null && apertures.Count > 0 && openingAngles.Count > 0)
-            {
-                apertures_Result = [];
-                dischargeCoefficients_Result = [];
-                openingProperties_Result = [];
+            //// Process apertures
+            //List<Aperture> apertures_Result = null;
+            //List<double> dischargeCoefficients_Result = null;
+            //List<IOpeningProperties> openingProperties_Result = null;
 
-                for (int i = 0; i < apertures.Count; i++)
-                {
-                    Aperture aperture = apertures[i];
+            //if (apertures != null && openingAngles != null && apertures.Count > 0 && openingAngles.Count > 0)
+            //{
+            //    apertures_Result = [];
+            //    dischargeCoefficients_Result = [];
+            //    openingProperties_Result = [];
 
-                    Panel panel = adjacencyCluster.GetPanel(aperture);
-                    if (panel == null)
-                    {
-                        continue;
-                    }
+            //    for (int i = 0; i < apertures.Count; i++)
+            //    {
+            //        Aperture aperture = apertures[i];
 
-                    Aperture aperture_Temp = panel.GetAperture(aperture.Guid);
-                    if (aperture_Temp == null)
-                    {
-                        continue;
-                    }
+            //        Panel panel = adjacencyCluster.GetPanel(aperture);
+            //        if (panel == null)
+            //        {
+            //            continue;
+            //        }
 
-                    panel = Create.Panel(panel);
-                    aperture_Temp = new Aperture(aperture_Temp);
+            //        Aperture aperture_Temp = panel.GetAperture(aperture.Guid);
+            //        if (aperture_Temp == null)
+            //        {
+            //            continue;
+            //        }
 
-                    double openingAngle = openingAngles.Count > i ? openingAngles[i] : openingAngles.Last();
-                    double width = paneSizeOnly ? aperture_Temp.GetWidth(AperturePart.Pane) : aperture_Temp.GetWidth();
-                    double height = paneSizeOnly ? aperture_Temp.GetHeight(AperturePart.Pane) : aperture_Temp.GetHeight();
+            //        panel = Create.Panel(panel);
+            //        aperture_Temp = new Aperture(aperture_Temp);
 
-                    double factor = (factors != null && factors.Count != 0) ? (factors.Count > i ? factors[i] : factors.Last()) : double.NaN;
+            //        double openingAngle = openingAngles.Count > i ? openingAngles[i] : openingAngles.Last();
+            //        double width = paneSizeOnly ? aperture_Temp.GetWidth(AperturePart.Pane) : aperture_Temp.GetWidth();
+            //        double height = paneSizeOnly ? aperture_Temp.GetHeight(AperturePart.Pane) : aperture_Temp.GetHeight();
 
-                    PartOOpeningProperties partOOpeningProperties = new (width, height, openingAngle);
+            //        double factor = (factors != null && factors.Count != 0) ? (factors.Count > i ? factors[i] : factors.Last()) : double.NaN;
 
-                    double dischargeCoefficient = partOOpeningProperties.GetDischargeCoefficient();
+            //        PartOOpeningProperties partOOpeningProperties = new (width, height, openingAngle);
 
-                    ISingleOpeningProperties singleOpeningProperties = null;
-                    if (profiles != null && profiles.Count != 0)
-                    {
-                        Profile profile = profiles.Count > i ? profiles[i] : profiles.Last();
-                        ProfileOpeningProperties profileOpeningProperties = new (partOOpeningProperties.GetDischargeCoefficient(), profile);
-                        if (!double.IsNaN(factor))
-                        {
-                            profileOpeningProperties.Factor = factor;
-                        }
+            //        double dischargeCoefficient = partOOpeningProperties.GetDischargeCoefficient();
 
-                        singleOpeningProperties = profileOpeningProperties;
-                    }
-                    else
-                    {
-                        if (!double.IsNaN(factor))
-                        {
-                            partOOpeningProperties.Factor = factor;
-                        }
+            //        ISingleOpeningProperties singleOpeningProperties = null;
+            //        if (profiles != null && profiles.Count != 0)
+            //        {
+            //            Profile profile = profiles.Count > i ? profiles[i] : profiles.Last();
+            //            ProfileOpeningProperties profileOpeningProperties = new (partOOpeningProperties.GetDischargeCoefficient(), profile);
+            //            if (!double.IsNaN(factor))
+            //            {
+            //                profileOpeningProperties.Factor = factor;
+            //            }
 
-                        singleOpeningProperties = partOOpeningProperties;
-                    }
+            //            singleOpeningProperties = profileOpeningProperties;
+            //        }
+            //        else
+            //        {
+            //            if (!double.IsNaN(factor))
+            //            {
+            //                partOOpeningProperties.Factor = factor;
+            //            }
 
-                    if (descriptions != null && descriptions.Count != 0)
-                    {
-                        string description = descriptions.Count > i ? descriptions[i] : descriptions.Last();
-                        singleOpeningProperties.SetValue(OpeningPropertiesParameter.Description, description);
-                    }
+            //            singleOpeningProperties = partOOpeningProperties;
+            //        }
 
-                    string function_Temp = DefaultOpeningFunction;
-                    if (functions != null && functions.Count != 0)
-                    {
-                        function_Temp = functions.Count > i ? functions[i] : functions.Last();
-                    }
-                    singleOpeningProperties.SetValue(OpeningPropertiesParameter.Function, function_Temp);
+            //        if (descriptions != null && descriptions.Count != 0)
+            //        {
+            //            string description = descriptions.Count > i ? descriptions[i] : descriptions.Last();
+            //            singleOpeningProperties.SetValue(OpeningPropertiesParameter.Description, description);
+            //        }
 
-                    if (colors != null && colors.Count != 0)
-                    {
-                        System.Drawing.Color color = colors.Count > i ? colors[i] : colors.Last();
-                        aperture_Temp.SetValue(ApertureParameter.Color, color);
-                    }
-                    else
-                    {
-                        aperture_Temp.SetValue(ApertureParameter.Color, Analytical.Query.Color(ApertureType.Window, AperturePart.Pane, true));
-                    }
+            //        string function_Temp = DefaultOpeningFunction;
+            //        if (functions != null && functions.Count != 0)
+            //        {
+            //            function_Temp = functions.Count > i ? functions[i] : functions.Last();
+            //        }
+            //        singleOpeningProperties.SetValue(OpeningPropertiesParameter.Function, function_Temp);
 
-                    aperture_Temp.AddSingleOpeningProperties(singleOpeningProperties);
+            //        if (colors != null && colors.Count != 0)
+            //        {
+            //            System.Drawing.Color color = colors.Count > i ? colors[i] : colors.Last();
+            //            aperture_Temp.SetValue(ApertureParameter.Color, color);
+            //        }
+            //        else
+            //        {
+            //            aperture_Temp.SetValue(ApertureParameter.Color, Analytical.Query.Color(ApertureType.Window, AperturePart.Pane, true));
+            //        }
 
-                    panel.RemoveAperture(aperture.Guid);
-                    if (panel.AddAperture(aperture_Temp))
-                    {
-                        adjacencyCluster.AddObject(panel);
-                        apertures_Result.Add(aperture_Temp);
-                        dischargeCoefficients_Result.Add(singleOpeningProperties.GetDischargeCoefficient());
-                        openingProperties_Result.Add(singleOpeningProperties);
-                    }
-                }
-            }
+            //        aperture_Temp.AddSingleOpeningProperties(singleOpeningProperties);
 
-            // Make a case model with the updated cluster (original model object is not changed)
-            analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+            //        panel.RemoveAperture(aperture.Guid);
+            //        if (panel.AddAperture(aperture_Temp))
+            //        {
+            //            adjacencyCluster.AddObject(panel);
+            //            apertures_Result.Add(aperture_Temp);
+            //            dischargeCoefficients_Result.Add(singleOpeningProperties.GetDischargeCoefficient());
+            //            openingProperties_Result.Add(singleOpeningProperties);
+            //        }
+            //    }
+            //}
+
+            //// Make a case model with the updated cluster (original model object is not changed)
+            //analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
 
             index = Params.IndexOfOutputParam("CaseDescription");
             if (index != -1)
@@ -482,18 +491,18 @@ EXAMPLE
                 dataAccess.SetData(index, value);
             }
 
-            if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
-            {
-                caseDataCollection = new CaseDataCollection();
-            }
-            else
-            {
-                caseDataCollection = new CaseDataCollection(caseDataCollection);
-            }
+            //if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            //{
+            //    caseDataCollection = new CaseDataCollection();
+            //}
+            //else
+            //{
+            //    caseDataCollection = new CaseDataCollection(caseDataCollection);
+            //}
 
-            caseDataCollection.Add(new OpeningCaseData(openingAngles?.FirstOrDefault() ?? double.NaN));
+            //caseDataCollection.Add(new OpeningCaseData(openingAngles?.FirstOrDefault() ?? double.NaN));
 
-            analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+            //analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
             // Output
             index = Params.IndexOfOutputParam("CaseAModel");
