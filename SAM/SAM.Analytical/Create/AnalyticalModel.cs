@@ -380,6 +380,90 @@ namespace SAM.Analytical
             return result;
         }
 
+
+        public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 
+            bool glassPartOnly, 
+            double overhangDepth, 
+            double overhangVerticalOffset,
+            double overhangFrontOffset,
+            double leftFinDepth,
+            double leftFinOffset,
+            double leftFinFrontOffset,
+            double rightFinDepth,
+            double rightFinOffset,
+            double rightFinFrontOffset,
+            IEnumerable<IAnalyticalObject> analyticalObjects = null)
+        {
+            if (analyticalModel is null)
+            {
+                return null;
+            }
+
+            List<IAnalyticalObject> analyticalObjects_Temp = analyticalObjects == null ? [] : [.. analyticalObjects];
+            if (analyticalObjects_Temp is null || analyticalObjects_Temp.Count == 0)
+            {
+                analyticalObjects_Temp = analyticalModel.GetApertures()?.ConvertAll(x => x as IAnalyticalObject);
+            }
+
+            AnalyticalModel result = new AnalyticalModel(analyticalModel);
+
+            if (analyticalObjects_Temp == null || analyticalObjects_Temp.Count == 0)
+            {
+                return result;
+            }
+
+            if (analyticalModel?.AdjacencyCluster is not AdjacencyCluster adjacencyCluster)
+            {
+                return result;
+            }
+
+            adjacencyCluster = new AdjacencyCluster(adjacencyCluster, true);
+
+            foreach (IAnalyticalObject analyticalObject in analyticalObjects)
+            {
+                List<Panel> shades = null;
+                if (analyticalObject is Panel panel)
+                {
+                    shades = Panels_Shade(panel, overhangDepth, overhangVerticalOffset, overhangFrontOffset,
+                                                 leftFinDepth, leftFinOffset, leftFinFrontOffset,
+                                                 rightFinDepth, rightFinOffset, rightFinFrontOffset);
+                }
+                else if (analyticalObject is Aperture aperture)
+                {
+                    shades = Panels_Shade(aperture, glassPartOnly, overhangDepth, overhangVerticalOffset, overhangFrontOffset,
+                                                 leftFinDepth, leftFinOffset, leftFinFrontOffset,
+                                                 rightFinDepth, rightFinOffset, rightFinFrontOffset);
+                }
+
+                if (shades == null) continue;
+
+                foreach (Panel shade in shades)
+                {
+                    adjacencyCluster.AddObject(shade);
+                }
+            }
+
+            analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+
+            result = new(analyticalModel, adjacencyCluster);
+
+            if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            {
+                caseDataCollection = new CaseDataCollection();
+            }
+            else
+            {
+                caseDataCollection = new CaseDataCollection(caseDataCollection);
+            }
+
+            caseDataCollection.Add(new ShadeCaseData(overhangDepth, leftFinDepth, rightFinDepth));
+
+            result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+            return result;
+        }
+
+
         /// <summary>Try to find the ratio whose interval contains the given azimuth.</summary>
         private static bool TryGetRatio(Dictionary<Range<double>, Tuple<double, ApertureConstruction>> map, double azimuthDeg, out double ratio, out ApertureConstruction apertureConstruction)
         {

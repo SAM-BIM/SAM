@@ -2,7 +2,6 @@
 using Grasshopper.Kernel.Parameters;
 using SAM.Analytical.Grasshopper.Properties;
 using SAM.Core.Grasshopper;
-using SAM.Weather;
 using System;
 using System.Collections.Generic;
 
@@ -345,36 +344,49 @@ EXAMPLE
             index = Params.IndexOfInputParam("_rightFinFrontOffset_");
             double rightFinFrontOffset = 0.0; if (index != -1) dataAccess.GetData(index, ref rightFinFrontOffset);
 
-            if (analyticalObjects != null && analyticalObjects.Count != 0)
-            {
-                AdjacencyCluster adjacencyCluster = new AdjacencyCluster(analyticalModel.AdjacencyCluster, true);
+            analyticalModel = Create.AnalyticalModel_ByShade(analyticalModel, 
+                glassPartOnly, 
+                overhangDepth, 
+                overhangVerticalOffset,
+                overhangFrontOffset,
+                leftFinDepth,
+                leftFinOffset,
+                leftFinFrontOffset,
+                rightFinDepth,
+                rightFinOffset,
+                rightFinFrontOffset,
+                analyticalObjects);
 
-                foreach (IAnalyticalObject analyticalObject in analyticalObjects)
-                {
-                    List<Panel> shades = null;
-                    if (analyticalObject is Panel panel)
-                    {
-                        shades = Create.Panels_Shade(panel, overhangDepth, overhangVerticalOffset, overhangFrontOffset,
-                                                     leftFinDepth, leftFinOffset, leftFinFrontOffset,
-                                                     rightFinDepth, rightFinOffset, rightFinFrontOffset);
-                    }
-                    else if (analyticalObject is Aperture aperture)
-                    {
-                        shades = Create.Panels_Shade(aperture, glassPartOnly, overhangDepth, overhangVerticalOffset, overhangFrontOffset,
-                                                     leftFinDepth, leftFinOffset, leftFinFrontOffset,
-                                                     rightFinDepth, rightFinOffset, rightFinFrontOffset);
-                    }
+            //if (analyticalObjects != null && analyticalObjects.Count != 0)
+            //{
+            //    AdjacencyCluster adjacencyCluster = new AdjacencyCluster(analyticalModel.AdjacencyCluster, true);
 
-                    if (shades == null) continue;
+            //    foreach (IAnalyticalObject analyticalObject in analyticalObjects)
+            //    {
+            //        List<Panel> shades = null;
+            //        if (analyticalObject is Panel panel)
+            //        {
+            //            shades = Create.Panels_Shade(panel, overhangDepth, overhangVerticalOffset, overhangFrontOffset,
+            //                                         leftFinDepth, leftFinOffset, leftFinFrontOffset,
+            //                                         rightFinDepth, rightFinOffset, rightFinFrontOffset);
+            //        }
+            //        else if (analyticalObject is Aperture aperture)
+            //        {
+            //            shades = Create.Panels_Shade(aperture, glassPartOnly, overhangDepth, overhangVerticalOffset, overhangFrontOffset,
+            //                                         leftFinDepth, leftFinOffset, leftFinFrontOffset,
+            //                                         rightFinDepth, rightFinOffset, rightFinFrontOffset);
+            //        }
 
-                    foreach (Panel shade in shades)
-                    {
-                        adjacencyCluster.AddObject(shade);
-                    }
-                }
+            //        if (shades == null) continue;
 
-                analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
-            }
+            //        foreach (Panel shade in shades)
+            //        {
+            //            adjacencyCluster.AddObject(shade);
+            //        }
+            //    }
+
+            //    analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+            //}
 
             index = Params.IndexOfOutputParam("CaseDescription");
             if (index != -1)
@@ -425,18 +437,18 @@ EXAMPLE
                 dataAccess.SetData(index, value);
             }
 
-            if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
-            {
-                caseDataCollection = new CaseDataCollection();
-            }
-            else
-            {
-                caseDataCollection = new CaseDataCollection(caseDataCollection);
-            }
+            //if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            //{
+            //    caseDataCollection = new CaseDataCollection();
+            //}
+            //else
+            //{
+            //    caseDataCollection = new CaseDataCollection(caseDataCollection);
+            //}
 
-            caseDataCollection.Add(new ShadeCaseData(overhangDepth, leftFinDepth, rightFinDepth));
+            //caseDataCollection.Add(new ShadeCaseData(overhangDepth, leftFinDepth, rightFinDepth));
 
-            analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+            //analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
             // Output
             index = Params.IndexOfOutputParam("CaseAModel");
