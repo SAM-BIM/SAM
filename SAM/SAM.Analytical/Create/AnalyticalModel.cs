@@ -9,7 +9,9 @@ namespace SAM.Analytical
 {
     public static partial class Create
     {
-        public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel, double apertureScaleFactor, IEnumerable<Aperture> apertures = null)
+        public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel, 
+            double apertureScaleFactor, 
+            IEnumerable<Aperture> apertures = null)
         {
             if(analyticalModel == null || double.IsNaN(apertureScaleFactor))
             {
@@ -92,7 +94,15 @@ namespace SAM.Analytical
             return result;
         }
     
-        public static AnalyticalModel AnalyticalModel_ByApertureByAzimuths(this AnalyticalModel analyticalModel, Dictionary<Range<double>, Tuple<double, ApertureConstruction>> intervalRatioMap, bool subdivide, double apertureHeight, double sillHeight, double horizontalSeparation, double offset, bool keepSeparationDistance, IEnumerable<Panel> panels = null)
+        public static AnalyticalModel AnalyticalModel_ByApertureByAzimuths(this AnalyticalModel analyticalModel, 
+            Dictionary<Range<double>, Tuple<double, ApertureConstruction>> intervalRatioMap, 
+            bool subdivide, 
+            double apertureHeight, 
+            double sillHeight, 
+            double horizontalSeparation, 
+            double offset, 
+            bool keepSeparationDistance, 
+            IEnumerable<Panel> panels = null)
         {
             if(analyticalModel == null)
             {
@@ -174,7 +184,9 @@ namespace SAM.Analytical
             return result;
         }
 
-        public static AnalyticalModel AnalyticalModel_ByApertureConstruction(this AnalyticalModel analyticalModel, ApertureConstruction apertureConstruction, IEnumerable<Aperture> apertures = null)
+        public static AnalyticalModel AnalyticalModel_ByApertureConstruction(this AnalyticalModel analyticalModel, 
+            ApertureConstruction apertureConstruction, 
+            IEnumerable<Aperture> apertures = null)
         {
             if(analyticalModel is null)
             {
@@ -464,7 +476,8 @@ namespace SAM.Analytical
             return result;
         }
 
-        public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, IEnumerable<Panel> shades)
+        public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 
+            IEnumerable<Panel> shades)
         {
             if (analyticalModel is null)
             {
@@ -641,8 +654,8 @@ namespace SAM.Analytical
             return result;
         }
 
-
-        public static AnalyticalModel AnalyticalModel_ByWeatherData(this AnalyticalModel analyticalModel, WeatherData weatherData)
+        public static AnalyticalModel AnalyticalModel_ByWeatherData(this AnalyticalModel analyticalModel, 
+            WeatherData weatherData)
         {
             if (analyticalModel is null)
             {
