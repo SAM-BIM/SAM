@@ -4,9 +4,15 @@ namespace SAM.Analytical
 {
     public class ShadeCaseData : BuiltInCaseData
     {
-        private double overhangDepth;
-        private double leftFinDepth;
-        private double rightFinDepth;
+        private double overhangDepth = double.NaN;
+        private double leftFinDepth = double.NaN;
+        private double rightFinDepth = double.NaN;
+
+        public ShadeCaseData()
+            : base(nameof(ShadeCaseData))
+        {
+
+        }
 
         public ShadeCaseData(double overhangDepth, double leftFinDepth, double rightFinDepth)
             : base(nameof(ShadeCaseData))

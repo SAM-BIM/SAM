@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static SAM.Analytical.Glazing;
 
 namespace SAM.Analytical
 {
@@ -380,7 +381,6 @@ namespace SAM.Analytical
             return result;
         }
 
-
         public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 
             bool glassPartOnly, 
             double overhangDepth, 
@@ -463,6 +463,47 @@ namespace SAM.Analytical
             return result;
         }
 
+        public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, IEnumerable<Panel> shades)
+        {
+            if (analyticalModel is null)
+            {
+                return null;
+            }
+
+            if (shades == null || shades.Count() == 0)
+            {
+                return new AnalyticalModel(analyticalModel);
+            }
+
+            if (analyticalModel?.AdjacencyCluster is not AdjacencyCluster adjacencyCluster)
+            {
+                return new AnalyticalModel(analyticalModel);
+            }
+
+            adjacencyCluster = new AdjacencyCluster(adjacencyCluster, true);
+
+            foreach (Panel shade in shades)
+            {
+                adjacencyCluster.AddObject(shade);
+            }
+
+            AnalyticalModel result = new(analyticalModel, adjacencyCluster);
+
+            if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            {
+                caseDataCollection = [];
+            }
+            else
+            {
+                caseDataCollection = [.. caseDataCollection];
+            }
+
+            caseDataCollection.Add(new ShadeCaseData());
+
+            result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+            return result;
+        }
 
         /// <summary>Try to find the ratio whose interval contains the given azimuth.</summary>
         private static bool TryGetRatio(Dictionary<Range<double>, Tuple<double, ApertureConstruction>> map, double azimuthDeg, out double ratio, out ApertureConstruction apertureConstruction)

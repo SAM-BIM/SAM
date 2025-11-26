@@ -175,18 +175,20 @@ EXAMPLE
                 dataAccess.GetDataList(index, shades);
             }
 
-            // Only create a copy and add shades when any are provided
-            if (shades != null && shades.Count != 0)
-            {
-                AdjacencyCluster adjacencyCluster = new (analyticalModel.AdjacencyCluster, true);
+            analyticalModel = Create.AnalyticalModel_ByShade(analyticalModel, shades);
 
-                foreach (Panel shade in shades)
-                {
-                    adjacencyCluster.AddObject(shade);
-                }
+            //// Only create a copy and add shades when any are provided
+            //if (shades != null && shades.Count != 0)
+            //{
+            //    AdjacencyCluster adjacencyCluster = new (analyticalModel.AdjacencyCluster, true);
 
-                analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster); // copy with shades (original stays unchanged)
-            }
+            //    foreach (Panel shade in shades)
+            //    {
+            //        adjacencyCluster.AddObject(shade);
+            //    }
+
+            //    analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster); // copy with shades (original stays unchanged)
+            //}
 
             index = Params.IndexOfOutputParam("CaseDescription");
             if (index != -1)
