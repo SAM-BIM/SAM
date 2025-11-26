@@ -196,12 +196,14 @@ When provided, the component copies _baseAModel_ (original stays unchanged) and 
                 dataAccess.GetData(index, ref weatherData);
             }
 
-            // Apply weather to a copy when provided
-            if (weatherData != null)
-            {
-                analyticalModel = new AnalyticalModel(analyticalModel); // copy of the base model (original stays unchanged)
-                analyticalModel.SetValue(AnalyticalModelParameter.WeatherData, weatherData);
-            }
+            analyticalModel = Create.AnalyticalModel_ByWeatherData(analyticalModel, weatherData);
+
+            //// Apply weather to a copy when provided
+            //if (weatherData != null)
+            //{
+            //    analyticalModel = new AnalyticalModel(analyticalModel); // copy of the base model (original stays unchanged)
+            //    analyticalModel.SetValue(AnalyticalModelParameter.WeatherData, weatherData);
+            //}
 
             index = Params.IndexOfOutputParam("CaseDescription");
             if (index != -1)
@@ -242,18 +244,18 @@ When provided, the component copies _baseAModel_ (original stays unchanged) and 
                 dataAccess.SetData(index, value);
             }
 
-            if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
-            {
-                caseDataCollection = new CaseDataCollection();
-            }
-            else
-            {
-                caseDataCollection = new CaseDataCollection(caseDataCollection);
-            }
+            //if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            //{
+            //    caseDataCollection = new CaseDataCollection();
+            //}
+            //else
+            //{
+            //    caseDataCollection = new CaseDataCollection(caseDataCollection);
+            //}
 
-            caseDataCollection.Add(new WeatherCaseData(weatherData?.Name));
+            //caseDataCollection.Add(new WeatherCaseData(weatherData?.Name));
 
-            analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+            //analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
             // Output
             index = Params.IndexOfOutputParam("CaseAModel");

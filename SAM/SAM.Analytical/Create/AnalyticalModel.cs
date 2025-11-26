@@ -1,4 +1,5 @@
 ﻿using SAM.Core;
+using SAM.Weather;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -634,6 +635,39 @@ namespace SAM.Analytical
             }
 
             caseDataCollection.Add(new VentilationCaseData(ach));
+
+            result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+            return result;
+        }
+
+
+        public static AnalyticalModel AnalyticalModel_ByWeatherData(this AnalyticalModel analyticalModel, WeatherData weatherData)
+        {
+            if (analyticalModel is null)
+            {
+                return null;
+            }
+
+            AnalyticalModel result = new AnalyticalModel(analyticalModel);
+
+            if (weatherData == null)
+            {
+                return result;
+            }
+
+            result.SetValue(AnalyticalModelParameter.WeatherData, weatherData);
+
+            if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            {
+                caseDataCollection = [];
+            }
+            else
+            {
+                caseDataCollection = [.. caseDataCollection];
+            }
+
+            caseDataCollection.Add(new WeatherCaseData(weatherData?.Name));
 
             result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
