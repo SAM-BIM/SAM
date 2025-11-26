@@ -120,54 +120,7 @@ namespace SAM.Analytical.Grasshopper
                 dataAccess.GetData(index, ref apertureConstruction);
             }
 
-            if(apertures.Count == 0)
-            {
-                apertures = analyticalModel.GetApertures();
-            }
-            else
-            {
-                for(int i = apertures.Count - 1; i >= 0; i--)
-                {
-                    if (apertures[i] is null)
-                    {
-                        apertures.RemoveAt(i);
-                        continue;
-                    }
-
-                    Aperture aperture = analyticalModel.GetAperture(apertures[i].Guid, out Panel panel);
-                    if(aperture is null)
-                    {
-                        apertures.RemoveAt(i);
-                        continue;
-                    }
-
-                    apertures[i] = new Aperture(aperture);
-                }
-            }
-
-            if (apertures != null && apertures.Count != 0 && apertureConstruction != null )
-            {
-                AdjacencyCluster adjacencyCluster = new(analyticalModel.AdjacencyCluster, true);
-
-                foreach (Aperture aperture in apertures)
-                {
-                    Aperture aperture_Temp = new(aperture, apertureConstruction);
-
-                    if (adjacencyCluster.GetAperture(aperture_Temp.Guid, out Panel panel_Temp) is null || panel_Temp is null)
-                    {
-                        continue;
-                    }
-
-                    panel_Temp = Create.Panel(panel_Temp);
-
-                    panel_Temp.RemoveAperture(aperture_Temp.Guid);
-                    panel_Temp.AddAperture(aperture_Temp);
-
-                    adjacencyCluster.AddObject(panel_Temp);
-                }
-
-                analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
-            }
+            analyticalModel = Create.AnalyticalModel_ByApertureConstruction(analyticalModel, apertureConstruction);
 
             index = Params.IndexOfOutputParam("CaseDescription");
             if (index != -1)
@@ -207,19 +160,6 @@ namespace SAM.Analytical.Grasshopper
 
                 dataAccess.SetData(index, value);
             }
-
-            if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
-            {
-                caseDataCollection = new CaseDataCollection();
-            }
-            else
-            {
-                caseDataCollection = new CaseDataCollection(caseDataCollection);
-            }
-
-            caseDataCollection.Add(new ApertureConstructionCaseData(apertureConstruction));
-
-            analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
             index = Params.IndexOfOutputParam("CaseAModel");
             if (index != -1)

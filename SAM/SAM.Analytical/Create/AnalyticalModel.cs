@@ -15,7 +15,6 @@ namespace SAM.Analytical
 
             List<Aperture> apertures_Temp = apertures == null ? [] : [.. apertures];
 
-
             // Resolve aperture list from model when not provided
             if (apertures_Temp.Count == 0)
             {
@@ -166,6 +165,66 @@ namespace SAM.Analytical
             }
 
             caseDataCollection.Add(new ApertureCaseData(ratios));
+
+            analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+            return result;
+        }
+
+        public static AnalyticalModel AnalyticalModel_ByApertureConstruction(this AnalyticalModel analyticalModel, ApertureConstruction apertureConstruction, IEnumerable<Aperture> apertures = null)
+        {
+            if(analyticalModel is null)
+            {
+                return null;
+            }
+
+            List<Aperture> apertures_Temp = apertures == null ? [] : [.. apertures];
+            if(apertures_Temp is null || apertures_Temp.Count == 0)
+            {
+                apertures_Temp = analyticalModel.GetApertures();
+            }
+
+            if(apertures_Temp == null || apertures_Temp.Count == 0)
+            {
+                return new AnalyticalModel(analyticalModel);
+            }
+
+            if (analyticalModel?.AdjacencyCluster is not AdjacencyCluster adjacencyCluster)
+            {
+                return new AnalyticalModel(analyticalModel);
+            }
+
+            adjacencyCluster = new AdjacencyCluster(adjacencyCluster, true);
+
+            foreach (Aperture aperture in apertures_Temp)
+            {
+                Aperture aperture_Temp = new(aperture, apertureConstruction);
+
+                if (adjacencyCluster.GetAperture(aperture_Temp.Guid, out Panel panel_Temp) is null || panel_Temp is null)
+                {
+                    continue;
+                }
+
+                panel_Temp = Panel(panel_Temp);
+
+                panel_Temp.RemoveAperture(aperture_Temp.Guid);
+                panel_Temp.AddAperture(aperture_Temp);
+
+                adjacencyCluster.AddObject(panel_Temp);
+            }
+
+            AnalyticalModel result = new(analyticalModel, adjacencyCluster);
+
+            if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            {
+                caseDataCollection = [];
+            }
+            else
+            {
+                caseDataCollection = [.. caseDataCollection];
+            }
+
+            caseDataCollection.Add(new ApertureConstructionCaseData(apertureConstruction));
 
             analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
