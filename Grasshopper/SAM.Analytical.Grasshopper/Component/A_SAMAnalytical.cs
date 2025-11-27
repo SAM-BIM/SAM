@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Grasshopper.Kernel;
-using SAM.Core;
 
 namespace SAM.Analytical.Grasshopper
 {

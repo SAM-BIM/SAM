@@ -199,7 +199,40 @@ EXAMPLE
                 dataAccess.GetData(index, ref apertureScaleFactor);
             }
 
+            int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            bool concatenate = true;
+            if (index_Concatenate != -1)
+            {
+                dataAccess.GetData(index_Concatenate, ref concatenate);
+            }
+
+            if (!concatenate)
+            {
+                analyticalModel = new AnalyticalModel(analyticalModel);
+                analyticalModel.RemoveValue("CaseDescription");
+            }
+
             analyticalModel = Create.AnalyticalModel_ByWindowSize(analyticalModel, apertureScaleFactor);
+
+            index = Params.IndexOfOutputParam("CaseDescription");
+            if (index != -1)
+            {
+
+                string caseDescription = string.Empty;
+                if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+                {
+                    caseDescription = string.Empty;
+                }
+
+                dataAccess.SetData(index, caseDescription);
+            }
+
+            // Output
+            index = Params.IndexOfOutputParam("CaseAModel");
+            if (index != -1)
+            {
+                dataAccess.SetData(index, analyticalModel);
+            }
 
             //// Resolve aperture list from model when not provided
             //if (apertures.Count == 0)
@@ -257,44 +290,44 @@ EXAMPLE
             //    analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
             //}
 
-            index = Params.IndexOfOutputParam("CaseDescription");
-            if (index != -1)
-            {
-                int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
-                bool concatenate = true;
-                if (index_Concatenate != -1)
-                {
-                    dataAccess.GetData(index_Concatenate, ref concatenate);
-                }
+            //index = Params.IndexOfOutputParam("CaseDescription");
+            //if (index != -1)
+            //{
+            //    int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            //    bool concatenate = true;
+            //    if (index_Concatenate != -1)
+            //    {
+            //        dataAccess.GetData(index_Concatenate, ref concatenate);
+            //    }
 
-                string caseDescription = string.Empty;
-                if (concatenate)
-                {
-                    if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
-                    {
-                        caseDescription = string.Empty;
-                    }
-                }
+            //    string caseDescription = string.Empty;
+            //    if (concatenate)
+            //    {
+            //        if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            //        {
+            //            caseDescription = string.Empty;
+            //        }
+            //    }
 
-                if (string.IsNullOrWhiteSpace(caseDescription))
-                {
-                    caseDescription = "Case";
-                }
-                else
-                {
-                    caseDescription += "_";
-                }
+            //    if (string.IsNullOrWhiteSpace(caseDescription))
+            //    {
+            //        caseDescription = "Case";
+            //    }
+            //    else
+            //    {
+            //        caseDescription += "_";
+            //    }
 
-                string sufix = "ByWindowSize_";
-                if (!double.IsNaN(apertureScaleFactor))
-                {
-                    sufix += apertureScaleFactor.ToString();
-                }
+            //    string sufix = "ByWindowSize_";
+            //    if (!double.IsNaN(apertureScaleFactor))
+            //    {
+            //        sufix += apertureScaleFactor.ToString();
+            //    }
 
-                string value = caseDescription + sufix;
+            //    string value = caseDescription + sufix;
 
-                dataAccess.SetData(index, value);
-            }
+            //    dataAccess.SetData(index, value);
+            //}
 
             //if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             //{
@@ -309,12 +342,12 @@ EXAMPLE
 
             //analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
-            // Output
-            index = Params.IndexOfOutputParam("CaseAModel");
-            if (index != -1)
-            {
-                dataAccess.SetData(index, analyticalModel);
-            }
+            //// Output
+            //index = Params.IndexOfOutputParam("CaseAModel");
+            //if (index != -1)
+            //{
+            //    dataAccess.SetData(index, analyticalModel);
+            //}
         }
     }
 }

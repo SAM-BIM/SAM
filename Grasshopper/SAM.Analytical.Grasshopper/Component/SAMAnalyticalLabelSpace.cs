@@ -9,7 +9,6 @@ using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static SAM.Geometry.Rhino.ActiveSetting;
 
 namespace SAM.Analytical.Grasshopper
 {

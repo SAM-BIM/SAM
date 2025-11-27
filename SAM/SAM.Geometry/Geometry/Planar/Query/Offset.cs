@@ -3,7 +3,6 @@ using NetTopologySuite.Geometries;
 using NetTopologySuite.Noding.Snapround;
 using NetTopologySuite.Operation.Buffer;
 using NetTopologySuite.Operation.Polygonize;
-using NetTopologySuite.Operation.Valid;
 using SAM.Core;
 using SAM.Geometry.Spatial;
 using System.Collections.Generic;

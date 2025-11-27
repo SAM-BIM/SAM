@@ -1,5 +1,4 @@
 ﻿using Grasshopper.Kernel;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace SAM.Core.Grasshopper

@@ -1,9 +1,7 @@
 ﻿using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
 using SAM.Analytical.Grasshopper.Properties;
-using SAM.Core;
 using SAM.Core.Grasshopper;
-using SAM.Weather;
 using System;
 using System.Collections.Generic;
 
@@ -406,6 +404,19 @@ If both ac/h_ and m3/h_ are provided, ac/h_ takes precedence.",
             //    analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
             //}
 
+            int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            bool concatenate = true;
+            if (index_Concatenate != -1)
+            {
+                dataAccess.GetData(index_Concatenate, ref concatenate);
+            }
+
+            if (!concatenate)
+            {
+                analyticalModel = new AnalyticalModel(analyticalModel);
+                analyticalModel.RemoveValue("CaseDescription");
+            }
+
             analyticalModel = Create.AnalyticalModel_ByVentilation(analyticalModel, 
             function, 
             ach, 
@@ -418,56 +429,76 @@ If both ac/h_ and m3/h_ are provided, ac/h_ takes precedence.",
             index = Params.IndexOfOutputParam("CaseDescription");
             if (index != -1)
             {
-                int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
-                bool concatenate = true;
-                if (index_Concatenate != -1)
-                {
-                    dataAccess.GetData(index_Concatenate, ref concatenate);
-                }
 
                 string caseDescription = string.Empty;
-                if (concatenate)
+                if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
                 {
-                    if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
-                    {
-                        caseDescription = string.Empty;
-                    }
+                    caseDescription = string.Empty;
                 }
 
-                if (string.IsNullOrWhiteSpace(caseDescription))
-                {
-                    caseDescription = "Case";
-                }
-                else
-                {
-                    caseDescription += "_";
-                }
-
-                string sufix = "ByVentilation_";
-                if (!double.IsNaN(ach))
-                {
-                    sufix += string.Format("{0}ach", ach);
-                }
-
-                if (m3h != 0)
-                {
-                    sufix += string.Format("{0}m3h", m3h);
-                }
-
-                if (factor != 0)
-                {
-                    sufix += string.Format("F{0}", factor);
-                }
-
-                if (setback != 0)
-                {
-                    sufix += string.Format("sb{0}", setback);
-                }
-
-                string value = caseDescription + sufix;
-
-                dataAccess.SetData(index, value);
+                dataAccess.SetData(index, caseDescription);
             }
+
+            // Output
+            index = Params.IndexOfOutputParam("CaseAModel");
+            if (index != -1)
+            {
+                dataAccess.SetData(index, analyticalModel);
+            }
+
+            //index = Params.IndexOfOutputParam("CaseDescription");
+            //if (index != -1)
+            //{
+            //    int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            //    bool concatenate = true;
+            //    if (index_Concatenate != -1)
+            //    {
+            //        dataAccess.GetData(index_Concatenate, ref concatenate);
+            //    }
+
+            //    string caseDescription = string.Empty;
+            //    if (concatenate)
+            //    {
+            //        if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            //        {
+            //            caseDescription = string.Empty;
+            //        }
+            //    }
+
+            //    if (string.IsNullOrWhiteSpace(caseDescription))
+            //    {
+            //        caseDescription = "Case";
+            //    }
+            //    else
+            //    {
+            //        caseDescription += "_";
+            //    }
+
+            //    string sufix = "ByVentilation_";
+            //    if (!double.IsNaN(ach))
+            //    {
+            //        sufix += string.Format("{0}ach", ach);
+            //    }
+
+            //    if (m3h != 0)
+            //    {
+            //        sufix += string.Format("{0}m3h", m3h);
+            //    }
+
+            //    if (factor != 0)
+            //    {
+            //        sufix += string.Format("F{0}", factor);
+            //    }
+
+            //    if (setback != 0)
+            //    {
+            //        sufix += string.Format("sb{0}", setback);
+            //    }
+
+            //    string value = caseDescription + sufix;
+
+            //    dataAccess.SetData(index, value);
+            //}
 
             //if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             //{
@@ -482,12 +513,12 @@ If both ac/h_ and m3/h_ are provided, ac/h_ takes precedence.",
 
             //analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
-            // Output
-            index = Params.IndexOfOutputParam("CaseAModel");
-            if (index != -1)
-            {
-                dataAccess.SetData(index, analyticalModel);
-            }
+            //// Output
+            //index = Params.IndexOfOutputParam("CaseAModel");
+            //if (index != -1)
+            //{
+            //    dataAccess.SetData(index, analyticalModel);
+            //}
         }
     }
 }

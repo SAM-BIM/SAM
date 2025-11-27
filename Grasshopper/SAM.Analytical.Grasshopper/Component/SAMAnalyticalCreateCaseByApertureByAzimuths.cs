@@ -5,7 +5,6 @@ using SAM.Analytical.Grasshopper.Properties;
 using SAM.Core;
 using SAM.Core.Grasshopper;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace SAM.Analytical.Grasshopper
@@ -337,51 +336,38 @@ namespace SAM.Analytical.Grasshopper
             // Build interval→ratio map (wrap-aware: e.g., 338→22 is split into 338→359 & 0→22)
             Dictionary<Range<double>, Tuple<double, ApertureConstruction>> intervalRatioMap = BuildIntervalRatioMap(azimuths, ratios, apertureConstructions);
 
+            int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            bool concatenate = true;
+            if (index_Concatenate != -1)
+            {
+                dataAccess.GetData(index_Concatenate, ref concatenate);
+            }
+
+            if(!concatenate)
+            {
+                analyticalModel = new AnalyticalModel(analyticalModel);
+                analyticalModel.RemoveValue("CaseDescription");
+            }
+
             analyticalModel = Create.AnalyticalModel_ByApertureByAzimuths(analyticalModel, intervalRatioMap, subdivide, apertureHeight, sillHeight, horizontalSeparation, offset, keepSeparationDistance); 
+
+            index = Params.IndexOfOutputParam("CaseDescription");
+            if (index != -1)
+            {
+
+                string caseDescription = string.Empty;
+                if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+                {
+                    caseDescription = string.Empty;
+                }
+
+                dataAccess.SetData(index, caseDescription);
+            }
 
             index = Params.IndexOfOutputParam("CaseAModel");
             if (index != -1)
             {
                 dataAccess.SetData(index, analyticalModel);
-            }
-
-            index = Params.IndexOfOutputParam("CaseDescription");
-            if (index != -1)
-            {
-                int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
-                bool concatenate = true;
-                if (index_Concatenate != -1)
-                {
-                    dataAccess.GetData(index_Concatenate, ref concatenate);
-                }
-
-                string caseDescription = string.Empty;
-                if (concatenate)
-                {
-                    if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
-                    {
-                        caseDescription = string.Empty;
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(caseDescription))
-                {
-                    caseDescription = "Case";
-                }
-                else
-                {
-                    caseDescription += "_";
-                }
-
-                string sufix = "ByApertureByAzimuths_";
-                if (ratios != null && ratios.Count != 0)
-                {
-                    sufix += "R_" + string.Join("_", ratios);
-                }
-
-                string value = caseDescription + sufix;
-
-                dataAccess.SetData(index, value);
             }
         }
 

@@ -5,7 +5,6 @@ using SAM.Core.Grasshopper;
 using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
-using static System.Runtime.CompilerServices.RuntimeHelpers;
 
 namespace SAM.Analytical.Grasshopper
 {

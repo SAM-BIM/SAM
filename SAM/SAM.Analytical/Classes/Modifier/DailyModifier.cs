@@ -1,8 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using SAM.Core;
-using SAM.Core.Attributes;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 
 namespace SAM.Analytical

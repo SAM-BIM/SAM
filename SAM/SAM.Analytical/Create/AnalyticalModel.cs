@@ -3,7 +3,6 @@ using SAM.Weather;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static SAM.Analytical.Glazing;
 
 namespace SAM.Analytical
 {
@@ -78,6 +77,8 @@ namespace SAM.Analytical
 
             AnalyticalModel result = new (analyticalModel, adjacencyCluster);
 
+
+            //CaseDataCollection
             if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
                 caseDataCollection = [];
@@ -90,6 +91,33 @@ namespace SAM.Analytical
             caseDataCollection.Add(new WindowSizeCaseData(apertureScaleFactor));
 
             result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+
+            //CaseDescription
+            string caseDescription = string.Empty;
+            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            {
+                caseDescription = string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(caseDescription))
+            {
+                caseDescription = "Case";
+            }
+            else
+            {
+                caseDescription += "_";
+            }
+
+            string sufix = "ByWindowSize_";
+            if (!double.IsNaN(apertureScaleFactor))
+            {
+                sufix += apertureScaleFactor.ToString();
+            }
+
+            caseDescription = caseDescription + sufix;
+
+            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -168,6 +196,8 @@ namespace SAM.Analytical
 
             AnalyticalModel result = new(analyticalModel, adjacencyCluster);
 
+
+            //CaseDataCollection
             if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
                 caseDataCollection = [];
@@ -180,6 +210,33 @@ namespace SAM.Analytical
             caseDataCollection.Add(new ApertureCaseData(ratios));
 
             analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+
+            //CaseDescription
+            string caseDescription = string.Empty;
+            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            {
+                caseDescription = string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(caseDescription))
+            {
+                caseDescription = "Case";
+            }
+            else
+            {
+                caseDescription += "_";
+            }
+
+            string sufix = "ByApertureByAzimuths_";
+            if (ratios != null && ratios.Count != 0)
+            {
+                sufix += "R_" + string.Join("_", ratios);
+            }
+
+            caseDescription = caseDescription + sufix;
+
+            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -230,6 +287,8 @@ namespace SAM.Analytical
 
             AnalyticalModel result = new(analyticalModel, adjacencyCluster);
 
+
+            //CaseDataCollection
             if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
                 caseDataCollection = [];
@@ -242,6 +301,33 @@ namespace SAM.Analytical
             caseDataCollection.Add(new ApertureConstructionCaseData(apertureConstruction));
 
             analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+
+            //CaseDescription
+            string caseDescription = string.Empty;
+            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            {
+                caseDescription = string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(caseDescription))
+            {
+                caseDescription = "Case";
+            }
+            else
+            {
+                caseDescription += "_";
+            }
+
+            string sufix = "ByApertureConstruction_";
+            if (apertureConstruction is not null)
+            {
+                sufix += apertureConstruction.Name ?? string.Empty;
+            }
+
+            caseDescription = caseDescription + sufix;
+
+            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -380,6 +466,8 @@ namespace SAM.Analytical
 
             result = new(analyticalModel, adjacencyCluster);
 
+
+            //CaseDataCollection
             if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
                 caseDataCollection = [];
@@ -390,6 +478,33 @@ namespace SAM.Analytical
             }
 
             caseDataCollection.Add(new OpeningCaseData(openingAngles?.FirstOrDefault() ?? double.NaN));
+
+
+            //CaseDescription
+            string caseDescription = string.Empty;
+            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            {
+                caseDescription = string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(caseDescription))
+            {
+                caseDescription = "Case";
+            }
+            else
+            {
+                caseDescription += "_";
+            }
+
+            string sufix = "ByOpening_";
+            if (openingAngles is not null)
+            {
+                sufix += string.Join("_", openingAngles.ToList().ConvertAll(x => string.Format("{0}deg", x)));
+            }
+
+            caseDescription = caseDescription + sufix;
+
+            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -460,18 +575,57 @@ namespace SAM.Analytical
 
             result = new(analyticalModel, adjacencyCluster);
 
+
+            //CaseDataCollection
             if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
-                caseDataCollection = new CaseDataCollection();
+                caseDataCollection = [];
             }
             else
             {
-                caseDataCollection = new CaseDataCollection(caseDataCollection);
+                caseDataCollection = [.. caseDataCollection];
             }
 
             caseDataCollection.Add(new ShadeCaseData(overhangDepth, leftFinDepth, rightFinDepth));
 
             result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+
+            //CaseDescription
+            string caseDescription = string.Empty;
+            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            {
+                caseDescription = string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(caseDescription))
+            {
+                caseDescription = "Case";
+            }
+            else
+            {
+                caseDescription += "_";
+            }
+
+            string sufix = "ByShade_";
+            if (overhangDepth != 0)
+            {
+                sufix += string.Format("O{0}m", overhangDepth);
+            }
+
+            if (leftFinDepth != 0)
+            {
+                sufix += string.Format("L{0}m", leftFinDepth);
+            }
+
+            if (rightFinDepth != 0)
+            {
+                sufix += string.Format("R{0}m", rightFinDepth);
+            }
+
+            caseDescription = caseDescription + sufix;
+
+            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -503,6 +657,8 @@ namespace SAM.Analytical
 
             AnalyticalModel result = new(analyticalModel, adjacencyCluster);
 
+
+            //CaseDataCollection
             if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
                 caseDataCollection = [];
@@ -515,6 +671,29 @@ namespace SAM.Analytical
             caseDataCollection.Add(new ShadeCaseData());
 
             result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+
+            //CaseDescription
+            string caseDescription = string.Empty;
+            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            {
+                caseDescription = string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(caseDescription))
+            {
+                caseDescription = "Case";
+            }
+            else
+            {
+                caseDescription += "_";
+            }
+
+            string sufix = "ByShade1_";
+
+            caseDescription = caseDescription + sufix;
+
+            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -638,6 +817,8 @@ namespace SAM.Analytical
                 adjacencyCluster.AddObject(space);
             }
 
+
+            //CaseDataCollection
             if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
                 caseDataCollection = [];
@@ -650,6 +831,48 @@ namespace SAM.Analytical
             caseDataCollection.Add(new VentilationCaseData(ach));
 
             result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+
+            //CaseDescription
+            string caseDescription = string.Empty;
+            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            {
+                caseDescription = string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(caseDescription))
+            {
+                caseDescription = "Case";
+            }
+            else
+            {
+                caseDescription += "_";
+            }
+
+            string sufix = "ByVentilation_";
+            if (!double.IsNaN(ach))
+            {
+                sufix += string.Format("{0}ach", ach);
+            }
+
+            if (m3h != 0)
+            {
+                sufix += string.Format("{0}m3h", m3h);
+            }
+
+            if (factor != 0)
+            {
+                sufix += string.Format("F{0}", factor);
+            }
+
+            if (setback != 0)
+            {
+                sufix += string.Format("sb{0}", setback);
+            }
+
+            caseDescription = caseDescription + sufix;
+
+            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -671,6 +894,8 @@ namespace SAM.Analytical
 
             result.SetValue(AnalyticalModelParameter.WeatherData, weatherData);
 
+
+            //CaseDataCollection
             if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
                 caseDataCollection = [];
@@ -683,6 +908,33 @@ namespace SAM.Analytical
             caseDataCollection.Add(new WeatherCaseData(weatherData?.Name));
 
             result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+
+
+            //CaseDescription
+            string caseDescription = string.Empty;
+            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            {
+                caseDescription = string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(caseDescription))
+            {
+                caseDescription = "Case";
+            }
+            else
+            {
+                caseDescription += "_";
+            }
+
+            string sufix = "ByWeather_";
+            if (!string.IsNullOrWhiteSpace(weatherData?.Name))
+            {
+                sufix += weatherData.Name;
+            }
+
+            caseDescription = caseDescription + sufix;
+
+            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
 
             return result;
         }

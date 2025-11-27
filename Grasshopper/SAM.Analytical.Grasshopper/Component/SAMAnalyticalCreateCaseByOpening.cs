@@ -3,7 +3,6 @@ using SAM.Analytical.Grasshopper.Properties;
 using SAM.Core.Grasshopper;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SAM.Analytical.Grasshopper
 {
@@ -341,6 +340,19 @@ EXAMPLE
                 dataAccess.GetData(index, ref paneSizeOnly);
             }
 
+            int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            bool concatenate = true;
+            if (index_Concatenate != -1)
+            {
+                dataAccess.GetData(index_Concatenate, ref concatenate);
+            }
+
+            if (!concatenate)
+            {
+                analyticalModel = new AnalyticalModel(analyticalModel);
+                analyticalModel.RemoveValue("CaseDescription");
+            }
+
             analyticalModel = Create.AnalyticalModel_ByOpening(analyticalModel, 
                 openingAngles,
                 descriptions,
@@ -350,6 +362,26 @@ EXAMPLE
                 profiles,
                 paneSizeOnly,
                 apertures);
+
+            index = Params.IndexOfOutputParam("CaseDescription");
+            if (index != -1)
+            {
+
+                string caseDescription = string.Empty;
+                if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+                {
+                    caseDescription = string.Empty;
+                }
+
+                dataAccess.SetData(index, caseDescription);
+            }
+
+            // Output
+            index = Params.IndexOfOutputParam("CaseAModel");
+            if (index != -1)
+            {
+                dataAccess.SetData(index, analyticalModel);
+            }
 
             //// Process apertures
             //List<Aperture> apertures_Result = null;
@@ -452,44 +484,44 @@ EXAMPLE
             //// Make a case model with the updated cluster (original model object is not changed)
             //analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
 
-            index = Params.IndexOfOutputParam("CaseDescription");
-            if (index != -1)
-            {
-                int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
-                bool concatenate = true;
-                if (index_Concatenate != -1)
-                {
-                    dataAccess.GetData(index_Concatenate, ref concatenate);
-                }
+            //index = Params.IndexOfOutputParam("CaseDescription");
+            //if (index != -1)
+            //{
+            //    int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            //    bool concatenate = true;
+            //    if (index_Concatenate != -1)
+            //    {
+            //        dataAccess.GetData(index_Concatenate, ref concatenate);
+            //    }
 
-                string caseDescription = string.Empty;
-                if (concatenate)
-                {
-                    if(!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
-                    {
-                        caseDescription = string.Empty;
-                    }
-                }
+            //    string caseDescription = string.Empty;
+            //    if (concatenate)
+            //    {
+            //        if(!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            //        {
+            //            caseDescription = string.Empty;
+            //        }
+            //    }
 
-                if(string.IsNullOrWhiteSpace(caseDescription))
-                {
-                    caseDescription = "Case";
-                }
-                else
-                {
-                    caseDescription += "_";
-                }
+            //    if(string.IsNullOrWhiteSpace(caseDescription))
+            //    {
+            //        caseDescription = "Case";
+            //    }
+            //    else
+            //    {
+            //        caseDescription += "_";
+            //    }
 
-                string sufix = "ByOpening_";
-                if (openingAngles is not null)
-                {
-                    sufix += string.Join("_", openingAngles.ConvertAll(x => string.Format("{0}deg", x)));
-                }
+            //    string sufix = "ByOpening_";
+            //    if (openingAngles is not null)
+            //    {
+            //        sufix += string.Join("_", openingAngles.ConvertAll(x => string.Format("{0}deg", x)));
+            //    }
 
-                string value = caseDescription + sufix;
+            //    string value = caseDescription + sufix;
 
-                dataAccess.SetData(index, value);
-            }
+            //    dataAccess.SetData(index, value);
+            //}
 
             //if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             //{
@@ -504,12 +536,12 @@ EXAMPLE
 
             //analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
-            // Output
-            index = Params.IndexOfOutputParam("CaseAModel");
-            if (index != -1)
-            {
-                dataAccess.SetData(index, analyticalModel);
-            }
+            //// Output
+            //index = Params.IndexOfOutputParam("CaseAModel");
+            //if (index != -1)
+            //{
+            //    dataAccess.SetData(index, analyticalModel);
+            //}
         }
     }
 }

@@ -6,7 +6,6 @@ using SAM.Weather.Grasshopper;
 using SAM.Analytical.Grasshopper.Properties;
 using SAM.Weather;
 using System.Windows.Forms;
-using System.Diagnostics;
 
 namespace SAM.Analytical.Grasshopper
 {

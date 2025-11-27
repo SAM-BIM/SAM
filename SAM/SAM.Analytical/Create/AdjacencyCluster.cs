@@ -1,6 +1,4 @@
-﻿using NetTopologySuite.Algorithm;
-using SAM.Core;
-using SAM.Geometry;
+﻿using SAM.Core;
 using SAM.Geometry.Planar;
 using SAM.Geometry.Spatial;
 using System;

@@ -2,7 +2,6 @@
 using System.Windows.Forms;
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
-using SAM.Core.Grasshopper.Properties;
 
 namespace SAM.Core.Grasshopper
 {

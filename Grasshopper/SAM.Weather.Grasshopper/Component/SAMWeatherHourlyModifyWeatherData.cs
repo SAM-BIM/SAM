@@ -9,7 +9,6 @@ using SAM.Weather;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
 using System.Linq;
-using MathNet.Numerics;
 
 namespace SAM.Analytical.Grasshopper
 {

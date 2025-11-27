@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace SAM.Core
+﻿namespace SAM.Core
 {
     public interface IIndexedComplexModifier : IComplexModifier<IIndexedModifier>
     {

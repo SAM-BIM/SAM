@@ -196,7 +196,40 @@ When provided, the component copies _baseAModel_ (original stays unchanged) and 
                 dataAccess.GetData(index, ref weatherData);
             }
 
+            int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            bool concatenate = true;
+            if (index_Concatenate != -1)
+            {
+                dataAccess.GetData(index_Concatenate, ref concatenate);
+            }
+
+            if (!concatenate)
+            {
+                analyticalModel = new AnalyticalModel(analyticalModel);
+                analyticalModel.RemoveValue("CaseDescription");
+            }
+
             analyticalModel = Create.AnalyticalModel_ByWeatherData(analyticalModel, weatherData);
+
+            index = Params.IndexOfOutputParam("CaseDescription");
+            if (index != -1)
+            {
+
+                string caseDescription = string.Empty;
+                if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+                {
+                    caseDescription = string.Empty;
+                }
+
+                dataAccess.SetData(index, caseDescription);
+            }
+
+            // Output
+            index = Params.IndexOfOutputParam("CaseAModel");
+            if (index != -1)
+            {
+                dataAccess.SetData(index, analyticalModel);
+            }
 
             //// Apply weather to a copy when provided
             //if (weatherData != null)
@@ -205,44 +238,44 @@ When provided, the component copies _baseAModel_ (original stays unchanged) and 
             //    analyticalModel.SetValue(AnalyticalModelParameter.WeatherData, weatherData);
             //}
 
-            index = Params.IndexOfOutputParam("CaseDescription");
-            if (index != -1)
-            {
-                int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
-                bool concatenate = true;
-                if (index_Concatenate != -1)
-                {
-                    dataAccess.GetData(index_Concatenate, ref concatenate);
-                }
+            //index = Params.IndexOfOutputParam("CaseDescription");
+            //if (index != -1)
+            //{
+            //    int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            //    bool concatenate = true;
+            //    if (index_Concatenate != -1)
+            //    {
+            //        dataAccess.GetData(index_Concatenate, ref concatenate);
+            //    }
 
-                string caseDescription = string.Empty;
-                if (concatenate)
-                {
-                    if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
-                    {
-                        caseDescription = string.Empty;
-                    }
-                }
+            //    string caseDescription = string.Empty;
+            //    if (concatenate)
+            //    {
+            //        if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            //        {
+            //            caseDescription = string.Empty;
+            //        }
+            //    }
 
-                if (string.IsNullOrWhiteSpace(caseDescription))
-                {
-                    caseDescription = "Case";
-                }
-                else
-                {
-                    caseDescription += "_";
-                }
+            //    if (string.IsNullOrWhiteSpace(caseDescription))
+            //    {
+            //        caseDescription = "Case";
+            //    }
+            //    else
+            //    {
+            //        caseDescription += "_";
+            //    }
 
-                string sufix = "ByWeather_";
-                if (!string.IsNullOrWhiteSpace(weatherData?.Name))
-                {
-                    sufix += weatherData.Name;
-                }
+            //    string sufix = "ByWeather_";
+            //    if (!string.IsNullOrWhiteSpace(weatherData?.Name))
+            //    {
+            //        sufix += weatherData.Name;
+            //    }
 
-                string value = caseDescription + sufix;
+            //    string value = caseDescription + sufix;
 
-                dataAccess.SetData(index, value);
-            }
+            //    dataAccess.SetData(index, value);
+            //}
 
             //if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             //{
@@ -257,12 +290,12 @@ When provided, the component copies _baseAModel_ (original stays unchanged) and 
 
             //analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
-            // Output
-            index = Params.IndexOfOutputParam("CaseAModel");
-            if (index != -1)
-            {
-                dataAccess.SetData(index, analyticalModel);
-            }
+            //// Output
+            //index = Params.IndexOfOutputParam("CaseAModel");
+            //if (index != -1)
+            //{
+            //    dataAccess.SetData(index, analyticalModel);
+            //}
         }
     }
 }

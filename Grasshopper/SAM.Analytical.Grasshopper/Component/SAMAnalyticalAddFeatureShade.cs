@@ -1,7 +1,5 @@
 ﻿using Grasshopper.Kernel;
-using Rhino.UI;
 using SAM.Analytical.Grasshopper.Properties;
-using SAM.Core;
 using SAM.Core.Grasshopper;
 using System;
 using System.Collections.Generic;

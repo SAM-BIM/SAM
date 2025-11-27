@@ -175,7 +175,40 @@ EXAMPLE
                 dataAccess.GetDataList(index, shades);
             }
 
+            int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            bool concatenate = true;
+            if (index_Concatenate != -1)
+            {
+                dataAccess.GetData(index_Concatenate, ref concatenate);
+            }
+
+            if (!concatenate)
+            {
+                analyticalModel = new AnalyticalModel(analyticalModel);
+                analyticalModel.RemoveValue("CaseDescription");
+            }
+
             analyticalModel = Create.AnalyticalModel_ByShade(analyticalModel, shades);
+
+            index = Params.IndexOfOutputParam("CaseDescription");
+            if (index != -1)
+            {
+
+                string caseDescription = string.Empty;
+                if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+                {
+                    caseDescription = string.Empty;
+                }
+
+                dataAccess.SetData(index, caseDescription);
+            }
+
+            // Output
+            index = Params.IndexOfOutputParam("CaseAModel");
+            if (index != -1)
+            {
+                dataAccess.SetData(index, analyticalModel);
+            }
 
             //// Only create a copy and add shades when any are provided
             //if (shades != null && shades.Count != 0)
@@ -190,47 +223,47 @@ EXAMPLE
             //    analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster); // copy with shades (original stays unchanged)
             //}
 
-            index = Params.IndexOfOutputParam("CaseDescription");
-            if (index != -1)
-            {
-                int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
-                bool concatenate = true;
-                if (index_Concatenate != -1)
-                {
-                    dataAccess.GetData(index_Concatenate, ref concatenate);
-                }
+            //index = Params.IndexOfOutputParam("CaseDescription");
+            //if (index != -1)
+            //{
+            //    int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            //    bool concatenate = true;
+            //    if (index_Concatenate != -1)
+            //    {
+            //        dataAccess.GetData(index_Concatenate, ref concatenate);
+            //    }
 
-                string caseDescription = string.Empty;
-                if (concatenate)
-                {
-                    if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
-                    {
-                        caseDescription = string.Empty;
-                    }
-                }
+            //    string caseDescription = string.Empty;
+            //    if (concatenate)
+            //    {
+            //        if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            //        {
+            //            caseDescription = string.Empty;
+            //        }
+            //    }
 
-                if (string.IsNullOrWhiteSpace(caseDescription))
-                {
-                    caseDescription = "Case";
-                }
-                else
-                {
-                    caseDescription += "_";
-                }
+            //    if (string.IsNullOrWhiteSpace(caseDescription))
+            //    {
+            //        caseDescription = "Case";
+            //    }
+            //    else
+            //    {
+            //        caseDescription += "_";
+            //    }
 
-                string sufix = "ByShade1_";
+            //    string sufix = "ByShade1_";
 
-                string value = caseDescription + sufix;
+            //    string value = caseDescription + sufix;
 
-                dataAccess.SetData(index, value);
-            }
+            //    dataAccess.SetData(index, value);
+            //}
 
-            // Output
-            index = Params.IndexOfOutputParam("CaseAModel");
-            if (index != -1)
-            {
-                dataAccess.SetData(index, analyticalModel);
-            }
+            //// Output
+            //index = Params.IndexOfOutputParam("CaseAModel");
+            //if (index != -1)
+            //{
+            //    dataAccess.SetData(index, analyticalModel);
+            //}
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using GH_IO.Serialization;
-using Grasshopper;
+﻿using Grasshopper;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Rhino.Geometry;
@@ -8,7 +7,6 @@ using SAM.Core.Grasshopper;
 using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace SAM.Analytical.Grasshopper
 {

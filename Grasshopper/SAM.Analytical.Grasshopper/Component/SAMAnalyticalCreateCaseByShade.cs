@@ -344,6 +344,19 @@ EXAMPLE
             index = Params.IndexOfInputParam("_rightFinFrontOffset_");
             double rightFinFrontOffset = 0.0; if (index != -1) dataAccess.GetData(index, ref rightFinFrontOffset);
 
+            int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            bool concatenate = true;
+            if (index_Concatenate != -1)
+            {
+                dataAccess.GetData(index_Concatenate, ref concatenate);
+            }
+
+            if (!concatenate)
+            {
+                analyticalModel = new AnalyticalModel(analyticalModel);
+                analyticalModel.RemoveValue("CaseDescription");
+            }
+
             analyticalModel = Create.AnalyticalModel_ByShade(analyticalModel, 
                 glassPartOnly, 
                 overhangDepth, 
@@ -356,6 +369,26 @@ EXAMPLE
                 rightFinOffset,
                 rightFinFrontOffset,
                 analyticalObjects);
+
+            index = Params.IndexOfOutputParam("CaseDescription");
+            if (index != -1)
+            {
+
+                string caseDescription = string.Empty;
+                if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+                {
+                    caseDescription = string.Empty;
+                }
+
+                dataAccess.SetData(index, caseDescription);
+            }
+
+            // Output
+            index = Params.IndexOfOutputParam("CaseAModel");
+            if (index != -1)
+            {
+                dataAccess.SetData(index, analyticalModel);
+            }
 
             //if (analyticalObjects != null && analyticalObjects.Count != 0)
             //{
@@ -388,54 +421,54 @@ EXAMPLE
             //    analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
             //}
 
-            index = Params.IndexOfOutputParam("CaseDescription");
-            if (index != -1)
-            {
-                int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
-                bool concatenate = true;
-                if (index_Concatenate != -1)
-                {
-                    dataAccess.GetData(index_Concatenate, ref concatenate);
-                }
+            //index = Params.IndexOfOutputParam("CaseDescription");
+            //if (index != -1)
+            //{
+            //    int index_Concatenate = Params.IndexOfInputParam("_concatenate_");
+            //    bool concatenate = true;
+            //    if (index_Concatenate != -1)
+            //    {
+            //        dataAccess.GetData(index_Concatenate, ref concatenate);
+            //    }
 
-                string caseDescription = string.Empty;
-                if (concatenate)
-                {
-                    if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
-                    {
-                        caseDescription = string.Empty;
-                    }
-                }
+            //    string caseDescription = string.Empty;
+            //    if (concatenate)
+            //    {
+            //        if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            //        {
+            //            caseDescription = string.Empty;
+            //        }
+            //    }
 
-                if (string.IsNullOrWhiteSpace(caseDescription))
-                {
-                    caseDescription = "Case";
-                }
-                else
-                {
-                    caseDescription += "_";
-                }
+            //    if (string.IsNullOrWhiteSpace(caseDescription))
+            //    {
+            //        caseDescription = "Case";
+            //    }
+            //    else
+            //    {
+            //        caseDescription += "_";
+            //    }
 
-                string sufix = "ByShade_";
-                if (overhangDepth != 0)
-                {
-                    sufix += string.Format("O{0}m", overhangDepth);
-                }
+            //    string sufix = "ByShade_";
+            //    if (overhangDepth != 0)
+            //    {
+            //        sufix += string.Format("O{0}m", overhangDepth);
+            //    }
 
-                if (leftFinDepth != 0)
-                {
-                    sufix += string.Format("L{0}m", leftFinDepth);
-                }
+            //    if (leftFinDepth != 0)
+            //    {
+            //        sufix += string.Format("L{0}m", leftFinDepth);
+            //    }
 
-                if (rightFinDepth != 0)
-                {
-                    sufix += string.Format("R{0}m", rightFinDepth);
-                }
+            //    if (rightFinDepth != 0)
+            //    {
+            //        sufix += string.Format("R{0}m", rightFinDepth);
+            //    }
 
-                string value = caseDescription + sufix;
+            //    string value = caseDescription + sufix;
 
-                dataAccess.SetData(index, value);
-            }
+            //    dataAccess.SetData(index, value);
+            //}
 
             //if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             //{
@@ -450,12 +483,12 @@ EXAMPLE
 
             //analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
-            // Output
-            index = Params.IndexOfOutputParam("CaseAModel");
-            if (index != -1)
-            {
-                dataAccess.SetData(index, analyticalModel);
-            }
+            //// Output
+            //index = Params.IndexOfOutputParam("CaseAModel");
+            //if (index != -1)
+            //{
+            //    dataAccess.SetData(index, analyticalModel);
+            //}
         }
     }
 }
