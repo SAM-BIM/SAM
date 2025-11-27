@@ -1,4 +1,5 @@
-﻿using SAM.Core;
+﻿using SAM.Analytical.Classes;
+using SAM.Core;
 using SAM.Weather;
 using System;
 using System.Collections.Generic;
@@ -121,7 +122,18 @@ namespace SAM.Analytical
 
             return result;
         }
-    
+
+        public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel, WindowSizeCase windowSizeCase, IEnumerable<Aperture> apertures)
+        {
+            if(analyticalModel == null || windowSizeCase == null)
+            {
+                return null;
+            }
+
+            return AnalyticalModel_ByWindowSize(analyticalModel, windowSizeCase.ApertureScaleFactor, apertures);
+        }
+
+
         public static AnalyticalModel AnalyticalModel_ByApertureByAzimuths(this AnalyticalModel analyticalModel, 
             Dictionary<Range<double>, Tuple<double, ApertureConstruction>> intervalRatioMap, 
             bool subdivide, 
@@ -937,6 +949,17 @@ namespace SAM.Analytical
             Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
+        }
+
+        public static AnalyticalModel AnalyticalModel_ByWeatherData(this AnalyticalModel analyticalModel, 
+            WeatherDataCase weatherDataCase)
+        {
+            if(analyticalModel != null && weatherDataCase != null)
+            {
+                return null;
+            }
+
+            return AnalyticalModel_ByWeatherData(analyticalModel, weatherDataCase.WeatherData);
         }
 
         /// <summary>Try to find the ratio whose interval contains the given azimuth.</summary>
