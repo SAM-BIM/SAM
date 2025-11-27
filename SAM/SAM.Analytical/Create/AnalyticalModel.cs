@@ -22,7 +22,7 @@ namespace SAM.Analytical
             // Resolve aperture list from model when not provided
             if (apertures_Temp.Count == 0)
             {
-                apertures = analyticalModel.GetApertures();
+                apertures_Temp = analyticalModel.GetApertures();
             }
             else
             {
@@ -54,7 +54,7 @@ namespace SAM.Analytical
 
             AdjacencyCluster adjacencyCluster = new(analyticalModel.AdjacencyCluster, true);
 
-            foreach (Aperture aperture in apertures)
+            foreach (Aperture aperture in apertures_Temp)
             {
                 Aperture aperture_Temp = aperture.Rescale(apertureScaleFactor);
                 if (aperture_Temp is null)
@@ -95,7 +95,7 @@ namespace SAM.Analytical
 
             //CaseDescription
             string caseDescription = string.Empty;
-            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            if (!Core.Query.TryGetValue(result, "CaseDescription", out caseDescription))
             {
                 caseDescription = string.Empty;
             }
@@ -117,7 +117,7 @@ namespace SAM.Analytical
 
             caseDescription = caseDescription + sufix;
 
-            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
+            Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -198,7 +198,7 @@ namespace SAM.Analytical
 
 
             //CaseDataCollection
-            if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
                 caseDataCollection = [];
             }
@@ -209,12 +209,12 @@ namespace SAM.Analytical
 
             caseDataCollection.Add(new ApertureCaseData(ratios));
 
-            analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+            result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
 
             //CaseDescription
             string caseDescription = string.Empty;
-            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            if (!Core.Query.TryGetValue(result, "CaseDescription", out caseDescription))
             {
                 caseDescription = string.Empty;
             }
@@ -236,7 +236,7 @@ namespace SAM.Analytical
 
             caseDescription = caseDescription + sufix;
 
-            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
+            Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -289,7 +289,7 @@ namespace SAM.Analytical
 
 
             //CaseDataCollection
-            if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
                 caseDataCollection = [];
             }
@@ -300,12 +300,12 @@ namespace SAM.Analytical
 
             caseDataCollection.Add(new ApertureConstructionCaseData(apertureConstruction));
 
-            analyticalModel?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
+            result?.SetValue(AnalyticalModelParameter.CaseDataCollection, caseDataCollection);
 
 
             //CaseDescription
             string caseDescription = string.Empty;
-            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            if (!Core.Query.TryGetValue(result, "CaseDescription", out caseDescription))
             {
                 caseDescription = string.Empty;
             }
@@ -327,7 +327,7 @@ namespace SAM.Analytical
 
             caseDescription = caseDescription + sufix;
 
-            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
+            Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -468,7 +468,7 @@ namespace SAM.Analytical
 
 
             //CaseDataCollection
-            if (!analyticalModel.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
+            if (!result.TryGetValue(AnalyticalModelParameter.CaseDataCollection, out CaseDataCollection caseDataCollection))
             {
                 caseDataCollection = [];
             }
@@ -482,7 +482,7 @@ namespace SAM.Analytical
 
             //CaseDescription
             string caseDescription = string.Empty;
-            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            if (!Core.Query.TryGetValue(result, "CaseDescription", out caseDescription))
             {
                 caseDescription = string.Empty;
             }
@@ -504,7 +504,7 @@ namespace SAM.Analytical
 
             caseDescription = caseDescription + sufix;
 
-            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
+            Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -593,7 +593,7 @@ namespace SAM.Analytical
 
             //CaseDescription
             string caseDescription = string.Empty;
-            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            if (!Core.Query.TryGetValue(result, "CaseDescription", out caseDescription))
             {
                 caseDescription = string.Empty;
             }
@@ -625,7 +625,7 @@ namespace SAM.Analytical
 
             caseDescription = caseDescription + sufix;
 
-            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
+            Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -675,7 +675,7 @@ namespace SAM.Analytical
 
             //CaseDescription
             string caseDescription = string.Empty;
-            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            if (!Core.Query.TryGetValue(result, "CaseDescription", out caseDescription))
             {
                 caseDescription = string.Empty;
             }
@@ -693,7 +693,7 @@ namespace SAM.Analytical
 
             caseDescription = caseDescription + sufix;
 
-            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
+            Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -835,7 +835,7 @@ namespace SAM.Analytical
 
             //CaseDescription
             string caseDescription = string.Empty;
-            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            if (!Core.Query.TryGetValue(result, "CaseDescription", out caseDescription))
             {
                 caseDescription = string.Empty;
             }
@@ -872,7 +872,7 @@ namespace SAM.Analytical
 
             caseDescription = caseDescription + sufix;
 
-            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
+            Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
         }
@@ -912,7 +912,7 @@ namespace SAM.Analytical
 
             //CaseDescription
             string caseDescription = string.Empty;
-            if (!Core.Query.TryGetValue(analyticalModel, "CaseDescription", out caseDescription))
+            if (!Core.Query.TryGetValue(result, "CaseDescription", out caseDescription))
             {
                 caseDescription = string.Empty;
             }
@@ -934,7 +934,7 @@ namespace SAM.Analytical
 
             caseDescription = caseDescription + sufix;
 
-            Core.Modify.SetValue(analyticalModel, "CaseDescription", caseDescription);
+            Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
         }
