@@ -123,7 +123,9 @@ namespace SAM.Analytical
             return result;
         }
 
-        public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel, WindowSizeCase windowSizeCase, IEnumerable<Aperture> apertures)
+        public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel, 
+            WindowSizeCase windowSizeCase, 
+            IEnumerable<Aperture> apertures)
         {
             if(analyticalModel == null || windowSizeCase == null)
             {
@@ -132,7 +134,6 @@ namespace SAM.Analytical
 
             return AnalyticalModel_ByWindowSize(analyticalModel, windowSizeCase.ApertureScaleFactor, apertures);
         }
-
 
         public static AnalyticalModel AnalyticalModel_ByApertureByAzimuths(this AnalyticalModel analyticalModel, 
             Dictionary<Range<double>, Tuple<double, ApertureConstruction>> intervalRatioMap, 
@@ -342,6 +343,18 @@ namespace SAM.Analytical
             Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
+        }
+
+        public static AnalyticalModel AnalyticalModel_ByApertureConstruction(this AnalyticalModel analyticalModel,
+            ApertureConstructionCase apertureConstructionCase,
+            IEnumerable<Aperture> apertures = null)
+        {
+            if (analyticalModel is null || apertureConstructionCase == null)
+            {
+                return null;
+            }
+
+            return AnalyticalModel_ByApertureConstruction(analyticalModel, apertureConstructionCase.ApertureConstruction, apertures);
         }
 
         public static AnalyticalModel AnalyticalModel_ByOpening(this AnalyticalModel analyticalModel, 
@@ -640,6 +653,29 @@ namespace SAM.Analytical
             Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
+        }
+
+        public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 
+            ShadeCase shadeCase,
+            IEnumerable<IAnalyticalObject> analyticalObjects = null)
+        {
+            if(analyticalModel is null || shadeCase is null)
+            {
+                return null;
+            }
+
+            return AnalyticalModel_ByShade(analyticalModel,
+                shadeCase.GlassPartOnly,
+                shadeCase.OverhangDepth,
+                shadeCase.OverhangVerticalOffset,
+                shadeCase.OverhangFrontOffset,
+                shadeCase.LeftFinDepth,
+                shadeCase.LeftFinOffset,
+                shadeCase.LeftFinFrontOffset,
+                shadeCase.RightFinDepth,
+                shadeCase.RightFinOffset,
+                shadeCase.RightFinFrontOffset,
+                analyticalObjects);
         }
 
         public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 
