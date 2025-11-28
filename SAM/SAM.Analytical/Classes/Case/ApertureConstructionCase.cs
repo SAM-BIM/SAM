@@ -5,11 +5,13 @@ namespace SAM.Analytical.Classes
     public class ApertureConstructionCase : Case
     {
         private ApertureConstruction apertureConstruction;
+        private CaseSelection caseSelection;
 
-        public ApertureConstructionCase(ApertureConstruction apertureConstruction)
+        public ApertureConstructionCase(ApertureConstruction apertureConstruction, CaseSelection caseSelection)
             : base()
         {
             this.apertureConstruction = apertureConstruction;
+            this.caseSelection = caseSelection;
         }
 
         public ApertureConstructionCase(ApertureConstructionCase apertureConstructionCase)
@@ -18,6 +20,7 @@ namespace SAM.Analytical.Classes
             if (apertureConstructionCase != null)
             {
                 apertureConstruction = apertureConstructionCase.apertureConstruction;
+                caseSelection = apertureConstructionCase.caseSelection;
             }
         }
 
@@ -40,7 +43,21 @@ namespace SAM.Analytical.Classes
                 OnPropertyChanged(nameof(ApertureConstruction));
             }
         }
-        
+
+        public CaseSelection CaseSelection
+        {
+            get
+            {
+                return caseSelection;
+            }
+
+            set
+            {
+                caseSelection = value;
+                OnPropertyChanged(nameof(CaseSelection));
+            }
+        }
+
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
@@ -52,6 +69,11 @@ namespace SAM.Analytical.Classes
             if (jObject.ContainsKey("ApertureConstruction"))
             {
                 apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(jObject.Value<JObject>("ApertureConstruction"));
+            }
+
+            if (jObject.ContainsKey("CaseSelection"))
+            {
+                caseSelection = Core.Query.IJSAMObject<CaseSelection>(jObject.Value<JObject>("CaseSelection"));
             }
 
             return true;
@@ -68,6 +90,11 @@ namespace SAM.Analytical.Classes
             if (apertureConstruction != null)
             {
                 result.Add("ApertureConstruction", apertureConstruction.ToJObject());
+            }
+
+            if (caseSelection != null)
+            {
+                result.Add("CaseSelection", caseSelection.ToJObject());
             }
 
             return result;

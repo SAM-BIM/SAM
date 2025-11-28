@@ -5,11 +5,13 @@ namespace SAM.Analytical.Classes
     public class WindowSizeCase : Case
     {
         private double apertureScaleFactor;
+        private CaseSelection caseSelection;
 
-        public WindowSizeCase(double apertureScaleFactor)
+        public WindowSizeCase(double apertureScaleFactor, CaseSelection caseSelection)
             : base()
         {
             this.apertureScaleFactor = apertureScaleFactor;
+            this.caseSelection = caseSelection;
         }
 
         public WindowSizeCase(JObject jObject)
@@ -24,6 +26,7 @@ namespace SAM.Analytical.Classes
             if(windowSizeCase is not null)
             {
                 apertureScaleFactor = windowSizeCase.apertureScaleFactor;
+                caseSelection = windowSizeCase.caseSelection;
             }
         }
 
@@ -40,7 +43,21 @@ namespace SAM.Analytical.Classes
                 OnPropertyChanged(nameof(ApertureScaleFactor));
             }
         }
-        
+
+        public CaseSelection CaseSelection
+        {
+            get
+            {
+                return caseSelection;
+            }
+
+            set
+            {
+                caseSelection = value;
+                OnPropertyChanged(nameof(CaseSelection));
+            }
+        }
+
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
@@ -52,6 +69,11 @@ namespace SAM.Analytical.Classes
             if (jObject.ContainsKey("ApertureScaleFactor"))
             {
                 apertureScaleFactor = jObject.Value<double>("ApertureScaleFactor");
+            }
+
+            if (jObject.ContainsKey("CaseSelection"))
+            {
+                caseSelection = Core.Query.IJSAMObject<CaseSelection>(jObject.Value<JObject>("CaseSelection"));
             }
 
             return true;
@@ -68,6 +90,11 @@ namespace SAM.Analytical.Classes
             if (!double.IsNaN(apertureScaleFactor))
             {
                 result.Add("ApertureScaleFactor", apertureScaleFactor);
+            }
+
+            if (caseSelection != null)
+            {
+                result.Add("CaseSelection", caseSelection.ToJObject());
             }
 
             return result;

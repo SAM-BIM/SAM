@@ -14,7 +14,9 @@ namespace SAM.Analytical.Classes
         private double rightFinDepth;
         private double rightFinFrontOffset;
         private double rightFinOffset;
-        public ShadeCase(bool glassPartOnly, double overhangDepth, double overhangVerticalOffset, double overhangFrontOffset, double leftFinDepth, double leftFinOffset, double leftFinFrontOffset, double rightFinDepth, double rightFinOffset, double rightFinFrontOffset)
+        private CaseSelection caseSelection;
+
+        public ShadeCase(bool glassPartOnly, double overhangDepth, double overhangVerticalOffset, double overhangFrontOffset, double leftFinDepth, double leftFinOffset, double leftFinFrontOffset, double rightFinDepth, double rightFinOffset, double rightFinFrontOffset, CaseSelection caseSelection)
             : base()
         {
             this.glassPartOnly = glassPartOnly;
@@ -27,6 +29,7 @@ namespace SAM.Analytical.Classes
             this.rightFinDepth = rightFinDepth;
             this.rightFinOffset = rightFinOffset;
             this.rightFinFrontOffset = rightFinFrontOffset;
+            this.caseSelection = caseSelection;
         }
 
         public ShadeCase(JObject jObject)
@@ -50,6 +53,7 @@ namespace SAM.Analytical.Classes
                 rightFinDepth = shadeCase.rightFinDepth;
                 rightFinOffset = shadeCase.rightFinOffset;
                 rightFinFrontOffset = shadeCase.rightFinFrontOffset;
+                caseSelection = shadeCase.caseSelection;
             }
         }
 
@@ -192,7 +196,21 @@ namespace SAM.Analytical.Classes
                 OnPropertyChanged(nameof(RightFinOffset));
             }
         }
-        
+
+        public CaseSelection CaseSelection
+        {
+            get
+            {
+                return caseSelection;
+            }
+
+            set
+            {
+                caseSelection = value;
+                OnPropertyChanged(nameof(CaseSelection));
+            }
+        }
+
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
@@ -251,6 +269,11 @@ namespace SAM.Analytical.Classes
                 rightFinFrontOffset = jObject.Value<double>("RightFinFrontOffset");
             }
 
+            if (jObject.ContainsKey("CaseSelection"))
+            {
+                caseSelection = Core.Query.IJSAMObject<CaseSelection>(jObject.Value<JObject>("CaseSelection"));
+            }
+
             return true;
         }
 
@@ -307,6 +330,11 @@ namespace SAM.Analytical.Classes
             if (!double.IsNaN(rightFinFrontOffset))
             {
                 result.Add("RightFinFrontOffset", rightFinFrontOffset);
+            }
+
+            if (caseSelection != null)
+            {
+                result.Add("CaseSelection", caseSelection.ToJObject());
             }
 
             return result;

@@ -124,15 +124,14 @@ namespace SAM.Analytical
         }
 
         public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel, 
-            WindowSizeCase windowSizeCase, 
-            IEnumerable<Aperture> apertures)
+            WindowSizeCase windowSizeCase)
         {
             if(analyticalModel == null || windowSizeCase == null)
             {
                 return null;
             }
 
-            return AnalyticalModel_ByWindowSize(analyticalModel, windowSizeCase.ApertureScaleFactor, apertures);
+            return AnalyticalModel_ByWindowSize(analyticalModel, windowSizeCase.ApertureScaleFactor);
         }
 
         public static AnalyticalModel AnalyticalModel_ByApertureByAzimuths(this AnalyticalModel analyticalModel, 
@@ -346,15 +345,14 @@ namespace SAM.Analytical
         }
 
         public static AnalyticalModel AnalyticalModel_ByApertureConstruction(this AnalyticalModel analyticalModel,
-            ApertureConstructionCase apertureConstructionCase,
-            IEnumerable<Aperture> apertures = null)
+            ApertureConstructionCase apertureConstructionCase)
         {
             if (analyticalModel is null || apertureConstructionCase == null)
             {
                 return null;
             }
 
-            return AnalyticalModel_ByApertureConstruction(analyticalModel, apertureConstructionCase.ApertureConstruction, apertures);
+            return AnalyticalModel_ByApertureConstruction(analyticalModel, apertureConstructionCase.ApertureConstruction, apertureConstructionCase.CaseSelection?.IJSAMObjects<Aperture>(analyticalModel));
         }
 
         public static AnalyticalModel AnalyticalModel_ByOpening(this AnalyticalModel analyticalModel, 
@@ -656,8 +654,7 @@ namespace SAM.Analytical
         }
 
         public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 
-            ShadeCase shadeCase,
-            IEnumerable<IAnalyticalObject> analyticalObjects = null)
+            ShadeCase shadeCase)
         {
             if(analyticalModel is null || shadeCase is null)
             {
@@ -675,7 +672,7 @@ namespace SAM.Analytical
                 shadeCase.RightFinDepth,
                 shadeCase.RightFinOffset,
                 shadeCase.RightFinFrontOffset,
-                analyticalObjects);
+                shadeCase.CaseSelection?.IJSAMObjects<IAnalyticalObject>(analyticalModel));
         }
 
         public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 
