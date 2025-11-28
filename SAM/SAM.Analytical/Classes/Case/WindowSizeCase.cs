@@ -18,6 +18,15 @@ namespace SAM.Analytical.Classes
 
         }
 
+        public WindowSizeCase(WindowSizeCase windowSizeCase)
+            : base(windowSizeCase)
+        {
+            if(windowSizeCase is not null)
+            {
+                apertureScaleFactor = windowSizeCase.apertureScaleFactor;
+            }
+        }
+
         public double ApertureScaleFactor
         {
             get

@@ -5,16 +5,15 @@ namespace SAM.Analytical.Classes
     public class ShadeCase : Case
     {
         private bool glassPartOnly;
-        private double overhangDepth;
-        private double overhangVerticalOffset;
-        private double overhangFrontOffset;
         private double leftFinDepth;
-        private double leftFinOffset;
         private double leftFinFrontOffset;
+        private double leftFinOffset;
+        private double overhangDepth;
+        private double overhangFrontOffset;
+        private double overhangVerticalOffset;
         private double rightFinDepth;
-        private double rightFinOffset;
         private double rightFinFrontOffset;
-
+        private double rightFinOffset;
         public ShadeCase(bool glassPartOnly, double overhangDepth, double overhangVerticalOffset, double overhangFrontOffset, double leftFinDepth, double leftFinOffset, double leftFinFrontOffset, double rightFinDepth, double rightFinOffset, double rightFinFrontOffset)
             : base()
         {
@@ -36,6 +35,24 @@ namespace SAM.Analytical.Classes
 
         }
 
+        public ShadeCase(ShadeCase shadeCase)
+            : base(shadeCase)
+        {
+            if(shadeCase != null)
+            {
+                glassPartOnly = shadeCase.glassPartOnly;
+                overhangDepth = shadeCase.overhangDepth;
+                overhangVerticalOffset = shadeCase.overhangVerticalOffset;
+                overhangFrontOffset = shadeCase.overhangFrontOffset;
+                leftFinDepth = shadeCase.leftFinDepth;
+                leftFinOffset = shadeCase.leftFinOffset;
+                leftFinFrontOffset = shadeCase.leftFinFrontOffset;
+                rightFinDepth = shadeCase.rightFinDepth;
+                rightFinOffset = shadeCase.rightFinOffset;
+                rightFinFrontOffset = shadeCase.rightFinFrontOffset;
+            }
+        }
+
         public bool GlassPartOnly
         {
             get
@@ -47,48 +64,6 @@ namespace SAM.Analytical.Classes
             {
                 glassPartOnly = value;
                 OnPropertyChanged(nameof(GlassPartOnly));
-            }
-        }
-
-        public double OverhangDepth
-        {
-            get
-            {
-                return overhangDepth;
-            }
-
-            set
-            {
-                overhangDepth = value;
-                OnPropertyChanged(nameof(OverhangDepth));
-            }
-        }
-
-        public double OverhangVerticalOffset
-        {
-            get
-            {
-                return overhangVerticalOffset;
-            }
-
-            set
-            {
-                overhangVerticalOffset = value;
-                OnPropertyChanged(nameof(OverhangVerticalOffset));
-            }
-        }
-
-        public double OverhangFrontOffset
-        {
-            get
-            {
-                return overhangFrontOffset;
-            }
-
-            set
-            {
-                overhangFrontOffset = value;
-                OnPropertyChanged(nameof(OverhangFrontOffset));
             }
         }
 
@@ -106,20 +81,6 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        public double LeftFinOffset
-        {
-            get
-            {
-                return leftFinOffset;
-            }
-
-            set
-            {
-                leftFinOffset = value;
-                OnPropertyChanged(nameof(LeftFinOffset));
-            }
-        }
-
         public double LeftFinFrontOffset
         {
             get
@@ -134,6 +95,62 @@ namespace SAM.Analytical.Classes
             }
         }
 
+        public double LeftFinOffset
+        {
+            get
+            {
+                return leftFinOffset;
+            }
+
+            set
+            {
+                leftFinOffset = value;
+                OnPropertyChanged(nameof(LeftFinOffset));
+            }
+        }
+
+        public double OverhangDepth
+        {
+            get
+            {
+                return overhangDepth;
+            }
+
+            set
+            {
+                overhangDepth = value;
+                OnPropertyChanged(nameof(OverhangDepth));
+            }
+        }
+
+        public double OverhangFrontOffset
+        {
+            get
+            {
+                return overhangFrontOffset;
+            }
+
+            set
+            {
+                overhangFrontOffset = value;
+                OnPropertyChanged(nameof(OverhangFrontOffset));
+            }
+        }
+
+        public double OverhangVerticalOffset
+        {
+            get
+            {
+                return overhangVerticalOffset;
+            }
+
+            set
+            {
+                overhangVerticalOffset = value;
+                OnPropertyChanged(nameof(OverhangVerticalOffset));
+            }
+        }
+        
         public double RightFinDepth
         {
             get
@@ -145,20 +162,6 @@ namespace SAM.Analytical.Classes
             {
                 rightFinDepth = value;
                 OnPropertyChanged(nameof(RightFinDepth));
-            }
-        }
-
-        public double RightFinOffset
-        {
-            get
-            {
-                return rightFinOffset;
-            }
-
-            set
-            {
-                rightFinOffset = value;
-                OnPropertyChanged(nameof(RightFinOffset));
             }
         }
 
@@ -176,6 +179,20 @@ namespace SAM.Analytical.Classes
             }
         }
 
+        public double RightFinOffset
+        {
+            get
+            {
+                return rightFinOffset;
+            }
+
+            set
+            {
+                rightFinOffset = value;
+                OnPropertyChanged(nameof(RightFinOffset));
+            }
+        }
+        
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);

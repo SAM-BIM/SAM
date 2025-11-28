@@ -13,6 +13,15 @@ namespace SAM.Analytical.Classes
             this.weatherData = weatherData;
         }
 
+        public WeatherDataCase(WeatherDataCase weatherDataCase)
+            : base(weatherDataCase)
+        {
+            if(weatherDataCase != null)
+            {
+                weatherData = weatherDataCase.weatherData;
+            }
+        }
+
         public WeatherDataCase(JObject jObject)
             : base(jObject)
         {

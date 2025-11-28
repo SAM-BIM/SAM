@@ -13,6 +13,11 @@ namespace SAM.Analytical.Classes
             
         }
 
+        public Case(Case @case)
+        {
+
+        }
+
         public Case(JObject jObject)
         {
             FromJObject(jObject);

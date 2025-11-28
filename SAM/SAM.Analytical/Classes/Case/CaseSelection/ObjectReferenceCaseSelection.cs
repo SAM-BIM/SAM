@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace SAM.Analytical.Classes
 {
-    public abstract class ObjectReferenceCaseSelection : CaseSelection
+    public class ObjectReferenceCaseSelection : CaseSelection
     {
         private List<ObjectReference> objectReferences;
 
@@ -21,6 +21,14 @@ namespace SAM.Analytical.Classes
         public ObjectReferenceCaseSelection(JObject jObject)
         {
             FromJObject(jObject);
+        }
+
+        public IEnumerable<ObjectReference> ObjectReferences
+        {
+            get 
+            { 
+                return objectReferences; 
+            }
         }
 
         public override bool FromJObject(JObject jObject)

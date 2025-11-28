@@ -12,6 +12,15 @@ namespace SAM.Analytical.Classes
             this.apertureConstruction = apertureConstruction;
         }
 
+        public ApertureConstructionCase(ApertureConstructionCase apertureConstructionCase)
+            : base(apertureConstructionCase)
+        {
+            if (apertureConstructionCase != null)
+            {
+                apertureConstruction = apertureConstructionCase.apertureConstruction;
+            }
+        }
+
         public ApertureConstructionCase(JObject jObject)
             : base(jObject)
         {

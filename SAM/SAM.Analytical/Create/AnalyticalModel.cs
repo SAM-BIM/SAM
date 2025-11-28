@@ -925,6 +925,25 @@ namespace SAM.Analytical
             return result;
         }
 
+
+        public static AnalyticalModel AnalyticalModel_ByVentilation(this AnalyticalModel analyticalModel,
+            VentilationCase ventilationCase)
+        {
+            if (analyticalModel is null || ventilationCase is null)
+            {
+                return null;
+            }
+
+            return AnalyticalModel_ByVentilation(analyticalModel,
+                ventilationCase.Function,
+                ventilationCase.ACH,
+                ventilationCase.M3h,
+                ventilationCase.Factor,
+                ventilationCase.Setback,
+                ventilationCase.Description,
+                ventilationCase.CaseSelection?.IJSAMObjects<IAnalyticalObject>(analyticalModel));
+        }
+
         public static AnalyticalModel AnalyticalModel_ByWeatherData(this AnalyticalModel analyticalModel, 
             WeatherData weatherData)
         {
