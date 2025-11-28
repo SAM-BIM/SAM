@@ -1,0 +1,36 @@
+﻿using Newtonsoft.Json.Linq;
+using SAM.Core;
+using SAM.Weather;
+using System.Collections.Generic;
+
+namespace SAM.Analytical.Classes
+{
+    public class ApertureCaseSelection : SAMObjectCaseSelection<Aperture>
+    {
+        public ApertureCaseSelection()
+            : base()
+        {
+        }
+        
+        public ApertureCaseSelection(IEnumerable<Aperture> apertures)
+            : base(apertures)
+        {
+        }
+        
+        public ApertureCaseSelection(JObject jObject)
+            : base(jObject)
+        {
+        }
+
+        public override JObject ToJObject() 
+        { 
+            return base.ToJObject();
+        }
+
+        public override bool FromJObject(JObject jObject) 
+        { 
+            return base.FromJObject(jObject);
+        }
+
+    }
+}

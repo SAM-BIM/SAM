@@ -24,6 +24,14 @@ namespace SAM.Analytical.Classes
             FromJObject(jObject);
         }
 
+        public List<TJSAMObject> Objects
+        {
+            get
+            {
+                return objects;
+            }
+        }
+
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
@@ -78,5 +86,34 @@ namespace SAM.Analytical.Classes
 
             return result;
         }
+    }
+
+    public class SAMObjectCaseSelection : SAMObjectCaseSelection<IJSAMObject>
+    {
+        public SAMObjectCaseSelection()
+            : base()
+        {
+        }
+        
+        public SAMObjectCaseSelection(IEnumerable<IJSAMObject> objects)
+            : base(objects)
+        {
+        }
+        
+        public SAMObjectCaseSelection(JObject jObject)
+            : base(jObject)
+        {
+        }
+
+        public override JObject ToJObject() 
+        { 
+            return base.ToJObject();
+        }
+
+        public override bool FromJObject(JObject jObject) 
+        { 
+            return base.FromJObject(jObject);
+        }
+
     }
 }

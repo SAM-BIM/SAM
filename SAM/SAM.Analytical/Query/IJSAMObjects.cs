@@ -8,15 +8,19 @@ namespace SAM.Analytical
     {
         public static List<TJSAMObject> IJSAMObjects<TJSAMObject>(this CaseSelection caseSelection, AnalyticalModel analyticalModel) where TJSAMObject : IJSAMObject
         {
-            if(caseSelection is null || analyticalModel is null)
+            if (caseSelection is null || analyticalModel is null)
             {
                 return null;
             }
 
 
-            if(caseSelection is ObjectReferenceCaseSelection objectReferenceCaseSelection)
+            if (caseSelection is ObjectReferenceCaseSelection objectReferenceCaseSelection)
             {
                 return IJSAMObjects<TJSAMObject>(objectReferenceCaseSelection, analyticalModel);
+            }
+            else if (caseSelection is SAMObjectCaseSelection sAMObjectCaseSelection)
+            {
+
             }
 
             throw new System.NotImplementedException();
@@ -46,6 +50,56 @@ namespace SAM.Analytical
                 }
 
                 result.Add(jSAMObject);
+            }
+
+            return result;
+        }
+
+        public static List<TJSAMObject> IJSAMObjects<TJSAMObject>(this SAMObjectCaseSelection sAMObjectCaseSelection, AnalyticalModel analyticalModel) where TJSAMObject : IJSAMObject
+        {
+            if (sAMObjectCaseSelection is null || analyticalModel is null)
+            {
+                return null;
+            }
+
+            List<TJSAMObject> result = [];
+
+            if (sAMObjectCaseSelection.Objects is not IEnumerable<IJSAMObject> sAMObjects)
+            {
+                return result;
+            }
+
+            foreach (IJSAMObject jSAMObject in sAMObjects)
+            {
+                if(jSAMObject is TJSAMObject jSAMObject_Temp)
+                {
+                    result.Add(jSAMObject_Temp);
+                }
+            }
+
+            return result;
+        }
+
+        public static List<TJSAMObject> IJSAMObjects<TJSAMObject>(this ApertureCaseSelection apertureCaseSelection, AnalyticalModel analyticalModel) where TJSAMObject : IJSAMObject
+        {
+            if (apertureCaseSelection is null || analyticalModel is null)
+            {
+                return null;
+            }
+
+            List<TJSAMObject> result = [];
+
+            if (apertureCaseSelection.Objects is not IEnumerable<Aperture> apertures)
+            {
+                return result;
+            }
+
+            foreach (Aperture aperture in apertures)
+            {
+                if (aperture is TJSAMObject jSAMObject_Temp)
+                {
+                    result.Add(jSAMObject_Temp);
+                }
             }
 
             return result;
