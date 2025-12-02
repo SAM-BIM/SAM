@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using SAM.Core;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -11,7 +12,7 @@ namespace SAM.Analytical.Classes
 
         public Cases()
         {
-            
+
         }
 
         public Cases(IEnumerable<Case> cases)
@@ -22,6 +23,26 @@ namespace SAM.Analytical.Classes
         public Cases(JObject jObject)
         {
             FromJObject(jObject);
+        }
+
+        public Type BaseType
+        {
+            get
+            {
+                if (values == null || values.Count == 0)
+                {
+                    return null;
+                }
+
+                Type type = values[0].GetType();
+
+                if (values.TrueForAll(x => x.GetType() == type))
+                {
+                    return type;
+                }
+
+                return null;
+            }
         }
 
         public int Count
@@ -77,7 +98,7 @@ namespace SAM.Analytical.Classes
             if (jObject.ContainsKey("Values"))
             {
                 JArray jArray = jObject.Value<JArray>("Values");
-                if(jArray != null)
+                if (jArray != null)
                 {
                     values = [];
                     foreach (JObject jObject_Temp in jArray)
@@ -114,9 +135,9 @@ namespace SAM.Analytical.Classes
             if (values != null)
             {
                 JArray jArray = [];
-                foreach(Case value in values)
+                foreach (Case value in values)
                 {
-                    if(value?.ToJObject() is JObject jObject_Temp)
+                    if (value?.ToJObject() is JObject jObject_Temp)
                     {
                         jArray.Add(jObject_Temp);
                     }
