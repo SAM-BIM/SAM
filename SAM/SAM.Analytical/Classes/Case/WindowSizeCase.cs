@@ -4,8 +4,18 @@ namespace SAM.Analytical.Classes
 {
     public class WindowSizeCase : Case
     {
-        private double apertureScaleFactor;
+        private double apertureScaleFactor = 0.8;
         private CaseSelection caseSelection;
+
+        public WindowSizeCase()
+        {
+
+        }
+
+        public WindowSizeCase(double apertureScaleFactor)
+        {
+            this.apertureScaleFactor = apertureScaleFactor; 
+        }
 
         public WindowSizeCase(double apertureScaleFactor, CaseSelection caseSelection)
             : base()

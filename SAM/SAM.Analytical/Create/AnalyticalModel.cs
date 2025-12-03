@@ -9,6 +9,42 @@ namespace SAM.Analytical
 {
     public static partial class Create
     {
+        public static AnalyticalModel AnalyticalModel(this AnalyticalModel analyticalModel, 
+            Case @case)
+        {
+            if(analyticalModel == null || @case == null)
+            {
+                return null;
+            }
+
+            if(@case is WindowSizeCase windowSizeCase)
+            {
+                return AnalyticalModel_ByWindowSize(analyticalModel, windowSizeCase);
+            }
+
+            if (@case is ApertureConstructionCase apertureConstructionCase)
+            {
+                return AnalyticalModel_ByApertureConstruction(analyticalModel, apertureConstructionCase);
+            }
+
+            if (@case is ShadeCase shadeCase)
+            {
+                return AnalyticalModel_ByShade(analyticalModel, shadeCase);
+            }
+
+            if (@case is VentilationCase ventilationCase)
+            {
+                return AnalyticalModel_ByVentilation(analyticalModel, ventilationCase);
+            }
+
+            if (@case is WeatherDataCase weatherDataCase)
+            {
+                return AnalyticalModel_ByWeatherData(analyticalModel, weatherDataCase);
+            }
+
+            throw new NotImplementedException();
+        }
+
         public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel, 
             double apertureScaleFactor, 
             IEnumerable<Aperture> apertures = null)

@@ -117,6 +117,25 @@ namespace SAM.Analytical.Classes
             return true;
         }
 
+        public List<TCase> GetCases<TCase>()
+        {
+            if (values is null)
+            {
+                return null;
+            }
+
+            List<TCase> result = [];
+            foreach (Case @case in values)
+            {
+                if (@case is TCase case_Temp)
+                {
+                    result.Add(case_Temp);
+                }
+            }
+
+            return result;
+        }
+
         public IEnumerator<Case> GetEnumerator()
         {
             return values.GetEnumerator();
