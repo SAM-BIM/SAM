@@ -2,7 +2,7 @@
 using SAM.Core;
 using System.ComponentModel;
 
-namespace SAM.Analytical.Classes
+namespace SAM.Analytical
 {
     public abstract class CaseSelection : IJSAMObject, IAnalyticalObject, INotifyPropertyChanged
     {

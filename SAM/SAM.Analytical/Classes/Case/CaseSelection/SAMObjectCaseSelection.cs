@@ -3,7 +3,7 @@ using SAM.Core;
 using SAM.Weather;
 using System.Collections.Generic;
 
-namespace SAM.Analytical.Classes
+namespace SAM.Analytical
 {
     public abstract class SAMObjectCaseSelection<TJSAMObject> : CaseSelection where TJSAMObject : IJSAMObject
     {

@@ -3,7 +3,7 @@ using SAM.Core;
 using SAM.Weather;
 using System.Collections.Generic;
 
-namespace SAM.Analytical.Classes
+namespace SAM.Analytical
 {
     public class ApertureCaseSelection : SAMObjectCaseSelection<Aperture>
     {

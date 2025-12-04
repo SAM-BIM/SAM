@@ -1,12 +1,13 @@
 ﻿using Newtonsoft.Json.Linq;
+using SAM.Core;
 
-namespace SAM.Analytical.Classes
+namespace SAM.Analytical
 {
-    public abstract class FilterSelection : CaseSelection
+    public class FilterSelection : CaseSelection
     {
-        private Filter filter;
+        private IFilter filter;
 
-        public FilterSelection(Filter filter)
+        public FilterSelection(IFilter filter)
         {
             this.filter = filter;
         }
@@ -21,7 +22,7 @@ namespace SAM.Analytical.Classes
             FromJObject(jObject);
         }
 
-        public Filter Filter
+        public IFilter Filter
         {
             get 
             { 
@@ -34,7 +35,7 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        public override bool FromJObject(JObject jObject)
         {
             if (jObject == null)
             {
@@ -43,13 +44,13 @@ namespace SAM.Analytical.Classes
 
             if (jObject.ContainsKey("Filter"))
             {
-                filter = Core.Query.IJSAMObject<Filter>(jObject.Value<JObject>("Filter"));
+                filter = Core.Query.IJSAMObject<IFilter>(jObject.Value<JObject>("Filter"));
             }
 
             return true;
         }
 
-        public virtual JObject ToJObject()
+        public override JObject ToJObject()
         {
             JObject result = new JObject();
             result.Add("_type", Core.Query.FullTypeName(this));

@@ -2,7 +2,7 @@
 
 namespace SAM.Analytical.Classes
 {
-    public class ShadeCase : Case
+    public class ShadeCase : Case, ISelectiveCase
     {
         private bool glassPartOnly;
         private double leftFinDepth;

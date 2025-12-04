@@ -167,7 +167,13 @@ namespace SAM.Analytical
                 return null;
             }
 
-            return AnalyticalModel_ByWindowSize(analyticalModel, windowSizeCase.ApertureScaleFactor);
+            List<Aperture> apertures = null;
+            if(windowSizeCase.CaseSelection is CaseSelection caseSelection)
+            {
+                apertures = Query.IJSAMObjects<Aperture>(caseSelection, analyticalModel);
+            }
+
+            return AnalyticalModel_ByWindowSize(analyticalModel, windowSizeCase.ApertureScaleFactor, apertures);
         }
 
         public static AnalyticalModel AnalyticalModel_ByApertureByAzimuths(this AnalyticalModel analyticalModel, 

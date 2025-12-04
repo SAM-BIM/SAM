@@ -2,7 +2,7 @@
 
 namespace SAM.Analytical.Classes
 {
-    public class WindowSizeCase : Case
+    public class WindowSizeCase : Case, ISelectiveCase
     {
         private double apertureScaleFactor = 0.8;
         private CaseSelection caseSelection;

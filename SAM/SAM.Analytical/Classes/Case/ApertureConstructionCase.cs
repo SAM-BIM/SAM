@@ -2,7 +2,7 @@
 
 namespace SAM.Analytical.Classes
 {
-    public class ApertureConstructionCase : Case
+    public class ApertureConstructionCase : Case, ISelectiveCase
     {
         private ApertureConstruction apertureConstruction;
         private CaseSelection caseSelection;

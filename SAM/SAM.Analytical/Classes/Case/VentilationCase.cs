@@ -2,7 +2,7 @@
 
 namespace SAM.Analytical.Classes
 {
-    public class VentilationCase : Case
+    public class VentilationCase : Case, ISelectiveCase
     {
         private double ach;
         private CaseSelection caseSelection;

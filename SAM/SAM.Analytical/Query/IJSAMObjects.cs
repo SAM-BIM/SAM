@@ -22,6 +22,10 @@ namespace SAM.Analytical
             {
 
             }
+            else if (caseSelection is FilterSelection filterSelection)
+            {
+                return IJSAMObjects<TJSAMObject>(filterSelection, analyticalModel);
+            }
 
             throw new System.NotImplementedException();
 

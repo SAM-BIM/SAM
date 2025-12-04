@@ -2,7 +2,7 @@
 using SAM.Core;
 using System.Collections.Generic;
 
-namespace SAM.Analytical.Classes
+namespace SAM.Analytical
 {
     public class ObjectReferenceCaseSelection : CaseSelection
     {
