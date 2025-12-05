@@ -27,9 +27,9 @@ namespace SAM.Analytical
                 return AnalyticalModel_ByApertureConstruction(analyticalModel, apertureConstructionCase);
             }
 
-            if (@case is ShadeCase shadeCase)
+            if (@case is FinShadeCase finShadeCase)
             {
-                return AnalyticalModel_ByShade(analyticalModel, shadeCase);
+                return AnalyticalModel_ByFinShade(analyticalModel, finShadeCase);
             }
 
             if (@case is VentilationCase ventilationCase)
@@ -695,26 +695,26 @@ namespace SAM.Analytical
             return result;
         }
 
-        public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 
-            ShadeCase shadeCase)
+        public static AnalyticalModel AnalyticalModel_ByFinShade(this AnalyticalModel analyticalModel, 
+            FinShadeCase finShadeCase)
         {
-            if(analyticalModel is null || shadeCase is null)
+            if(analyticalModel is null || finShadeCase is null)
             {
                 return null;
             }
 
             return AnalyticalModel_ByShade(analyticalModel,
-                shadeCase.GlassPartOnly,
-                shadeCase.OverhangDepth,
-                shadeCase.OverhangVerticalOffset,
-                shadeCase.OverhangFrontOffset,
-                shadeCase.LeftFinDepth,
-                shadeCase.LeftFinOffset,
-                shadeCase.LeftFinFrontOffset,
-                shadeCase.RightFinDepth,
-                shadeCase.RightFinOffset,
-                shadeCase.RightFinFrontOffset,
-                shadeCase.CaseSelection?.IJSAMObjects<IAnalyticalObject>(analyticalModel));
+                finShadeCase.GlassPartOnly,
+                finShadeCase.OverhangDepth,
+                finShadeCase.OverhangVerticalOffset,
+                finShadeCase.OverhangFrontOffset,
+                finShadeCase.LeftFinDepth,
+                finShadeCase.LeftFinOffset,
+                finShadeCase.LeftFinFrontOffset,
+                finShadeCase.RightFinDepth,
+                finShadeCase.RightFinOffset,
+                finShadeCase.RightFinFrontOffset,
+                finShadeCase.CaseSelection?.IJSAMObjects<IAnalyticalObject>(analyticalModel));
         }
 
         public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 

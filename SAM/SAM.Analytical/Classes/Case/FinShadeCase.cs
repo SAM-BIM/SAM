@@ -2,7 +2,7 @@
 
 namespace SAM.Analytical.Classes
 {
-    public class ShadeCase : Case, ISelectiveCase
+    public class FinShadeCase : Case, ISelectiveCase
     {
         private bool glassPartOnly;
         private double leftFinDepth;
@@ -16,7 +16,12 @@ namespace SAM.Analytical.Classes
         private double rightFinOffset;
         private CaseSelection caseSelection;
 
-        public ShadeCase(bool glassPartOnly, double overhangDepth, double overhangVerticalOffset, double overhangFrontOffset, double leftFinDepth, double leftFinOffset, double leftFinFrontOffset, double rightFinDepth, double rightFinOffset, double rightFinFrontOffset, CaseSelection caseSelection)
+        public FinShadeCase()
+        {
+
+        }
+
+        public FinShadeCase(bool glassPartOnly, double overhangDepth, double overhangVerticalOffset, double overhangFrontOffset, double leftFinDepth, double leftFinOffset, double leftFinFrontOffset, double rightFinDepth, double rightFinOffset, double rightFinFrontOffset, CaseSelection caseSelection)
             : base()
         {
             this.glassPartOnly = glassPartOnly;
@@ -32,13 +37,13 @@ namespace SAM.Analytical.Classes
             this.caseSelection = caseSelection;
         }
 
-        public ShadeCase(JObject jObject)
+        public FinShadeCase(JObject jObject)
             : base(jObject)
         {
 
         }
 
-        public ShadeCase(ShadeCase shadeCase)
+        public FinShadeCase(FinShadeCase shadeCase)
             : base(shadeCase)
         {
             if(shadeCase != null)
