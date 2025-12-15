@@ -44,6 +44,14 @@ namespace SAM.Analytical.Classes
             }
         }
 
+        public int Count
+        {
+            get
+            {
+                return apertureToPanelRatios?.Count ?? 0;
+            }
+        }
+
         public virtual bool FromJObject(JObject jObject)
         {
             if (jObject == null)

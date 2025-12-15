@@ -4,19 +4,32 @@ namespace SAM.Analytical.Classes
 {
     public class ApertureCase : Case
     {
-        private ApertureToPanelRatios apertureToPanelRatios;
-        private bool subdivide;
         private double apertureHeight;
-        private double sillHeight;
-        private double horizontalSeparation;
-        private double offset;
-        private bool keepSeparationDistance;
+        private ApertureToPanelRatios apertureToPanelRatios;
         private CaseSelection caseSelection;
-
+        private double horizontalSeparation;
+        private bool keepSeparationDistance;
+        private double offset;
+        private double sillHeight;
+        private bool subdivide;
+        
         public ApertureCase()
             : base()
         {
 
+        }
+
+        public ApertureCase(ApertureToPanelRatios apertureToPanelRatios, bool subdivide, double apertureHeight, double sillHeight, double horizontalSeparation, double offset, bool keepSeparationDistance, CaseSelection caseSelection)
+            : base()
+        {
+            this.apertureToPanelRatios = apertureToPanelRatios == null ? null : new ApertureToPanelRatios(apertureToPanelRatios);
+            this.subdivide = subdivide;
+            this.apertureHeight = apertureHeight;
+            this.sillHeight = sillHeight;
+            this.horizontalSeparation = horizontalSeparation;
+            this.offset = offset;
+            this.keepSeparationDistance = keepSeparationDistance;
+            this.caseSelection = caseSelection;
         }
 
         public ApertureCase(JObject jObject)
@@ -41,6 +54,116 @@ namespace SAM.Analytical.Classes
             }
         }
 
+        public double ApertureHeight
+        {
+            get
+            {
+                return apertureHeight;
+            }
+
+            set
+            {
+                apertureHeight = value;
+                OnPropertyChanged(nameof(ApertureHeight));
+            }
+        }
+
+        public ApertureToPanelRatios ApertureToPanelRatios
+        {
+            get
+            {
+                return apertureToPanelRatios;
+            }
+            set
+            {
+                apertureToPanelRatios = value;
+                OnPropertyChanged(nameof(ApertureToPanelRatios));
+            }
+        }
+
+        public CaseSelection CaseSelection
+        {
+            get
+            {
+                return caseSelection;
+            }
+
+            set
+            {
+                caseSelection = value;
+                OnPropertyChanged(nameof(CaseSelection));
+            }
+        }
+
+        public double HorizontalSeparation
+        {
+            get
+            {
+                return horizontalSeparation;
+            }
+
+            set
+            {
+                horizontalSeparation = value;
+                OnPropertyChanged(nameof(HorizontalSeparation));
+            }
+        }
+
+        public bool KeepSeparationDistance
+        {
+            get
+            {
+                return keepSeparationDistance;
+            }
+
+            set
+            {
+                keepSeparationDistance = value;
+                OnPropertyChanged(nameof(KeepSeparationDistance));
+            }
+        }
+
+        public double Offset
+        {
+            get
+            {
+                return offset;
+            }
+
+            set
+            {
+                offset = value;
+                OnPropertyChanged(nameof(Offset));
+            }
+        }
+
+        public double SillHeight
+        {
+            get
+            {
+                return sillHeight;
+            }
+
+            set
+            {
+                sillHeight = value;
+                OnPropertyChanged(nameof(SillHeight));
+            }
+        }
+
+        public bool Subdivide
+        {
+            get
+            {
+                return subdivide;
+            }
+
+            set
+            {
+                subdivide = value;
+                OnPropertyChanged(nameof(Subdivide));
+            }
+        }
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);

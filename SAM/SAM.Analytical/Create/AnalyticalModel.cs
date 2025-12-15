@@ -42,6 +42,11 @@ namespace SAM.Analytical
                 return AnalyticalModel_ByWeatherData(analyticalModel, weatherDataCase);
             }
 
+            if (@case is ApertureCase apertureCase)
+            {
+                return AnalyticalModel_ByApertureByAzimuths(analyticalModel, apertureCase);
+            }
+
             throw new NotImplementedException();
         }
 
@@ -293,6 +298,37 @@ namespace SAM.Analytical
             Core.Modify.SetValue(result, "CaseDescription", caseDescription);
 
             return result;
+        }
+
+        public static AnalyticalModel AnalyticalModel_ByApertureByAzimuths(this AnalyticalModel analyticalModel,
+            ApertureCase apertureCase)
+        {
+            if (analyticalModel == null)
+            {
+                return null;
+            }
+
+            if (apertureCase == null)
+            {
+                return new AnalyticalModel(analyticalModel);
+            }
+
+            List<Panel> panels = null;
+            if (apertureCase.CaseSelection is CaseSelection caseSelection)
+            {
+                panels = Query.IJSAMObjects<Panel>(caseSelection, analyticalModel);
+            }
+
+
+            return AnalyticalModel_ByApertureByAzimuths(analyticalModel,
+                Convert.ToDictionary(apertureCase.ApertureToPanelRatios),
+                apertureCase.Subdivide,
+                apertureCase.ApertureHeight,
+                apertureCase.SillHeight,
+                apertureCase.HorizontalSeparation,
+                apertureCase.Offset,
+                apertureCase.KeepSeparationDistance,
+                panels);
         }
 
         public static AnalyticalModel AnalyticalModel_ByApertureConstruction(this AnalyticalModel analyticalModel, 
