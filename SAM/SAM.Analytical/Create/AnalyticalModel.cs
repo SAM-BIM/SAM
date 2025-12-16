@@ -217,7 +217,7 @@ namespace SAM.Analytical
 
             HashSet<double> ratios = [];
 
-            foreach (Panel panel in panels)
+            foreach (Panel panel in panels_Temp)
             {
                 if (panel.PanelType != PanelType.WallExternal)
                 {

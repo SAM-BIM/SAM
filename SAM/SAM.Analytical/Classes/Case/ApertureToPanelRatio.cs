@@ -9,10 +9,10 @@ namespace SAM.Analytical.Classes
 {
     public class ApertureToPanelRatio : IJSAMObject
     {
+        private ApertureConstruction apertureConstruction;
         private Range<double> azimuthRange;
         private double ratio;
-        private ApertureConstruction apertureConstruction;
-
+        
         public ApertureToPanelRatio(Range<double> azimuthRange, double ratio, ApertureConstruction apertureConstruction)
         {
             this.azimuthRange = azimuthRange;
@@ -35,11 +35,82 @@ namespace SAM.Analytical.Classes
             }
         }
 
+        public ApertureConstruction ApertureConstruction
+        {
+            get
+            {
+                return apertureConstruction;
+            }
+
+            set
+            {
+                apertureConstruction = value;
+            }
+        }
+
+        public string ApertureConstructionName
+        {
+            get
+            {
+                return apertureConstruction?.Name;
+            }
+        }
+
         public Range<double> AzimuthRange
         {
             get
             {
                 return azimuthRange;
+            }
+        }
+
+        public double Max
+        {
+            get
+            {
+                if (azimuthRange is null)
+                {
+                    azimuthRange = new Range<double>(0.0, 0.0);
+                }
+
+                return azimuthRange.Max;
+            }
+
+            set
+            {
+                if (azimuthRange is null)
+                {
+                    azimuthRange = new Range<double>(value, value);
+                }
+                else
+                {
+                    azimuthRange = new Range<double>(azimuthRange.Min, value);
+                }
+            }
+        }
+
+        public double Min
+        {
+            get
+            {
+                if(azimuthRange is null)
+                {
+                    azimuthRange = new Range<double>(0.0, 0.0);
+                }
+
+                return azimuthRange.Min;
+            }
+
+            set
+            {
+                if (azimuthRange is null)
+                {
+                    azimuthRange = new Range<double>(value, value);
+                }
+                else
+                {
+                    azimuthRange = new Range<double>(value, azimuthRange.Max);
+                }
             }
         }
         
@@ -49,16 +120,13 @@ namespace SAM.Analytical.Classes
             {
                 return ratio;
             }
-        }
-        
-        public ApertureConstruction ApertureConstruction
-        {
-            get
+
+            set
             {
-                return apertureConstruction;
+                ratio = value;
             }
         }
-
+        
         public virtual bool FromJObject(JObject jObject)
         {
             if (jObject == null)

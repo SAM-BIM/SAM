@@ -164,6 +164,7 @@ namespace SAM.Analytical.Classes
                 OnPropertyChanged(nameof(Subdivide));
             }
         }
+        
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
