@@ -1084,7 +1084,7 @@ namespace SAM.Analytical
         public static AnalyticalModel AnalyticalModel_ByWeatherData(this AnalyticalModel analyticalModel, 
             WeatherDataCase weatherDataCase)
         {
-            if(analyticalModel != null && weatherDataCase != null)
+            if(analyticalModel == null || weatherDataCase == null)
             {
                 return null;
             }
