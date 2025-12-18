@@ -648,7 +648,7 @@ namespace SAM.Analytical
 
             adjacencyCluster = new AdjacencyCluster(adjacencyCluster, true);
 
-            foreach (IAnalyticalObject analyticalObject in analyticalObjects)
+            foreach (IAnalyticalObject analyticalObject in analyticalObjects_Temp)
             {
                 List<Panel> shades = null;
                 if (analyticalObject is Panel panel)
