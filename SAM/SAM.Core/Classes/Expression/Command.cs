@@ -1,4 +1,7 @@
-﻿//'SAM' + SAM.Core.Revit.Query.ParameterNamePrefix($Object_1) + '_PeakDate'
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
+
+//'SAM' + SAM.Core.Revit.Query.ParameterNamePrefix($Object_1) + '_PeakDate'
 //2 + 50 + SAM.Core.Revit.Query.Number($Object_1) + $Object_2
 //(2 + 50) / $Object_2
 //(2 + 10) < $Object_2
