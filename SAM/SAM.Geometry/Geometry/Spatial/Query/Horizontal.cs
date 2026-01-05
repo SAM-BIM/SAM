@@ -13,7 +13,7 @@
         public static bool Horizontal(this IClosedPlanar3D closedPlanar3D, double tolerance = Core.Tolerance.Distance)
         {
             Plane plane = closedPlanar3D?.GetPlane();
-            if(plane == null)
+            if (plane == null)
             {
                 return false;
             }

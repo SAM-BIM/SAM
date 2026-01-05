@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 namespace SAM.Core.Grasshopper
 {
-    public class GooDelimitedFileTable: GH_Goo<DelimitedFileTable>
+    public class GooDelimitedFileTable : GH_Goo<DelimitedFileTable>
     {
         public GooDelimitedFileTable()
             : base()
@@ -75,12 +75,12 @@ namespace SAM.Core.Grasshopper
 
         public override bool CastTo<Q>(ref Q target)
         {
-            if(typeof(Q).IsAssignableFrom(Value?.GetType()))
+            if (typeof(Q).IsAssignableFrom(Value?.GetType()))
             {
                 target = (Q)(object)Value;
                 return true;
             }
-            
+
             return base.CastTo(ref target);
         }
     }

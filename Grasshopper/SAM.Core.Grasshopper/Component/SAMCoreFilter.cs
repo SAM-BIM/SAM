@@ -41,7 +41,7 @@ namespace SAM.Core.Grasshopper
         protected override void RegisterInputParams(GH_InputParamManager inputParamManager)
         {
             int index;
-            
+
             inputParamManager.AddGenericParameter("_objects", "_objects", "Objects", GH_ParamAccess.list);
             inputParamManager.AddTextParameter("_name", "_name", "Name", GH_ParamAccess.item, "Name");
             inputParamManager.AddGenericParameter("_value", "_value", "Value to Filter elements", GH_ParamAccess.item);
@@ -121,18 +121,18 @@ namespace SAM.Core.Grasshopper
             if (value is IGH_Goo)
                 value = (objectWrapper.Value as dynamic).Value;
 
-            
+
             objectWrapper = null;
             dataAccess.GetData(3, ref objectWrapper);
             object object_ComparisonType = null;
-            if(objectWrapper?.Value == null)
+            if (objectWrapper?.Value == null)
             {
                 if (Core.Query.IsNumeric(value))
                     object_ComparisonType = NumberComparisonType.Equals;
                 else
                     object_ComparisonType = TextComparisonType.Equals;
             }
-            else if(objectWrapper.Value is NumberComparisonType || objectWrapper.Value is TextComparisonType)
+            else if (objectWrapper.Value is NumberComparisonType || objectWrapper.Value is TextComparisonType)
             {
                 object_ComparisonType = objectWrapper.Value;
             }
@@ -151,13 +151,13 @@ namespace SAM.Core.Grasshopper
                     value_Double = (double)value;
                 else if (Core.Query.IsNumeric(value))
                     value_Double = System.Convert.ToDouble(value);
-                else if(value is string)
+                else if (value is string)
                 {
                     if (!double.TryParse((string)value, out value_Double))
                         value_Double = double.NaN;
                 }
 
-                if(!double.IsNaN(value_Double))
+                if (!double.IsNaN(value_Double))
                 {
                     foreach (object @object in objects)
                     {
@@ -168,7 +168,7 @@ namespace SAM.Core.Grasshopper
                     }
                 }
             }
-            else if(object_ComparisonType is TextComparisonType)
+            else if (object_ComparisonType is TextComparisonType)
             {
                 foreach (object @object in objects)
                 {

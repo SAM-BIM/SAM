@@ -39,13 +39,13 @@ namespace SAM.Core
 
         public static bool Add(this JObject jObject, Tag tag)
         {
-            if(jObject == null || tag == null)
+            if (jObject == null || tag == null)
             {
                 return false;
             }
 
             JObject jObject_Tag = tag.ToJObject();
-            if(jObject_Tag == null)
+            if (jObject_Tag == null)
             {
                 return false;
             }

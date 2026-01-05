@@ -18,7 +18,7 @@ namespace SAM.Core
 
         public SAMCollection(SAMCollection<T> sAMCollection)
         {
-            if(sAMCollection != null)
+            if (sAMCollection != null)
             {
                 name = sAMCollection.name;
                 guid = sAMCollection.guid;
@@ -30,12 +30,12 @@ namespace SAM.Core
                 }
             }
         }
-        
+
         public SAMCollection()
         {
             guid = Guid.NewGuid();
         }
-        
+
         public SAMCollection(T t)
         {
             guid = Guid.NewGuid();
@@ -78,7 +78,7 @@ namespace SAM.Core
             guid = Query.Guid(jObject);
             parameterSets = Create.ParameterSets(jObject.Value<JArray>("ParameterSets"));
 
-            if(jObject.ContainsKey("Collection"))
+            if (jObject.ContainsKey("Collection"))
             {
                 foreach (JObject jObject_Collection in jObject.Value<JArray>("Collection"))
                     Add(Create.IJSAMObject<T>(jObject_Collection));
@@ -91,7 +91,7 @@ namespace SAM.Core
         {
             JObject jObject = new JObject();
             jObject.Add("_type", Query.FullTypeName(this));
-            
+
             if (name != null)
                 jObject.Add("Name", name);
 
@@ -117,13 +117,13 @@ namespace SAM.Core
             get
             {
                 IList<T> items = base.Items;
-                if(items == null)
+                if (items == null)
                 {
                     return null;
                 }
 
                 List<T> result = new List<T>();
-                foreach(T t in items)
+                foreach (T t in items)
                 {
                     T t_temp = t == null ? default : Query.Clone(t);
                     result.Add(t_temp);

@@ -64,7 +64,7 @@ namespace SAM.Geometry.Spatial
                 return false;
             }
 
-            if(Above(plane, boundingBox3D, tolerance))
+            if (Above(plane, boundingBox3D, tolerance))
             {
                 return true;
             }
@@ -74,7 +74,7 @@ namespace SAM.Geometry.Spatial
 
         public static bool Above(this Plane plane, BoundingBox3D boundingBox3D, double tolerance)
         {
-            if(plane == null || boundingBox3D == null)
+            if (plane == null || boundingBox3D == null)
             {
                 return false;
             }

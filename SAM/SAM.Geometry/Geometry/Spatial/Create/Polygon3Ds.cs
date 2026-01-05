@@ -34,7 +34,7 @@ namespace SAM.Geometry.Spatial
                     continue;
 
                 PlanarIntersectionResult planarIntersectionResult = null;
-                if(checkIntersection)
+                if (checkIntersection)
                 {
                     planarIntersectionResult = PlanarIntersectionResult(plane, closedPlanar3D);
                     if (planarIntersectionResult == null || !planarIntersectionResult.Intersecting)
@@ -77,7 +77,7 @@ namespace SAM.Geometry.Spatial
             if (polygon2Ds == null || polygon2Ds.Count == 0)
                 return null;
 
-            if(union)
+            if (union)
             {
                 polygon2Ds = polygon2Ds.Union(tolerance);
             }

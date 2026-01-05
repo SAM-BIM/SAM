@@ -41,7 +41,7 @@
                 return null;
             }
 
-            if(closedPlanar3D is Face3D)
+            if (closedPlanar3D is Face3D)
             {
                 return new Face3D((Face3D)closedPlanar3D);
             }

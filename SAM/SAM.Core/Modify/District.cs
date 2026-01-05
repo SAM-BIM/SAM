@@ -6,16 +6,16 @@ namespace SAM.Core
     {
         public static void District(this List<double> values, double tolerance = Tolerance.Distance)
         {
-            if(values == null)
+            if (values == null)
             {
                 return;
             }
 
             List<double> result = new List<double>();
-            foreach(double value in values)
+            foreach (double value in values)
             {
                 int index = result.FindIndex(x => System.Math.Abs(x - value) < tolerance);
-                if(index != -1)
+                if (index != -1)
                 {
                     continue;
                 }

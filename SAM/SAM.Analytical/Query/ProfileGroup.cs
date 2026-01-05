@@ -7,7 +7,7 @@
             if (profileType == ProfileType.Undefined || profileType == ProfileType.Other)
                 return Analytical.ProfileGroup.Undefined;
 
-            switch(profileType)
+            switch (profileType)
             {
                 case ProfileType.Dehumidification:
                 case ProfileType.Humidification:

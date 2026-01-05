@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.tertiary | GH_Exposure.obscure;
 
@@ -50,7 +50,7 @@ namespace SAM.Analytical.Grasshopper
                 param_Integer.PersistentData.Append(new GH_Integer(2018));
                 result.Add(new GH_SAMParam(param_Integer, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "timeShift_", NickName = "timeShift_", Description = "Time shift in min", Access = GH_ParamAccess.item, Optional = true}, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "timeShift_", NickName = "timeShift_", Description = "Time shift in min", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
 
 
                 return result.ToArray();
@@ -90,7 +90,7 @@ namespace SAM.Analytical.Grasshopper
 
             int hourIndex = -1;
             index = Params.IndexOfInputParam("_hourOfYear");
-            if(index == -1 || !dataAccess.GetData(index, ref hourIndex) || hourIndex < 0 || hourIndex > 8760)
+            if (index == -1 || !dataAccess.GetData(index, ref hourIndex) || hourIndex < 0 || hourIndex > 8760)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -115,7 +115,7 @@ namespace SAM.Analytical.Grasshopper
             }
 
             DateTime dateTime = Analytical.Convert.ToDateTime(hourIndex, year);
-            if(minute != 0)
+            if (minute != 0)
             {
                 dateTime = dateTime.AddMinutes(minute);
             }

@@ -10,7 +10,7 @@ namespace SAM.Core
         {
             if (methodInfos == null || string.IsNullOrWhiteSpace(name))
                 return null;
-            
+
             foreach (MethodInfo methodInfo in methodInfos)
             {
                 if (!methodInfo.Name.ToUpper().Equals(name))
@@ -25,7 +25,7 @@ namespace SAM.Core
                 if (inputTypes != null)
                 {
                     ParameterInfo[] parameterInfos = methodInfo.GetParameters();
-                    if(parameterInfos != null)
+                    if (parameterInfos != null)
                     {
                         if (parameterInfos.Length != inputTypes.Length)
                             continue;

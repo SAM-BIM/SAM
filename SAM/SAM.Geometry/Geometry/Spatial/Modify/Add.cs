@@ -10,7 +10,7 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             Point3D point3D_Temp = point3Ds.Find(x => x.Distance(point3D) <= tolerance);
-            if(point3D_Temp == null)
+            if (point3D_Temp == null)
             {
                 point3Ds.Add(point3D);
                 return true;
@@ -21,7 +21,7 @@ namespace SAM.Geometry.Spatial
 
         public static bool Add(this List<Point3D> point3Ds, double x, double y, double z)
         {
-            if(point3Ds == null)
+            if (point3Ds == null)
             {
                 return false;
             }

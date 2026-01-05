@@ -9,13 +9,13 @@ namespace SAM.Analytical
     {
         public static IOpening AddOpening(this IHostPartition hostPartition, OpeningType openingType, double ratio, double tolerance_Area = Core.Tolerance.MacroDistance, double tolerance_Distance = Core.Tolerance.Distance)
         {
-            if(hostPartition == null || openingType == null || ratio == 0)
+            if (hostPartition == null || openingType == null || ratio == 0)
             {
                 return null;
             }
 
             Face3D face3D = hostPartition.Face3D;
-            if(face3D == null)
+            if (face3D == null)
             {
                 return null;
             }
@@ -107,7 +107,7 @@ namespace SAM.Analytical
 
         public static IOpening AddOpening(this BuildingModel buildingModel, IOpening opening, double tolerance = Core.Tolerance.Distance)
         {
-            if(TryAddOpening(buildingModel, opening, tolerance))
+            if (TryAddOpening(buildingModel, opening, tolerance))
             {
                 return opening;
             }

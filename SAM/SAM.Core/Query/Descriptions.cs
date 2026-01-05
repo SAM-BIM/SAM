@@ -5,10 +5,10 @@ namespace SAM.Core
 {
     public static partial class Query
     {
-        public static List<string> Descriptions<T>(params T[] excluded) where T: Enum
+        public static List<string> Descriptions<T>(params T[] excluded) where T : Enum
         {
             List<T> enums = Enums(excluded);
-            if(enums == null)
+            if (enums == null)
             {
                 return null;
             }

@@ -9,7 +9,7 @@ namespace SAM.Analytical
         {
             if (setting == null)
                 return null;
-            
+
             string fileName;
             if (!setting.TryGetValue(analyticalSettingParameter, out fileName) || string.IsNullOrWhiteSpace(fileName))
                 return null;

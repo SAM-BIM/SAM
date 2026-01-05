@@ -6,13 +6,13 @@ namespace SAM.Weather
     {
         public static bool Compare(this WeatherHour weatherHour, WeatherDataType weatherDataType, double value, NumberComparisonType numberComparisonType)
         {
-            if(weatherHour == null || weatherDataType == WeatherDataType.Undefined)
+            if (weatherHour == null || weatherDataType == WeatherDataType.Undefined)
             {
                 return false;
             }
 
             double value_WeatherHour = weatherHour[weatherDataType];
-            if(double.IsNaN(value_WeatherHour))
+            if (double.IsNaN(value_WeatherHour))
             {
                 return false;
             }

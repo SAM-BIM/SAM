@@ -26,7 +26,7 @@ namespace SAM.Core
             double mean = differences.Average();
 
             double sum = 0;
-            foreach(double difference in differences)
+            foreach (double difference in differences)
             {
                 sum += Math.Pow(difference - mean, 2);
             }

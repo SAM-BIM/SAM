@@ -25,7 +25,7 @@ namespace SAM.Core
             ComplexReference = complexReferenceFilter?.ComplexReference?.Clone();
             SAMObjectRelationCluster = complexReferenceFilter?.SAMObjectRelationCluster;
         }
-        
+
         public override bool FromJObject(JObject jObject)
         {
             if (!base.FromJObject(jObject))
@@ -50,7 +50,7 @@ namespace SAM.Core
             }
 
             bool result = IsValid(values);
-            if(Inverted)
+            if (Inverted)
             {
                 result = !result;
             }
@@ -68,7 +68,7 @@ namespace SAM.Core
                 return result;
             }
 
-            if(ComplexReference != null)
+            if (ComplexReference != null)
             {
                 result.Add("ComplexReference", ComplexReference.ToJObject());
             }

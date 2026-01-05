@@ -40,7 +40,7 @@ namespace SAM.Analytical
 
         public override JObject ToJObject()
         {
-           JObject jObject = base.ToJObject();
+            JObject jObject = base.ToJObject();
             if (jObject == null)
                 return null;
 

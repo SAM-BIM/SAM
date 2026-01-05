@@ -15,20 +15,20 @@ namespace SAM.Analytical
         }
 
         public ProfileOpeningProperties(double dischargeCoefficient)
-            :base(dischargeCoefficient)
+            : base(dischargeCoefficient)
         {
 
         }
 
         public ProfileOpeningProperties(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
         }
 
         public ProfileOpeningProperties(double dischargeCoefficient, Profile profile)
             : base(dischargeCoefficient)
         {
-            this.profile = profile == null ? null : new Profile(profile); 
+            this.profile = profile == null ? null : new Profile(profile);
         }
 
         public ProfileOpeningProperties(ProfileOpeningProperties profileOpeningProperties)
@@ -40,7 +40,7 @@ namespace SAM.Analytical
         public ProfileOpeningProperties(IOpeningProperties openingProperties, double dischargeCoefficient)
             : base(openingProperties, dischargeCoefficient)
         {
-            if(openingProperties is ProfileOpeningProperties)
+            if (openingProperties is ProfileOpeningProperties)
             {
                 profile = ((ProfileOpeningProperties)openingProperties).profile == null ? null : new Profile(((ProfileOpeningProperties)openingProperties).profile);
             }
@@ -56,12 +56,12 @@ namespace SAM.Analytical
 
         public override bool FromJObject(JObject jObject)
         {
-            if(!base.FromJObject(jObject))
+            if (!base.FromJObject(jObject))
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("Profile"))
+            if (jObject.ContainsKey("Profile"))
             {
                 profile = Core.Query.IJSAMObject<Profile>(jObject.Value<JObject>("Profile"));
             }
@@ -72,12 +72,12 @@ namespace SAM.Analytical
         public override JObject ToJObject()
         {
             JObject jObject = base.ToJObject();
-            if(jObject == null)
+            if (jObject == null)
             {
                 return null;
             }
 
-            if(profile != null)
+            if (profile != null)
             {
                 jObject.Add("Profile", profile.ToJObject());
             }

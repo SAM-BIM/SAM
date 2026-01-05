@@ -11,7 +11,7 @@ namespace SAM.Architectural
 
             List<string> names = new List<string>();
             List<double> thicknesses = new List<double>();
-            foreach(object @object in values)
+            foreach (object @object in values)
             {
                 if (@object is string)
                     names.Add((string)@object);

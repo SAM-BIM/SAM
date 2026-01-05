@@ -26,7 +26,7 @@ namespace SAM.Analytical
             shell = new Shell(face3Ds);
 
             Dictionary<IPanel, Vector3D> result = new Dictionary<IPanel, Vector3D>();
-            for(int i=0; i < face3Ds.Count(); i++)
+            for (int i = 0; i < face3Ds.Count(); i++)
             {
                 result[panels[i]] = shell.Normal(face3Ds[i].InternalPoint3D(), external, silverSpacing, tolerance);
             }

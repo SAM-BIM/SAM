@@ -25,9 +25,9 @@ namespace SAM.Analytical
 
         public IEnumerable<ObjectReference> ObjectReferences
         {
-            get 
-            { 
-                return objectReferences; 
+            get
+            {
+                return objectReferences;
             }
         }
 
@@ -42,7 +42,7 @@ namespace SAM.Analytical
             if (jObject.ContainsKey("ObjectReferences"))
             {
                 JArray jArray = jObject.Value<JArray>("ObjectReferences");
-                if(jArray != null)
+                if (jArray != null)
                 {
                     objectReferences = [];
                     foreach (JObject jObject_Temp in jArray)

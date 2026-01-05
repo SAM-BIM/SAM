@@ -10,25 +10,25 @@ namespace SAM.Geometry.Spatial
         {
             shell_Closed = null;
 
-            if(shell == null)
+            if (shell == null)
             {
                 return false;
             }
 
-            if(shell.IsClosed(tolerance))
+            if (shell.IsClosed(tolerance))
             {
                 shell_Closed = (Shell)shell.Clone();
                 return true;
             }
 
             List<Face3D> face3Ds = shell.Face3Ds;
-            if(face3Ds == null || face3Ds.Count < 3)
+            if (face3Ds == null || face3Ds.Count < 3)
             {
                 return false;
             }
 
             shell_Closed = AveragedPoints(shell, true, tolerance_SilverSpacing, tolerance);
-            if(!shell_Closed.IsClosed(tolerance))
+            if (!shell_Closed.IsClosed(tolerance))
             {
                 shell_Closed = AveragedPoints(shell_Closed, false, tolerance_SilverSpacing, tolerance);
 
@@ -73,7 +73,7 @@ namespace SAM.Geometry.Spatial
                 return shell.Clone() as Shell;
             }
 
-            if(distanceCheck)
+            if (distanceCheck)
             {
                 for (int i = point3DsList.Count - 1; i >= 0; i--)
                 {

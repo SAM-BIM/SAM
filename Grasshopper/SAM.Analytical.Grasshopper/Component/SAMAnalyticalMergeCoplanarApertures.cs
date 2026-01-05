@@ -23,7 +23,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -104,15 +104,15 @@ namespace SAM.Analytical.Grasshopper
 
             panels = Analytical.Query.MergeCoplanarApertures(panels, out redundantApertures, out mergedApertures, true, tolerance);
 
-            for(int i =0; i < adjacencyClusters.Count; i++)
+            for (int i = 0; i < adjacencyClusters.Count; i++)
             {
                 List<Aperture> redundantApertures_Temp = null;
                 List<Aperture> mergedApertures_Temp = null;
 
                 adjacencyClusters[i] = Analytical.Query.MergeCoplanarApertures(adjacencyClusters[i], out mergedApertures_Temp, out redundantApertures_Temp, true, tolerance);
-                if(redundantApertures_Temp != null)
+                if (redundantApertures_Temp != null)
                 {
-                    if(redundantApertures == null)
+                    if (redundantApertures == null)
                     {
                         redundantApertures = new List<Aperture>();
                     }

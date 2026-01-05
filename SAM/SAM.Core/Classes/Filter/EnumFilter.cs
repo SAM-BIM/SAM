@@ -3,7 +3,7 @@ using System;
 
 namespace SAM.Core
 {
-    public abstract class EnumFilter<T> : Filter, IEnumFilter where T: Enum
+    public abstract class EnumFilter<T> : Filter, IEnumFilter where T : Enum
     {
         public EnumFilter(EnumFilter<T> enumFilter)
             : base(enumFilter)
@@ -65,27 +65,27 @@ namespace SAM.Core
 
         public override bool IsValid(IJSAMObject jSAMObject)
         {
-            if(jSAMObject == null)
+            if (jSAMObject == null)
             {
                 return false;
             }
 
-            if(!TryGetEnum(jSAMObject, out T @enum))
+            if (!TryGetEnum(jSAMObject, out T @enum))
             {
                 return false;
             }
 
-            if(@enum == null)
+            if (@enum == null)
             {
                 return false;
             }
 
-            if(Value == null && @enum == null)
+            if (Value == null && @enum == null)
             {
                 return true;
             }
 
-            if(Value == null || @enum == null)
+            if (Value == null || @enum == null)
             {
                 return false;
             }

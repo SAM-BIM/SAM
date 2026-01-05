@@ -32,7 +32,7 @@ namespace SAM.Core
         {
             if (jToken == null)
                 return System.Guid.Empty;
-            
+
             switch (jToken.Type)
             {
                 case JTokenType.String:

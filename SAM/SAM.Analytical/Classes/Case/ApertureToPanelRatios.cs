@@ -20,7 +20,7 @@ namespace SAM.Analytical.Classes
 
         public ApertureToPanelRatios(ApertureToPanelRatios apertureToPanelRatios)
         {
-            if(apertureToPanelRatios is not null)
+            if (apertureToPanelRatios is not null)
             {
                 this.apertureToPanelRatios = [];
                 foreach (var item in apertureToPanelRatios.apertureToPanelRatios)
@@ -59,7 +59,7 @@ namespace SAM.Analytical.Classes
                 return false;
             }
 
-            if(jObject.ContainsKey("ApertureToPanelRatios"))
+            if (jObject.ContainsKey("ApertureToPanelRatios"))
             {
                 apertureToPanelRatios = [];
                 JArray jArray = jObject.Value<JArray>("ApertureToPanelRatios");

@@ -3,7 +3,7 @@ using SAM.Core;
 
 namespace SAM.Analytical
 {
-    public abstract class MultiRelationAdjacencyClusterFilter<T> : MultiRelationFilter<T>, IAdjacencyClusterFilter where T: IJSAMObject
+    public abstract class MultiRelationAdjacencyClusterFilter<T> : MultiRelationFilter<T>, IAdjacencyClusterFilter where T : IJSAMObject
     {
         public AdjacencyCluster AdjacencyCluster { get; set; }
 
@@ -13,13 +13,13 @@ namespace SAM.Analytical
         }
 
         public MultiRelationAdjacencyClusterFilter(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
 
         }
 
         public MultiRelationAdjacencyClusterFilter(MultiRelationAdjacencyClusterFilter<T> multiRelationAdjacencyClusterFilter)
-            :base(multiRelationAdjacencyClusterFilter)
+            : base(multiRelationAdjacencyClusterFilter)
         {
             AdjacencyCluster = multiRelationAdjacencyClusterFilter?.AdjacencyCluster;
         }

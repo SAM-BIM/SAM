@@ -5,13 +5,13 @@ namespace SAM.Core
 {
     public static partial class Query
     {
-        public static T Enum<T>(this string text) where T: Enum
+        public static T Enum<T>(this string text) where T : Enum
         {
             if (string.IsNullOrWhiteSpace(text))
                 return Enum<T>("Undefined");
 
             Array array = System.Enum.GetValues(typeof(T));
-            if(array == null || array.Length == 0)
+            if (array == null || array.Length == 0)
                 return Enum<T>("Undefined");
 
             foreach (T @enum in array)
@@ -30,7 +30,7 @@ namespace SAM.Core
             }
 
             text_Temp = text.ToUpper().Replace(" ", string.Empty);
-            for (int i =0; i < array.Length; i++)
+            for (int i = 0; i < array.Length; i++)
             {
                 if (texts[i].ToUpper().Replace(" ", string.Empty).Equals(text_Temp))
                     return (T)array.GetValue(i);

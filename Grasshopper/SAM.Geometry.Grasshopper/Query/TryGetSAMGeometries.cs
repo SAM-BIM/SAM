@@ -113,7 +113,7 @@ namespace SAM.Geometry.Grasshopper
                     }
                     else if (@object is Polycurve3D)
                     {
-                        if(Polycurve3D.TryGetPolyline3D((Polycurve3D)@object, out Polyline3D polyline3D))
+                        if (Polycurve3D.TryGetPolyline3D((Polycurve3D)@object, out Polyline3D polyline3D))
                         {
                             sAMGeometries = new List<T>() { (T)(object)Spatial.Create.Face3D(polyline3D?.ToPolygon3D()) };
                             return true;
@@ -122,7 +122,7 @@ namespace SAM.Geometry.Grasshopper
                         //sAMGeometries = ((Spatial.Mesh3D)@object).GetTriangles()?.ConvertAll(x => (T)(object)(new Spatial.Face3D(x)));
                         //return true;
                     }
-                    else if(@object is Polyline3D)
+                    else if (@object is Polyline3D)
                     {
                         Polyline3D polyline3D = (Polyline3D)@object;
                         if (polyline3D.IsClosed())
@@ -134,7 +134,7 @@ namespace SAM.Geometry.Grasshopper
                     }
 
                 }
-                else if(typeof(T) == typeof(Point3D))
+                else if (typeof(T) == typeof(Point3D))
                 {
                     if (@object is Point3D)
                     {
@@ -150,7 +150,7 @@ namespace SAM.Geometry.Grasshopper
                         return true;
                     }
                 }
-                else if(typeof(T) == typeof(ISegmentable3D))
+                else if (typeof(T) == typeof(ISegmentable3D))
                 {
                     if (@object is Polycurve3D)
                     {
@@ -227,7 +227,7 @@ namespace SAM.Geometry.Grasshopper
                 return true;
             }
 
-            if(@object is Polycurve3D && typeof(T) == typeof(ISegmentable3D))
+            if (@object is Polycurve3D && typeof(T) == typeof(ISegmentable3D))
             {
                 if (Polycurve3D.TryGetPolyline3D((Polycurve3D)@object, out Polyline3D polyline3D) && polyline3D != null)
                 {
@@ -244,20 +244,20 @@ namespace SAM.Geometry.Grasshopper
         {
             sAMGeometries = null;
 
-            if(objectWrappers == null)
+            if (objectWrappers == null)
             {
                 return false;
             }
 
             sAMGeometries = new List<T>();
-            foreach(GH_ObjectWrapper objectWrapper in objectWrappers)
+            foreach (GH_ObjectWrapper objectWrapper in objectWrappers)
             {
-                if(!TryGetSAMGeometries(objectWrapper, out List<T> sAMGeometries_Temp) || sAMGeometries_Temp == null || sAMGeometries_Temp.Count == 0)
+                if (!TryGetSAMGeometries(objectWrapper, out List<T> sAMGeometries_Temp) || sAMGeometries_Temp == null || sAMGeometries_Temp.Count == 0)
                 {
                     continue;
                 }
 
-                foreach(T sAMGeometry in sAMGeometries_Temp)
+                foreach (T sAMGeometry in sAMGeometries_Temp)
                 {
                     sAMGeometries.Add(sAMGeometry);
                 }

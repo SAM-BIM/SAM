@@ -8,9 +8,9 @@ namespace SAM.Analytical
     public class TM59Manager : IJSAMObject
     {
         private TextMap textMap;
-        
+
         public TM59Manager(TextMap textMap)
-        { 
+        {
             this.textMap = textMap == null ? null : Core.Create.TextMap(textMap);
         }
 
@@ -26,7 +26,7 @@ namespace SAM.Analytical
 
         public bool FromJObject(JObject jObject)
         {
-            if(jObject == null)
+            if (jObject == null)
             {
                 return false;
             }
@@ -120,7 +120,7 @@ namespace SAM.Analytical
             }
 
             List<TM59SpaceApplication> applications = TM59SpaceApplications(space, textMap);
-            if(applications == null || applications.Count == 0)
+            if (applications == null || applications.Count == 0)
             {
                 return null;
             }

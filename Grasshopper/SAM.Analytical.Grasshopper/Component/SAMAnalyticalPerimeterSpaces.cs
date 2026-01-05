@@ -21,7 +21,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -94,7 +94,7 @@ namespace SAM.Analytical.Grasshopper
             }
 
             AdjacencyCluster adjacencyCluster = analyticalObject is AnalyticalModel ? ((AnalyticalModel)analyticalObject).AdjacencyCluster : analyticalObject as AdjacencyCluster;
-            if(adjacencyCluster != null)
+            if (adjacencyCluster != null)
             {
                 adjacencyCluster = new AdjacencyCluster(adjacencyCluster);
             }
@@ -105,7 +105,7 @@ namespace SAM.Analytical.Grasshopper
             if (index != -1)
             {
                 bool apertureCheck_Temp = true;
-                if(dataAccess.GetData(index, ref apertureCheck_Temp))
+                if (dataAccess.GetData(index, ref apertureCheck_Temp))
                 {
                     apertureCheck = apertureCheck_Temp;
                 }
@@ -121,7 +121,7 @@ namespace SAM.Analytical.Grasshopper
                     wallsOnly = true;
                 }
 
-                if(wallsOnly)
+                if (wallsOnly)
                 {
                     panelGroups = new List<PanelGroup>() { PanelGroup.Wall };
                 }
@@ -129,7 +129,7 @@ namespace SAM.Analytical.Grasshopper
 
             List<Space> spaces = null;
             index = Params.IndexOfInputParam("spaces_");
-            if(index != -1)
+            if (index != -1)
             {
                 List<Space> spaces_Temp = new List<Space>();
 
@@ -156,7 +156,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     bool isPerimeter = adjacencyCluster.IsPerimeter(space, apertureCheck, panelGroups);
 
-                    if(isPerimeter)
+                    if (isPerimeter)
                     {
                         @in.Add(space);
                     }

@@ -7,18 +7,18 @@ namespace SAM.Core
     {
         public static T Min<T>(this IEnumerable<Range<T>> ranges)
         {
-            if(ranges == null)
+            if (ranges == null)
             {
                 return default;
             }
 
             List<T> values = new List<T>();
-            foreach(Range<T> range in ranges)
+            foreach (Range<T> range in ranges)
             {
                 values.Add(range.Min);
             }
 
-            if(values.Count == 0)
+            if (values.Count == 0)
             {
                 return default;
             }

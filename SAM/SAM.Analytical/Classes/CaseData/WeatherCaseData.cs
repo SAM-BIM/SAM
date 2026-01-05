@@ -21,7 +21,7 @@ namespace SAM.Analytical
         public WeatherCaseData(WeatherCaseData weatherCaseData)
             : base(weatherCaseData)
         {
-            if(weatherCaseData != null)
+            if (weatherCaseData != null)
             {
                 weatherDataName = weatherCaseData.weatherDataName;
             }
@@ -29,21 +29,21 @@ namespace SAM.Analytical
 
         public string WeatherDataName
         {
-            get 
-            { 
-                return weatherDataName; 
+            get
+            {
+                return weatherDataName;
             }
         }
 
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
-            if(!result)
+            if (!result)
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("WeatherDataName"))
+            if (jObject.ContainsKey("WeatherDataName"))
             {
                 weatherDataName = jObject.Value<string>("WeatherDataName");
             }
@@ -54,12 +54,12 @@ namespace SAM.Analytical
         public override JObject ToJObject()
         {
             JObject result = base.ToJObject();
-            if(result is null)
+            if (result is null)
             {
                 return result;
             }
 
-            if(weatherDataName is not null)
+            if (weatherDataName is not null)
             {
                 result.Add("WeatherDataName", weatherDataName);
             }

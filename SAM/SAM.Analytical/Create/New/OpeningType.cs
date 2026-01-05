@@ -11,7 +11,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if(openingType is DoorType)
+            if (openingType is DoorType)
             {
                 return new DoorType((DoorType)openingType, name);
             }

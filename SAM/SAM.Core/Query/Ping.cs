@@ -21,7 +21,7 @@ namespace SAM.Core
             }
             finally
             {
-                if(ping != null)
+                if (ping != null)
                 {
                     ping.Dispose();
                 }

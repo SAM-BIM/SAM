@@ -14,7 +14,7 @@
 
         public static global::Rhino.Geometry.Rectangle3d ToRhino(this Planar.Rectangle2D rectangle2D)
         {
-            if(rectangle2D == null)
+            if (rectangle2D == null)
             {
                 return global::Rhino.Geometry.Rectangle3d.Unset;
             }

@@ -13,9 +13,9 @@ namespace SAM.Analytical
             if (panels == null || panels.Count == 0)
                 return;
 
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
-                if(panel != null && panel.HasApertures)
+                if (panel != null && panel.HasApertures)
                 {
                     Panel panel_New = new Panel(panel);
 

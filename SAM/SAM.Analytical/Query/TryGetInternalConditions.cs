@@ -27,7 +27,7 @@ namespace SAM.Analytical
             }
 
             internalConditions = new List<InternalCondition>();
-            foreach(string name_InternalCondition in names_InternalCondition)
+            foreach (string name_InternalCondition in names_InternalCondition)
             {
                 List<InternalCondition> internalConditions_Temp = internalConditionLibrary.GetInternalConditions(name_InternalCondition);
                 if (internalConditions_Temp == null || internalConditions_Temp.Count == 0)

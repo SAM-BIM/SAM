@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
 using SAM.Core;
-using SAM.Weather;
 using System.Collections.Generic;
 
 namespace SAM.Analytical
@@ -43,7 +42,7 @@ namespace SAM.Analytical
             if (jObject.ContainsKey("Objects"))
             {
                 JArray jArray = jObject.Value<JArray>("Objects");
-                if(jArray != null)
+                if (jArray != null)
                 {
                     objects = [];
                     foreach (JObject jObject_Temp in jArray)
@@ -94,24 +93,24 @@ namespace SAM.Analytical
             : base()
         {
         }
-        
+
         public SAMObjectCaseSelection(IEnumerable<IJSAMObject> objects)
             : base(objects)
         {
         }
-        
+
         public SAMObjectCaseSelection(JObject jObject)
             : base(jObject)
         {
         }
 
-        public override JObject ToJObject() 
-        { 
+        public override JObject ToJObject()
+        {
             return base.ToJObject();
         }
 
-        public override bool FromJObject(JObject jObject) 
-        { 
+        public override bool FromJObject(JObject jObject)
+        {
             return base.FromJObject(jObject);
         }
 

@@ -34,11 +34,11 @@ namespace SAM.Core
             }
 
             List<ObjectReference> objectReferences = new List<ObjectReference>() { objectReference };
-            while(!string.IsNullOrWhiteSpace(string_out) && @string != string_out)
+            while (!string.IsNullOrWhiteSpace(string_out) && @string != string_out)
             {
                 @string = string_out;
                 objectReference = ObjectReference(@string, out string_out);
-                if(objectReference == null)
+                if (objectReference == null)
                 {
                     break;
                 }

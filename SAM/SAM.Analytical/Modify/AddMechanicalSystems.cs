@@ -31,7 +31,7 @@ namespace SAM.Analytical
             }
 
             Dictionary<System.Guid, MechanicalSystemType> dictionary_MechanicalSystemType = new Dictionary<System.Guid, MechanicalSystemType>();
-            
+
             Dictionary<System.Guid, List<Space>> dictionary_Ventilation = new Dictionary<System.Guid, List<Space>>();
             Dictionary<System.Guid, List<Space>> dictionary_Cooling = new Dictionary<System.Guid, List<Space>>();
             Dictionary<System.Guid, List<Space>> dictionary_Heating = new Dictionary<System.Guid, List<Space>>();
@@ -44,7 +44,7 @@ namespace SAM.Analytical
                 Space space_Temp = new Space(space);
 
                 VentilationSystemType ventilationSystemType = internalCondition.GetSystemType<VentilationSystemType>(systemTypeLibrary);
-                if(ventilationSystemType != null)
+                if (ventilationSystemType != null)
                 {
                     List<Space> spaces_SystemType = null;
                     if (!dictionary_Ventilation.TryGetValue(ventilationSystemType.Guid, out spaces_SystemType))
@@ -88,7 +88,7 @@ namespace SAM.Analytical
             }
 
             List<MechanicalSystem> result = new List<MechanicalSystem>();
-            foreach(KeyValuePair<System.Guid, List<Space>> keyValuePair in dictionary_Ventilation)
+            foreach (KeyValuePair<System.Guid, List<Space>> keyValuePair in dictionary_Ventilation)
             {
                 VentilationSystemType ventilationSystemType = dictionary_MechanicalSystemType[keyValuePair.Key] as VentilationSystemType;
                 if (ventilationSystemType == null)
@@ -105,8 +105,8 @@ namespace SAM.Analytical
                         supplyUnitName_Temp = null;
                         exhaustUnitName_Temp = null;
                     }
-                    
-                    if(name.Equals("EOC") || name.Equals("EOL"))
+
+                    if (name.Equals("EOC") || name.Equals("EOL"))
                     {
                         supplyUnitName_Temp = null;
                     }
@@ -116,9 +116,9 @@ namespace SAM.Analytical
                 if (mechanicalSystem == null)
                     continue;
 
-                if(ventilationRiserName != null)
+                if (ventilationRiserName != null)
                 {
-                    if(!string.IsNullOrWhiteSpace(name) && !name.Equals("NV") && !name.Equals("UV"))
+                    if (!string.IsNullOrWhiteSpace(name) && !name.Equals("NV") && !name.Equals("UV"))
                     {
                         foreach (Space space in keyValuePair.Value)
                         {

@@ -16,7 +16,7 @@ namespace SAM.Analytical.Grasshopper
                 if (variable is GooPanel)
                 {
                     List<Aperture> apertures_Temp = (((GooPanel)variable).Value as Panel)?.Apertures;
-                    if(apertures_Temp != null)
+                    if (apertures_Temp != null)
                     {
                         apertures.AddRange(apertures_Temp);
                     }
@@ -45,5 +45,5 @@ namespace SAM.Analytical.Grasshopper
 
             Rhino.Modify.BakeGeometry_ByApertureConstruction(rhinoDoc, apertures, includeFrame);
         }
-  }
+    }
 }

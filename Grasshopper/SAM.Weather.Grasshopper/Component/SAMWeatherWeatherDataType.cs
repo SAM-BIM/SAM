@@ -1,5 +1,5 @@
-﻿using SAM.Weather.Grasshopper.Properties;
-using SAM.Core.Grasshopper;
+﻿using SAM.Core.Grasshopper;
+using SAM.Weather.Grasshopper.Properties;
 using System;
 
 namespace SAM.Weather.Grasshopper

@@ -6,7 +6,7 @@ namespace SAM.Analytical
     {
         public static AirHandlingUnit AirHandlingUnit(string name, bool frostCoil = false)
         {
-            if(string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(name))
             {
                 return null;
             }

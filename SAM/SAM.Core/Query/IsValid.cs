@@ -14,7 +14,7 @@ namespace SAM.Core
             if (types == null || types.Length == 0)
                 return false;
 
-            foreach(Type type_Temp in types)
+            foreach (Type type_Temp in types)
             {
                 if (type_Temp == null)
                     continue;
@@ -30,7 +30,7 @@ namespace SAM.Core
         {
             if (uri == null)
                 return false;
-            
+
             HttpWebRequest httpWebRequest = WebRequest.Create(uri) as HttpWebRequest;
             if (httpWebRequest == null)
                 return false;

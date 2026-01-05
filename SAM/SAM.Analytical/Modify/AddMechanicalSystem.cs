@@ -43,7 +43,7 @@ namespace SAM.Analytical
 
             adjacencyCluster.AddObject(mechanicalSystem);
 
-            if(spaces_Temp == null || spaces_Temp.Count == 0)
+            if (spaces_Temp == null || spaces_Temp.Count == 0)
             {
                 return mechanicalSystem;
             }

@@ -8,11 +8,11 @@ namespace SAM.Analytical
         private int hoursExceeding28;
 
         public TM59CorridorResult(
-            string name, 
-            string source, 
+            string name,
+            string source,
             string reference,
             TM52BuildingCategory tM52BuildingCategory,
-            int occupiedHours, 
+            int occupiedHours,
             int maxExceedableHours,
             int hoursExceeding28,
             bool pass)
@@ -22,9 +22,9 @@ namespace SAM.Analytical
         }
 
         public TM59CorridorResult(
-            Guid guid, 
-            string name, 
-            string source, 
+            Guid guid,
+            string name,
+            string source,
             string reference,
             TM52BuildingCategory tM52BuildingCategory,
             int occupiedHours,

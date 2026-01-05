@@ -11,7 +11,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            switch(tM52BuildingCategory)
+            switch (tM52BuildingCategory)
             {
                 case TM52BuildingCategory.CategoryI:
                     return new Range<double>(-3, 2);

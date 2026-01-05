@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -139,7 +139,7 @@ namespace SAM.Analytical.Grasshopper
             List<Tuple<Panel, Aperture>> tuples_Result = null;
 
             List<Panel> panels = adjacencyCluster.GetPanels();
-            if(panels != null && panels.Count != 0)
+            if (panels != null && panels.Count != 0)
             {
                 tuples_Result = new List<Tuple<Panel, Aperture>>();
 
@@ -150,11 +150,11 @@ namespace SAM.Analytical.Grasshopper
                     bool updated = false;
                     foreach (Aperture aperture in apertures)
                     {
-                        if(aperture == null)
+                        if (aperture == null)
                         {
                             continue;
                         }
-                        
+
                         List<Aperture> apertures_New = Analytical.Modify.AddApertures(panel_New, aperture.ApertureConstruction, aperture.GetFace3D(), trimApertures, Tolerance.MacroDistance, maxDistance);
                         if (apertures_New != null && apertures_New.Count > 0)
                         {

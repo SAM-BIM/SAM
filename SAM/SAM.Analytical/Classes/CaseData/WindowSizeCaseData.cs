@@ -21,7 +21,7 @@ namespace SAM.Analytical
         public WindowSizeCaseData(WindowSizeCaseData windowSizeCaseData)
             : base(windowSizeCaseData)
         {
-            if(windowSizeCaseData != null)
+            if (windowSizeCaseData != null)
             {
                 apertureScaleFactor = windowSizeCaseData.apertureScaleFactor;
             }
@@ -29,21 +29,21 @@ namespace SAM.Analytical
 
         public double ApertureScaleFactor
         {
-            get 
-            { 
-                return apertureScaleFactor; 
+            get
+            {
+                return apertureScaleFactor;
             }
         }
 
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
-            if(!result)
+            if (!result)
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("ApertureScaleFactor"))
+            if (jObject.ContainsKey("ApertureScaleFactor"))
             {
                 apertureScaleFactor = jObject.Value<double>("ApertureScaleFactor");
             }
@@ -54,12 +54,12 @@ namespace SAM.Analytical
         public override JObject ToJObject()
         {
             JObject result = base.ToJObject();
-            if(result is null)
+            if (result is null)
             {
                 return result;
             }
 
-            if(!double.IsNaN(apertureScaleFactor))
+            if (!double.IsNaN(apertureScaleFactor))
             {
                 result.Add("ApertureScaleFactor", apertureScaleFactor);
             }

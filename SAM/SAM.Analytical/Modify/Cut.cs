@@ -20,24 +20,24 @@ namespace SAM.Analytical
             }
 
             List<Panel> panels = null;
-            if(spaces == null || spaces.Count() == 0)
+            if (spaces == null || spaces.Count() == 0)
             {
                 panels = adjacencyCluster.GetPanels();
             }
             else
             {
                 panels = new List<Panel>();
-                foreach(Space space in spaces)
+                foreach (Space space in spaces)
                 {
                     List<Panel> panels_Space = adjacencyCluster.GetPanels(space);
-                    if(panels_Space == null || panels_Space.Count == 0)
+                    if (panels_Space == null || panels_Space.Count == 0)
                     {
                         continue;
                     }
 
-                    foreach(Panel panel_Space in panels_Space)
+                    foreach (Panel panel_Space in panels_Space)
                     {
-                        if(panels.Find(x => x.Guid == panel_Space.Guid) == null)
+                        if (panels.Find(x => x.Guid == panel_Space.Guid) == null)
                         {
                             panels.Add(panel_Space);
                         }

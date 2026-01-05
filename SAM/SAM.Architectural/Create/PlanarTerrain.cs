@@ -7,7 +7,7 @@ namespace SAM.Architectural
         public static PlanarTerrain PlanarTerrain(double elevation)
         {
             Plane plane = Geometry.Spatial.Create.Plane(elevation);
-            if(plane  == null)
+            if (plane == null)
             {
                 return null;
             }

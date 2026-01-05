@@ -12,7 +12,7 @@
                 for (int j = 0; j < matrix.ColumnCount; j++)
                     result[i, j] = matrix[i, j];
 
-            if(result.IsSquare())
+            if (result.IsSquare())
             {
                 if (matrix.RowCount == 2)
                     return Create.Matrix2D(result);

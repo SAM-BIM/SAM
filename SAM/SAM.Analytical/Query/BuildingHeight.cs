@@ -8,7 +8,7 @@ namespace SAM.Analytical
         public static double BuildingHeight(this AdjacencyCluster adjacencyCluster)
         {
             List<Panel> panels = adjacencyCluster?.GetPanels();
-            if(panels == null)
+            if (panels == null)
             {
                 return double.NaN;
             }

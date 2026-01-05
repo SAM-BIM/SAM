@@ -36,7 +36,7 @@ namespace SAM.Geometry.Spatial
         public static Face3D SimplifyByAngle(this Face3D face3D, double tolerance_Angle = Core.Tolerance.Angle, double tolerance_Distance = Core.Tolerance.Distance)
         {
             Plane plane = face3D?.GetPlane();
-            if(plane == null)
+            if (plane == null)
             {
                 return null;
             }

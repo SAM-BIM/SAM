@@ -13,7 +13,7 @@ namespace SAM.Analytical
             }
 
             HostPartitionTypeLibrary hostPartitionTypeLibrary = DefaultHostPartitionTypeLibrary();
-            if(hostPartitionTypeLibrary == null)
+            if (hostPartitionTypeLibrary == null)
             {
                 return null;
             }
@@ -40,7 +40,7 @@ namespace SAM.Analytical
             return DefaultHostPartitionType(face3D?.GetPlane()?.Normal, tolerance);
         }
 
-        public static T DefaultHostPartitionType<T>(this PartitionAnalyticalType partitionAnalyticalType) where T: HostPartitionType
+        public static T DefaultHostPartitionType<T>(this PartitionAnalyticalType partitionAnalyticalType) where T : HostPartitionType
         {
             HostPartitionTypeLibrary hostPartitionTypeLibrary = DefaultHostPartitionTypeLibrary();
             if (hostPartitionTypeLibrary == null)

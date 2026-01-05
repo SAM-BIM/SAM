@@ -3,7 +3,7 @@
     public static partial class Create
     {
         public static InternalCondition InternalCondition(
-            string name, 
+            string name,
             double areaPerPerson,
             string occupancyProfileName,
             double equipmentSensibleGain,
@@ -69,7 +69,7 @@
 
         public static InternalCondition InternalCondition(string name)
         {
-            if(string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(name))
             {
                 return null;
             }

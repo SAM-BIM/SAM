@@ -11,7 +11,7 @@ namespace SAM.Analytical
         public ExternalPanel(Face3D face3D, Construction construction)
             : base(construction)
         {
-            this.face3D = face3D == null ? null :new Face3D(face3D);
+            this.face3D = face3D == null ? null : new Face3D(face3D);
         }
 
         public ExternalPanel(Face3D face3D)
@@ -70,7 +70,7 @@ namespace SAM.Analytical
                 return false;
             }
 
-            if(jObject.ContainsKey("Face3D"))
+            if (jObject.ContainsKey("Face3D"))
             {
                 face3D = new Face3D(jObject.Value<JObject>());
             }
@@ -80,13 +80,13 @@ namespace SAM.Analytical
 
         public override JObject ToJObject()
         {
-           JObject jObject = base.ToJObject();
+            JObject jObject = base.ToJObject();
             if (jObject == null)
             {
                 return null;
             }
 
-            if(face3D != null)
+            if (face3D != null)
             {
                 jObject.Add("Face3D", face3D.ToJObject());
             }

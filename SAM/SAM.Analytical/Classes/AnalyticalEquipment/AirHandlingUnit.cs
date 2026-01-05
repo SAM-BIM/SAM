@@ -42,7 +42,7 @@ namespace SAM.Analytical
         public AirHandlingUnit(AirHandlingUnit airHandlingUnit)
             : base(airHandlingUnit)
         {
-            if(airHandlingUnit != null)
+            if (airHandlingUnit != null)
             {
                 winterSupplyTemperature = airHandlingUnit.winterSupplyTemperature;
                 summerSupplyTemperature = airHandlingUnit.summerSupplyTemperature;
@@ -83,7 +83,7 @@ namespace SAM.Analytical
             if (!base.FromJObject(jObject))
                 return false;
 
-            if(jObject.ContainsKey("SummerSupplyTemperature"))
+            if (jObject.ContainsKey("SummerSupplyTemperature"))
             {
                 summerSupplyTemperature = jObject.Value<double>("SummerSupplyTemperature");
             }
@@ -138,7 +138,7 @@ namespace SAM.Analytical
             if (jObject == null)
                 return null;
 
-            if(!double.IsNaN(summerSupplyTemperature))
+            if (!double.IsNaN(summerSupplyTemperature))
             {
                 jObject.Add("SummerSupplyTemperature", summerSupplyTemperature);
             }

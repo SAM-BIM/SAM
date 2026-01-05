@@ -35,7 +35,7 @@ namespace SAM.Analytical
                 return double.NaN;
 
             double result = double.MaxValue;
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
                 double minElevation = panel.MinElevation();
                 if (double.IsNaN(minElevation))

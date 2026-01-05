@@ -9,17 +9,17 @@ namespace SAM.Core
         {
             guids = null;
 
-            if(string.IsNullOrWhiteSpace(text))
+            if (string.IsNullOrWhiteSpace(text))
             {
                 return false;
             }
 
             string[] separators = new string[] { "\n", "\t", "," };
 
-            List<string> strings = new () { text };
+            List<string> strings = new() { text };
             foreach (string separator in separators)
             {
-                List<string> strings_Split = new ();
+                List<string> strings_Split = new();
                 foreach (string @string in strings)
                 {
                     string[] strings_Temp_Split = @string.Split(separators, StringSplitOptions.RemoveEmptyEntries);
@@ -41,7 +41,7 @@ namespace SAM.Core
             {
                 string value = null;
 
-                if(string.IsNullOrWhiteSpace(@string))
+                if (string.IsNullOrWhiteSpace(@string))
                 {
                     continue;
                 }
@@ -55,7 +55,7 @@ namespace SAM.Core
                 value = value.Replace("]", string.Empty);
                 value = value.Replace(" ", string.Empty);
 
-                if(System.Guid.TryParse(value, out Guid guid))
+                if (System.Guid.TryParse(value, out Guid guid))
                 {
                     guids.Add(guid);
                 }

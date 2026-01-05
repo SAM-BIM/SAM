@@ -16,7 +16,7 @@ namespace SAM.Analytical
             List<IPartition> partitions = buildingModel.GetPartitions();
             if (partitions == null || partitions.Count == 0)
             {
-                return ;
+                return;
             }
 
             List<List<IPartition>> partitionsList = Enumerable.Repeat<List<IPartition>>(null, partitions.Count).ToList();
@@ -26,10 +26,10 @@ namespace SAM.Analytical
                 partitionsList[i] = partitions[i].FixEdges(tolerance);
             });
 
-            for(int i=0; i < partitions.Count; i++)
+            for (int i = 0; i < partitions.Count; i++)
             {
                 List<IPartition> partitions_Temp = partitionsList[i];
-                if(partitions_Temp == null || partitions_Temp.Count == 0)
+                if (partitions_Temp == null || partitions_Temp.Count == 0)
                 {
                     continue;
                 }

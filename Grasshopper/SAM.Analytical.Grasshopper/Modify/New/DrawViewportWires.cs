@@ -8,7 +8,7 @@ namespace SAM.Analytical.Grasshopper
     {
         public static bool DrawViewportWires(this BuildingModel buildingModel, GH_PreviewWireArgs previewWireArgs)
         {
-            if(buildingModel == null || previewWireArgs == null)
+            if (buildingModel == null || previewWireArgs == null)
             {
                 return false;
             }
@@ -42,7 +42,7 @@ namespace SAM.Analytical.Grasshopper
             foreach (IPartition partition in partitions)
             {
                 Geometry.Spatial.Face3D face3D = partition?.Face3D;
-                if(face3D == null)
+                if (face3D == null)
                 {
                     continue;
                 }

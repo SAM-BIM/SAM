@@ -54,7 +54,7 @@
         /// <returns>True if the value is retrieved successfully, false otherwise.</returns>
         public static bool TryGetValue(this WeatherDay weatherDay, WeatherDataType weatherDataType, int index, out double value)
         {
-            
+
             value = default;
             if (weatherDay == null || weatherDataType == WeatherDataType.Undefined)
             {

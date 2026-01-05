@@ -7,10 +7,10 @@ using System.Collections.Generic;
 namespace SAM.Geometry.Rhino
 {
     public static partial class Convert
-    {       
+    {
         public static Mesh3D ToSAM(this Mesh mesh, double tolerance = Core.Tolerance.MicroDistance)
         {
-            if(mesh == null)
+            if (mesh == null)
             {
                 return null;
             }
@@ -67,7 +67,7 @@ namespace SAM.Geometry.Rhino
                 else if (meshFace.IsTriangle)
                 {
                     int index_1 = meshFace.A;
-                    if(!sortedDictionary.ContainsKey(index_1))
+                    if (!sortedDictionary.ContainsKey(index_1))
                     {
                         sortedDictionary[index_1] = meshVertexList[meshFace.A].ToSAM();
                     }

@@ -4,7 +4,7 @@
     {
         public static bool WaitToUnlock(string path, int waitTime = 1000, int count = 10)
         {
-            if(string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
+            if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
             {
                 return false;
             }
@@ -14,9 +14,9 @@
             bool result = false;
 
             int i = 0;
-            while(i <= count)
+            while (i <= count)
             {
-                if(!fileInfo.Locked())
+                if (!fileInfo.Locked())
                 {
                     result = true;
                     break;

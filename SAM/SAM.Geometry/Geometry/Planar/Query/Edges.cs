@@ -10,15 +10,15 @@ namespace SAM.Geometry.Planar
                 return null;
 
             List<IClosed2D> result = new List<IClosed2D>();
-            foreach(Face2D face2D in face2Ds)
+            foreach (Face2D face2D in face2Ds)
             {
-                if(face2D == null)
+                if (face2D == null)
                 {
                     continue;
                 }
 
                 List<IClosed2D> edges_Temp = face2D.Edge2Ds;
-                if(edges_Temp == null && edges_Temp.Count == 0)
+                if (edges_Temp == null && edges_Temp.Count == 0)
                 {
                     continue;
                 }
@@ -28,5 +28,5 @@ namespace SAM.Geometry.Planar
 
             return result;
         }
-   }
+    }
 }

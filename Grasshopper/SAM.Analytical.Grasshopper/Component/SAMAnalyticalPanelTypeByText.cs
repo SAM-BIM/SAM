@@ -20,7 +20,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -57,21 +57,21 @@ namespace SAM.Analytical.Grasshopper
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
             string text = null;
-            if(!dataAccess.GetData(0, ref text) || string.IsNullOrEmpty(text))
+            if (!dataAccess.GetData(0, ref text) || string.IsNullOrEmpty(text))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
             }
 
             PanelType panelType = Analytical.Query.PanelType(text, true);
-            if(panelType == PanelType.Undefined)
+            if (panelType == PanelType.Undefined)
             {
                 text = text.ToLower().Trim();
-                if(text.Contains("roof"))
+                if (text.Contains("roof"))
                 {
                     panelType = PanelType.Roof;
                 }
-                else if(text.Contains("floor"))
+                else if (text.Contains("floor"))
                 {
                     panelType = PanelType.Floor;
                     if (text.Contains("ext"))
@@ -81,11 +81,11 @@ namespace SAM.Analytical.Grasshopper
                     else if (text.Contains("grd"))
                         panelType = PanelType.SlabOnGrade;
                 }
-                else if(text.Contains("shd"))
+                else if (text.Contains("shd"))
                 {
                     panelType = PanelType.Shade;
                 }
-                else if(text.Contains("sol"))
+                else if (text.Contains("sol"))
                 {
                     panelType = PanelType.SolarPanel;
 
@@ -95,7 +95,7 @@ namespace SAM.Analytical.Grasshopper
                     panelType = PanelType.Wall;
                     if (text.Contains("ext"))
                         panelType = PanelType.WallExternal;
-                    else if(text.Contains("int"))
+                    else if (text.Contains("int"))
                         panelType = PanelType.WallInternal;
                 }
             }

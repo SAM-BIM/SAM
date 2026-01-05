@@ -27,12 +27,12 @@ namespace SAM.Analytical
 
             foreach (Panel panel in panels)
             {
-                if(panel == null)
+                if (panel == null)
                 {
                     continue;
                 }
 
-                if(!panel.Transparent(materialLibrary))
+                if (!panel.Transparent(materialLibrary))
                 {
                     continue;
                 }

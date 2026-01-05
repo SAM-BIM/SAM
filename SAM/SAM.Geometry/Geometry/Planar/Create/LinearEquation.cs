@@ -6,7 +6,7 @@ namespace SAM.Geometry.Planar
     {
         public static LinearEquation LinearEquation(this Point2D point2D_1, Point2D point2D_2)
         {
-            if(point2D_1 == point2D_2 || point2D_1 == null)
+            if (point2D_1 == point2D_2 || point2D_1 == null)
             {
                 return null;
             }

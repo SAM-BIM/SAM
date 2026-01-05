@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
                 IHostPartition hostPartition = hostPartitions[i];
 
                 Geometry.Spatial.Face3D face3D = hostPartition?.Face3D;
-                if(face3D == null)
+                if (face3D == null)
                 {
                     return;
                 }

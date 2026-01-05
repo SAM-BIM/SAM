@@ -14,7 +14,7 @@ namespace SAM.Analytical
 
         public FilterSelection()
         {
-            
+
         }
 
         public FilterSelection(JObject jObject)
@@ -24,14 +24,14 @@ namespace SAM.Analytical
 
         public IFilter Filter
         {
-            get 
-            { 
-                return filter; 
+            get
+            {
+                return filter;
             }
-            
-            set 
-            { 
-                filter = value; 
+
+            set
+            {
+                filter = value;
             }
         }
 

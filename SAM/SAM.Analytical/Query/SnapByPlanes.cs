@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using SAM.Geometry.Spatial;
+using System.Collections.Generic;
 using System.Linq;
-using SAM.Geometry.Spatial;
 
 namespace SAM.Analytical
 {
@@ -22,7 +22,7 @@ namespace SAM.Analytical
             }
 
             List<Panel> result = new List<Panel>();
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
                 result.Add(panel?.SnapByPlanes(planes, maxDistance, tolerance));
             }
@@ -32,7 +32,7 @@ namespace SAM.Analytical
 
         public static List<Panel> SnapByPlanes(this IEnumerable<Panel> panels, IEnumerable<double> elevations, double maxDistance, double tolerance = Core.Tolerance.Distance)
         {
-            if(panels == null)
+            if (panels == null)
             {
                 return null;
             }

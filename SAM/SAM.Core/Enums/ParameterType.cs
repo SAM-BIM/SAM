@@ -6,7 +6,7 @@
         Double,
         String,
         Guid,
-        IJSAMObject, 
+        IJSAMObject,
         Integer,
         Boolean,
         DateTime,

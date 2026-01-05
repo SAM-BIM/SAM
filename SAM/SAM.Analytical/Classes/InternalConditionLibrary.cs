@@ -73,7 +73,7 @@ namespace SAM.Analytical
         {
             if (string.IsNullOrWhiteSpace(text))
                 return null;
-            
+
             List<InternalCondition> internalConditions = GetInternalConditions();
             if (internalConditions == null || internalConditions.Count == 0)
                 return null;

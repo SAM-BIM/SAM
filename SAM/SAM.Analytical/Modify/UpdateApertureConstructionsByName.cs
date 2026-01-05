@@ -21,7 +21,7 @@ namespace SAM.Analytical
                     continue;
 
                 bool updated = false;
-                foreach(Aperture aperture in apertures)
+                foreach (Aperture aperture in apertures)
                 {
                     string name = aperture?.ApertureConstruction?.Name;
                     if (string.IsNullOrWhiteSpace(name))
@@ -40,7 +40,7 @@ namespace SAM.Analytical
                     if (apertureConstruction == null)
                         continue;
 
-                    if(!updated)
+                    if (!updated)
                     {
                         updated = true;
                         panel = new Panel(panel);
@@ -84,7 +84,7 @@ namespace SAM.Analytical
                 if (apertureConstruction == null)
                     continue;
 
-               apertures[i] = new Aperture(aperture, apertureConstruction);
+                apertures[i] = new Aperture(aperture, apertureConstruction);
             }
 
             return result;

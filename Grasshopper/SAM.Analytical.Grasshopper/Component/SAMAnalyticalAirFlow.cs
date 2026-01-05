@@ -20,14 +20,14 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
         /// </summary>
         public SAMAnalyticalAirflow()
           : base("SAMAnalytical.Airflow", "SAMAnalytical.Airflow",
-              "Calculates Exhaust and Supply Airflow from Internal Condition ONLY"+
+              "Calculates Exhaust and Supply Airflow from Internal Condition ONLY" +
               "Calculated Exhaust/Supply Air Flow [m3/s] for IC inside Space.as Sum of ExhaustAirFlowPerPerson, ExhaustAirFlowPerArea, ExhaustAirFlow and ExhaustAirChangesPerHour",
               "SAM", "Analytical")
         {
@@ -54,7 +54,7 @@ namespace SAM.Analytical.Grasshopper
 
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
-            Space space= null;
+            Space space = null;
             if (!dataAccess.GetData(0, ref space) || space == null)
             {
 

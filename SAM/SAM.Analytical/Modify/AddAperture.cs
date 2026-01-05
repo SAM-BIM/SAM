@@ -8,19 +8,19 @@ namespace SAM.Analytical
     {
         public static Aperture AddAperture(this AdjacencyCluster adjacencyCluster, Aperture aperture, double tolerance_Angle = Tolerance.Angle, double tolerance_Distance = Tolerance.Distance)
         {
-            if(adjacencyCluster == null || aperture == null)
+            if (adjacencyCluster == null || aperture == null)
             {
                 return null;
             }
 
             List<Panel> panels = adjacencyCluster.GetPanels();
-            if(panels == null || panels.Count == 0)
+            if (panels == null || panels.Count == 0)
             {
                 return null;
             }
 
             BoundingBox3D boundingBox3D_Aperture = aperture.GetBoundingBox();
-            if(boundingBox3D_Aperture == null)
+            if (boundingBox3D_Aperture == null)
             {
                 return null;
             }
@@ -29,7 +29,7 @@ namespace SAM.Analytical
             foreach (Panel panel in panels)
             {
                 BoundingBox3D boundingBox3D_Panel = panel?.GetBoundingBox();
-                if(boundingBox3D_Panel == null)
+                if (boundingBox3D_Panel == null)
                 {
                     continue;
                 }

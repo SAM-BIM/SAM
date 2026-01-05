@@ -14,7 +14,7 @@ namespace SAM.Analytical
             for (int i = 0; i < panels.Count; i++)
             {
                 Panel panel = panels[i];
-                if(panel == null)
+                if (panel == null)
                 {
                     continue;
                 }
@@ -22,7 +22,7 @@ namespace SAM.Analytical
                 PanelType panelType = panel.PanelType;
 
                 Construction construction = result.GetConstructions(panelType)?.FirstOrDefault();
-                if(construction == null)
+                if (construction == null)
                 {
                     construction = constructionLibrary.GetConstructions(panelType)?.FirstOrDefault();
                     if (construction != null)

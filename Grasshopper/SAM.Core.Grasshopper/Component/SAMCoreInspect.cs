@@ -87,7 +87,7 @@ namespace SAM.Core.Grasshopper
                 dictionary.Add(gooParameterParam.Name, new List<IGH_Param>(gooParameterParam.Recipients));
             }
 
-            while(Params.Output != null && Params.Output.Count() > 0)
+            while (Params.Output != null && Params.Output.Count() > 0)
                 Params.UnregisterOutputParameter(Params.Output[0]);
 
             if (gooParameterParams != null)
@@ -96,7 +96,7 @@ namespace SAM.Core.Grasshopper
                 {
                     if (gooParameterParam == null)
                         continue;
-                    
+
                     AddOutputParameter(gooParameterParam);
 
                     IList<IGH_Param> @params = null;
@@ -246,7 +246,7 @@ namespace SAM.Core.Grasshopper
             for (int i = 0; i < Params.Output.Count; ++i)
             {
                 string name = Params.Output[i]?.Name;
-                if(string.IsNullOrEmpty(name))
+                if (string.IsNullOrEmpty(name))
                 {
                     continue;
                 }
@@ -275,7 +275,7 @@ namespace SAM.Core.Grasshopper
 
                 @object.TryGetValue(gooParameterParam.Name, out result, true);
 
-                if(result is IJSAMObject)
+                if (result is IJSAMObject)
                 {
                     dataAccess.SetData(i, new GooJSAMObject<IJSAMObject>((IJSAMObject)result));
                 }
@@ -309,9 +309,9 @@ namespace SAM.Core.Grasshopper
                         {
                             values[j] = new GH_Time((DateTime)values[j]);
                         }
-                        else if(Core.Query.IsNumeric(values[j]))
+                        else if (Core.Query.IsNumeric(values[j]))
                         {
-                            if(values[j] is long || values[j] is int)
+                            if (values[j] is long || values[j] is int)
                             {
                                 if (!Core.Query.TryConvert(values[j], out int @int))
                                 {
@@ -336,9 +336,9 @@ namespace SAM.Core.Grasshopper
                         }
                     }
 
-                    if(gooParameterParam.Access == GH_ParamAccess.item)
+                    if (gooParameterParam.Access == GH_ParamAccess.item)
                     {
-                        if(values.Count == 0)
+                        if (values.Count == 0)
                         {
                             dataAccess.SetData(i, null);
                         }
@@ -352,7 +352,7 @@ namespace SAM.Core.Grasshopper
                         dataAccess.SetDataList(i, values);
                     }
 
-                    
+
                     //List<GooObject> gooObjects = new List<GooObject>();
                     //foreach (object object_Result in (IEnumerable)result)
                     //{
@@ -421,7 +421,7 @@ namespace SAM.Core.Grasshopper
                     {
                         dataAccess.SetData(i, new GooObject(result.ToString()));
                     }
-                    else if(result is int || result is long)
+                    else if (result is int || result is long)
                     {
                         int value;
                         if (Core.Query.TryConvert(result, out value))
@@ -445,7 +445,7 @@ namespace SAM.Core.Grasshopper
                     {
                         dataAccess.SetData(i, new GH_Time((DateTime)result));
                     }
-                    else if(result != null)
+                    else if (result != null)
                     {
                         dataAccess.SetData(i, new GooObject(result));
                     }
@@ -459,13 +459,13 @@ namespace SAM.Core.Grasshopper
         }
 
         bool IGH_VariableParameterComponent.CanInsertParameter(GH_ParameterSide side, int index) => false;
-        
+
         bool IGH_VariableParameterComponent.CanRemoveParameter(GH_ParameterSide side, int index) => side == GH_ParameterSide.Output;
-        
+
         IGH_Param IGH_VariableParameterComponent.CreateParameter(GH_ParameterSide side, int index) => null;
-        
+
         bool IGH_VariableParameterComponent.DestroyParameter(GH_ParameterSide side, int index) => true;
-        
+
         void IGH_VariableParameterComponent.VariableParameterMaintenance() { }
 
 

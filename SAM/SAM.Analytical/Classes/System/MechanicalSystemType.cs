@@ -44,7 +44,7 @@ namespace SAM.Analytical
             if (!base.FromJObject(jObject))
                 return false;
 
-            if(jObject.ContainsKey("Description"))
+            if (jObject.ContainsKey("Description"))
                 description = jObject.Value<string>("Description");
 
             return true;
@@ -52,11 +52,11 @@ namespace SAM.Analytical
 
         public override JObject ToJObject()
         {
-           JObject jObject = base.ToJObject();
+            JObject jObject = base.ToJObject();
             if (jObject == null)
                 return null;
 
-            if(description != null)
+            if (description != null)
                 jObject.Add("Description", description);
 
             return jObject;

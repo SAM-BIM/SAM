@@ -33,7 +33,7 @@ namespace SAM.Analytical
 
             Plane plane = Plane.WorldXY;
 
-            if(plane.Coplanar(planarBoundary3D.Plane))
+            if (plane.Coplanar(planarBoundary3D.Plane))
                 return rectangle2D.Height;
 
             Vector3D vector3D_WidthDirection = plane.Convert(rectangle2D.WidthDirection);

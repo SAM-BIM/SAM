@@ -73,7 +73,7 @@ namespace SAM.Core.Grasshopper
             materialLibrary = new MaterialLibrary(materialLibrary);
             List<bool> successfuls = new List<bool>();
 
-            foreach(IMaterial material in materials)
+            foreach (IMaterial material in materials)
             {
                 bool successful = materialLibrary.Add(material);
                 successfuls.Add(successful);

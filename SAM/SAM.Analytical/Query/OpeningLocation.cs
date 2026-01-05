@@ -6,7 +6,7 @@ namespace SAM.Analytical
     {
         public static Point3D OpeningLocation(this IClosedPlanar3D closedPlanar3D, double tolerance = Core.Tolerance.Distance)
         {
-            if(closedPlanar3D == null)
+            if (closedPlanar3D == null)
             {
                 return null;
             }

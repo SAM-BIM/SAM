@@ -15,7 +15,7 @@ namespace SAM.Analytical
             {
                 ((LogicalFilter)filter).Filters?.ForEach(x => AssignAdjacencyCluster(x, adjacencyCluster));
             }
-            else if(filter is IRelationFilter)
+            else if (filter is IRelationFilter)
             {
                 AssignAdjacencyCluster(((IRelationFilter)filter).Filter, adjacencyCluster);
             }

@@ -18,8 +18,8 @@ namespace SAM.Geometry.Grasshopper
 
         public static GH_Brep ToGrasshopper_Brep(this Spatial.Face3D face3D, double tolerance = Core.Tolerance.MacroDistance)
         {
-            Brep brep =Rhino.Convert.ToRhino_Brep(face3D, tolerance);
-            if(brep == null)
+            Brep brep = Rhino.Convert.ToRhino_Brep(face3D, tolerance);
+            if (brep == null)
             {
                 return null;
             }

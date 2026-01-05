@@ -12,12 +12,12 @@ namespace SAM.Core
             }
 
             List<ParameterSet> result = object_Source.GetParameterSets();
-            if(result == null || result.Count == 0)
+            if (result == null || result.Count == 0)
             {
                 return result;
             }
 
-            for(int i=0; i < result.Count; i++)
+            for (int i = 0; i < result.Count; i++)
             {
                 result[i] = result[i]?.Clone();
 

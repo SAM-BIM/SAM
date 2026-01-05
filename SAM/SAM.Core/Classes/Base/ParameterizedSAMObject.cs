@@ -71,13 +71,13 @@ namespace SAM.Core
 
         public bool RemoveValue(string name, Assembly assembly = null)
         {
-            return Modify.RemoveValue(this, name, assembly == null ? Assembly.GetExecutingAssembly(): assembly);
+            return Modify.RemoveValue(this, name, assembly == null ? Assembly.GetExecutingAssembly() : assembly);
         }
 
         public bool TryGetValue(Enum @enum, out object value)
         {
             value = null;
-            
+
             if (!Query.IsValid(GetType(), @enum))
             {
                 return false;
@@ -195,7 +195,7 @@ namespace SAM.Core
 
             return Query.TryConvert(result, out value);
         }
-        
+
         public object GetValue(Enum @enum)
         {
             object result = null;

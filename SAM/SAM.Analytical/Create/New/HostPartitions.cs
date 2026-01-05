@@ -59,7 +59,7 @@ namespace SAM.Analytical
                 Face3D face3D = new Face3D(polygon3D);
 
                 IHostPartition hostPartition = HostPartition(face3D, null, tolerance_Angle);
-                if(hostPartition == null)
+                if (hostPartition == null)
                 {
                     continue;
                 }
@@ -69,7 +69,7 @@ namespace SAM.Analytical
 
             return result;
         }
-    
+
         public static List<IHostPartition> HostPartitions(this Shell shell, double silverSpacing = Core.Tolerance.MacroDistance, double tolerance_Distance = Core.Tolerance.Distance, double tolerance_Angle = Core.Tolerance.Angle)
         {
             if (shell == null)
@@ -83,7 +83,7 @@ namespace SAM.Analytical
                 return null;
 
             List<IHostPartition> result = new List<IHostPartition>();
-            foreach(Face3D face3D in face3Ds)
+            foreach (Face3D face3D in face3Ds)
             {
                 IHostPartition hostPartition = HostPartition(face3D, null, tolerance_Angle);
                 if (hostPartition == null)

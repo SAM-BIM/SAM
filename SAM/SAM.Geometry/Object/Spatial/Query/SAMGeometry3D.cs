@@ -6,7 +6,7 @@ namespace SAM.Geometry.Object.Spatial
     {
         public static T SAMGeometry3D<T>(this ISAMGeometry3DObject sAMGeometry3DObject) where T : ISAMGeometry3D
         {
-            if(sAMGeometry3DObject is IFace3DObject)
+            if (sAMGeometry3DObject is IFace3DObject)
             {
                 Face3D result = ((IFace3DObject)sAMGeometry3DObject).Face3D;
                 return result is T ? (T)(object)result : default(T);

@@ -6,7 +6,7 @@ namespace SAM.Analytical
     {
         public static List<T> Systems<T>(this AdjacencyCluster adjacencyCluster, Space space) where T : MechanicalSystem
         {
-            if(adjacencyCluster == null || space == null)
+            if (adjacencyCluster == null || space == null)
             {
                 return null;
             }

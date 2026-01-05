@@ -1,10 +1,10 @@
 ﻿namespace SAM.Analytical
 {
     public static partial class Convert
-    {  
+    {
         public static Construction ToSAM(this HostPartitionType hostPartitionType)
         {
-            if(hostPartitionType == null)
+            if (hostPartitionType == null)
             {
                 return null;
             }

@@ -6,7 +6,7 @@ namespace SAM.Analytical
     {
         public static AnalyticalModel Merge(this AnalyticalModel analyticalModel, Type type, MergeSettings mergeSettings)
         {
-            if(analyticalModel == null || type == null || mergeSettings == null)
+            if (analyticalModel == null || type == null || mergeSettings == null)
             {
                 return null;
             }
@@ -17,7 +17,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if(Modify.Merge(adjacencyCluster, type, mergeSettings))
+            if (Modify.Merge(adjacencyCluster, type, mergeSettings))
             {
                 return new AnalyticalModel(analyticalModel, adjacencyCluster);
             }

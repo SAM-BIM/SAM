@@ -21,7 +21,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -97,7 +97,7 @@ namespace SAM.Analytical.Grasshopper
             string category = null;
             if (index != -1)
             {
-                if(!dataAccess.GetData(index, ref category))
+                if (!dataAccess.GetData(index, ref category))
                 {
                     category = null;
                 }

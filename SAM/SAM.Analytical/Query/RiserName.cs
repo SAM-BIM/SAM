@@ -5,7 +5,7 @@
         public static string RiserName(this MechanicalSystemCategory mechanicalSystemCategory, int index = 1)
         {
             string prefix = RiserNamePrefix(mechanicalSystemCategory);
-            if(prefix == null)
+            if (prefix == null)
             {
                 return null;
             }

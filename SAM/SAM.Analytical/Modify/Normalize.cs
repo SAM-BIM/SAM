@@ -12,12 +12,12 @@ namespace SAM.Analytical
                 return false;
 
             List<Panel> panels = adjacencyCluster.GetPanels();
-            if(panels == null)
+            if (panels == null)
             {
                 return false;
             }
 
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
                 panel.Normalize(includeApertures, orientation, edgeOrientationMethod, tolerance_Angle, tolerance_Distance);
                 adjacencyCluster.AddObject(panel);

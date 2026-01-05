@@ -19,7 +19,7 @@ namespace SAM.Analytical
             if (string.IsNullOrWhiteSpace(name))
                 return false;
 
-            foreach(Architectural.MaterialLayer materialLayer in materialLayers)
+            foreach (Architectural.MaterialLayer materialLayer in materialLayers)
             {
                 if (name.Equals(materialLayer?.Name))
                     return true;

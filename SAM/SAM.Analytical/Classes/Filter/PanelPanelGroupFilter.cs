@@ -7,19 +7,19 @@ namespace SAM.Analytical
     {
 
         public PanelPanelGroupFilter(PanelGroup panelGroup)
-            :base()
+            : base()
         {
             Value = panelGroup;
         }
 
         public PanelPanelGroupFilter(PanelPanelGroupFilter panelPanelGroupFilter)
-            :base(panelPanelGroupFilter)
+            : base(panelPanelGroupFilter)
         {
 
         }
 
         public PanelPanelGroupFilter(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
 
         }
@@ -29,7 +29,7 @@ namespace SAM.Analytical
             panelGroup = PanelGroup.Undefined;
 
             Panel panel = jSAMObject as Panel;
-            if(panel == null)
+            if (panel == null)
             {
                 return false;
             }

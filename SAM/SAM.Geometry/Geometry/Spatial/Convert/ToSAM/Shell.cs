@@ -6,8 +6,8 @@ namespace SAM.Geometry.Spatial
     {
         public static Shell ToSAM_Shell(this Mesh3D mesh3D)
         {
-            List<Triangle3D> triangles =  mesh3D?.GetTriangles();
-            if(triangles == null || triangles.Count == 0)
+            List<Triangle3D> triangles = mesh3D?.GetTriangles();
+            if (triangles == null || triangles.Count == 0)
             {
                 return null;
             }

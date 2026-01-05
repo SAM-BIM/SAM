@@ -268,7 +268,7 @@ namespace SAM.Geometry.Spatial
 
             Point3D origin_1 = origin;
             Vector3D direction_1 = Direction;
-            
+
             Point3D origin_2 = segment3D.origin;
             Vector3D direction_2 = segment3D.Direction;
 
@@ -285,7 +285,7 @@ namespace SAM.Geometry.Spatial
             point3D_Closest1 = origin_1.GetMoved(sc * direction_1) as Point3D;
             point3D_Closest2 = origin_2.GetMoved(tc * direction_2) as Point3D;
 
-            if(!On(point3D_Closest1, tolerance))
+            if (!On(point3D_Closest1, tolerance))
             {
                 point3D_Closest1 = Closest(point3D_Closest1);
             }
@@ -327,7 +327,7 @@ namespace SAM.Geometry.Spatial
         public override bool Equals(object obj)
         {
             Segment3D segment3D = obj as Segment3D;
-            if(segment3D == null)
+            if (segment3D == null)
             {
                 return false;
             }

@@ -14,7 +14,7 @@ namespace SAM.Core
         /// <returns>Lerped Colors</returns>
         public static List<Color> Lerps(this Color color_1, Color color_2, int count)
         {
-            if(count < 1)
+            if (count < 1)
             {
                 return null;
             }

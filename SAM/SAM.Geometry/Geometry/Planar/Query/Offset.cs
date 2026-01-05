@@ -28,7 +28,7 @@ namespace SAM.Geometry.Planar
 
             if (includeExternalEdge)
             {
-                if(externalEdge is Polygon2D)
+                if (externalEdge is Polygon2D)
                 {
                     List<Polygon2D> polygon2Ds = Offset(Create.Polygon2D(externalEdge), offset, tolerance);
                     if (polygon2Ds != null)
@@ -41,12 +41,12 @@ namespace SAM.Geometry.Planar
 
             if (includeInternalEdges)
             {
-                if(internalEdges != null)
+                if (internalEdges != null)
                 {
                     internalEdges_Offset = new List<IClosed2D>();
                     foreach (IClosed2D closed2D in internalEdges)
                     {
-                        if(closed2D is Polygon2D)
+                        if (closed2D is Polygon2D)
                         {
                             List<Polygon2D> polygon2Ds = Offset(Create.Polygon2D(externalEdge), offset, tolerance);
                             if (polygon2Ds != null)
@@ -62,7 +62,7 @@ namespace SAM.Geometry.Planar
 
             return Create.Face2Ds(edges);
         }
-        
+
         public static List<Polygon2D> Offset(this Polygon2D polygon2D, double offset, double tolerance = Tolerance.MicroDistance)
         {
             if (polygon2D == null)
@@ -95,13 +95,13 @@ namespace SAM.Geometry.Planar
             }
 
             List<Polygon2D> polygon2Ds = Offset(triangle2D, offset, JoinStyle.Mitre, EndCapStyle.Square, tolerance);
-            if(polygon2Ds == null || polygon2Ds.Count == 0)
+            if (polygon2Ds == null || polygon2Ds.Count == 0)
             {
                 return null;
             }
 
             List<Point2D> point2Ds = polygon2Ds[0].GetPoints();
-            if(point2Ds == null || point2Ds.Count  < 3)
+            if (point2Ds == null || point2Ds.Count < 3)
             {
                 return null;
             }
@@ -123,7 +123,7 @@ namespace SAM.Geometry.Planar
             //if (point2DsList.Count > 1)
             //{
             //    point2DsList.Sort((x, y) => Area(y).CompareTo(Area(x)));
-                
+
             //}
 
             //return new Triangle2D(point2DsList[0][0], point2DsList[0][1], point2DsList[0][2]);
@@ -271,7 +271,7 @@ namespace SAM.Geometry.Planar
         public static List<Polygon2D> Offset(this ISegmentable2D segmentable2D, double offset, JoinStyle joinStyle, EndCapStyle endCapStyle, double tolerance = Tolerance.MicroDistance)
         {
             LineString lineString = segmentable2D.ToNTS(tolerance);
-            if(lineString == null)
+            if (lineString == null)
             {
                 return null;
             }
@@ -287,12 +287,12 @@ namespace SAM.Geometry.Planar
             };
 
             NetTopologySuite.Geometries.Geometry geometry = lineString;
-            if(lineString is LinearRing)
+            if (lineString is LinearRing)
             {
                 geometry = new Polygon((LinearRing)lineString);
             }
 
-            if(geometry == null || !geometry.IsValid)
+            if (geometry == null || !geometry.IsValid)
             {
                 return null;
             }
@@ -311,7 +311,7 @@ namespace SAM.Geometry.Planar
             {
                 try
                 {
-                    BufferCurveSetBuilder bufferCurveSetBuilder = new BufferCurveSetBuilder(geometry, offset, precisionModel, geometry.Factory.ElevationModel,bufferParameters);
+                    BufferCurveSetBuilder bufferCurveSetBuilder = new BufferCurveSetBuilder(geometry, offset, precisionModel, geometry.Factory.ElevationModel, bufferParameters);
                     IEnumerable<NetTopologySuite.Noding.ISegmentString> segmentStrings = segmentStrings = bufferCurveSetBuilder.GetCurves();
 
                     lineStrings = new List<LineString>();
@@ -338,12 +338,12 @@ namespace SAM.Geometry.Planar
                 }
             }
 
-            if(lineStrings == null || lineStrings.Count == 0)
+            if (lineStrings == null || lineStrings.Count == 0)
             {
                 return null;
             }
-            
-            if(lineString.IsClosed)
+
+            if (lineString.IsClosed)
             {
                 double offset_Abs = System.Math.Abs(offset) - (tolerance * 10); // given tolerance has to be greater than input tolerance so multiply by 10
 
@@ -360,15 +360,15 @@ namespace SAM.Geometry.Planar
             List<Polygon2D> result = new List<Polygon2D>();
 
             List<Segment2D> segment2Ds = lineStrings.ConvertAll(x => x.ToSAM())?.Segment2Ds();
-            List<Polygon> polygons =  segment2Ds.ToNTS_Polygons(tolerance);
-            if(polygons != null && polygons.Count > 0)
+            List<Polygon> polygons = segment2Ds.ToNTS_Polygons(tolerance);
+            if (polygons != null && polygons.Count > 0)
             {
                 //Polygon2Ds by SAM -> Added 2022.09.07
 
                 foreach (Polygon polygon in polygons)
                 {
-                    List<Polygon2D> polygon2Ds_Temp =  polygon?.ToSAM_Polygon2Ds(tolerance);
-                    if(polygon2Ds_Temp == null || polygon2Ds_Temp.Count == 0)
+                    List<Polygon2D> polygon2Ds_Temp = polygon?.ToSAM_Polygon2Ds(tolerance);
+                    if (polygon2Ds_Temp == null || polygon2Ds_Temp.Count == 0)
                     {
                         continue;
                     }
@@ -379,7 +379,7 @@ namespace SAM.Geometry.Planar
             else
             {
                 //Polygon2Ds by Polygonizer
-                
+
                 Polygonizer polygonizer = new Polygonizer(true);
                 polygonizer.Add(lineStrings.ToArray());
 
@@ -562,13 +562,13 @@ namespace SAM.Geometry.Planar
                             List<int> indexes = new List<int>();
                             for (int k = 0; k < point2Ds_Closest.Count; k++)
                             {
-                                if(point2Ds_Closest[k].AlmostEquals(point2D_Project, tolerance))
+                                if (point2Ds_Closest[k].AlmostEquals(point2D_Project, tolerance))
                                 {
                                     indexes.Add(k);
                                 }
                             }
 
-                            if(indexes.Count > 1)
+                            if (indexes.Count > 1)
                             {
                                 offset = indexes.ConvertAll(x => offsets[x]).Min();
                                 if (distance >= offset - tolerance)

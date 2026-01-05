@@ -92,7 +92,7 @@ namespace SAM.Analytical
         {
             if (panelTypes == null || panelTypes.Count() == 0)
                 return null;
-            
+
             List<Construction> constructions = GetConstructions();
             if (constructions == null || constructions.Count == 0)
                 return null;
@@ -104,7 +104,7 @@ namespace SAM.Analytical
         {
             if (string.IsNullOrWhiteSpace(text))
                 return null;
-            
+
             List<Construction> constructions = GetConstructions();
             if (constructions == null || constructions.Count == 0)
                 return null;

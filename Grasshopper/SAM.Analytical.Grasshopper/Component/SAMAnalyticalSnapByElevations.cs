@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -82,7 +82,7 @@ namespace SAM.Analytical.Grasshopper
 
             List<double> elevations = new List<double>();
 
-            foreach(GH_ObjectWrapper objectWrapper_Elevation in objectWrappers_Elevation)
+            foreach (GH_ObjectWrapper objectWrapper_Elevation in objectWrappers_Elevation)
             {
                 double elevation = double.NaN;
 
@@ -106,7 +106,7 @@ namespace SAM.Analytical.Grasshopper
                     elevation = ((Architectural.Level)@object).Elevation;
                 }
 
-                if(double.IsNaN(elevation))
+                if (double.IsNaN(elevation))
                 {
                     continue;
                 }

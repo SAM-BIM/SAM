@@ -53,7 +53,7 @@ namespace SAM.Geometry.Planar
         /// <returns>A closed 2D geometry.</returns>
         public static IClosed2D IClosed2D(this Polycurve2D polycurve2D, double tolerance = Core.Tolerance.Distance)
         {
-            if(polycurve2D == null)
+            if (polycurve2D == null)
             {
                 return null;
             }
@@ -76,12 +76,12 @@ namespace SAM.Geometry.Planar
         /// <returns>A closed 2D geometry.</returns>
         public static IClosed2D IClosed2D(this IClosed2D closed2D, double tolerance = Core.Tolerance.Distance)
         {
-            if(closed2D == null)
+            if (closed2D == null)
             {
                 return null;
             }
 
-            if(closed2D is Polygon2D)
+            if (closed2D is Polygon2D)
             {
                 return IClosed2D((Polygon2D)closed2D, tolerance);
             }

@@ -139,11 +139,11 @@ namespace SAM.Analytical
                 return result;
             }
 
-            foreach(Face3D face3D in face3Ds)
+            foreach (Face3D face3D in face3Ds)
             {
                 IPartition partition = null;
 
-                if(hostPartitionType == null)
+                if (hostPartitionType == null)
                 {
                     partition = new AirPartition(face3D);
                 }
@@ -152,7 +152,7 @@ namespace SAM.Analytical
                     partition = HostPartition(face3D, hostPartitionType, tolerance_Angle);
                 }
 
-                if(partition != null)
+                if (partition != null)
                 {
                     result.Add(partition);
                 }

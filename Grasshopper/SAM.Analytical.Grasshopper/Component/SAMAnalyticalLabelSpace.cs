@@ -27,7 +27,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -92,7 +92,7 @@ namespace SAM.Analytical.Grasshopper
             }
 
             Text3d text3D = GetText3d(space, parameterName, height);
-            if(text3D is null)
+            if (text3D is null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -159,7 +159,7 @@ namespace SAM.Analytical.Grasshopper
                 }
 
                 Text3d text3d = GetText3d(space, parameterName, height);
-                if(text3d is not null)
+                if (text3d is not null)
                 {
                     result.Add(text3d);
                 }
@@ -170,7 +170,7 @@ namespace SAM.Analytical.Grasshopper
 
         private Text3d GetText3d(ISpace space, string parameterName, double height = double.NaN)
         {
-            if(space is null)
+            if (space is null)
             {
                 return null;
             }
@@ -259,14 +259,14 @@ namespace SAM.Analytical.Grasshopper
                     if (text3d == null)
                         continue;
                     Point3d point = text3d.TextPlane.Origin;
-                    
-                    if (point.DistanceTo(cameraLocation) > 80) 
+
+                    if (point.DistanceTo(cameraLocation) > 80)
                         continue;
-                    
+
                     args.Display.Draw3dText(text3d, System.Drawing.Color.Black);
                 }
             }
-            
+
             base.DrawViewportMeshes(args);
         }
 
@@ -281,10 +281,10 @@ namespace SAM.Analytical.Grasshopper
                     if (text3d == null)
                         continue;
                     Point3d point = text3d.TextPlane.Origin;
-                    
-                    if (point.DistanceTo(cameraLocation) > 40) 
+
+                    if (point.DistanceTo(cameraLocation) > 40)
                         continue;
-                    
+
                     args.Display.Draw3dText(text3d, System.Drawing.Color.Black);
                 }
             }

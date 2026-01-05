@@ -142,7 +142,7 @@ namespace SAM.Geometry.Planar
 
         public static ITransform2D GetMirrorX(Point2D point2D)
         {
-            if(point2D == null)
+            if (point2D == null)
             {
                 return null;
             }

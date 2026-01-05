@@ -34,7 +34,7 @@ namespace SAM.Geometry.Object
                 foreach (ISAMGeometry2DObject sAMGeometry2DObject in (IEnumerable<ISAMGeometry2DObject>)sAMGeometryObject)
                 {
                     List<ISAMGeometry> geometries = ToSAM_ISAMGeometry(sAMGeometry2DObject);
-                    if(geometries != null)
+                    if (geometries != null)
                     {
                         result.AddRange(geometries);
                     }

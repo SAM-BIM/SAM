@@ -10,7 +10,7 @@ namespace SAM.Analytical
                 return null;
 
             List<Profile> profiles = new List<Profile>();
-            foreach(string name_Profile in names)
+            foreach (string name_Profile in names)
             {
                 Profile profile = profileLibrary.GetProfile(name_Profile, profileType, includeProfileGroup);
                 if (profile == null)
@@ -51,7 +51,7 @@ namespace SAM.Analytical
 
             return result;
         }
-    
+
         public static Profile Profile(string name, ProfileType profileType, IEnumerable<double> values)
         {
             return Profile(name, profileType.Text(), values);
@@ -116,7 +116,7 @@ namespace SAM.Analytical
 
         public static Profile Profile(Weather.WeatherYear weatherYear, Weather.WeatherDataType weatherDataType)
         {
-            if(weatherYear == null || weatherDataType == Weather.WeatherDataType.Undefined)
+            if (weatherYear == null || weatherDataType == Weather.WeatherDataType.Undefined)
             {
                 return null;
             }

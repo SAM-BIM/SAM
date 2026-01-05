@@ -14,7 +14,7 @@ namespace SAM.Geometry.Planar
 
             double x = 0;
             double y = 0;
-            foreach(Point2D point2D in point2Ds)
+            foreach (Point2D point2D in point2Ds)
             {
                 count++;
                 x += point2D.X;

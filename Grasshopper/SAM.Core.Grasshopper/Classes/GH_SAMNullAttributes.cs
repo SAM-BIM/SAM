@@ -11,8 +11,8 @@ namespace SAM.Core.Grasshopper
 {
     public class GH_SAMNullAttributes : IGH_Attributes
     {
-        public GH_SAMNullAttributes() 
-        { 
+        public GH_SAMNullAttributes()
+        {
         }
 
         public PointF Pivot { get => PointF.Empty; set => throw new NotImplementedException(); }

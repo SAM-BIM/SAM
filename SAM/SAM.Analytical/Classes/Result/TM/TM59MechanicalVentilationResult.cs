@@ -8,11 +8,11 @@ namespace SAM.Analytical
         private int hoursExceeding26;
 
         public TM59MechanicalVentilationResult(
-            string name, 
-            string source, 
+            string name,
+            string source,
             string reference,
             TM52BuildingCategory tM52BuildingCategory,
-            int occupiedHours, 
+            int occupiedHours,
             int maxExceedableHours,
             int hoursExceeding26,
             bool pass,
@@ -23,9 +23,9 @@ namespace SAM.Analytical
         }
 
         public TM59MechanicalVentilationResult(
-            Guid guid, 
-            string name, 
-            string source, 
+            Guid guid,
+            string name,
+            string source,
             string reference,
             TM52BuildingCategory tM52BuildingCategory,
             int occupiedHours,

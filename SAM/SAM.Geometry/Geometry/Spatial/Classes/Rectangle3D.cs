@@ -66,7 +66,7 @@ namespace SAM.Geometry.Spatial
 
         public List<ICurve3D> GetCurves()
         {
-            return GetSegments().ConvertAll(x => (ICurve3D)x );
+            return GetSegments().ConvertAll(x => (ICurve3D)x);
         }
 
         public ISAMGeometry3D GetMoved(Vector3D vector3D)
@@ -142,11 +142,11 @@ namespace SAM.Geometry.Spatial
 
         public Plane GetPlane()
         {
-            if(plane == null)
+            if (plane == null)
             {
                 return null;
             }
-            
+
             return new Plane(plane);
         }
 
@@ -154,7 +154,7 @@ namespace SAM.Geometry.Spatial
         {
             get
             {
-                if(rectangle2D == null)
+                if (rectangle2D == null)
                 {
                     return null;
                 }
@@ -180,7 +180,7 @@ namespace SAM.Geometry.Spatial
 
         public double GetLength()
         {
-            if(rectangle2D == null)
+            if (rectangle2D == null)
             {
                 return double.NaN;
             }

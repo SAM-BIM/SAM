@@ -215,7 +215,7 @@ namespace SAM.Analytical
                 if (panel_Temp.HasAperture(guid))
                 {
                     result = panel_Temp.GetAperture(guid);
-                    if(result != null)
+                    if (result != null)
                     {
                         panel = panel_Temp;
                         return result;

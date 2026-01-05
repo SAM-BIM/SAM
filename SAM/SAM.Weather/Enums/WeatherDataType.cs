@@ -11,12 +11,12 @@ namespace SAM.Weather
         /// Undefined
         /// </summary>
         [Description("Undefined")] Undefined,
-        
+
         /// <summary>
         /// Global Solar Radiation [W/m2]
         /// </summary>
         [Description("Global Solar Radiation [W/m2]")] GlobalSolarRadiation,
-        
+
         /// <summary>
         /// Diffuse Solar Radiation [W/m2]
         /// </summary>

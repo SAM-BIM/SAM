@@ -28,7 +28,7 @@ namespace SAM.Geometry.Grasshopper
                 return false;
 
             bool result = true;
-            foreach(Polyline polyline in polylines)
+            foreach (Polyline polyline in polylines)
             {
                 Mesh mesh_Temp = Mesh.CreateFromClosedPolyline(polyline);
                 if (mesh_Temp == null)

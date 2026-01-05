@@ -12,7 +12,7 @@ namespace SAM.Analytical.Classes
         private double offset;
         private double sillHeight;
         private bool subdivide;
-        
+
         public ApertureCase()
             : base()
         {
@@ -41,7 +41,7 @@ namespace SAM.Analytical.Classes
         public ApertureCase(ApertureCase apertureCase)
             : base(apertureCase)
         {
-            if(apertureCase != null)
+            if (apertureCase != null)
             {
                 apertureToPanelRatios = apertureCase.apertureToPanelRatios;
                 subdivide = apertureCase.subdivide;
@@ -164,7 +164,7 @@ namespace SAM.Analytical.Classes
                 OnPropertyChanged(nameof(Subdivide));
             }
         }
-        
+
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
@@ -178,7 +178,7 @@ namespace SAM.Analytical.Classes
                 apertureToPanelRatios = Core.Query.IJSAMObject<ApertureToPanelRatios>(jObject.Value<JObject>("ApertureToPanelRatios"));
             }
 
-            if(jObject.ContainsKey("Subdivide"))
+            if (jObject.ContainsKey("Subdivide"))
             {
                 subdivide = jObject.Value<bool>("Subdivide");
             }
@@ -225,7 +225,7 @@ namespace SAM.Analytical.Classes
             }
 
             result.Add("Subdivide", subdivide);
-            
+
             if (!double.IsNaN(apertureHeight))
             {
                 result.Add("ApertureHeight", apertureHeight);

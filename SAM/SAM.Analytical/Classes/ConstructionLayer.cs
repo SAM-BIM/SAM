@@ -26,7 +26,7 @@ namespace SAM.Analytical
         {
             get
             {
-                if(string.IsNullOrWhiteSpace(Name))
+                if (string.IsNullOrWhiteSpace(Name))
                 {
                     return false;
                 }

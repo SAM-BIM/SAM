@@ -1,5 +1,4 @@
-﻿using SAM.Analytical.Classes;
-using SAM.Core;
+﻿using SAM.Core;
 using System.Collections.Generic;
 
 namespace SAM.Analytical
@@ -33,14 +32,14 @@ namespace SAM.Analytical
 
         public static List<TJSAMObject> IJSAMObjects<TJSAMObject>(this ObjectReferenceCaseSelection objectReferenceCaseSelection, AnalyticalModel analyticalModel) where TJSAMObject : IJSAMObject
         {
-            if(objectReferenceCaseSelection is null || analyticalModel is null)
+            if (objectReferenceCaseSelection is null || analyticalModel is null)
             {
                 return null;
             }
 
             List<TJSAMObject> result = [];
 
-            if(objectReferenceCaseSelection.ObjectReferences is not IEnumerable<ObjectReference> objectReferences)
+            if (objectReferenceCaseSelection.ObjectReferences is not IEnumerable<ObjectReference> objectReferences)
             {
                 return result;
             }
@@ -48,7 +47,7 @@ namespace SAM.Analytical
             foreach (ObjectReference objectReference in objectReferences)
             {
                 TJSAMObject jSAMObject = analyticalModel.GetObject<TJSAMObject>(objectReference);
-                if(jSAMObject is null)
+                if (jSAMObject is null)
                 {
                     continue;
                 }
@@ -75,7 +74,7 @@ namespace SAM.Analytical
 
             foreach (IJSAMObject jSAMObject in sAMObjects)
             {
-                if(jSAMObject is TJSAMObject jSAMObject_Temp)
+                if (jSAMObject is TJSAMObject jSAMObject_Temp)
                 {
                     result.Add(jSAMObject_Temp);
                 }

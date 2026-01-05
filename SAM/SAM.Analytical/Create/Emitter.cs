@@ -15,8 +15,8 @@
             double radiantProportion = double.NaN;
             double viewCoefficient = double.NaN;
             System.Guid guid = System.Guid.Empty;
-            
-            switch(emitterType)
+
+            switch (emitterType)
             {
                 case EmitterType.WarmAirHeater:
                     radiantProportion = 0;

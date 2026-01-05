@@ -6,11 +6,11 @@ namespace SAM.Geometry.Planar
     {
         public static Point2D Move(this Point2D point2D, Vector2D vector2D)
         {
-            if(point2D == null || vector2D == null)
+            if (point2D == null || vector2D == null)
             {
                 return null;
             }
-            
+
             Point2D result = new Point2D(point2D);
             result.Move(vector2D);
             return result;
@@ -18,7 +18,7 @@ namespace SAM.Geometry.Planar
 
         public static Vector2D Move(this Vector2D baseVector2D, Vector2D vector2D)
         {
-            if(baseVector2D == null || vector2D == null)
+            if (baseVector2D == null || vector2D == null)
             {
                 return null;
             }
@@ -28,7 +28,7 @@ namespace SAM.Geometry.Planar
 
         public static Polygon2D Move(this Polygon2D polygon2D, Vector2D vector2D)
         {
-            if(vector2D == null || polygon2D == null)
+            if (vector2D == null || polygon2D == null)
             {
                 return null;
             }
@@ -163,7 +163,7 @@ namespace SAM.Geometry.Planar
             return new Triangle2D(point2Ds[0].GetMoved(vector2D), point2Ds[1].GetMoved(vector2D), point2Ds[2].GetMoved(vector2D));
         }
 
-        public static T Move<T>(this T sAMGeometry2D, Vector2D vector2D) where T: ISAMGeometry2D
+        public static T Move<T>(this T sAMGeometry2D, Vector2D vector2D) where T : ISAMGeometry2D
         {
             if (vector2D == null || sAMGeometry2D == null)
             {

@@ -27,7 +27,7 @@ namespace SAM.Analytical
         {
             get
             {
-                if(occupiedHourIndices == null)
+                if (occupiedHourIndices == null)
                 {
                     return 0;
                 }
@@ -92,18 +92,18 @@ namespace SAM.Analytical
 
         public double GetTemperatureDifference(int index)
         {
-            if(maxAcceptableTemperatures == null || operativeTemperatures == null)
+            if (maxAcceptableTemperatures == null || operativeTemperatures == null)
             {
                 return double.NaN;
             }
 
             double result = operativeTemperatures[index] - maxAcceptableTemperatures[index];
-            if(double.IsNaN(result))
+            if (double.IsNaN(result))
             {
                 return result;
             }
 
-            if(result < 0.5)
+            if (result < 0.5)
             {
                 return 0;
             }
@@ -111,7 +111,7 @@ namespace SAM.Analytical
             double fraction = result % 1;
 
             result = System.Math.Truncate(result);
-            if(fraction >= 0.5)
+            if (fraction >= 0.5)
             {
                 result = System.Math.Truncate(result + 1.0);
             }
@@ -150,7 +150,7 @@ namespace SAM.Analytical
             for (int i = minIndex; i <= maxIndex; i++)
             {
                 double temperatureDifference = GetTemperatureDifference(i);
-                if(double.IsNaN(temperatureDifference))
+                if (double.IsNaN(temperatureDifference))
                 {
                     continue;
                 }
@@ -198,7 +198,7 @@ namespace SAM.Analytical
 
                 int maxIndex = System.Math.Max(maxAcceptableTemperatures.GetMaxIndex().Value, maxAcceptableTemperatures.GetMaxIndex().Value);
                 int minIndex = System.Math.Min(operativeTemperatures.GetMinIndex().Value, operativeTemperatures.GetMinIndex().Value);
-                for(int i = minIndex; i <= maxIndex; i++)
+                for (int i = minIndex; i <= maxIndex; i++)
                 {
                     result.Add(i, occupiedHourIndices.Contains(i) ? 1 : 0);
                 }
@@ -223,7 +223,7 @@ namespace SAM.Analytical
                     return false;
                 }
 
-                if(hoursExceedingComfortRange == 0)
+                if (hoursExceedingComfortRange == 0)
                 {
                     return true;
                 }
@@ -255,7 +255,7 @@ namespace SAM.Analytical
             this.operativeTemperatures = operativeTemperatures == null ? null : new IndexedDoubles(operativeTemperatures);
         }
 
-        public TMExtendedResult(Guid guid, string name, string source, string reference,TM52BuildingCategory tM52BuildingCategory)
+        public TMExtendedResult(Guid guid, string name, string source, string reference, TM52BuildingCategory tM52BuildingCategory)
             : base(guid, name, source, reference, tM52BuildingCategory)
         {
 
@@ -264,7 +264,7 @@ namespace SAM.Analytical
         public TMExtendedResult(TMExtendedResult tMExtendedResult)
             : base(tMExtendedResult)
         {
-            if(tMExtendedResult != null)
+            if (tMExtendedResult != null)
             {
                 exceedanceFactor = tMExtendedResult.exceedanceFactor;
 
@@ -353,7 +353,7 @@ namespace SAM.Analytical
             if (occupiedHourIndices != null)
             {
                 JArray jArray = new JArray();
-                foreach(int occupiedHourIndex in occupiedHourIndices)
+                foreach (int occupiedHourIndex in occupiedHourIndices)
                 {
                     jArray.Add(occupiedHourIndex);
                 }
@@ -361,7 +361,7 @@ namespace SAM.Analytical
                 result.Add("OccupiedHourIndices", jArray);
             }
 
-            if(minAcceptableTemperatures != null)
+            if (minAcceptableTemperatures != null)
             {
                 result.Add("MinAcceptableTemperatures", minAcceptableTemperatures.ToJObject());
             }

@@ -11,7 +11,7 @@ namespace SAM.Core
         {
             jObject = jSAMObjectWrapper.jObject.DeepClone() as JObject;
         }
-        
+
         public JSAMObjectWrapper(JObject jObject)
         {
             this.jObject = jObject;

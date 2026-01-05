@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -77,7 +77,7 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
-                List<Panel> redundantPanels = new List<Panel>();
+            List<Panel> redundantPanels = new List<Panel>();
 
             List<Panel> panels = sAMObjects.ConvertAll(x => x as Panel);
             panels.RemoveAll(x => x == null);
@@ -90,9 +90,9 @@ namespace SAM.Analytical.Grasshopper
 
             panels = panels?.FindAll(x => x.TypeGuid.Equals(construction.Guid));
 
-            if(analyticalModels != null)
+            if (analyticalModels != null)
             {
-                foreach(AnalyticalModel analyticalModel in analyticalModels)
+                foreach (AnalyticalModel analyticalModel in analyticalModels)
                 {
                     List<Panel> panels_Temp = analyticalModel?.AdjacencyCluster?.GetPanels(construction);
                     if (panels_Temp == null)
@@ -102,7 +102,7 @@ namespace SAM.Analytical.Grasshopper
                 }
             }
 
-            if(adjacencyClusters != null)
+            if (adjacencyClusters != null)
             {
                 foreach (AdjacencyCluster adjacencyCluster in adjacencyClusters)
                 {

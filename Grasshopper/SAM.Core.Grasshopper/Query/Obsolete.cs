@@ -6,7 +6,7 @@
         {
             if (gH_SAMComponent == null)
                 return false;
-            
+
             string componentVersion = gH_SAMComponent.ComponentVersion;
             string latestComponentVersion = gH_SAMComponent.LatestComponentVersion;
 

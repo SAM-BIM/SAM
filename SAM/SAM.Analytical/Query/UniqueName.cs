@@ -4,19 +4,19 @@
     {
         public static string UniqueName(this AdjacencyCluster adjacencyCluster, Panel panel)
         {
-            if(panel == null || adjacencyCluster == null)
+            if (panel == null || adjacencyCluster == null)
             {
                 return null;
             }
 
             int index = adjacencyCluster.GetIndex(panel);
-            if(index == -1)
+            if (index == -1)
             {
                 return null;
             }
 
             string name = panel.Name;
-            if(string.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(name))
             {
                 return index.ToString();
             }
@@ -48,7 +48,7 @@
 
         public static string UniqueName(this IPanel panel, int id = -1)
         {
-            if(panel == null)
+            if (panel == null)
             {
                 return null;
             }

@@ -14,7 +14,7 @@ namespace SAM.Analytical
             if (guids != null)
                 spaces.RemoveAll(x => x == null || !guids.Contains(x.Guid));
 
-            foreach(Space space in spaces)
+            foreach (Space space in spaces)
             {
                 space.InternalCondition = internalCondition;
                 adjacencyCluster.AddObject(space);

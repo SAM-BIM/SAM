@@ -69,7 +69,7 @@ namespace SAM.Analytical
 
             set
             {
-                if(double.IsNaN(value))
+                if (double.IsNaN(value))
                 {
                     efficiency = value;
                     return;

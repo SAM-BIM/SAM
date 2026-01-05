@@ -134,7 +134,7 @@ namespace SAM.Geometry.Planar
 
             return default;
         }
-    
+
         public static bool Closest(this Segment2D segment2D_1, Segment2D segment2D_2, out Point2D point2D_1, out Point2D point2D_2, double tolerance = Core.Tolerance.Distance)
         {
             point2D_1 = null;

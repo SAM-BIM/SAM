@@ -4,13 +4,13 @@
     {
         public static Spatial.Rectangle3D ToSAM(this global::Rhino.Geometry.Rectangle3d rectangle3d)
         {
-            if(!rectangle3d.IsValid)
+            if (!rectangle3d.IsValid)
             {
                 return null;
             }
 
             Spatial.Plane plane = rectangle3d.Plane.ToSAM();
-            if(plane == null)
+            if (plane == null)
             {
                 return null;
             }

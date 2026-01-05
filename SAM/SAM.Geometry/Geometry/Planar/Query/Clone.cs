@@ -6,7 +6,7 @@ namespace SAM.Geometry.Planar
     {
         public static List<Point2D> Clone(this IEnumerable<Point2D> point2Ds)
         {
-            if(point2Ds == null)
+            if (point2Ds == null)
             {
                 return null;
             }

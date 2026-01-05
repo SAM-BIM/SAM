@@ -6,18 +6,18 @@ namespace SAM.Core
     {
         public static bool Log(this string path, string format, params object[] values)
         {
-            if(format == null || string.IsNullOrWhiteSpace(path))
+            if (format == null || string.IsNullOrWhiteSpace(path))
             {
                 return false;
             }
 
             string directory = System.IO.Path.GetDirectoryName(path);
-            if(string.IsNullOrWhiteSpace(directory))
+            if (string.IsNullOrWhiteSpace(directory))
             {
                 return false;
             }
 
-            if(!Create.Directory(directory))
+            if (!Create.Directory(directory))
             {
                 return false;
             }
@@ -28,7 +28,7 @@ namespace SAM.Core
             {
                 logRecord.Write(path);
             }
-            catch(Exception )
+            catch (Exception)
             {
                 return false;
             }

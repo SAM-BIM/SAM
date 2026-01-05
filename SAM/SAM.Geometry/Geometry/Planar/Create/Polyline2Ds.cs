@@ -22,14 +22,14 @@ namespace SAM.Geometry.Planar
             }
 
             List<Segment2D> segment2Ds = null;
-            if(split)
+            if (split)
             {
                 segment2Ds = segmentable2Ds.Split(tolerance);
             }
             else
             {
                 segment2Ds = new List<Segment2D>();
-                foreach(ISegmentable2D segmentable2D in segmentable2Ds)
+                foreach (ISegmentable2D segmentable2D in segmentable2Ds)
                 {
                     List<Segment2D> segment2Ds_Temp = segmentable2D.GetSegments();
                     if (segment2Ds_Temp == null)
@@ -72,7 +72,7 @@ namespace SAM.Geometry.Planar
             {
                 double distance = double.MaxValue;
                 Point2D point2D = null;
-                foreach(Point2D point_Temp in adjacencyGraph.Vertices)
+                foreach (Point2D point_Temp in adjacencyGraph.Vertices)
                 {
                     double distance_Temp = point_Temp.Distance(point2D_Start);
                     if (distance_Temp < distance)
@@ -97,7 +97,7 @@ namespace SAM.Geometry.Planar
                 point2D_Start = adjacencyGraph.Vertices.First();
             }
 
-            if(point2D_Start == null)
+            if (point2D_Start == null)
             {
                 return null;
             }
@@ -149,7 +149,7 @@ namespace SAM.Geometry.Planar
             if (segment2Ds.Count > 0)
             {
                 List<Polyline2D> polyline2Ds = Polyline2Ds(segment2Ds, null, false, tolerance);
-                if(polyline2Ds != null && polyline2Ds.Count != 0)
+                if (polyline2Ds != null && polyline2Ds.Count != 0)
                 {
                     result.AddRange(polyline2Ds);
                 }

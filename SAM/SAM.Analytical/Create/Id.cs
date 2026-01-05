@@ -6,7 +6,7 @@ namespace SAM.Analytical
     {
         public static string Id(this AdjacencyCluster adjacencyCluster, MechanicalSystemType mechanicalSystemType)
         {
-            if(adjacencyCluster == null || mechanicalSystemType == null)
+            if (adjacencyCluster == null || mechanicalSystemType == null)
             {
                 return null;
             }

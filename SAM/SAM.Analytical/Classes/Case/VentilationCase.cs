@@ -11,7 +11,7 @@ namespace SAM.Analytical.Classes
         private string function;
         private double m3h;
         private double setback;
-        
+
         public VentilationCase(string function, double ach, double m3h, double factor, double setback, string description, CaseSelection caseSelection)
             : base()
         {
@@ -33,7 +33,7 @@ namespace SAM.Analytical.Classes
         public VentilationCase(VentilationCase ventilationCase)
             : base(ventilationCase)
         {
-            if(ventilationCase != null)
+            if (ventilationCase != null)
             {
                 function = ventilationCase.function;
                 ach = ventilationCase.ach;
@@ -114,7 +114,7 @@ namespace SAM.Analytical.Classes
                 OnPropertyChanged(nameof(Function));
             }
         }
-        
+
         public double M3h
         {
             get
@@ -128,7 +128,7 @@ namespace SAM.Analytical.Classes
                 OnPropertyChanged(nameof(M3h));
             }
         }
-        
+
         public double Setback
         {
             get
@@ -142,7 +142,7 @@ namespace SAM.Analytical.Classes
                 OnPropertyChanged(nameof(Setback));
             }
         }
-        
+
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);

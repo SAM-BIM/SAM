@@ -53,7 +53,7 @@ namespace SAM.Analytical
                     }
                 }
 
-                if(added)
+                if (added)
                 {
                     result.Add(ventilationSystem);
                 }

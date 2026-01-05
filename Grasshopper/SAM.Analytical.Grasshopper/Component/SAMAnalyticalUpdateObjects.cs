@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -78,9 +78,9 @@ namespace SAM.Analytical.Grasshopper
             AdjacencyCluster adjacencyCluster_Result = adjacencyCluster.Clone();
 
             List<bool> successfuls = new List<bool>();
-            foreach(IAnalyticalObject analyticalObject in analyticalObjects)
+            foreach (IAnalyticalObject analyticalObject in analyticalObjects)
             {
-                if(!adjacencyCluster.Contains(analyticalObject))
+                if (!adjacencyCluster.Contains(analyticalObject))
                 {
                     successfuls.Add(false);
                     continue;

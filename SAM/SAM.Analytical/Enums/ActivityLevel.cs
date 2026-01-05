@@ -12,7 +12,7 @@ namespace SAM.Analytical
         /// Undefined ActivityLevel
         /// </summary>
         [Description("Undefined")] Undefined,
-        
+
         /// <summary>
         /// Sitting, relaxed 100W/person in total
         /// </summary>

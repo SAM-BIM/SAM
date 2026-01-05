@@ -44,7 +44,7 @@ namespace SAM.Geometry.Spatial
             if (point3D_Closest.AlmostEquals(segment3D_Temp[0], tolerance))
                 return segment3D_Temp[0];
 
-            if(point3D_Closest.AlmostEquals(segment3D_Temp[1], tolerance))
+            if (point3D_Closest.AlmostEquals(segment3D_Temp[1], tolerance))
                 return segment3D_Temp[1];
 
             segment3Ds[index] = new Segment3D(segment3D_Temp[0], point3D_Closest);

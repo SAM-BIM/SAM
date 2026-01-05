@@ -85,7 +85,7 @@ namespace SAM.Analytical
                 {
                     closed2Ds.ForEach(x => face2Ds.Add(new Face2D(x)));
                 }
-                    
+
                 List<Tuple<BoundingBox2D, Face2D, Plane, Panel>> tuples = new List<Tuple<BoundingBox2D, Face2D, Plane, Panel>>();
                 foreach (Panel panel in tuple_Elevation.Item2)
                 {
@@ -121,7 +121,7 @@ namespace SAM.Analytical
 
                     double area = face2D.GetArea();
 
-                    for (int i =0; i < tuples_Temp.Count; i++)
+                    for (int i = 0; i < tuples_Temp.Count; i++)
                     {
                         List<Face2D> face2Ds_Intersection = face2D.Intersection(tuples_Temp[i].Item2, tolerance);
                         if (face2Ds_Intersection == null || face2Ds_Intersection.Count == 0)
@@ -155,9 +155,9 @@ namespace SAM.Analytical
                     }
                 }
 
-                for(int i=0; i < tuples.Count; i++)
+                for (int i = 0; i < tuples.Count; i++)
                 {
-                    if(!indexes.Contains(i))
+                    if (!indexes.Contains(i))
                     {
                         result.Add(tuples[i].Item4);
                         continue;

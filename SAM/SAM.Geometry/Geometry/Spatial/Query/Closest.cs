@@ -42,7 +42,7 @@ namespace SAM.Geometry.Spatial
             return result;
         }
 
-        public static T Closest<T>(this IEnumerable<T> segmentable3Ds, Point3D point3D, out double distance, out Point3D point3D_Closest) where T: ISegmentable3D
+        public static T Closest<T>(this IEnumerable<T> segmentable3Ds, Point3D point3D, out double distance, out Point3D point3D_Closest) where T : ISegmentable3D
         {
             distance = double.NaN;
             T result = default;
@@ -54,10 +54,10 @@ namespace SAM.Geometry.Spatial
             }
 
             double distance_min = double.MaxValue;
-            foreach(T segmentable3D in segmentable3Ds)
+            foreach (T segmentable3D in segmentable3Ds)
             {
                 Point3D point3D_Closest_Temp = segmentable3D.ClosestPoint3D(point3D, out double distance_Temp);
-                if(distance_Temp < distance_min)
+                if (distance_Temp < distance_min)
                 {
                     distance = distance_Temp;
                     distance_min = distance_Temp;

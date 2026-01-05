@@ -1,9 +1,5 @@
 ﻿using SAM.Analytical.Classes;
-using SAM.Core;
-using SAM.Weather;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SAM.Analytical
 {

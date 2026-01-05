@@ -11,7 +11,7 @@ namespace SAM.Geometry.Rhino
 
         public static double UnitScale(RhinoDoc rhinoDoc)
         {
-            if(rhinoDoc == null)
+            if (rhinoDoc == null)
             {
                 return double.NaN;
             }

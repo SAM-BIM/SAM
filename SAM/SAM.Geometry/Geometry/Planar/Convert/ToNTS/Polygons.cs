@@ -31,9 +31,9 @@ namespace SAM.Geometry.Planar
                 return result;
 
             List<NetTopologySuite.Geometries.Geometry> geometries_Temp = new List<NetTopologySuite.Geometries.Geometry>();
-            foreach(NetTopologySuite.Geometries.Geometry geometry_Temp in geometries)
+            foreach (NetTopologySuite.Geometries.Geometry geometry_Temp in geometries)
             {
-                if(geometry_Temp == null || !geometry_Temp.IsValid)
+                if (geometry_Temp == null || !geometry_Temp.IsValid)
                 {
                     continue;
                 }

@@ -16,7 +16,7 @@ namespace SAM.Core
 
             int startIndex = 0;
             int index = text.IndexOf(openSymbol, startIndex);
-            while(index != -1)
+            while (index != -1)
             {
                 startIndex = text.IndexOf(closeSymbol, index);
 

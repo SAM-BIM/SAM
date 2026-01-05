@@ -19,7 +19,7 @@ namespace SAM.Analytical
             if (string.IsNullOrWhiteSpace(name))
                 return false;
 
-            foreach(ConstructionLayer constructionLayer in constructionLayers)
+            foreach (ConstructionLayer constructionLayer in constructionLayers)
             {
                 if (name.Equals(constructionLayer?.Name))
                     return true;

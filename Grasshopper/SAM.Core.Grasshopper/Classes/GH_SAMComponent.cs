@@ -43,7 +43,7 @@ namespace SAM.Core.Grasshopper
         {
             get
             {
-               return GetValue("SAM_SAMVersion", null);
+                return GetValue("SAM_SAMVersion", null);
             }
         }
 

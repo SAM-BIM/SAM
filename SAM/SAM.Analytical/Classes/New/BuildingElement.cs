@@ -6,10 +6,10 @@ using SAM.Geometry.Spatial;
 
 namespace SAM.Analytical
 {
-    public abstract class BuildingElement<T> : SAMInstance<T>, IAnalyticalObject, IFace3DObject where T: BuildingElementType
+    public abstract class BuildingElement<T> : SAMInstance<T>, IAnalyticalObject, IFace3DObject where T : BuildingElementType
     {
         private Face3D face3D;
-        
+
         public BuildingElement(BuildingElement<T> buildingElement)
             : base(buildingElement)
         {
@@ -35,9 +35,9 @@ namespace SAM.Analytical
         }
 
         public BuildingElement(System.Guid guid, BuildingElement<T> buildingElement, Face3D face3D)
-            :base(guid, buildingElement)
+            : base(guid, buildingElement)
         {
-            if(face3D != null)
+            if (face3D != null)
             {
                 this.face3D = new Face3D(face3D);
             }
@@ -56,7 +56,7 @@ namespace SAM.Analytical
 
         public virtual double GetArea()
         {
-            if(face3D == null)
+            if (face3D == null)
             {
                 return double.NaN;
             }
@@ -81,7 +81,7 @@ namespace SAM.Analytical
                 return false;
             }
 
-            if(jObject.ContainsKey("Face3D"))
+            if (jObject.ContainsKey("Face3D"))
             {
                 face3D = Geometry.Create.ISAMGeometry<Face3D>(jObject.Value<JObject>("Face3D"));
             }

@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -135,7 +135,7 @@ namespace SAM.Analytical.Grasshopper
 
                     sAMObjects[i] = new AnalyticalModel((AnalyticalModel)sAMObjects[i], adjacencyCluster);
                 }
-                else if(sAMObjects[i] is AdjacencyCluster)
+                else if (sAMObjects[i] is AdjacencyCluster)
                 {
                     AdjacencyCluster adjacencyCluster = ((AdjacencyCluster)sAMObjects[i]).Clone();
 
@@ -152,13 +152,13 @@ namespace SAM.Analytical.Grasshopper
 
                     sAMObjects[i] = adjacencyCluster;
                 }
-                else if(sAMObjects[i] is Panel)
+                else if (sAMObjects[i] is Panel)
                 {
                     Panel panel = (Panel)sAMObjects[i];
-                    if(Geometry.Object.Spatial.Query.Concave(panel))
+                    if (Geometry.Object.Spatial.Query.Concave(panel))
                     {
                         List<Panel> panels = panel.Triangulate(tolerance);
-                        if(panels != null)
+                        if (panels != null)
                         {
                             oldObjects.Add(panel);
                             panels.ForEach(x => newObjects.Add(panel));

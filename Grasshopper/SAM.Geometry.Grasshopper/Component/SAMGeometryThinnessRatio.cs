@@ -1,10 +1,10 @@
 ﻿using Grasshopper.Kernel;
+using Grasshopper.Kernel.Types;
 using SAM.Core.Grasshopper;
 using SAM.Geometry.Grasshopper.Properties;
 using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
-using Grasshopper.Kernel.Types;
 
 namespace SAM.Geometry.Grasshopper
 {
@@ -79,7 +79,7 @@ namespace SAM.Geometry.Grasshopper
 
             index = Params.IndexOfInputParam("_face3D");
             GH_ObjectWrapper objectWrapper = null;
-            if (index == -1 || !dataAccess.GetData(index, ref objectWrapper) || objectWrapper == null )
+            if (index == -1 || !dataAccess.GetData(index, ref objectWrapper) || objectWrapper == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -101,7 +101,7 @@ namespace SAM.Geometry.Grasshopper
             if (index != -1)
             {
                 dataAccess.SetData(index, face3Ds[0].ThinnessRatio());
-            }                
+            }
         }
     }
 }

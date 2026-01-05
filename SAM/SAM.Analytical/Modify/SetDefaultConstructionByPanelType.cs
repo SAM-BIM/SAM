@@ -31,7 +31,7 @@ namespace SAM.Analytical
             foreach (Panel panel in panels)
             {
                 PanelType panelType = panel.PanelType;
-                if(panelType == PanelType.Undefined)
+                if (panelType == PanelType.Undefined)
                 {
                     continue;
                 }
@@ -41,7 +41,7 @@ namespace SAM.Analytical
                 Construction construction = panel.Construction;
                 if (string.IsNullOrWhiteSpace(construction?.Name))
                 {
-                    if(panelType != PanelType.Air)
+                    if (panelType != PanelType.Air)
                     {
                         update = true;
                     }

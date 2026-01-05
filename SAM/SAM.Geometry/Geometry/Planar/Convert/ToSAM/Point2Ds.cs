@@ -19,16 +19,16 @@ namespace SAM.Geometry.Planar
 
         public static List<Point2D> ToSAM(MultiPoint multiPoint, double tolerance = Core.Tolerance.MicroDistance)
         {
-            if(multiPoint == null)
+            if (multiPoint == null)
             {
                 return null;
             }
 
             List<Point2D> result = new List<Point2D>();
-            foreach(Coordinate coordinate in multiPoint.Coordinates)
+            foreach (Coordinate coordinate in multiPoint.Coordinates)
             {
                 Point2D point2D = coordinate?.ToSAM();
-                if(point2D == null)
+                if (point2D == null)
                 {
                     continue;
                 }

@@ -17,7 +17,7 @@ namespace SAM.Geometry.Planar
             List<Face2D> result = new List<Face2D>();
             foreach (NetTopologySuite.Geometries.Geometry geometry in multiPolygon.Geometries)
             {
-                if(geometry is Polygon)
+                if (geometry is Polygon)
                 {
                     Face2D face2D = ((Polygon)geometry).ToSAM(tolerance);
                     if (face2D == null)
@@ -25,7 +25,7 @@ namespace SAM.Geometry.Planar
 
                     result.Add(face2D);
                 }
-                else if(geometry is MultiPolygon)
+                else if (geometry is MultiPolygon)
                 {
                     List<Face2D> face2Ds = ((MultiPolygon)geometry).ToSAM(tolerance);
                     if (face2Ds == null)

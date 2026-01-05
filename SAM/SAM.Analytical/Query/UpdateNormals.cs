@@ -17,7 +17,7 @@ namespace SAM.Analytical
         /// <param name="silverSpacing">Silver Spacing Tolerance</param>
         /// <param name="tolerance">Distance tolerance</param>
         /// <returns></returns>
-        public static AdjacencyCluster UpdateNormals(this AdjacencyCluster adjacencyCluster, bool includeApertures, bool external = true, bool flipX = false, double silverSpacing = Core.Tolerance.MacroDistance, double tolerance= Core.Tolerance.Distance)
+        public static AdjacencyCluster UpdateNormals(this AdjacencyCluster adjacencyCluster, bool includeApertures, bool external = true, bool flipX = false, double silverSpacing = Core.Tolerance.MacroDistance, double tolerance = Core.Tolerance.Distance)
         {
             if (adjacencyCluster == null)
                 return null;
@@ -30,7 +30,7 @@ namespace SAM.Analytical
 
 
             HashSet<System.Guid> guids = new HashSet<System.Guid>();
-            foreach(ISpace space in spaces)
+            foreach (ISpace space in spaces)
             {
                 Shell shell = null;
                 Dictionary<IPanel, Vector3D> dictionary = result.NormalDictionary(space, out shell, true, silverSpacing, tolerance);
@@ -75,11 +75,11 @@ namespace SAM.Analytical
                     {
                         panel = panel.Clone();
 
-                        if(panel is Panel)
+                        if (panel is Panel)
                         {
                             ((Panel)panel).FlipNormal(flipX, false); //2020.09.03 Input changed to false to match with second Method for UpdateNormals
                         }
-                        else if(panel is ExternalPanel)
+                        else if (panel is ExternalPanel)
                         {
                             ((ExternalPanel)panel).FlipNormal(flipX);
                         }
@@ -92,7 +92,7 @@ namespace SAM.Analytical
                         Panel panel_Temp = (Panel)panel;
 
                         List<Aperture> apertures = panel_Temp.Apertures;
-                        if(apertures != null)
+                        if (apertures != null)
                         {
                             foreach (Aperture aperture in apertures)
                             {
@@ -122,7 +122,7 @@ namespace SAM.Analytical
                         }
                     }
 
-                    if(updated)
+                    if (updated)
                     {
                         result.AddObject(panel);
                     }
@@ -176,7 +176,7 @@ namespace SAM.Analytical
                     }
 
                     Vector3D normal_Panel = panel.Face3D?.GetPlane()?.Normal;
-                    if(normal_Panel == null)
+                    if (normal_Panel == null)
                     {
                         continue;
                     }

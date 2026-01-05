@@ -51,7 +51,7 @@ namespace SAM.Analytical
         public string GetProfileName(ProfileType profileType)
         {
             InternalConditionParameter? internalConditionParameter = Query.InternalConditionParameter(profileType);
-            if(internalConditionParameter == null || !internalConditionParameter.HasValue)
+            if (internalConditionParameter == null || !internalConditionParameter.HasValue)
             {
                 return null;
             }
@@ -70,7 +70,7 @@ namespace SAM.Analytical
             return SetValue(internalConditionParameter.Value, name);
         }
 
-        public string GetSystemTypeName<T>() where T: ISystemType
+        public string GetSystemTypeName<T>() where T : ISystemType
         {
             if (typeof(T) == typeof(VentilationSystemType))
                 return GetValue<string>(InternalConditionParameter.VentilationSystemTypeName);
@@ -147,7 +147,7 @@ namespace SAM.Analytical
             return result;
         }
 
-        public T GetSystemType<T>(SystemTypeLibrary systemTypeLibrary) where T: ISystemType
+        public T GetSystemType<T>(SystemTypeLibrary systemTypeLibrary) where T : ISystemType
         {
             if (systemTypeLibrary == null)
                 return default;

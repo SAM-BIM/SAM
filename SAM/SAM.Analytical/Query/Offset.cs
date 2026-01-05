@@ -16,7 +16,7 @@ namespace SAM.Analytical
             face3Ds.Sort((x, y) => y.GetArea().CompareTo(x.GetArea()));
 
             List<Panel> result = new List<Panel>();
-            foreach(Face3D face3D in face3Ds)
+            foreach (Face3D face3D in face3Ds)
             {
                 System.Guid guid = panel.Guid;
                 while (result.Find(x => x.Guid == guid) != null)

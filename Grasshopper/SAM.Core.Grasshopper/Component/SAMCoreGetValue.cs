@@ -120,7 +120,7 @@ namespace SAM.Core.Grasshopper
                     }
                 }
 
-                if(!hasValue)
+                if (!hasValue)
                 {
                     if (@object is SAMObject)
                     {

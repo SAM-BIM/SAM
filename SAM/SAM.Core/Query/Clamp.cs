@@ -26,7 +26,7 @@
 
         public static Range<T> Clamp<T>(this Range<T> range, T min, T max)
         {
-            if(range == null)
+            if (range == null)
             {
                 return null;
             }

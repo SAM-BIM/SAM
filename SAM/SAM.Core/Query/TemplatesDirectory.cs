@@ -7,14 +7,14 @@ namespace SAM.Core
     {
         public static string TemplatesDirectory(Assembly assembly)
         {
-            string resourcesDirectory =  ResourcesDirectory(ActiveSetting.Setting, assembly);
-            if(string.IsNullOrWhiteSpace(resourcesDirectory))
+            string resourcesDirectory = ResourcesDirectory(ActiveSetting.Setting, assembly);
+            if (string.IsNullOrWhiteSpace(resourcesDirectory))
             {
                 return null;
             }
 
             string templatesDirectoryName = ActiveSetting.Setting.GetValue<string>(CoreSettingParameter.TemplatesDirectoryName);
-            if(string.IsNullOrWhiteSpace(templatesDirectoryName))
+            if (string.IsNullOrWhiteSpace(templatesDirectoryName))
             {
                 return null;
             }

@@ -1,13 +1,12 @@
 ﻿using Newtonsoft.Json.Linq;
+using SAM.Architectural;
 using SAM.Core;
+using SAM.Geometry.Object.Spatial;
 using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using SAM.Architectural;
 using System.Threading.Tasks;
-using SAM.Geometry.Object.Spatial;
 
 namespace SAM.Analytical
 {
@@ -51,7 +50,7 @@ namespace SAM.Analytical
             this.location = location?.Clone();
             this.address = address?.Clone();
             this.terrain = terrain?.Clone();
-            if(materialLibrary != null)
+            if (materialLibrary != null)
             {
                 this.materialLibrary = new MaterialLibrary(materialLibrary);
             }
@@ -90,7 +89,7 @@ namespace SAM.Analytical
             }
             set
             {
-                if(value != null)
+                if (value != null)
                 {
                     location = value;
                 }
@@ -114,18 +113,18 @@ namespace SAM.Analytical
 
         public List<T> GetObjects<T>() where T : IJSAMObject
         {
-            if(typeof(T).IsAssignableFrom(typeof(IMaterial)))
+            if (typeof(T).IsAssignableFrom(typeof(IMaterial)))
             {
                 List<IMaterial> materials = materialLibrary?.GetObjects<IMaterial>();
-                if(materials == null)
+                if (materials == null)
                 {
                     return null;
                 }
 
                 List<T> result = new List<T>();
-                foreach(IMaterial material in materials)
+                foreach (IMaterial material in materials)
                 {
-                    if(material is T)
+                    if (material is T)
                     {
                         result.Add((T)material);
                     }
@@ -175,7 +174,7 @@ namespace SAM.Analytical
             //return result;
         }
 
-        public List<T> GetObjects<T>(params Func<T, bool>[] functions) where T: IJSAMObject
+        public List<T> GetObjects<T>(params Func<T, bool>[] functions) where T : IJSAMObject
         {
             if (typeof(T).IsAssignableFrom(typeof(IMaterial)))
             {
@@ -226,49 +225,49 @@ namespace SAM.Analytical
 
         public T GetObject<T>(Guid guid) where T : IJSAMObject
         {
-            if(relationCluster == null)
+            if (relationCluster == null)
             {
                 return default;
             }
 
             T @object = relationCluster.GetObject<T>(guid);
-            if(@object == null)
+            if (@object == null)
             {
-                if(typeof(IOpening).IsAssignableFrom(typeof(T)))
+                if (typeof(IOpening).IsAssignableFrom(typeof(T)))
                 {
                     List<IHostPartition> hostPartitions = relationCluster?.GetObjects<IHostPartition>();
-                    if(hostPartitions == null || hostPartitions.Count == 0)
+                    if (hostPartitions == null || hostPartitions.Count == 0)
                     {
                         return default;
                     }
 
-                    foreach(IHostPartition hostPartition in hostPartitions)
+                    foreach (IHostPartition hostPartition in hostPartitions)
                     {
-                        if(hostPartition == null)
+                        if (hostPartition == null)
                         {
                             continue;
                         }
 
-                        if(hostPartition.HasOpening(guid))
+                        if (hostPartition.HasOpening(guid))
                         {
                             IOpening opening = hostPartition.GetOpening(guid);
-                            if(opening is T)
+                            if (opening is T)
                             {
                                 return (T)opening;
                             }
                         }
                     }
                 }
-                
+
                 return default;
             }
 
             return @object.Clone();
         }
 
-        public List<T> GetRelatedObjects<T>(IJSAMObject jSAMObject) where T: IJSAMObject
+        public List<T> GetRelatedObjects<T>(IJSAMObject jSAMObject) where T : IJSAMObject
         {
-            if(jSAMObject == null)
+            if (jSAMObject == null)
             {
                 return null;
             }
@@ -284,7 +283,7 @@ namespace SAM.Analytical
             }
 
             List<IJSAMObject> objects = null;
-            if(type == null)
+            if (type == null)
             {
                 objects = relationCluster?.GetRelatedObjects(jSAMObject);
             }
@@ -292,16 +291,16 @@ namespace SAM.Analytical
             {
                 objects = relationCluster?.GetRelatedObjects(jSAMObject, type);
             }
-            if(objects == null)
+            if (objects == null)
             {
                 return null;
             }
 
             List<IJSAMObject> result = new List<IJSAMObject>();
-            foreach(object @object in objects)
+            foreach (object @object in objects)
             {
                 IJSAMObject jSAMObject_Temp = Core.Query.Clone(@object as IJSAMObject);
-                if(jSAMObject_Temp == null)
+                if (jSAMObject_Temp == null)
                 {
                     continue;
                 }
@@ -314,14 +313,14 @@ namespace SAM.Analytical
 
         public bool RemoveObject(IJSAMObject jSAMObject)
         {
-            if(jSAMObject == null || relationCluster == null)
+            if (jSAMObject == null || relationCluster == null)
             {
                 return false;
             }
 
-            if(jSAMObject is IMaterial)
+            if (jSAMObject is IMaterial)
             {
-                if(materialLibrary == null)
+                if (materialLibrary == null)
                 {
                     return false;
                 }
@@ -339,25 +338,25 @@ namespace SAM.Analytical
                 return profileLibrary.Remove((Profile)jSAMObject);
             }
 
-            if(relationCluster == null)
+            if (relationCluster == null)
             {
                 return false;
             }
 
-            if(jSAMObject is IOpening)
+            if (jSAMObject is IOpening)
             {
                 List<IHostPartition> hostPartitions = relationCluster?.GetObjects<IHostPartition>();
-                if(hostPartitions != null)
+                if (hostPartitions != null)
                 {
                     IOpening opening = (IOpening)jSAMObject;
 
-                    foreach(IHostPartition hostPartition in hostPartitions)
+                    foreach (IHostPartition hostPartition in hostPartitions)
                     {
-                        if(hostPartition.HasOpening(opening.Guid))
+                        if (hostPartition.HasOpening(opening.Guid))
                         {
                             hostPartition.RemoveOpening(opening.Guid);
                             List<IOpening> openings = hostPartition.GetOpenings();
-                            if(openings == null || openings.Count == 0)
+                            if (openings == null || openings.Count == 0)
                             {
                                 relationCluster.RemoveRelation(hostPartition, opening.Type());
                                 return true;
@@ -365,22 +364,22 @@ namespace SAM.Analytical
 
                             bool removeRelation = true;
                             OpeningType openingType = opening.Type();
-                            foreach(IOpening opening_Temp in openings)
+                            foreach (IOpening opening_Temp in openings)
                             {
                                 OpeningType openingType_Temp = opening_Temp?.Type();
-                                if(openingType_Temp == null)
+                                if (openingType_Temp == null)
                                 {
                                     continue;
                                 }
 
-                                if(openingType.Guid == openingType_Temp.Guid)
+                                if (openingType.Guid == openingType_Temp.Guid)
                                 {
                                     removeRelation = false;
                                     break;
                                 }
                             }
 
-                            if(removeRelation)
+                            if (removeRelation)
                             {
                                 relationCluster.RemoveRelation(hostPartition, openingType);
                             }
@@ -390,49 +389,49 @@ namespace SAM.Analytical
                     }
                 }
             }
-            else if(jSAMObject is InternalCondition)
+            else if (jSAMObject is InternalCondition)
             {
                 InternalCondition internalCondition = (InternalCondition)jSAMObject;
 
                 List<Space> spaces = relationCluster?.GetObjects<Space>();
-                if(spaces != null)
+                if (spaces != null)
                 {
-                    foreach(Space space in spaces)
+                    foreach (Space space in spaces)
                     {
                         InternalCondition internalCondition_Temp = space?.InternalCondition;
-                        if(internalCondition_Temp == null)
+                        if (internalCondition_Temp == null)
                         {
                             continue;
                         }
 
-                        if(internalCondition_Temp.Guid == internalCondition.Guid)
+                        if (internalCondition_Temp.Guid == internalCondition.Guid)
                         {
                             space.InternalCondition = null;
                         }
                     }
                 }
             }
-            else if(jSAMObject is OpeningType)
+            else if (jSAMObject is OpeningType)
             {
                 OpeningType openingType = (OpeningType)jSAMObject;
 
                 List<IHostPartition> hostPartitions = relationCluster?.GetRelatedObjects<IHostPartition>(jSAMObject);
-                if(hostPartitions != null && hostPartitions.Count != 0)
+                if (hostPartitions != null && hostPartitions.Count != 0)
                 {
-                    foreach(IHostPartition hostPartition in hostPartitions)
+                    foreach (IHostPartition hostPartition in hostPartitions)
                     {
                         List<IOpening> openings = hostPartition?.GetOpenings();
-                        if(openings != null && openings.Count != 0)
+                        if (openings != null && openings.Count != 0)
                         {
-                            foreach(IOpening opening in openings)
+                            foreach (IOpening opening in openings)
                             {
                                 OpeningType openingType_Temp = opening?.Type();
-                                if(openingType == null)
+                                if (openingType == null)
                                 {
                                     continue;
                                 }
 
-                                if(openingType.Guid == openingType.Guid)
+                                if (openingType.Guid == openingType.Guid)
                                 {
                                     hostPartition.RemoveOpening(opening.Guid);
                                 }
@@ -445,9 +444,9 @@ namespace SAM.Analytical
             {
                 HostPartitionType hostPartitionType = (HostPartitionType)jSAMObject;
                 List<IHostPartition> hostPartitions = relationCluster?.GetRelatedObjects<IHostPartition>(hostPartitionType);
-                if(hostPartitions != null)
+                if (hostPartitions != null)
                 {
-                    foreach(IHostPartition hostPartition in hostPartitions)
+                    foreach (IHostPartition hostPartition in hostPartitions)
                     {
                         relationCluster.RemoveObject(hostPartition.GetType(), hostPartition.Guid);
                     }
@@ -467,7 +466,7 @@ namespace SAM.Analytical
             }
 
             Guid guid = relationCluster.GetGuid(jSAMObject);
-            if(guid == Guid.Empty)
+            if (guid == Guid.Empty)
             {
                 return false;
             }
@@ -477,7 +476,7 @@ namespace SAM.Analytical
 
         public bool AddRelation(IJSAMObject jSAMObject_1, IJSAMObject jSAMObject_2)
         {
-            if(jSAMObject_1 == null || jSAMObject_2 == null || relationCluster == null)
+            if (jSAMObject_1 == null || jSAMObject_2 == null || relationCluster == null)
             {
                 return false;
             }
@@ -488,7 +487,7 @@ namespace SAM.Analytical
 
         public IMaterial GetMaterial(string name)
         {
-            if(materialLibrary == null || string.IsNullOrEmpty(name))
+            if (materialLibrary == null || string.IsNullOrEmpty(name))
             {
                 return null;
             }
@@ -496,15 +495,15 @@ namespace SAM.Analytical
             return materialLibrary.GetObject<IMaterial>(name)?.Clone();
         }
 
-        public T GetMaterial<T>(string name) where T: IMaterial
+        public T GetMaterial<T>(string name) where T : IMaterial
         {
             IMaterial material = GetMaterial(name);
-            if(material == null)
+            if (material == null)
             {
                 return default;
             }
 
-            if(material is T)
+            if (material is T)
             {
                 return (T)material;
             }
@@ -514,13 +513,13 @@ namespace SAM.Analytical
 
         public Zone GetZone(string name, ZoneType zoneType)
         {
-            if(string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(name))
             {
                 return null;
             }
 
             List<Zone> zones = relationCluster?.GetObjects<Zone>();
-            if(zones == null || zones.Count == 0)
+            if (zones == null || zones.Count == 0)
             {
                 return null;
             }
@@ -546,7 +545,7 @@ namespace SAM.Analytical
 
         public Profile GetProfile(ProfileType profileType, string name, bool includeProfileGroup = false)
         {
-            if(profileLibrary == null)
+            if (profileLibrary == null)
             {
                 return null;
             }
@@ -566,13 +565,13 @@ namespace SAM.Analytical
 
         public Dictionary<ProfileType, Profile> GetProfileDictionary(Space space)
         {
-            if(profileLibrary == null)
+            if (profileLibrary == null)
             {
                 return null;
             }
 
             InternalCondition internalCondition = space?.InternalCondition;
-            if(internalCondition == null)
+            if (internalCondition == null)
             {
                 return null;
             }
@@ -592,7 +591,7 @@ namespace SAM.Analytical
 
         public bool HasMaterial(HostPartitionType hostPartitionType, MaterialType materialType)
         {
-            if(hostPartitionType == null || materialLibrary == null)
+            if (hostPartitionType == null || materialLibrary == null)
             {
                 return false;
             }
@@ -612,7 +611,7 @@ namespace SAM.Analytical
 
         public IMaterial GetMaterial(MaterialLayer materialLayer)
         {
-            if(materialLayer == null || materialLibrary == null)
+            if (materialLayer == null || materialLibrary == null)
             {
                 return null;
             }
@@ -620,15 +619,15 @@ namespace SAM.Analytical
             return materialLayer.Material(materialLibrary)?.Clone();
         }
 
-        public T GetMaterial<T>(MaterialLayer materialLayer) where T: IMaterial
+        public T GetMaterial<T>(MaterialLayer materialLayer) where T : IMaterial
         {
             IMaterial material = GetMaterial(materialLayer);
-            if(material == null)
+            if (material == null)
             {
                 return default;
             }
 
-            if(material is T)
+            if (material is T)
             {
                 return (T)material;
             }
@@ -638,7 +637,7 @@ namespace SAM.Analytical
 
         public List<IMaterial> GetMaterials(HostPartitionType hostPartitionType)
         {
-            if(hostPartitionType == null)
+            if (hostPartitionType == null)
             {
                 return null;
             }
@@ -646,7 +645,7 @@ namespace SAM.Analytical
             return hostPartitionType.Materials(materialLibrary)?.ConvertAll(x => x.Clone());
         }
 
-        public List<T> GetHostPartitionTypes<T>() where T: HostPartitionType
+        public List<T> GetHostPartitionTypes<T>() where T : HostPartitionType
         {
             return GetObjects<T>();
 
@@ -681,7 +680,7 @@ namespace SAM.Analytical
             return GetObjects((T hostPartitionType) => !string.IsNullOrWhiteSpace(hostPartitionType?.Name) && Core.Query.Compare(name, hostPartitionType?.Name, textComparisonType));
         }
 
-        public List<T> GetOpeningTypes<T>() where T: OpeningType
+        public List<T> GetOpeningTypes<T>() where T : OpeningType
         {
             return GetObjects<T>();
 
@@ -732,7 +731,7 @@ namespace SAM.Analytical
 
         public MaterialType GetMaterialType(IHostPartition hostPartition)
         {
-            if(hostPartition == null)
+            if (hostPartition == null)
             {
                 return MaterialType.Undefined;
             }
@@ -742,13 +741,13 @@ namespace SAM.Analytical
 
         public MaterialType GetMaterialType(MaterialLayer materialLayer)
         {
-            if(materialLayer == null || materialLibrary == null)
+            if (materialLayer == null || materialLibrary == null)
             {
                 return MaterialType.Undefined;
             }
 
             IMaterial material = GetMaterial(materialLayer);
-            if(material == null)
+            if (material == null)
             {
                 return MaterialType.Undefined;
             }
@@ -776,18 +775,18 @@ namespace SAM.Analytical
             return GetObjects<Space>();
         }
 
-        public List<T> GetMaterials<T>() where T: IMaterial
+        public List<T> GetMaterials<T>() where T : IMaterial
         {
             List<IMaterial> materials = materialLibrary?.GetMaterials();
-            if(materials == null)
+            if (materials == null)
             {
                 return null;
             }
 
             List<T> result = new List<T>();
-            foreach(IMaterial material in materials)
+            foreach (IMaterial material in materials)
             {
-                if(material is T)
+                if (material is T)
                 {
                     result.Add((T)material.Clone());
                 }
@@ -810,23 +809,23 @@ namespace SAM.Analytical
         {
             HashSet<string> materialNames = new HashSet<string>();
 
-            if(relationCluster != null)
+            if (relationCluster != null)
             {
                 List<HostPartitionType> hostPartitionTypes = relationCluster.GetObjects<HostPartitionType>();
-                if(hostPartitionTypes != null)
+                if (hostPartitionTypes != null)
                 {
-                    foreach(HostPartitionType hostPartitionType in hostPartitionTypes)
+                    foreach (HostPartitionType hostPartitionType in hostPartitionTypes)
                     {
                         List<MaterialLayer> materialLayers = hostPartitionType?.MaterialLayers;
-                        if(materialLayers == null || materialLayers.Count == 0)
+                        if (materialLayers == null || materialLayers.Count == 0)
                         {
                             continue;
                         }
 
-                        foreach(MaterialLayer materialLayer in materialLayers)
+                        foreach (MaterialLayer materialLayer in materialLayers)
                         {
                             IMaterial material = GetMaterial(materialLayer);
-                            if(material != null)
+                            if (material != null)
                             {
                                 continue;
                             }
@@ -837,14 +836,14 @@ namespace SAM.Analytical
                 }
 
                 List<OpeningType> openingTypes = relationCluster.GetObjects<OpeningType>();
-                if(openingTypes != null)
+                if (openingTypes != null)
                 {
-                    foreach(OpeningType openingType in openingTypes)
+                    foreach (OpeningType openingType in openingTypes)
                     {
                         List<MaterialLayer> materialLayers = null;
 
                         materialLayers = openingType?.PaneMaterialLayers;
-                        if(materialLayers != null)
+                        if (materialLayers != null)
                         {
                             foreach (MaterialLayer materialLayer in materialLayers)
                             {
@@ -945,7 +944,7 @@ namespace SAM.Analytical
         public bool External(IOpening opening)
         {
             IHostPartition hostPartition = GetHostPartition<IHostPartition>(opening);
-            if(hostPartition == null)
+            if (hostPartition == null)
             {
                 return false;
             }
@@ -982,7 +981,7 @@ namespace SAM.Analytical
 
         public bool Underground(IPartition partition)
         {
-            if(terrain == null || partition == null)
+            if (terrain == null || partition == null)
             {
                 return false;
             }
@@ -1008,22 +1007,22 @@ namespace SAM.Analytical
 
         public bool ExposedToSun(IPartition partition)
         {
-            if(partition == null)
+            if (partition == null)
             {
                 return false;
             }
 
-            if(!External(partition))
+            if (!External(partition))
             {
                 return false;
             }
 
-            if(Underground(partition))
+            if (Underground(partition))
             {
                 return false;
             }
 
-            if(terrain.On(partition))
+            if (terrain.On(partition))
             {
                 return false;
             }
@@ -1050,16 +1049,16 @@ namespace SAM.Analytical
         public List<Shell> GetShells()
         {
             List<Space> spaces = relationCluster?.GetObjects<Space>();
-            if(spaces == null)
+            if (spaces == null)
             {
                 return null;
             }
 
             List<Shell> result = new List<Shell>();
-            foreach(Space space in spaces)
+            foreach (Space space in spaces)
             {
                 Shell shell = GetShell(space);
-                if(shell != null)
+                if (shell != null)
                 {
                     result.Add(shell);
                 }
@@ -1070,22 +1069,22 @@ namespace SAM.Analytical
 
         public List<Shell> GetShells(Zone zone, bool union = true)
         {
-            if(zone == null || relationCluster == null)
+            if (zone == null || relationCluster == null)
             {
                 return null;
             }
 
             List<Space> spaces = GetSpaces(zone);
-            if(spaces == null)
+            if (spaces == null)
             {
                 return null;
             }
 
             List<Shell> shells = new List<Shell>();
-            foreach(Space space in spaces)
+            foreach (Space space in spaces)
             {
                 Shell shell = GetShell(space);
-                if(shell == null)
+                if (shell == null)
                 {
                     continue;
                 }
@@ -1093,7 +1092,7 @@ namespace SAM.Analytical
                 shells.Add(shell);
             }
 
-            if(!union)
+            if (!union)
             {
                 return shells;
             }
@@ -1115,7 +1114,7 @@ namespace SAM.Analytical
         public double GetVolume(Space space, double silverSpacing = Tolerance.MacroDistance, double tolerance = Tolerance.Distance)
         {
             Shell shell = GetShell(space);
-            if(shell == null)
+            if (shell == null)
             {
                 return double.NaN;
             }
@@ -1166,13 +1165,13 @@ namespace SAM.Analytical
         public double GetArea(Zone zone, double offset, double tolerance_Angle = Tolerance.Angle, double tolerance_Distance = Tolerance.Distance, double tolerance_Snap = Tolerance.MacroDistance)
         {
             List<Space> spaces = GetSpaces(zone);
-            if(spaces == null || spaces.Count == 0)
+            if (spaces == null || spaces.Count == 0)
             {
                 return double.NaN;
             }
 
             List<double> areas = Enumerable.Repeat(0.0, spaces.Count).ToList();
-            Parallel.For(0, spaces.Count, (int i) => 
+            Parallel.For(0, spaces.Count, (int i) =>
             {
                 Shell shell = GetShell(spaces[i]);
                 if (shell == null)
@@ -1181,7 +1180,7 @@ namespace SAM.Analytical
                 }
 
                 double area = shell.Area(offset, tolerance_Angle, tolerance_Distance, tolerance_Snap);
-                if(double.IsNaN(area))
+                if (double.IsNaN(area))
                 {
                     return;
                 }
@@ -1204,29 +1203,29 @@ namespace SAM.Analytical
 
         public List<IPartition> GetPartitions(Zone zone)
         {
-            if(zone == null || relationCluster == null)
+            if (zone == null || relationCluster == null)
             {
                 return null;
             }
 
             List<Space> spaces = GetSpaces(zone);
-            if(spaces == null)
+            if (spaces == null)
             {
                 return null;
             }
 
             Dictionary<Guid, IPartition> dictionary = new Dictionary<Guid, IPartition>();
-            foreach(Space space in spaces)
+            foreach (Space space in spaces)
             {
                 List<IPartition> partitions = GetPartitions(space);
-                if(partitions == null || partitions.Count == 0)
+                if (partitions == null || partitions.Count == 0)
                 {
                     continue;
                 }
 
-                foreach(IPartition partition in partitions)
+                foreach (IPartition partition in partitions)
                 {
-                    if(partition == null)
+                    if (partition == null)
                     {
                         continue;
                     }
@@ -1269,7 +1268,7 @@ namespace SAM.Analytical
             return result.Clone();
         }
 
-        public T GetHostPartition<T>(IOpening opening) where T: IHostPartition
+        public T GetHostPartition<T>(IOpening opening) where T : IHostPartition
         {
             if (opening == null || relationCluster == null)
             {
@@ -1284,18 +1283,18 @@ namespace SAM.Analytical
             return GetHostPartition<IHostPartition>(opening);
         }
 
-        public List<T> GetPartitions<T>(Zone zone) where T: IPartition
+        public List<T> GetPartitions<T>(Zone zone) where T : IPartition
         {
             List<IPartition> partitions = GetPartitions(zone);
-            if(partitions == null)
+            if (partitions == null)
             {
                 return null;
             }
 
             List<T> result = new List<T>();
-            foreach(IPartition partition in partitions)
+            foreach (IPartition partition in partitions)
             {
-                if(partition is T)
+                if (partition is T)
                 {
                     result.Add((T)partition);
                 }
@@ -1318,16 +1317,16 @@ namespace SAM.Analytical
         public List<T> GetOpenings<T>() where T : IOpening
         {
             List<IHostPartition> hostPartitions = relationCluster?.GetObjects<IHostPartition>();
-            if(hostPartitions == null)
+            if (hostPartitions == null)
             {
                 return null;
             }
 
             List<T> result = new List<T>();
-            foreach(IHostPartition hostPartition in hostPartitions)
+            foreach (IHostPartition hostPartition in hostPartitions)
             {
                 List<T> openings = hostPartition.GetOpenings<T>();
-                if(openings == null || openings.Count == 0)
+                if (openings == null || openings.Count == 0)
                 {
                     continue;
                 }
@@ -1335,7 +1334,7 @@ namespace SAM.Analytical
                 openings.ForEach(x => result.Add(x.Clone()));
             }
 
-           return result;
+            return result;
         }
 
         public List<IOpening> GetOpenings()
@@ -1350,37 +1349,37 @@ namespace SAM.Analytical
 
         public List<IOpening> GetOpenings(OpeningType openingType)
         {
-            if(relationCluster == null || openingType == null)
+            if (relationCluster == null || openingType == null)
             {
                 return null;
             }
 
             List<IHostPartition> hostPartitions = relationCluster.GetObjects<IHostPartition>();
-            if(hostPartitions == null)
+            if (hostPartitions == null)
             {
                 return null;
             }
 
             List<IOpening> openings = null;
 
-            List <IOpening> result = new List<IOpening>();
-            foreach(IHostPartition hostPartition in hostPartitions)
+            List<IOpening> result = new List<IOpening>();
+            foreach (IHostPartition hostPartition in hostPartitions)
             {
                 openings = hostPartition.GetOpenings();
-                if(openings == null || openings.Count == 0)
+                if (openings == null || openings.Count == 0)
                 {
                     continue;
                 }
 
-                foreach(IOpening opening in openings)
+                foreach (IOpening opening in openings)
                 {
                     OpeningType openingType_Temp = opening?.Type();
-                    if(openingType_Temp == null)
+                    if (openingType_Temp == null)
                     {
                         continue;
                     }
 
-                    if(openingType_Temp.Guid == openingType.Guid)
+                    if (openingType_Temp.Guid == openingType.Guid)
                     {
                         result.Add(opening);
                     }
@@ -1399,16 +1398,16 @@ namespace SAM.Analytical
         public List<InternalCondition> GetInternalConditions()
         {
             List<Space> spaces = GetSpaces();
-            if(spaces == null)
+            if (spaces == null)
             {
                 return null;
             }
 
             Dictionary<Guid, InternalCondition> dictionary = new Dictionary<Guid, InternalCondition>();
-            foreach(Space space in spaces)
+            foreach (Space space in spaces)
             {
                 InternalCondition internalCondition = space?.InternalCondition;
-                if(internalCondition == null)
+                if (internalCondition == null)
                 {
                     continue;
                 }
@@ -1417,7 +1416,7 @@ namespace SAM.Analytical
             }
 
             List<InternalCondition> internalConditions = GetObjects<InternalCondition>();
-            if(internalConditions != null && internalConditions.Count > 0)
+            if (internalConditions != null && internalConditions.Count > 0)
             {
                 internalConditions.ForEach(x => dictionary[x.Guid] = x);
             }
@@ -1430,7 +1429,7 @@ namespace SAM.Analytical
             return GetObjects<Result>();
         }
 
-        public List<T> GetResults<T>() where T: Result
+        public List<T> GetResults<T>() where T : Result
         {
             return GetObjects<T>();
         }
@@ -1473,10 +1472,10 @@ namespace SAM.Analytical
             List<OpeningSimulationResult> result = GetResults<OpeningSimulationResult>(opening, source);
 
             IHostPartition hostPartition = GetHostPartition(opening);
-            if(hostPartition != null)
+            if (hostPartition != null)
             {
                 List<OpeningSimulationResult> openingSimulationResults_HostPartition = GetResults<OpeningSimulationResult>(hostPartition, source);
-                if(openingSimulationResults_HostPartition != null)
+                if (openingSimulationResults_HostPartition != null)
                 {
                     if (result == null)
                     {
@@ -1493,7 +1492,7 @@ namespace SAM.Analytical
         public List<BuildingModelSimulationResult> GetBuildingModelSimulationResults(string source = null)
         {
             List<BuildingModelSimulationResult> result = relationCluster?.GetObjects<BuildingModelSimulationResult>();
-            if(result == null)
+            if (result == null)
             {
                 return null;
             }
@@ -1510,7 +1509,7 @@ namespace SAM.Analytical
 
         public bool Add(IPartition partition)
         {
-            if(partition == null)
+            if (partition == null)
             {
                 return false;
             }
@@ -1531,15 +1530,15 @@ namespace SAM.Analytical
                 return false;
             }
 
-            if(partition_Temp is IHostPartition)
+            if (partition_Temp is IHostPartition)
             {
                 IHostPartition hostPartition = (IHostPartition)partition_Temp;
 
                 HostPartitionType hostPartitionType = hostPartition.Type();
-                if(hostPartitionType != null)
+                if (hostPartitionType != null)
                 {
                     HostPartitionType hostPartitionType_Temp = relationCluster.GetObject<HostPartitionType>(hostPartitionType.Guid);
-                    if(hostPartitionType_Temp == null)
+                    if (hostPartitionType_Temp == null)
                     {
                         relationCluster.AddObject(hostPartitionType);
                         hostPartitionType_Temp = hostPartitionType;
@@ -1553,19 +1552,19 @@ namespace SAM.Analytical
                 }
 
                 List<IOpening> openings = hostPartition.GetOpenings();
-                if(openings != null)
+                if (openings != null)
                 {
                     Dictionary<Guid, OpeningType> dictionary = new Dictionary<Guid, OpeningType>();
-                    foreach(IOpening opening in openings)
+                    foreach (IOpening opening in openings)
                     {
                         OpeningType openingType = opening?.Type();
-                        if(openingType == null)
+                        if (openingType == null)
                         {
                             continue;
                         }
 
                         OpeningType openingType_Temp = relationCluster.GetObject<OpeningType>(openingType.Guid);
-                        if(openingType_Temp == null)
+                        if (openingType_Temp == null)
                         {
                             relationCluster.AddObject(openingType);
                             openingType_Temp = openingType;
@@ -1597,19 +1596,19 @@ namespace SAM.Analytical
             Space space_Temp = new Space(space);
 
             InternalCondition internalCondition = space_Temp.InternalCondition;
-            if(internalCondition != null)
+            if (internalCondition != null)
             {
                 List<InternalCondition> internalConditions = GetInternalConditions();
-                if(internalConditions != null)
+                if (internalConditions != null)
                 {
                     List<Guid> guids = internalConditions.ConvertAll(x => x.Guid);
                     Guid guid = internalCondition.Guid;
-                    while(guids.Contains(guid))
+                    while (guids.Contains(guid))
                     {
                         guid = Guid.NewGuid();
                     }
 
-                    if(internalCondition.Guid != guid)
+                    if (internalCondition.Guid != guid)
                     {
                         space_Temp.InternalCondition = new InternalCondition(guid, internalCondition);
                     }
@@ -1617,16 +1616,16 @@ namespace SAM.Analytical
             }
 
             bool result = relationCluster.AddObject(space_Temp);
-            if(!result)
+            if (!result)
             {
                 return result;
             }
 
-            if(partitions != null && partitions.Count() != 0)
+            if (partitions != null && partitions.Count() != 0)
             {
-                foreach(IPartition partition in partitions)
+                foreach (IPartition partition in partitions)
                 {
-                    if(Add(partition))
+                    if (Add(partition))
                     {
                         relationCluster.AddRelation(space_Temp, partition);
                     }
@@ -1668,7 +1667,7 @@ namespace SAM.Analytical
 
         public bool Add(IOpening opening, double tolerance = Tolerance.Distance)
         {
-            if(opening == null)
+            if (opening == null)
             {
                 return false;
             }
@@ -1678,9 +1677,9 @@ namespace SAM.Analytical
             List<IHostPartition> hostPartitions_Opening = new List<IHostPartition>();
 
             List<IHostPartition> hostPartitions = relationCluster?.GetObjects<IHostPartition>();
-            if(hostPartitions != null && hostPartitions.Count == 0)
+            if (hostPartitions != null && hostPartitions.Count == 0)
             {
-                foreach(IHostPartition hostPartition in hostPartitions)
+                foreach (IHostPartition hostPartition in hostPartitions)
                 {
                     if (hostPartition.HasOpening(opening.Guid))
                     {
@@ -1702,7 +1701,7 @@ namespace SAM.Analytical
             opening = opening.Clone();
 
             OpeningType openingType = opening.Type();
-            if(openingType != null)
+            if (openingType != null)
             {
                 OpeningType openingType_Temp = relationCluster.GetObject<OpeningType>(openingType.Guid);
                 if (openingType_Temp == null)
@@ -1721,23 +1720,23 @@ namespace SAM.Analytical
                 hostPartition_Opening.AddOpening(opening);
             }
 
-            if(hostPartitions_Opening == null || hostPartitions_Opening.Count == 0)
+            if (hostPartitions_Opening == null || hostPartitions_Opening.Count == 0)
             {
                 relationCluster.AddObject(opening);
                 relationCluster.AddRelation(opening, openingType);
                 return true;
             }
 
-            if(hostPartition_Opening != null)
+            if (hostPartition_Opening != null)
             {
                 hostPartition_Opening.RemoveOpening(opening.Guid);
                 relationCluster.RemoveRelation(hostPartition_Opening, openingType);
             }
 
-            if(hostPartitions_Opening.Count > 0 )
+            if (hostPartitions_Opening.Count > 0)
             {
                 Point3D point3D = opening.Face3D.InternalPoint3D();
-                if(point3D != null)
+                if (point3D != null)
                 {
                     hostPartitions_Opening.Sort((x, y) => x.Face3D.Distance(point3D, tolerance).CompareTo(y.Face3D.Distance(point3D, tolerance)));
                 }
@@ -1755,7 +1754,7 @@ namespace SAM.Analytical
 
         public bool Add(Zone zone, IEnumerable<Space> spaces = null)
         {
-            if(zone == null)
+            if (zone == null)
             {
                 return false;
             }
@@ -1763,22 +1762,22 @@ namespace SAM.Analytical
             Zone zone_Temp = zone.Clone();
 
             bool result = relationCluster.AddObject(zone_Temp);
-            if(!result)
+            if (!result)
             {
                 return result;
             }
-            
-            if(spaces != null && spaces.Count() != 0)
+
+            if (spaces != null && spaces.Count() != 0)
             {
-                foreach(Space space in spaces)
+                foreach (Space space in spaces)
                 {
-                    if(space == null)
+                    if (space == null)
                     {
                         continue;
                     }
 
                     Space space_Temp = relationCluster.GetObject<Space>(space.Guid);
-                    if(space_Temp == null)
+                    if (space_Temp == null)
                     {
                         continue;
                     }
@@ -1793,7 +1792,7 @@ namespace SAM.Analytical
 
         public bool Add(InternalCondition internalCondition)
         {
-            if(internalCondition == null)
+            if (internalCondition == null)
             {
                 return false;
             }
@@ -1802,17 +1801,17 @@ namespace SAM.Analytical
 
             bool exists = false;
             List<Space> spaces = relationCluster?.GetObjects<Space>();
-            if(spaces != null && spaces.Count != 0)
+            if (spaces != null && spaces.Count != 0)
             {
-                foreach(Space space in spaces)
+                foreach (Space space in spaces)
                 {
                     InternalCondition internalCondition_Space = space?.InternalCondition;
-                    if(internalCondition_Space == null)
+                    if (internalCondition_Space == null)
                     {
                         continue;
                     }
 
-                    if(internalCondition_Temp.Guid == internalCondition_Space.Guid)
+                    if (internalCondition_Temp.Guid == internalCondition_Space.Guid)
                     {
                         space.InternalCondition = internalCondition_Temp;
                         exists = true;
@@ -1820,7 +1819,7 @@ namespace SAM.Analytical
                 }
             }
 
-            if(exists)
+            if (exists)
             {
                 return true;
             }
@@ -1830,14 +1829,14 @@ namespace SAM.Analytical
 
         public bool Add(HostPartitionType hostPartitionType)
         {
-            if(hostPartitionType != null)
+            if (hostPartitionType != null)
             {
                 return false;
             }
 
             HostPartitionType hostPartitionType_Temp = hostPartitionType.Clone();
 
-            if(relationCluster == null)
+            if (relationCluster == null)
             {
                 relationCluster = new SAMObjectRelationCluster<IJSAMObject>();
             }
@@ -1845,9 +1844,9 @@ namespace SAM.Analytical
             relationCluster.AddObject(hostPartitionType_Temp);
 
             List<IHostPartition> hostPartitions = relationCluster.GetRelatedObjects<IHostPartition>(hostPartitionType_Temp);
-            if(hostPartitions != null)
+            if (hostPartitions != null)
             {
-                foreach(IHostPartition hostPartition in hostPartitions)
+                foreach (IHostPartition hostPartition in hostPartitions)
                 {
                     hostPartition.Type(hostPartitionType_Temp);
                 }
@@ -1878,17 +1877,17 @@ namespace SAM.Analytical
                 foreach (IHostPartition hostPartition in hostPartitions)
                 {
                     List<IOpening> openings = hostPartition?.GetOpenings();
-                    if(openings != null && openings.Count != 0)
+                    if (openings != null && openings.Count != 0)
                     {
-                        foreach(IOpening opening in openings)
+                        foreach (IOpening opening in openings)
                         {
                             OpeningType openingType_Opening = opening?.Type();
-                            if(openingType_Opening == null)
+                            if (openingType_Opening == null)
                             {
                                 continue;
                             }
 
-                            if(openingType_Opening.Guid == openingType_Temp.Guid)
+                            if (openingType_Opening.Guid == openingType_Temp.Guid)
                             {
                                 opening.Type(openingType_Temp);
                                 hostPartition.AddOpening(opening);
@@ -1948,12 +1947,12 @@ namespace SAM.Analytical
 
         public bool Add(MechanicalSystem mechanicalSystem, IEnumerable<Space> spaces = null)
         {
-            if(mechanicalSystem == null)
+            if (mechanicalSystem == null)
             {
                 return false;
             }
 
-            if(relationCluster == null)
+            if (relationCluster == null)
             {
                 relationCluster = new SAMObjectRelationCluster<IJSAMObject>();
             }
@@ -1961,10 +1960,10 @@ namespace SAM.Analytical
             MechanicalSystem machanicalSystem_Temp = mechanicalSystem.Clone();
 
             MechanicalSystemType mechanicalSystemType = machanicalSystem_Temp.Type;
-            if(mechanicalSystemType != null)
+            if (mechanicalSystemType != null)
             {
                 MechanicalSystemType mechanicalSystemType_Temp = relationCluster.GetObject<MechanicalSystemType>(mechanicalSystemType.Guid);
-                if(mechanicalSystemType_Temp == null)
+                if (mechanicalSystemType_Temp == null)
                 {
                     relationCluster.AddObject(mechanicalSystemType);
                     mechanicalSystemType_Temp = mechanicalSystemType;
@@ -1978,14 +1977,14 @@ namespace SAM.Analytical
             }
 
             bool result = relationCluster.AddObject(machanicalSystem_Temp);
-            if(!result)
+            if (!result)
             {
                 return result;
             }
 
-            if(spaces != null)
+            if (spaces != null)
             {
-                foreach(Space space in spaces)
+                foreach (Space space in spaces)
                 {
                     if (Add(space))
                     {
@@ -1999,25 +1998,25 @@ namespace SAM.Analytical
 
         public bool Add(SpaceSimulationResult spaceSimulationResult, Space space = null)
         {
-            if(spaceSimulationResult == null)
+            if (spaceSimulationResult == null)
             {
                 return false;
             }
 
-            if(relationCluster == null)
+            if (relationCluster == null)
             {
                 relationCluster = new SAMObjectRelationCluster<IJSAMObject>();
             }
 
             bool result = relationCluster.AddObject(spaceSimulationResult);
-            if(!result)
+            if (!result)
             {
                 return result;
             }
 
-            if(space != null)
+            if (space != null)
             {
-                if(Add(space))
+                if (Add(space))
                 {
                     relationCluster.AddRelation(spaceSimulationResult, space);
                 }
@@ -2058,7 +2057,7 @@ namespace SAM.Analytical
 
         public bool Add(PartitionSimulationResult partitionSimulationResult, IPartition partition = null)
         {
-            if(partitionSimulationResult == null)
+            if (partitionSimulationResult == null)
             {
                 return false;
             }
@@ -2071,14 +2070,14 @@ namespace SAM.Analytical
             PartitionSimulationResult partitionSimulationResult_Temp = new PartitionSimulationResult(partitionSimulationResult);
 
             bool result = relationCluster.AddObject(partitionSimulationResult_Temp);
-            if(!result)
+            if (!result)
             {
                 return result;
             }
 
-            if(partition != null)
+            if (partition != null)
             {
-                if(Add(partition))
+                if (Add(partition))
                 {
                     relationCluster.AddRelation(partitionSimulationResult, partition);
                 }
@@ -2086,7 +2085,7 @@ namespace SAM.Analytical
 
             return result;
         }
-       
+
         public bool Add(PartitionSimulationResult partitionSimulationResult, Guid partitionGuid)
         {
             if (partitionSimulationResult == null)
@@ -2144,7 +2143,7 @@ namespace SAM.Analytical
                 if (Add(opening, tolerance))
                 {
                     IOpening opening_Temp = relationCluster.GetObject<IOpening>(opening.Guid);
-                    if(opening_Temp != null)
+                    if (opening_Temp != null)
                     {
                         relationCluster.AddRelation(openingSimulationResult, opening_Temp);
                     }
@@ -2220,9 +2219,9 @@ namespace SAM.Analytical
                 return result;
             }
 
-            if(zone != null)
+            if (zone != null)
             {
-                if(relationCluster.AddObject(zone))
+                if (relationCluster.AddObject(zone))
                 {
                     relationCluster.AddRelation(zoneSimulationResult, zone);
                 }
@@ -2234,7 +2233,7 @@ namespace SAM.Analytical
         public bool Add<T>(IResult result, Guid guid) where T : IJSAMObject
         {
             IResult result_Temp = result?.Clone();
-            if(result_Temp == null)
+            if (result_Temp == null)
             {
                 return false;
             }
@@ -2264,19 +2263,19 @@ namespace SAM.Analytical
 
         public bool Contains(ISAMObject sAMObject)
         {
-            if(sAMObject is Profile)
+            if (sAMObject is Profile)
             {
-                if(profileLibrary == null)
+                if (profileLibrary == null)
                 {
                     return false;
                 }
 
                 return profileLibrary.Contains((Profile)sAMObject);
             }
-            
-            if(sAMObject is IMaterial)
+
+            if (sAMObject is IMaterial)
             {
-                if(materialLibrary == null)
+                if (materialLibrary == null)
                 {
                     return false;
                 }
@@ -2284,39 +2283,39 @@ namespace SAM.Analytical
                 return materialLibrary.Contains((IMaterial)sAMObject);
             }
 
-            if(relationCluster == null)
+            if (relationCluster == null)
             {
                 return false;
             }
 
-            if(sAMObject is IOpening)
+            if (sAMObject is IOpening)
             {
                 List<IHostPartition> hostPartitions = relationCluster.GetObjects<IHostPartition>();
-                if(hostPartitions != null && hostPartitions.Count != 0)
+                if (hostPartitions != null && hostPartitions.Count != 0)
                 {
-                    if(hostPartitions.Find(x => x.HasOpening(sAMObject.Guid)) != null)
+                    if (hostPartitions.Find(x => x.HasOpening(sAMObject.Guid)) != null)
                     {
                         return true;
                     }
                 }
             }
 
-            if(sAMObject is InternalCondition)
+            if (sAMObject is InternalCondition)
             {
                 List<Space> spaces = relationCluster.GetObjects<Space>();
                 if (spaces != null && spaces.Count != 0)
                 {
-                    foreach(Space space in spaces)
+                    foreach (Space space in spaces)
                     {
                         InternalCondition internalCondition = space?.InternalCondition;
-                        if(internalCondition == null)
+                        if (internalCondition == null)
                         {
                             continue;
                         }
 
-                        if(internalCondition.Guid == sAMObject.Guid)
+                        if (internalCondition.Guid == sAMObject.Guid)
                         {
-                            return true; 
+                            return true;
                         }
                     }
                 }
@@ -2328,7 +2327,7 @@ namespace SAM.Analytical
         public BoundingBox3D GetBoundingBox3D()
         {
             List<ISAMGeometry3DObject> sAMGeometry3DObjects = relationCluster?.GetObjects<ISAMGeometry3DObject>();
-            if(sAMGeometry3DObjects == null || sAMGeometry3DObjects.Count == 0)
+            if (sAMGeometry3DObjects == null || sAMGeometry3DObjects.Count == 0)
             {
                 return null;
             }
@@ -2337,7 +2336,7 @@ namespace SAM.Analytical
             foreach (ISAMGeometry3DObject sAMGeometry3DObject in sAMGeometry3DObjects)
             {
                 IBoundable3D boundable3D = sAMGeometry3DObject.SAMGeometry3D<IBoundable3D>();
-                if(boundable3D == null)
+                if (boundable3D == null)
                 {
                     continue;
                 }
@@ -2345,7 +2344,7 @@ namespace SAM.Analytical
                 boundingBox3Ds.Add(boundable3D.GetBoundingBox());
             }
 
-            if(boundingBox3Ds == null || boundingBox3Ds.Count == 0)
+            if (boundingBox3Ds == null || boundingBox3Ds.Count == 0)
             {
                 return null;
             }
@@ -2415,7 +2414,7 @@ namespace SAM.Analytical
         public void Transform(Transform3D transform3D)
         {
             List<IBuildingElement> buildingElements = relationCluster?.GetObjects<IBuildingElement>();
-            if(buildingElements != null && buildingElements.Count != 0)
+            if (buildingElements != null && buildingElements.Count != 0)
             {
                 foreach (IBuildingElement buildingElement in buildingElements)
                 {

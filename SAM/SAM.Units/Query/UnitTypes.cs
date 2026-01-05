@@ -12,16 +12,16 @@ namespace SAM.Units
             {
                 case UnitCategory.Temperature:
 
-                    if(unitStyles == null || unitStyles.Length == 0)
+                    if (unitStyles == null || unitStyles.Length == 0)
                     {
                         result.Add(Units.UnitType.Celsius);
                         result.Add(Units.UnitType.Fahrenheit);
                     }
-                    else if(unitStyles.Contains(UnitStyle.SI))
+                    else if (unitStyles.Contains(UnitStyle.SI))
                     {
                         result.Add(Units.UnitType.Celsius);
                     }
-                    else if(unitStyles.Contains(UnitStyle.Imperial))
+                    else if (unitStyles.Contains(UnitStyle.Imperial))
                     {
                         result.Add(Units.UnitType.Fahrenheit);
                     }

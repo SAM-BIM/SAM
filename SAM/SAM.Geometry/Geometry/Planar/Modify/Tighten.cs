@@ -14,7 +14,7 @@ namespace SAM.Geometry.Planar
         {
             if (lineStrings == null || lineStrings.Count == 0)
                 return;
-            
+
             List<LineString> lineStrings_Short = lineStrings.FindAll(x => x.Length < tolerance && x.Coordinates.Length > 1);
             if (lineStrings_Short == null || lineStrings_Short.Count == 0)
                 return;

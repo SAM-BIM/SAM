@@ -9,7 +9,7 @@ namespace SAM.Core.Rhino
             if (objectAttributes == null || sAMObject == null)
                 return false;
 
-            foreach(string name in Core.Query.Names(sAMObject))
+            foreach (string name in Core.Query.Names(sAMObject))
             {
                 if (sAMObject.TryGetValue(name, out string value, true))
                     objectAttributes.SetUserString(name, value);

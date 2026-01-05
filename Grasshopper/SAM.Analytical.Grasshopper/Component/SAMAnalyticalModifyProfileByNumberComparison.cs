@@ -24,7 +24,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -46,14 +46,14 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "_profile", NickName = "_profile", Description = "SAM Analytical Profile", Access = GH_ParamAccess.item}, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "_profile", NickName = "_profile", Description = "SAM Analytical Profile", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_profileAsYearlyProfile_", NickName = "_profileAsYearlyProfile_", Description = "Profile As Yearly Profile", Access = GH_ParamAccess.item };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
-                
+
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "name_", NickName = "name_", Description = "Profile Name", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "_values", NickName = "_values", Description = "Values or Profile", Access = GH_ParamAccess.list}, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "_values", NickName = "_values", Description = "Values or Profile", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "_numberComparisonType", NickName = "_numberComparisonType", Description = "NumberComparisonType", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "_valuesComparison", NickName = "_valuesComparison", Description = "Comparison Values or Profile", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "valueTrue_", NickName = "valueTrue_", Description = "True Value", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
@@ -104,7 +104,7 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
-            if(convertToYearlyProfile)
+            if (convertToYearlyProfile)
             {
                 profile = new Profile(profile, new IndexedDoubles(profile.GetYearlyValues()));
             }
@@ -113,13 +113,13 @@ namespace SAM.Analytical.Grasshopper
             string name = null;
             if (index != -1)
             {
-                if(!dataAccess.GetData(index, ref name))
+                if (!dataAccess.GetData(index, ref name))
                 {
                     name = null;
                 }
             }
-            
-            if(name == null)
+
+            if (name == null)
             {
                 name = profile.Name;
             }
@@ -132,7 +132,7 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
-            if(!Core.Query.TryGetEnum(@string, out NumberComparisonType numberComparisonType))
+            if (!Core.Query.TryGetEnum(@string, out NumberComparisonType numberComparisonType))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -160,7 +160,7 @@ namespace SAM.Analytical.Grasshopper
 
 
             List<GH_ObjectWrapper> objectWrappers = null;
-            
+
             index = Params.IndexOfInputParam("_values");
             objectWrappers = new List<GH_ObjectWrapper>();
             if (index == -1 || !dataAccess.GetDataList(index, objectWrappers) || objectWrappers == null)
@@ -170,27 +170,27 @@ namespace SAM.Analytical.Grasshopper
             }
 
             IndexedDoubles indexedDoubles_1 = new IndexedDoubles();
-            for(int i =0; i < objectWrappers.Count; i++)
+            for (int i = 0; i < objectWrappers.Count; i++)
             {
                 object @object = objectWrappers[i]?.Value;
-                if(@object is IGH_Goo)
+                if (@object is IGH_Goo)
                 {
                     @object = (@object as dynamic).Value;
                 }
 
-                if(@object == null)
+                if (@object == null)
                 {
                     continue;
                 }
 
-                if(Core.Query.IsNumeric(@object))
+                if (Core.Query.IsNumeric(@object))
                 {
-                    if(Core.Query.TryConvert(@object, out double value))
+                    if (Core.Query.TryConvert(@object, out double value))
                     {
                         indexedDoubles_1.Add(i, value);
                     }
                 }
-                else if(@object is Profile)
+                else if (@object is Profile)
                 {
                     IndexedDoubles indexDoubles_Temp = ((Profile)@object).GetIndexedDoubles();
 
@@ -283,13 +283,13 @@ namespace SAM.Analytical.Grasshopper
             List<int> indexesFalse = new List<int>();
             for (int i = profile.Min; i <= profile.Max; i++)
             {
-                if(indexedDoubles != null)
+                if (indexedDoubles != null)
                 {
                     indexedDoubles[i] = profile[i];
                 }
 
                 double value_1 = profile_1[i];
-                if(double.IsNaN(value_1))
+                if (double.IsNaN(value_1))
                 {
                     continue;
                 }
@@ -300,10 +300,10 @@ namespace SAM.Analytical.Grasshopper
                     continue;
                 }
 
-                if(Core.Query.Compare(value_1, value_2, numberComparisonType))
+                if (Core.Query.Compare(value_1, value_2, numberComparisonType))
                 {
                     indexesTrue.Add(i);
-                    if(!double.IsNaN(valueTrue))
+                    if (!double.IsNaN(valueTrue))
                     {
                         indexedDoubles[i] = valueTrue;
                     }
@@ -320,12 +320,12 @@ namespace SAM.Analytical.Grasshopper
             }
 
             profile = new Profile(profile);
-            if(name != null)
+            if (name != null)
             {
                 profile = new Profile(profile.Guid, profile, name, profile.Category);
             }
 
-            if(indexedDoubles != null)
+            if (indexedDoubles != null)
             {
                 profile = new Profile(profile, indexedDoubles);
             }

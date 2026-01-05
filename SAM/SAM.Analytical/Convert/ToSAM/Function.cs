@@ -12,7 +12,7 @@ namespace SAM.Analytical
             }
 
             string[] texts = text.Split(',');
-            if(texts is null || texts.Length == 0)
+            if (texts is null || texts.Length == 0)
             {
                 return null;
             }

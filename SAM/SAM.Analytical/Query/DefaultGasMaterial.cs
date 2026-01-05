@@ -31,7 +31,7 @@ namespace SAM.Analytical
 
             name = name.ToLower();
 
-            foreach(GasMaterial gasMaterial in gasMaterials)
+            foreach (GasMaterial gasMaterial in gasMaterials)
             {
                 string name_Material = gasMaterial?.Name;
                 if (string.IsNullOrWhiteSpace(name_Material))

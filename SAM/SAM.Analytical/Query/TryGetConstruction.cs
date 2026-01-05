@@ -48,7 +48,7 @@ namespace SAM.Analytical
                 List<Panel> panels_Temp = null;
 
                 panels_Temp = panels?.ToList().FindAll(x => PanelGroup(x.PanelType) == Analytical.PanelGroup.Wall);
-                if(panels_Temp == null || panels_Temp.Count == 0)
+                if (panels_Temp == null || panels_Temp.Count == 0)
                     panels_Temp = panels_All?.ToList().FindAll(x => PanelGroup(x.PanelType) == Analytical.PanelGroup.Wall);
 
                 if (panels_Temp != null && panels_Temp.Count > 0)

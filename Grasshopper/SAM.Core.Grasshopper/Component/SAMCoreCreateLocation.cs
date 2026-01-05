@@ -37,7 +37,7 @@ namespace SAM.Core.Grasshopper
         protected override void RegisterInputParams(GH_InputParamManager inputParamManager)
         {
             Location location = Core.Query.DefaultLocation();
-            
+
             inputParamManager.AddTextParameter("_name", "_name", "Name", GH_ParamAccess.item, location.Name);
             inputParamManager.AddNumberParameter("_elevation", "_elevation", "Elevation", GH_ParamAccess.item, location.Elevation);
             inputParamManager.AddNumberParameter("_latitude", "_latitude", "Latitude", GH_ParamAccess.item, location.Latitude);

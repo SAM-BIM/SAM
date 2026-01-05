@@ -6,7 +6,7 @@ namespace SAM.Core
     {
         public static ParameterFilter ParameterFilter(string name, string value, TextComparisonType textComparisonType)
         {
-            if(string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(name))
             {
                 return null;
             }
@@ -17,7 +17,7 @@ namespace SAM.Core
         public static ParameterFilter ParameterFilter(Enum @enum, string value, TextComparisonType textComparisonType)
         {
             Attributes.ParameterProperties parameterProperties = Attributes.ParameterProperties.Get(@enum);
-            if(parameterProperties == null)
+            if (parameterProperties == null)
             {
                 return null;
             }

@@ -23,7 +23,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -87,7 +87,7 @@ namespace SAM.Analytical.Grasshopper
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
             IAnalyticalObject analyticalObject = null;
-            if(!dataAccess.GetData(0, ref analyticalObject) || analyticalObject == null)
+            if (!dataAccess.GetData(0, ref analyticalObject) || analyticalObject == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -121,7 +121,7 @@ namespace SAM.Analytical.Grasshopper
             List<MechanicalSystem> mechanicalSystems = new List<MechanicalSystem>();
 
             AdjacencyCluster adjacencyCluster = null;
-            if(analyticalObject is AnalyticalModel)
+            if (analyticalObject is AnalyticalModel)
             {
                 adjacencyCluster = ((AnalyticalModel)analyticalObject).AdjacencyCluster;
             }
@@ -130,17 +130,17 @@ namespace SAM.Analytical.Grasshopper
                 adjacencyCluster = new AdjacencyCluster((AdjacencyCluster)analyticalObject);
             }
 
-            if(spaces == null || spaces.Count == 0)
+            if (spaces == null || spaces.Count == 0)
             {
                 spaces = adjacencyCluster.GetSpaces();
             }
 
-            if(spaces != null)
+            if (spaces != null)
             {
                 if (ventilationSystemType != null)
                 {
                     MechanicalSystem mechanicalSystem = adjacencyCluster.AddMechanicalSystem(ventilationSystemType as VentilationSystemType, spaces);
-                    if(mechanicalSystem != null)
+                    if (mechanicalSystem != null)
                     {
                         mechanicalSystems.Add(mechanicalSystem);
                     }
@@ -164,24 +164,24 @@ namespace SAM.Analytical.Grasshopper
                     }
                 }
 
-                if(!string.IsNullOrWhiteSpace(supplyUnitName) || !string.IsNullOrWhiteSpace(exhaustUnitName))
+                if (!string.IsNullOrWhiteSpace(supplyUnitName) || !string.IsNullOrWhiteSpace(exhaustUnitName))
                 {
                     VentilationSystem ventilationSystem = null;
-                    foreach(Space space in spaces)
+                    foreach (Space space in spaces)
                     {
                         List<VentilationSystem> ventilationSystems = adjacencyCluster.GetRelatedObjects<VentilationSystem>(space);
-                        if(ventilationSystems != null && ventilationSystems.Count != 0)
+                        if (ventilationSystems != null && ventilationSystems.Count != 0)
                         {
-                            foreach(VentilationSystem ventilationSystem_Temp in ventilationSystems)
+                            foreach (VentilationSystem ventilationSystem_Temp in ventilationSystems)
                             {
-                                if(ventilationSystem_Temp != null)
+                                if (ventilationSystem_Temp != null)
                                 {
                                     ventilationSystem = ventilationSystem_Temp;
                                     break;
                                 }
                             }
 
-                            if(ventilationSystem != null)
+                            if (ventilationSystem != null)
                             {
                                 break;
                             }
@@ -189,14 +189,14 @@ namespace SAM.Analytical.Grasshopper
 
                     }
 
-                    if(ventilationSystem == null)
+                    if (ventilationSystem == null)
                     {
                         ventilationSystem = adjacencyCluster.AddMechanicalSystem(systemTypeLibrary?.GetSystemTypes<VentilationSystemType>().FirstOrDefault(), spaces) as VentilationSystem;
                     }
 
-                    if(ventilationSystem != null)
+                    if (ventilationSystem != null)
                     {
-                        if(!string.IsNullOrWhiteSpace(supplyUnitName))
+                        if (!string.IsNullOrWhiteSpace(supplyUnitName))
                         {
                             ventilationSystem.SetValue(VentilationSystemParameter.SupplyUnitName, supplyUnitName);
                         }
@@ -211,11 +211,11 @@ namespace SAM.Analytical.Grasshopper
                 }
             }
 
-            if(analyticalObject is AdjacencyCluster)
+            if (analyticalObject is AdjacencyCluster)
             {
                 analyticalObject = adjacencyCluster;
             }
-            else if(analyticalObject is AnalyticalModel)
+            else if (analyticalObject is AnalyticalModel)
             {
                 analyticalObject = new AnalyticalModel((AnalyticalModel)analyticalObject, adjacencyCluster);
             }

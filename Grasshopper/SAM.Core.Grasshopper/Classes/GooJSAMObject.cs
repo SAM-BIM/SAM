@@ -60,7 +60,7 @@ namespace SAM.Core.Grasshopper
             }
 
             JObject jObject = Value.ToJObject();
-            if(jObject == null)
+            if (jObject == null)
             {
                 return false;
             }
@@ -107,10 +107,10 @@ namespace SAM.Core.Grasshopper
 
             string value = Value.GetType().FullName;
 
-            if(Value is SAMObject)
+            if (Value is SAMObject)
             {
                 SAMObject sAMObject = (SAMObject)(object)Value;
-                
+
                 if (!string.IsNullOrWhiteSpace(sAMObject.Name))
                     value += string.Format(" [{0}]", sAMObject.Name);
             }
@@ -122,7 +122,7 @@ namespace SAM.Core.Grasshopper
         {
             if (source == null)
                 return false;
-            
+
             if (source is T)
             {
                 Value = (T)(object)source;
@@ -130,7 +130,7 @@ namespace SAM.Core.Grasshopper
             }
 
             Type type_Source = source?.GetType();
-            if(type_Source != null)
+            if (type_Source != null)
             {
                 if (typeof(IGooJSAMObject).IsAssignableFrom(type_Source))
                 {
@@ -188,7 +188,7 @@ namespace SAM.Core.Grasshopper
 
             try
             {
-                if(Value != null)
+                if (Value != null)
                 {
                     //target = (Y)Activator.CreateInstance(typeof(Y), Value);
 
@@ -205,13 +205,13 @@ namespace SAM.Core.Grasshopper
             {
 
             }
-            
+
             return base.CastTo(ref target);
         }
 
         public virtual bool Equals(T t)
         {
-            if(t is SAMObject sAMObject_1)
+            if (t is SAMObject sAMObject_1)
             {
                 if (Value is SAMObject sAMObject_2)
                 {
@@ -226,7 +226,7 @@ namespace SAM.Core.Grasshopper
         {
             if (Value is SAMObject sAMObject)
             {
-                return Core.Query.FullTypeName(sAMObject)?.GetHashCode() ^ sAMObject.Guid.GetHashCode()?? 0;
+                return Core.Query.FullTypeName(sAMObject)?.GetHashCode() ^ sAMObject.Guid.GetHashCode() ?? 0;
             }
 
             return base.GetHashCode();

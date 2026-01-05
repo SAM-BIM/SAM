@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -105,7 +105,7 @@ namespace SAM.Analytical.Grasshopper
                 gooApertureConstructionParam = new GooApertureConstructionParam() { Name = "windowInternal_", NickName = "windowInternal_", Description = "SAM Analytical ApertureConstruction for window internal", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(gooApertureConstructionParam, ParamVisibility.Binding));
 
-                GooSAMObjectParam sAMObjectParam = new GooSAMObjectParam() { Name = "materials_", NickName = "materials_", Description = "SAM Materials", Access = GH_ParamAccess.list, Optional = true};
+                GooSAMObjectParam sAMObjectParam = new GooSAMObjectParam() { Name = "materials_", NickName = "materials_", Description = "SAM Materials", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(sAMObjectParam, ParamVisibility.Binding));
 
                 return result.ToArray();
@@ -137,7 +137,7 @@ namespace SAM.Analytical.Grasshopper
 
             ConstructionManager constructionManager = null;
             index = Params.IndexOfInputParam("constructionManager_");
-            if(index != -1)
+            if (index != -1)
             {
                 dataAccess.GetData(index, ref constructionManager);
             }
@@ -149,7 +149,7 @@ namespace SAM.Analytical.Grasshopper
             ApertureConstruction apertureConstruction = null;
 
             index = Params.IndexOfInputParam("ceiling_");
-            if(index != -1 && dataAccess.GetData(index, ref construction) && construction != null)
+            if (index != -1 && dataAccess.GetData(index, ref construction) && construction != null)
             {
                 constructionDictionary[PanelType.Ceiling] = construction;
             }
@@ -262,7 +262,7 @@ namespace SAM.Analytical.Grasshopper
             if (index != -1 && dataAccess.GetData(index, ref apertureConstruction) && apertureConstruction != null)
             {
                 apertureConstruction = new ApertureConstruction(apertureConstruction, ApertureType.Window);
-                
+
                 apertureConstructionDictionary[new Tuple<PanelType, ApertureType>(PanelType.WallInternal, ApertureType.Window)] = apertureConstruction;
             }
 
@@ -275,7 +275,7 @@ namespace SAM.Analytical.Grasshopper
 
             List<IMaterial> materials = new List<IMaterial>();
 
-            if(sAMObjects != null)
+            if (sAMObjects != null)
             {
                 foreach (ISAMObject sAMObject in sAMObjects)
                 {
@@ -294,7 +294,7 @@ namespace SAM.Analytical.Grasshopper
                 }
             }
 
-            if(materials != null && materials.Count == 0)
+            if (materials != null && materials.Count == 0)
             {
                 materials = null;
             }

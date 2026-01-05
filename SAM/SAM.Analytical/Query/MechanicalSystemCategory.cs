@@ -4,12 +4,12 @@
     {
         public static MechanicalSystemCategory MechanicalSystemCategory(this MechanicalSystem mechanicalSystem)
         {
-            if(mechanicalSystem == null)
+            if (mechanicalSystem == null)
             {
                 return Analytical.MechanicalSystemCategory.Undefined;
             }
 
-            if(mechanicalSystem is CoolingSystem)
+            if (mechanicalSystem is CoolingSystem)
             {
                 return Analytical.MechanicalSystemCategory.Cooling;
             }

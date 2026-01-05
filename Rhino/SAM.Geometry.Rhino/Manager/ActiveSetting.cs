@@ -14,7 +14,7 @@ namespace SAM.Geometry.Rhino
         private static Setting setting = Load();
 
         private static MeshingParameters meshingParameters;
-        
+
         private static Setting Load()
         {
             Setting setting = ActiveManager.GetSetting(Assembly.GetExecutingAssembly());

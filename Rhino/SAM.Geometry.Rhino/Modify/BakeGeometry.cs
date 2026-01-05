@@ -15,15 +15,15 @@ namespace SAM.Geometry.Rhino
             guids = null;
 
             List<ISAMGeometry> sAMGeometries = Object.Convert.ToSAM_ISAMGeometry(sAMGeometryObject);
-            if(sAMGeometries == null || sAMGeometries.Count == 0)
+            if (sAMGeometries == null || sAMGeometries.Count == 0)
             {
                 return false;
             }
 
             guids = new List<Guid>();
-            foreach(ISAMGeometry sAMGeometry in sAMGeometries)
+            foreach (ISAMGeometry sAMGeometry in sAMGeometries)
             {
-                if(BakeGeometry(sAMGeometry, rhinoDoc, objectAttributes, out Guid guid))
+                if (BakeGeometry(sAMGeometry, rhinoDoc, objectAttributes, out Guid guid))
                 {
                     guids.Add(guid);
                 }

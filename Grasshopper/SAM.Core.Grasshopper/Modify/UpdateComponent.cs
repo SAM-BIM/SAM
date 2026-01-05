@@ -24,7 +24,7 @@ namespace SAM.Core.Grasshopper
             }
 
             bool add = gH_Document.AddObject(result, false);
-            if(!add)
+            if (!add)
             {
                 log.Add(new LogRecord("Could not add component to document: {0}", LogRecordType.Error, gH_SAMComponent.Name));
                 return null;

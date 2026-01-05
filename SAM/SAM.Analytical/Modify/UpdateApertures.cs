@@ -20,12 +20,12 @@ namespace SAM.Analytical
             if (panels == null)
                 return result;
 
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
                 if (!panel.HasApertures)
                     continue;
 
-                foreach(Aperture aperture in apertures)
+                foreach (Aperture aperture in apertures)
                 {
                     if (aperture == null)
                         continue;
@@ -33,7 +33,7 @@ namespace SAM.Analytical
                     Guid guid = aperture.Guid;
 
                     if (panel.RemoveAperture(guid))
-                        if(panel.AddAperture(aperture))
+                        if (panel.AddAperture(aperture))
                             if (adjacencyCluster.AddObject(panel))
                                 result.Add(aperture);
                 }

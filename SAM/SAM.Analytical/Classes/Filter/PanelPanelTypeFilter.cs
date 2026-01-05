@@ -7,7 +7,7 @@ namespace SAM.Analytical
     {
 
         public PanelPanelTypeFilter(PanelType panelType)
-            :base()
+            : base()
         {
             Value = panelType;
         }
@@ -29,7 +29,7 @@ namespace SAM.Analytical
             panelType = PanelType.Undefined;
 
             Panel panel = jSAMObject as Panel;
-            if(panel == null)
+            if (panel == null)
             {
                 return false;
             }

@@ -14,7 +14,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.
         /// </summary>
-        public override Guid ComponentGuid => new ("579a3e1c-f514-420b-8849-9f96aef8518b");
+        public override Guid ComponentGuid => new("579a3e1c-f514-420b-8849-9f96aef8518b");
 
         /// <summary>
         /// The latest version of this component
@@ -47,7 +47,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                GooAnalyticalModelParam analyticalModelParam = new () { Name = "_baseAModel", NickName = "_baseAModel", Description = "Analytical Model", Access = GH_ParamAccess.item };
+                GooAnalyticalModelParam analyticalModelParam = new() { Name = "_baseAModel", NickName = "_baseAModel", Description = "Analytical Model", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(analyticalModelParam, ParamVisibility.Binding));
 
                 Param_Number number = null;
@@ -156,7 +156,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                GooAnalyticalModelParam analyticalModelParam = new () { Name = "CaseAModel", NickName = "CaseAModel", Description = "List of SAM AnalyticalModels for cases", Access = GH_ParamAccess.item };
+                GooAnalyticalModelParam analyticalModelParam = new() { Name = "CaseAModel", NickName = "CaseAModel", Description = "List of SAM AnalyticalModels for cases", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(analyticalModelParam, ParamVisibility.Binding));
 
                 Param_String param_String = new() { Name = "CaseDescription", NickName = "CaseDescription", Description = "Case Description", Access = GH_ParamAccess.item };
@@ -343,13 +343,13 @@ namespace SAM.Analytical.Grasshopper
                 dataAccess.GetData(index_Concatenate, ref concatenate);
             }
 
-            if(!concatenate)
+            if (!concatenate)
             {
                 analyticalModel = new AnalyticalModel(analyticalModel);
                 analyticalModel.RemoveValue("CaseDescription");
             }
 
-            analyticalModel = Create.AnalyticalModel_ByApertureByAzimuths(analyticalModel, intervalRatioMap, subdivide, apertureHeight, sillHeight, horizontalSeparation, offset, keepSeparationDistance); 
+            analyticalModel = Create.AnalyticalModel_ByApertureByAzimuths(analyticalModel, intervalRatioMap, subdivide, apertureHeight, sillHeight, horizontalSeparation, offset, keepSeparationDistance);
 
             index = Params.IndexOfOutputParam("CaseDescription");
             if (index != -1)

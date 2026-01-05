@@ -10,7 +10,7 @@ namespace SAM.Geometry.Grasshopper
             if (curve.Value is LineCurve)
                 return Rhino.Convert.ToSAM(((LineCurve)curve.Value).Line);
             else
-                return Rhino.Convert.ToSAM( curve.Value, simplify);
+                return Rhino.Convert.ToSAM(curve.Value, simplify);
         }
     }
 }

@@ -1,8 +1,7 @@
-﻿using SAM.Core;
+﻿using SAM.Architectural;
+using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
-
-using SAM.Architectural;
 
 namespace SAM.Analytical
 {
@@ -20,7 +19,7 @@ namespace SAM.Analytical
             HashSet<string> materialNames = new HashSet<string>();
 
             List<HostPartitionType> hostPartitionTypes = buildingModel.GetHostPartitionTypes<HostPartitionType>();
-            if(hostPartitionTypes != null || hostPartitionTypes.Count != 0)
+            if (hostPartitionTypes != null || hostPartitionTypes.Count != 0)
             {
                 foreach (HostPartitionType hostPartitionType in hostPartitionTypes)
                 {
@@ -71,8 +70,8 @@ namespace SAM.Analytical
         public static List<IMaterial> UpdateMaterials(this BuildingModel buildingModel, IEnumerable<string> materialNames, MaterialLibrary materialLibrary, out HashSet<string> missingMaterialsNames)
         {
             missingMaterialsNames = null;
-            
-            if(buildingModel == null || materialNames == null || materialLibrary == null)
+
+            if (buildingModel == null || materialNames == null || materialLibrary == null)
             {
                 return null;
             }
@@ -80,7 +79,7 @@ namespace SAM.Analytical
             missingMaterialsNames = new HashSet<string>();
 
             HashSet<string> materialNames_Unique = new HashSet<string>();
-            foreach(string materialName in materialNames)
+            foreach (string materialName in materialNames)
             {
                 materialNames_Unique.Add(materialName);
             }
@@ -94,7 +93,7 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                if(buildingModel.HasMaterial(materialName))
+                if (buildingModel.HasMaterial(materialName))
                 {
                     continue;
                 }
@@ -114,7 +113,7 @@ namespace SAM.Analytical
 
             return result;
         }
-    
+
         public static List<IMaterial> UpdateMaterials(this BuildingModel buildingModel, IEnumerable<MaterialLayer> materialLayers, MaterialLibrary materialLibrary, out HashSet<string> missingMaterialsNames)
         {
             return UpdateMaterials(buildingModel, materialLayers?.ToList().ConvertAll(x => x?.Name), materialLibrary, out missingMaterialsNames);

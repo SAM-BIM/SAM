@@ -24,7 +24,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -64,21 +64,21 @@ namespace SAM.Analytical.Grasshopper
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
             Panel panel = null;
-            if(!dataAccess.GetData(0, ref panel))
+            if (!dataAccess.GetData(0, ref panel))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
             }
 
             List<GH_ObjectWrapper> objectWrappers = new List<GH_ObjectWrapper>();
-            if(!dataAccess.GetDataList(1, objectWrappers) || objectWrappers == null)
+            if (!dataAccess.GetDataList(1, objectWrappers) || objectWrappers == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
             }
 
             List<Plane> planes = new List<Plane>();
-            foreach(GH_ObjectWrapper objectWrapper in objectWrappers)
+            foreach (GH_ObjectWrapper objectWrapper in objectWrappers)
             {
                 object @object = objectWrapper.Value;
 
@@ -112,7 +112,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     plane = ((GH_Plane)@object).ToSAM();
                 }
-                else if(@object is global::Rhino.Geometry.Plane)
+                else if (@object is global::Rhino.Geometry.Plane)
                 {
                     plane = Geometry.Rhino.Convert.ToSAM(((global::Rhino.Geometry.Plane)@object));
                 }
@@ -149,7 +149,7 @@ namespace SAM.Analytical.Grasshopper
                 else
                     result_Lower.Add(panel_Temp);
             }
-            
+
             dataAccess.SetDataList(0, result?.ConvertAll(x => new GooPanel(x)));
             dataAccess.SetDataList(1, result_Upper?.ConvertAll(x => new GooPanel(x)));
             dataAccess.SetDataList(2, result_Lower?.ConvertAll(x => new GooPanel(x)));

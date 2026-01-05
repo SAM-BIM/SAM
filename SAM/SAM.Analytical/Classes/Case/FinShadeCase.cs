@@ -46,7 +46,7 @@ namespace SAM.Analytical.Classes
         public FinShadeCase(FinShadeCase shadeCase)
             : base(shadeCase)
         {
-            if(shadeCase != null)
+            if (shadeCase != null)
             {
                 glassPartOnly = shadeCase.glassPartOnly;
                 overhangDepth = shadeCase.overhangDepth;
@@ -159,7 +159,7 @@ namespace SAM.Analytical.Classes
                 OnPropertyChanged(nameof(OverhangVerticalOffset));
             }
         }
-        
+
         public double RightFinDepth
         {
             get

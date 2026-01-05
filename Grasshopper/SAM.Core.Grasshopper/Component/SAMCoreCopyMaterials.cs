@@ -82,7 +82,7 @@ namespace SAM.Core.Grasshopper
             }
 
             bool overwrite = true;
-            if(!dataAccess.GetData(2, ref overwrite))
+            if (!dataAccess.GetData(2, ref overwrite))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -97,7 +97,7 @@ namespace SAM.Core.Grasshopper
                 if (materials == null || materials.Count == 0)
                     continue;
 
-                foreach(IMaterial material in materials)
+                foreach (IMaterial material in materials)
                 {
                     IMaterial material_Existing = materialLibrary.GetObject<IMaterial>(material.Name);
                     if (material_Existing != null)

@@ -23,7 +23,7 @@ namespace SAM.Analytical
         public TMResult(TMResult tMResult)
             : base(tMResult)
         {
-            if(tMResult != null)
+            if (tMResult != null)
             {
                 tM52BuildingCategory = tMResult.tM52BuildingCategory;
             }
@@ -32,7 +32,7 @@ namespace SAM.Analytical
         public TMResult(Guid guid, TMResult tMResult)
             : base(guid, tMResult)
         {
-            if(tMResult != null)
+            if (tMResult != null)
             {
                 tM52BuildingCategory = tMResult.tM52BuildingCategory;
             }
@@ -65,7 +65,7 @@ namespace SAM.Analytical
                 return false;
             }
 
-            if(jObject.ContainsKey("TM52BuildingCategory"))
+            if (jObject.ContainsKey("TM52BuildingCategory"))
             {
                 tM52BuildingCategory = Core.Query.Enum<TM52BuildingCategory>(jObject.Value<string>("TM52BuildingCategory"));
             }

@@ -14,7 +14,7 @@ namespace SAM.Geometry.Spatial
             if (face2Ds == null)
                 return null;
 
-            if(edgeOrientationMethod != EdgeOrientationMethod.Undefined)
+            if (edgeOrientationMethod != EdgeOrientationMethod.Undefined)
             {
                 face2Ds = face2Ds.ConvertAll(x => Planar.Create.Face2D(x.ExternalEdge2D, x.InternalEdge2Ds, edgeOrientationMethod));
             }

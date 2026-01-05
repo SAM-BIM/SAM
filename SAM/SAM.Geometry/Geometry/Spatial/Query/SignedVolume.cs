@@ -6,11 +6,11 @@ namespace SAM.Geometry.Spatial
     {
         public static double SignedVolume(this Vector3D vector3D_1, Vector3D vector3D_2, Vector3D vector3D_3)
         {
-            if(vector3D_1 == null || vector3D_2 == null || vector3D_3 == null)
+            if (vector3D_1 == null || vector3D_2 == null || vector3D_3 == null)
             {
                 return double.NaN;
             }
-            
+
             double v321 = vector3D_3.X * vector3D_2.Y * vector3D_1.Z;
             double v231 = vector3D_2.X * vector3D_3.Y * vector3D_1.Z;
             double v312 = vector3D_3.X * vector3D_1.Y * vector3D_2.Z;
@@ -41,7 +41,7 @@ namespace SAM.Geometry.Spatial
         public static double SignedVolume(this Triangle3D triangle3D)
         {
             List<Point3D> point3Ds = triangle3D?.GetPoints();
-            if(point3Ds == null || point3Ds.Count != 3)
+            if (point3Ds == null || point3Ds.Count != 3)
             {
                 return double.NaN;
             }

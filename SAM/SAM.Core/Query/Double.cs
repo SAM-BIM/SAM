@@ -4,15 +4,15 @@
     {
         public static double Double(this UTC uTC)
         {
-            if(uTC == Core.UTC.Undefined)
+            if (uTC == Core.UTC.Undefined)
             {
                 return double.NaN;
             }
 
-            switch(uTC)
+            switch (uTC)
             {
                 case Core.UTC.Minus1200:
-                    return - 12.0;
+                    return -12.0;
 
                 case Core.UTC.Minus1100:
                     return -11.0;

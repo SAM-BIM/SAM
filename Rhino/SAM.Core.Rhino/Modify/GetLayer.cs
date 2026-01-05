@@ -11,7 +11,7 @@ namespace SAM.Core.Rhino
                 return null;
 
             int index = layerTable.Find(parentId, name, -1);
-            if(index == -1)
+            if (index == -1)
             {
                 index = layerTable.Add();
                 layerTable[index].Name = name;

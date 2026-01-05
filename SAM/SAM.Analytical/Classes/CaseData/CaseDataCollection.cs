@@ -30,11 +30,11 @@ namespace SAM.Analytical
 
         public CaseDataCollection(IEnumerable<CaseData> caseDatas)
         {
-            if(caseDatas != null)
+            if (caseDatas != null)
             {
-                foreach(CaseData caseData in caseDatas)
+                foreach (CaseData caseData in caseDatas)
                 {
-                    if(caseData.Clone() is CaseData caseData_Temp)
+                    if (caseData.Clone() is CaseData caseData_Temp)
                     {
                         this.caseDatas.Add(caseData_Temp);
                     }
@@ -57,9 +57,9 @@ namespace SAM.Analytical
             if (jObject.ContainsKey("CaseDatas"))
             {
                 JArray jArray = jObject.Value<JArray>("CaseDatas");
-                foreach(JObject jObject_Temp in jArray)
+                foreach (JObject jObject_Temp in jArray)
                 {
-                    if(Core.Query.IJSAMObject<CaseData>(jObject_Temp) is CaseData caseData)
+                    if (Core.Query.IJSAMObject<CaseData>(jObject_Temp) is CaseData caseData)
                     {
                         caseDatas.Add(caseData);
                     }
@@ -79,12 +79,12 @@ namespace SAM.Analytical
 
         public bool Add(CaseData caseData)
         {
-            if(caseData is null)
+            if (caseData is null)
             {
                 return false;
             }
 
-            if(caseData.Clone() is CaseData caseData_Temp)
+            if (caseData.Clone() is CaseData caseData_Temp)
             {
                 caseDatas.Add(caseData_Temp);
                 return true;

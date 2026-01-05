@@ -21,7 +21,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -44,7 +44,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                GooAnalyticalObjectParam gooAnalyticalObjectParam = new () { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item };
+                GooAnalyticalObjectParam gooAnalyticalObjectParam = new() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(gooAnalyticalObjectParam, ParamVisibility.Binding));
 
                 GooAnalyticalObjectParam gooAdjacencyClusterParam = new() { Name = "_adjacencyClusters", NickName = "_adjacencyClusters", Description = "SAM AdjacencyClusters", Access = GH_ParamAccess.list };
@@ -98,11 +98,11 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
-            if(analyticalObject is AdjacencyCluster adjacencyCluster)
+            if (analyticalObject is AdjacencyCluster adjacencyCluster)
             {
                 adjacencyCluster = new AdjacencyCluster(adjacencyCluster);
             }
-            else if(analyticalObject is AnalyticalModel analyticalModel)
+            else if (analyticalObject is AnalyticalModel analyticalModel)
             {
                 adjacencyCluster = new AdjacencyCluster(analyticalModel.AdjacencyCluster);
             }
@@ -134,16 +134,16 @@ namespace SAM.Analytical.Grasshopper
                 dataAccess.GetData(index, ref tolerance);
             }
 
-            foreach(AdjacencyCluster adjacencyCluster_Source in adjacencyClusters)
+            foreach (AdjacencyCluster adjacencyCluster_Source in adjacencyClusters)
             {
                 Analytical.Modify.Merge(adjacencyCluster, adjacencyCluster_Source, silverSpacing: silverSpacing, tolerance_Distance: tolerance);
             }
 
-            if(analyticalObject is AdjacencyCluster)
+            if (analyticalObject is AdjacencyCluster)
             {
                 analyticalObject = adjacencyCluster;
             }
-            else if(analyticalObject is AnalyticalModel analyticalModel)
+            else if (analyticalObject is AnalyticalModel analyticalModel)
             {
                 analyticalObject = new AnalyticalModel(analyticalModel, adjacencyCluster);
             }

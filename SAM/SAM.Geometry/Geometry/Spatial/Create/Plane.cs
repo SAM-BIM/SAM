@@ -4,15 +4,15 @@ namespace SAM.Geometry.Spatial
 {
     public static partial class Create
     {
-        
+
         public static Plane Plane(this Point3D point3D_1, Point3D point3D_2, Point3D point3D_3)
         {
             if (point3D_1 == null || point3D_2 == null || point3D_3 == null)
             {
                 return null;
             }
-            
-            
+
+
             Vector3D normal = Query.Normal(point3D_1, point3D_2, point3D_3);
             if (normal == null || !normal.IsValid())
             {
@@ -21,7 +21,7 @@ namespace SAM.Geometry.Spatial
 
             return new Plane((new Point3D[] { point3D_1, point3D_2, point3D_3 }).Average(), normal);
         }
-        
+
         public static Plane Plane(this IEnumerable<Point3D> point3Ds, double tolerance = Core.Tolerance.Distance)
         {
             Vector3D normal = Query.Normal(point3Ds, tolerance);
@@ -46,7 +46,7 @@ namespace SAM.Geometry.Spatial
 
         public static Plane Plane(double value, int dimensionIndex)
         {
-            switch(dimensionIndex)
+            switch (dimensionIndex)
             {
                 case 0:
                     return Spatial.Plane.WorldYZ.GetMoved(new Vector3D(value, 0, 0)) as Plane;

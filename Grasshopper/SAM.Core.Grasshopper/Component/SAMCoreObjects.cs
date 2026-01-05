@@ -70,7 +70,7 @@ namespace SAM.Core.Grasshopper
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
             int index = -1;
-            
+
             IRelationCluster relationCluster = null;
             index = Params.IndexOfInputParam("_relationCluster");
             if (index == -1 || !dataAccess.GetData(index, ref relationCluster) || relationCluster == null)
@@ -81,11 +81,11 @@ namespace SAM.Core.Grasshopper
 
             string fullTypeName = null;
             index = Params.IndexOfInputParam("_type_");
-            if(index != -1)
+            if (index != -1)
                 dataAccess.GetData(index, ref fullTypeName);
 
             Type type = null;
-            if(!string.IsNullOrWhiteSpace(fullTypeName))
+            if (!string.IsNullOrWhiteSpace(fullTypeName))
             {
                 try
                 {
@@ -95,12 +95,12 @@ namespace SAM.Core.Grasshopper
                 {
                     type = null;
                 }
-                
+
             }
 
-            
+
             index = Params.IndexOfOutputParam("Objects");
-            if(index != -1)
+            if (index != -1)
             {
                 List<object> result = null;
 

@@ -23,7 +23,7 @@ namespace SAM.Core
         {
 
         }
-        
+
         public GasMaterial(Guid guid, string name)
             : base(guid, name)
         {
@@ -42,7 +42,7 @@ namespace SAM.Core
         }
 
         public GasMaterial(string name, Guid guid, GasMaterial gasMaterial, string displayName, string description)
-            :base(name, guid, gasMaterial, displayName, description)
+            : base(name, guid, gasMaterial, displayName, description)
         {
 
         }

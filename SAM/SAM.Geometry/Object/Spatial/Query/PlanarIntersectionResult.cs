@@ -11,7 +11,7 @@ namespace SAM.Geometry.Object.Spatial
             return Geometry.Spatial.Create.PlanarIntersectionResult(plane, face3DObject?.Face3D, tolerance_Angle, tolerance_Distance);
         }
 
-        public static PlanarIntersectionResult PlanarIntersectionResult<T>(Face3D face3D, IEnumerable<T> face3DObjects, double tolerance_Angle = Core.Tolerance.Angle, double tolerance_Distance = Core.Tolerance.Distance) where T: IFace3DObject
+        public static PlanarIntersectionResult PlanarIntersectionResult<T>(Face3D face3D, IEnumerable<T> face3DObjects, double tolerance_Angle = Core.Tolerance.Angle, double tolerance_Distance = Core.Tolerance.Distance) where T : IFace3DObject
         {
             return Geometry.Spatial.Create.PlanarIntersectionResult(face3D, face3DObjects?.ToList().ConvertAll(x => x.Face3D), tolerance_Angle, tolerance_Distance);
         }

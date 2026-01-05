@@ -31,16 +31,16 @@ namespace SAM.Core.Grasshopper
             if (gH_SAMComponent == null)
                 return;
 
-            Assembly assembly =  gH_SAMComponent.GetType().Assembly;
+            Assembly assembly = gH_SAMComponent.GetType().Assembly;
 
             string link = @"https://github.com/HoareLea";
 
             string name = assembly.GetName().Name;
             string[] names = name?.Split('.');
-            if(names != null && names.Length > 2)
+            if (names != null && names.Length > 2)
             {
                 string project = "SAM";
-                if(names.Length > 3)
+                if (names.Length > 3)
                     project = string.Format("{0}_{1}", project, names[3]);
 
                 string link_Temp = string.Format(@"{0}/{1}/blob/master/Grasshopper/{2}/Component/{3}.cs", link, project, name, gH_SAMComponent.GetType().Name);

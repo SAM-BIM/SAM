@@ -39,7 +39,7 @@ namespace SAM.Geometry.Grasshopper
             else if (sAMGeomery is Face2D)
             {
                 Face3D face3D = Spatial.Query.Convert(Spatial.Plane.WorldXY, (Face2D)sAMGeomery);
-                if(face3D != null)
+                if (face3D != null)
                 {
                     curve3Ds = new List<ICurve3D>();
 
@@ -95,7 +95,7 @@ namespace SAM.Geometry.Grasshopper
             if (sAMGeomery is Mesh3D)
             {
                 Mesh mesh = Rhino.Convert.ToRhino(((Mesh3D)sAMGeomery));
-                if(mesh != null)
+                if (mesh != null)
                 {
                     previewWireArgs.Pipeline.DrawMeshWires(mesh, color);
                 }
@@ -103,9 +103,9 @@ namespace SAM.Geometry.Grasshopper
                 return;
             }
 
-            if(sAMGeomery is SAMGeometry2DGroup)
+            if (sAMGeomery is SAMGeometry2DGroup)
             {
-                foreach(ISAMGeometry sAMGeometry in (SAMGeometry2DGroup)sAMGeomery)
+                foreach (ISAMGeometry sAMGeometry in (SAMGeometry2DGroup)sAMGeomery)
                 {
                     DrawViewportWires(sAMGeometry, previewWireArgs, color);
                 }
@@ -132,12 +132,12 @@ namespace SAM.Geometry.Grasshopper
             }
 
             List<ISAMGeometry> sAMGeometries = Object.Convert.ToSAM_ISAMGeometry(sAMGeometryObject);
-            if(sAMGeometries  == null)
+            if (sAMGeometries == null)
             {
                 return;
             }
 
-            foreach(ISAMGeometry sAMGeometry in sAMGeometries)
+            foreach (ISAMGeometry sAMGeometry in sAMGeometries)
             {
                 DrawViewportWires(sAMGeometry, previewWireArgs, color);
             }
@@ -158,15 +158,15 @@ namespace SAM.Geometry.Grasshopper
             }
 
             IClosedPlanar3D externalEdge3D = face3D.GetExternalEdge3D();
-            if(externalEdge3D != null)
+            if (externalEdge3D != null)
             {
                 DrawViewportWires(externalEdge3D, previewWireArgs, color_ExternalEdges);
             }
 
             List<IClosedPlanar3D> internalEdge3Ds = face3D.GetInternalEdge3Ds();
-            if(internalEdge3Ds != null && internalEdge3Ds.Count != 0)
+            if (internalEdge3Ds != null && internalEdge3Ds.Count != 0)
             {
-                foreach(IClosedPlanar3D internalEdge3D in internalEdge3Ds)
+                foreach (IClosedPlanar3D internalEdge3D in internalEdge3Ds)
                 {
                     DrawViewportWires(internalEdge3D, previewWireArgs, color_InternalEdges);
                 }

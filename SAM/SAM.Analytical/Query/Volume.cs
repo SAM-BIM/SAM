@@ -21,10 +21,10 @@ namespace SAM.Analytical
             }
 
             Shell shell = adjacencyCluster.Shell(space);
-            if(shell != null)
+            if (shell != null)
             {
                 volume = shell.Volume();
-                if(!double.IsNaN(volume) && volume > 0)
+                if (!double.IsNaN(volume) && volume > 0)
                 {
                     return volume;
                 }

@@ -1,12 +1,12 @@
 ﻿using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
-using SAM.Weather.Grasshopper.Properties;
 using SAM.Core.Grasshopper;
+using SAM.Weather.Grasshopper.Properties;
 using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
 using System.Linq;
+using System.Windows.Forms;
 
 namespace SAM.Weather.Grasshopper
 {
@@ -32,7 +32,7 @@ namespace SAM.Weather.Grasshopper
     {
         public override Guid ComponentGuid => new Guid("3de17bc3-6f46-4b97-ad5a-ce311ac9c02f");
 
-                protected override System.Drawing.Bitmap Icon => Resources.SAM_Small;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_Small;
 
         bool IGH_PreviewObject.Hidden { get; set; }
 

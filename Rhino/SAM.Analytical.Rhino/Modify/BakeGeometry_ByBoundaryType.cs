@@ -40,7 +40,7 @@ namespace SAM.Analytical.Rhino
                 if (panel is ExternalPanel)
                 {
                     layer_Temp = Core.Rhino.Modify.GetLayer(layerTable, layer.Id, panel.GetType().Name, Query.Color((ExternalPanel)panel));
-                    
+
                     objectAttributes.LayerIndex = layer_Temp.Index;
 
                     if (BakeGeometry(panel, rhinoDoc, objectAttributes, out guids_Panel, cutApertures, tolerance) && guids_Panel != null)
@@ -51,7 +51,7 @@ namespace SAM.Analytical.Rhino
                 }
 
                 Panel panel_Temp = panel as Panel;
-                if(panel_Temp == null)
+                if (panel_Temp == null)
                 {
                     continue;
                 }

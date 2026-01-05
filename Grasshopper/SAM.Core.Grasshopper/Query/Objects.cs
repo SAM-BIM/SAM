@@ -6,7 +6,7 @@ namespace SAM.Core.Grasshopper
 {
     public static partial class Query
     {
-        public static object[,] Objects<T>(global::Grasshopper.Kernel.Data.GH_Structure<T> structure) where T: global::Grasshopper.Kernel.Types.IGH_Goo
+        public static object[,] Objects<T>(global::Grasshopper.Kernel.Data.GH_Structure<T> structure) where T : global::Grasshopper.Kernel.Types.IGH_Goo
         {
             if (structure == null)
                 return null;
@@ -16,7 +16,7 @@ namespace SAM.Core.Grasshopper
                 return null;
 
             int max = 0;
-            foreach(List<T> list in branches)
+            foreach (List<T> list in branches)
             {
                 if (list == null)
                     continue;
@@ -31,12 +31,12 @@ namespace SAM.Core.Grasshopper
                 return result;
 
             int index = 0;
-            foreach(List<T> list in branches)
+            foreach (List<T> list in branches)
             {
                 if (list == null)
                     continue;
 
-                for(int i=0; i < list.Count; i++)
+                for (int i = 0; i < list.Count; i++)
                 {
                     T t = list[i];
                     if (t == null)
@@ -47,14 +47,14 @@ namespace SAM.Core.Grasshopper
                     {
                         value = (t as dynamic).Value;
                     }
-                    catch(Exception)
+                    catch (Exception)
                     {
                         continue;
                     }
 
                     result[index, i] = value;
                 }
-                
+
                 index++;
             }
 

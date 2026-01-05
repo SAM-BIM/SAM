@@ -8,7 +8,7 @@ namespace SAM.Analytical
     {
         public static List<Zone> MapZones(this BuildingModel buildingModel, TextMap textMap)
         {
-            if(textMap == null || buildingModel == null)
+            if (textMap == null || buildingModel == null)
             {
                 return null;
             }

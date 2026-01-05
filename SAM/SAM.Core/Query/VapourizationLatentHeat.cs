@@ -9,7 +9,7 @@
         /// <returns>Latent Heat of Vapourization [J/kg]</returns>
         public static double VapourizationLatentHeat(this double dryBulbTemperature)
         {
-            if(double.IsNaN(dryBulbTemperature) || dryBulbTemperature < -25 || dryBulbTemperature > 100)
+            if (double.IsNaN(dryBulbTemperature) || dryBulbTemperature < -25 || dryBulbTemperature > 100)
             {
                 return double.NaN;
             }

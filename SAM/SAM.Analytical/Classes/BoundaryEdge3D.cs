@@ -96,7 +96,7 @@ namespace SAM.Analytical
 
         public void Flip()
         {
-            if(curve3D is Segment3D)
+            if (curve3D is Segment3D)
             {
                 ((Segment3D)curve3D).Reverse();
                 return;

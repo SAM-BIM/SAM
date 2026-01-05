@@ -193,7 +193,7 @@ namespace SAM.Analytical
             {
                 gaps = Array.Empty<Gap>();
             }
-            
+
             if (gaps.Count != System.Math.Max(0, layers.Count - 1))
             {
                 throw new ArgumentException("gaps.Count must equal layers.Count - 1.");

@@ -6,7 +6,7 @@ namespace SAM.Analytical
     public class PanelConstructionFilter : RelationFilter<Construction>
     {
         public PanelConstructionFilter(IFilter filter)
-            :base(filter)
+            : base(filter)
         {
 
         }
@@ -26,7 +26,7 @@ namespace SAM.Analytical
         public override Construction GetRelative(IJSAMObject jSAMObject)
         {
             Panel panel = jSAMObject as Panel;
-            if(panel == null)
+            if (panel == null)
             {
                 return null;
             }

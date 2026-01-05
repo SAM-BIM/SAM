@@ -11,7 +11,7 @@
         /// <returns></returns>
         public static Vector3D Rotate(this Vector3D vector3D, Plane plane, double angle)
         {
-            if(vector3D is null || plane?.Normal is not Vector3D axis || double.IsNaN(angle))
+            if (vector3D is null || plane?.Normal is not Vector3D axis || double.IsNaN(angle))
             {
                 return null;
             }

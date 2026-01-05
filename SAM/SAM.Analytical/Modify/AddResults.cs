@@ -25,22 +25,22 @@ namespace SAM.Analytical
                     result_Temp = result;
                 }
 
-                if(simplify)
+                if (simplify)
                 {
-                    if(result_Temp is TM52ExtendedResult)
+                    if (result_Temp is TM52ExtendedResult)
                     {
                         result_Temp = ((TM52ExtendedResult)result_Temp).Simplify();
                     }
                 }
-                
+
                 adjacencyCluster.AddObject(result_Temp);
-                
+
                 if (result_Temp is SpaceSimulationResult)
                 {
                     SpaceSimulationResult spaceSimulationResult = (SpaceSimulationResult)result_Temp;
 
                     Space space = null;
-                    if(Core.Query.TryConvert(spaceSimulationResult.Reference, out Guid guid))
+                    if (Core.Query.TryConvert(spaceSimulationResult.Reference, out Guid guid))
                     {
                         if (spaces == null)
                         {
@@ -50,16 +50,16 @@ namespace SAM.Analytical
                         space = spaces?.Find(x => x.Guid == guid);
                     }
 
-                    if(space == null)
+                    if (space == null)
                     {
                         ObjectReference objectReference = Core.Convert.ComplexReference<ObjectReference>(spaceSimulationResult.Reference);
-                        if(objectReference != null)
+                        if (objectReference != null)
                         {
                             space = adjacencyCluster?.GetObjects<Space>(objectReference)?.FirstOrDefault();
                         }
                     }
 
-                    if(space == null)
+                    if (space == null)
                     {
                         if (spaces == null)
                         {
@@ -74,12 +74,12 @@ namespace SAM.Analytical
                         }
                     }
 
-                    if(space != null)
+                    if (space != null)
                     {
                         adjacencyCluster.AddRelation(space, spaceSimulationResult);
                     }
                 }
-                else if(result_Temp is SurfaceSimulationResult)
+                else if (result_Temp is SurfaceSimulationResult)
                 {
                     SurfaceSimulationResult surfaceSimulationResult = (SurfaceSimulationResult)result_Temp;
 

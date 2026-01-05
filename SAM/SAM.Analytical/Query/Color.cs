@@ -146,7 +146,7 @@
             if (panel == null)
                 return System.Drawing.Color.Empty;
 
-            if(panel.TryGetValue(PanelParameter.Color, out System.Drawing.Color color) && color != System.Drawing.Color.Empty)
+            if (panel.TryGetValue(PanelParameter.Color, out System.Drawing.Color color) && color != System.Drawing.Color.Empty)
             {
                 return color;
             }
@@ -156,7 +156,7 @@
 
         public static System.Drawing.Color Color(this ExternalPanel externalPanel)
         {
-            if(externalPanel == null)
+            if (externalPanel == null)
             {
                 return System.Drawing.Color.Empty;
             }
@@ -169,7 +169,7 @@
             if (aperture == null)
                 return System.Drawing.Color.Empty;
 
-            if(aperturePart == AperturePart.Pane || aperture.ApertureType == Analytical.ApertureType.Door)
+            if (aperturePart == AperturePart.Pane || aperture.ApertureType == Analytical.ApertureType.Door)
             {
                 if (aperture.TryGetValue(ApertureParameter.Color, out System.Drawing.Color color) && color != System.Drawing.Color.Empty)
                 {
@@ -252,7 +252,7 @@
 
         public static System.Drawing.Color Color(this ApertureType apertureType)
         {
-            switch(apertureType)
+            switch (apertureType)
             {
                 case Analytical.ApertureType.Window:
                     return Color(apertureType, AperturePart.Pane);

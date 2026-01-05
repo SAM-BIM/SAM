@@ -417,9 +417,9 @@ If both ac/h_ and m3/h_ are provided, ac/h_ takes precedence.",
                 analyticalModel.RemoveValue("CaseDescription");
             }
 
-            analyticalModel = Create.AnalyticalModel_ByVentilation(analyticalModel, 
-            function, 
-            ach, 
+            analyticalModel = Create.AnalyticalModel_ByVentilation(analyticalModel,
+            function,
+            ach,
             m3h,
             factor,
             setback,

@@ -99,7 +99,7 @@ namespace SAM.Geometry.Grasshopper
             List<Face3D> face3Ds = new List<Face3D>();
             foreach (GH_ObjectWrapper objectWrapper_Temp in objectWrappers)
             {
-                if(Query.TryGetSAMGeometries(objectWrapper_Temp, out face3Ds_Temp))
+                if (Query.TryGetSAMGeometries(objectWrapper_Temp, out face3Ds_Temp))
                 {
                     face3Ds.AddRange(face3Ds_Temp);
                 }

@@ -3,8 +3,8 @@ using SAM.Analytical.Grasshopper.Properties;
 using SAM.Core;
 using SAM.Core.Grasshopper;
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SAM.Analytical.Grasshopper
 {
@@ -23,7 +23,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -50,13 +50,13 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(genericObject, ParamVisibility.Binding));
 
 
-                GooPanelParam gooPanelParam = new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list};
+                GooPanelParam gooPanelParam = new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list };
                 gooPanelParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gooPanelParam, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "minArea_", NickName = "minArea_", Description = "Minimal Area", Access = GH_ParamAccess.item};
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "minArea_", NickName = "minArea_", Description = "Minimal Area", Access = GH_ParamAccess.item };
                 number.SetPersistentData(Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
@@ -102,7 +102,7 @@ namespace SAM.Analytical.Grasshopper
 
             index = Params.IndexOfInputParam("minArea_");
             double minArea = Tolerance.MacroDistance;
-            if(index != -1)
+            if (index != -1)
             {
                 double value = double.NaN;
                 if (dataAccess.GetData(index, ref value) && !double.IsNaN(value))
@@ -119,7 +119,7 @@ namespace SAM.Analytical.Grasshopper
             }
 
             index = Params.IndexOfInputParam("_analytical");
-            SAMObject sAMObject= null;
+            SAMObject sAMObject = null;
             if (index == -1 || !dataAccess.GetData(index, ref sAMObject) || sAMObject == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
@@ -128,16 +128,16 @@ namespace SAM.Analytical.Grasshopper
 
 
             AdjacencyCluster adjacencyCluster = null;
-            if(sAMObject is AdjacencyCluster)
+            if (sAMObject is AdjacencyCluster)
             {
                 adjacencyCluster = new AdjacencyCluster((AdjacencyCluster)sAMObject);
             }
-            else if(sAMObject is AnalyticalModel)
+            else if (sAMObject is AnalyticalModel)
             {
                 adjacencyCluster = ((AnalyticalModel)sAMObject).AdjacencyCluster;
             }
 
-            if(adjacencyCluster != null)
+            if (adjacencyCluster != null)
             {
                 List<Panel> panels_Result = adjacencyCluster.MapPanels(panels, minArea, maxDistance);
 

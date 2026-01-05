@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using NetTopologySuite.Geometries;
 using NetTopologySuite.Triangulate;
-using NetTopologySuite.Geometries;
+using System.Collections.Generic;
 
 namespace SAM.Geometry.Planar
 {

@@ -41,7 +41,7 @@ namespace SAM.Analytical
                 Profile profile_SpaceAirMovement = spaceAirMovement.Profile;
                 profile_SpaceAirMovement.Multiply(spaceAirMovement.AirFlow);
 
-                if(profile == null)
+                if (profile == null)
                 {
                     profile = profile_SpaceAirMovement;
                 }
@@ -51,7 +51,7 @@ namespace SAM.Analytical
                 }
             }
 
-            if(profile == null)
+            if (profile == null)
             {
                 return double.NaN;
             }

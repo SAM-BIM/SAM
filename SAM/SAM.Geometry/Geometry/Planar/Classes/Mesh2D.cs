@@ -289,7 +289,7 @@ namespace SAM.Geometry.Planar
 
         public List<Tuple<int, int, int>> GetIndexes()
         {
-            if(indexes == null)
+            if (indexes == null)
             {
                 return null;
             }
@@ -394,7 +394,7 @@ namespace SAM.Geometry.Planar
 
         public bool Transform(ITransform2D transform2D)
         {
-            if(transform2D == null)
+            if (transform2D == null)
             {
                 return false;
             }

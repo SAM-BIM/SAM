@@ -14,21 +14,21 @@ namespace SAM.Core
 
             List<string> names = null;
 
-            if(property)
+            if (property)
             {
                 names = Names_Property(@object, includeStatic);
                 if (names != null && names.Count > 0)
                     result.AddRange(names);
             }
 
-            if(method)
+            if (method)
             {
                 names = Names_Method(@object, includeStatic);
                 if (names != null && names.Count > 0)
                     result.AddRange(names);
             }
 
-            if(propertySets)
+            if (propertySets)
             {
                 names = Names_PropertySets(@object);
                 if (names != null && names.Count > 0)
@@ -55,7 +55,7 @@ namespace SAM.Core
 
             return result;
         }
-        
+
         private static List<string> Names_Property(this object @object, bool includeStatic = false)
         {
             if (@object == null)
@@ -105,7 +105,7 @@ namespace SAM.Core
                     continue;
                 }
 
-                if(methodInfo.ContainsGenericParameters)
+                if (methodInfo.ContainsGenericParameters)
                 {
                     continue;
                 }
@@ -128,7 +128,7 @@ namespace SAM.Core
                     }
                 }
 
-                if(methodInfo.Name == "Duplicate")
+                if (methodInfo.Name == "Duplicate")
                 {
                     continue;
                 }

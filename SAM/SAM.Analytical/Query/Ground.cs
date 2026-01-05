@@ -4,7 +4,7 @@
     {
         public static bool Ground(this PanelType panelType)
         {
-            switch(panelType)
+            switch (panelType)
             {
                 case Analytical.PanelType.SlabOnGrade:
                 case Analytical.PanelType.UndergroundWall:

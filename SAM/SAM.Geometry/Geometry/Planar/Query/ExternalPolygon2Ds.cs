@@ -46,7 +46,7 @@ namespace SAM.Geometry.Planar
             }
 
             List<Polygon2D> polygon2Ds = Create.Polygon2Ds(segmentable2Ds, maxDistance, false, tolerance);
-            if(polygon2Ds == null || polygon2Ds.Count == 0)
+            if (polygon2Ds == null || polygon2Ds.Count == 0)
             {
                 return null;
             }

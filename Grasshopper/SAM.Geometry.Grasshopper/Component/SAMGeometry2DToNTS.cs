@@ -108,7 +108,7 @@ namespace SAM.Geometry.Grasshopper
             {
                 foreach (ISAMGeometry3D sAMGeometry3D in sAMGeometry3Ds)
                 {
-                    if(sAMGeometry3D is Face3D)
+                    if (sAMGeometry3D is Face3D)
                     {
                         sAMGeometry2Ds.Add(Spatial.Query.Convert(Plane.WorldXY, (Face3D)sAMGeometry3D));
                     }

@@ -18,7 +18,7 @@ namespace SAM.Geometry.Grasshopper
                     mesh.Faces.ConvertQuadsToTriangles();
                     break;
             }
-                
+
             return true;
         }
     }

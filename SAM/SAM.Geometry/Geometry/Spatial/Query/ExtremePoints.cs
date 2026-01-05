@@ -42,7 +42,7 @@ namespace SAM.Geometry.Spatial
                 }
             }
 
-            if(distance_Max != double.MinValue)
+            if (distance_Max != double.MinValue)
             {
                 distance = distance_Max;
             }

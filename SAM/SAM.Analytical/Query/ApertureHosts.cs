@@ -19,7 +19,7 @@ namespace SAM.Analytical
                 return null;
 
             List<Panel> result = new List<Panel>();
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
                 if (panel.ApertureHost(closedPlanar3D, minArea, maxDistance, tolerance))
                     result.Add(panel);

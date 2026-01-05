@@ -208,7 +208,7 @@ namespace SAM.Geometry.Spatial
 
         public bool On(Point3D point3D, double tolerance = Tolerance.Distance)
         {
-            if(point3D == null)
+            if (point3D == null)
             {
                 return false;
             }
@@ -218,11 +218,11 @@ namespace SAM.Geometry.Spatial
 
         public Point3D Closest(Point3D point3D)
         {
-            if(point3D == null)
+            if (point3D == null)
             {
                 return null;
             }
-            
+
             double factor = point3D.ToVector3D().DotProduct(normal) - K;
             return new Point3D(point3D.X - (normal.X * factor), point3D.Y - (normal.Y * factor), point3D.Z - (normal.Z * factor));
         }
@@ -357,7 +357,7 @@ namespace SAM.Geometry.Spatial
         public override bool Equals(object obj)
         {
             Plane plane = obj as Plane;
-            if(plane == null)
+            if (plane == null)
             {
                 return false;
             }

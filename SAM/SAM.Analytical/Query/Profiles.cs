@@ -38,7 +38,7 @@ namespace SAM.Analytical
                 return null;
 
             Dictionary<Guid, Profile> dictionary = new Dictionary<Guid, Profile>();
-            foreach(Space space in spaces)
+            foreach (Space space in spaces)
             {
                 InternalCondition internalCondition = space?.InternalCondition;
                 if (internalCondition == null)
@@ -48,7 +48,7 @@ namespace SAM.Analytical
                 if (profiles == null)
                     continue;
 
-                foreach(Profile profile in profiles)
+                foreach (Profile profile in profiles)
                 {
                     if (profile == null)
                         continue;

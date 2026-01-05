@@ -15,7 +15,7 @@ namespace SAM.Core
         /// <returns>Decompressed string</returns>
         public static string Decompress(this string @string)
         {
-            if(@string == null)
+            if (@string == null)
             {
                 return null;
             }
@@ -40,7 +40,7 @@ namespace SAM.Core
 
         public static List<T> Decompress<T>(this string @string) where T : IJSAMObject
         {
-            if(string.IsNullOrWhiteSpace(@string))
+            if (string.IsNullOrWhiteSpace(@string))
             {
                 return null;
             }

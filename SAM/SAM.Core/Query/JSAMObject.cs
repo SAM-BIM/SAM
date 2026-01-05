@@ -31,7 +31,7 @@ namespace SAM.Core
                 constructorInfo = type.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(JObject) }, null);
             }
 
-            if(constructorInfo == null)
+            if (constructorInfo == null)
             {
                 return new JSAMObjectWrapper(jObject);
             }
@@ -42,12 +42,12 @@ namespace SAM.Core
         public static T IJSAMObject<T>(this JObject jObject) where T : IJSAMObject
         {
             IJSAMObject jSAMObject = IJSAMObject(jObject);
-            if(jSAMObject == null)
+            if (jSAMObject == null)
             {
                 return default;
             }
 
-            if(!(jSAMObject is T))
+            if (!(jSAMObject is T))
             {
                 return default;
             }

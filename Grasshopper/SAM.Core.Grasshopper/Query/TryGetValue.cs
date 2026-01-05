@@ -12,7 +12,7 @@ namespace SAM.Core.Grasshopper
             if (dictionary == null)
                 return false;
 
-            foreach(KeyValuePair<Interval, T> keyValuePair in dictionary)
+            foreach (KeyValuePair<Interval, T> keyValuePair in dictionary)
             {
                 double value_Temp = System.Math.Round(value, System.MidpointRounding.ToEven);
 

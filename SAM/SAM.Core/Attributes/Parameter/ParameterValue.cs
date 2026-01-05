@@ -22,7 +22,7 @@ namespace SAM.Core.Attributes
                 case ParameterType.Double:
                     if (object_In == null)
                         return false;
-                    
+
                     double @double;
                     if (!Query.TryConvert(object_In, out @double))
                         return false;

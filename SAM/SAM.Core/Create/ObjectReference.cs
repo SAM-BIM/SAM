@@ -6,7 +6,7 @@ namespace SAM.Core
     {
         public static ObjectReference ObjectReference<T>(this T @object, Func<T, Reference> func = null)
         {
-            if(@object == null)
+            if (@object == null)
             {
                 return null;
             }

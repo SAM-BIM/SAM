@@ -1,6 +1,6 @@
-﻿using System.ComponentModel;
-using SAM.Core;
+﻿using SAM.Core;
 using SAM.Core.Attributes;
+using System.ComponentModel;
 
 namespace SAM.Analytical
 {

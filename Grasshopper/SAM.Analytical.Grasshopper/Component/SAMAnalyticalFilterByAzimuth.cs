@@ -15,7 +15,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.
         /// </summary>
-        public override Guid ComponentGuid => new ("72b15a3c-6568-4a93-ac47-1e436c6a1535");
+        public override Guid ComponentGuid => new("72b15a3c-6568-4a93-ac47-1e436c6a1535");
 
         /// <summary>
         /// The latest version of this component
@@ -25,7 +25,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
                 result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analyticalObjects", NickName = "_analyticalObjects", Description = "SAM Analytical Objects such as Panels or Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                
+
                 // Azimuth intervals (4 sectors; North wraps 316→44)
                 var azimuthsParam = new global::Grasshopper.Kernel.Parameters.Param_Interval()
                 {
@@ -60,7 +60,7 @@ namespace SAM.Analytical.Grasshopper
                     new Interval(135, 225),  // South
                     new Interval(226, 315)); //West
                 result.Add(new GH_SAMParam(azimuthsParam, ParamVisibility.Binding));
-                
+
                 global::Grasshopper.Kernel.Parameters.Param_Number number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_trueNorth_", NickName = "_trueNorth_", Description = "True north [0 - 359 deg] Clockwise", Access = GH_ParamAccess.item };
                 number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
@@ -75,7 +75,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Interval() { Name = "Azimuths", NickName = "Azimuths", Description = "Azimuths intervals", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                
+
                 result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Panels", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures", NickName = "Apertures", Description = "SAM Apertures", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
 
@@ -115,7 +115,7 @@ namespace SAM.Analytical.Grasshopper
             index = Params.IndexOfInputParam("_trueNorth_");
             if (index != -1)
             {
-                if(!dataAccess.GetData(index, ref trueNorth))
+                if (!dataAccess.GetData(index, ref trueNorth))
                 {
                     trueNorth = 0.0;
                 }
@@ -123,17 +123,17 @@ namespace SAM.Analytical.Grasshopper
 
             List<IAnalyticalObject> analyticalObjects = [];
             index = Params.IndexOfInputParam("_analyticalObjects");
-            if(index == -1 || !dataAccess.GetDataList(index, analyticalObjects) || analyticalObjects == null || analyticalObjects.Count == 0)
+            if (index == -1 || !dataAccess.GetDataList(index, analyticalObjects) || analyticalObjects == null || analyticalObjects.Count == 0)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
             }
 
             List<Panel> panels = [];
-            List<Aperture> apertures = []; 
-            foreach(IAnalyticalObject analyticalObject in analyticalObjects)
+            List<Aperture> apertures = [];
+            foreach (IAnalyticalObject analyticalObject in analyticalObjects)
             {
-                if(analyticalObject is Panel panel)
+                if (analyticalObject is Panel panel)
                 {
                     panels.Add(panel);
                 }
@@ -141,28 +141,28 @@ namespace SAM.Analytical.Grasshopper
                 {
                     apertures.Add(aperture);
                 }
-                else if(analyticalObject is AnalyticalModel analyticalModel)
+                else if (analyticalObject is AnalyticalModel analyticalModel)
                 {
                     panels = analyticalModel.GetPanels();
                 }
-                else if(analyticalObject is AdjacencyCluster adjacencyCluster)
+                else if (analyticalObject is AdjacencyCluster adjacencyCluster)
                 {
                     panels = adjacencyCluster.GetPanels();
                 }
             }
 
-            if(panels is not null && panels.Count != 0)
+            if (panels is not null && panels.Count != 0)
             {
-                foreach(Panel panel in panels)
+                foreach (Panel panel in panels)
                 {
                     if (!panel.HasApertures)
                     {
                         continue;
                     }
 
-                    if(panel.Apertures is List<Aperture> apertures_Temp)
+                    if (panel.Apertures is List<Aperture> apertures_Temp)
                     {
-                        foreach(Aperture aperture in apertures_Temp)
+                        foreach (Aperture aperture in apertures_Temp)
                         {
                             apertures.Add(aperture);
                         }
@@ -170,8 +170,8 @@ namespace SAM.Analytical.Grasshopper
                 }
             }
 
-            DataTree<Panel> dataTree_Panels = new ();
-            DataTree<Aperture> dataTree_Apertures = new ();
+            DataTree<Panel> dataTree_Panels = new();
+            DataTree<Aperture> dataTree_Apertures = new();
 
             List<Panel> panels_Horizontal = new();
             List<Aperture> apertures_Horizontal = new();
@@ -180,9 +180,9 @@ namespace SAM.Analytical.Grasshopper
             DataTree<Aperture> dataTree_Apertures_Tilted = new();
 
             Vector3D referenceDirection = Vector3D.WorldY;
-            if(trueNorth != 0.0)
+            if (trueNorth != 0.0)
             {
-                referenceDirection = referenceDirection.Rotate(Geometry.Spatial.Plane.WorldXY, - trueNorth * System.Math.PI / 180.0);
+                referenceDirection = referenceDirection.Rotate(Geometry.Spatial.Plane.WorldXY, -trueNorth * System.Math.PI / 180.0);
             }
 
             Dictionary<Interval, int> dictionary = IntervalDictionary(azimuths);
@@ -195,7 +195,7 @@ namespace SAM.Analytical.Grasshopper
                 }
 
                 double tilt = Geometry.Spatial.Query.Tilt(closedPlanar3D);
-                if(Core.Query.AlmostEqual(tilt, 0, Core.Tolerance.MacroDistance) || Core.Query.AlmostEqual(tilt, 180, Core.Tolerance.MacroDistance))
+                if (Core.Query.AlmostEqual(tilt, 0, Core.Tolerance.MacroDistance) || Core.Query.AlmostEqual(tilt, 180, Core.Tolerance.MacroDistance))
                 {
                     panels_Horizontal.Add(panel);
                     continue;
@@ -207,7 +207,7 @@ namespace SAM.Analytical.Grasshopper
                     continue;
                 }
 
-                if(!TryGetRatio(dictionary, azimuth, out int index_Temp) || index_Temp == -1)
+                if (!TryGetRatio(dictionary, azimuth, out int index_Temp) || index_Temp == -1)
                 {
                     continue;
                 }
@@ -232,7 +232,7 @@ namespace SAM.Analytical.Grasshopper
                 }
 
                 double azimuth = Geometry.Spatial.Query.Azimuth(closedPlanar3D, referenceDirection);
-                if(double.IsNaN(azimuth))
+                if (double.IsNaN(azimuth))
                 {
                     continue;
                 }
@@ -248,7 +248,7 @@ namespace SAM.Analytical.Grasshopper
             }
 
             index = Params.IndexOfOutputParam("Azimuths");
-            if(index != -1)
+            if (index != -1)
             {
                 dataAccess.SetDataList(index, azimuths);
             }

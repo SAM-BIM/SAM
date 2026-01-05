@@ -82,7 +82,7 @@ namespace SAM.Analytical
 
             panels_Extended = new List<Panel>();
 
-            foreach(Geometry.Planar.Segment2D segment2D in segment2Ds)
+            foreach (Geometry.Planar.Segment2D segment2D in segment2Ds)
             {
                 Geometry.Planar.Point2D point2D_1 = segment2D[0];
                 Geometry.Planar.Point2D point2D_2 = segment2D[1];

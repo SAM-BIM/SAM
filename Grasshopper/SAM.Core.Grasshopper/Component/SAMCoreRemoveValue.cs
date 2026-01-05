@@ -72,7 +72,7 @@ namespace SAM.Core.Grasshopper
             int index;
 
             index = Params.IndexOfInputParam("_sAMObject");
-            if(index == -1)
+            if (index == -1)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -116,7 +116,7 @@ namespace SAM.Core.Grasshopper
             }
 
             index = Params.IndexOfOutputParam("SAMObject");
-            if(index != -1)
+            if (index != -1)
                 dataAccess.SetData(index, sAMObject);
 
             index = Params.IndexOfOutputParam("Succeeded");

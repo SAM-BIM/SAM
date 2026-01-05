@@ -9,7 +9,7 @@ namespace SAM.Core
     {
         public static Dictionary<Type, AssociatedTypes> AssociatedTypesDictionary(IEnumerable<Type> types = null, bool enumsOnly = true, bool notPublic = false)
         {
-            Dictionary<Type, AssociatedTypes> result = new ();
+            Dictionary<Type, AssociatedTypes> result = new();
             foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 if (assembly == null)
@@ -55,7 +55,7 @@ namespace SAM.Core
                         continue;
                     }
 
-                    if(types != null)
+                    if (types != null)
                     {
                         List<Type> types_Valid = associatedTypes.ValidTypes(types);
                         if (types_Valid == null || types_Valid.Count == 0)

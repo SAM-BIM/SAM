@@ -11,9 +11,9 @@ namespace SAM.Core
             if (log == null || logRecordTypes == null)
                 return null;
 
-            Log result = new (log.Name);
+            Log result = new(log.Name);
 
-            if(sort)
+            if (sort)
             {
                 foreach (LogRecordType logRecordType in logRecordTypes)
                 {
@@ -60,7 +60,7 @@ namespace SAM.Core
             @in = null;
             @out = null;
 
-            if(ts == null || functions == null)
+            if (ts == null || functions == null)
             {
                 return;
             }
@@ -98,7 +98,7 @@ namespace SAM.Core
             if (relationCluster_Out == null)
                 relationCluster_Out = new RelationCluster<T>();
 
-            HashSet<T> objects_Out = new ();
+            HashSet<T> objects_Out = new();
 
             Filter(relationCluster_In, relationCluster_Out, objects, objects_Out);
 
@@ -112,7 +112,7 @@ namespace SAM.Core
                 return null;
             }
 
-            List<T> result = new ();
+            List<T> result = new();
             foreach (IJSAMObject jSAMObject in jSAMObjects)
             {
                 if (!(jSAMObject is T))
@@ -136,7 +136,7 @@ namespace SAM.Core
             @in = null;
             @out = null;
 
-            if(jSAMObjects == null || filter == null)
+            if (jSAMObjects == null || filter == null)
             {
                 return;
             }
@@ -157,19 +157,19 @@ namespace SAM.Core
             if (objects_In == null || relationCluster_In == null || relationCluster_Out == null || objects_Out == null)
                 return;
 
-            HashSet<T> objects_In_New = new ();
+            HashSet<T> objects_In_New = new();
             foreach (T object_In in objects_In)
             {
                 if (objects_Out.Contains(object_In))
                     continue;
 
                 relationCluster_Out.AddObject(object_In);
-                
+
                 List<T> relatedObjects = relationCluster_In.GetRelatedObjects(object_In);
                 if (relatedObjects == null || relatedObjects.Count == 0)
                     continue;
 
-                foreach(T relatedObject in relatedObjects)
+                foreach (T relatedObject in relatedObjects)
                 {
                     if (objects_Out.Contains(relatedObject))
                         continue;

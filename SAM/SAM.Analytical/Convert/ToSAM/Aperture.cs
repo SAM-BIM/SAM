@@ -1,10 +1,10 @@
 ﻿namespace SAM.Analytical
 {
     public static partial class Convert
-    {  
+    {
         public static Aperture ToSAM(this IOpening opening)
         {
-            if(opening == null)
+            if (opening == null)
             {
                 return null;
             }

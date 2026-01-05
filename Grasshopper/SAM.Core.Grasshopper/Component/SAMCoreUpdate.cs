@@ -23,7 +23,7 @@ namespace SAM.Core.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Resources.SAM_Small;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_Small;
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -115,7 +115,7 @@ namespace SAM.Core.Grasshopper
             }
 
             index = Params.IndexOfOutputParam("succeeded");
-            if(index != -1)
+            if (index != -1)
             {
                 dataAccess.SetData(index, gH_SAMComponents != null && gH_SAMComponents.Count != 0);
             }

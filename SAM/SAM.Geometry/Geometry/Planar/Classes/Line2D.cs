@@ -137,7 +137,7 @@ namespace SAM.Geometry.Planar
 
         public Point2D Intersection(Line2D line2D, double tolerance = Core.Tolerance.Distance)
         {
-            if(line2D == null)
+            if (line2D == null)
             {
                 return null;
             }
@@ -152,8 +152,8 @@ namespace SAM.Geometry.Planar
                 return null;
             }
 
-            Point2D point2D =  Query.Intersection(origin, origin.GetMoved(vector), segment2D.Start, segment2D.End, false, tolerance);
-            if(point2D == null)
+            Point2D point2D = Query.Intersection(origin, origin.GetMoved(vector), segment2D.Start, segment2D.End, false, tolerance);
+            if (point2D == null)
             {
                 return null;
             }
@@ -172,7 +172,7 @@ namespace SAM.Geometry.Planar
 
         public bool Transform(ITransform2D transform2D)
         {
-            if(transform2D == null)
+            if (transform2D == null)
             {
                 return false;
             }

@@ -38,7 +38,7 @@ namespace SAM.Core
         {
             if (@object == null || typeMap == null)
                 return null;
-            
+
             return ParameterSet(@object, @object.GetType().Assembly, type_destination, typeMap);
         }
 

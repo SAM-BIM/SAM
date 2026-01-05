@@ -20,7 +20,7 @@ namespace SAM.Geometry.Planar
             if (count == 1)
                 return result;
 
-            for(int i =1; i < count; i++)
+            for (int i = 1; i < count; i++)
                 result.Include(segmentable2Ds.ElementAt(i).GetBoundingBox(offset));
 
             return result;

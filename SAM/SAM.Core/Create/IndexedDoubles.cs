@@ -5,7 +5,7 @@ namespace SAM.Core
     {
         public static IndexedDoubles IndexedDoubles(this IndexedDoubles indexedDoubles, int start, int end)
         {
-            if(indexedDoubles == null)
+            if (indexedDoubles == null)
             {
                 return null;
             }
@@ -13,7 +13,7 @@ namespace SAM.Core
             IndexedDoubles result = new IndexedDoubles();
             for (int i = start; i < end; i++)
             {
-                if(!indexedDoubles.ContainsIndex(i))
+                if (!indexedDoubles.ContainsIndex(i))
                 {
                     continue;
                 }

@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -142,7 +142,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     panels.Add((Panel)sAMObject);
                 }
-                else if(sAMObject is Aperture)
+                else if (sAMObject is Aperture)
                 {
                     apertures.Add((Aperture)sAMObject);
                 }
@@ -151,8 +151,8 @@ namespace SAM.Analytical.Grasshopper
                     AdjacencyCluster adjacencyCluster = (AdjacencyCluster)sAMObject;
                     ConstructionLibrary constructionLibrary_Temp = null;
                     ApertureConstructionLibrary apertureConstructionLibrary_Temp = null;
-                    List <Panel> panels_Temp = adjacencyCluster.GetPanels();
-                    if(panels_Temp != null)
+                    List<Panel> panels_Temp = adjacencyCluster.GetPanels();
+                    if (panels_Temp != null)
                     {
                         adjacencyCluster = (AdjacencyCluster)adjacencyCluster.Clone();
                         constructionLibrary_Temp = Analytical.Modify.UpdateConstructionsByName(panels_Temp, constructionLibrary, delimitedFileTable, sourceColumnName, templateColumnName, destinationColumnName);
@@ -184,17 +184,17 @@ namespace SAM.Analytical.Grasshopper
                     constructionLibraries.Add(constructionLibrary_Temp);
                     apertureConstructionLibraries.Add(apertureConstructionLibrary_Temp);
                 }
-                else if(sAMObject is Construction)
+                else if (sAMObject is Construction)
                 {
                     constructions.Add((Construction)sAMObject);
                 }
-                else if(sAMObject is ApertureConstruction)
+                else if (sAMObject is ApertureConstruction)
                 {
                     apertureConstructions.Add((ApertureConstruction)sAMObject);
                 }
             }
 
-            if(panels != null && panels.Count != 0)
+            if (panels != null && panels.Count != 0)
             {
                 ConstructionLibrary constructionLibrary_Temp = Analytical.Modify.UpdateConstructionsByName(panels, constructionLibrary, delimitedFileTable, sourceColumnName, templateColumnName, destinationColumnName);
                 ApertureConstructionLibrary apertureConstructionLibrary_Temp = Analytical.Modify.UpdateApertureConstructionsByName(panels, apertureConstructionLibrary, delimitedFileTable, sourceColumnName, templateColumnName, destinationColumnName);

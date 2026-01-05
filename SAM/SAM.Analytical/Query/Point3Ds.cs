@@ -5,11 +5,11 @@ namespace SAM.Analytical
 {
     public static partial class Query
     {
-        
+
         public static List<Point3D> Point3Ds(this Panel panel, bool externalEdge = true, bool internalEdges = true)
         {
             Face3D face3D = panel?.GetFace3D();
-            if(face3D == null || !face3D.IsValid())
+            if (face3D == null || !face3D.IsValid())
             {
                 return null;
             }

@@ -3,7 +3,7 @@ using SAM.Geometry.Planar;
 
 namespace SAM.Geometry.Spatial
 {
-    public class Ellipse3D: SAMGeometry, IClosedPlanar3D
+    public class Ellipse3D : SAMGeometry, IClosedPlanar3D
     {
         private Ellipse2D ellipse2D;
         private Plane plane;

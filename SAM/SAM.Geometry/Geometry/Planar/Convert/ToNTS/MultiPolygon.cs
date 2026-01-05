@@ -12,7 +12,7 @@ namespace SAM.Geometry.Planar
                 return null;
 
             List<Polygon> polygons = new List<Polygon>();
-            foreach(Face2D face2D in face2Ds)
+            foreach (Face2D face2D in face2Ds)
             {
                 if (face2D == null)
                     continue;

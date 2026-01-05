@@ -4,7 +4,7 @@
     {
         public static bool ReadAccess(this AccessType accessType)
         {
-            switch(accessType)
+            switch (accessType)
             {
                 case AccessType.Read:
                 case AccessType.ReadWrite:

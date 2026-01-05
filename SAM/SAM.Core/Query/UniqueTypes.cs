@@ -11,7 +11,7 @@ namespace SAM.Core
                 return null;
 
             HashSet<Type> result = new HashSet<Type>();
-            foreach(Attributes.AssociatedTypes parameterTypes_Temp in parameterTypes)
+            foreach (Attributes.AssociatedTypes parameterTypes_Temp in parameterTypes)
             {
                 if (parameterTypes_Temp == null)
                     continue;

@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -84,7 +84,7 @@ namespace SAM.Analytical.Grasshopper
 
             index = Params.IndexOfInputParam("apertures_");
             List<Aperture> apertures = new List<Aperture>();
-            if(index != -1)
+            if (index != -1)
             {
                 dataAccess.GetDataList(index, apertures);
             }
@@ -97,7 +97,7 @@ namespace SAM.Analytical.Grasshopper
                 AdjacencyCluster adjacencyCluster = sAMObject is AdjacencyCluster ? (AdjacencyCluster)sAMObject : ((AnalyticalModel)sAMObject).AdjacencyCluster;
                 adjacencyCluster = new AdjacencyCluster(adjacencyCluster);
 
-                if(apertures == null || apertures.Count == 0)
+                if (apertures == null || apertures.Count == 0)
                 {
                     apertures = adjacencyCluster.GetApertures();
                 }

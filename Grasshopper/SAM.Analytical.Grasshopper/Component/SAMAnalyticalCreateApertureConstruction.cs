@@ -21,7 +21,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -102,17 +102,17 @@ namespace SAM.Analytical.Grasshopper
 
             string apertureType_String = null;
             index = Params.IndexOfInputParam("apertureType_");
-            if(index != -1 && dataAccess.GetData(index, ref apertureType_String) && !string.IsNullOrWhiteSpace(apertureType_String))
+            if (index != -1 && dataAccess.GetData(index, ref apertureType_String) && !string.IsNullOrWhiteSpace(apertureType_String))
             {
                 ApertureType apertureType = Analytical.Query.ApertureType(apertureType_String);
-                if(apertureType != ApertureType.Undefined)
+                if (apertureType != ApertureType.Undefined)
                 {
                     apertureConstruction = new ApertureConstruction(apertureConstruction, apertureType);
                 }
             }
 
             index = Params.IndexOfInputParam("paneConstructionLayers_");
-            if(index != -1)
+            if (index != -1)
             {
                 List<ConstructionLayer> constructionLayers = new List<ConstructionLayer>();
                 if (dataAccess.GetDataList(index, constructionLayers))
@@ -135,7 +135,7 @@ namespace SAM.Analytical.Grasshopper
             if (index != -1)
             {
                 double paneAdditionalHeatTransfer = double.NaN;
-                if(dataAccess.GetData(index, ref paneAdditionalHeatTransfer) && !double.IsNaN(paneAdditionalHeatTransfer))
+                if (dataAccess.GetData(index, ref paneAdditionalHeatTransfer) && !double.IsNaN(paneAdditionalHeatTransfer))
                 {
                     apertureConstruction.SetValue(ApertureConstructionParameter.PaneAdditionalHeatTransfer, paneAdditionalHeatTransfer);
                 }

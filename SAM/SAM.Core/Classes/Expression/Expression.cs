@@ -6,7 +6,7 @@ namespace SAM.Core
     public class Expression : IJSAMObject
     {
         private string text;
-        
+
         public Expression(string text)
         {
             this.text = text;
@@ -68,7 +68,7 @@ namespace SAM.Core
         public override bool Equals(object obj)
         {
             Expression expression = obj as Expression;
-            if(expression == null)
+            if (expression == null)
             {
                 return false;
             }
@@ -78,7 +78,7 @@ namespace SAM.Core
 
         public override int GetHashCode()
         {
-            if(text == null)
+            if (text == null)
             {
                 return -1;
             }

@@ -71,7 +71,7 @@ namespace SAM.Core
             return GetMaterial<IMaterial>(name);
         }
 
-        public T GetMaterial<T>(string name) where T: IMaterial
+        public T GetMaterial<T>(string name) where T : IMaterial
         {
             if (name == null)
             {

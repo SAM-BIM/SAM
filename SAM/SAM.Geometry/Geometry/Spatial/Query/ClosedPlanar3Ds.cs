@@ -38,7 +38,7 @@ namespace SAM.Geometry.Spatial
 
                     if (!point3D_Start.AlmostEquals(point3D_End))
                         continue;
-                    
+
                     List<Point3D> point3Ds = ((ICurvable3D)geometry3D).GetCurves().ConvertAll(x => x.GetStart());
                     result.Add(new Polygon3D(point3Ds));
                 }

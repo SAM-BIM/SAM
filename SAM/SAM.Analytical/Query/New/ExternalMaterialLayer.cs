@@ -7,7 +7,7 @@ namespace SAM.Analytical
     {
         public static Architectural.MaterialLayer ExternalMaterialLayer(this HostPartitionType hostPartitionType)
         {
-            List<Architectural.MaterialLayer> materialLayers= hostPartitionType?.MaterialLayers;
+            List<Architectural.MaterialLayer> materialLayers = hostPartitionType?.MaterialLayers;
             if (materialLayers == null || materialLayers.Count == 0)
                 return null;
 

@@ -6,7 +6,7 @@ namespace SAM.Geometry.Spatial
     {
         public static Range<double> Range(this BoundingBox3D boundingBox3D, int dimensionIndex)
         {
-            if(boundingBox3D == null)
+            if (boundingBox3D == null)
             {
                 return null;
             }

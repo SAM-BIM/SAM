@@ -160,7 +160,7 @@ namespace SAM.Geometry.Grasshopper
             }
 
             bool contains = false;
-            if(shell.Inside(point3D, silverSpacing, tolerance))
+            if (shell.Inside(point3D, silverSpacing, tolerance))
             {
                 contains = true;
                 if (!allowOnBoundary && shell.On(point3D, tolerance))

@@ -31,13 +31,13 @@ namespace SAM.Core
                 for (int j = 0; j < jArray_Temp.Count; j++)
                 {
                     object @object = jArray_Temp[j].Value<object>();
-                    if(@object == null)
+                    if (@object == null)
                     {
                         values_Temp_Temp[j] = default;
                         continue;
                     }
-                    
-                    if(!TryConvert(@object, out T t))
+
+                    if (!TryConvert(@object, out T t))
                     {
                         values_Temp_Temp[j] = default;
                         continue;

@@ -34,7 +34,7 @@ namespace SAM.Analytical
             : base(jObject)
         {
         }
-        
+
         /// <summary>
         /// Dry (sensible) total heat emission [W/p]
         /// </summary>

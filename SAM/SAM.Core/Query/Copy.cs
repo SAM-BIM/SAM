@@ -1,6 +1,6 @@
-﻿using System.IO;
+﻿using System;
 using System.Diagnostics;
-using System;
+using System.IO;
 
 namespace SAM.Core
 {
@@ -15,7 +15,7 @@ namespace SAM.Core
         /// <returns>true if succeeded</returns>
         public static bool Copy(string pathSource, string pathDestination, bool overwrite = true)
         {
-            if(string.IsNullOrWhiteSpace(pathSource) || !File.Exists(pathSource) || string.IsNullOrWhiteSpace(pathDestination))
+            if (string.IsNullOrWhiteSpace(pathSource) || !File.Exists(pathSource) || string.IsNullOrWhiteSpace(pathDestination))
                 return false;
 
             if (!overwrite && File.Exists(pathDestination))
@@ -40,7 +40,7 @@ namespace SAM.Core
 
                 return true;
             }
-            catch(Exception )
+            catch (Exception)
             {
                 try
                 {

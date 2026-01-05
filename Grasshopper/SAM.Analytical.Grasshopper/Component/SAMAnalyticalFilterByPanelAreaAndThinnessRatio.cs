@@ -21,7 +21,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -64,7 +64,7 @@ namespace SAM.Analytical.Grasshopper
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
             Core.SAMObject sAMObject = null;
-            if(!dataAccess.GetData(0, ref sAMObject) || sAMObject == null)
+            if (!dataAccess.GetData(0, ref sAMObject) || sAMObject == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -90,7 +90,7 @@ namespace SAM.Analytical.Grasshopper
                 adjacencyCluster = ((AnalyticalModel)sAMObject).AdjacencyCluster;
                 panels = adjacencyCluster?.GetPanels();
             }
-            else if(sAMObject is Panel)
+            else if (sAMObject is Panel)
             {
                 panels = new List<Panel>() { (Panel)sAMObject };
             }
@@ -133,7 +133,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 dataAccess.SetData(0, new GooAdjacencyCluster(adjacencyCluster));
             }
-            else if(sAMObject is AnalyticalModel)
+            else if (sAMObject is AnalyticalModel)
             {
                 dataAccess.SetData(0, new GooAnalyticalModel(new AnalyticalModel((AnalyticalModel)sAMObject, adjacencyCluster)));
             }

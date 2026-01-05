@@ -34,7 +34,7 @@ namespace SAM.Geometry.Object.Planar
         }
 
         public Segment2DObject(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
 
         }

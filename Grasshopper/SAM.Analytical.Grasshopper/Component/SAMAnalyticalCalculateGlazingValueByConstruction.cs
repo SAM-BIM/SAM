@@ -222,18 +222,18 @@ namespace SAM.Analytical.Grasshopper
                 for (int i = 0; i < analyticalObjects.Count; i++)
                 {
 
-                    if(analyticalObjects[i] is not IAnalyticalObject analyticalObject)
+                    if (analyticalObjects[i] is not IAnalyticalObject analyticalObject)
                     {
                         continue;
                     }
 
                     List<ConstructionLayer> constructionLayers = null;
 
-                    if(analyticalObject is Construction construction)
+                    if (analyticalObject is Construction construction)
                     {
                         constructionLayers = construction.ConstructionLayers;
                     }
-                    else if(analyticalObject is ApertureConstruction apertureConstruction)
+                    else if (analyticalObject is ApertureConstruction apertureConstruction)
                     {
                         constructionLayers = apertureConstruction.PaneConstructionLayers;
                     }
@@ -242,7 +242,7 @@ namespace SAM.Analytical.Grasshopper
                         continue;
                     }
 
-                    if(constructionLayers is null)
+                    if (constructionLayers is null)
                     {
                         continue;
                     }
@@ -319,9 +319,9 @@ namespace SAM.Analytical.Grasshopper
                         }
                     }
 
-                    if(double.IsNaN(hi))
+                    if (double.IsNaN(hi))
                     {
-                        if(double.IsNaN(emissivity))
+                        if (double.IsNaN(emissivity))
                         {
                             AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid emissivity for layer");
                             return;
@@ -331,9 +331,9 @@ namespace SAM.Analytical.Grasshopper
                     }
 
                     Glazing.Result result = Glazing.Compute(layers, gaps, null, he, hi);
-                    if(result != null)
+                    if (result != null)
                     {
-                        GH_Path gH_Path = new (i);
+                        GH_Path gH_Path = new(i);
 
                         tvs.Add(new GH_Number(Core.Query.Round(result.Tv, Tolerance.MacroDistance)), gH_Path);
                         rvExts.Add(new GH_Number(Core.Query.Round(result.RvExt, Tolerance.MacroDistance)), gH_Path);

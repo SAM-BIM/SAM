@@ -6,7 +6,7 @@ namespace SAM.Core
     {
         public static Tag Tag(this JObject jObject)
         {
-            if(jObject == null)
+            if (jObject == null)
             {
                 return null;
             }
@@ -17,7 +17,7 @@ namespace SAM.Core
             }
 
             JObject jObject_Tag = jObject.Value<JObject>("Tag");
-            if(jObject_Tag == null)
+            if (jObject_Tag == null)
             {
                 return null;
             }

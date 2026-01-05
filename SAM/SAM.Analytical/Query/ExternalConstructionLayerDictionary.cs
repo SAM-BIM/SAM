@@ -12,7 +12,7 @@ namespace SAM.Analytical
                 return null;
 
             Dictionary<Panel, ConstructionLayer> result = new Dictionary<Panel, ConstructionLayer>();
-            foreach(IPanel panel in panels)
+            foreach (IPanel panel in panels)
             {
                 Panel panel_Temp = adjacencyCluster.GetObject<Panel>(panel.Guid);
                 if (panel_Temp == null)

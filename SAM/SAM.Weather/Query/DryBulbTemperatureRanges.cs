@@ -41,7 +41,7 @@ namespace SAM.Weather
             foreach (WeatherDay weatherDay in weatherDays)
             {
                 List<Range<double>> ranges = DryBulbTemperatureRanges(weatherDay);
-                if(ranges != null)
+                if (ranges != null)
                 {
                     result.AddRange(ranges);
                 }

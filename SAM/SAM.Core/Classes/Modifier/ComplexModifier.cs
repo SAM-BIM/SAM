@@ -7,7 +7,7 @@ namespace SAM.Core
     public class ComplexModifier : Modifier, IComplexModifier<IModifier>
     {
         public ComplexModifier()
-            :base()
+            : base()
         {
 
         }
@@ -21,7 +21,7 @@ namespace SAM.Core
         public ComplexModifier(ComplexModifier complexModifier)
             : base(complexModifier)
         {
-            if(complexModifier != null)
+            if (complexModifier != null)
             {
                 Modifiers = complexModifier.Modifiers.ConvertAll(x => x.Clone());
             }
@@ -36,18 +36,18 @@ namespace SAM.Core
         public virtual bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
-            if(!result)
+            if (!result)
             {
                 return result;
             }
 
-            if(jObject.ContainsKey("Modifiers"))
+            if (jObject.ContainsKey("Modifiers"))
             {
                 JArray jArray = jObject.Value<JArray>("Modifiers");
-                if(jArray != null)
+                if (jArray != null)
                 {
                     Modifiers = new List<IModifier>();
-                    foreach(JObject jObject_Modifier in jArray)
+                    foreach (JObject jObject_Modifier in jArray)
                     {
                         Modifiers.Add(Query.IJSAMObject<IModifier>(jObject_Modifier));
                     }
@@ -62,7 +62,7 @@ namespace SAM.Core
         public virtual JObject ToJObject()
         {
             JObject result = base.ToJObject();
-            if(result == null)
+            if (result == null)
             {
                 return result;
             }

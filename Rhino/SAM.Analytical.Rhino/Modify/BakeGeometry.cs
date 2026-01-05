@@ -94,7 +94,7 @@ namespace SAM.Analytical.Rhino
             //Core.Grasshopper.Modify.SetUserStrings(objectAttributes, aperture);
             objectAttributes.Name = aperture.Name;
 
-            if(!includeFrame)
+            if (!includeFrame)
             {
                 if (!Geometry.Rhino.Modify.BakeGeometry(new Face3D(aperture.GetExternalEdge3D()), rhinoDoc, objectAttributes, out guid))
                 {
@@ -108,7 +108,7 @@ namespace SAM.Analytical.Rhino
                 List<Face3D> face3Ds_Temp = null;
 
                 face3Ds_Temp = aperture.GetFace3Ds(AperturePart.Frame);
-                if(face3Ds_Temp != null)
+                if (face3Ds_Temp != null)
                 {
                     face3Ds.AddRange(face3Ds_Temp);
                 }

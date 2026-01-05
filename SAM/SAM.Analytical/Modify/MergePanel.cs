@@ -90,7 +90,7 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                if(panel_Temp.Guid == panel.Guid)
+                if (panel_Temp.Guid == panel.Guid)
                 {
                     continue;
                 }

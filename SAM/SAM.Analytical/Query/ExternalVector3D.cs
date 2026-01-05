@@ -9,7 +9,7 @@ namespace SAM.Analytical
         {
             if (adjacencyCluster == null || panel == null || space == null)
                 return null;
-            
+
             List<Panel> panels = adjacencyCluster.GetRelatedObjects<Panel>(space);
             if (panels.Find(x => x.Guid == panel.Guid) == null)
                 return null;

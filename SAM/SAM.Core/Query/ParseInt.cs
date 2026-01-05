@@ -4,7 +4,7 @@
     {
         public static int ParseInt(this string value, int @default = default)
         {
-            if(!TryParseInt(value, out int result))
+            if (!TryParseInt(value, out int result))
             {
                 result = @default;
             }

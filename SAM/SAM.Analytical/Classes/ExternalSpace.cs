@@ -53,7 +53,7 @@ namespace SAM.Analytical
                 return false;
             }
 
-            if(jObject.ContainsKey("Location"))
+            if (jObject.ContainsKey("Location"))
             {
                 location = new Point3D(jObject.Value<JObject>("Location"));
             }
@@ -63,13 +63,13 @@ namespace SAM.Analytical
 
         public override JObject ToJObject()
         {
-           JObject jObject = base.ToJObject();
+            JObject jObject = base.ToJObject();
             if (jObject == null)
             {
                 return null;
             }
 
-            if(location != null)
+            if (location != null)
             {
                 jObject.Add("Location", location.ToJObject());
             }

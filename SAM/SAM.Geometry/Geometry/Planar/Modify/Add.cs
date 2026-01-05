@@ -11,14 +11,14 @@ namespace SAM.Geometry.Planar
                 return false;
             }
 
-            foreach(Point2D point2D_Temp in point2Ds)
+            foreach (Point2D point2D_Temp in point2Ds)
             {
-                if(point2D_Temp == null)
+                if (point2D_Temp == null)
                 {
                     continue;
                 }
 
-                if(System.Math.Abs(point2D_Temp.X - point2D.X) > tolerance)
+                if (System.Math.Abs(point2D_Temp.X - point2D.X) > tolerance)
                 {
                     continue;
                 }
@@ -28,7 +28,7 @@ namespace SAM.Geometry.Planar
                     continue;
                 }
 
-                if(point2D_Temp.Distance(point2D) <= tolerance)
+                if (point2D_Temp.Distance(point2D) <= tolerance)
                 {
                     return false;
                 }

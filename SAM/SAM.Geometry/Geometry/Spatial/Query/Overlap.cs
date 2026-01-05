@@ -21,7 +21,7 @@ namespace SAM.Geometry.Spatial
             Plane plane_1 = face3D_1?.GetPlane();
             if (plane_1 == null)
                 return false;
-            
+
             Plane plane_2 = face3D_2.GetPlane();
             if (plane_2 == null)
                 return false;

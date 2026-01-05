@@ -26,17 +26,17 @@ namespace SAM.Core
             httpWebRequest.UserAgent = userAgent;
 
             string json = null;
-            
+
             using (WebResponse webResponse = httpWebRequest.GetResponse())
             {
                 Stream stream = webResponse.GetResponseStream();
-                if(stream != null)
+                if (stream != null)
                 {
                     using (StreamReader streamReader = new StreamReader(stream))
                     {
                         json = streamReader.ReadToEnd();
                     }
-                }   
+                }
             }
 
             if (string.IsNullOrWhiteSpace(json))

@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -86,15 +86,15 @@ namespace SAM.Analytical.Grasshopper
 
             index = Params.IndexOfInputParam("_panels");
             List<Panel> panels = new List<Panel>();
-            if(index == -1 || !dataAccess.GetDataList(index, panels) || panels == null)
+            if (index == -1 || !dataAccess.GetDataList(index, panels) || panels == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Invalid Data");
                 return;
             }
-            
+
             index = Params.IndexOfInputParam("_upperElevation");
             double upperElevation = double.NaN;
-            if(index == -1 || !dataAccess.GetData(index, ref upperElevation) || double.IsNaN(upperElevation))
+            if (index == -1 || !dataAccess.GetData(index, ref upperElevation) || double.IsNaN(upperElevation))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Invalid Data");
                 return;
@@ -122,9 +122,9 @@ namespace SAM.Analytical.Grasshopper
             List<Panel> panels_Result = new List<Panel>();
             List<Panel> panels_Upper = new List<Panel>();
             List<Panel> panels_Lower = new List<Panel>();
-            for (int i=0; i < panels.Count;i++)
+            for (int i = 0; i < panels.Count; i++)
             {
-                if(panels[i] == null)
+                if (panels[i] == null)
                     continue;
 
                 List<Panel> panels_Temp = null;
@@ -141,12 +141,12 @@ namespace SAM.Analytical.Grasshopper
                         continue;
                 }
 
-                if(panels_Temp == null || panels_Temp.Count == 0)
+                if (panels_Temp == null || panels_Temp.Count == 0)
                 {
                     panels_Temp = new List<Panel>() { Create.Panel(panels[i]) };
                 }
 
-                foreach(Panel panel_Result in panels_Temp)
+                foreach (Panel panel_Result in panels_Temp)
                 {
                     Geometry.Spatial.Point3D point3D = panel_Result.GetInternalPoint3D();
                     if (Geometry.Spatial.Query.Above(plane_Upper, point3D))
@@ -158,7 +158,7 @@ namespace SAM.Analytical.Grasshopper
                 }
             }
 
-           
+
 
             dataAccess.SetDataList(0, panels_Result?.ConvertAll(x => new GooPanel(x)));
             dataAccess.SetDataList(1, panels_Upper?.ConvertAll(x => new GooPanel(x)));

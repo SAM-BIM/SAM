@@ -8,7 +8,7 @@
                 return Core.SAMFileType.Undefined;
 
             string extension = System.IO.Path.GetExtension(path);
-            if(extension == null)
+            if (extension == null)
                 return Core.SAMFileType.Undefined;
 
             if (extension.StartsWith("."))
@@ -16,7 +16,7 @@
 
             extension = extension.ToLower();
 
-            switch(extension)
+            switch (extension)
             {
                 case "sam":
                     return Core.SAMFileType.SAM;

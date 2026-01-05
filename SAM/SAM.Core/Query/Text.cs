@@ -11,7 +11,7 @@ namespace SAM.Core
 
         public static string Text(this IComplexReference complexReference)
         {
-            if(complexReference == null)
+            if (complexReference == null)
             {
                 return null;
             }

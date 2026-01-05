@@ -10,11 +10,11 @@ namespace SAM.Analytical
         private int maxExceedableSummerHours;
 
         public TM59NaturalVentilationResult(
-            string name, 
-            string source, 
-            string reference, 
+            string name,
+            string source,
+            string reference,
             TM52BuildingCategory tM52BuildingCategory,
-            int occupiedHours, 
+            int occupiedHours,
             int maxExceedableHours,
             int summerOccupiedHours,
             int maxExceedableSummerHours,
@@ -29,9 +29,9 @@ namespace SAM.Analytical
         }
 
         public TM59NaturalVentilationResult(
-            Guid guid, 
-            string name, 
-            string source, 
+            Guid guid,
+            string name,
+            string source,
             string reference,
             TM52BuildingCategory tM52BuildingCategory,
             int occupiedHours,

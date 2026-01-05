@@ -6,7 +6,7 @@
         {
             if (point3D == null)
                 return global::Rhino.Geometry.Point3d.Unset;
-            
+
             return new global::Rhino.Geometry.Point3d(point3D.X, point3D.Y, point3D.Z);
         }
 

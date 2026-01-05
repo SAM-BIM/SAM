@@ -17,14 +17,14 @@ namespace SAM.Analytical
             int index_Destination = delimitedFileTable.GetColumnIndex(columnName_Destination);
 
             ConstructionLibrary result = new ConstructionLibrary(constructionLibrary.Name);
-            for(int i =0; i < delimitedFileTable.RowCount; i++)
+            for (int i = 0; i < delimitedFileTable.RowCount; i++)
             {
                 string name_Template = delimitedFileTable.ToString(i, index_Source);
                 if (string.IsNullOrWhiteSpace(name_Template))
                     continue;
 
                 string name_Destination = name_Template;
-                if(index_Destination != -1)
+                if (index_Destination != -1)
                     name_Destination = delimitedFileTable.ToString(i, index_Destination);
 
                 if (string.IsNullOrWhiteSpace(name_Destination))

@@ -20,7 +20,7 @@ namespace SAM.Core
 
         public static List<DelimitedFileRow> DelimitedFileRows(object[,] values)
         {
-            if(values == null)
+            if (values == null)
             {
                 return null;
             }

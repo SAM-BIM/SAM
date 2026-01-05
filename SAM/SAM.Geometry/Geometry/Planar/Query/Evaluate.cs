@@ -15,5 +15,5 @@ namespace SAM.Geometry.Planar
 
             return new Point2D(x, y);
         }
-   }
+    }
 }

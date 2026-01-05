@@ -6,7 +6,7 @@ namespace SAM.Core
     {
         public static List<int> Indexes(this DelimitedFileTable delimitedFileTable, IEnumerable<SAMObject> sAMObjects, int columnIndex, string parameterName)
         {
-            if (delimitedFileTable == null || sAMObjects == null || columnIndex  == -1 || parameterName == null)
+            if (delimitedFileTable == null || sAMObjects == null || columnIndex == -1 || parameterName == null)
                 return null;
 
             object[] columnValues = delimitedFileTable.GetColumnValues(columnIndex);
@@ -14,9 +14,9 @@ namespace SAM.Core
                 return null;
 
             List<int> result = new List<int>();
-            foreach(SAMObject sAMObject in sAMObjects)
+            foreach (SAMObject sAMObject in sAMObjects)
             {
-                if(!sAMObject.TryGetValue(parameterName, out object value_1))
+                if (!sAMObject.TryGetValue(parameterName, out object value_1))
                 {
                     result.Add(-1);
                     continue;
@@ -24,11 +24,11 @@ namespace SAM.Core
 
                 System.Type type = value_1?.GetType();
 
-                for (int i =0; i < columnValues.Length; i++)
+                for (int i = 0; i < columnValues.Length; i++)
                 {
                     object value_Temp = columnValues[i];
 
-                    if(value_1 == null && value_Temp == null)
+                    if (value_1 == null && value_Temp == null)
                     {
                         result.Add(i);
                         break;

@@ -10,9 +10,9 @@ namespace SAM.Geometry.Planar
                 return null;
 
             List<BoundingBox2D> boundingBox2Ds = new List<BoundingBox2D>();
-            foreach(IBoundable2D boundable2D in boundable2Ds)
+            foreach (IBoundable2D boundable2D in boundable2Ds)
             {
-                BoundingBox2D boundingBox2D_Temp= boundable2D?.GetBoundingBox();
+                BoundingBox2D boundingBox2D_Temp = boundable2D?.GetBoundingBox();
                 if (boundingBox2D_Temp == null)
                     continue;
 
@@ -29,7 +29,7 @@ namespace SAM.Geometry.Planar
             double value = double.NaN;
             List<Segment2D> segment2Ds_Temp = null;
 
-            List<Segment2D> segment2Ds_KeepFull =null;
+            List<Segment2D> segment2Ds_KeepFull = null;
             if (keepFull)
                 segment2Ds_KeepFull = new List<Segment2D>();
 
@@ -49,7 +49,7 @@ namespace SAM.Geometry.Planar
                 value -= x;
             }
 
-            if(segment2Ds_KeepFull != null && segment2D != null)
+            if (segment2Ds_KeepFull != null && segment2D != null)
             {
                 segment2D = new Segment2D(new Point2D(value, boundingBox2D.Min.Y), new Point2D(value, boundingBox2D.Max.Y));
                 segment2Ds_KeepFull.Add(segment2D);
@@ -60,12 +60,12 @@ namespace SAM.Geometry.Planar
                 segment2Ds_Temp.Reverse();
                 result.AddRange(segment2Ds_Temp);
             }
-                
+
             value = origin.X + x;
             segment2D = null;
             while (value <= boundingBox2D.Max.X)
             {
-                if(value >= boundingBox2D.Min.X)
+                if (value >= boundingBox2D.Min.X)
                 {
                     segment2D = new Segment2D(new Point2D(value, boundingBox2D.Min.Y), new Point2D(value, boundingBox2D.Max.Y));
                     result.Add(segment2D);
@@ -125,13 +125,13 @@ namespace SAM.Geometry.Planar
                 segment2Ds_KeepFull.Add(segment2D);
             }
 
-            if(segment2Ds_KeepFull != null)
+            if (segment2Ds_KeepFull != null)
             {
                 BoundingBox2D boundingBox2D_KeepFull = new BoundingBox2D(segment2Ds_KeepFull.ConvertAll(segment2D_KeepFull => segment2D_KeepFull.GetBoundingBox()));
-                if(boundingBox2D_KeepFull != null)
+                if (boundingBox2D_KeepFull != null)
                 {
                     result = Extend(result, boundingBox2D_KeepFull);
-                    foreach(Segment2D segment2D_KeepFull in boundingBox2D_KeepFull.GetSegments())
+                    foreach (Segment2D segment2D_KeepFull in boundingBox2D_KeepFull.GetSegments())
                     {
                         if (result.Find(segment2D_Temp => segment2D_Temp.AlmostSimilar(segment2D_KeepFull)) == null)
                             result.Add(segment2D_KeepFull);

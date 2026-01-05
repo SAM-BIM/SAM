@@ -13,11 +13,11 @@
         /// <returns>Calculated Infiltration Latent Gain [W]</returns>
         public static double CalculatedInfiltrationLatentGain(this Space space, double humidityRatio_Outside, double humidityRatio_Inside, double dryBulbTemperature_Inside, double density_Outside)
         {
-            if(space == null || double.IsNaN(humidityRatio_Inside) || double.IsNaN(humidityRatio_Outside) || double.IsNaN(dryBulbTemperature_Inside) || double.IsNaN(density_Outside))
+            if (space == null || double.IsNaN(humidityRatio_Inside) || double.IsNaN(humidityRatio_Outside) || double.IsNaN(dryBulbTemperature_Inside) || double.IsNaN(density_Outside))
             {
                 return double.NaN;
             }
-            
+
             double vapourizationLatentHeat = Core.Query.VapourizationLatentHeat(dryBulbTemperature_Inside);
             if (double.IsNaN(vapourizationLatentHeat))
             {

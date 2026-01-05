@@ -39,7 +39,7 @@ namespace SAM.Analytical
         public WindowType(string name, IEnumerable<MaterialLayer> paneMaterialLayers, IEnumerable<MaterialLayer> frameMaterialLayers = null)
             : base(name, paneMaterialLayers, frameMaterialLayers)
         {
-           
+
         }
 
         public WindowType(System.Guid guid, string name, IEnumerable<MaterialLayer> paneMaterialLayers, IEnumerable<MaterialLayer> frameMaterialLayers = null)

@@ -16,14 +16,14 @@ namespace SAM.Core
         public PolynomialModifier(PolynomialModifier polynomialModifier)
             : base(polynomialModifier)
         {
-            if(polynomialModifier != null)
+            if (polynomialModifier != null)
             {
                 PolynomialEquation = polynomialModifier?.PolynomialEquation == null ? null : new PolynomialEquation(polynomialModifier.PolynomialEquation);
             }
         }
 
         public PolynomialModifier(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
 
         }
@@ -31,12 +31,12 @@ namespace SAM.Core
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
-            if(!result)
+            if (!result)
             {
                 return result;
             }
 
-            if(jObject.ContainsKey("PolynomialEquation"))
+            if (jObject.ContainsKey("PolynomialEquation"))
             {
                 PolynomialEquation = Query.IJSAMObject<PolynomialEquation>(jObject.Value<JObject>("PolynomialEquation"));
             }
@@ -47,12 +47,12 @@ namespace SAM.Core
         public override JObject ToJObject()
         {
             JObject result = base.ToJObject();
-            if(result == null)
+            if (result == null)
             {
                 return null;
             }
 
-            if(PolynomialEquation != null)
+            if (PolynomialEquation != null)
             {
                 result.Add("PolynomialEquation", PolynomialEquation.ToJObject());
             }

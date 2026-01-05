@@ -45,7 +45,7 @@ namespace SAM.Geometry.Spatial
 
         public List<Point3D> GetPoints()
         {
-            if(plane == null)
+            if (plane == null)
             {
                 return null;
             }
@@ -55,11 +55,11 @@ namespace SAM.Geometry.Spatial
 
         public Plane GetPlane()
         {
-            if(plane == null)
+            if (plane == null)
             {
                 return null;
             }
-            
+
             return new Plane(plane);
         }
 
@@ -211,7 +211,7 @@ namespace SAM.Geometry.Spatial
         {
 
             Plane plane = rectangle3D?.GetPlane();
-            if(plane == null)
+            if (plane == null)
             {
                 return null;
             }

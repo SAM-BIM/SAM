@@ -57,7 +57,7 @@ namespace SAM.Core
             }
             finally
             {
-                if (typeInfo != null) 
+                if (typeInfo != null)
                     Marshal.ReleaseComObject(typeInfo);
             }
         }

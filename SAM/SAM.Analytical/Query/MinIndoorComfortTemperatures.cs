@@ -15,7 +15,7 @@ namespace SAM.Analytical
         public static List<double> MinIndoorComfortTemperatures(this WeatherYear weatherYear, TM52BuildingCategory tM52BuildingCategory, double acceptableTemperatureDifference = double.NaN)
         {
             List<WeatherDay> weatherDays = weatherYear?.WeatherDays;
-            if(weatherDays == null || weatherDays.Count == 0)
+            if (weatherDays == null || weatherDays.Count == 0)
             {
                 return null;
             }
@@ -25,7 +25,7 @@ namespace SAM.Analytical
 
         public static List<double> MinIndoorComfortTemperatures(this IEnumerable<WeatherDay> weatherDays, TM52BuildingCategory tM52BuildingCategory, int startDayIndex, int endDayIndex, double acceptableTemperatureDifference = double.NaN)
         {
-            if(weatherDays == null || weatherDays.Count() == 0)
+            if (weatherDays == null || weatherDays.Count() == 0)
             {
                 return null;
             }

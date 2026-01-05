@@ -9,7 +9,7 @@ namespace SAM.Math
             if (matrix == null)
                 return null;
 
-            if(matrix.IsSquare())
+            if (matrix.IsSquare())
             {
                 int count = matrix.RowCount();
 

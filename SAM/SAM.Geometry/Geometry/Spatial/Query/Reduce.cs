@@ -8,13 +8,13 @@
                 return null;
 
             Plane plane = face3D.GetPlane();
-            if(plane == null)
+            if (plane == null)
             {
                 return new Face3D(face3D);
             }
 
             Planar.Face2D face2D = Planar.Query.Reduce(plane.Convert(face3D), minDistance);
-            if(face2D == null)
+            if (face2D == null)
             {
                 return new Face3D(face3D);
             }

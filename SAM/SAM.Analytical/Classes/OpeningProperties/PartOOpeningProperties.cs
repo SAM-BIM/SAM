@@ -35,7 +35,7 @@ namespace SAM.Analytical
         }
 
         public PartOOpeningProperties(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
 
         }
@@ -43,7 +43,7 @@ namespace SAM.Analytical
         public PartOOpeningProperties(PartOOpeningProperties partOOpeningProperties)
             : base(partOOpeningProperties)
         {
-            if(partOOpeningProperties != null)
+            if (partOOpeningProperties != null)
             {
                 width = partOOpeningProperties.width;
                 height = partOOpeningProperties.height;
@@ -54,12 +54,12 @@ namespace SAM.Analytical
 
         public override bool FromJObject(JObject jObject)
         {
-            if(!base.FromJObject(jObject))
+            if (!base.FromJObject(jObject))
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("Width"))
+            if (jObject.ContainsKey("Width"))
             {
                 width = jObject.Value<double>("Width");
             }
@@ -85,12 +85,12 @@ namespace SAM.Analytical
         public override JObject ToJObject()
         {
             JObject jObject = base.ToJObject();
-            if(jObject == null)
+            if (jObject == null)
             {
                 return null;
             }
 
-            if(!double.IsNaN(width))
+            if (!double.IsNaN(width))
             {
                 jObject.Add("Width", width);
             }
@@ -152,13 +152,13 @@ namespace SAM.Analytical
         /// </remarks>
         public double GetDischargeCoefficient()
         {
-            if(double.IsNaN(width) || double.IsNaN(height) || double.IsNaN(openingAngle) || height == 0 || width == 0)
+            if (double.IsNaN(width) || double.IsNaN(height) || double.IsNaN(openingAngle) || height == 0 || width == 0)
             {
                 return double.NaN;
             }
 
             double lengthRatio = width / height;
-            if(lengthRatio == 0)
+            if (lengthRatio == 0)
             {
                 return double.NaN;
             }
@@ -170,12 +170,12 @@ namespace SAM.Analytical
                 gradient = 0.0604762544204005;
                 maxDischargeCoefficient = 0.612341772151899;
             }
-            else if(lengthRatio < 1.0)
+            else if (lengthRatio < 1.0)
             {
                 gradient = 0.0478352593239432;
                 maxDischargeCoefficient = 0.588607594936709;
             }
-            else if(lengthRatio < 2.0)
+            else if (lengthRatio < 2.0)
             {
                 gradient = 0.0404635490792875;
                 maxDischargeCoefficient = 0.5625;
@@ -186,7 +186,7 @@ namespace SAM.Analytical
                 maxDischargeCoefficient = 0.548259493670886;
             }
 
-            if(double.IsNaN(gradient) || double.IsNaN(maxDischargeCoefficient))
+            if (double.IsNaN(gradient) || double.IsNaN(maxDischargeCoefficient))
             {
                 return double.NaN;
             }

@@ -37,5 +37,5 @@ namespace SAM.Analytical.Grasshopper
 
             Rhino.Modify.BakeGeometry_ByPanelType(rhinoDoc, panels, cutApertures, tolerance);
         }
-  }
+    }
 }

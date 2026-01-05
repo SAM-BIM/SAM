@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -45,7 +45,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooProfileParam() { Name = "_profile", NickName = "_profile", Description = "SAM Analytical Profile", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "_value", NickName = "_value", Description = "Value or Profile", Access = GH_ParamAccess.item}, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "_value", NickName = "_value", Description = "Value or Profile", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -94,19 +94,19 @@ namespace SAM.Analytical.Grasshopper
             }
 
             object @object = objectWrapper.Value;
-            if(@object is IGH_Goo)
+            if (@object is IGH_Goo)
             {
                 @object = (@object as dynamic).Value;
             }
 
-            if(Core.Query.IsNumeric(@object))
+            if (Core.Query.IsNumeric(@object))
             {
-                if(Core.Query.TryConvert(@object, out double value))
+                if (Core.Query.TryConvert(@object, out double value))
                 {
                     profile.Divide(value);
                 }
             }
-            else if(@object is Profile)
+            else if (@object is Profile)
             {
                 profile.Divide((Profile)@object);
             }

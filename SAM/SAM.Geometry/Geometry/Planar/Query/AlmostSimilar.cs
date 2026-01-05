@@ -67,12 +67,12 @@ namespace SAM.Geometry.Planar
 
         public static bool AlmostSimilar(this Point2D point2D_1, Point2D point2D_2, double tolerance = Core.Tolerance.Distance)
         {
-            if(point2D_1 == null && point2D_2 == null)
+            if (point2D_1 == null && point2D_2 == null)
             {
                 return true;
             }
 
-            if(point2D_1 == null || point2D_2 == null)
+            if (point2D_1 == null || point2D_2 == null)
             {
                 return false;
             }

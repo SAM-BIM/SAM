@@ -5,7 +5,7 @@ namespace SAM.Geometry.Object
 {
     public class CurveAppearance : PointAppearance
     {
-        public CurveAppearance(Color color, double thickness) 
+        public CurveAppearance(Color color, double thickness)
             : base(color, thickness)
         {
         }

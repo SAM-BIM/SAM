@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -97,18 +97,18 @@ namespace SAM.Analytical.Grasshopper
             PanelType panelType = Analytical.Query.PanelType(value);
 
             Panel panel_New = Create.Panel(panel, panelType);
-            if(setDefaultConstruction)
+            if (setDefaultConstruction)
             {
                 Construction construction = Analytical.Query.DefaultConstruction(panelType);
                 panel_New = Create.Panel(panel_New, construction);
             }
 
-            if(setDefaultApertureConstruction)
+            if (setDefaultApertureConstruction)
             {
                 List<Aperture> apertures = panel_New.Apertures;
-                if(apertures != null && apertures.Count != 0)
+                if (apertures != null && apertures.Count != 0)
                 {
-                    foreach(Aperture aperture in apertures)
+                    foreach (Aperture aperture in apertures)
                     {
                         ApertureConstruction apertureConstruction = Analytical.Query.DefaultApertureConstruction(panel_New.PanelType, aperture.ApertureType);
                         if (apertureConstruction == null)

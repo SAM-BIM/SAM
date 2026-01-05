@@ -54,7 +54,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -98,7 +98,7 @@ namespace SAM.Analytical.Grasshopper
         {
             foreach (PanelBakeMethod panelBakeMethod_Temp in Enum.GetValues(typeof(PanelBakeMethod)))
             {
-                if(panelBakeMethod_Temp == PanelBakeMethod.Undefined)
+                if (panelBakeMethod_Temp == PanelBakeMethod.Undefined)
                 {
                     continue;
                 }
@@ -137,32 +137,32 @@ namespace SAM.Analytical.Grasshopper
             }
 
             RhinoDoc rhinoDoc = RhinoDoc.ActiveDoc;
-            if(rhinoDoc == null)
+            if (rhinoDoc == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Active Rhino Document is missing");
                 return;
             }
 
             List<Panel> panels = null;
-            if(analyticalObject is Panel)
+            if (analyticalObject is Panel)
             {
                 panels = new List<Panel>() { (Panel)analyticalObject };
             }
-            else if(analyticalObject is AdjacencyCluster)
+            else if (analyticalObject is AdjacencyCluster)
             {
                 panels = ((AdjacencyCluster)analyticalObject).GetPanels();
             }
-            else if(analyticalObject is AnalyticalModel)
+            else if (analyticalObject is AnalyticalModel)
             {
                 panels = ((AnalyticalModel)analyticalObject).GetPanels();
             }
 
-            if(panels == null || panels.Count == 0)
+            if (panels == null || panels.Count == 0)
             {
                 return;
             }
 
-            switch(panelBakeMethod)
+            switch (panelBakeMethod)
             {
                 case PanelBakeMethod.Construction:
                     Rhino.Modify.BakeGeometry_ByConstruction(rhinoDoc, panels, cutApertures);

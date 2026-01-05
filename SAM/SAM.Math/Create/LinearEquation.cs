@@ -4,7 +4,7 @@
     {
         public static LinearEquation LinearEquation(double x_1, double y_1, double x_2, double y_2)
         {
-            if(double.IsNaN(x_1) || double.IsNaN(x_2) || double.IsNaN(y_1) || double.IsNaN(y_2))
+            if (double.IsNaN(x_1) || double.IsNaN(x_2) || double.IsNaN(y_1) || double.IsNaN(y_2))
             {
                 return null;
             }
@@ -13,7 +13,7 @@
             double b = double.NaN;
 
             double x = x_2 - x_1;
-            if(x == 0)
+            if (x == 0)
             {
                 return null;
             }

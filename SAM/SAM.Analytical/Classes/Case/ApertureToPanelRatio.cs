@@ -1,9 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
 using SAM.Core;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Xml.Linq;
 
 namespace SAM.Analytical.Classes
 {
@@ -12,7 +8,7 @@ namespace SAM.Analytical.Classes
         private ApertureConstruction apertureConstruction;
         private Range<double> azimuthRange;
         private double ratio;
-        
+
         public ApertureToPanelRatio(Range<double> azimuthRange, double ratio, ApertureConstruction apertureConstruction)
         {
             this.azimuthRange = azimuthRange;
@@ -93,7 +89,7 @@ namespace SAM.Analytical.Classes
         {
             get
             {
-                if(azimuthRange is null)
+                if (azimuthRange is null)
                 {
                     azimuthRange = new Range<double>(0.0, 0.0);
                 }
@@ -113,7 +109,7 @@ namespace SAM.Analytical.Classes
                 }
             }
         }
-        
+
         public double Ratio
         {
             get
@@ -126,7 +122,7 @@ namespace SAM.Analytical.Classes
                 ratio = value;
             }
         }
-        
+
         public virtual bool FromJObject(JObject jObject)
         {
             if (jObject == null)

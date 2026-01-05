@@ -2,7 +2,7 @@
 {
     public static partial class Convert
     {
-        public static  Matrix ToSAM(this MathNet.Numerics.LinearAlgebra.Matrix<double> matrix)
+        public static Matrix ToSAM(this MathNet.Numerics.LinearAlgebra.Matrix<double> matrix)
         {
             if (matrix == null)
                 return null;

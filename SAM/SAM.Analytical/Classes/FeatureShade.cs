@@ -44,7 +44,7 @@ namespace SAM.Analytical
         public FeatureShade(FeatureShade featureShade)
             : base(featureShade)
         {
-            if(featureShade is not null)
+            if (featureShade is not null)
             {
                 description = featureShade.description;
                 surfaceHeight = featureShade.surfaceHeight;
@@ -135,7 +135,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if(description is not null)
+            if (description is not null)
             {
                 jObject.Add("Description", description);
             }

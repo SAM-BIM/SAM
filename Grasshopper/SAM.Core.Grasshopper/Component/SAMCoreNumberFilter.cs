@@ -37,7 +37,7 @@ namespace SAM.Core.Grasshopper
         {
         }
 
-        
+
 
         protected override GH_SAMParam[] Inputs
         {
@@ -77,7 +77,7 @@ namespace SAM.Core.Grasshopper
             int index;
 
             index = Params.IndexOfInputParam("_values");
-            
+
             List<double> values = new List<double>();
             if (index == -1 || !dataAccess.GetDataList(index, values) || values == null)
             {
@@ -101,7 +101,7 @@ namespace SAM.Core.Grasshopper
                 return;
             }
 
-            if(!Core.Query.TryConvert(text, out NumberComparisonType numberComparisonType))
+            if (!Core.Query.TryConvert(text, out NumberComparisonType numberComparisonType))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -109,9 +109,9 @@ namespace SAM.Core.Grasshopper
 
             double valueTrue = double.NaN;
             index = Params.IndexOfInputParam("valueTrue_");
-            if(index != -1)
+            if (index != -1)
             {
-                if(!dataAccess.GetData(index, ref valueTrue))
+                if (!dataAccess.GetData(index, ref valueTrue))
                 {
                     valueTrue = double.NaN;
                 }

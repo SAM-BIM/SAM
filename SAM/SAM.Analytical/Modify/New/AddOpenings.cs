@@ -6,15 +6,15 @@ namespace SAM.Analytical
     {
         public static List<IOpening> AddOpenings(this BuildingModel buildingModel, IEnumerable<IOpening> openings, double tolerance = Core.Tolerance.Distance)
         {
-            if(buildingModel == null || openings == null)
+            if (buildingModel == null || openings == null)
             {
                 return null;
             }
 
             List<IOpening> result = new List<IOpening>();
-            foreach(IOpening opening in openings)
+            foreach (IOpening opening in openings)
             {
-                if(buildingModel.TryAddOpening(opening, tolerance))
+                if (buildingModel.TryAddOpening(opening, tolerance))
                 {
                     result.Add(opening);
                 }

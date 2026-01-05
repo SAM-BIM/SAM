@@ -12,7 +12,7 @@ namespace SAM.Geometry.Planar
 
             List<Point2D> point2Ds_Temp = new List<Point2D>(point2Ds);
             List<Point2D> point2Ds_Result = new List<Point2D>();
-            while(point2Ds_Temp.Count != 0)
+            while (point2Ds_Temp.Count != 0)
             {
                 Point2D point2D = point2Ds_Temp.First();
                 point2Ds_Result.Add(point2D);

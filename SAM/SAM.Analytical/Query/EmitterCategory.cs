@@ -7,7 +7,7 @@
             if (emitterType == EmitterType.Undefined)
                 return Analytical.EmitterCategory.Undefined;
 
-            switch(emitterType)
+            switch (emitterType)
             {
                 case EmitterType.AirConditioning_Heating:
                 case EmitterType.WarmAirHeater:

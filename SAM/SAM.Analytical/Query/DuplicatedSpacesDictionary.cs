@@ -18,7 +18,7 @@ namespace SAM.Analytical
 
             Dictionary<Shell, Space> dictionary = new Dictionary<Shell, Space>();
 
-            foreach(Space space in spaces)
+            foreach (Space space in spaces)
             {
                 Shell shell = adjacencyCluster.Shell(space);
                 if (shell == null)

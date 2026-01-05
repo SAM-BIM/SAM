@@ -67,7 +67,7 @@ namespace SAM.Geometry.Grasshopper
                 return;
             }
 
-            if(!Query.TryGetSAMGeometries(objectWrapper, out List<Plane> planes) || planes == null || planes.Count == 0)
+            if (!Query.TryGetSAMGeometries(objectWrapper, out List<Plane> planes) || planes == null || planes.Count == 0)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;

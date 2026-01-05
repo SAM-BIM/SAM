@@ -20,7 +20,7 @@ namespace SAM.Geometry.Planar
                 Point2D point2D_Previous = segment2D_Previous[1];
                 Point2D point2D = segment2D[0];
 
-                if(point2D_Previous.Distance(point2D) <= tolerance)
+                if (point2D_Previous.Distance(point2D) <= tolerance)
                 {
                     Point2D point2D_Mid = point2D_Previous.Mid(point2D);
                     result[result.Count - 1] = new Segment2D(segment2D_Previous[0], point2D_Mid);

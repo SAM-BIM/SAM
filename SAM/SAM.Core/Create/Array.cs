@@ -55,7 +55,7 @@ namespace SAM.Core
                     result[i, j] = values[i][j];
                 }
 
-                for(int j = values[i].Count; j < maxCount; j++)
+                for (int j = values[i].Count; j < maxCount; j++)
                 {
                     result[i, j] = @default;
                 }

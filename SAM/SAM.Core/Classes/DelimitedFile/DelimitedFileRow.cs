@@ -21,7 +21,7 @@ namespace SAM.Core
         public bool TryGetValue<T>(int index, out T value)
         {
             value = default(T);
-            if( index < 0 || index >= Count)
+            if (index < 0 || index >= Count)
             {
                 return false;
             }

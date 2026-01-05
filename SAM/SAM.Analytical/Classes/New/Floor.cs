@@ -24,7 +24,7 @@ namespace SAM.Analytical
 
         }
 
-        public Floor(System.Guid guid,FloorType floorType, Face3D face3D)
+        public Floor(System.Guid guid, FloorType floorType, Face3D face3D)
             : base(guid, floorType, face3D)
         {
 

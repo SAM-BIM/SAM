@@ -23,7 +23,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -221,9 +221,9 @@ namespace SAM.Analytical.Grasshopper
                             spaces_Unassigned.Add(spaces[i]);
 
                     profiles = Analytical.Query.Profiles(buildingModel, profileLibrary);
-                    if(profiles != null)
+                    if (profiles != null)
                     {
-                        foreach(Profile profile in profiles)
+                        foreach (Profile profile in profiles)
                         {
                             buildingModel.Add(profile);
                         }

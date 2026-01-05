@@ -6,12 +6,12 @@
         {
             sufix = null;
 
-            if(string.IsNullOrWhiteSpace(@string))
+            if (string.IsNullOrWhiteSpace(@string))
             {
                 return null;
             }
 
-            if(!@string.StartsWith("\""))
+            if (!@string.StartsWith("\""))
             {
                 sufix = @string;
                 return null;

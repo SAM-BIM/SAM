@@ -7,7 +7,7 @@ namespace SAM.Core
         public static bool TryGetJToken(this string @string, out JToken jToken)
         {
             jToken = null;
-            
+
             if (string.IsNullOrWhiteSpace(@string))
                 return false;
 

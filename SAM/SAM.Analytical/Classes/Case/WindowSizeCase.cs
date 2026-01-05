@@ -14,7 +14,7 @@ namespace SAM.Analytical.Classes
 
         public WindowSizeCase(double apertureScaleFactor)
         {
-            this.apertureScaleFactor = apertureScaleFactor; 
+            this.apertureScaleFactor = apertureScaleFactor;
         }
 
         public WindowSizeCase(double apertureScaleFactor, CaseSelection caseSelection)
@@ -33,7 +33,7 @@ namespace SAM.Analytical.Classes
         public WindowSizeCase(WindowSizeCase windowSizeCase)
             : base(windowSizeCase)
         {
-            if(windowSizeCase is not null)
+            if (windowSizeCase is not null)
             {
                 apertureScaleFactor = windowSizeCase.apertureScaleFactor;
                 caseSelection = windowSizeCase.caseSelection;

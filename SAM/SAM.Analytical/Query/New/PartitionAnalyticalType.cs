@@ -94,12 +94,12 @@ namespace SAM.Analytical
 
         public static PartitionAnalyticalType? PartitionAnalyticalType(this HostPartitionType hostPartitionType)
         {
-            if(hostPartitionType == null)
+            if (hostPartitionType == null)
             {
                 return null;
             }
 
-            if(!hostPartitionType.TryGetValue(HostPartitionTypeParameter.PartitionAnalyticalType, out string value, true))
+            if (!hostPartitionType.TryGetValue(HostPartitionTypeParameter.PartitionAnalyticalType, out string value, true))
             {
                 return null;
             }

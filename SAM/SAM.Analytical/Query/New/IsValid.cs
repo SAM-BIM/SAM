@@ -7,13 +7,13 @@ namespace SAM.Analytical
         public static bool IsValid(this IHostPartition hostPartition, IOpening opening, double tolerance = Core.Tolerance.Distance)
         {
             Face3D face3D_hostPartition = hostPartition?.Face3D;
-            if(face3D_hostPartition == null)
+            if (face3D_hostPartition == null)
             {
                 return false;
             }
 
             Face3D face3D_Opening = opening?.Face3D;
-            if(face3D_Opening == null)
+            if (face3D_Opening == null)
             {
                 return false;
             }

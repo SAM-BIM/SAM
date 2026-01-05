@@ -16,7 +16,7 @@ namespace SAM.Analytical.Classes
         public WeatherDataCase(WeatherDataCase weatherDataCase)
             : base(weatherDataCase)
         {
-            if(weatherDataCase != null)
+            if (weatherDataCase != null)
             {
                 weatherData = weatherDataCase.weatherData;
             }
@@ -41,7 +41,7 @@ namespace SAM.Analytical.Classes
                 OnPropertyChanged(nameof(WeatherData));
             }
         }
-        
+
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);

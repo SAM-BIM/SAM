@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.hidden;
 
@@ -89,7 +89,7 @@ namespace SAM.Analytical.Grasshopper
             if (index != -1)
             {
                 Core.Location location = null;
-                if(dataAccess.GetData(index, ref location) && location != null)
+                if (dataAccess.GetData(index, ref location) && location != null)
                 {
                     buildingModel.Location = location;
                 }

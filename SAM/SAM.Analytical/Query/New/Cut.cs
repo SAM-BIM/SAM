@@ -18,7 +18,7 @@ namespace SAM.Analytical
 
             return Cut(partition, plane, tolerance);
         }
-        
+
         public static List<T> Cut<T>(this T partition, Plane plane, double tolerance = Tolerance.Distance) where T : IPartition
         {
             if (plane == null)
@@ -29,7 +29,7 @@ namespace SAM.Analytical
                 return null;
 
             List<T> result = new List<T>();
-            
+
             List<Face3D> face3Ds = Geometry.Spatial.Query.Cut(face3D, plane, tolerance);
             if (face3Ds == null || face3Ds.Count == 0)
             {
@@ -37,12 +37,12 @@ namespace SAM.Analytical
                 return result;
             }
 
-            for(int i =0; i < face3Ds.Count; i++)
+            for (int i = 0; i < face3Ds.Count; i++)
             {
                 System.Guid guid = i == 0 ? partition.Guid : System.Guid.NewGuid();
-                
+
                 T partition_New = Create.Partition(partition, guid, face3Ds[i], tolerance);
-                if(partition_New == null)
+                if (partition_New == null)
                 {
                     continue;
                 }
@@ -79,7 +79,7 @@ namespace SAM.Analytical
             return result;
         }
 
-        public static List<T> Cut<T>(this T partition, IEnumerable<double> elevations, double tolerance = Tolerance.Distance) where T: IPartition
+        public static List<T> Cut<T>(this T partition, IEnumerable<double> elevations, double tolerance = Tolerance.Distance) where T : IPartition
         {
             if (partition == null || elevations == null)
                 return null;

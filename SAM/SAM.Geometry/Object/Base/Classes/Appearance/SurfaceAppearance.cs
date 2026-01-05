@@ -6,8 +6,8 @@ namespace SAM.Geometry.Object
     public class SurfaceAppearance : Appearance
     {
         public CurveAppearance CurveAppearance { get; set; }
-        
-        public SurfaceAppearance(Color surfaceColor, Color curveColor, double curveThickness) 
+
+        public SurfaceAppearance(Color surfaceColor, Color curveColor, double curveThickness)
             : base(surfaceColor)
         {
             CurveAppearance = new CurveAppearance(curveColor, curveThickness);

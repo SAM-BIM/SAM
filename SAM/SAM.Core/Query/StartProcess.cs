@@ -6,7 +6,7 @@ namespace SAM.Core
     {
         public static Process StartProcess(this string path, string arguments = null)
         {
-            if(string.IsNullOrWhiteSpace(path))
+            if (string.IsNullOrWhiteSpace(path))
             {
                 return null;
             }

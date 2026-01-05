@@ -36,7 +36,7 @@ namespace SAM.Core.Grasshopper
         {
         }
 
-        
+
 
         protected override GH_SAMParam[] Inputs
         {
@@ -56,7 +56,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooIndexedObjectsParam() { Name = "results", NickName = "results", Description = "Results (IndexedDoubles) \nInspec to get values", Access = GH_ParamAccess.item }, ParamVisibility.Binding));;
+                result.Add(new GH_SAMParam(new GooIndexedObjectsParam() { Name = "results", NickName = "results", Description = "Results (IndexedDoubles) \nInspec to get values", Access = GH_ParamAccess.item }, ParamVisibility.Binding)); ;
                 return result.ToArray();
             }
         }
@@ -72,7 +72,7 @@ namespace SAM.Core.Grasshopper
             int index;
 
             index = Params.IndexOfInputParam("_results");
-            
+
             IIndexedObjects indexedObjects = null;
             if (index == -1 || !dataAccess.GetData(index, ref indexedObjects) || indexedObjects == null)
             {
@@ -81,7 +81,7 @@ namespace SAM.Core.Grasshopper
             }
 
             IndexedDoubles indexedDoubles = indexedObjects as IndexedDoubles;
-            if(indexedDoubles == null)
+            if (indexedDoubles == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -99,7 +99,7 @@ namespace SAM.Core.Grasshopper
             }
 
             period = Core.Query.Enum<Period>(text);
-            if(period == Period.Undefined)
+            if (period == Period.Undefined)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;

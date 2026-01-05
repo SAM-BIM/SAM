@@ -10,7 +10,7 @@ namespace SAM.Analytical
 
         public CaseSelection()
         {
-            
+
         }
 
         public CaseSelection(JObject jObject)

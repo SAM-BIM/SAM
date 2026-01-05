@@ -21,7 +21,7 @@ namespace SAM.Core
             Type type = value.GetType();
             if (type != typeof(T))
             {
-                if(!typeof(T).IsAssignableFrom(type))
+                if (!typeof(T).IsAssignableFrom(type))
                 {
                     return default;
                 }
@@ -42,7 +42,7 @@ namespace SAM.Core
 
         public static T Value<T>(this XAttribute xAttribute, T defaultValue)
         {
-            if(!TryGetValue(xAttribute, out T result))
+            if (!TryGetValue(xAttribute, out T result))
             {
                 return defaultValue;
             }

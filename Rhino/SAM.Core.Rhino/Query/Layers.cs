@@ -12,7 +12,7 @@ namespace SAM.Core.Rhino
             List<global::Rhino.DocObjects.Layer> result = new List<global::Rhino.DocObjects.Layer>();
 
             int count = layerTable.Count;
-            for(int i=0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
                 global::Rhino.DocObjects.Layer layer = layerTable[i];
                 if (layer == null)

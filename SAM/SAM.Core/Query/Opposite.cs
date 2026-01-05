@@ -4,7 +4,7 @@
     {
         public static Direction Opposite(this Direction direction)
         {
-            if(direction == Direction.Undefined)
+            if (direction == Direction.Undefined)
             {
                 return Direction.Undefined;
             }

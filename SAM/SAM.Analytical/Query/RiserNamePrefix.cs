@@ -4,7 +4,7 @@
     {
         public static string RiserNamePrefix(this MechanicalSystemCategory mechanicalSystemCategory)
         {
-            switch(mechanicalSystemCategory)
+            switch (mechanicalSystemCategory)
             {
                 case Analytical.MechanicalSystemCategory.Cooling:
                     return "RC";

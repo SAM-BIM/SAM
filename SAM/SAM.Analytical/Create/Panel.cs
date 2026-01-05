@@ -33,24 +33,24 @@ namespace SAM.Analytical
 
         public static Panel Panel(this Construction construction, Segment3D segment3D, Vector3D vector3D, PanelType panelType = PanelType.Undefined)
         {
-            if(vector3D == null || !vector3D.IsValid() || segment3D == null || !segment3D.IsValid())
+            if (vector3D == null || !vector3D.IsValid() || segment3D == null || !segment3D.IsValid())
             {
                 return null;
             }
-            
+
             Face3D face3D = new Face3D(new Polygon3D(new Point3D[] { segment3D[0], segment3D[1], segment3D[1].GetMoved(vector3D) as Point3D, segment3D[0].GetMoved(vector3D) as Point3D }));
 
-            if(panelType == PanelType.Undefined)
+            if (panelType == PanelType.Undefined)
             {
-                if(construction != null && construction.TryGetValue(ConstructionParameter.DefaultPanelType, out string text))
+                if (construction != null && construction.TryGetValue(ConstructionParameter.DefaultPanelType, out string text))
                 {
                     panelType = Query.PanelType(text, false);
                 }
 
-                if(panelType == PanelType.Undefined)
+                if (panelType == PanelType.Undefined)
                 {
                     Vector3D normal = face3D?.GetPlane()?.Normal;
-                    if(normal != null)
+                    if (normal != null)
                     {
                         panelType = normal.PanelType();
                     }
@@ -62,7 +62,7 @@ namespace SAM.Analytical
 
         public static Panel Panel(Construction construction, PanelType panelType, Face3D face3D)
         {
-            if(face3D == null || panelType == PanelType.Undefined)
+            if (face3D == null || panelType == PanelType.Undefined)
             {
                 return null;
             }
@@ -72,17 +72,17 @@ namespace SAM.Analytical
 
         public static Panel Panel(Guid guid, Panel panel, Face3D face3D, IEnumerable<Aperture> apertures = null, bool trimGeometry = true, double minArea = Tolerance.MacroDistance, double maxDistance = Tolerance.MacroDistance)
         {
-            if(panel == null || face3D == null || guid == Guid.Empty)
+            if (panel == null || face3D == null || guid == Guid.Empty)
             {
                 return null;
             }
 
             return new Panel(guid, panel, face3D, apertures, trimGeometry, minArea, maxDistance);
         }
-        
+
         public static Panel Panel(Panel panel)
         {
-            if(panel == null)
+            if (panel == null)
             {
                 return null;
             }
@@ -102,7 +102,7 @@ namespace SAM.Analytical
 
         public static Panel Panel(Panel panel, PanelType panelType)
         {
-            if(panel == null)
+            if (panel == null)
             {
                 return null;
             }
@@ -112,17 +112,17 @@ namespace SAM.Analytical
 
         public static Panel Panel(Panel panel, Construction construction)
         {
-            if(panel == null)
+            if (panel == null)
             {
                 return null;
             }
-            
+
             return new Panel(panel, construction);
         }
 
         public static Panel Panel(Construction construction, PanelType panelType, PlanarBoundary3D planarBoundary3D)
         {
-            if(planarBoundary3D == null)
+            if (planarBoundary3D == null)
             {
                 return null;
             }
@@ -145,7 +145,7 @@ namespace SAM.Analytical
 
         public static Panel Panel(Guid guid, Panel panel, PlanarBoundary3D planarBoundary3D)
         {
-            if(guid == Guid.Empty || panel == null || planarBoundary3D == null)
+            if (guid == Guid.Empty || panel == null || planarBoundary3D == null)
             {
                 return null;
             }

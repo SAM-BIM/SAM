@@ -4,7 +4,7 @@ using SAM.Core;
 namespace SAM.Analytical
 {
     public class SpaceVentilationSystemTypeNameFilter : SpaceMechanicalSystemTypeNameFilter<VentilationSystem>
-    {       
+    {
         public SpaceVentilationSystemTypeNameFilter(TextComparisonType textComparisonType, string value)
             : base(textComparisonType, value)
         {

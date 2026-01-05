@@ -5,13 +5,13 @@ namespace SAM.Analytical
     public abstract class BuiltInCaseData : CaseData
     {
         public BuiltInCaseData(string name)
-            :base(name)
+            : base(name)
         {
 
         }
 
         public BuiltInCaseData(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
 
         }

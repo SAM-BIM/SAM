@@ -27,26 +27,26 @@ namespace SAM.Geometry.Planar
 
         public static bool Convex(this Face2D face2D, bool externalEdge = true, bool internalEdges = true)
         {
-            if(face2D == null)
+            if (face2D == null)
             {
                 return false;
             }
 
-            if(externalEdge)
+            if (externalEdge)
             {
                 IClosed2D closed2D = face2D.ExternalEdge2D;
-                if(closed2D == null)
+                if (closed2D == null)
                 {
                     return false;
                 }
 
                 ISegmentable2D segmentable2D = closed2D as ISegmentable2D;
-                if(segmentable2D == null)
+                if (segmentable2D == null)
                 {
                     throw new System.NotImplementedException();
                 }
 
-                if(!Convex(segmentable2D.GetPoints()))
+                if (!Convex(segmentable2D.GetPoints()))
                 {
                     return false;
                 }
@@ -60,7 +60,7 @@ namespace SAM.Geometry.Planar
                     return true;
                 }
 
-                foreach(IClosed2D closed2D in closed2Ds)
+                foreach (IClosed2D closed2D in closed2Ds)
                 {
                     ISegmentable2D segmentable2D = closed2D as ISegmentable2D;
                     if (segmentable2D == null)

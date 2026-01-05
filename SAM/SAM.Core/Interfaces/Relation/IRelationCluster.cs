@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SAM.Core
 {
-    public interface IRelationCluster: IJSAMObject
+    public interface IRelationCluster : IJSAMObject
     {
         public List<Type> GetTypes();
 

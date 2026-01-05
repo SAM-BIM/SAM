@@ -159,7 +159,7 @@ namespace SAM.Geometry.Grasshopper
                 if (shells_Temp == null || shells_Temp.Count == 0)
                     continue;
 
-                foreach(Shell shell in shells_Temp)
+                foreach (Shell shell in shells_Temp)
                 {
                     result_In.Add(shell);
                     shells.Remove(shell);

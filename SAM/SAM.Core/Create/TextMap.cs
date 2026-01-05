@@ -11,7 +11,7 @@ namespace SAM.Core
 
         public static TextMap TextMap(TextMap textMap)
         {
-            if(textMap == null)
+            if (textMap == null)
             {
                 return null;
             }

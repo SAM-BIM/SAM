@@ -19,7 +19,7 @@ namespace SAM.Analytical
 
         public CaseData(CaseData caseData)
         {
-            if(caseData != null)
+            if (caseData != null)
             {
                 name = caseData.name;
             }
@@ -27,9 +27,9 @@ namespace SAM.Analytical
 
         public string Name
         {
-            get 
-            { 
-                return name; 
+            get
+            {
+                return name;
             }
         }
 

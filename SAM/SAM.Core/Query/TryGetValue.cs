@@ -95,7 +95,7 @@ namespace SAM.Core
             if (parameterSet == null)
                 return false;
 
-            if(parameterSet.Contains(name))
+            if (parameterSet.Contains(name))
             {
                 value = parameterSet.ToObject(name);
                 return true;
@@ -113,7 +113,7 @@ namespace SAM.Core
             if (@object == null || string.IsNullOrEmpty(name))
                 return false;
 
-            List<string> names = new () { name };
+            List<string> names = new() { name };
             if (UserFriendlyName)
                 names = Names((string)name);
             else
@@ -122,7 +122,7 @@ namespace SAM.Core
             if (names == null || names.Count == 0)
                 return false;
 
-            foreach(string name_Temp in names)
+            foreach (string name_Temp in names)
             {
                 if (TryGetValue(@object, name_Temp, out value))
                     return true;
@@ -142,7 +142,7 @@ namespace SAM.Core
             if (object_value == null)
                 return Nullable.GetUnderlyingType(typeof(T)) != null;
 
-            if(typeof(T).IsAssignableFrom(object_value.GetType()))
+            if (typeof(T).IsAssignableFrom(object_value.GetType()))
             {
                 value = (T)object_value;
                 return true;
@@ -155,7 +155,7 @@ namespace SAM.Core
         {
             value = default;
 
-            if(xAttribute == null)
+            if (xAttribute == null)
             {
                 return false;
             }
@@ -230,7 +230,7 @@ namespace SAM.Core
             return false;
         }
 
-        
+
         private static bool TryGetValue_Property(this object @object, string name, out object value)
         {
             value = null;
@@ -243,7 +243,7 @@ namespace SAM.Core
             PropertyInfo[] propertyInfos = @object.GetType().GetProperties();
             foreach (PropertyInfo propertyInfo in propertyInfos)
             {
-                if (!propertyInfo.Name.Equals(name) )
+                if (!propertyInfo.Name.Equals(name))
                 {
                     continue;
                 }
@@ -302,7 +302,7 @@ namespace SAM.Core
             {
                 if (methodInfo.ReturnType == typeof(void))
                     continue;
-                
+
                 if (methodInfo.Name.Equals(name) || (!name.StartsWith("Get") && methodInfo.Name.Equals(string.Format("Get{0}", name))))
                 {
                     if (TryGetValue_Method(@object, methodInfo, out value))

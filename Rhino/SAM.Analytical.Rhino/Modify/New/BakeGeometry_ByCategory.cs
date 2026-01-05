@@ -48,7 +48,7 @@ namespace SAM.Analytical.Rhino
                 if (BakeGeometry(partition, rhinoDoc, objectAttributes, out guid, cutOpenings, tolerance))
                     guids.Add(guid);
 
-                if(partition is IHostPartition)
+                if (partition is IHostPartition)
                 {
                     List<IOpening> openings = ((IHostPartition)partition).GetOpenings();
                     if (openings == null || openings.Count == 0)

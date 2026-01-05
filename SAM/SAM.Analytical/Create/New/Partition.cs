@@ -19,14 +19,14 @@ namespace SAM.Analytical
             if (partition is IHostPartition)
             {
                 IHostPartition hostPartition = HostPartition(guid, face3D, (IHostPartition)partition, tolerance);
-                if(hostPartition is T)
+                if (hostPartition is T)
                 {
                     return (T)hostPartition;
                 }
             }
 
             AirPartition airPartition = new AirPartition(guid, partition as AirPartition, face3D);
-            if(airPartition is T)
+            if (airPartition is T)
             {
                 return (T)(object)airPartition;
             }

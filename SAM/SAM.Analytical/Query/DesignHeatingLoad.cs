@@ -9,7 +9,7 @@ namespace SAM.Analytical
         {
             if (adjacencyCluster == null || zoneSimulationResult == null)
                 return double.NaN;
-            
+
             return DesignHeatingLoad(adjacencyCluster, adjacencyCluster.GetRelatedObjects<Zone>(zoneSimulationResult)?.FirstOrDefault());
         }
 
@@ -21,7 +21,7 @@ namespace SAM.Analytical
                 return double.NaN;
 
             double result = 0;
-            foreach(Space space in spaces)
+            foreach (Space space in spaces)
             {
                 if (space == null)
                     continue;

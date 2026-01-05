@@ -23,7 +23,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -76,17 +76,17 @@ namespace SAM.Analytical.Grasshopper
             if (index != -1)
                 dataAccess.GetDataList(index, apertures);
 
-            if(sAMObject is AdjacencyCluster)
+            if (sAMObject is AdjacencyCluster)
             {
                 AdjacencyCluster adjacencyCluster = new AdjacencyCluster((AdjacencyCluster)sAMObject);
                 apertures = adjacencyCluster.SetDefaultApertureConstruction(apertures?.ConvertAll(x => x.Guid))?.ToList();
                 sAMObject = adjacencyCluster;
             }
-            else if(sAMObject is AnalyticalModel)
+            else if (sAMObject is AnalyticalModel)
             {
                 AnalyticalModel analyticalModel = new AnalyticalModel((AnalyticalModel)sAMObject);
                 AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
-                if(adjacencyCluster != null)
+                if (adjacencyCluster != null)
                 {
                     adjacencyCluster = new AdjacencyCluster(adjacencyCluster);
                     apertures = adjacencyCluster.SetDefaultApertureConstruction(apertures?.ConvertAll(x => x.Guid))?.ToList();

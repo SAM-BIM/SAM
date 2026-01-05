@@ -10,7 +10,7 @@ namespace SAM.Analytical
             triangulatedPanels = null;
 
             List<Panel> panels = adjacencyCluster?.GetPanels();
-            if(panels == null)
+            if (panels == null)
             {
                 return null;
             }
@@ -19,7 +19,7 @@ namespace SAM.Analytical
             List<Panel> result = new List<Panel>();
             foreach (Panel panel in panels)
             {
-                if(!Geometry.Object.Spatial.Query.Concave(panel))
+                if (!Geometry.Object.Spatial.Query.Concave(panel))
                 {
                     continue;
                 }

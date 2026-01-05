@@ -4,12 +4,12 @@
     {
         public static bool Adiabatic(this Panel panel)
         {
-            if(panel  == null)
+            if (panel == null)
             {
                 return false;
             }
 
-            if(panel.PanelType == Analytical.PanelType.Air || panel.PanelType == Analytical.PanelType.Shade)
+            if (panel.PanelType == Analytical.PanelType.Air || panel.PanelType == Analytical.PanelType.Shade)
             {
                 return false;
             }

@@ -7,7 +7,7 @@ namespace SAM.Core
     {
         public static bool Directory(this string directory)
         {
-            if(string.IsNullOrWhiteSpace(directory))
+            if (string.IsNullOrWhiteSpace(directory))
             {
                 return false;
             }
@@ -22,22 +22,22 @@ namespace SAM.Core
             directories.Add(directory_Temp);
 
             directory_Temp = Path.GetDirectoryName(directory_Temp);
-            while(!string.IsNullOrWhiteSpace(directory_Temp))
+            while (!string.IsNullOrWhiteSpace(directory_Temp))
             {
                 directories.Add(directory_Temp);
                 directory_Temp = Path.GetDirectoryName(directory_Temp);
             }
 
-            if(directories.Count < 2)
+            if (directories.Count < 2)
             {
                 return false;
             }
 
-            for(int i = directories.Count - 2; i >= 0; i--)
+            for (int i = directories.Count - 2; i >= 0; i--)
             {
                 directory_Temp = directories[i];
 
-                if(System.IO.Directory.Exists(directory_Temp))
+                if (System.IO.Directory.Exists(directory_Temp))
                 {
                     continue;
                 }
@@ -45,7 +45,7 @@ namespace SAM.Core
                 try
                 {
                     DirectoryInfo directoryInfo = System.IO.Directory.CreateDirectory(directory_Temp);
-                    if(directoryInfo == null)
+                    if (directoryInfo == null)
                     {
                         return false;
                     }

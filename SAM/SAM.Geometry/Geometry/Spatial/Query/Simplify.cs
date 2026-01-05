@@ -7,7 +7,7 @@ namespace SAM.Geometry.Spatial
         public static Polygon3D Simplify(this Circle3D circle3D, int density)
         {
             Plane plane = circle3D?.GetPlane();
-            if(plane == null)
+            if (plane == null)
             {
                 return null;
             }

@@ -20,7 +20,7 @@ namespace SAM.Analytical
                 return null;
 
             List<Panel> result = new List<Panel>();
-            for(int i=0; i < face3Ds.Count; i++)
+            for (int i = 0; i < face3Ds.Count; i++)
             {
                 Face3D face3D_Temp = face3Ds[i];
 
@@ -43,21 +43,21 @@ namespace SAM.Analytical
 
             AdjacencyCluster result = new AdjacencyCluster(adjacencyCluster);
             List<Panel> panels = result.GetPanels();
-            if(panels != null && panels.Count > 0)
+            if (panels != null && panels.Count > 0)
             {
-                foreach(Panel panel in panels)
+                foreach (Panel panel in panels)
                 {
                     List<Panel> panels_Split = panel.SplitByConcaveEdges(tolerance);
                     if (panels_Split == null || panels_Split.Count < 2)
                         continue;
 
-                    List<IJSAMObject> relatedObjects = result.GetRelatedObjects(panel); 
+                    List<IJSAMObject> relatedObjects = result.GetRelatedObjects(panel);
 
-                    foreach(Panel panel_Split in panels_Split)
+                    foreach (Panel panel_Split in panels_Split)
                     {
                         result.AddObject(panel_Split);
 
-                        if(relatedObjects != null && relatedObjects.Count > 0)
+                        if (relatedObjects != null && relatedObjects.Count > 0)
                         {
                             foreach (IJSAMObject relatedObject in relatedObjects)
                             {

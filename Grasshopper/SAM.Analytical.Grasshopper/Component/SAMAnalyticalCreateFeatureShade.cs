@@ -11,7 +11,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.
         /// </summary>
-        public override Guid ComponentGuid => new ("1cc59b32-082e-4967-b05c-b992cd3239d2");
+        public override Guid ComponentGuid => new("1cc59b32-082e-4967-b05c-b992cd3239d2");
 
         /// <summary>
         /// The latest version of this component
@@ -21,7 +21,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -218,7 +218,7 @@ namespace SAM.Analytical.Grasshopper
                 dataAccess.GetData(index, ref overhangTransmittance);
             }
 
-            FeatureShade featureShade = new (name, description, surfaceHeight, surfaceWidth, leftFinDepth, leftFinOffset, leftFinTransmittance, rightFinDepth, rightFinOffset, rightFinTransmittance, overhangDepth, overhangOffset, overhangTransmittance);
+            FeatureShade featureShade = new(name, description, surfaceHeight, surfaceWidth, leftFinDepth, leftFinOffset, leftFinTransmittance, rightFinDepth, rightFinOffset, rightFinTransmittance, overhangDepth, overhangOffset, overhangTransmittance);
 
             index = Params.IndexOfOutputParam("featureShade");
             if (index != -1)

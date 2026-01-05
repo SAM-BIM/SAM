@@ -4,7 +4,7 @@
     {
         public static double DefaultTolerance(this UnitType unitType)
         {
-            switch(unitType)
+            switch (unitType)
             {
                 case Units.UnitType.Celsius:
                     return 0.01;

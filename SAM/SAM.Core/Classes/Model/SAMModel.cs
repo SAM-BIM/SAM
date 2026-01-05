@@ -11,7 +11,7 @@ namespace SAM.Core
         {
 
         }
-        
+
         public SAMModel(Guid guid, string name)
             : base(guid, name)
         {

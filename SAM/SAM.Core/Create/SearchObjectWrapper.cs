@@ -8,11 +8,11 @@ namespace SAM.Core
         public static SearchObjectWrapper SearchObjectWrapper<T>(IEnumerable<T> items, Func<T, string> func, bool caseSensitive = false)
         {
             Func<object, string> func_Object = null;
-            if(func != null)
+            if (func != null)
             {
                 func_Object = new Func<object, string>((object @object) =>
                 {
-                    if(!(@object is T))
+                    if (!(@object is T))
                     {
                         return null;
                     }

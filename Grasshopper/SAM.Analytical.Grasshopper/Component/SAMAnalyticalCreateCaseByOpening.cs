@@ -353,7 +353,7 @@ EXAMPLE
                 analyticalModel.RemoveValue("CaseDescription");
             }
 
-            analyticalModel = Create.AnalyticalModel_ByOpening(analyticalModel, 
+            analyticalModel = Create.AnalyticalModel_ByOpening(analyticalModel,
                 openingAngles,
                 descriptions,
                 functions,

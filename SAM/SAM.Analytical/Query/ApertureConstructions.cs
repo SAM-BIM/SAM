@@ -29,7 +29,7 @@ namespace SAM.Analytical
                 return null;
 
             Dictionary<Guid, ApertureConstruction> dictionary = new Dictionary<Guid, ApertureConstruction>();
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
                 if (panel == null)
                     continue;
@@ -41,7 +41,7 @@ namespace SAM.Analytical
                 if (apertures == null || apertures.Count == 0)
                     continue;
 
-                foreach(Aperture aperture in apertures)
+                foreach (Aperture aperture in apertures)
                 {
                     if (aperture == null)
                         continue;

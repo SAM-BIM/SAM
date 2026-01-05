@@ -34,7 +34,7 @@ namespace SAM.Geometry.Spatial
             }
 
             Vector3D normal = plane.Normal;
-            if(normal == null)
+            if (normal == null)
             {
                 return false;
             }

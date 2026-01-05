@@ -15,8 +15,8 @@ namespace SAM.Analytical
             {
                 return false;
             }
-            
-            if(panels != null)
+
+            if (panels != null)
             {
                 foreach (Panel panel in panels)
                 {

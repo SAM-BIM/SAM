@@ -1,5 +1,5 @@
-﻿using System.ComponentModel;
-using SAM.Core.Attributes;
+﻿using SAM.Core.Attributes;
+using System.ComponentModel;
 
 namespace SAM.Core
 {

@@ -4,7 +4,7 @@ namespace SAM.Geometry.Planar
 {
     public static partial class Create
     {
-        public static Face2D Face2D(this IClosed2D externalEdge, IEnumerable<IClosed2D> internalEdges, EdgeOrientationMethod edgeOrientationMethod= EdgeOrientationMethod.Opposite)
+        public static Face2D Face2D(this IClosed2D externalEdge, IEnumerable<IClosed2D> internalEdges, EdgeOrientationMethod edgeOrientationMethod = EdgeOrientationMethod.Opposite)
         {
             return Planar.Face2D.Create(externalEdge, internalEdges, edgeOrientationMethod);
         }

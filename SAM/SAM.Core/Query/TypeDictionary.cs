@@ -16,7 +16,7 @@ namespace SAM.Core
                     continue;
 
                 System.Type type = @object.GetType();
-                
+
                 List<T> objects_Temp = null;
                 if (!result.TryGetValue(type, out objects_Temp))
                 {

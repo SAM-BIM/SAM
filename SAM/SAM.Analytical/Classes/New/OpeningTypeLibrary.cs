@@ -98,15 +98,15 @@ namespace SAM.Analytical
             }
 
             List<OpeningType> result = new List<OpeningType>();
-            foreach(OpeningType openingType in openingTypes)
+            foreach (OpeningType openingType in openingTypes)
             {
                 PartitionAnalyticalType? partitionAnalyticalType = openingType?.PartitionAnalyticalType();
-                if(partitionAnalyticalType == null || !partitionAnalyticalType.HasValue)
+                if (partitionAnalyticalType == null || !partitionAnalyticalType.HasValue)
                 {
                     continue;
                 }
 
-                if(Query.HostPartitionCategory(partitionAnalyticalType.Value) != hostPartitionCategory)
+                if (Query.HostPartitionCategory(partitionAnalyticalType.Value) != hostPartitionCategory)
                 {
                     continue;
                 }
@@ -135,7 +135,7 @@ namespace SAM.Analytical
             }
 
             List<OpeningType> result = new List<OpeningType>();
-            foreach(OpeningType openingType in openingTypes)
+            foreach (OpeningType openingType in openingTypes)
             {
                 if (openingType == null)
                 {

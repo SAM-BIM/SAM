@@ -7,7 +7,7 @@ namespace SAM.Geometry.Planar
     {
         public static void RemoveSimilar(this List<Face2D> face2Ds, double tolerance = Core.Tolerance.Distance)
         {
-            if(face2Ds == null || face2Ds.Count < 2)
+            if (face2Ds == null || face2Ds.Count < 2)
             {
                 return;
             }
@@ -23,13 +23,13 @@ namespace SAM.Geometry.Planar
                 face2Ds.Add(tuple.Item2);
 
                 List<Tuple<BoundingBox2D, Face2D>> tuples_Similar = tuples.FindAll(x => tuple.Item1.InRange(x.Item1, tolerance));
-                if(tuples_Similar.Count == 0)
+                if (tuples_Similar.Count == 0)
                 {
                     continue;
                 }
 
                 tuples_Similar.RemoveAll(x => !x.Item2.Similar(tuple.Item2, tolerance));
-                if(tuples_Similar.Count == 0)
+                if (tuples_Similar.Count == 0)
                 {
                     continue;
                 }

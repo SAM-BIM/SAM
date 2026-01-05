@@ -7,7 +7,7 @@ namespace SAM.Analytical
     {
 
         public ApertureApertureTypeFilter(ApertureType apertureType)
-            :base()
+            : base()
         {
             Value = apertureType;
         }
@@ -29,7 +29,7 @@ namespace SAM.Analytical
             apertureType = ApertureType.Undefined;
 
             Aperture aperture = jSAMObject as Aperture;
-            if(aperture == null)
+            if (aperture == null)
             {
                 return false;
             }

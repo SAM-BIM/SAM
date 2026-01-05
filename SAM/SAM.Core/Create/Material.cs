@@ -4,13 +4,13 @@
     {
         public static Material Material(this Material material, string name, string displayName = null, string description = null)
         {
-            if(name == null || material == null)
+            if (name == null || material == null)
             {
                 return null;
             }
 
             string displayName_Temp = displayName;
-            if(displayName_Temp == null)
+            if (displayName_Temp == null)
             {
                 displayName_Temp = material.DisplayName;
             }
@@ -25,9 +25,9 @@
             {
                 return new GasMaterial(name, System.Guid.NewGuid(), (GasMaterial)material, displayName_Temp, description_Temp);
             }
-            
 
-            if(material is LiquidMaterial)
+
+            if (material is LiquidMaterial)
             {
                 return new LiquidMaterial(name, System.Guid.NewGuid(), (LiquidMaterial)material, displayName_Temp, description_Temp);
             }
@@ -37,7 +37,7 @@
                 return new OpaqueMaterial(name, System.Guid.NewGuid(), (OpaqueMaterial)material, displayName_Temp, description_Temp);
             }
 
-            if(material is TransparentMaterial)
+            if (material is TransparentMaterial)
             {
                 return new TransparentMaterial(name, System.Guid.NewGuid(), (TransparentMaterial)material, displayName_Temp, description_Temp);
             }

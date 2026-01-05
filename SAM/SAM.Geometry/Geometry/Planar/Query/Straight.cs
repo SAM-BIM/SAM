@@ -13,7 +13,7 @@ namespace SAM.Geometry.Planar
         public static Polygon2D Straight(this Polygon2D polygon2D, double tolerance = Core.Tolerance.Distance)
         {
             List<Segment2D> segment2Ds = polygon2D?.GetSegments();
-            if(segment2Ds == null || segment2Ds.Count == 0)
+            if (segment2Ds == null || segment2Ds.Count == 0)
             {
                 return null;
             }
@@ -36,7 +36,7 @@ namespace SAM.Geometry.Planar
                     continue;
 
                 BoundingBox2D boundingBox2D = segment2D.GetBoundingBox();
-                if (boundingBox2D == null|| boundingBox2D.Width <= tolerance || boundingBox2D.Height <= tolerance)
+                if (boundingBox2D == null || boundingBox2D.Width <= tolerance || boundingBox2D.Height <= tolerance)
                     continue;
 
                 polygon2Ds.Add(boundingBox2D);

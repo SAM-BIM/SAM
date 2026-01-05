@@ -4,7 +4,7 @@
     {
         public static int Count(this Range<int> range)
         {
-            if(range == null)
+            if (range == null)
             {
                 return -1;
             }

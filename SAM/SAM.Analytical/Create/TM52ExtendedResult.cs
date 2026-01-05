@@ -7,7 +7,7 @@ namespace SAM.Analytical
     {
         public static TM52ExtendedResult TM52ExtendedResult(TM52ExtendedResult tM52ExtendedResult, int startIndex, int endIndex)
         {
-            if(tM52ExtendedResult == null || startIndex > endIndex)
+            if (tM52ExtendedResult == null || startIndex > endIndex)
             {
                 return null;
             }
@@ -37,7 +37,7 @@ namespace SAM.Analytical
             IndexedDoubles minAcceptableTemperatures = new IndexedDoubles();
             IndexedDoubles maxAcceptableTemperatures = new IndexedDoubles();
             IndexedDoubles operativeTemperatures = new IndexedDoubles();
-            foreach(int hourIndex in hourIndexes)
+            foreach (int hourIndex in hourIndexes)
             {
                 if (occupiedHourIndices_Old.Contains(hourIndex))
                 {

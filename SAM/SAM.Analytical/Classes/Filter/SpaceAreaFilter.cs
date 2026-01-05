@@ -7,7 +7,7 @@ namespace SAM.Analytical
     public class SpaceAreaFilter : NumberFilter, IAdjacencyClusterFilter
     {
         public double Offset { get; set; } = 0.01;
-        
+
         public AdjacencyCluster AdjacencyCluster { get; set; }
 
         public SpaceAreaFilter(NumberComparisonType numberComparisonType, double value)

@@ -4,13 +4,13 @@ using System.Collections.Generic;
 namespace SAM.Geometry.Spatial
 {
     public static partial class Query
-    {       
+    {
         public static Dictionary<Point3D, List<Face3D>> SpacingDictionary(this IEnumerable<Face3D> face3Ds, double maxTolerance = Core.Tolerance.MacroDistance, double minTolerance = Core.Tolerance.MicroDistance)
         {
             List<Tuple<BoundingBox3D, Face3D, List<Point3D>>> tuples = new List<Tuple<BoundingBox3D, Face3D, List<Point3D>>>();
             foreach (Face3D face3D in face3Ds)
             {
-                if(face3D == null || !face3D.IsValid())
+                if (face3D == null || !face3D.IsValid())
                 {
                     continue;
                 }
@@ -37,7 +37,7 @@ namespace SAM.Geometry.Spatial
                             continue;
 
                         Point3D point3D = point3D_Temp;
-                        foreach(Point3D point3D_Result in result.Keys)
+                        foreach (Point3D point3D_Result in result.Keys)
                         {
                             if (point3D_Result.Distance(point3D_Temp) <= minTolerance)
                             {
@@ -71,7 +71,7 @@ namespace SAM.Geometry.Spatial
         public static Dictionary<Point3D, List<Face3D>> SpacingDictionary(this Shell shell, double maxTolerance = Core.Tolerance.MacroDistance, double minTolerance = Core.Tolerance.MicroDistance)
         {
             List<Face3D> face3Ds = shell?.Face3Ds;
-            if(face3Ds == null)
+            if (face3Ds == null)
             {
                 return null;
             }

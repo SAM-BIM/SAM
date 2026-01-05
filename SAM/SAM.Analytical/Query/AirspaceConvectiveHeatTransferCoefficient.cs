@@ -12,7 +12,7 @@
         {
             if (double.IsNaN(thickness))
                 return double.NaN;
-            
+
             double result = 0.025 / thickness;
 
             if (angle == 0)

@@ -9,14 +9,14 @@ namespace SAM.Analytical
             flowClassification = FlowClassification.Undefined;
             direction = Direction.Undefined;
 
-            if(string.IsNullOrWhiteSpace(id))
+            if (string.IsNullOrWhiteSpace(id))
             {
                 return false;
             }
 
-            foreach(FlowClassification flowClassification_Temp in System.Enum.GetValues(typeof(FlowClassification)))
+            foreach (FlowClassification flowClassification_Temp in System.Enum.GetValues(typeof(FlowClassification)))
             {
-                if(id.StartsWith(flowClassification_Temp.Description()))
+                if (id.StartsWith(flowClassification_Temp.Description()))
                 {
                     flowClassification = flowClassification_Temp;
                     break;

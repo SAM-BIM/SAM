@@ -21,7 +21,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -41,7 +41,7 @@ namespace SAM.Analytical.Grasshopper
             int index;
 
             inputParamManager.AddParameter(new GooAnalyticalModelParam(), "_analyticalModel", "_analyticalModel", "SAM Analytical Model", GH_ParamAccess.item);
-            
+
             index = inputParamManager.AddParameter(new GooConstructionLibraryParam(), "_constructionLibrary_", "_constructionLibrary_", "SAM Analytical Contruction Library", GH_ParamAccess.item);
             inputParamManager[index].Optional = true;
 

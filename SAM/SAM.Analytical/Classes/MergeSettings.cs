@@ -7,16 +7,16 @@ namespace SAM.Analytical
     public class MergeSettings : IJSAMObject
     {
         private Dictionary<string, TypeMergeSettings> dictionary;
-        
+
         public MergeSettings(IEnumerable<TypeMergeSettings> typeMergeSettings)
         {
-            if(typeMergeSettings != null)
+            if (typeMergeSettings != null)
             {
                 dictionary = new Dictionary<string, TypeMergeSettings>();
 
                 foreach (TypeMergeSettings typeMergeSettings_Temp in typeMergeSettings)
                 {
-                    if(typeMergeSettings_Temp?.TypeName == null)
+                    if (typeMergeSettings_Temp?.TypeName == null)
                     {
                         continue;
                     }
@@ -41,7 +41,7 @@ namespace SAM.Analytical
         {
             get
             {
-                if(dictionary == null || !dictionary.TryGetValue(name, out TypeMergeSettings result))
+                if (dictionary == null || !dictionary.TryGetValue(name, out TypeMergeSettings result))
                 {
                     return null;
                 }
@@ -49,10 +49,10 @@ namespace SAM.Analytical
                 return result;
             }
         }
-        
+
         public bool FromJObject(JObject jObject)
         {
-            if(jObject == null)
+            if (jObject == null)
             {
                 return false;
             }
@@ -60,13 +60,13 @@ namespace SAM.Analytical
             if (jObject.ContainsKey("TypeMergeSettings"))
             {
                 JArray jArray = jObject.Value<JArray>("TypeMergeSettings");
-                if(jArray != null)
+                if (jArray != null)
                 {
                     dictionary = new Dictionary<string, TypeMergeSettings>();
-                    foreach(JObject jObject_TypeMergeSettings in jArray)
+                    foreach (JObject jObject_TypeMergeSettings in jArray)
                     {
                         TypeMergeSettings typeMergeSettings = Core.Query.IJSAMObject<TypeMergeSettings>(jObject_TypeMergeSettings);
-                        if(typeMergeSettings?.TypeName == null)
+                        if (typeMergeSettings?.TypeName == null)
                         {
                             continue;
                         }
@@ -83,11 +83,11 @@ namespace SAM.Analytical
         {
             JObject jObject = new JObject();
             jObject.Add("_type", Core.Query.FullTypeName(this));
-                      
-            if(dictionary != null)
+
+            if (dictionary != null)
             {
                 JArray jArray = new JArray();
-                foreach(TypeMergeSettings typeMergeSettings in dictionary.Values)
+                foreach (TypeMergeSettings typeMergeSettings in dictionary.Values)
                 {
                     jArray.Add(typeMergeSettings.ToJObject());
                 }

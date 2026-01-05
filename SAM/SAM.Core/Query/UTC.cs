@@ -6,15 +6,15 @@
         {
             return UTC(System.Convert.ToDouble(value));
         }
-        
+
         public static UTC UTC(double value)
         {
-            if(double.IsNaN(value))
+            if (double.IsNaN(value))
             {
                 return Core.UTC.Undefined;
             }
 
-            switch(value)
+            switch (value)
             {
                 case -12.0:
                     return Core.UTC.Minus1200;
@@ -133,26 +133,26 @@
 
         public static UTC UTC(string value)
         {
-            if(string.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(value))
             {
                 return Core.UTC.Undefined;
             }
 
-            if(Core.UTC.Undefined.ToString().ToUpper().Equals(value.ToUpper().Trim()))
+            if (Core.UTC.Undefined.ToString().ToUpper().Equals(value.ToUpper().Trim()))
             {
                 return Core.UTC.Undefined;
             }
-            
+
             UTC result = Enum<UTC>(value);
-            if(result != Core.UTC.Undefined)
+            if (result != Core.UTC.Undefined)
             {
                 return result;
             }
 
-            if(TryConvert(value, out double @double))
+            if (TryConvert(value, out double @double))
             {
                 result = UTC(@double);
-                if(result != Core.UTC.Undefined)
+                if (result != Core.UTC.Undefined)
                 {
                     return result;
                 }

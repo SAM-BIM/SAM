@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
-
-using SAM.Architectural;
+﻿using SAM.Architectural;
+using System.Collections.Generic;
 
 namespace SAM.Analytical
 {
@@ -8,12 +7,12 @@ namespace SAM.Analytical
     {
         public static HostPartitionType HostPartitionType(this HostPartitionCategory hostPartitionCategory, string name, IEnumerable<MaterialLayer> materialLayers)
         {
-            if(name == null || materialLayers == null || hostPartitionCategory == HostPartitionCategory.Undefined)
+            if (name == null || materialLayers == null || hostPartitionCategory == HostPartitionCategory.Undefined)
             {
                 return null;
             }
 
-            switch(hostPartitionCategory)
+            switch (hostPartitionCategory)
             {
                 case HostPartitionCategory.Floor:
                     return new FloorType(name, materialLayers);
@@ -35,7 +34,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if(hostPartitionType is WallType)
+            if (hostPartitionType is WallType)
             {
                 return new WallType((WallType)hostPartitionType, name);
             }

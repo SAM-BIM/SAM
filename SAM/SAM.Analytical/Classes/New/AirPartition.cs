@@ -7,7 +7,7 @@ namespace SAM.Analytical
 {
     public class AirPartition : BuildingElement<BuildingElementType>, IPartition
     {
-        
+
         public AirPartition(AirPartition airPartition)
             : base(airPartition)
         {

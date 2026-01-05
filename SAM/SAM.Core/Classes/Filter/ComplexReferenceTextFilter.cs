@@ -27,7 +27,7 @@ namespace SAM.Core
         public ComplexReferenceTextFilter(ComplexReferenceTextFilter complexReferenceTextFilter)
             : base(complexReferenceTextFilter)
         {
-            if(complexReferenceTextFilter != null)
+            if (complexReferenceTextFilter != null)
             {
                 FilterLogicalOperator = complexReferenceTextFilter.FilterLogicalOperator;
                 TextComparisonType = complexReferenceTextFilter.TextComparisonType;
@@ -35,7 +35,7 @@ namespace SAM.Core
                 CaseSensitive = complexReferenceTextFilter.CaseSensitive;
             }
         }
-        
+
         public override bool FromJObject(JObject jObject)
         {
             if (!base.FromJObject(jObject))
@@ -68,16 +68,16 @@ namespace SAM.Core
 
         protected override bool IsValid(IEnumerable<object> values)
         {
-            if(values == null || values.Count() == 0)
+            if (values == null || values.Count() == 0)
             {
                 return false;
             }
 
-            foreach(object value in values)
+            foreach (object value in values)
             {
-                if(!Query.TryConvert(value, out string text))
+                if (!Query.TryConvert(value, out string text))
                 {
-                    if(FilterLogicalOperator == FilterLogicalOperator.And)
+                    if (FilterLogicalOperator == FilterLogicalOperator.And)
                     {
                         return false;
                     }
@@ -85,7 +85,7 @@ namespace SAM.Core
                     continue;
                 }
 
-                if(!Query.Compare(text, Value, TextComparisonType, CaseSensitive))
+                if (!Query.Compare(text, Value, TextComparisonType, CaseSensitive))
                 {
                     if (FilterLogicalOperator == FilterLogicalOperator.And)
                     {

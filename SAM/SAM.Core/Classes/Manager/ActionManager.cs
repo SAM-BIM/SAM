@@ -28,7 +28,7 @@ namespace SAM.Core
                 return;
             }
 
-            if(actions == null)
+            if (actions == null)
             {
                 actions = new List<Action>();
             }
@@ -43,7 +43,7 @@ namespace SAM.Core
                 return;
             }
 
-            if(this.actions == null)
+            if (this.actions == null)
             {
                 this.actions = new List<Action>();
             }

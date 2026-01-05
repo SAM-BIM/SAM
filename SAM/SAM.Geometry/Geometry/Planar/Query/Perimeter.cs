@@ -7,8 +7,8 @@
             if (closed2D == null)
                 return double.NaN;
 
-            if(closed2D is ISegmentable2D)
-                return((ISegmentable2D)closed2D).GetLength();
+            if (closed2D is ISegmentable2D)
+                return ((ISegmentable2D)closed2D).GetLength();
 
             throw new System.NotImplementedException();
         }

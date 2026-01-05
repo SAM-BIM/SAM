@@ -6,7 +6,7 @@ namespace SAM.Analytical.Rhino
     {
         public static global::Rhino.Geometry.Brep ToRhino(this IPartition partition, bool cutOpenings = false, double tolerance = Core.Tolerance.MicroDistance)
         {
-            if(partition == null)
+            if (partition == null)
             {
                 return null;
             }

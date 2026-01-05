@@ -37,7 +37,7 @@ namespace SAM.Core.Grasshopper
 
                 ProcessStartInfo processStartInfo = new ProcessStartInfo(path_Temp);
                 processStartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                
+
                 Process process = Process.Start(processStartInfo);
                 process.WaitForExit();
             }

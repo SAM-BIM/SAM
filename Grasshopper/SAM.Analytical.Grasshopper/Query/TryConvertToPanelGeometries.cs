@@ -10,14 +10,14 @@ namespace SAM.Analytical.Grasshopper
         public static bool TryConvertToPanelGeometries(this object @object, out List<ISAMGeometry3D> sAMGeometry3Ds, bool simplify = true)
         {
             sAMGeometry3Ds = null;
-            
+
             if (@object is IGH_GeometricGoo)
             {
                 sAMGeometry3Ds = ((IGH_GeometricGoo)@object).ToSAM(simplify);
                 return true;
             }
 
-            if(@object is ISAMGeometry3D)
+            if (@object is ISAMGeometry3D)
             {
                 sAMGeometry3Ds = new List<ISAMGeometry3D>() { (ISAMGeometry3D)@object };
                 return true;

@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace SAM.Core
 {
-    public abstract class SAMLibrary<T>: SAMObject, ISAMLibrary where T: IJSAMObject
+    public abstract class SAMLibrary<T> : SAMObject, ISAMLibrary where T : IJSAMObject
     {
         private Dictionary<string, T> objects;
 
@@ -148,7 +148,7 @@ namespace SAM.Core
                 if (jSAMObjects != null && jSAMObjects.Count != 0)
                     jSAMObjects.ForEach(x => Add(x));
             }
-                
+
             return true;
         }
 

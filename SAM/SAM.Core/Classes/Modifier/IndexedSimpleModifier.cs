@@ -7,7 +7,7 @@ namespace SAM.Core
         public ArithmeticOperator ArithmeticOperator { get; set; }
 
         public IndexedSimpleModifier()
-            :base()
+            : base()
         {
 
         }
@@ -15,7 +15,7 @@ namespace SAM.Core
         public IndexedSimpleModifier(IndexedSimpleModifier indexedSimpleModifier)
             : base(indexedSimpleModifier)
         {
-            if(indexedSimpleModifier != null)
+            if (indexedSimpleModifier != null)
             {
                 ArithmeticOperator = indexedSimpleModifier.ArithmeticOperator;
             }

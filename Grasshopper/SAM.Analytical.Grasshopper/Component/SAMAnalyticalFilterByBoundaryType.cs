@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -67,7 +67,7 @@ namespace SAM.Analytical.Grasshopper
 
             SAMObject sAMObject = null;
             index = Params.IndexOfInputParam("_analytical");
-            if(index == -1 || !dataAccess.GetData(index, ref sAMObject) || sAMObject == null)
+            if (index == -1 || !dataAccess.GetData(index, ref sAMObject) || sAMObject == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -87,7 +87,7 @@ namespace SAM.Analytical.Grasshopper
             if (adjacencyCluster != null)
             {
                 List<Panel> panels = adjacencyCluster.GetPanels();
-                if(panels != null)
+                if (panels != null)
                 {
                     foreach (Panel panel in panels)
                     {
@@ -108,7 +108,7 @@ namespace SAM.Analytical.Grasshopper
                 }
             }
 
-            foreach(KeyValuePair<BoundaryType, List<Panel>> keyValuePair in dictionary)
+            foreach (KeyValuePair<BoundaryType, List<Panel>> keyValuePair in dictionary)
             {
                 index = Params.IndexOfOutputParam(keyValuePair.Key.ToString());
                 if (index != -1)

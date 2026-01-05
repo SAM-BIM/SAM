@@ -8,13 +8,13 @@ namespace SAM.Analytical
     public class PanelAperturesFilter : MultiRelationFilter<Aperture>
     {
         public PanelAperturesFilter(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
 
         }
 
         public PanelAperturesFilter(PanelAperturesFilter panelAperturesFilter)
-            :base(panelAperturesFilter)
+            : base(panelAperturesFilter)
         {
 
         }
@@ -28,7 +28,7 @@ namespace SAM.Analytical
         public override List<Aperture> GetRelatives(IJSAMObject jSAMObject)
         {
             Panel panel = jSAMObject as Panel;
-            if(panel == null)
+            if (panel == null)
             {
                 return null;
             }

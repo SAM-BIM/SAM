@@ -102,7 +102,7 @@ namespace SAM.Core.Grasshopper
             }
 
             index = Params.IndexOfOutputParam("Text");
-            if(index != -1)
+            if (index != -1)
             {
                 string result = textMap.Replace(text);
                 if (result.Length > maxLength)

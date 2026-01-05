@@ -19,13 +19,13 @@ namespace SAM.Math
                 return null;
             }
 
-            if(x.Count() == 1)
+            if (x.Count() == 1)
             {
                 return null;
             }
 
             int order_Temp = order;
-            if(order_Temp == -1)
+            if (order_Temp == -1)
             {
                 order_Temp = count - 1;
             }

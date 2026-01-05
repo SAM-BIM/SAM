@@ -10,7 +10,7 @@ namespace SAM.Core
         }
 
         public IndexedModifier(IndexedModifier indexedModifier)
-            :base(indexedModifier)
+            : base(indexedModifier)
         {
 
         }

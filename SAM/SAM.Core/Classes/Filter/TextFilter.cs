@@ -27,11 +27,11 @@ namespace SAM.Core
         }
 
         public bool CaseSensitive { get; set; } = true;
-        
+
         public TextComparisonType TextComparisonType { get; set; } = TextComparisonType.Equals;
 
         public string Value { get; set; }
-        
+
         public override bool FromJObject(JObject jObject)
         {
             if (!base.FromJObject(jObject))

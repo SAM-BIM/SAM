@@ -6,7 +6,7 @@ namespace SAM.Core
     {
         public static List<Category> SubCategories(this Category category)
         {
-            if(category == null)
+            if (category == null)
             {
                 return null;
             }
@@ -14,13 +14,13 @@ namespace SAM.Core
             List<Category> result = new List<Category>();
 
             Category subCategory = category.SubCategory;
-            if(subCategory == null)
+            if (subCategory == null)
             {
                 return result;
             }
 
             List<Category> subCategories = SubCategories(subCategory);
-            if(subCategories != null)
+            if (subCategories != null)
             {
                 result.AddRange(subCategories);
             }

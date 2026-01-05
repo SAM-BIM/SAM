@@ -5,9 +5,9 @@ namespace SAM.Analytical
 {
     public static partial class Create
     {
-        public static Cases Cases<T>(IEnumerable<T> cases) where T: Case
+        public static Cases Cases<T>(IEnumerable<T> cases) where T : Case
         {
-            if(cases == null)
+            if (cases == null)
             {
                 return null;
             }
@@ -16,7 +16,7 @@ namespace SAM.Analytical
 
             foreach (T @case in cases)
             {
-                if(@case is null)
+                if (@case is null)
                 {
                     continue;
                 }

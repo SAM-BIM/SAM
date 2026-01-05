@@ -21,7 +21,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -85,14 +85,14 @@ namespace SAM.Analytical.Grasshopper
             }
 
             AdjacencyCluster adjacencyCluster_Destination = null;
-            if(analyticalObject_Destination is AdjacencyCluster)
+            if (analyticalObject_Destination is AdjacencyCluster)
             {
                 adjacencyCluster_Destination = new AdjacencyCluster((AdjacencyCluster)analyticalObject_Destination);
             }
-            else if(analyticalObject_Destination is AnalyticalModel)
+            else if (analyticalObject_Destination is AnalyticalModel)
             {
                 adjacencyCluster_Destination = ((AnalyticalModel)analyticalObject_Destination).AdjacencyCluster;
-                if(adjacencyCluster_Destination != null)
+                if (adjacencyCluster_Destination != null)
                 {
                     adjacencyCluster_Destination = new AdjacencyCluster(adjacencyCluster_Destination);
                 }

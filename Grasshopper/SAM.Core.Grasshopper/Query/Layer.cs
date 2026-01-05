@@ -8,7 +8,7 @@
                 return null;
 
             int count = layerTable.Count;
-            for(int i=0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
                 Rhino.DocObjects.Layer layer = layerTable[i];
                 if (layer == null)

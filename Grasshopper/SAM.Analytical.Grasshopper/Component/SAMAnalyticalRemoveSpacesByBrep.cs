@@ -23,7 +23,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -46,7 +46,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                GooAnalyticalObjectParam gooAnalyticalObjectParam = new () { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item };
+                GooAnalyticalObjectParam gooAnalyticalObjectParam = new() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(gooAnalyticalObjectParam, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject genericObject = new()
@@ -107,11 +107,11 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
-            if(analyticalObject is AdjacencyCluster adjacencyCluster)
+            if (analyticalObject is AdjacencyCluster adjacencyCluster)
             {
                 adjacencyCluster = new AdjacencyCluster(adjacencyCluster);
             }
-            else if(analyticalObject is AnalyticalModel analyticalModel)
+            else if (analyticalObject is AnalyticalModel analyticalModel)
             {
                 adjacencyCluster = new AdjacencyCluster(analyticalModel.AdjacencyCluster);
             }
@@ -154,11 +154,11 @@ namespace SAM.Analytical.Grasshopper
 
             List<Space> spaces = Analytical.Modify.RemoveSpaces(adjacencyCluster, shells.ConvertAll(x => x.InternalPoint3D(silverSpacing, tolerance)), silverSpacing, tolerance);
 
-            if(analyticalObject is AdjacencyCluster)
+            if (analyticalObject is AdjacencyCluster)
             {
                 analyticalObject = adjacencyCluster;
             }
-            else if(analyticalObject is AnalyticalModel analyticalModel)
+            else if (analyticalObject is AnalyticalModel analyticalModel)
             {
                 analyticalObject = new AnalyticalModel(analyticalModel, adjacencyCluster);
             }

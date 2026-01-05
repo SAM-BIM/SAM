@@ -36,14 +36,14 @@ namespace SAM.Core.Grasshopper
         {
         }
 
-        
+
 
         protected override GH_SAMParam[] Inputs
         {
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_csv", NickName = "_csv", Description = "file path to csv text", Access = GH_ParamAccess.item }, ParamVisibility.Binding));                return result.ToArray();
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_csv", NickName = "_csv", Description = "file path to csv text", Access = GH_ParamAccess.item }, ParamVisibility.Binding)); return result.ToArray();
             }
         }
 

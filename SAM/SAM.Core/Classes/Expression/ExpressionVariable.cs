@@ -6,7 +6,7 @@ namespace SAM.Core
     public class ExpressionVariable : IJSAMObject
     {
         private string text;
-        
+
         public ExpressionVariable(string text)
         {
             this.text = text;
@@ -45,7 +45,7 @@ namespace SAM.Core
             }
 
             List<string> texts = Query.Texts(Text, openSymbol, closeSymbol);
-            if(texts == null || texts.Count == 0)
+            if (texts == null || texts.Count == 0)
             {
                 name = text;
                 return true;
@@ -103,7 +103,7 @@ namespace SAM.Core
         public override bool Equals(object obj)
         {
             ExpressionVariable expressionVariable = obj as ExpressionVariable;
-            if(expressionVariable == null)
+            if (expressionVariable == null)
             {
                 return false;
             }
@@ -113,7 +113,7 @@ namespace SAM.Core
 
         public override int GetHashCode()
         {
-            if(text == null)
+            if (text == null)
             {
                 return -1;
             }

@@ -44,7 +44,7 @@ namespace SAM.Geometry.Object.Spatial
         public Mesh3DObject(Mesh3D mesh3D, SurfaceAppearance surfaceAppearance)
             : base(mesh3D)
         {
-            if(surfaceAppearance != null)
+            if (surfaceAppearance != null)
             {
                 SurfaceAppearance = new SurfaceAppearance(surfaceAppearance);
             }
@@ -58,12 +58,12 @@ namespace SAM.Geometry.Object.Spatial
 
         public override bool FromJObject(JObject jObject)
         {
-            if(!base.FromJObject(jObject))
+            if (!base.FromJObject(jObject))
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("SurfaceAppearance"))
+            if (jObject.ContainsKey("SurfaceAppearance"))
             {
                 SurfaceAppearance = new SurfaceAppearance(jObject.Value<JObject>("SurfaceAppearance"));
             }
@@ -76,12 +76,12 @@ namespace SAM.Geometry.Object.Spatial
         public override JObject ToJObject()
         {
             JObject jObject = base.ToJObject();
-            if(jObject == null)
+            if (jObject == null)
             {
                 return null;
             }
 
-            if(SurfaceAppearance != null)
+            if (SurfaceAppearance != null)
             {
                 jObject.Add("SurfaceAppearance", SurfaceAppearance.ToJObject());
             }

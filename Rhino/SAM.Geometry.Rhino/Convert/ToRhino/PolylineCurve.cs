@@ -15,7 +15,7 @@ namespace SAM.Geometry.Rhino
             points.Add(curve3Ds.First().GetStart().ToRhino());
 
             points.AddRange(curve3Ds.ToList().ConvertAll(x => x.GetEnd().ToRhino()));
-           
+
 
             if (points == null || points.Count < 2)
                 return null;

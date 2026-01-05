@@ -91,7 +91,7 @@ namespace SAM.Geometry.Spatial
 
         public bool Collinear(Vector3D vector3D, double tolerance = Core.Tolerance.Distance)
         {
-            if(vector3D == null)
+            if (vector3D == null)
                 return false;
 
             return System.Math.Abs(System.Math.Abs(this * vector3D) - (Length * vector3D.Length)) <= tolerance;
@@ -399,7 +399,7 @@ namespace SAM.Geometry.Spatial
         }
 
         public static Vector3D WorldX
-        { 
+        {
             get
             {
                 return new Vector3D(1, 0, 0);
@@ -415,7 +415,7 @@ namespace SAM.Geometry.Spatial
         }
 
         public static Vector3D WorldZ
-        { 
+        {
             get
             {
                 return new Vector3D(0, 0, 1);

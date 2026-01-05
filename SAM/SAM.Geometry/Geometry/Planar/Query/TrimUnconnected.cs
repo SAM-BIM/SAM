@@ -6,7 +6,7 @@ namespace SAM.Geometry.Planar
     {
         public static List<Segment2D> TrimUnconnected(this IEnumerable<Segment2D> segment2Ds, double minLength, double tolerance = Core.Tolerance.Distance)
         {
-            if(segment2Ds == null)
+            if (segment2Ds == null)
             {
                 return null;
             }
@@ -30,7 +30,7 @@ namespace SAM.Geometry.Planar
                     if (segment2Ds_Temp.Count == 1)
                     {
                         Segment2D segment2D = segment2Ds_Temp[0];
-                        if(segment2D.GetLength() < minLength)
+                        if (segment2D.GetLength() < minLength)
                         {
                             result.Remove(segment2D);
                             removed = true;

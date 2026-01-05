@@ -10,7 +10,7 @@ namespace SAM.Geometry.Planar
                 return null;
 
             HashSet<Point2D> result = new HashSet<Point2D>();
-            foreach(ISegmentable2D segmentable2D in segmentable2Ds)
+            foreach (ISegmentable2D segmentable2D in segmentable2Ds)
             {
                 List<Point2D> point2Ds = segmentable2D?.GetPoints();
                 if (point2Ds == null || point2Ds.Count == 0)
@@ -18,7 +18,7 @@ namespace SAM.Geometry.Planar
                     continue;
                 }
 
-                foreach(Point2D point2D in point2Ds)
+                foreach (Point2D point2D in point2Ds)
                 {
                     result.Add(point2D);
                 }

@@ -9,15 +9,15 @@ namespace SAM.Analytical
         {
             if (buildingModel == null || partition == null || space == null)
                 return null;
-            
+
             List<IPartition> partitions = buildingModel.GetPartitions(space);
-            if(partitions == null || partitions.Count == 0)
+            if (partitions == null || partitions.Count == 0)
             {
                 return null;
             }
 
             IPartition partition_Temp = partitions.Find(x => x.Guid == partition.Guid);
-            if(partition_Temp == null)
+            if (partition_Temp == null)
             {
                 return null;
             }

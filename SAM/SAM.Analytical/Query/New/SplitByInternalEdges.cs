@@ -16,12 +16,12 @@ namespace SAM.Analytical
                 return null;
 
             List<IPartition> result = new List<IPartition>();
-            for(int i=0; i < face3Ds.Count; i++)
+            for (int i = 0; i < face3Ds.Count; i++)
             {
                 System.Guid guid = i == 0 ? partition.Guid : System.Guid.NewGuid();
 
                 IPartition partition_Temp = Create.Partition(partition, guid, face3Ds[i], tolerance);
-                if(partition_Temp == null)
+                if (partition_Temp == null)
                 {
                     continue;
                 }

@@ -24,7 +24,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -78,7 +78,7 @@ namespace SAM.Analytical.Grasshopper
               "Create IZAM AHU object to calculate Inter Zone Air Movement" +
                 "\n Inter Zone Air Movements also know as IZAM’s are used to model air flow in and out of a zone. " +
                 "IZAM’s can be set up to create an air flow that can come from outside or from another zone, " +
-                "it can also be set up to create an air flow from the zone to outside." + 
+                "it can also be set up to create an air flow from the zone to outside." +
                 "\nhttps://docs.edsl.net/tbd/CoreConcepts/IZAMs.html",
               "SAM", "Analytical")
         {
@@ -89,7 +89,7 @@ namespace SAM.Analytical.Grasshopper
             int index;
 
             index = Params.IndexOfInputParam("_analytical");
-            if(index == -1)
+            if (index == -1)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -153,16 +153,16 @@ namespace SAM.Analytical.Grasshopper
 
             List<double> densities = null;
             index = Params.IndexOfInputParam("_densities_");
-            if(index != -1)
+            if (index != -1)
             {
                 densities = new List<double>();
-                if(!dataAccess.GetDataList(index, densities))
+                if (!dataAccess.GetDataList(index, densities))
                 {
                     densities = null;
                 }
             }
 
-            if(densities == null)
+            if (densities == null)
             {
                 densities = new List<double>() { FluidProperty.Air.Density };
             }
@@ -172,15 +172,15 @@ namespace SAM.Analytical.Grasshopper
             if (sAMObject is AnalyticalModel || sAMObject is AdjacencyCluster)
             {
                 AdjacencyCluster adjacencyCluster = null;
-                if(sAMObject is AnalyticalModel)
+                if (sAMObject is AnalyticalModel)
                     adjacencyCluster = ((AnalyticalModel)sAMObject).AdjacencyCluster;
-                else if(sAMObject is AdjacencyCluster)
+                else if (sAMObject is AdjacencyCluster)
                     adjacencyCluster = new AdjacencyCluster((AdjacencyCluster)sAMObject);
 
-                if(adjacencyCluster != null)
+                if (adjacencyCluster != null)
                 {
                     AirHandlingUnit airHandlingUnit = adjacencyCluster.GetObjects<AirHandlingUnit>()?.Find(x => x.Name == name);
-                    if(airHandlingUnit == null)
+                    if (airHandlingUnit == null)
                     {
                         airHandlingUnit = new AirHandlingUnit(name, temperatures.Average() - (temperatureRanges.Average() / 2), temperatures.Average() + (temperatureRanges.Average() / 2));
                         adjacencyCluster.AddObject(airHandlingUnit);

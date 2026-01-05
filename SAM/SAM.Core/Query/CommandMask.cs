@@ -56,7 +56,7 @@ namespace SAM.Core
                 result[i] = !apostrophe && braketCount == 0;
             }
 
-            if(includeComment)
+            if (includeComment)
             {
                 string @operator = Operator(CommandOperator.Comment);
                 List<int> indexes = text.IndexesOf(@operator);

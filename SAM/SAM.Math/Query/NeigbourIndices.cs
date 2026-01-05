@@ -14,19 +14,19 @@
             lowerIndex = -1;
             upperIndex = -1;
 
-            if(values == null || values.Length == 0 || double.IsNaN(value))
+            if (values == null || values.Length == 0 || double.IsNaN(value))
             {
                 return;
             }
 
-            if(value <= values[0] )
+            if (value <= values[0])
             {
                 lowerIndex = 0;
                 upperIndex = 0;
                 return;
             }
 
-            if(value >= values[values.Length - 1])
+            if (value >= values[values.Length - 1])
             {
                 lowerIndex = values.Length - 1;
                 upperIndex = values.Length - 1;
@@ -35,13 +35,13 @@
 
             for (int i = 1; i < values.Length; i++)
             {
-                if(value < values[i])
+                if (value < values[i])
                 {
                     lowerIndex = i - 1;
                     upperIndex = i;
                     return;
                 }
-                else if(value == values[i])
+                else if (value == values[i])
                 {
                     lowerIndex = i;
                     upperIndex = i;

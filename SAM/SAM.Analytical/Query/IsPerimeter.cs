@@ -7,19 +7,19 @@ namespace SAM.Analytical
     {
         public static bool IsPerimeter(this AdjacencyCluster adjacencyCluster, Space space, bool apertureCheck = true, IEnumerable<PanelGroup> panelGroups = null)
         {
-            if(adjacencyCluster == null || space == null)
+            if (adjacencyCluster == null || space == null)
             {
                 return false;
             }
 
             Space space_Temp = adjacencyCluster.GetObject<Space>(space.Guid);
-            if(space_Temp == null)
+            if (space_Temp == null)
             {
                 return false;
             }
 
             List<Panel> panels = adjacencyCluster.GetPanels(space_Temp);
-            if(panels == null || panels.Count == 0)
+            if (panels == null || panels.Count == 0)
             {
                 return false;
             }
@@ -31,11 +31,11 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                if(panelGroups != null && !panelGroups.Contains(panel.PanelGroup))
+                if (panelGroups != null && !panelGroups.Contains(panel.PanelGroup))
                 {
                     continue;
                 }
-                
+
                 if (apertureCheck)
                 {
                     List<Aperture> apertures = panel.Apertures;

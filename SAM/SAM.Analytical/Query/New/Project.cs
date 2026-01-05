@@ -6,19 +6,19 @@ namespace SAM.Analytical
     {
         public static IOpening Project(this IPartition partition, IOpening opening)
         {
-            if(partition == null || opening == null)
+            if (partition == null || opening == null)
             {
                 return null;
             }
 
             Plane plane = partition.Face3D.GetPlane();
-            if(plane == null)
+            if (plane == null)
             {
                 return null;
             }
 
             Face3D face3D = plane.Project(opening.Face3D);
-            if(face3D == null || !face3D.IsValid())
+            if (face3D == null || !face3D.IsValid())
             {
                 return null;
             }

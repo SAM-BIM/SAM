@@ -129,7 +129,7 @@ namespace SAM.Core.Grasshopper
                 }
 
                 string name = value?.GetType()?.Name;
-                if(string.IsNullOrWhiteSpace(name))
+                if (string.IsNullOrWhiteSpace(name))
                 {
                     continue;
                 }

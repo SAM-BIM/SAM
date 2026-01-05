@@ -7,9 +7,9 @@ namespace SAM.Analytical
 {
     public static partial class Query
     {
-        public static List<T> Filter<T>(this AdjacencyCluster adjacencyCluster, IFilter filter, IEnumerable<IJSAMObject> jSAMObjects = null) where T: IJSAMObject
+        public static List<T> Filter<T>(this AdjacencyCluster adjacencyCluster, IFilter filter, IEnumerable<IJSAMObject> jSAMObjects = null) where T : IJSAMObject
         {
-            if(adjacencyCluster == null || filter == null)
+            if (adjacencyCluster == null || filter == null)
             {
                 return null;
             }
@@ -18,10 +18,10 @@ namespace SAM.Analytical
 
             Modify.AssignAdjacencyCluster(filter, adjacencyCluster);
 
-            if(jSAMObjects != null)
+            if (jSAMObjects != null)
             {
                 List<Tuple<Type, Guid>> tuples = jSAMObjects.ToList().ConvertAll(x => x as SAMObject).FindAll(x => x != null).ConvertAll(x => new Tuple<Type, Guid>(x.GetType(), x.Guid));
-                if(tuples != null)
+                if (tuples != null)
                 {
                     for (int i = jSAMObjects_Filtering.Count - 1; i >= 0; i--)
                     {
@@ -31,9 +31,9 @@ namespace SAM.Analytical
                             continue;
                         }
 
-                        if(tuples.Find(x => x.Item1 == sAMObject.GetType() && x.Item2 == sAMObject.Guid) == null)
+                        if (tuples.Find(x => x.Item1 == sAMObject.GetType() && x.Item2 == sAMObject.Guid) == null)
                         {
-                            if(!jSAMObjects.Contains(jSAMObjects_Filtering[i]))
+                            if (!jSAMObjects.Contains(jSAMObjects_Filtering[i]))
                             {
                                 jSAMObjects_Filtering.RemoveAt(i);
                             }
@@ -44,7 +44,7 @@ namespace SAM.Analytical
                 jSAMObjects_Filtering.RemoveAll(x => !(x is SAMObject));
             }
 
-            if(jSAMObjects_Filtering.Count == 0)
+            if (jSAMObjects_Filtering.Count == 0)
             {
                 return new List<T>();
             }
@@ -54,7 +54,7 @@ namespace SAM.Analytical
 
         public static ConstructionManager Filter(this ConstructionManager constructionManager, IEnumerable<Construction> constructions = null, IEnumerable<ApertureConstruction> apertureConstructions = null, bool removeUnusedMaterials = false)
         {
-            if(constructionManager == null)
+            if (constructionManager == null)
             {
                 return null;
             }
@@ -70,14 +70,14 @@ namespace SAM.Analytical
             List<Construction> constructions_All = result.Constructions;
             if (constructions_All != null)
             {
-                foreach(Construction construction in constructions_All)
+                foreach (Construction construction in constructions_All)
                 {
-                    if(construction == null)
+                    if (construction == null)
                     {
                         continue;
                     }
 
-                    if(constrcutions_Temp.Find(x => x.Guid == construction.Guid) == null)
+                    if (constrcutions_Temp.Find(x => x.Guid == construction.Guid) == null)
                     {
                         result.Remove(construction);
                     }
@@ -102,7 +102,7 @@ namespace SAM.Analytical
                 }
             }
 
-            if(removeUnusedMaterials)
+            if (removeUnusedMaterials)
             {
                 result.RemoveUnusedMaterials();
             }

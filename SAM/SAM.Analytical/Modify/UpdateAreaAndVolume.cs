@@ -12,7 +12,7 @@ namespace SAM.Analytical
             }
 
             Space result = adjacencyCluster.GetObject<Space>(space.Guid);
-            if(result == null)
+            if (result == null)
             {
                 return null;
             }
@@ -20,12 +20,12 @@ namespace SAM.Analytical
             bool update;
 
             update = true;
-            if(!forceUpdate && result.TryGetValue(SpaceParameter.Volume, out double volume) && volume > 0)
+            if (!forceUpdate && result.TryGetValue(SpaceParameter.Volume, out double volume) && volume > 0)
             {
                 update = false;
             }
 
-            if(update)
+            if (update)
             {
                 result.RemoveValue(SpaceParameter.Volume);
                 result.SetValue(SpaceParameter.Volume, result.Volume(adjacencyCluster));
@@ -49,15 +49,15 @@ namespace SAM.Analytical
         public static void UpdateAreaAndVolume(this AdjacencyCluster adjacencyCluster, bool forceUpdate = true)
         {
             List<Space> spaces = adjacencyCluster?.GetSpaces();
-            if(spaces == null || spaces.Count == 0)
+            if (spaces == null || spaces.Count == 0)
             {
                 return;
             }
 
-            foreach(Space space in spaces)
+            foreach (Space space in spaces)
             {
                 Space space_New = UpdateAreaAndVolume(adjacencyCluster, space, forceUpdate);
-                if(space_New == null)
+                if (space_New == null)
                 {
                     continue;
                 }

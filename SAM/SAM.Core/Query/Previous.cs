@@ -17,7 +17,7 @@ namespace SAM.Core
                 {
                     continue;
                 }
-                
+
                 if (double.IsNaN(result) || result < value_Temp)
                 {
                     result = value_Temp;
@@ -35,7 +35,7 @@ namespace SAM.Core
             }
 
             int index_Temp = Previous(values.Count(), index);
-            if(index_Temp == -1)
+            if (index_Temp == -1)
             {
                 return default(T);
             }

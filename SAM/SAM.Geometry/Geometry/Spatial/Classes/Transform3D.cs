@@ -208,7 +208,7 @@ namespace SAM.Geometry.Spatial
 
         public static Transform3D GetCoordinateSystem3DToOrigin(CoordinateSystem3D coordinateSystem3D)
         {
-            if(coordinateSystem3D == null)
+            if (coordinateSystem3D == null)
             {
                 return null;
             }
@@ -225,7 +225,7 @@ namespace SAM.Geometry.Spatial
 
         public static Transform3D GetPlaneToOrigin(Point3D origin, Vector3D axisX, Vector3D axisY, Vector3D axisZ)
         {
-            if(origin == null || axisX == null || axisY == null || axisZ == null)
+            if (origin == null || axisX == null || axisY == null || axisZ == null)
             {
                 return null;
             }

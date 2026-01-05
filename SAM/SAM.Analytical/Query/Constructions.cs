@@ -9,7 +9,7 @@ namespace SAM.Analytical
         {
             if (panels == null)
                 return null;
-            
+
             Dictionary<Guid, Construction> dictionary = new Dictionary<Guid, Construction>();
 
             foreach (Panel panel in panels)

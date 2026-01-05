@@ -18,7 +18,7 @@ namespace SAM.Analytical.Grasshopper
 
         public static GH_Mesh ToGrasshopper_Mesh(this IPartition partition, bool cutOpenings = true, bool includeOpenings = true, double tolerance = Core.Tolerance.Distance)
         {
-            if(partition == null)
+            if (partition == null)
             {
                 return null;
             }

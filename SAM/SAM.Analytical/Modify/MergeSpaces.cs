@@ -84,7 +84,7 @@ namespace SAM.Analytical
             }
 
             Space space_1 = adjacencyCluster.GetObject<Space>(spaceGuid_1);
-            if(space_1 == null)
+            if (space_1 == null)
             {
                 return null;
             }
@@ -116,7 +116,7 @@ namespace SAM.Analytical
                         prefix_2 = name_2.Substring(0, index_2);
                     }
 
-                    if(prefix_2.StartsWith(prefix_1))
+                    if (prefix_2.StartsWith(prefix_1))
                     {
                         space_1 = new Space(space_1, prefix_1, space_1.Location);
                     }
@@ -124,7 +124,7 @@ namespace SAM.Analytical
             }
 
             List<Panel> panels_Adjacent = adjacencyCluster.GetPanels(Core.LogicalOperator.And, space_1, space_2);
-            if(panels_Adjacent == null || panels_Adjacent.Count == 0)
+            if (panels_Adjacent == null || panels_Adjacent.Count == 0)
             {
                 return null;
             }
@@ -141,7 +141,7 @@ namespace SAM.Analytical
             panelGuids_ToBeRemoved.ForEach(x => adjacencyCluster.RemoveObject<Panel>(x));
 
             panels_Adjacent.RemoveAll(x => panelGuids_ToBeRemoved.Contains(x.Guid));
-            if(panels_Adjacent.Count != 0)
+            if (panels_Adjacent.Count != 0)
             {
                 //panels_Adjacent = panels_Adjacent.ConvertAll(x => Create.Panel(x, PanelType.Shade));
 
@@ -166,7 +166,7 @@ namespace SAM.Analytical
             foreach (Panel panel in panels_2)
             {
                 Panel panel_Temp = panels_Adjacent.Find(x => x.Guid == panel.Guid);
-                if(panel_Temp != null)
+                if (panel_Temp != null)
                 {
                     continue;
                 }
@@ -185,17 +185,17 @@ namespace SAM.Analytical
         {
             panels = null;
 
-            if(adjacencyCluster == null)
+            if (adjacencyCluster == null)
             {
                 return null;
             }
 
-            if(spaceGuids == null)
+            if (spaceGuids == null)
             {
                 spaceGuids = adjacencyCluster.GetSpaces()?.ConvertAll(x => x.Guid);
             }
 
-            if(spaceGuids == null)
+            if (spaceGuids == null)
             {
                 return null;
             }
@@ -222,7 +222,7 @@ namespace SAM.Analytical
                 foreach (Space space_Adjacent in spaces_Adjacent)
                 {
                     List<Panel> panels_Temp = adjacencyCluster.GetPanels(Core.LogicalOperator.And, space, space_Adjacent);
-                    if(panelTypes != null)
+                    if (panelTypes != null)
                     {
                         panels_Temp.RemoveAll(x => !panelTypes.Contains(x.PanelType));
                     }

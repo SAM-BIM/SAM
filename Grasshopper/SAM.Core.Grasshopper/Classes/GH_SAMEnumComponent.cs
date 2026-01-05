@@ -1,7 +1,7 @@
-﻿using System;
-using System.Windows.Forms;
-using GH_IO.Serialization;
+﻿using GH_IO.Serialization;
 using Grasshopper.Kernel;
+using System;
+using System.Windows.Forms;
 
 namespace SAM.Core.Grasshopper
 {
@@ -68,7 +68,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         protected override void RegisterOutputParams(GH_OutputParamManager outputParamManager)
         {
-            outputParamManager.AddParameter(new GooObjectParam() { Name = typeof(T).Name, NickName = typeof(T).Name, Description = typeof(T).Name, Access = GH_ParamAccess.item});
+            outputParamManager.AddParameter(new GooObjectParam() { Name = typeof(T).Name, NickName = typeof(T).Name, Description = typeof(T).Name, Access = GH_ParamAccess.item });
         }
 
         /// <summary>

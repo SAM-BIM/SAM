@@ -9,12 +9,12 @@
         /// <returns>Unit Vector2D</returns>
         public static Vector2D Vector2D(double angle)
         {
-            if(double.IsNaN(angle) || double.IsInfinity(angle))
+            if (double.IsNaN(angle) || double.IsInfinity(angle))
             {
                 return null;
             }
 
-            if(angle == 0)
+            if (angle == 0)
             {
                 return Planar.Vector2D.WorldX;
             }
@@ -39,7 +39,7 @@
             }
 
             Vector2D vector2D = Vector2D(angle);
-            if(vector2D == null)
+            if (vector2D == null)
             {
                 return null;
             }

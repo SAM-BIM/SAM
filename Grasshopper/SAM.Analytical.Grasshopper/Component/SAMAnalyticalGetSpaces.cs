@@ -25,7 +25,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -48,7 +48,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "_objects", NickName = "_objects", Description = "Objects such as Point, SAM Analytical InternalCondition etc.", Access = GH_ParamAccess.list}, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "_objects", NickName = "_objects", Description = "Objects such as Point, SAM Analytical InternalCondition etc.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -79,14 +79,14 @@ namespace SAM.Analytical.Grasshopper
             int index = -1;
 
             index = Params.IndexOfInputParam("_analytical");
-            if(index == -1)
+            if (index == -1)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
             }
-            
+
             SAMObject sAMObject_Temp = null;
-            if(!dataAccess.GetData(index, ref sAMObject_Temp) || sAMObject_Temp == null)
+            if (!dataAccess.GetData(index, ref sAMObject_Temp) || sAMObject_Temp == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -104,16 +104,16 @@ namespace SAM.Analytical.Grasshopper
                 analyticalModel = (AnalyticalModel)sAMObject_Temp;
                 adjacencyCluster = analyticalModel.AdjacencyCluster;
             }
-                
 
-            if(adjacencyCluster == null)
+
+            if (adjacencyCluster == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
             }
 
             index = Params.IndexOfInputParam("_objects");
-            if(index == -1)
+            if (index == -1)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -130,7 +130,7 @@ namespace SAM.Analytical.Grasshopper
             DataTree<Geometry.Grasshopper.GooSAMGeometry> dataTree_Shells = new DataTree<Geometry.Grasshopper.GooSAMGeometry>();
             List<Tuple<GH_Path, Geometry.Spatial.Point3D>> tuples = new List<Tuple<GH_Path, Geometry.Spatial.Point3D>>();
 
-            for (int i=0; i < objects.Count; i++)
+            for (int i = 0; i < objects.Count; i++)
             {
                 GH_Path path = new GH_Path(i);
 
@@ -162,7 +162,7 @@ namespace SAM.Analytical.Grasshopper
                     List<Space> spaces = adjacencyCluster.GetSpaces((Panel)@object);
                     if (spaces != null)
                     {
-                        foreach(Space space in spaces)
+                        foreach (Space space in spaces)
                         {
                             dataTree_Spaces.Add(new GooSpace(space), path);
                             dataTree_Shells.Add(new Geometry.Grasshopper.GooSAMGeometry(adjacencyCluster.Shell(space)), path);
@@ -267,13 +267,13 @@ namespace SAM.Analytical.Grasshopper
                     if (point3D != null)
                         tuples.Add(new Tuple<GH_Path, Geometry.Spatial.Point3D>(path, point3D));
                 }
-                else if(@object is global::Rhino.Geometry.Point3d)
+                else if (@object is global::Rhino.Geometry.Point3d)
                 {
                     Geometry.Spatial.Point3D point3D = Geometry.Rhino.Convert.ToSAM((global::Rhino.Geometry.Point3d)@object);
                     if (point3D != null)
                         tuples.Add(new Tuple<GH_Path, Geometry.Spatial.Point3D>(path, point3D));
                 }
-                else if(@object is string)
+                else if (@object is string)
                 {
                     List<Space> spaces = adjacencyCluster.GetSpaces();
                     if (spaces == null || spaces.Count == 0)
@@ -288,10 +288,10 @@ namespace SAM.Analytical.Grasshopper
                 }
             }
 
-            if(tuples != null && tuples.Count != 0)
+            if (tuples != null && tuples.Count != 0)
             {
                 Dictionary<Space, Geometry.Spatial.Shell> dictionary = adjacencyCluster?.ShellDictionary();
-                if(dictionary != null && dictionary.Count > 0)
+                if (dictionary != null && dictionary.Count > 0)
                 {
                     foreach (Tuple<GH_Path, Geometry.Spatial.Point3D> tuple in tuples)
                     {
@@ -303,10 +303,10 @@ namespace SAM.Analytical.Grasshopper
                         {
                             if (keyValuePair.Key == null)
                                 continue;
-                            
+
                             if (keyValuePair.Value.InRange(point3D) || keyValuePair.Value.Inside(point3D))
                             {
-                                dataTree_Spaces.Add( new GooSpace(keyValuePair.Key), tuple.Item1);
+                                dataTree_Spaces.Add(new GooSpace(keyValuePair.Key), tuple.Item1);
                                 dataTree_Shells.Add(new Geometry.Grasshopper.GooSAMGeometry(adjacencyCluster.Shell(keyValuePair.Key)), tuple.Item1);
                                 break;
                             }

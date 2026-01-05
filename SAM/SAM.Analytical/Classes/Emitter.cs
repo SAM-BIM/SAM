@@ -76,7 +76,7 @@ namespace SAM.Analytical
             if (!base.FromJObject(jObject))
                 return false;
 
-            if(jObject.ContainsKey("RadiantProportion"))
+            if (jObject.ContainsKey("RadiantProportion"))
                 radiantProportion = jObject.Value<double>("RadiantProportion");
 
             if (jObject.ContainsKey("ViewCoefficient"))
@@ -90,11 +90,11 @@ namespace SAM.Analytical
 
         public override JObject ToJObject()
         {
-           JObject jObject = base.ToJObject();
+            JObject jObject = base.ToJObject();
             if (jObject == null)
                 return null;
 
-            if(!double.IsNaN(radiantProportion))
+            if (!double.IsNaN(radiantProportion))
                 jObject.Add("RadiantProportion", radiantProportion);
 
             if (!double.IsNaN(viewCoefficient))

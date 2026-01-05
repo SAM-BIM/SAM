@@ -13,9 +13,9 @@
 
         public Solver2DData Solver2DData
         {
-            get 
-            { 
-                return solver2DData; 
+            get
+            {
+                return solver2DData;
             }
         }
 

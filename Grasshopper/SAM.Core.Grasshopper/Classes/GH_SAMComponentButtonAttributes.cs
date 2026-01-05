@@ -9,7 +9,7 @@ namespace SAM.Core.Grasshopper
 {
     public class GH_SAMComponentButtonAttributes : GH_SAMComponentAttributes
     {
-        public GH_SAMComponentButtonAttributes(GH_Component component) 
+        public GH_SAMComponentButtonAttributes(GH_Component component)
             : base(component)
         {
         }

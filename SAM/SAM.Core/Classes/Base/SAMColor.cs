@@ -105,7 +105,7 @@ namespace SAM.Core
             if (jObject.ContainsKey("Name"))
                 color = Convert.ToColor(jObject.Value<string>("Name"));
 
-            if(color.Equals(Color.Empty))
+            if (color.Equals(Color.Empty))
             {
                 alpha = jObject.Value<byte>("Alpha");
                 red = jObject.Value<byte>("Red");
@@ -122,7 +122,7 @@ namespace SAM.Core
             jObject.Add("_type", Query.FullTypeName(this));
 
             string name = Name;
-            if(string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(name))
             {
                 jObject.Add("Alpha", alpha);
                 jObject.Add("Red", red);

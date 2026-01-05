@@ -2,10 +2,10 @@
 {
     public interface IGH_SAMComponent
     {
-        string ComponentVersion { get;  }
+        string ComponentVersion { get; }
 
-        string SAMVersion { get;  }
+        string SAMVersion { get; }
 
-        string LatestComponentVersion { get;  }
+        string LatestComponentVersion { get; }
     }
 }

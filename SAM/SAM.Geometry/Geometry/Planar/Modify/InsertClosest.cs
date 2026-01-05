@@ -44,7 +44,7 @@ namespace SAM.Geometry.Planar
             if (point2D_Closest.AlmostEquals(segment2D_Temp[0], tolerance))
                 return segment2D_Temp[0];
 
-            if(point2D_Closest.AlmostEquals(segment2D_Temp[1], tolerance))
+            if (point2D_Closest.AlmostEquals(segment2D_Temp[1], tolerance))
                 return segment2D_Temp[1];
 
             segment2Ds[index] = new Segment2D(segment2D_Temp[0], point2D_Closest);

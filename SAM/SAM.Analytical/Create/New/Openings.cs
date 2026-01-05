@@ -14,7 +14,7 @@ namespace SAM.Analytical
             }
 
             List<IOpening> result = new List<IOpening>();
-            foreach(Face3D face3D in face3Ds)
+            foreach (Face3D face3D in face3Ds)
             {
                 if (minArea != 0 && face3D.GetArea() < minArea)
                 {
@@ -22,7 +22,7 @@ namespace SAM.Analytical
                 }
 
                 IOpening opening = Opening(openingType, face3D);
-                if(opening == null)
+                if (opening == null)
                 {
                     continue;
                 }

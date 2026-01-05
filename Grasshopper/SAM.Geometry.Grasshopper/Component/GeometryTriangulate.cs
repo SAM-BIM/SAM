@@ -127,9 +127,9 @@ namespace SAM.Geometry.Grasshopper
             }
 
             List<Triangle3D> triangle3Ds = new List<Triangle3D>();
-            foreach(Face3D face3D in face3Ds)
+            foreach (Face3D face3D in face3Ds)
             {
-                if(face3D == null)
+                if (face3D == null)
                 {
                     continue;
                 }

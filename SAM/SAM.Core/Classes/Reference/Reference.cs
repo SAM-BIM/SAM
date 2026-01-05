@@ -3,7 +3,7 @@ using System;
 
 namespace SAM.Core
 {
-    public struct Reference: IReference
+    public struct Reference : IReference
     {
         private string value;
 
@@ -56,7 +56,7 @@ namespace SAM.Core
             }
 
             value = null;
-            if(jObject.ContainsKey("Value"))
+            if (jObject.ContainsKey("Value"))
             {
                 value = jObject.Value<string>("Value");
             }
@@ -69,7 +69,7 @@ namespace SAM.Core
             JObject result = new JObject();
             result.Add("_type", Query.FullTypeName(this));
 
-            if(value != null)
+            if (value != null)
             {
                 result.Add("Value", value);
             }
@@ -90,7 +90,7 @@ namespace SAM.Core
         public static implicit operator Reference(SAMObject value)
         {
             string reference = null;
-            if(value != null)
+            if (value != null)
             {
                 reference = value.Guid.ToString("N");
             }

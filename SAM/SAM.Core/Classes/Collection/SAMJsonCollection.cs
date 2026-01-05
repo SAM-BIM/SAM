@@ -12,7 +12,7 @@ namespace SAM.Core
         {
 
         }
-        
+
         public SAMJsonCollection(string path)
         {
             FromJson(path);

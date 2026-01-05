@@ -8,19 +8,19 @@ namespace SAM.Analytical
         public AdjacencyCluster AdjacencyCluster { get; set; }
 
         public PanelBoundaryTypeFilter(BoundaryType boundaryType)
-            :base()
+            : base()
         {
             Value = boundaryType;
         }
 
         public PanelBoundaryTypeFilter(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
 
         }
 
         public PanelBoundaryTypeFilter(PanelBoundaryTypeFilter panelBoundaryTypeFilter)
-            :base(panelBoundaryTypeFilter)
+            : base(panelBoundaryTypeFilter)
         {
 
         }
@@ -30,13 +30,13 @@ namespace SAM.Analytical
         {
             boundaryType = BoundaryType.Undefined;
 
-            if(AdjacencyCluster == null || jSAMObject == null)
+            if (AdjacencyCluster == null || jSAMObject == null)
             {
                 return false;
             }
 
             Panel panel = jSAMObject as Panel;
-            if(panel == null)
+            if (panel == null)
             {
                 return false;
             }

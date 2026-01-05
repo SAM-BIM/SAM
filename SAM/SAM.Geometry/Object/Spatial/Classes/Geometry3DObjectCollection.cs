@@ -8,26 +8,26 @@ namespace SAM.Geometry.Object.Spatial
         public Tag Tag { get; set; }
 
         public Geometry3DObjectCollection()
-            :base()
+            : base()
         {
 
         }
 
         public Geometry3DObjectCollection(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
             FromJObject(jObject);
         }
 
         public Geometry3DObjectCollection(Geometry3DObjectCollection geometryObjectCollection)
-            :base(geometryObjectCollection)
+            : base(geometryObjectCollection)
         {
             Tag = geometryObjectCollection?.Tag;
         }
 
         public override bool FromJObject(JObject jObject)
         {
-            if(!base.FromJObject(jObject))
+            if (!base.FromJObject(jObject))
             {
                 return false;
             }
@@ -40,7 +40,7 @@ namespace SAM.Geometry.Object.Spatial
         public override JObject ToJObject()
         {
             JObject result = base.ToJObject();
-            if(result == null)
+            if (result == null)
             {
                 return null;
             }

@@ -6,7 +6,7 @@
         {
             result = default;
 
-            if(TryParseDouble(value, out double @double))
+            if (TryParseDouble(value, out double @double))
             {
                 result = System.Convert.ToInt32(@double);
                 return true;

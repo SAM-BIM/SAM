@@ -9,7 +9,7 @@
         /// <returns></returns>
         public static Vector2D Vector2D(double angle)
         {
-            if(double.IsNaN(angle))
+            if (double.IsNaN(angle))
             {
                 return null;
             }

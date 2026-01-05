@@ -88,10 +88,10 @@ namespace SAM.Core.Grasshopper
             }
 
             index = Params.IndexOfOutputParam("TextMap");
-            if(index != -1)
+            if (index != -1)
             {
                 TextMap result = Core.Create.TextMap("Text Map");
-                for(int i = 0; i < keys.Count; i++)
+                for (int i = 0; i < keys.Count; i++)
                 {
                     if (values.Count <= i)
                         continue;
@@ -102,7 +102,7 @@ namespace SAM.Core.Grasshopper
                 dataAccess.SetData(index, new GooTextMap(result));
             }
 
-            
+
 
 
 

@@ -35,7 +35,7 @@
             if (closed2D is ISegmentable2D)
             {
                 rectangle2D = Create.Rectangle2D(((ISegmentable2D)closed2D).GetPoints());
-                if(rectangle2D == null || !rectangle2D.IsValid())
+                if (rectangle2D == null || !rectangle2D.IsValid())
                 {
                     rectangle2D = null;
                     return false;

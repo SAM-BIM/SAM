@@ -10,7 +10,7 @@ namespace SAM.Analytical
         private Profile humidification;
         private Profile dehumidification;
         private Profile density;
-        
+
         public AirHandlingUnitAirMovement(string name)
             : base(name)
         {
@@ -30,7 +30,7 @@ namespace SAM.Analytical
         public AirHandlingUnitAirMovement(AirHandlingUnitAirMovement airHandlingUnitAirMovement)
             : base(airHandlingUnitAirMovement)
         {
-            if(airHandlingUnitAirMovement != null)
+            if (airHandlingUnitAirMovement != null)
             {
                 heating = airHandlingUnitAirMovement.heating == null ? null : new Profile(airHandlingUnitAirMovement.heating);
                 cooling = airHandlingUnitAirMovement.cooling == null ? null : new Profile(airHandlingUnitAirMovement.cooling);
@@ -93,7 +93,7 @@ namespace SAM.Analytical
                 return false;
             }
 
-            if(jObject.ContainsKey("Heating"))
+            if (jObject.ContainsKey("Heating"))
             {
                 heating = new Profile(jObject.Value<JObject>("Heating"));
             }
@@ -129,7 +129,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if(heating != null)
+            if (heating != null)
             {
                 jObject.Add("Heating", heating.ToJObject());
             }

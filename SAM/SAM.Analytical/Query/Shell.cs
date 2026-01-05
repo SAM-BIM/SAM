@@ -28,7 +28,7 @@ namespace SAM.Analytical
             }
 
             Space space = adjacencyCluster.GetObject<Space>(spaceGuid);
-            if(space == null)
+            if (space == null)
             {
                 return null;
             }

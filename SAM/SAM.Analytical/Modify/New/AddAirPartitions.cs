@@ -13,7 +13,7 @@ namespace SAM.Analytical
     {
         public static List<AirPartition> AddAirPartitions(this BuildingModel buildingModel, IEnumerable<Plane> planes, IEnumerable<Space> spaces = null, double silverSpacing = Tolerance.MacroDistance, double tolerance_Angle = Tolerance.Angle, double tolerance_Distance = Tolerance.Distance, double tolerance_Snap = Tolerance.MacroDistance)
         {
-            if(planes == null)
+            if (planes == null)
             {
                 return null;
             }
@@ -29,9 +29,9 @@ namespace SAM.Analytical
                 List<AirPartition> airPartitions = AddAirPartitions(buildingModel, plane, spaces, silverSpacing, tolerance_Angle, tolerance_Distance, tolerance_Snap);
                 if (airPartitions != null && airPartitions.Count > 0)
                 {
-                    foreach(AirPartition airPartition in airPartitions)
+                    foreach (AirPartition airPartition in airPartitions)
                     {
-                        if(airPartition == null)
+                        if (airPartition == null)
                         {
                             continue;
                         }

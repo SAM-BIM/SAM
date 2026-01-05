@@ -6,7 +6,7 @@ namespace SAM.Analytical
     {
         public static List<MechanicalSystem> MechanicalSystems(this AdjacencyCluster adjacencyCluster, Space space)
         {
-            if(adjacencyCluster == null || space == null)
+            if (adjacencyCluster == null || space == null)
             {
                 return null;
             }
@@ -16,7 +16,7 @@ namespace SAM.Analytical
             return result;
         }
 
-        public static List<T> MechanicalSystems<T>(this AdjacencyCluster adjacencyCluster, Space space) where T: MechanicalSystem
+        public static List<T> MechanicalSystems<T>(this AdjacencyCluster adjacencyCluster, Space space) where T : MechanicalSystem
         {
             if (adjacencyCluster == null || space == null)
             {
@@ -29,7 +29,7 @@ namespace SAM.Analytical
         public static List<MechanicalSystem> MechanicalSystems(this AdjacencyCluster adjacencyCluster, Space space, MechanicalSystemCategory mechanicalSystemCategory)
         {
             List<MechanicalSystem> mechanicalSystems = MechanicalSystems(adjacencyCluster, space);
-            if(mechanicalSystems == null || mechanicalSystems.Count == 0)
+            if (mechanicalSystems == null || mechanicalSystems.Count == 0)
             {
                 return null;
             }

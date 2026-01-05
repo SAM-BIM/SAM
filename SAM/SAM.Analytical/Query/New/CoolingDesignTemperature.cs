@@ -5,7 +5,7 @@
         public static double CoolingDesignTemperature(this Space space, BuildingModel buildingModel)
         {
             Profile profile = buildingModel?.GetProfile(space, ProfileType.Cooling, true);
-            if(profile == null)
+            if (profile == null)
             {
                 return double.NaN;
             }

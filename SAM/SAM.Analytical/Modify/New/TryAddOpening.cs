@@ -9,7 +9,7 @@ namespace SAM.Analytical
         public static bool TryAddOpening(this BuildingModel buildingModel, IOpening opening, out IHostPartition hostPartition, double tolerance = Core.Tolerance.Distance)
         {
             hostPartition = null;
-            
+
             if (buildingModel == null || opening == null)
             {
                 return false;
@@ -49,7 +49,7 @@ namespace SAM.Analytical
                 }
 
                 List<IOpening> openings_Add = hostPartition_Temp.AddOpening(opening, tolerance);
-                if(openings_Add == null || openings_Add.Count == 0)
+                if (openings_Add == null || openings_Add.Count == 0)
                 {
                     continue;
                 }
@@ -69,12 +69,12 @@ namespace SAM.Analytical
 
         public static bool TryAddOpening(this IHostPartition hostPartition, IOpening opening, double tolerance = Core.Tolerance.Distance)
         {
-            if(hostPartition == null || opening == null)
+            if (hostPartition == null || opening == null)
             {
                 return false;
             }
 
-            if(!hostPartition.IsValid(opening, tolerance))
+            if (!hostPartition.IsValid(opening, tolerance))
             {
                 return false;
             }

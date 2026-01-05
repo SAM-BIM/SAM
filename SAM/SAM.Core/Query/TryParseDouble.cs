@@ -5,7 +5,7 @@
         public static bool TryParseDouble(this string value, out double result)
         {
             result = double.NaN;
-            
+
             if (string.IsNullOrWhiteSpace(value))
                 return false;
 

@@ -11,7 +11,7 @@ namespace SAM.Geometry.Planar
 
         public Polyline2D(IEnumerable<Point2D> point2Ds, bool close = false)
         {
-            if(point2Ds != null)
+            if (point2Ds != null)
             {
                 points = Query.Clone(point2Ds);
                 if (close && !IsClosed())
@@ -23,7 +23,7 @@ namespace SAM.Geometry.Planar
 
         public Polyline2D(IEnumerable<Segment2D> segment2Ds)
         {
-            if(segment2Ds != null && segment2Ds.Count() != 0)
+            if (segment2Ds != null && segment2Ds.Count() != 0)
             {
                 points = new List<Point2D>() { segment2Ds.ElementAt(0).GetStart() };
                 foreach (Segment2D segment2D in segment2Ds)
@@ -387,7 +387,7 @@ namespace SAM.Geometry.Planar
 
         public Polyline2D GetMoved(Vector2D vector2D)
         {
-            if(vector2D == null || points == null)
+            if (vector2D == null || points == null)
             {
                 return null;
             }
@@ -397,13 +397,13 @@ namespace SAM.Geometry.Planar
 
         public bool Transform(ITransform2D transform2D)
         {
-            if(transform2D == null)
+            if (transform2D == null)
             {
                 return false;
             }
 
             Polyline2D polyline2D = Query.Transform(this, transform2D);
-            if(polyline2D == null)
+            if (polyline2D == null)
             {
                 return false;
             }

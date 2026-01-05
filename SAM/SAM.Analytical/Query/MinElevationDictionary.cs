@@ -13,7 +13,7 @@ namespace SAM.Analytical
 
             Dictionary<double, List<IPanel>> result = new Dictionary<double, List<IPanel>>();
             foreach (IPanel panel in panels)
-            {               
+            {
                 double minElevation = Core.Query.Round(panel.MinElevation(), tolerance);
 
                 List<IPanel> panels_Elevation = null;
@@ -43,10 +43,10 @@ namespace SAM.Analytical
             if (filterElevations)
             {
                 panels_Levels = new List<IPanel>();
-                foreach(IPanel panel in panels_Temp)
+                foreach (IPanel panel in panels_Temp)
                 {
                     Panel panel_Temp = panel as Panel;
-                    if(panel_Temp == null)
+                    if (panel_Temp == null)
                     {
                         continue;
                     }
@@ -68,7 +68,7 @@ namespace SAM.Analytical
                     if (normal == null)
                         continue;
 
-                    if(normal.AlmostEqual(Geometry.Spatial.Vector3D.WorldZ) || normal.GetNegated().AlmostEqual(Geometry.Spatial.Vector3D.WorldZ) )
+                    if (normal.AlmostEqual(Geometry.Spatial.Vector3D.WorldZ) || normal.GetNegated().AlmostEqual(Geometry.Spatial.Vector3D.WorldZ))
                     {
                         panels_Levels.Add(panel);
                         continue;

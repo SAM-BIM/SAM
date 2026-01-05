@@ -4,7 +4,7 @@
     {
         public static bool Internal(this PanelType panelType)
         {
-            switch(panelType)
+            switch (panelType)
             {
                 case Analytical.PanelType.FloorInternal:
                 case Analytical.PanelType.Air:

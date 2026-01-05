@@ -8,7 +8,7 @@ namespace SAM.Geometry.Planar
         {
             return Scale(sAMGeometry2D as dynamic, factor);
         }
-        
+
         public static BoundingBox2D Scale(this BoundingBox2D boudingBox2D, double factor)
         {
             if (boudingBox2D == null)

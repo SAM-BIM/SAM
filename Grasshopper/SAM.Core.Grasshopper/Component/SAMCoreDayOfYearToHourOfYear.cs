@@ -36,7 +36,7 @@ namespace SAM.Core.Grasshopper
         {
         }
 
-        
+
 
         protected override GH_SAMParam[] Inputs
         {
@@ -75,7 +75,7 @@ namespace SAM.Core.Grasshopper
             int index;
 
             index = Params.IndexOfInputParam("_dayOfYear");
-            
+
             int dayOfYear = -1;
             if (index == -1 || !dataAccess.GetData(index, ref dayOfYear))
             {

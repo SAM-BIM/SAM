@@ -16,7 +16,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if(!buildingModel.Add(mechanicalSystem, spaces))
+            if (!buildingModel.Add(mechanicalSystem, spaces))
             {
                 return null;
             }

@@ -6,7 +6,7 @@ namespace SAM.Core
     {
         public static string TypeName(this object @object)
         {
-            if(@object == null)
+            if (@object == null)
             {
                 return null;
             }

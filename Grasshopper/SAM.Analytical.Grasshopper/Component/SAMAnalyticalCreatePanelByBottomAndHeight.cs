@@ -24,7 +24,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -111,9 +111,9 @@ namespace SAM.Analytical.Grasshopper
             dataAccess.GetData(2, ref construction);
 
             double minElevation = double.NaN;
-            if(dataAccess.GetData(4, ref minElevation))
+            if (dataAccess.GetData(4, ref minElevation))
             {
-                for(int i =0; i < segmentable3Ds.Count; i++)
+                for (int i = 0; i < segmentable3Ds.Count; i++)
                 {
                     BoundingBox3D boundingBox3D = segmentable3Ds[i].GetBoundingBox();
 

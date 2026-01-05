@@ -127,7 +127,7 @@ namespace SAM.Analytical
         {
             if (partitionAnalyticalTypes == null || partitionAnalyticalTypes.Count() == 0)
                 return null;
-            
+
             List<HostPartitionType> hostPartitionTypes = GetHostPartitionTypes();
             if (hostPartitionTypes == null || hostPartitionTypes.Count == 0)
                 return null;
@@ -139,7 +139,7 @@ namespace SAM.Analytical
         {
             if (string.IsNullOrWhiteSpace(text))
                 return null;
-            
+
             List<HostPartitionType> hostPartitionTypes = GetHostPartitionTypes();
             if (hostPartitionTypes == null || hostPartitionTypes.Count == 0)
                 return null;

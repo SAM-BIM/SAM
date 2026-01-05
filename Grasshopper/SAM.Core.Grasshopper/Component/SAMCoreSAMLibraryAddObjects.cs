@@ -74,11 +74,11 @@ namespace SAM.Core.Grasshopper
 
             ISAMLibrary sAMLibrary_Result = sAMLibrary.Clone();
 
-            foreach(SAMObject sAMObject in sAMObjects)
+            foreach (SAMObject sAMObject in sAMObjects)
             {
                 //sAMLibrary_Result.Add(sAMObject);
             }
-                
+
 
 
             dataAccess.SetData(0, sAMLibrary_Result);

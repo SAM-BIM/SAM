@@ -111,7 +111,7 @@ namespace SAM.Analytical
                 return null;
 
             List<ApertureConstruction> result = new List<ApertureConstruction>();
-            foreach(ApertureConstruction apertureConstruction in apertureConstructions)
+            foreach (ApertureConstruction apertureConstruction in apertureConstructions)
             {
                 if (apertureConstruction == null)
                     continue;

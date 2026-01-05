@@ -16,7 +16,7 @@ namespace SAM.Analytical
                 return null;
 
             List<T> result = new List<T>();
-            for(int i=0; i < face3Ds.Count; i++)
+            for (int i = 0; i < face3Ds.Count; i++)
             {
                 Face3D face3D_Temp = face3Ds[i];
 
@@ -25,7 +25,7 @@ namespace SAM.Analytical
                     guid = partition.Guid;
 
                 T partition_New = Create.Partition(partition, guid, face3D_Temp, tolerance);
-                if(partition_New == null)
+                if (partition_New == null)
                 {
                     continue;
                 }

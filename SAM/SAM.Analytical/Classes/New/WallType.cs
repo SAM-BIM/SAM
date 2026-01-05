@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
-
 using SAM.Architectural;
+using System.Collections.Generic;
 
 namespace SAM.Analytical
 {

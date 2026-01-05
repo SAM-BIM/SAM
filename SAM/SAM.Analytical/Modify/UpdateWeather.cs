@@ -8,7 +8,7 @@ namespace SAM.Analytical
     {
         public static void UpdateWeather(this AnalyticalModel analyticalModel, WeatherData weatherData = null, IEnumerable<DesignDay> coolingDesignDays = null, IEnumerable<DesignDay> heatingDesignDays = null)
         {
-            if(analyticalModel == null)
+            if (analyticalModel == null)
             {
                 return;
             }

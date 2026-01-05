@@ -12,15 +12,15 @@ namespace SAM.Architectural
             }
 
             List<Level> levels = Create.Levels(face3DObjects, tolerance);
-            if(levels == null)
+            if (levels == null)
             {
                 return null;
             }
 
             Dictionary<Level, List<T>> result = new Dictionary<Level, List<T>>();
-            foreach(T face3Dobject in face3DObjects)
+            foreach (T face3Dobject in face3DObjects)
             {
-                if(face3Dobject == null)
+                if (face3Dobject == null)
                 {
                     continue;
                 }
@@ -46,12 +46,12 @@ namespace SAM.Architectural
                     }
                 }
 
-                if(level == null)
+                if (level == null)
                 {
                     continue;
                 }
 
-                if(!result.TryGetValue(level, out List<T> face3DObjects_Level))
+                if (!result.TryGetValue(level, out List<T> face3DObjects_Level))
                 {
                     face3DObjects_Level = new List<T>();
                     result[level] = face3DObjects_Level;

@@ -23,7 +23,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -77,7 +77,7 @@ namespace SAM.Analytical.Grasshopper
             }
 
             DefaultGasType defaultGasType = DefaultGasType.Undefined;
-            if(!Enum.TryParse(objectWrapper.Value?.ToString(), out defaultGasType) || defaultGasType == DefaultGasType.Undefined)
+            if (!Enum.TryParse(objectWrapper.Value?.ToString(), out defaultGasType) || defaultGasType == DefaultGasType.Undefined)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;

@@ -3,7 +3,7 @@ using System.Drawing;
 
 namespace SAM.Geometry.Object
 {
-    public abstract class Appearance :IAppearance
+    public abstract class Appearance : IAppearance
     {
         public Color Color { get; set; }
 
@@ -23,7 +23,7 @@ namespace SAM.Geometry.Object
 
         public Appearance(Appearance appearance)
         {
-            if(appearance != null)
+            if (appearance != null)
             {
                 Color = appearance.Color;
                 Opacity = appearance.Opacity;
@@ -66,8 +66,8 @@ namespace SAM.Geometry.Object
             jObject.Add("_type", Core.Query.FullTypeName(this));
 
             jObject.Add("Color", new Core.SAMColor(Color.A, Color.R, Color.G, Color.B).ToJObject());
-            
-            if(!double.IsNaN(Opacity))
+
+            if (!double.IsNaN(Opacity))
             {
                 jObject.Add("Opacity", Opacity);
             }

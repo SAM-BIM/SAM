@@ -22,7 +22,7 @@ namespace SAM.Analytical.Classes
         public PanelShadeCase(PanelShadeCase panelShadeCase)
             : base(panelShadeCase)
         {
-            if(panelShadeCase != null)
+            if (panelShadeCase != null)
             {
                 panels = panelShadeCase.panels?.ConvertAll(x => Core.Query.Clone(x));
             }
@@ -70,7 +70,7 @@ namespace SAM.Analytical.Classes
             {
                 JArray jArray = [];
 
-                foreach(Panel panel in panels)
+                foreach (Panel panel in panels)
                 {
                     jArray.Add(panel?.ToJObject());
                 }

@@ -1,6 +1,6 @@
-﻿using System;
-using NetTopologySuite.Geometries;
+﻿using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Prepared;
+using System;
 
 namespace SAM.Analytical.Classes
 {

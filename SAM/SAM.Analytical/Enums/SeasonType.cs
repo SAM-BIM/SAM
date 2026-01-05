@@ -12,7 +12,7 @@ namespace SAM.Analytical
         /// Undefined
         /// </summary>
         [Description("Undefined")] Undefined,
-        
+
         /// <summary>
         /// Cooling
         /// </summary>

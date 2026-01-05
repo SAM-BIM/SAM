@@ -27,13 +27,13 @@ namespace SAM.Core
         }
 
         public PropertyReference(ObjectReference objectReference, string propertyName)
-            :base(objectReference)
+            : base(objectReference)
         {
             this.propertyName = propertyName;
         }
 
         public PropertyReference(string typeName, Reference? reference, string propertyName)
-            :base(typeName, reference)
+            : base(typeName, reference)
         {
             this.propertyName = propertyName;
         }
@@ -57,7 +57,7 @@ namespace SAM.Core
         }
 
         public PropertyReference(PropertyReference propertyReference)
-            :base(propertyReference)
+            : base(propertyReference)
         {
             propertyName = propertyReference?.propertyName;
         }
@@ -72,12 +72,12 @@ namespace SAM.Core
 
         public override bool FromJObject(JObject jObject)
         {
-            if(! base.FromJObject(jObject))
+            if (!base.FromJObject(jObject))
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("PropertyName"))
+            if (jObject.ContainsKey("PropertyName"))
             {
                 propertyName = jObject.Value<string>("PropertyName");
             }
@@ -87,13 +87,13 @@ namespace SAM.Core
 
         public override JObject ToJObject()
         {
-            JObject result =  base.ToJObject();
-            if(result == null)
+            JObject result = base.ToJObject();
+            if (result == null)
             {
                 return result;
             }
 
-            if(propertyName != null)
+            if (propertyName != null)
             {
                 result.Add("PropertyName", propertyName);
             }
@@ -126,19 +126,19 @@ namespace SAM.Core
 
         public override bool Equals(object obj)
         {
-            if(ReferenceEquals(obj, null))
+            if (ReferenceEquals(obj, null))
             {
                 return false;
             }
 
             bool result = base.Equals(obj);
-            if(!result)
+            if (!result)
             {
                 return result;
             }
 
             PropertyReference propertyReference = obj as PropertyReference;
-            if(propertyReference == null)
+            if (propertyReference == null)
             {
                 result = false;
                 return result;

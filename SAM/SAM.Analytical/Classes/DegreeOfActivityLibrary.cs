@@ -73,7 +73,7 @@ namespace SAM.Analytical
         {
             if (string.IsNullOrWhiteSpace(text))
                 return null;
-            
+
             List<DegreeOfActivity> degreeOfActivities = GetDegreeOfActivities();
             if (degreeOfActivities == null || degreeOfActivities.Count == 0)
                 return null;

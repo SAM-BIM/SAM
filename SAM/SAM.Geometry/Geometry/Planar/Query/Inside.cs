@@ -41,7 +41,7 @@ namespace SAM.Geometry.Planar
             if (internalEdge2Ds == null || internalEdge2Ds.Count == 0)
                 return true;
 
-            foreach(IClosed2D closed2D in internalEdge2Ds)
+            foreach (IClosed2D closed2D in internalEdge2Ds)
                 if (closed2D.Inside(point2D, tolerance))
                     return false;
 

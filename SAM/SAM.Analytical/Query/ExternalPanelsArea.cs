@@ -14,14 +14,14 @@ namespace SAM.Analytical
                 return double.NaN;
 
             double result = 0;
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
                 if (panel == null)
                     continue;
 
                 if (exposedToSunOnly && !adjacencyCluster.ExposedToSun(panel))
                     continue;
-                
+
                 double area = panel.GetArea();
                 if (double.IsNaN(area) || area == 0)
                     continue;

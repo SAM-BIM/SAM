@@ -6,7 +6,7 @@ namespace SAM.Geometry.Planar
     {
         public static ISAMGeometry2D ToSAM(this NetTopologySuite.Geometries.Geometry geometry, double tolerance = Core.Tolerance.Distance)
         {
-            if(geometry == null || geometry is MultiPoint)
+            if (geometry == null || geometry is MultiPoint)
             {
                 return null;
             }

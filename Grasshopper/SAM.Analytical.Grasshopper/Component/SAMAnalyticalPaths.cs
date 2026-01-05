@@ -24,7 +24,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -208,7 +208,7 @@ namespace SAM.Analytical.Grasshopper
         void Menu_GoToDirectory(object sender, EventArgs e)
         {
             int index_Directory = Params.IndexOfInputParam("_directory_");
-            if(index_Directory == -1)
+            if (index_Directory == -1)
             {
                 return;
             }
@@ -248,7 +248,7 @@ namespace SAM.Analytical.Grasshopper
 
             Core.Create.Directory(directory);
 
-            if(!System.IO.Directory.Exists(directory))
+            if (!System.IO.Directory.Exists(directory))
             {
                 return;
             }
@@ -259,13 +259,13 @@ namespace SAM.Analytical.Grasshopper
         void Menu_SetDefaultDirectory(object sender, EventArgs e)
         {
             int index = Params.IndexOfInputParam("_directory_");
-            if(index != -1)
+            if (index != -1)
             {
                 var param = Params.Input[index] as GH_PersistentParam<GH_String>;
                 param.ClearData();
                 param.PersistentData.ClearData();
                 param.PersistentData.Append(new GH_String(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "SAMSimulation")));
- 
+
                 ExpireSolution(true);
             }
         }

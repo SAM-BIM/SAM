@@ -50,7 +50,7 @@ namespace SAM.Core
 
         public Relation(Relation relation)
         {
-            if(relation != null)
+            if (relation != null)
             {
                 id = relation.Id;
                 references_1 = relation.references_1 == null ? null : new HashSet<Reference>(relation.references_1);
@@ -70,15 +70,15 @@ namespace SAM.Core
         {
             get
             {
-                if(references_1 == null && references_2 == null)
+                if (references_1 == null && references_2 == null)
                 {
                     return null;
                 }
 
                 HashSet<Reference> result = new HashSet<Reference>();
-                if(references_1 != null)
+                if (references_1 != null)
                 {
-                    foreach(Reference reference in references_1)
+                    foreach (Reference reference in references_1)
                     {
                         result.Add(reference);
                     }
@@ -129,23 +129,23 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if(jObject == null)
+            if (jObject == null)
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("Id"))
+            if (jObject.ContainsKey("Id"))
             {
                 id = jObject.Value<string>("Id");
             }
 
-            if(jObject.ContainsKey("References_1"))
+            if (jObject.ContainsKey("References_1"))
             {
                 JArray jArray = jObject.Value<JArray>("References_1");
-                if(jArray != null)
+                if (jArray != null)
                 {
                     references_1 = new HashSet<Reference>();
-                    foreach(string value in jArray)
+                    foreach (string value in jArray)
                     {
                         references_1.Add(value);
                     }
@@ -172,16 +172,16 @@ namespace SAM.Core
         {
             JObject result = new JObject();
             result.Add("_type", Query.FullTypeName(this));
-            
-            if(id != null)
+
+            if (id != null)
             {
                 result.Add("Id", id);
             }
 
-            if(references_1 != null)
+            if (references_1 != null)
             {
                 JArray jArray = new JArray();
-                foreach(Reference reference in references_1)
+                foreach (Reference reference in references_1)
                 {
                     jArray.Add(reference.ToString());
                 }

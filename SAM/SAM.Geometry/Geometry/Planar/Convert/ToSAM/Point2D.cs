@@ -22,7 +22,7 @@ namespace SAM.Geometry.Planar
 
         public static Point2D ToSAM(this System.Numerics.Complex complex)
         {
-            if(complex == null)
+            if (complex == null)
             {
                 return null;
             }

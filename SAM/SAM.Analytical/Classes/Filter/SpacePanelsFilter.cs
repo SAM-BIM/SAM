@@ -28,7 +28,7 @@ namespace SAM.Analytical
         public override List<Panel> GetRelatives(IJSAMObject jSAMObject)
         {
             Space space = (jSAMObject as Space);
-            if(space == null)
+            if (space == null)
             {
                 return null;
             }

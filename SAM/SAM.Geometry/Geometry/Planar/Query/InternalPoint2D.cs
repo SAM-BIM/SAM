@@ -18,7 +18,7 @@ namespace SAM.Geometry.Planar
                 return ((Face)closed2D).GetInternalPoint2D(tolerance);
             }
 
-            if(closed2D is Triangle2D)
+            if (closed2D is Triangle2D)
             {
                 return ((Triangle2D)closed2D).GetCentroid();
             }

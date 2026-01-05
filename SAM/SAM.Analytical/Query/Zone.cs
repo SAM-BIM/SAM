@@ -15,7 +15,7 @@ namespace SAM.Analytical
 
             string zoneTypeText = zoneType.Text();
 
-            foreach(Zone zone in zones)
+            foreach (Zone zone in zones)
             {
                 if (!zone.TryGetValue(ZoneParameter.ZoneCategory, out string zoneCategory))
                     continue;

@@ -20,7 +20,7 @@ namespace SAM.Geometry.Object.Spatial
 
         public Text3DObject(Text3DObject text3DObject)
         {
-            if(text3DObject != null)
+            if (text3DObject != null)
             {
                 if (text3DObject.TextAppearance != null)
                 {
@@ -45,12 +45,12 @@ namespace SAM.Geometry.Object.Spatial
         {
             Text = text;
 
-            if(textAppearance != null)
+            if (textAppearance != null)
             {
                 TextAppearance = new TextAppearance(textAppearance);
             }
 
-            if(plane != null)
+            if (plane != null)
             {
                 Plane = new Plane(plane);
             }
@@ -63,7 +63,7 @@ namespace SAM.Geometry.Object.Spatial
                 return false;
             }
 
-            if(jObject.ContainsKey("Text"))
+            if (jObject.ContainsKey("Text"))
             {
                 Text = jObject.Value<string>("Text");
             }
@@ -93,12 +93,12 @@ namespace SAM.Geometry.Object.Spatial
                 jObject.Add("TextAppearance", TextAppearance.ToJObject());
             }
 
-            if(Plane != null)
+            if (Plane != null)
             {
                 jObject.Add("Plane", Plane.ToJObject());
             }
 
-            if(Text != null)
+            if (Text != null)
             {
                 jObject.Add("Text", Text);
             }

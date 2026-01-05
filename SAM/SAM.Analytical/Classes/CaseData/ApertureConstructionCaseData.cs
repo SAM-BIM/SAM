@@ -22,7 +22,7 @@ namespace SAM.Analytical
         public ApertureConstructionCaseData(ApertureConstructionCaseData apertureConstructionCaseData)
             : base(apertureConstructionCaseData)
         {
-            if(apertureConstructionCaseData != null)
+            if (apertureConstructionCaseData != null)
             {
                 apertureConstruction = apertureConstructionCaseData.apertureConstruction?.Clone();
             }
@@ -30,21 +30,21 @@ namespace SAM.Analytical
 
         public ApertureConstruction ApertureConstruction
         {
-            get 
-            { 
-                return apertureConstruction?.Clone(); 
+            get
+            {
+                return apertureConstruction?.Clone();
             }
         }
 
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
-            if(!result)
+            if (!result)
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("ApertureConstruction"))
+            if (jObject.ContainsKey("ApertureConstruction"))
             {
                 apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(jObject.Value<JObject>("ApertureConstruction"));
             }
@@ -55,12 +55,12 @@ namespace SAM.Analytical
         public override JObject ToJObject()
         {
             JObject result = base.ToJObject();
-            if(result is null)
+            if (result is null)
             {
                 return result;
             }
 
-            if(apertureConstruction is not null)
+            if (apertureConstruction is not null)
             {
                 result.Add("ApertureConstruction", apertureConstruction.ToJObject());
             }

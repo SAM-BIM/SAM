@@ -37,7 +37,7 @@
         {
             if (normal == null)
                 return double.NaN;
-            
+
             return normal.Angle(Plane.WorldXY.Normal) * (180 / System.Math.PI);
         }
     }

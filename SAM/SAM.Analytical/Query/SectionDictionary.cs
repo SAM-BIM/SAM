@@ -7,15 +7,15 @@ namespace SAM.Analytical
 {
     public static partial class Query
     {
-        public static Dictionary<Panel, List<T>> SectionDictionary<T>(this IEnumerable<Panel> panels, Plane plane, double tolerance = Core.Tolerance.Distance) where T: Geometry.ISAMGeometry
+        public static Dictionary<Panel, List<T>> SectionDictionary<T>(this IEnumerable<Panel> panels, Plane plane, double tolerance = Core.Tolerance.Distance) where T : Geometry.ISAMGeometry
         {
             if (plane == null || panels == null)
                 return null;
 
             List<Tuple<Panel, List<T>>> tuples = new List<Tuple<Panel, List<T>>>();
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
-                if(panel == null)
+                if (panel == null)
                 {
                     continue;
                 }
@@ -23,15 +23,15 @@ namespace SAM.Analytical
                 tuples.Add(new Tuple<Panel, List<T>>(panel, new List<T>()));
             }
 
-            if(tuples.Count == 0)
+            if (tuples.Count == 0)
             {
                 return null;
             }
 
-            Parallel.For(0, tuples.Count, (int i) => 
+            Parallel.For(0, tuples.Count, (int i) =>
             {
                 Panel panel = tuples[i].Item1;
-                
+
                 Face3D face3D = panel?.GetFace3D();
                 if (face3D == null)
                 {
@@ -87,9 +87,9 @@ namespace SAM.Analytical
             });
 
             Dictionary<Panel, List<T>> result = new Dictionary<Panel, List<T>>();
-            foreach(Tuple<Panel, List<T>> tuple in tuples)
+            foreach (Tuple<Panel, List<T>> tuple in tuples)
             {
-                if(tuple.Item2 == null || tuple.Item2.Count == 0)
+                if (tuple.Item2 == null || tuple.Item2.Count == 0)
                 {
                     continue;
                 }

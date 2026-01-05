@@ -23,7 +23,7 @@ namespace SAM.Analytical
                 return result;
 
             List<Tuple<Point3D, Panel>> tuples = new List<Tuple<Point3D, Panel>>();
-            foreach(Panel panel_AdjacencyCluster in panels_AdjacencyCluster)
+            foreach (Panel panel_AdjacencyCluster in panels_AdjacencyCluster)
             {
                 Point3D point3D = panel_AdjacencyCluster?.GetInternalPoint3D();
                 if (point3D == null)
@@ -32,14 +32,14 @@ namespace SAM.Analytical
                 tuples.Add(new Tuple<Point3D, Panel>(point3D, panel_AdjacencyCluster));
             }
 
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
                 Face3D face3D = panel?.GetFace3D();
                 if (face3D == null)
                     continue;
 
                 List<Panel> panels_Panel = new List<Panel>();
-                foreach(Tuple<Point3D, Panel> tuple in tuples)
+                foreach (Tuple<Point3D, Panel> tuple in tuples)
                 {
                     double distance = face3D.Distance(tuple.Item1);
                     if (distance <= maxDistance)
@@ -49,7 +49,7 @@ namespace SAM.Analytical
                 if (panels_Panel == null || panels_Panel.Count == 0)
                     continue;
 
-                for(int i =0; i < panels_Panel.Count; i++)
+                for (int i = 0; i < panels_Panel.Count; i++)
                 {
                     Panel panel_Panel = panels_Panel[i];
 
@@ -61,6 +61,6 @@ namespace SAM.Analytical
             }
 
             return result;
-        }    
+        }
     }
 }

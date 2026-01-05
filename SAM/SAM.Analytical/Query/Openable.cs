@@ -4,7 +4,7 @@
     {
         public static bool Openable(this Aperture aperture)
         {
-            if(aperture == null)
+            if (aperture == null)
             {
                 return false;
             }

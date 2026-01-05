@@ -124,7 +124,7 @@ namespace SAM.Geometry.Spatial
         {
             get
             {
-                if(plane == null)
+                if (plane == null)
                 {
                     return null;
                 }

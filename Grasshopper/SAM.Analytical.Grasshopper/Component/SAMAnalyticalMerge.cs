@@ -21,7 +21,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -98,7 +98,7 @@ namespace SAM.Analytical.Grasshopper
                 dataAccess.GetData(index, ref mergeSettings);
             }
 
-            if(mergeSettings == null)
+            if (mergeSettings == null)
             {
                 mergeSettings = Analytical.Query.DefaultMergeSettings();
             }
@@ -110,7 +110,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 dataAccess.SetData(index, analyticalModel);
             }
-                
+
         }
     }
 }

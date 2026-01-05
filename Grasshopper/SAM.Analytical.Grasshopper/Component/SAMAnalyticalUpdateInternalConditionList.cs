@@ -23,7 +23,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -38,13 +38,13 @@ namespace SAM.Analytical.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM Analytical AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                GooSpaceParam gooSpaceParam = new GooSpaceParam() { Name = "_spaces", NickName = "_spaces", Description = "SAM Analytical Spaces. If not provided all Spaces from Analytical Model will be used and modified", Access = GH_ParamAccess.list};
+                GooSpaceParam gooSpaceParam = new GooSpaceParam() { Name = "_spaces", NickName = "_spaces", Description = "SAM Analytical Spaces. If not provided all Spaces from Analytical Model will be used and modified", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(gooSpaceParam, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_String @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "iCnames_", NickName = "iCnames_", Description = "New Internal Condition Names to allow name change", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(@string, ParamVisibility.Binding));
 
-                GooProfileParam gooProfileParam = new GooProfileParam() { Name = "gainProfiles_", NickName = "gainProfiles_", Description = "SAM Analytical Profiles for gains, in not provided default 24h profile: 8to18 profile will be used fro all gains", Access = GH_ParamAccess.list, Optional = true};
+                GooProfileParam gooProfileParam = new GooProfileParam() { Name = "gainProfiles_", NickName = "gainProfiles_", Description = "SAM Analytical Profiles for gains, in not provided default 24h profile: 8to18 profile will be used fro all gains", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(gooProfileParam, ParamVisibility.Binding));
 
                 GooDegreeOfActivityParam gooDegreeOfActivityParam = new GooDegreeOfActivityParam() { Name = "degreeOfActivities_", NickName = "degreeOfActivities_", Description = "SAM Analytical DegreeOfActivities, default: 'Moderate office work' Sens=75 & Lat=55 W/person", Access = GH_ParamAccess.list, Optional = true };
@@ -55,7 +55,7 @@ namespace SAM.Analytical.Grasshopper
                 number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "areasPerPerson_", NickName = "areasPerPerson_", Description = "Areas Per Person, default 10 m2/person", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "occupancies_", NickName = "occupancies_", Description = "Occupancies (Number of People) will overide _areaPerPerson_ ", Access = GH_ParamAccess.list, Optional = true};
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "occupancies_", NickName = "occupancies_", Description = "Occupancies (Number of People) will overide _areaPerPerson_ ", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
                 number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "lightingGainsPerArea_", NickName = "lightingGainsPerArea_", Description = "Lighting Gains Per Area at specified profiles, default 8 W/m2", Access = GH_ParamAccess.list, Optional = true };
@@ -64,10 +64,10 @@ namespace SAM.Analytical.Grasshopper
                 number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "lightingLevels_", NickName = "lightingLevels_", Description = "Lighting Levels", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "equipmentSensGainsPerArea_", NickName = "equipmentSensGainsPerArea_", Description = "Equipment Sensible Gains Per Area at specified profiles, default 15 W/m2", Access = GH_ParamAccess.list, Optional = true};
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "equipmentSensGainsPerArea_", NickName = "equipmentSensGainsPerArea_", Description = "Equipment Sensible Gains Per Area at specified profiles, default 15 W/m2", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "equipmentLatGainsPerAreas_", NickName = "equipmentLatGainsPerAreas_", Description = "Equipment Latent Gains Per Area at specified profiles, default 0 W/m2", Access = GH_ParamAccess.list, Optional = true};
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "equipmentLatGainsPerAreas_", NickName = "equipmentLatGainsPerAreas_", Description = "Equipment Latent Gains Per Area at specified profiles, default 0 W/m2", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject genericObject = null;
@@ -75,16 +75,16 @@ namespace SAM.Analytical.Grasshopper
                 genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "heatingSetPoints_", NickName = "heatingSetPoints_", Description = "Heating SetPoints, default Constant 21 degC \n* Input as Values or Profiles", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(genericObject, ParamVisibility.Binding));
 
-                genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "coolingSetPoints_", NickName = "coolingSetPoints_", Description = "Cooling SetPoints, default Constant 24 degC\n* Input as Values or Profiles", Access = GH_ParamAccess.list, Optional = true};
+                genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "coolingSetPoints_", NickName = "coolingSetPoints_", Description = "Cooling SetPoints, default Constant 24 degC\n* Input as Values or Profiles", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(genericObject, ParamVisibility.Binding));
 
-                genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "humidificationSetPoints_", NickName = "humidificationSetPoints_", Description = "Humidification SetPoints, default Constant 40%\n* Input as Values or Profiles", Access = GH_ParamAccess.list, Optional = true};
+                genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "humidificationSetPoints_", NickName = "humidificationSetPoints_", Description = "Humidification SetPoints, default Constant 40%\n* Input as Values or Profiles", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(genericObject, ParamVisibility.Binding));
 
-                genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "dehumidificationSetPoints_", NickName = "dehumidificationSetPoints_", Description = "Dehumidification SetPoints, default Constant 60%\n* Input as Values or Profiles", Access = GH_ParamAccess.list, Optional = true};
+                genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "dehumidificationSetPoints_", NickName = "dehumidificationSetPoints_", Description = "Dehumidification SetPoints, default Constant 60%\n* Input as Values or Profiles", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(genericObject, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "infiltrationsACH_", NickName = "infiltrationsACH_", Description = "Infiltrations, default Constant 0.2 ac/h for spaces with external Panels", Access = GH_ParamAccess.list, Optional = true};
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "infiltrationsACH_", NickName = "infiltrationsACH_", Description = "Infiltrations, default Constant 0.2 ac/h for spaces with external Panels", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
                 number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "pollutantGsPerHrPerPerson_", NickName = "pollutantGsPerHrPerPerson_", Description = "Pollutant Generations Per Hour Per Person using Profile, default 37.5 g/hr/person see https://www.irbnet.de/daten/iconda/CIB6974.pdf]", Access = GH_ParamAccess.list, Optional = true };
@@ -99,7 +99,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() {Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM Analytical Model with ", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM Analytical Model with ", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "internalConditions", NickName = "internalConditions", Description = "SAM Analytical InternalConditions", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
@@ -120,7 +120,7 @@ namespace SAM.Analytical.Grasshopper
             int index;
 
             index = Params.IndexOfInputParam("_analyticalModel");
-            if(index == -1)
+            if (index == -1)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -137,7 +137,7 @@ namespace SAM.Analytical.Grasshopper
 
             List<Space> spaces = null;
             index = Params.IndexOfInputParam("_spaces");
-            if(index != -1)
+            if (index != -1)
             {
                 spaces = new List<Space>();
                 dataAccess.GetDataList(index, spaces);
@@ -152,7 +152,7 @@ namespace SAM.Analytical.Grasshopper
                 spaces = analyticalModel.GetSpaces();
             }
 
-            List<Profile> profiles_Gain = new List<Profile>(); 
+            List<Profile> profiles_Gain = new List<Profile>();
             index = Params.IndexOfInputParam("gainProfiles_");
             if (index != -1)
             {
@@ -215,7 +215,7 @@ namespace SAM.Analytical.Grasshopper
             index = Params.IndexOfInputParam("heatingSetPoints_");
             if (index != -1 && dataAccess.GetDataList(index, objectWrappers))
             {
-                foreach(GH_ObjectWrapper objectWrapper in objectWrappers)
+                foreach (GH_ObjectWrapper objectWrapper in objectWrappers)
                 {
                     object value = objectWrapper.Value;
                     if (value is IGH_Goo)
@@ -351,7 +351,7 @@ namespace SAM.Analytical.Grasshopper
 
             List<string> names = new List<string>();
             index = Params.IndexOfInputParam("iCnames_");
-            if(index != -1)
+            if (index != -1)
             {
                 dataAccess.GetDataList(index, names);
             }
@@ -364,12 +364,12 @@ namespace SAM.Analytical.Grasshopper
             }
 
             Profile profile_Infiltartion = null;
-            if(infiltrations != null || infiltrations.Count != 0)
+            if (infiltrations != null || infiltrations.Count != 0)
             {
                 ProfileLibrary profileLibrary_Default = ActiveSetting.Setting.GetValue<ProfileLibrary>(AnalyticalSettingParameter.DefaultProfileLibrary);
                 profile_Infiltartion = profileLibrary_Default.GetProfile("Constant", ProfileGroup.Gain, true);
             }
-                           
+
             ProfileLibrary profileLibrary = analyticalModel.ProfileLibrary;
 
             if (profile_Infiltartion != null)
@@ -435,7 +435,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     double value = pollutantGenerationsPerPerson.Count > i ? pollutantGenerationsPerPerson[i] : pollutantGenerationsPerPerson.Last();
                     string name = internalCondition.GetValue<string>(InternalConditionParameter.OccupancyProfileName);
-                    if(string.IsNullOrWhiteSpace(name))
+                    if (string.IsNullOrWhiteSpace(name))
                     {
                         name = value.ToString();
                     }
@@ -445,10 +445,10 @@ namespace SAM.Analytical.Grasshopper
                     }
 
                     Profile profile = profileLibrary.GetProfile(name, ProfileType.Pollutant, true);
-                    if(profile == null)
+                    if (profile == null)
                     {
                         profile = internalCondition.GetProfile(ProfileType.Occupancy, analyticalModel.ProfileLibrary, true);
-                        if(profile != null)
+                        if (profile != null)
                         {
                             profile = new Profile(Guid.NewGuid(), profile, name, ProfileType.Pollutant.ToString());
                         }
@@ -567,7 +567,7 @@ namespace SAM.Analytical.Grasshopper
             }
 
             index = Params.IndexOfOutputParam("analyticalModel");
-            if(index != -1)
+            if (index != -1)
             {
                 analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster, analyticalModel.MaterialLibrary, profileLibrary);
                 dataAccess.SetData(index, new GooAnalyticalModel(analyticalModel));

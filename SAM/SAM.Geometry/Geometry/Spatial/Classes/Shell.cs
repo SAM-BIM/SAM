@@ -17,14 +17,14 @@ namespace SAM.Geometry.Spatial
             {
                 foreach (Face3D face3D in face3Ds)
                 {
-                    if(face3D == null)
+                    if (face3D == null)
                     {
                         continue;
                     }
-                    
+
                     Add(face3D);
                 }
-                    
+
             }
         }
 
@@ -89,7 +89,7 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             List<Segment3D> segment3Ds = Query.NakedSegment3Ds(this, 1, tolerance);
-            if(segment3Ds == null || segment3Ds.Count == 0)
+            if (segment3Ds == null || segment3Ds.Count == 0)
             {
                 return true;
             }
@@ -153,7 +153,7 @@ namespace SAM.Geometry.Spatial
             return IntersectionGeometry3Ds<Point3D>(segment3D, includeInternalEdges, tolerance);
         }
 
-        public List<T> IntersectionGeometry3Ds<T>(Segment3D segment3D, bool includeInternalEdges = true, double tolerance = Core.Tolerance.Distance) where T: ISAMGeometry3D
+        public List<T> IntersectionGeometry3Ds<T>(Segment3D segment3D, bool includeInternalEdges = true, double tolerance = Core.Tolerance.Distance) where T : ISAMGeometry3D
         {
             if (segment3D == null || boundaries == null)
                 return null;
@@ -167,7 +167,7 @@ namespace SAM.Geometry.Spatial
             {
                 if (!boundary.Item1.InRange(boundingBox3D_Segment3D))
                     continue;
-                
+
                 PlanarIntersectionResult planarIntersectionResult = null;
 
                 if (includeInternalEdges)
@@ -378,7 +378,7 @@ namespace SAM.Geometry.Spatial
         {
             get
             {
-                return boundaries?.ConvertAll(x => new Tuple<BoundingBox3D, Face3D>(new BoundingBox3D( x.Item1), new Face3D(x.Item2)));
+                return boundaries?.ConvertAll(x => new Tuple<BoundingBox3D, Face3D>(new BoundingBox3D(x.Item1), new Face3D(x.Item2)));
             }
         }
 
@@ -523,7 +523,7 @@ namespace SAM.Geometry.Spatial
                     return result;
             }
 
-            for(int i=0; i < point3Ds.Count - 1; i++)
+            for (int i = 0; i < point3Ds.Count - 1; i++)
             {
                 for (int j = i + 1; j < point3Ds.Count; j++)
                 {
@@ -568,7 +568,7 @@ namespace SAM.Geometry.Spatial
                 return;
 
             boundaries = new List<Tuple<BoundingBox3D, Face3D>>();
-            foreach(KeyValuePair<Face3D, Vector3D> keyValuePair in dictionary)
+            foreach (KeyValuePair<Face3D, Vector3D> keyValuePair in dictionary)
             {
                 Face3D face3D = keyValuePair.Key;
 
@@ -576,7 +576,7 @@ namespace SAM.Geometry.Spatial
                 if (normal_External != null)
                 {
                     Vector3D normal_Face3D = face3D.GetPlane()?.Normal;
-                    if(normal_Face3D != null && !normal_External.SameHalf(normal_Face3D))
+                    if (normal_Face3D != null && !normal_External.SameHalf(normal_Face3D))
                         face3D.FlipNormal(flipX);
                 }
 
@@ -599,7 +599,7 @@ namespace SAM.Geometry.Spatial
             Plane plane = face3D.GetPlane();
 
             Dictionary<int, List<Face3D>> dictionary = new Dictionary<int, List<Face3D>>();
-            for(int i= boundaries.Count - 1; i >= 0; i--)
+            for (int i = boundaries.Count - 1; i >= 0; i--)
             {
                 if (!boundaries[i].Item1.InRange(boundingBox3D))
                     continue;
@@ -633,7 +633,7 @@ namespace SAM.Geometry.Spatial
                 face2Ds_Difference?.RemoveAll(x => x == null || x.GetArea() <= tolerance_Distance);
                 if (face2Ds_Difference != null && face2Ds_Difference.Count != 0)
                 {
-                    foreach(Face2D face2D_Difference in face2Ds_Difference)
+                    foreach (Face2D face2D_Difference in face2Ds_Difference)
                     {
                         List<Face2D> face2Ds_Difference_Temp = face2D_Difference.FixEdges(tolerance_Distance);
                         if (face2Ds_Difference_Temp == null || face2Ds_Difference_Temp.Count == 0)
@@ -651,12 +651,12 @@ namespace SAM.Geometry.Spatial
                 dictionary[i] = face2Ds.ConvertAll(x => plane_Boundary.Convert(x));
             }
 
-            if(dictionary == null || dictionary.Count == 0)
+            if (dictionary == null || dictionary.Count == 0)
             {
                 return false;
             }
 
-            foreach(KeyValuePair<int, List<Face3D>> keyValuePair in dictionary)
+            foreach (KeyValuePair<int, List<Face3D>> keyValuePair in dictionary)
             {
                 //Tuple<BoundingBox3D, Face3D> tuple = boundaries[keyValuePair.Key];
                 boundaries.RemoveAt(keyValuePair.Key);
@@ -696,7 +696,7 @@ namespace SAM.Geometry.Spatial
             bool result = false;
             foreach (Tuple<BoundingBox3D, Face3D> boundary_Temp in boundaries_Temp)
             {
-                if(!boundingBox3D.InRange(boundary_Temp.Item1, tolerance_Distance))
+                if (!boundingBox3D.InRange(boundary_Temp.Item1, tolerance_Distance))
                 {
                     continue;
                 }
@@ -712,20 +712,20 @@ namespace SAM.Geometry.Spatial
 
         public bool SplitCoplanarFace3Ds(IEnumerable<Face3D> face3Ds, double tolerance_Angle = Core.Tolerance.Angle, double tolerance_Distance = Core.Tolerance.Distance)
         {
-            if(face3Ds == null)
+            if (face3Ds == null)
             {
                 return false;
             }
 
-            if(boundingBox3D == null)
+            if (boundingBox3D == null)
             {
                 return false;
             }
 
             bool result = true;
-            foreach(Face3D face3D in face3Ds)
+            foreach (Face3D face3D in face3Ds)
             {
-                if(SplitCoplanarFace3Ds(face3D, tolerance_Angle, tolerance_Distance))
+                if (SplitCoplanarFace3Ds(face3D, tolerance_Angle, tolerance_Distance))
                 {
                     result = true;
                 }
@@ -758,7 +758,7 @@ namespace SAM.Geometry.Spatial
                 tuples.Add(new Tuple<BoundingBox3D, Face3D>(boundingBox3D, face3D));
             }
 
-            if(tuples == null || tuples.Count == 0)
+            if (tuples == null || tuples.Count == 0)
             {
                 return false;
             }
@@ -770,15 +770,15 @@ namespace SAM.Geometry.Spatial
 
                 Plane plane = boundaries[i].Item2?.GetPlane();
                 Vector3D vector3D = plane?.Normal;
-                if(vector3D == null || !vector3D.IsValid())
+                if (vector3D == null || !vector3D.IsValid())
                 {
                     continue;
                 }
 
                 List<Face3D> face3Ds_Fill = new List<Face3D>();
-                foreach(Tuple<BoundingBox3D, Face3D> tuple in tuples)
+                foreach (Tuple<BoundingBox3D, Face3D> tuple in tuples)
                 {
-                    if(!tuple.Item1.InRange(boundingBox3D, maxDistance))
+                    if (!tuple.Item1.InRange(boundingBox3D, maxDistance))
                     {
                         continue;
                     }
@@ -795,12 +795,12 @@ namespace SAM.Geometry.Spatial
                     }
 
                     Face3D face3D_Project = plane.Project(tuple.Item2);
-                    if(face3D_Project == null || !face3D_Project.IsValid())
+                    if (face3D_Project == null || !face3D_Project.IsValid())
                     {
                         continue;
                     }
 
-                    if(face3D_Project.GetArea() < tolerance_Distance)
+                    if (face3D_Project.GetArea() < tolerance_Distance)
                     {
                         continue;
                     }
@@ -808,7 +808,7 @@ namespace SAM.Geometry.Spatial
                     face3Ds_Fill.Add(face3D_Project);
                 }
 
-                if(face3Ds_Fill == null || face3Ds_Fill.Count < 2)
+                if (face3Ds_Fill == null || face3Ds_Fill.Count < 2)
                 {
                     continue;
                 }
@@ -820,9 +820,9 @@ namespace SAM.Geometry.Spatial
                 }
 
                 boundaries.RemoveAt(i);
-                foreach(Face3D face3D_Fill in face3Ds_Fill)
+                foreach (Face3D face3D_Fill in face3Ds_Fill)
                 {
-                    if(Add(face3D_Fill))
+                    if (Add(face3D_Fill))
                     {
                         result = true;
                     }
@@ -831,18 +831,18 @@ namespace SAM.Geometry.Spatial
 
             return result;
         }
-    
+
         public bool SplitFace3Ds(Shell shell, double tolerance_Snap = Core.Tolerance.MacroDistance, double tolerance_Angle = Core.Tolerance.Angle, double tolerance_Distance = Core.Tolerance.Distance)
         {
-            if(shell == null || !boundingBox3D.InRange(shell.boundingBox3D, tolerance_Distance))
+            if (shell == null || !boundingBox3D.InRange(shell.boundingBox3D, tolerance_Distance))
             {
                 return false;
             }
 
             List<Tuple<Face3D, List<Face3D>>> tuples = new List<Tuple<Face3D, List<Face3D>>>();
-            foreach(Tuple<BoundingBox3D, Face3D> boundary in boundaries)
+            foreach (Tuple<BoundingBox3D, Face3D> boundary in boundaries)
             {
-                if(!shell.boundingBox3D.InRange(boundary.Item1, tolerance_Distance))
+                if (!shell.boundingBox3D.InRange(boundary.Item1, tolerance_Distance))
                 {
                     continue;
                 }
@@ -856,21 +856,21 @@ namespace SAM.Geometry.Spatial
                 tuples.Add(new Tuple<Face3D, List<Face3D>>(boundary.Item2, face3Ds));
             }
 
-            if(tuples == null || tuples.Count == 0)
+            if (tuples == null || tuples.Count == 0)
             {
                 return false;
             }
 
-            foreach(Tuple<Face3D, List<Face3D>> tuple in tuples)
+            foreach (Tuple<Face3D, List<Face3D>> tuple in tuples)
             {
                 int index = boundaries.FindIndex(x => x.Item2 == tuple.Item1);
-                if(index == -1)
+                if (index == -1)
                 {
                     continue;
                 }
 
                 boundaries.RemoveAt(index);
-                foreach(Face3D face3D in tuple.Item2)
+                foreach (Face3D face3D in tuple.Item2)
                 {
                     boundaries.Insert(index, new Tuple<BoundingBox3D, Face3D>(face3D.GetBoundingBox(), face3D));
                 }
@@ -881,11 +881,11 @@ namespace SAM.Geometry.Spatial
 
         public bool SplitEdges(double tolerance = Core.Tolerance.Distance)
         {
-            if(boundaries == null || boundaries.Count <= 2)
+            if (boundaries == null || boundaries.Count <= 2)
             {
                 return false;
             }
-            
+
             for (int i = 0; i < boundaries.Count - 1; i++)
             {
                 for (int j = i + 1; j < boundaries.Count; j++)
@@ -897,7 +897,7 @@ namespace SAM.Geometry.Spatial
 
                     Face3D face3D = null;
 
-                    if(boundaries[i].Item2.TrySplitEdges(boundaries[j].Item2, out face3D, tolerance) && face3D != null)
+                    if (boundaries[i].Item2.TrySplitEdges(boundaries[j].Item2, out face3D, tolerance) && face3D != null)
                     {
                         boundaries[i] = new Tuple<BoundingBox3D, Face3D>(face3D.GetBoundingBox(), face3D);
                     }
@@ -914,16 +914,16 @@ namespace SAM.Geometry.Spatial
 
         public List<IClosedPlanar3D> GetEdge3Ds()
         {
-            if(boundaries == null)
+            if (boundaries == null)
             {
                 return null;
             }
 
             List<IClosedPlanar3D> result = new List<IClosedPlanar3D>();
-            foreach(Tuple<BoundingBox3D, Face3D> boundary in boundaries)
+            foreach (Tuple<BoundingBox3D, Face3D> boundary in boundaries)
             {
                 List<IClosedPlanar3D> edge3Ds = boundary?.Item2?.GetEdge3Ds();
-                if(edge3Ds != null)
+                if (edge3Ds != null)
                 {
                     result.AddRange(edge3Ds);
                 }

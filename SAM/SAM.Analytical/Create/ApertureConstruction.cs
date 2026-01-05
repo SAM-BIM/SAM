@@ -15,7 +15,7 @@ namespace SAM.Analytical
 
         public static ApertureConstruction ApertureConstruction(ApertureType apertureType, string name, Construction paneConstruction, Construction frameConstruction = null)
         {
-            if(apertureType == ApertureType.Undefined || (paneConstruction == null && frameConstruction == null))
+            if (apertureType == ApertureType.Undefined || (paneConstruction == null && frameConstruction == null))
             {
                 return null;
             }

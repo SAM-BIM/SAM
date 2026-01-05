@@ -24,7 +24,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -59,7 +59,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                
+
                 result.Add(new GH_SAMParam(new Param_String() { Name = "Name", NickName = "Name", Description = "Space Name", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new Param_Guid() { Name = "Guid", NickName = "Guid", Description = "Space Guid", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 result.Add(new GH_SAMParam(new Param_Number() { Name = "Area", NickName = "Area", Description = "Space Area", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
@@ -175,7 +175,7 @@ namespace SAM.Analytical.Grasshopper
             List<string> names_Level = new List<string>();
 
             List<double> infiltrations = new List<double>();
-            List<string> names_Infiltration= new List<string>();
+            List<string> names_Infiltration = new List<string>();
             List<Guid> guids_Infiltration = new List<Guid>();
 
             List<double> occupancySensibleGains = new List<double>();
@@ -218,7 +218,7 @@ namespace SAM.Analytical.Grasshopper
             List<string> names_Dehumidification = new List<string>();
             List<Guid> guids_Dehumidification = new List<Guid>();
 
-            List<string> names_InternalCondition= new List<string>();
+            List<string> names_InternalCondition = new List<string>();
             List<Guid> guids_InternalCondition = new List<Guid>();
 
             List<string> names_VentilationSystemType = new List<string>();
@@ -295,7 +295,7 @@ namespace SAM.Analytical.Grasshopper
                 occupancySensibleGainsPerArea.Add(double.IsNaN(occupancySensibleGain) || double.IsNaN(area) || area == 0 ? double.NaN : occupancySensibleGain / area);
 
                 double occupancyLatentGain = Analytical.Query.OccupancyLatentGain(space);
-                
+
                 occupancyLatentGains.Add(occupancyLatentGain);
                 occupancyLatentGainsPerPerson.Add(double.IsNaN(occupancyLatentGain) || double.IsNaN(occupancy) || occupancy == 0 ? double.NaN : occupancyLatentGain / occupancy);
                 occupancyLatentGainsPerArea.Add(double.IsNaN(occupancyLatentGain) || double.IsNaN(area) || area == 0 ? double.NaN : occupancyLatentGain / area);
@@ -425,7 +425,7 @@ namespace SAM.Analytical.Grasshopper
 
                 names_SupplyUnit.Add(@string);
                 supplyAirFlows.Add(Analytical.Query.CalculatedSupplyAirFlow(space));
-                   
+
                 if (ventilationSystem == null || !ventilationSystem.TryGetValue(VentilationSystemParameter.ExhaustUnitName, out @string))
                     @string = null;
 

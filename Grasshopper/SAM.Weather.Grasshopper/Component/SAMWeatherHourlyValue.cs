@@ -1,6 +1,6 @@
 ﻿using Grasshopper.Kernel;
-using SAM.Weather.Grasshopper.Properties;
 using SAM.Core.Grasshopper;
+using SAM.Weather.Grasshopper.Properties;
 using System;
 using System.Linq;
 

@@ -24,7 +24,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.hidden;
 
@@ -88,7 +88,7 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
-            if(azimuths.Count != ratios.Count)
+            if (azimuths.Count != ratios.Count)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
@@ -119,7 +119,7 @@ namespace SAM.Analytical.Grasshopper
                     return;
 
                 OpeningType openingType_Temp = openingType;
-                if(openingType_Temp == null)
+                if (openingType_Temp == null)
                 {
                     openingType_Temp = openingTypeLibrary.GetOpeningTypes(OpeningAnalyticalType.Window, hostPartition.HostPartitionCategory())?.FirstOrDefault();
                     if (openingType_Temp == null)
@@ -142,14 +142,14 @@ namespace SAM.Analytical.Grasshopper
                 dataAccess.SetDataList(1, openings?.ConvertAll(x => new GooOpening(x)));
                 dataAccess.SetData(2, true);
             }
-            else if(sAMObject is BuildingModel)
+            else if (sAMObject is BuildingModel)
             {
                 BuildingModel buildingModel = new BuildingModel((BuildingModel)sAMObject);
                 List<Wall> walls = buildingModel.GetObjects(new Func<Wall, bool>((Wall wall) => buildingModel.External(wall)));
-                if(walls != null)
+                if (walls != null)
                 {
                     List<IOpening> openings = new List<IOpening>();
-                    foreach(Wall wall in walls)
+                    foreach (Wall wall in walls)
                     {
                         double azimuth = wall.Azimuth();
                         if (double.IsNaN(azimuth))
@@ -170,7 +170,7 @@ namespace SAM.Analytical.Grasshopper
                         }
 
                         IOpening opening = wall.AddOpening(openingType_Temp, ratio);
-                        if(opening != null)
+                        if (opening != null)
                         {
                             openings.Add(opening);
                         }

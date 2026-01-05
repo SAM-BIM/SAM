@@ -16,13 +16,13 @@ namespace SAM.Analytical
             foreach (ConstructionLayer constructionLayer in constructionLayers)
             {
                 IMaterial material = constructionLayer.Material(materialLibrary);
-                if(material == null)
+                if (material == null)
                 {
                     return Core.MaterialType.Undefined;
                 }
 
                 MaterialType materialType = material.MaterialType();
-                if(materialType == Core.MaterialType.Undefined)
+                if (materialType == Core.MaterialType.Undefined)
                 {
                     return Core.MaterialType.Undefined;
                 }
@@ -30,7 +30,7 @@ namespace SAM.Analytical
                 materialTypes.Add(materialType);
             }
 
-            if(materialTypes.Contains(Core.MaterialType.Opaque))
+            if (materialTypes.Contains(Core.MaterialType.Opaque))
             {
                 return Core.MaterialType.Opaque;
             }

@@ -63,7 +63,7 @@ namespace SAM.Core
             return true;
         }
 
-        public List<T> GetSystemTypes<T>() where T: ISystemType
+        public List<T> GetSystemTypes<T>() where T : ISystemType
         {
             return GetObjects<T>();
         }
@@ -72,7 +72,7 @@ namespace SAM.Core
         {
             if (string.IsNullOrWhiteSpace(text))
                 return null;
-            
+
             List<T> systemTypes = GetSystemTypes<T>();
             if (systemTypes == null || systemTypes.Count == 0)
                 return null;

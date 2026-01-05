@@ -19,7 +19,7 @@ namespace SAM.Core
                 return text;
 
             string result = text;
-            foreach(string key in textMap.Keys)
+            foreach (string key in textMap.Keys)
             {
                 List<string> values = textMap.GetValues(key);
                 if (values == null || values.Count == 0)

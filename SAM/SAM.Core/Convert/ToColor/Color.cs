@@ -22,7 +22,7 @@ namespace SAM.Core
         }
 
         public static Color ToColor(string @string)
-        {   
+        {
             if (string.IsNullOrWhiteSpace(@string))
             {
                 return Color.Empty;
@@ -30,7 +30,7 @@ namespace SAM.Core
 
             string @string_Temp = @string;
 
-            if(@string.IsHex())
+            if (@string.IsHex())
             {
                 @string_Temp = "#" + @string;
             }
@@ -50,7 +50,7 @@ namespace SAM.Core
             {
                 return Color.Empty;
             }
-            
+
             if (!(@object is Color))
                 return Color.Empty;
 

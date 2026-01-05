@@ -1,6 +1,6 @@
 ﻿using SAM.Geometry.Spatial;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 namespace SAM.Geometry.Object.Spatial
 {

@@ -83,10 +83,10 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                foreach(Architectural.MaterialLayer materialLayer_Temp in materialLayers_Material)
+                foreach (Architectural.MaterialLayer materialLayer_Temp in materialLayers_Material)
                 {
                     Material material_Thickness = Core.Create.Material(material, GetMaterialName(material.Name, materialLayer_Temp.Thickness, tolerance));
-                    if(material_Thickness == null)
+                    if (material_Thickness == null)
                     {
                         continue;
                     }
@@ -95,7 +95,7 @@ namespace SAM.Analytical
                 }
             }
 
-            if(tuples == null || tuples.Count == 0)
+            if (tuples == null || tuples.Count == 0)
             {
                 return;
             }
@@ -114,13 +114,13 @@ namespace SAM.Analytical
                     }
 
                     List<Material> materials = new List<Material>();
-                    for(int i =0; i < materialLayers_HostPartitionType.Count; i++)
+                    for (int i = 0; i < materialLayers_HostPartitionType.Count; i++)
                     {
                         Architectural.MaterialLayer materialLayer = materialLayers_HostPartitionType[i];
 
                         double thickness = Core.Query.Round(materialLayer.Thickness, tolerance);
                         Tuple<Architectural.MaterialLayer, Material> tuple = tuples.Find(x => x.Item1.Name == materialLayer.Name && x.Item1.Thickness == thickness);
-                        if(tuple == null)
+                        if (tuple == null)
                         {
                             continue;
                         }
@@ -129,7 +129,7 @@ namespace SAM.Analytical
                         materialLayers_HostPartitionType[i] = new Architectural.MaterialLayer(tuple.Item2.Name, thickness);
                     }
 
-                    if(materials == null || materials.Count == 0)
+                    if (materials == null || materials.Count == 0)
                     {
                         continue;
                     }
@@ -148,7 +148,7 @@ namespace SAM.Analytical
                     hostPartitionType_New.MaterialLayers = materialLayers_HostPartitionType;
 
                     List<IHostPartition> hostPartitions = buildingModel.GetHostPartitions(hostPartitionType);
-                    if(hostPartitions == null || hostPartitions.Count == 0)
+                    if (hostPartitions == null || hostPartitions.Count == 0)
                     {
                         continue;
                     }
@@ -166,14 +166,14 @@ namespace SAM.Analytical
                 }
             }
 
-            if(openingTypes_All != null)
+            if (openingTypes_All != null)
             {
                 foreach (OpeningType openingType in openingTypes_All)
                 {
                     List<Material> materials = new List<Material>();
 
                     List<Architectural.MaterialLayer> materialLayers_Pane = openingType?.PaneMaterialLayers;
-                    if(materialLayers_Pane != null)
+                    if (materialLayers_Pane != null)
                     {
                         for (int i = 0; i < materialLayers_Pane.Count; i++)
                         {
@@ -235,10 +235,10 @@ namespace SAM.Analytical
                         continue;
                     }
 
-                    foreach(IOpening opening in openings)
+                    foreach (IOpening opening in openings)
                     {
                         IHostPartition hostPartition = buildingModel.GetHostPartition(opening);
-                        if(hostPartition == null)
+                        if (hostPartition == null)
                         {
                             continue;
                         }
@@ -253,7 +253,7 @@ namespace SAM.Analytical
 
         public static void UpdateMaterialsByMaterialLayerThickness(this BuildingModel buildingModel, double tolerance = Tolerance.MacroDistance)
         {
-            if(buildingModel == null)
+            if (buildingModel == null)
             {
                 return;
             }

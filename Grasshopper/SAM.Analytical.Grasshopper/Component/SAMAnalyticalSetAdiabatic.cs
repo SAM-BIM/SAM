@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -40,7 +40,7 @@ namespace SAM.Analytical.Grasshopper
         protected override void RegisterInputParams(GH_InputParamManager inputParamManager)
         {
             inputParamManager.AddParameter(new GooAnalyticalObjectParam(), "_analytical", "_analytical", "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", GH_ParamAccess.item);
-            inputParamManager.AddParameter(new GooPanelParam() { Optional = true}, "panels_", "panels_", "SAM Analytical Panels", GH_ParamAccess.list);
+            inputParamManager.AddParameter(new GooPanelParam() { Optional = true }, "panels_", "panels_", "SAM Analytical Panels", GH_ParamAccess.list);
             inputParamManager.AddBooleanParameter("_adiabatic_", "_adiabatic", "Is Adiabatic", GH_ParamAccess.item, true);
         }
 
@@ -68,7 +68,7 @@ namespace SAM.Analytical.Grasshopper
             }
 
             AdjacencyCluster adjacencyCluster = null;
-            if(sAMObject is AdjacencyCluster)
+            if (sAMObject is AdjacencyCluster)
             {
                 adjacencyCluster = new AdjacencyCluster((AdjacencyCluster)sAMObject);
             }
@@ -80,7 +80,7 @@ namespace SAM.Analytical.Grasshopper
 
             List<Panel> panels = new List<Panel>();
             dataAccess.GetDataList(1, panels);
-            if(panels != null && panels.Count != 0)
+            if (panels != null && panels.Count != 0)
             {
                 bool adiabatic = true;
                 if (!dataAccess.GetData(2, ref adiabatic))
@@ -109,11 +109,11 @@ namespace SAM.Analytical.Grasshopper
                 }
             }
 
-            if(sAMObject is AnalyticalModel)
+            if (sAMObject is AnalyticalModel)
             {
                 sAMObject = new AnalyticalModel((AnalyticalModel)sAMObject, adjacencyCluster);
             }
-            else if(sAMObject is AdjacencyCluster)
+            else if (sAMObject is AdjacencyCluster)
             {
                 sAMObject = adjacencyCluster;
             }

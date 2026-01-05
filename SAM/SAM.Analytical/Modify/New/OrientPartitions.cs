@@ -25,14 +25,14 @@ namespace SAM.Analytical
             foreach (Space space in spaces)
             {
                 List<IPartition> partitions = buildingModel.OrientedPartitions(space, includeOpenings, external, silverSpacing, tolerance);
-                if(partitions == null || partitions.Count == 0)
+                if (partitions == null || partitions.Count == 0)
                 {
                     continue;
                 }
 
-                foreach(IPartition partition in partitions)
+                foreach (IPartition partition in partitions)
                 {
-                    if(partition == null || guids.Contains(partition.Guid))
+                    if (partition == null || guids.Contains(partition.Guid))
                     {
                         continue;
                     }
@@ -62,12 +62,12 @@ namespace SAM.Analytical
 
             buildingModel.OrientedPartitions(space, includeOpenings, out List<IPartition> flippedPartitions, external, silverSpacing, tolerance);
 
-            if(flippedPartitions == null || flippedPartitions.Count == 0)
+            if (flippedPartitions == null || flippedPartitions.Count == 0)
             {
                 return;
             }
 
-            foreach(IPartition partition in flippedPartitions)
+            foreach (IPartition partition in flippedPartitions)
             {
                 buildingModel.Add(partition);
             }

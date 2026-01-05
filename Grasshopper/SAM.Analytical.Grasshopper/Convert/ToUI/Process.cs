@@ -8,7 +8,7 @@ namespace SAM.Analytical.Grasshopper
     {
         public static Process ToUI(this global::Grasshopper.Kernel.Data.IGH_Structure gH_Structure)
         {
-            if(gH_Structure == null)
+            if (gH_Structure == null)
             {
                 return null;
             }

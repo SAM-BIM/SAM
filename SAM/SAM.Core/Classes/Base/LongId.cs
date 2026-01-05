@@ -19,7 +19,7 @@ namespace SAM.Core
         }
 
         public LongId(LongId longId)
-            :base(longId)
+            : base(longId)
         {
             id = longId.id;
         }
@@ -67,7 +67,7 @@ namespace SAM.Core
         public override JObject ToJObject()
         {
             JObject result = base.ToJObject();
-            if(result == null)
+            if (result == null)
             {
                 return result;
             }

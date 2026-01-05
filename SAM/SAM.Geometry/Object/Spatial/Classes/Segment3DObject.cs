@@ -34,7 +34,7 @@ namespace SAM.Geometry.Object.Spatial
         }
 
         public Segment3DObject(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
 
         }

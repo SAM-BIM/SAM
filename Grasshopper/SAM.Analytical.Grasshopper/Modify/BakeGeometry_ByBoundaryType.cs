@@ -27,10 +27,10 @@ namespace SAM.Analytical.Grasshopper
                 }
             }
 
-            foreach(AdjacencyCluster adjacencyCluster_Temp in adjacencyClusters)
+            foreach (AdjacencyCluster adjacencyCluster_Temp in adjacencyClusters)
             {
                 Rhino.Modify.BakeGeometry_ByBoundaryType(rhinoDoc, adjacencyCluster_Temp, cutApertures, tolerance);
             }
         }
-  }
+    }
 }

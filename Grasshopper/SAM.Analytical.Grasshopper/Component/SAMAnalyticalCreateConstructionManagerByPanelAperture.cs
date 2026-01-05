@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -107,31 +107,31 @@ namespace SAM.Analytical.Grasshopper
             MaterialLibrary materialLibrary = analyticalModel.MaterialLibrary;
 
             ConstructionManager constructionManager = new ConstructionManager();
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
                 Construction construction = panel?.Construction;
-                if(construction == null)
+                if (construction == null)
                 {
                     continue;
                 }
 
                 List<Construction> constructions = constructionManager.GetConstructions(construction.Name, TextComparisonType.Equals, true);
-                if(constructions != null && constructions.Count > 0)
+                if (constructions != null && constructions.Count > 0)
                 {
                     continue;
                 }
 
                 constructionManager.Add(construction);
 
-                IEnumerable<IMaterial> materials =  Analytical.Query.Materials(construction, materialLibrary);
-                if(materials == null)
+                IEnumerable<IMaterial> materials = Analytical.Query.Materials(construction, materialLibrary);
+                if (materials == null)
                 {
                     continue;
                 }
 
-                foreach(IMaterial material in materials)
+                foreach (IMaterial material in materials)
                 {
-                    if(constructionManager.GetMaterial(material.Name) == null)
+                    if (constructionManager.GetMaterial(material.Name) == null)
                     {
                         constructionManager.Add(material);
                     }
@@ -139,7 +139,7 @@ namespace SAM.Analytical.Grasshopper
 
             }
 
-            foreach(Aperture aperture in apertures)
+            foreach (Aperture aperture in apertures)
             {
                 ApertureConstruction apertureConstruction = aperture?.ApertureConstruction;
                 if (apertureConstruction == null)
@@ -173,7 +173,7 @@ namespace SAM.Analytical.Grasshopper
 
 
             index = Params.IndexOfOutputParam("constructionManager");
-            if(index != -1)
+            if (index != -1)
             {
                 dataAccess.SetData(index, new GooConstructionManager(constructionManager));
             }

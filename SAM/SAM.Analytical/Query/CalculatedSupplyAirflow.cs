@@ -116,15 +116,15 @@ namespace SAM.Analytical
             double result = 0;
 
             List<Space> spaces = adjacencyCluster.GetSpaces(zone);
-            if(spaces == null || spaces.Count == 0)
+            if (spaces == null || spaces.Count == 0)
             {
                 return result;
             }
 
-            foreach(Space space in spaces)
+            foreach (Space space in spaces)
             {
                 double value = space.CalculatedSupplyAirFlow();
-                if(double.IsNaN(value))
+                if (double.IsNaN(value))
                 {
                     continue;
                 }

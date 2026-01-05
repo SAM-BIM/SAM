@@ -34,7 +34,7 @@ namespace SAM.Core.Grasshopper
                         continue;
                     }
 
-                    if(!(jSAMObject is T))
+                    if (!(jSAMObject is T))
                     {
                         continue;
                     }

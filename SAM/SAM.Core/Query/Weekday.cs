@@ -6,7 +6,7 @@
         {
             if (week == Week.Undefined)
                 return false;
-            
+
             return !Weekend(week);
         }
     }

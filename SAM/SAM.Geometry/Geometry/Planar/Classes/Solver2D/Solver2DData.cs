@@ -59,7 +59,7 @@
         //    geometry2D = point2D;
         //}
 
-        public T Geometry2D<T>() where T: ISAMGeometry2D
+        public T Geometry2D<T>() where T : ISAMGeometry2D
         {
             return geometry2D is T ? (T)geometry2D : default;
         }

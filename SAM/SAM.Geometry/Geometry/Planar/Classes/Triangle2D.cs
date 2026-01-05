@@ -217,12 +217,12 @@ namespace SAM.Geometry.Planar
 
         public bool Transform(ITransform2D transform2D)
         {
-            if(transform2D == null || points == null)
+            if (transform2D == null || points == null)
             {
                 return false;
             }
 
-            for(int i= 0; i < points.Count(); i++)
+            for (int i = 0; i < points.Count(); i++)
             {
                 points[i].Transform(transform2D);
             }

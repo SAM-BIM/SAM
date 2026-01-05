@@ -24,7 +24,7 @@ namespace SAM.Analytical
         /// <param name="boundary2D">The boundary2d.</param>
         public Boundary2D(Boundary2D boundary2D)
         {
-            if(boundary2D != null)
+            if (boundary2D != null)
             {
                 externalEdge2DLoop = new BoundaryEdge2DLoop(boundary2D.externalEdge2DLoop);
                 if (boundary2D.internalEdge2DLoops != null)
@@ -43,7 +43,7 @@ namespace SAM.Analytical
         {
             externalEdge2DLoop = edge2DLoop == null ? null : new BoundaryEdge2DLoop(edge2DLoop);
         }
-   
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Boundary2D"/> class.
         /// Replaces geometry closedPlanar3D for Analytical Boundary2D including internal and external  

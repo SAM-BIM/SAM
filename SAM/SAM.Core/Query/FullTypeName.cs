@@ -19,13 +19,13 @@ namespace SAM.Core
             if (type == null)
                 return null;
 
-            if(type.IsPrimitive)
+            if (type.IsPrimitive)
                 return type.FullName;
 
-            if(type.IsGenericType)
+            if (type.IsGenericType)
             {
                 Type[] types_Generic = type.GetGenericArguments();
-                if(types_Generic != null && types_Generic.Length != 0)
+                if (types_Generic != null && types_Generic.Length != 0)
                 {
                     List<string> typeNames = new List<string>();
                     foreach (Type type_Generic in types_Generic)

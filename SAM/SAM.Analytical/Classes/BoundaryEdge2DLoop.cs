@@ -92,7 +92,7 @@ namespace SAM.Analytical
                 return double.NaN;
 
             double perimeter = 0;
-            foreach(BoundaryEdge2D boundaryEdge2D in boundaryEdge2Ds)
+            foreach (BoundaryEdge2D boundaryEdge2D in boundaryEdge2Ds)
             {
                 ICurve2D curve2D = boundaryEdge2D.Curve2D;
                 if (curve2D == null)

@@ -4,7 +4,7 @@
     {
         public static bool External(this PanelType panelType)
         {
-            switch(panelType)
+            switch (panelType)
             {
                 case Analytical.PanelType.CurtainWall:
                 case Analytical.PanelType.FloorExposed:

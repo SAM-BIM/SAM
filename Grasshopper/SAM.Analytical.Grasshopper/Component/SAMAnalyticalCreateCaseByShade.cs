@@ -357,9 +357,9 @@ EXAMPLE
                 analyticalModel.RemoveValue("CaseDescription");
             }
 
-            analyticalModel = Create.AnalyticalModel_ByShade(analyticalModel, 
-                glassPartOnly, 
-                overhangDepth, 
+            analyticalModel = Create.AnalyticalModel_ByShade(analyticalModel,
+                glassPartOnly,
+                overhangDepth,
                 overhangVerticalOffset,
                 overhangFrontOffset,
                 leftFinDepth,

@@ -6,7 +6,7 @@ namespace SAM.Analytical
     {
         public static string Id(this FlowClassification flowClassification, Direction direction)
         {
-            if(flowClassification == FlowClassification.Undefined || direction == Direction.Undefined)
+            if (flowClassification == FlowClassification.Undefined || direction == Direction.Undefined)
             {
                 return null;
             }

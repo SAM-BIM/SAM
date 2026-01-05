@@ -4,7 +4,7 @@ namespace SAM.Math
 {
     public class Matrix2D : Matrix, ISquareMatrix
     {
-        public Matrix2D(JObject jObject) 
+        public Matrix2D(JObject jObject)
             : base(jObject)
         {
         }

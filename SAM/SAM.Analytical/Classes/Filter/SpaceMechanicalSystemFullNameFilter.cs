@@ -6,7 +6,7 @@ using System.Linq;
 namespace SAM.Analytical
 {
     public abstract class SpaceMechanicalSystemFullNameFilter<T> : TextFilter, IAdjacencyClusterFilter where T : MechanicalSystem
-    {       
+    {
         public AdjacencyCluster AdjacencyCluster { get; set; }
 
         public SpaceMechanicalSystemFullNameFilter(TextComparisonType textComparisonType, string value)
@@ -44,7 +44,7 @@ namespace SAM.Analytical
             }
 
             List<T> mechanicalSystems = adjacencyCluster.GetRelatedObjects<T>(space);
-            if(mechanicalSystems == null || mechanicalSystems.Count == 0)
+            if (mechanicalSystems == null || mechanicalSystems.Count == 0)
             {
                 return false;
             }

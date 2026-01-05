@@ -18,7 +18,7 @@ namespace SAM.Analytical
         }
 
         public MultipleOpeningProperties(JObject jObject)
-            :base(jObject)
+            : base(jObject)
         {
 
         }
@@ -43,21 +43,21 @@ namespace SAM.Analytical
 
         public override bool FromJObject(JObject jObject)
         {
-            if(!base.FromJObject(jObject))
+            if (!base.FromJObject(jObject))
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("SingleOpeningProperties"))
+            if (jObject.ContainsKey("SingleOpeningProperties"))
             {
                 JArray jArray = jObject.Value<JArray>("SingleOpeningProperties");
-                if(jArray != null)
+                if (jArray != null)
                 {
                     singleOpeningProperties = new List<ISingleOpeningProperties>();
-                    foreach(JObject jObject_OpeningProperties in jArray)
+                    foreach (JObject jObject_OpeningProperties in jArray)
                     {
                         ISingleOpeningProperties openingProperties = Core.Query.IJSAMObject<ISingleOpeningProperties>(jObject_OpeningProperties);
-                        if(openingProperties == null)
+                        if (openingProperties == null)
                         {
                             continue;
                         }
@@ -74,17 +74,17 @@ namespace SAM.Analytical
         public override JObject ToJObject()
         {
             JObject jObject = base.ToJObject();
-            if(jObject == null)
+            if (jObject == null)
             {
                 return null;
             }
 
-            if(singleOpeningProperties != null)
+            if (singleOpeningProperties != null)
             {
                 JArray jArray = new JArray();
-                foreach(ISingleOpeningProperties singleOpeningProperties in singleOpeningProperties)
+                foreach (ISingleOpeningProperties singleOpeningProperties in singleOpeningProperties)
                 {
-                    if(singleOpeningProperties == null)
+                    if (singleOpeningProperties == null)
                     {
                         continue;
                     }
@@ -109,7 +109,7 @@ namespace SAM.Analytical
         public double GetDischargeCoefficient()
         {
             ISingleOpeningProperties singleOpeningProperties = this.SingleOpeningProperties();
-            if(singleOpeningProperties == null)
+            if (singleOpeningProperties == null)
             {
                 return double.NaN;
             }

@@ -45,10 +45,10 @@ namespace SAM.Analytical
                 return typeName;
             }
         }
-        
+
         public bool FromJObject(JObject jObject)
         {
-            if(jObject == null)
+            if (jObject == null)
             {
                 return false;
             }
@@ -58,10 +58,10 @@ namespace SAM.Analytical
                 typeName = jObject.Value<string>("TypeName");
             }
 
-            if(jObject.ContainsKey("ExcludedParameterNames"))
+            if (jObject.ContainsKey("ExcludedParameterNames"))
             {
                 excludedParameterNames = new HashSet<string>();
-                foreach(string parameterName in jObject.Value<JArray>("ExcludedParameterNames"))
+                foreach (string parameterName in jObject.Value<JArray>("ExcludedParameterNames"))
                 {
                     excludedParameterNames.Add(parameterName);
                 }
@@ -80,10 +80,10 @@ namespace SAM.Analytical
                 jObject.Add("TypeName", typeName);
             }
 
-            if(excludedParameterNames != null)
+            if (excludedParameterNames != null)
             {
                 JArray jArray = new JArray();
-                foreach(string parameterName in excludedParameterNames)
+                foreach (string parameterName in excludedParameterNames)
                 {
                     jArray.Add(parameterName);
                 }

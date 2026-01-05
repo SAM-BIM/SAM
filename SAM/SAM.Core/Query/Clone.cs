@@ -23,7 +23,7 @@ namespace SAM.Core
             return result;
         }
 
-        public static T Clone<T>(this T jSAMObject) where T: IJSAMObject
+        public static T Clone<T>(this T jSAMObject) where T : IJSAMObject
         {
             Type type = jSAMObject?.GetType();
             if (type == null)
@@ -32,20 +32,20 @@ namespace SAM.Core
             }
 
             MethodInfo[] methodInfos = type.GetMethods();
-            if(methodInfos != null && methodInfos.Length != 0)
+            if (methodInfos != null && methodInfos.Length != 0)
             {
-                foreach(MethodInfo methodInfo in methodInfos)
+                foreach (MethodInfo methodInfo in methodInfos)
                 {
                     if (!methodInfo.Name.Equals("Clone"))
                     {
                         continue;
                     }
-                    
+
                     if (!methodInfo.ReturnType.IsAssignableFrom(type))
                     {
                         continue;
                     }
-                    
+
                     ParameterInfo[] parameterInfos = methodInfo.GetParameters();
                     if (parameterInfos == null || parameterInfos.Length == 0)
                     {
@@ -68,7 +68,7 @@ namespace SAM.Core
             foreach (ConstructorInfo constructorInfo in constructorInfos)
             {
                 ParameterInfo[] parameterInfos = constructorInfo.GetParameters();
-                if(parameterInfos == null || parameterInfos.Length == 0)
+                if (parameterInfos == null || parameterInfos.Length == 0)
                 {
                     constructorInfo_Empty = constructorInfo;
                     continue;
@@ -90,7 +90,7 @@ namespace SAM.Core
 
                     continue;
                 }
-                    
+
 
                 constructorInfo_Type = constructorInfo;
                 break;
@@ -135,7 +135,7 @@ namespace SAM.Core
             }
 
             T[] result = new T[array.Length];
-            
+
             for (int i = 0; i < array.Length; i++)
             {
                 result[i] = array[i];

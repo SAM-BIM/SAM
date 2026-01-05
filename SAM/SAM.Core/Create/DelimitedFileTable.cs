@@ -9,7 +9,7 @@ namespace SAM.Core
         {
             if (delimitedFileType == DelimitedFileType.Undefined || string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
                 return null;
-            
+
             DelimitedFileTable result = null;
             using (DelimitedFileReader delimitedFileReader = new DelimitedFileReader(delimitedFileType, path))
                 result = new DelimitedFileTable(delimitedFileReader);

@@ -42,7 +42,7 @@ namespace SAM.Analytical
 
             Vector3D normal = plane.Normal;
 
-            if(hostPartition is Floor)
+            if (hostPartition is Floor)
             {
                 if (normal.SameHalf(Vector3D.WorldZ))
                     normal.Negate();
@@ -50,7 +50,7 @@ namespace SAM.Analytical
                 vector3D_Extrusion = normal * thickness;
                 face3D_Extrusion = face3D;
             }
-            else if(hostPartition is Roof)
+            else if (hostPartition is Roof)
             {
                 if (!normal.SameHalf(Vector3D.WorldZ))
                     normal.Negate();

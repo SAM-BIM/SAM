@@ -6,7 +6,7 @@
         {
             if (alignment == Alignment.Undefined)
                 return null;
-            
+
             switch (alignment)
             {
                 case Alignment.Vertical:

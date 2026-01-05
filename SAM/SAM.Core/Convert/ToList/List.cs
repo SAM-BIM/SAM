@@ -42,7 +42,7 @@ namespace SAM.Core
                 return null;
 
             List<T> result = new List<T>();
-            foreach(object @object in jArray)
+            foreach (object @object in jArray)
             {
                 object object_Temp = @object;
 
@@ -64,11 +64,11 @@ namespace SAM.Core
 
                 if (!tryConvert)
                 {
-                    if(!skipInvalid)
+                    if (!skipInvalid)
                         result.Add(default);
-                    
+
                     continue;
-                }    
+                }
 
                 T value = default;
                 if (!Query.TryConvert(object_Temp, out value))
@@ -78,7 +78,7 @@ namespace SAM.Core
 
                     value = default;
                 }
-                    
+
                 result.Add(value);
             }
 

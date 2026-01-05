@@ -9,7 +9,7 @@ namespace SAM.Analytical
         public static ConstructionManager ConstructionManager(this AnalyticalModel analyticalModel)
         {
             AdjacencyCluster adjacencyCluster = analyticalModel?.AdjacencyCluster;
-            if(adjacencyCluster == null)
+            if (adjacencyCluster == null)
             {
                 return null;
             }
@@ -27,11 +27,11 @@ namespace SAM.Analytical
         {
             ConstructionManager result = constructionManager == null ? new ConstructionManager() : new ConstructionManager(constructionManager);
 
-            if(constructionDictionary != null)
+            if (constructionDictionary != null)
             {
-                foreach(KeyValuePair<PanelType, Construction> keyValuePair in constructionDictionary)
+                foreach (KeyValuePair<PanelType, Construction> keyValuePair in constructionDictionary)
                 {
-                    if(keyValuePair.Value == null)
+                    if (keyValuePair.Value == null)
                     {
                         continue;
                     }
@@ -39,7 +39,7 @@ namespace SAM.Analytical
                     result.GetConstructions(keyValuePair.Key)?.ForEach(x => result.Remove(x));
 
                     Construction construction = keyValuePair.Value;
-                    if(construction != null)
+                    if (construction != null)
                     {
                         result.Add(new Construction(construction, System.Guid.NewGuid()), keyValuePair.Key);
                     }
@@ -48,7 +48,7 @@ namespace SAM.Analytical
 
             if (apertureConctructionDictionary != null)
             {
-                foreach (KeyValuePair<Tuple<PanelType,ApertureType>, ApertureConstruction> keyValuePair in apertureConctructionDictionary)
+                foreach (KeyValuePair<Tuple<PanelType, ApertureType>, ApertureConstruction> keyValuePair in apertureConctructionDictionary)
                 {
                     if (keyValuePair.Value == null)
                     {
@@ -56,23 +56,23 @@ namespace SAM.Analytical
                     }
 
                     result.GetApertureConstructions(keyValuePair.Value.ApertureType, keyValuePair.Key.Item1)?.ForEach(x => result.Remove(x));
-                    
+
                     ApertureConstruction apertureConstruction = keyValuePair.Value;
                     if (apertureConstruction != null)
                     {
                         ApertureConstruction apertureConstruction_Temp = new ApertureConstruction(Guid.NewGuid(), apertureConstruction, apertureConstruction.Name);
                         apertureConstruction_Temp = new ApertureConstruction(apertureConstruction_Temp, keyValuePair.Key.Item2);
                         result.Add(apertureConstruction_Temp, keyValuePair.Key.Item1);
-                        
+
                     }
                 }
             }
 
-            if(materials != null)
+            if (materials != null)
             {
-                foreach(IMaterial material in materials)
+                foreach (IMaterial material in materials)
                 {
-                    if(material == null)
+                    if (material == null)
                     {
                         continue;
                     }

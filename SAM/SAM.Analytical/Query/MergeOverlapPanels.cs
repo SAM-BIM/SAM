@@ -55,7 +55,7 @@ namespace SAM.Analytical
                 {
                     if (panel.PanelType != Analytical.PanelType.Air)
                         continue;
-                    
+
                     if (panel.Normal.Collinear(Vector3D.WorldZ, tolerance))
                         panels_Temp_Horizontal.Add(panel);
                     else
@@ -79,7 +79,7 @@ namespace SAM.Analytical
                 }
             }
 
-                
+
 
             foreach (KeyValuePair<PanelGroup, List<Panel>> keyValuePair in dictionary)
                 if (keyValuePair.Value != null && keyValuePair.Value.Count > 0)
@@ -167,7 +167,7 @@ namespace SAM.Analytical
                     Panel panel = tuple_Temp.Item2;
 
                     Face3D face3D = panel.GetFace3D();
-                    foreach(IClosedPlanar3D closedPlanar3D in face3D.GetEdge3Ds())
+                    foreach (IClosedPlanar3D closedPlanar3D in face3D.GetEdge3Ds())
                     {
                         ISegmentable3D segmentable3D = closedPlanar3D as ISegmentable3D;
                         if (segmentable3D == null)
@@ -180,7 +180,7 @@ namespace SAM.Analytical
 
                     Face2D face2D = plane.Convert(face3D);
 
-                    if(face2D == null || !face2D.IsValid() || face2D.GetArea() < tolerance)
+                    if (face2D == null || !face2D.IsValid() || face2D.GetArea() < tolerance)
                     {
                         continue;
                     }
@@ -338,7 +338,7 @@ namespace SAM.Analytical
 
                 Face3D face3D = null;
 
-                List <Point2D> point2Ds = new List<Point2D>(); //Snap Points <- New Face3Ds will be snapped to these points
+                List<Point2D> point2Ds = new List<Point2D>(); //Snap Points <- New Face3Ds will be snapped to these points
                 List<Tuple<Polygon, Panel>> tuples_Polygon = new List<Tuple<Polygon, Panel>>();
                 foreach (Tuple<Face3D, Panel> tuple_Face3D in tuples_Face3D)
                 {
@@ -381,7 +381,7 @@ namespace SAM.Analytical
                     List<Tuple<Polygon, Panel>> tuples_Polygon_Contains_Unused = tuples_Polygon_Contains.FindAll(x => !guids.Contains(x.Item2.Guid));
 
                     Panel panel_Old = tuples_Polygon_Contains.First().Item2;
-                    if(tuples_Polygon_Contains_Unused.Count != 0)
+                    if (tuples_Polygon_Contains_Unused.Count != 0)
                         panel_Old = tuples_Polygon_Contains_Unused.First().Item2;
 
                     Polygon polygon_Old = tuples_Polygon_Contains.First().Item1;

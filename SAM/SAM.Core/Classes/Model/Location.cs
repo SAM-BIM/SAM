@@ -4,7 +4,7 @@ using System;
 
 namespace SAM.Core
 {
-    public class Location: SAMObject
+    public class Location : SAMObject
     {
         private double longitude;
         private double latitude;
@@ -13,7 +13,7 @@ namespace SAM.Core
         public Location(Location location)
             : base(location)
         {
-            if(location != null)
+            if (location != null)
             {
                 longitude = location.longitude;
                 latitude = location.latitude;

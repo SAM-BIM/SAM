@@ -9,7 +9,7 @@ namespace SAM.Analytical
     {
         public static Dictionary<Range<double>, Tuple<double, ApertureConstruction>> ToDictionary(this ApertureToPanelRatios apertureToPanelRatios)
         {
-            if(apertureToPanelRatios is null)
+            if (apertureToPanelRatios is null)
             {
                 return null;
             }
@@ -24,10 +24,10 @@ namespace SAM.Analytical
 
             }
 
-            for(int i =0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
                 ApertureToPanelRatio apertureToPanelRatio = apertureToPanelRatios[i];
-                if(apertureToPanelRatio?.AzimuthRange is not Range<double> azimuthRange)
+                if (apertureToPanelRatio?.AzimuthRange is not Range<double> azimuthRange)
                 {
                     continue;
                 }

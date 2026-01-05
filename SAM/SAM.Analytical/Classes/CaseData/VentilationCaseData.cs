@@ -21,7 +21,7 @@ namespace SAM.Analytical
         public VentilationCaseData(VentilationCaseData ventilationCaseData)
             : base(ventilationCaseData)
         {
-            if(ventilationCaseData != null)
+            if (ventilationCaseData != null)
             {
                 aCH = ventilationCaseData.aCH;
             }
@@ -29,21 +29,21 @@ namespace SAM.Analytical
 
         public double ACH
         {
-            get 
-            { 
-                return aCH; 
+            get
+            {
+                return aCH;
             }
         }
 
         public override bool FromJObject(JObject jObject)
         {
             bool result = base.FromJObject(jObject);
-            if(!result)
+            if (!result)
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("ACH"))
+            if (jObject.ContainsKey("ACH"))
             {
                 aCH = jObject.Value<double>("ACH");
             }
@@ -54,12 +54,12 @@ namespace SAM.Analytical
         public override JObject ToJObject()
         {
             JObject result = base.ToJObject();
-            if(result is null)
+            if (result is null)
             {
                 return result;
             }
 
-            if(!double.IsNaN(aCH))
+            if (!double.IsNaN(aCH))
             {
                 result.Add("ACH", aCH);
             }

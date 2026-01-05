@@ -11,7 +11,7 @@ namespace SAM.Geometry.Spatial
             if (closedPlanar3Ds == null || double.IsNaN(x) || double.IsNaN(y))
                 return null;
 
-            if(plane == null)
+            if (plane == null)
             {
                 plane = Plane.WorldXY;
                 double z = double.MaxValue;
@@ -32,13 +32,13 @@ namespace SAM.Geometry.Spatial
             }
 
             List<IBoundable2D> boundable2Ds = new List<IBoundable2D>();
-            foreach(IClosedPlanar3D closedPlanar3D in closedPlanar3Ds)
+            foreach (IClosedPlanar3D closedPlanar3D in closedPlanar3Ds)
             {
                 PlanarIntersectionResult planarIntersectionResult = Create.PlanarIntersectionResult(plane, closedPlanar3D, tolerance_Angle, tolerance_Distance);
                 if (planarIntersectionResult == null || !planarIntersectionResult.Intersecting)
                     continue;
 
-                foreach(ISAMGeometry3D sAMGeometry3D in planarIntersectionResult.Geometry3Ds)
+                foreach (ISAMGeometry3D sAMGeometry3D in planarIntersectionResult.Geometry3Ds)
                 {
                     IBoundable3D boundable3D = sAMGeometry3D as IBoundable3D;
                     if (boundable3D == null)

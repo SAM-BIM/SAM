@@ -10,7 +10,7 @@ namespace SAM.Analytical
         {
             return TryGetSeasonProfiles(temperatures, days, heatingTemperature, double.NaN, out heatingProfile, out coolingProfile, out Profile freeCoolingProfile);
         }
-        
+
         public static bool TryGetSeasonProfiles(IEnumerable<double> temperatures, int days, double heatingTemperature, double coolingTemperature, out Profile heatingProfile, out Profile coolingProfile, out Profile freeCoolingProfile)
         {
             heatingProfile = null;
@@ -195,10 +195,10 @@ namespace SAM.Analytical
 
 
             List<WeatherDay> weatherDays = new List<WeatherDay>();
-            foreach(WeatherYear weatherYear in weatherYears)
+            foreach (WeatherYear weatherYear in weatherYears)
             {
                 List<WeatherDay> weatherDays_WeatherYear = weatherYear?.WeatherDays;
-                if(weatherDays_WeatherYear == null)
+                if (weatherDays_WeatherYear == null)
                 {
                     continue;
                 }

@@ -77,7 +77,7 @@ namespace SAM.Core.Grasshopper
 
             IRelationCluster relationCluster_Result = relationCluster.Clone();
 
-            foreach(SAMObject sAMObject in sAMObjects)
+            foreach (SAMObject sAMObject in sAMObjects)
             {
                 (relationCluster_Result as dynamic).AddObject(sAMObject);
             }

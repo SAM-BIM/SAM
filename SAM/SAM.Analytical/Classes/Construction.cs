@@ -33,7 +33,7 @@ namespace SAM.Analytical
         public Construction(Guid guid, string name, IEnumerable<ConstructionLayer> constructionLayers)
             : base(guid, name)
         {
-            if(constructionLayers != null)
+            if (constructionLayers != null)
             {
                 this.constructionLayers = new List<ConstructionLayer>();
                 foreach (ConstructionLayer constructionLayer in constructionLayers)
@@ -116,7 +116,7 @@ namespace SAM.Analytical
             if (!base.FromJObject(jObject))
                 return false;
 
-            if(jObject.ContainsKey("ConstructionLayers"))
+            if (jObject.ContainsKey("ConstructionLayers"))
                 constructionLayers = Core.Create.IJSAMObjects<ConstructionLayer>(jObject.Value<JArray>("ConstructionLayers"));
 
             return true;
@@ -124,11 +124,11 @@ namespace SAM.Analytical
 
         public override JObject ToJObject()
         {
-           JObject jObject = base.ToJObject();
+            JObject jObject = base.ToJObject();
             if (jObject == null)
                 return null;
 
-            if(constructionLayers != null)
+            if (constructionLayers != null)
                 jObject.Add("ConstructionLayers", Core.Create.JArray(constructionLayers));
 
             return jObject;

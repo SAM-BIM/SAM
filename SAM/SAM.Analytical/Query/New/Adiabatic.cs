@@ -7,12 +7,12 @@ namespace SAM.Analytical
         public static bool Adiabatic(this HostPartitionType hostPartitionType)
         {
             List<Architectural.MaterialLayer> materialLayers = hostPartitionType?.MaterialLayers;
-            if(materialLayers == null)
+            if (materialLayers == null)
             {
                 return false;
             }
 
-            if(materialLayers.Count == 0)
+            if (materialLayers.Count == 0)
             {
                 return true;
             }
@@ -22,17 +22,17 @@ namespace SAM.Analytical
 
         public static bool Adiabatic(this IHostPartition hostPartition)
         {
-            if(hostPartition == null)
+            if (hostPartition == null)
             {
                 return false;
             }
 
-            if(Adiabatic(hostPartition.Type()))
+            if (Adiabatic(hostPartition.Type()))
             {
                 return true;
             }
 
-            if(!hostPartition.TryGetValue(HostPartitionParameter.Adiabatic, out bool result))
+            if (!hostPartition.TryGetValue(HostPartitionParameter.Adiabatic, out bool result))
             {
                 return false;
             }

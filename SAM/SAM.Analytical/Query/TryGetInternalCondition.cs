@@ -9,7 +9,7 @@ namespace SAM.Analytical
         {
             internalCondition = null;
 
-            if(!TryGetInternalConditions(space, internalConditionLibrary, textMap, out List<InternalCondition> internalConditions) || internalConditions == null || internalConditions.Count == 0)
+            if (!TryGetInternalConditions(space, internalConditionLibrary, textMap, out List<InternalCondition> internalConditions) || internalConditions == null || internalConditions.Count == 0)
             {
                 return false;
             }

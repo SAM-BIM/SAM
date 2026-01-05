@@ -21,7 +21,7 @@ namespace SAM.Core
                 return false;
 
             List<ParameterSet> parameterSets = parameterizedSAMObject.GetParameterSets();
-            if(parameterSets != null)
+            if (parameterSets != null)
             {
                 foreach (ParameterSet parameterSet_Temp in parameterSets)
                 {

@@ -24,7 +24,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
@@ -80,12 +80,12 @@ namespace SAM.Analytical.Grasshopper
 
             Space space = null;
             index = Params.IndexOfInputParam("space_");
-            if(index != -1)
+            if (index != -1)
             {
                 dataAccess.GetData(index, ref space);
             }
 
-            if(space == null)
+            if (space == null)
             {
                 space = new Space("Space_Default", new Point3D(0, 0, 0.75));
             }
@@ -111,7 +111,7 @@ namespace SAM.Analytical.Grasshopper
 
             InternalCondition internalCondition = null;
             index = Params.IndexOfInputParam("internalCondition_");
-            if(index != -1 && dataAccess.GetData(index, ref internalCondition))
+            if (index != -1 && dataAccess.GetData(index, ref internalCondition))
             {
                 space.InternalCondition = internalCondition;
             }

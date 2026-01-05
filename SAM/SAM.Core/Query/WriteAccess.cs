@@ -4,7 +4,7 @@
     {
         public static bool WriteAccess(this AccessType accessType)
         {
-            switch(accessType)
+            switch (accessType)
             {
                 case AccessType.Write:
                 case AccessType.ReadWrite:

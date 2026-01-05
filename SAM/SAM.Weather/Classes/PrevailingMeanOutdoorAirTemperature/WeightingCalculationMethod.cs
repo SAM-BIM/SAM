@@ -7,21 +7,21 @@ namespace SAM.Weather
         public double Alpha { get; set; } = 0.8;
 
         public WeightingCalculationMethod()
-            :base()
+            : base()
         {
 
         }
 
         public WeightingCalculationMethod(int sequentialDays, double alpha)
-            :base(sequentialDays)
+            : base(sequentialDays)
         {
             Alpha = alpha;
         }
 
         public WeightingCalculationMethod(WeightingCalculationMethod weightingCalculationMethod)
-            :base(weightingCalculationMethod)
+            : base(weightingCalculationMethod)
         {
-            if(weightingCalculationMethod != null)
+            if (weightingCalculationMethod != null)
             {
                 Alpha = weightingCalculationMethod.Alpha;
             }
@@ -34,12 +34,12 @@ namespace SAM.Weather
 
         public bool FromJObject(JObject jObject)
         {
-            if(!base.FromJObject(jObject))
+            if (!base.FromJObject(jObject))
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("Alpha"))
+            if (jObject.ContainsKey("Alpha"))
             {
                 Alpha = jObject.Value<double>("Alpha");
             }
@@ -50,13 +50,13 @@ namespace SAM.Weather
         public JObject ToJObject()
         {
             JObject result = base.ToJObject();
-            if(result == null)
+            if (result == null)
             {
                 return null;
             }
 
             result.Add("Alpha", Alpha);
-            
+
             return result;
         }
     }

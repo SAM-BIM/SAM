@@ -22,11 +22,11 @@ namespace SAM.Core
 
         public static JArray JArray<T>(this T[,] values)
         {
-            if(values == null)
+            if (values == null)
             {
                 return null;
             }
-            
+
             JArray result = new JArray();
             for (int i = 0; i < values.GetLength(0); i++)
             {

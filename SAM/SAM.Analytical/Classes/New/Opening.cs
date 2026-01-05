@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace SAM.Analytical
 {
-    public class Opening<T> : BuildingElement<T>, IOpening  where T : OpeningType
+    public class Opening<T> : BuildingElement<T>, IOpening where T : OpeningType
     {
         public Opening(Opening<T> opening)
             : base(opening)
@@ -41,7 +41,7 @@ namespace SAM.Analytical
         public override double GetArea()
         {
             Geometry.Planar.IClosed2D closed2D = Face3D?.ExternalEdge2D;
-            if(closed2D == null)
+            if (closed2D == null)
             {
                 return double.NaN;
             }
@@ -70,12 +70,12 @@ namespace SAM.Analytical
                 T openingType = Type;
                 if (openingType != null)
                 {
-                    if(openingType.TryGetValue(OpeningTypeParameter.DefaultFrameWidth, out double defaultFrameWidth))
+                    if (openingType.TryGetValue(OpeningTypeParameter.DefaultFrameWidth, out double defaultFrameWidth))
                     {
                         frameWidth = defaultFrameWidth;
                     }
 
-                    if(double.IsNaN(frameWidth) || frameWidth == 0)
+                    if (double.IsNaN(frameWidth) || frameWidth == 0)
                     {
                         frameWidth = openingType.GetFrameThickness();
                     }

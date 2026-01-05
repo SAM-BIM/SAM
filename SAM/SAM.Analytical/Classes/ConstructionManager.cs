@@ -11,7 +11,7 @@ namespace SAM.Analytical
 
         private ApertureConstructionLibrary apertureConstructionLibrary;
         private ConstructionLibrary constructionLibrary;
-        
+
         private MaterialLibrary materialLibrary;
 
         public ConstructionManager(ApertureConstructionLibrary apertureConstructionLibrary, ConstructionLibrary constructionLibrary, MaterialLibrary materialLibrary)
@@ -23,12 +23,12 @@ namespace SAM.Analytical
 
         public ConstructionManager(IEnumerable<ApertureConstruction> apertureConstructions, IEnumerable<Construction> constructions, MaterialLibrary materialLibrary)
         {
-            this.materialLibrary = materialLibrary == null ? null : new MaterialLibrary(materialLibrary);    
+            this.materialLibrary = materialLibrary == null ? null : new MaterialLibrary(materialLibrary);
 
             apertureConstructionLibrary = new ApertureConstructionLibrary("Default ApertureConstruction Library");
-            if(apertureConstructions != null)
+            if (apertureConstructions != null)
             {
-                foreach(ApertureConstruction apertureConstruction in apertureConstructions)
+                foreach (ApertureConstruction apertureConstruction in apertureConstructions)
                 {
                     apertureConstructionLibrary.Add(apertureConstruction);
                 }
@@ -132,12 +132,12 @@ namespace SAM.Analytical
 
         public bool Add(IMaterial material)
         {
-            if(material == null)
+            if (material == null)
             {
                 return false;
             }
 
-            if(materialLibrary == null)
+            if (materialLibrary == null)
             {
                 materialLibrary = new MaterialLibrary(string.Empty);
             }
@@ -177,7 +177,7 @@ namespace SAM.Analytical
 
         public bool Add(Construction construction, PanelType panelType)
         {
-            if(construction == null)
+            if (construction == null)
             {
                 return false;
             }
@@ -225,24 +225,24 @@ namespace SAM.Analytical
             }
 
             List<Construction> result = new List<Construction>();
-            foreach(Construction construction in constructions)
+            foreach (Construction construction in constructions)
             {
-                if(construction == null)
+                if (construction == null)
                 {
                     continue;
                 }
 
-                if(!construction.TryGetValue(ConstructionParameter.DefaultPanelType, out string panelTypeString) || string.IsNullOrWhiteSpace(panelTypeString))
+                if (!construction.TryGetValue(ConstructionParameter.DefaultPanelType, out string panelTypeString) || string.IsNullOrWhiteSpace(panelTypeString))
                 {
                     continue;
                 }
 
-                if(!Core.Query.TryGetEnum(panelTypeString, out PanelType panelType_Temp))
+                if (!Core.Query.TryGetEnum(panelTypeString, out PanelType panelType_Temp))
                 {
                     continue;
                 }
 
-                if(panelType_Temp == panelType)
+                if (panelType_Temp == panelType)
                 {
                     result.Add(construction);
                 }
@@ -306,24 +306,24 @@ namespace SAM.Analytical
             return materialLibrary?.GetMaterial(name);
         }
 
-        public List<T> GetMaterials<T>(Construction construction) where T: IMaterial
+        public List<T> GetMaterials<T>(Construction construction) where T : IMaterial
         {
-            if(construction == null || materialLibrary == null)
+            if (construction == null || materialLibrary == null)
             {
                 return null;
             }
 
             List<ConstructionLayer> constructionLayers = construction.ConstructionLayers;
-            if(constructionLayers == null)
+            if (constructionLayers == null)
             {
                 return null;
             }
 
             List<T> result = new List<T>();
-            foreach(ConstructionLayer constructionLayer in constructionLayers)
+            foreach (ConstructionLayer constructionLayer in constructionLayers)
             {
                 IMaterial material = materialLibrary.GetMaterial(constructionLayer.Name);
-                if(material is T)
+                if (material is T)
                 {
                     result.Add((T)material);
                 }
@@ -343,7 +343,7 @@ namespace SAM.Analytical
 
             List<ConstructionLayer> constructionLayers = null;
 
-           constructionLayers = apertureConstruction.FrameConstructionLayers;
+            constructionLayers = apertureConstruction.FrameConstructionLayers;
             if (constructionLayers != null)
             {
                 foreach (ConstructionLayer constructionLayer in constructionLayers)
@@ -374,12 +374,12 @@ namespace SAM.Analytical
 
         public bool FromJObject(JObject jObject)
         {
-            if(jObject == null)
+            if (jObject == null)
             {
                 return false;
             }
 
-            if(jObject.ContainsKey("Name"))
+            if (jObject.ContainsKey("Name"))
             {
                 Name = jObject.Value<string>("Name");
             }

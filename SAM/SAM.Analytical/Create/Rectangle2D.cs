@@ -16,7 +16,7 @@ namespace SAM.Analytical
             if (segmentable2D == null)
                 throw new System.NotImplementedException();
 
-           return Geometry.Planar.Create.Rectangle2D(segmentable2D.GetPoints());
+            return Geometry.Planar.Create.Rectangle2D(segmentable2D.GetPoints());
         }
     }
 }

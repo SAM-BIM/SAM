@@ -23,7 +23,7 @@
             if (temperature > 28)
                 temperature = 28;
 
-            switch(activityLevel)
+            switch (activityLevel)
             {
                 case ActivityLevel.First:
                     senisble = 161 - (3.8 * temperature);

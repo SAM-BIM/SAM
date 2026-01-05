@@ -12,7 +12,7 @@ namespace SAM.Core
                 return null;
 
             UriBuilder uriBuilder = new UriBuilder(codeBase);
-            
+
             string path = uriBuilder.Path;
             if (string.IsNullOrEmpty(path))
                 return null;

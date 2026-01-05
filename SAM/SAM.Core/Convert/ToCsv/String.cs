@@ -48,7 +48,7 @@ namespace SAM.Core
 
                 value_Temp.Replace("\"", "\"\"");
 
-                if(value_Temp.Contains(separator))
+                if (value_Temp.Contains(separator))
                 {
                     value_Temp = string.Format("\"{0}\"", value_Temp);
                 }

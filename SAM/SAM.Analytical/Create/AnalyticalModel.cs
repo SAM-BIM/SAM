@@ -9,15 +9,15 @@ namespace SAM.Analytical
 {
     public static partial class Create
     {
-        public static AnalyticalModel AnalyticalModel(this AnalyticalModel analyticalModel, 
+        public static AnalyticalModel AnalyticalModel(this AnalyticalModel analyticalModel,
             Case @case)
         {
-            if(analyticalModel == null || @case == null)
+            if (analyticalModel == null || @case == null)
             {
                 return null;
             }
 
-            if(@case is WindowSizeCase windowSizeCase)
+            if (@case is WindowSizeCase windowSizeCase)
             {
                 return AnalyticalModel_ByWindowSize(analyticalModel, windowSizeCase);
             }
@@ -50,11 +50,11 @@ namespace SAM.Analytical
             throw new NotImplementedException();
         }
 
-        public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel, 
-            double apertureScaleFactor, 
+        public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel,
+            double apertureScaleFactor,
             IEnumerable<Aperture> apertures = null)
         {
-            if(analyticalModel == null || double.IsNaN(apertureScaleFactor))
+            if (analyticalModel == null || double.IsNaN(apertureScaleFactor))
             {
                 return null;
             }
@@ -117,7 +117,7 @@ namespace SAM.Analytical
                 adjacencyCluster.AddObject(panel_Temp);
             }
 
-            AnalyticalModel result = new (analyticalModel, adjacencyCluster);
+            AnalyticalModel result = new(analyticalModel, adjacencyCluster);
 
 
             //CaseDataCollection
@@ -164,16 +164,16 @@ namespace SAM.Analytical
             return result;
         }
 
-        public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel, 
+        public static AnalyticalModel AnalyticalModel_ByWindowSize(this AnalyticalModel analyticalModel,
             WindowSizeCase windowSizeCase)
         {
-            if(analyticalModel == null || windowSizeCase == null)
+            if (analyticalModel == null || windowSizeCase == null)
             {
                 return null;
             }
 
             List<Aperture> apertures = null;
-            if(windowSizeCase.CaseSelection is CaseSelection caseSelection)
+            if (windowSizeCase.CaseSelection is CaseSelection caseSelection)
             {
                 apertures = Query.IJSAMObjects<Aperture>(caseSelection, analyticalModel);
             }
@@ -181,22 +181,22 @@ namespace SAM.Analytical
             return AnalyticalModel_ByWindowSize(analyticalModel, windowSizeCase.ApertureScaleFactor, apertures);
         }
 
-        public static AnalyticalModel AnalyticalModel_ByApertureByAzimuths(this AnalyticalModel analyticalModel, 
-            Dictionary<Range<double>, Tuple<double, ApertureConstruction>> intervalRatioMap, 
-            bool subdivide, 
-            double apertureHeight, 
-            double sillHeight, 
-            double horizontalSeparation, 
-            double offset, 
-            bool keepSeparationDistance, 
+        public static AnalyticalModel AnalyticalModel_ByApertureByAzimuths(this AnalyticalModel analyticalModel,
+            Dictionary<Range<double>, Tuple<double, ApertureConstruction>> intervalRatioMap,
+            bool subdivide,
+            double apertureHeight,
+            double sillHeight,
+            double horizontalSeparation,
+            double offset,
+            bool keepSeparationDistance,
             IEnumerable<Panel> panels = null)
         {
-            if(analyticalModel == null)
+            if (analyticalModel == null)
             {
                 return null;
             }
 
-            if(intervalRatioMap == null || intervalRatioMap.Count == 0)
+            if (intervalRatioMap == null || intervalRatioMap.Count == 0)
             {
                 return new AnalyticalModel(analyticalModel);
             }
@@ -210,7 +210,7 @@ namespace SAM.Analytical
 
             List<Panel> panels_Temp = panels == null ? [] : [.. panels];
 
-            if(panels_Temp == null || panels_Temp.Count == 0)
+            if (panels_Temp == null || panels_Temp.Count == 0)
             {
                 panels_Temp = analyticalModel.GetPanels();
             }
@@ -331,22 +331,22 @@ namespace SAM.Analytical
                 panels);
         }
 
-        public static AnalyticalModel AnalyticalModel_ByApertureConstruction(this AnalyticalModel analyticalModel, 
-            ApertureConstruction apertureConstruction, 
+        public static AnalyticalModel AnalyticalModel_ByApertureConstruction(this AnalyticalModel analyticalModel,
+            ApertureConstruction apertureConstruction,
             IEnumerable<Aperture> apertures = null)
         {
-            if(analyticalModel is null)
+            if (analyticalModel is null)
             {
                 return null;
             }
 
             List<Aperture> apertures_Temp = apertures == null ? [] : [.. apertures];
-            if(apertures_Temp is null || apertures_Temp.Count == 0)
+            if (apertures_Temp is null || apertures_Temp.Count == 0)
             {
                 apertures_Temp = analyticalModel.GetApertures();
             }
 
-            if(apertures_Temp == null || apertures_Temp.Count == 0)
+            if (apertures_Temp == null || apertures_Temp.Count == 0)
             {
                 return new AnalyticalModel(analyticalModel);
             }
@@ -433,7 +433,7 @@ namespace SAM.Analytical
             return AnalyticalModel_ByApertureConstruction(analyticalModel, apertureConstructionCase.ApertureConstruction, apertureConstructionCase.CaseSelection?.IJSAMObjects<Aperture>(analyticalModel));
         }
 
-        public static AnalyticalModel AnalyticalModel_ByOpening(this AnalyticalModel analyticalModel, 
+        public static AnalyticalModel AnalyticalModel_ByOpening(this AnalyticalModel analyticalModel,
             IEnumerable<double> openingAngles,
             IEnumerable<string> descriptions = null,
             IEnumerable<string> functions = null,
@@ -441,7 +441,7 @@ namespace SAM.Analytical
             IEnumerable<double> factors = null,
             IEnumerable<Profile> profiles = null,
             bool paneSizeOnly = true,
-            IEnumerable <Aperture> apertures = null)
+            IEnumerable<Aperture> apertures = null)
         {
             if (analyticalModel is null)
             {
@@ -610,9 +610,9 @@ namespace SAM.Analytical
             return result;
         }
 
-        public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 
-            bool glassPartOnly, 
-            double overhangDepth, 
+        public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel,
+            bool glassPartOnly,
+            double overhangDepth,
             double overhangVerticalOffset,
             double overhangFrontOffset,
             double leftFinDepth,
@@ -731,10 +731,10 @@ namespace SAM.Analytical
             return result;
         }
 
-        public static AnalyticalModel AnalyticalModel_ByFinShade(this AnalyticalModel analyticalModel, 
+        public static AnalyticalModel AnalyticalModel_ByFinShade(this AnalyticalModel analyticalModel,
             FinShadeCase finShadeCase)
         {
-            if(analyticalModel is null || finShadeCase is null)
+            if (analyticalModel is null || finShadeCase is null)
             {
                 return null;
             }
@@ -753,7 +753,7 @@ namespace SAM.Analytical
                 finShadeCase.CaseSelection?.IJSAMObjects<IAnalyticalObject>(analyticalModel));
         }
 
-        public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel, 
+        public static AnalyticalModel AnalyticalModel_ByShade(this AnalyticalModel analyticalModel,
             IEnumerable<Panel> shades)
         {
             if (analyticalModel is null)
@@ -1019,7 +1019,7 @@ namespace SAM.Analytical
                 ventilationCase.CaseSelection?.IJSAMObjects<IAnalyticalObject>(analyticalModel));
         }
 
-        public static AnalyticalModel AnalyticalModel_ByWeatherData(this AnalyticalModel analyticalModel, 
+        public static AnalyticalModel AnalyticalModel_ByWeatherData(this AnalyticalModel analyticalModel,
             WeatherData weatherData)
         {
             if (analyticalModel is null)
@@ -1081,10 +1081,10 @@ namespace SAM.Analytical
             return result;
         }
 
-        public static AnalyticalModel AnalyticalModel_ByWeatherData(this AnalyticalModel analyticalModel, 
+        public static AnalyticalModel AnalyticalModel_ByWeatherData(this AnalyticalModel analyticalModel,
             WeatherDataCase weatherDataCase)
         {
-            if(analyticalModel == null || weatherDataCase == null)
+            if (analyticalModel == null || weatherDataCase == null)
             {
                 return null;
             }
@@ -1125,7 +1125,7 @@ namespace SAM.Analytical
             {
                 a += 360.0;
             }
-            
+
             return (a >= 360.0) ? 359.0 : a;
         }
 

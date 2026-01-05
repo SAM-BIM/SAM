@@ -13,7 +13,7 @@ namespace SAM.Core
         }
 
         public IntegerId(IntegerId integerId)
-            :base(integerId)
+            : base(integerId)
         {
             id = integerId.id;
         }
@@ -56,7 +56,7 @@ namespace SAM.Core
         public override JObject ToJObject()
         {
             JObject result = base.ToJObject();
-            if(result == null)
+            if (result == null)
             {
                 return result;
             }

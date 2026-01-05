@@ -14,7 +14,7 @@ using System.Collections.Generic;
 
 namespace SAM.Analytical.Grasshopper
 {
-    
+
     [Obsolete("Obsolete since 2021.11.24")]
     public class GooOpening : GooJSAMObject<IOpening>, IGH_PreviewData, IGH_BakeAwareData
     {
@@ -123,7 +123,7 @@ namespace SAM.Analytical.Grasshopper
         public bool BakeGeometry(RhinoDoc doc, ObjectAttributes att, out Guid obj_guid)
         {
             obj_guid = Guid.Empty;
-            
+
             return Rhino.Modify.BakeGeometry(Value, doc, att, out obj_guid);
         }
 
@@ -180,7 +180,7 @@ namespace SAM.Analytical.Grasshopper
     {
         public override Guid ComponentGuid => new Guid("7c7fd553-1861-44c9-a16d-5c76da18fc1e");
 
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         public override GH_Exposure Exposure => GH_Exposure.hidden;
 
@@ -316,7 +316,7 @@ namespace SAM.Analytical.Grasshopper
                     continue;
 
                 openings.RemoveAll(x => x == null);
-                if(openings.Count != 0)
+                if (openings.Count != 0)
                 {
                     value = new GooOpening(openings[0]);
                     return GH_GetterResult.success;
@@ -336,11 +336,11 @@ namespace SAM.Analytical.Grasshopper
             foreach (IGH_Goo goo in VolatileData.AllData(true))
             {
                 Guid guid = default;
-                
+
                 IGH_BakeAwareData bakeAwareData = goo as IGH_BakeAwareData;
                 if (bakeAwareData != null)
                     bakeAwareData.BakeGeometry(doc, att, out guid);
-                
+
                 obj_ids.Add(guid);
             }
         }

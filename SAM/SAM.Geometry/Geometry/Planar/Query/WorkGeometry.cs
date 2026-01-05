@@ -6,7 +6,7 @@ namespace SAM.Geometry.Planar
     {
         public static NetTopologySuite.Geometries.Geometry WorkGeometry(NetTopologySuite.Geometries.Geometry geometry, double tolerance = Core.Tolerance.MacroDistance)
         {
-            if(geometry == null)
+            if (geometry == null)
             {
                 return null;
             }

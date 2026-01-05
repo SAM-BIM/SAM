@@ -9,7 +9,7 @@ namespace SAM.Analytical.Grasshopper
     {
         public static DataTree<int> DataTree(this IEnumerable<bool> bools)
         {
-            if(bools == null)
+            if (bools == null)
             {
                 return null;
             }
@@ -17,7 +17,7 @@ namespace SAM.Analytical.Grasshopper
             int count = bools.Count();
 
             DataTree<int> result = new DataTree<int>();
-            if(count == 0)
+            if (count == 0)
             {
                 return result;
             }
@@ -42,7 +42,7 @@ namespace SAM.Analytical.Grasshopper
                     @bool = bool_New;
                 }
 
-                if(bool_New)
+                if (bool_New)
                 {
                     result.Add(i, path);
                 }

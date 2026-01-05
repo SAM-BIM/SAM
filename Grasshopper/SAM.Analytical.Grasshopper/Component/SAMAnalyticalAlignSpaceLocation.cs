@@ -23,7 +23,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-                protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         /// <summary>
         /// Aligns the space location point with the analytical model.
@@ -83,7 +83,7 @@ namespace SAM.Analytical.Grasshopper
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
             int index_Successful = Params.IndexOfOutputParam("successful");
-            if(index_Successful != -1)
+            if (index_Successful != -1)
             {
                 dataAccess.SetData(index_Successful, false);
             }
@@ -103,7 +103,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 adjacencyCluster = new AdjacencyCluster(adjacencyCluster_Temp);
             }
-            else if(analyticalObject is AnalyticalModel analyticalModel)
+            else if (analyticalObject is AnalyticalModel analyticalModel)
             {
                 adjacencyCluster = analyticalModel.AdjacencyCluster;
             }
@@ -125,7 +125,7 @@ namespace SAM.Analytical.Grasshopper
             foreach (Space space in spaces)
             {
                 Space space_Temp = adjacencyCluster.GetObject<Space>(x => x.Guid == space.Guid);
-                if(space_Temp == null)
+                if (space_Temp == null)
                 {
                     continue;
                 }
@@ -134,25 +134,25 @@ namespace SAM.Analytical.Grasshopper
 
                 Point3D location = space_Temp.Location;
 
-                List<Panel> panels =adjacencyCluster.GetPanels(space);
-                if(panels == null || !panels.Any())
+                List<Panel> panels = adjacencyCluster.GetPanels(space);
+                if (panels == null || !panels.Any())
                 {
                     continue;
                 }
 
                 List<Face3D> face3Ds = panels.ConvertAll(x => x.GetFace3D(false));
-                if(face3Ds == null || !face3Ds.Any())
+                if (face3Ds == null || !face3Ds.Any())
                 {
                     continue;
                 }
 
-                if(face3Ds.Find(x => x.On(location)) != null)
+                if (face3Ds.Find(x => x.On(location)) != null)
                 {
                     continue;
                 }
 
                 Dictionary<Face3D, Point3D> dictionary = Geometry.Spatial.Query.IntersectionDictionary(location, vector3D, face3Ds, true, true);
-                if(dictionary == null || !dictionary.Any())
+                if (dictionary == null || !dictionary.Any())
                 {
                     continue;
                 }
@@ -162,7 +162,7 @@ namespace SAM.Analytical.Grasshopper
             }
 
             index = Params.IndexOfOutputParam("analyticalObject");
-            if(index != -1)
+            if (index != -1)
             {
                 if (analyticalObject is AdjacencyCluster)
                 {

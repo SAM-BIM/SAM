@@ -10,8 +10,8 @@ namespace SAM.Analytical
         {
             if (adjacencyCluster == null || guids == null || apertureConstruction == null)
                 return null;
-            
-            
+
+
             List<Aperture> result = new List<Aperture>();
 
             List<Panel> panels = adjacencyCluster.GetPanels();
@@ -20,23 +20,23 @@ namespace SAM.Analytical
                 return result;
             }
 
-            foreach(Panel panel in panels)
+            foreach (Panel panel in panels)
             {
                 List<Aperture> apertures = panel?.Apertures;
-                if(apertures == null || apertures.Count == 0)
+                if (apertures == null || apertures.Count == 0)
                 {
                     continue;
                 }
 
                 Panel panel_New = null;
-                foreach(Aperture aperture in apertures)
+                foreach (Aperture aperture in apertures)
                 {
-                    if(aperture == null || !guids.Contains(aperture.Guid))
+                    if (aperture == null || !guids.Contains(aperture.Guid))
                     {
                         continue;
                     }
 
-                    if(panel_New == null)
+                    if (panel_New == null)
                     {
                         panel_New = new Panel(panel);
                     }
@@ -48,7 +48,7 @@ namespace SAM.Analytical
                     result.Add(aperture_New);
                 }
 
-                if(panel_New != null)
+                if (panel_New != null)
                 {
                     adjacencyCluster.AddObject(panel_New);
                 }

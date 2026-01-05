@@ -15,10 +15,10 @@ namespace SAM.Core
 
         public Types(IEnumerable<Type> types)
         {
-            if(types != null)
+            if (types != null)
             {
                 this.types = new List<object>();
-                foreach(Type type in types)
+                foreach (Type type in types)
                 {
                     this.types.Add(type);
                 }
@@ -47,24 +47,24 @@ namespace SAM.Core
 
         public bool Contains(string fullTypeName)
         {
-            if(types == null || string.IsNullOrWhiteSpace(fullTypeName) || types.Count == 0)
+            if (types == null || string.IsNullOrWhiteSpace(fullTypeName) || types.Count == 0)
             {
                 return false;
             }
 
-            foreach(object @object in types)
+            foreach (object @object in types)
             {
-                if(@object is string)
+                if (@object is string)
                 {
-                    if(fullTypeName.Equals((string)@object))
+                    if (fullTypeName.Equals((string)@object))
                     {
                         return true;
                     }
                 }
-                else if(@object is Type)
+                else if (@object is Type)
                 {
                     string fullTypeName_Temp = Query.FullTypeName((Type)@object);
-                    if(fullTypeName.Equals(fullTypeName_Temp))
+                    if (fullTypeName.Equals(fullTypeName_Temp))
                     {
                         return true;
                     }
@@ -76,7 +76,7 @@ namespace SAM.Core
 
         public bool Contains(Type type)
         {
-            if(type == null || types == null || types.Count == 0)
+            if (type == null || types == null || types.Count == 0)
             {
                 return false;
             }
@@ -85,7 +85,7 @@ namespace SAM.Core
 
             foreach (object @object in types)
             {
-                if(@object == null)
+                if (@object == null)
                 {
                     continue;
                 }

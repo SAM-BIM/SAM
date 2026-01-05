@@ -7,7 +7,7 @@ namespace SAM.Geometry.Planar
     {
         public static Polygon2D MoveSegment2D(this Polygon2D polygon2D, int index, Vector2D vector2D, double tolerance_Angle = Core.Tolerance.Angle, double tolerance_Distance = Core.Tolerance.Distance)
         {
-            if(index < 0 || vector2D == null)
+            if (index < 0 || vector2D == null)
             {
                 return null;
             }
@@ -41,7 +41,7 @@ namespace SAM.Geometry.Planar
             Segment2D segment2D_Previous = segment2Ds[index_Previous];
             Segment2D segment2D_Next = segment2Ds[index_Next];
 
-            if(segment2D_Next.Direction.SmallestAngle(segment2D_Previous.Direction) <= tolerance_Angle && segment2D.Direction.SmallestAngle(segment2D_Next.Direction) < tolerance_Angle)
+            if (segment2D_Next.Direction.SmallestAngle(segment2D_Previous.Direction) <= tolerance_Angle && segment2D.Direction.SmallestAngle(segment2D_Next.Direction) < tolerance_Angle)
             {
                 segment2Ds[index] = segment2D;
 
@@ -53,7 +53,7 @@ namespace SAM.Geometry.Planar
                 Point2D point2D_Intersection = null;
 
                 point2D_Intersection = segment2D.Intersection(segment2D_Previous, false, tolerance_Distance);
-                if(point2D_Intersection != null)
+                if (point2D_Intersection != null)
                 {
                     segment2D_Previous = new Segment2D(segment2D_Previous[0], point2D_Intersection);
                     segment2Ds[index_Previous] = segment2D_Previous;
@@ -65,7 +65,7 @@ namespace SAM.Geometry.Planar
                 point2D_Intersection = segment2D.Intersection(segment2D_Next, false, tolerance_Distance);
                 if (point2D_Intersection != null)
                 {
-                    segment2D_Next= new Segment2D(point2D_Intersection, segment2D_Next[1]);
+                    segment2D_Next = new Segment2D(point2D_Intersection, segment2D_Next[1]);
                     segment2Ds[index_Next] = segment2D_Next;
 
                     segment2D = new Segment2D(segment2D[0], point2D_Intersection);
@@ -73,25 +73,25 @@ namespace SAM.Geometry.Planar
                 }
             }
 
-            List<double> indexes = new List<double>() { index_Previous, index, index_Next};
+            List<double> indexes = new List<double>() { index_Previous, index, index_Next };
             indexes.RemoveAll(x => x == -1);
             indexes.Sort((x, y) => y.CompareTo(x));
 
-            foreach(int index_Temp in indexes)
+            foreach (int index_Temp in indexes)
             {
-                if(segment2Ds[index_Temp][0].Distance(segment2Ds[index_Temp][1]) < tolerance_Distance)
+                if (segment2Ds[index_Temp][0].Distance(segment2Ds[index_Temp][1]) < tolerance_Distance)
                 {
                     segment2Ds.RemoveAt(index_Temp);
                 }
             }
 
             List<Point2D> point2Ds = new List<Point2D>();
-            foreach(Segment2D segment2D_Temp in segment2Ds)
+            foreach (Segment2D segment2D_Temp in segment2Ds)
             {
                 point2Ds.Add(segment2D_Temp[0]);
             }
             point2Ds.Add(segment2Ds.Last()[1]);
-            
+
             return new Polygon2D(point2Ds);
         }
     }

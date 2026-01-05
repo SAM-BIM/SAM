@@ -7,7 +7,7 @@ namespace SAM.Core
     public abstract class FluidMaterial : Material
     {
         private double dynamicViscosity = double.NaN;
-        
+
         public FluidMaterial(string name)
             : base(name)
         {

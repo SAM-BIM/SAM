@@ -10,7 +10,7 @@ namespace SAM.Analytical.Classes
 
         public Case()
         {
-            
+
         }
 
         public Case(Case @case)

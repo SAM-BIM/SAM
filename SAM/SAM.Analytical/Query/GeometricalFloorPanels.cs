@@ -15,7 +15,7 @@ namespace SAM.Analytical
                 return null;
 
             List<Panel> result = new List<Panel>();
-            foreach(KeyValuePair<IPanel, Vector3D> keyValuePair in dictionary)
+            foreach (KeyValuePair<IPanel, Vector3D> keyValuePair in dictionary)
             {
                 Vector3D vector3D = keyValuePair.Value;
                 if (vector3D == null)
