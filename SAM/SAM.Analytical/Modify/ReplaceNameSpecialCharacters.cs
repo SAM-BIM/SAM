@@ -14,7 +14,6 @@ namespace SAM.Analytical
                 return;
             }
 
-            adjacencyCluster = new AdjacencyCluster(adjacencyCluster);
             List<Panel> panels = adjacencyCluster.GetPanels();
             if (panels != null)
             {

@@ -142,6 +142,8 @@ namespace SAM.Analytical.Grasshopper
                         adjacencyCluster = (AdjacencyCluster)sAMObject;
                     }
 
+                    adjacencyCluster = new AdjacencyCluster(adjacencyCluster);
+
                     adjacencyCluster.ReplaceNameSpecialCharacters(name);
 
                     if (sAMObject is AdjacencyCluster)
