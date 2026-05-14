@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -74,17 +75,38 @@ namespace SAM.Core
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            name = Query.Name(jObject);
-            guid = Query.Guid(jObject);
-            parameterSets = Create.ParameterSets(jObject.Value<JArray>("ParameterSets"));
+            name = Query.Name(jsonObject);
+            guid = Query.Guid(jsonObject);
 
-            if (jObject.ContainsKey("Collection"))
+            if (jsonObject["ParameterSets"] is JsonArray parameterSetsArray)
             {
-                foreach (JObject jObject_Collection in jObject.Value<JArray>("Collection"))
-                    Add(Create.IJSAMObject<T>(jObject_Collection));
+                parameterSets = new List<ParameterSet>();
+                foreach (JsonNode node in parameterSetsArray)
+                {
+                    if (node is JsonObject parameterSetJson)
+                    {
+                        parameterSets.Add(new ParameterSet(new JObject((JsonObject)parameterSetJson.DeepClone())));
+                    }
+                }
+            }
+
+            if (jsonObject["Collection"] is JsonArray collectionArray)
+            {
+                foreach (JsonNode node in collectionArray)
+                {
+                    if (node is JsonObject itemJson)
+                    {
+                        Add(Create.IJSAMObject<T>(new JObject((JsonObject)itemJson.DeepClone())));
+                    }
+                }
             }
 
             return true;
@@ -92,27 +114,46 @@ namespace SAM.Core
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (name != null)
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
 
-            jObject.Add("Guid", guid);
+            jsonObject["Guid"] = guid.ToString();
 
             if (parameterSets != null)
-                jObject.Add("ParameterSets", Create.JArray(parameterSets));
-
-            JArray jArray = new JArray();
-            foreach (T t in this)
             {
-                jArray.Add(t?.ToJObject());
+                JsonArray parameterSetsArray = new JsonArray();
+                foreach (ParameterSet parameterSet in parameterSets)
+                {
+                    if (parameterSet?.ToJObject()?.Node is JsonObject parameterSetJson)
+                    {
+                        parameterSetsArray.Add(parameterSetJson.DeepClone());
+                    }
+                }
+                jsonObject["ParameterSets"] = parameterSetsArray;
             }
 
+            JsonArray collectionArray = new JsonArray();
+            foreach (T t in this)
+            {
+                if (t?.ToJObject()?.Node is JsonObject itemJson)
+                {
+                    collectionArray.Add(itemJson.DeepClone());
+                }
+            }
+            jsonObject["Collection"] = collectionArray;
 
-            jObject.Add("Collection", jArray);
-
-            return jObject;
+            return jsonObject;
         }
 
         public new List<T> Items

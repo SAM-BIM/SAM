@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -258,39 +259,40 @@ namespace SAM.Core
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray valuesArray)
             {
-                JArray jArray = jObject.Value<JArray>("Values");
-                if (jArray != null)
+                sortedDictionary = new SortedDictionary<int, T>();
+                foreach (JsonNode entryNode in valuesArray)
                 {
-                    sortedDictionary = new SortedDictionary<int, T>();
-                    foreach (JArray jArray_Temp in jArray)
+                    if (!(entryNode is JsonArray entryArray) || entryArray.Count < 1)
                     {
-                        if (jArray_Temp == null || jArray_Temp.Count < 1)
-                        {
-                            continue;
-                        }
+                        continue;
+                    }
 
-                        if (jArray_Temp.Count == 1)
+                    int index = entryArray[0].GetValue<int>();
+                    if (entryArray.Count == 1)
+                    {
+                        sortedDictionary[index] = default(T);
+                    }
+                    else
+                    {
+                        JToken valueToken = JToken.Wrap(entryArray[1]?.DeepClone());
+                        if (Query.TryConvert(valueToken, out T result))
                         {
-                            sortedDictionary[(int)jArray_Temp[0]] = default(T);
+                            sortedDictionary[index] = result;
                         }
-                        else
-                        {
-                            if (Query.TryConvert(jArray_Temp[1], out T result))
-                            {
-                                sortedDictionary[(int)jArray_Temp[0]] = result;
-                            }
-                        }
-
                     }
                 }
-
             }
 
             return true;
@@ -303,34 +305,46 @@ namespace SAM.Core
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
+
             if (sortedDictionary != null)
             {
-                JArray jArray = new JArray();
+                JsonArray valuesArray = new JsonArray();
                 foreach (KeyValuePair<int, T> keyValuePair in sortedDictionary)
                 {
-                    JArray jArray_Temp = new JArray();
-                    jArray_Temp.Add(keyValuePair.Key);
+                    JsonArray entryArray = new JsonArray();
+                    entryArray.Add(keyValuePair.Key);
 
                     if (keyValuePair.Value != null)
                     {
-                        if (keyValuePair.Value is IJSAMObject)
+                        if (keyValuePair.Value is IJSAMObject jSAMObject)
                         {
-                            jArray_Temp.Add(((IJSAMObject)keyValuePair.Value).ToJObject());
+                            if (jSAMObject.ToJObject()?.Node is JsonObject valueJson)
+                            {
+                                entryArray.Add(valueJson.DeepClone());
+                            }
                         }
                         else
                         {
-                            jArray_Temp.Add(keyValuePair.Value);
+                            entryArray.Add(JToken.ToNode(keyValuePair.Value));
                         }
                     }
 
-                    jArray.Add(jArray_Temp);
+                    valuesArray.Add(entryArray);
                 }
 
-                jObject.Add("Values", jArray);
+                jsonObject["Values"] = valuesArray;
             }
-            return jObject;
+            return jsonObject;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

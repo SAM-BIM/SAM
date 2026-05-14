@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -113,39 +114,39 @@ namespace SAM.Core
         }
 
         /// <summary>
-        /// Overrides the FromJObject method from SAMObject to populate the GuidCollection from a JObject.
+        /// Populates the GuidCollection's Collection array from a JsonObject.
         /// </summary>
-        public new virtual bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Collection"))
+            if (jsonObject["Collection"] is JsonArray collectionArray)
             {
                 guids = new List<Guid>();
-                foreach (JToken jToken in jObject.Value<JArray>("Collection"))
-                    guids.Add(Query.Guid(jToken));
+                foreach (JsonNode node in collectionArray)
+                    guids.Add(Query.Guid(node));
             }
 
             return true;
         }
 
         /// <summary>
-        /// Overrides the ToJObject method from SAMObject to create a JObject from the GuidCollection.
+        /// Emits the GuidCollection's Collection array onto the JsonObject.
         /// </summary>
-        public new virtual JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            JArray jArray = new JArray();
+            JsonArray collectionArray = new JsonArray();
             foreach (Guid guid in this)
-                jArray.Add(guid);
+                collectionArray.Add(guid.ToString());
 
-            jObject.Add("Collection", jArray);
+            jsonObject["Collection"] = collectionArray;
 
-            return jObject;
+            return jsonObject;
         }
 
         /// <summary>
