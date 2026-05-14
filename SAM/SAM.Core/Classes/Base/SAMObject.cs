@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -97,37 +98,37 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            name = Query.Name(jObject);
-            guid = Query.Guid(jObject);
+            name = Query.Name(jsonObject);
+            guid = Query.Guid(jsonObject);
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
             if (name != null)
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
 
-            jObject.Add("Guid", guid);
+            jsonObject["Guid"] = guid.ToString();
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

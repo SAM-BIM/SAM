@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -14,6 +15,22 @@ namespace SAM.Core
         public static Guid Guid(this JObject jObject)
         {
             Guid guid = Guid(jObject, "Guid");
+            if (guid == System.Guid.Empty)
+                guid = System.Guid.NewGuid();
+
+            return guid;
+        }
+
+        public static Guid Guid(this JsonObject jsonObject)
+        {
+            if (jsonObject == null)
+                return System.Guid.Empty;
+
+            string text = jsonObject["Guid"]?.GetValue<string>();
+            Guid guid = !string.IsNullOrWhiteSpace(text) && System.Guid.TryParse(text, out Guid parsed)
+                ? parsed
+                : System.Guid.Empty;
+
             if (guid == System.Guid.Empty)
                 guid = System.Guid.NewGuid();
 

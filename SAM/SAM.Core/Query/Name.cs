@@ -6,6 +6,7 @@ using SAM.Core.Attributes;
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -17,6 +18,11 @@ namespace SAM.Core
                 return null;
 
             return jObject.Value<string>("Name");
+        }
+
+        public static string Name(this JsonObject jsonObject)
+        {
+            return jsonObject?["Name"]?.GetValue<string>();
         }
 
         public static string Name(this Assembly assembly)

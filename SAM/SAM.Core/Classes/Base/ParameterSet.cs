@@ -385,8 +385,8 @@ namespace SAM.Core
 
             dictionary = new Dictionary<string, object>();
 
-            name = jsonObject["Name"]?.GetValue<string>();
-            guid = ReadGuid(jsonObject);
+            name = Query.Name(jsonObject);
+            guid = Query.Guid(jsonObject);
 
             if (!(jsonObject["Parameters"] is JsonArray parametersArray))
                 return true;
@@ -444,17 +444,6 @@ namespace SAM.Core
                 jsonObject["Parameters"] = parametersArray;
 
             return jsonObject;
-        }
-
-        private static Guid ReadGuid(JsonObject jsonObject)
-        {
-            string guidString = jsonObject["Guid"]?.GetValue<string>();
-            if (!string.IsNullOrWhiteSpace(guidString) && Guid.TryParse(guidString, out Guid result))
-                return result;
-
-            // Matches the long-standing Query.Guid behaviour: missing or
-            // unparseable Guid produces a fresh one on read.
-            return Guid.NewGuid();
         }
 
         private static object ReadParameterValue(JsonNode valueNode)

@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -309,22 +310,56 @@ namespace SAM.Core
 
         public virtual bool FromJObject(JObject? jObject)
         {
-            if (jObject == null)
-                return false;
-
-            parameterSets = Create.ParameterSets(jObject.Value<JArray>("ParameterSets"));
-            return true;
+            return FromJsonObject(jObject?.Node as JsonObject);
         }
 
         public virtual JObject? ToJObject()
         {
-            JObject jObject = new ();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject? jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
 
-            if (parameterSets != null)
-                jObject.Add("ParameterSets", Create.JArray(parameterSets));
+        protected virtual bool FromJsonObject(JsonObject? jsonObject)
+        {
+            if (jsonObject == null)
+                return false;
 
-            return jObject;
+            if (jsonObject["ParameterSets"] is JsonArray parameterSetsArray)
+            {
+                parameterSets = new List<ParameterSet>();
+                foreach (JsonNode? node in parameterSetsArray)
+                {
+                    if (node is JsonObject parameterSetObject)
+                    {
+                        parameterSets.Add(new ParameterSet(new JObject((JsonObject)parameterSetObject.DeepClone())));
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        protected virtual JsonObject? ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
+
+            if (parameterSets != null && parameterSets.Count > 0)
+            {
+                JsonArray parameterSetsArray = new JsonArray();
+                foreach (ParameterSet parameterSet in parameterSets)
+                {
+                    if (parameterSet?.ToJObject()?.Node is JsonObject parameterSetJson)
+                    {
+                        parameterSetsArray.Add(parameterSetJson.DeepClone());
+                    }
+                }
+                jsonObject["ParameterSets"] = parameterSetsArray;
+            }
+
+            return jsonObject;
         }
     }
 }
