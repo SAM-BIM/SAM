@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Math
 {
@@ -76,17 +77,22 @@ namespace SAM.Math
         /// <returns>True if initialization was successful, otherwise false</returns>
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("A"))
+            if (jsonObject.ContainsKey("A"))
             {
-                a = jObject.Value<double>("A");
+                a = jsonObject["A"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("B"))
+            if (jsonObject.ContainsKey("B"))
             {
-                b = jObject.Value<double>("B");
+                b = jsonObject["B"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
@@ -98,20 +104,28 @@ namespace SAM.Math
         /// <returns>A JSON object representing the equation</returns>
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (!double.IsNaN(a))
             {
-                jObject.Add("A", a);
+                jsonObject["A"] = a;
             }
 
             if (!double.IsNaN(b))
             {
-                jObject.Add("B", b);
+                jsonObject["B"] = b;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         /// <summary>

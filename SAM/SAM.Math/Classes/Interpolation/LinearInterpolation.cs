@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Math
 {
@@ -171,9 +172,15 @@ namespace SAM.Math
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
+            JObject jObject = new JObject(jsonObject);
             if (jObject.ContainsKey("Values"))
             {
                 JArray jArray_Values = jObject.Value<JArray>("Values");
@@ -217,8 +224,16 @@ namespace SAM.Math
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (values != null)
             {
@@ -232,10 +247,10 @@ namespace SAM.Math
                     jArray.Add(jArray_Temp);
                 }
 
-                jObject.Add("Values", jArray);
+                jsonObject["Values"] = jArray.Node?.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
 
     }

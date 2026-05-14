@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Weather
 {
@@ -181,32 +182,31 @@ namespace SAM.Weather
         /// <returns>True if the deserialization was successful, false otherwise.</returns>
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Data"))
+            if (jsonObject["Data"] is JsonArray dataArray)
             {
-                JArray jArray = jObject.Value<JArray>("Data");
-                if (jArray != null)
+                dictionary = new Dictionary<string, double>();
+                foreach (JsonNode dataNode in dataArray)
                 {
-                    dictionary = new Dictionary<string, double>();
-                    foreach (JObject jObject_Temp in jArray)
-                    {
-                        if (!jObject_Temp.ContainsKey("Name"))
-                            continue;
+                    if (!(dataNode is JsonObject dataObject) || !dataObject.ContainsKey("Name"))
+                        continue;
 
-                        string name = jObject_Temp.Value<string>("Name");
-                        if (string.IsNullOrWhiteSpace(name))
-                            continue;
+                    string name = dataObject["Name"]?.GetValue<string>();
+                    if (string.IsNullOrWhiteSpace(name))
+                        continue;
 
-                        double value = double.NaN;
-                        if (jObject_Temp.ContainsKey("Value"))
-                        {
-                            value = jObject_Temp.Value<double>("Value");
-                        }
+                    double value = double.NaN;
+                    if (dataObject.ContainsKey("Value"))
+                        value = dataObject["Value"]?.GetValue<double>() ?? default;
 
-                        dictionary[name] = value;
-                    }
+                    dictionary[name] = value;
                 }
             }
 
@@ -220,23 +220,31 @@ namespace SAM.Weather
         /// <returns>A JObject representing the object.</returns>
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (dictionary != null)
             {
-                JArray jArray = new JArray();
+                JArray dataArray = new JArray();
                 foreach (KeyValuePair<string, double> keyValuePair in dictionary)
                 {
-                    JObject jObject_Temp = new JObject();
-                    jObject_Temp.Add("Name", keyValuePair.Key);
-                    jObject_Temp.Add("Value", keyValuePair.Value);
-                    jArray.Add(jObject_Temp);
+                    JObject dataObject = new JObject();
+                    dataObject.Add("Name", keyValuePair.Key);
+                    dataObject.Add("Value", keyValuePair.Value);
+                    dataArray.Add(dataObject);
                 }
-                jObject.Add("Data", jArray);
+                jsonObject["Data"] = dataArray.Node?.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         /// <summary>

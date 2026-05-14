@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Weather
 {
@@ -35,30 +36,30 @@ namespace SAM.Weather
             FromJObject(jObject);
         }
 
-        public bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Alpha"))
+            if (jsonObject.ContainsKey("Alpha"))
             {
-                Alpha = jObject.Value<double>("Alpha");
+                Alpha = jsonObject["Alpha"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
         }
 
-        public JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
             }
 
-            result.Add("Alpha", Alpha);
+            result["Alpha"] = Alpha;
 
             return result;
         }

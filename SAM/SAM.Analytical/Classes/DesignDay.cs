@@ -144,12 +144,11 @@ namespace SAM.Analytical
             return result;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            JsonObject jsonObject = jObject?.Node as JsonObject;
             if (jsonObject == null)
                 return false;
 
@@ -186,13 +185,9 @@ namespace SAM.Analytical
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return null;
-
-            JsonObject jsonObject = jObject.Node as JsonObject;
+            JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
@@ -215,7 +210,7 @@ namespace SAM.Analytical
                 jsonObject["LoadType"] = loadType.ToString();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

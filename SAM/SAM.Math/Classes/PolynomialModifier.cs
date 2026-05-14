@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Math;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -31,25 +32,25 @@ namespace SAM.Core
 
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return result;
             }
 
-            if (jObject.ContainsKey("PolynomialEquation"))
+            if (jsonObject["PolynomialEquation"] is JsonObject polynomialEquationJson)
             {
-                PolynomialEquation = Query.IJSAMObject<PolynomialEquation>(jObject.Value<JObject>("PolynomialEquation"));
+                PolynomialEquation = Query.IJSAMObject<PolynomialEquation>(new JObject((JsonObject)polynomialEquationJson.DeepClone()));
             }
 
             return result;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
@@ -57,7 +58,7 @@ namespace SAM.Core
 
             if (PolynomialEquation != null)
             {
-                result.Add("PolynomialEquation", PolynomialEquation.ToJObject());
+                result["PolynomialEquation"] = PolynomialEquation.ToJObject()?.Node?.DeepClone();
             }
 
             return result;

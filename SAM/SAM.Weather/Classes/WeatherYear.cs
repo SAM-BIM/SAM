@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Weather
 {
@@ -297,26 +298,26 @@ namespace SAM.Weather
         /// <returns>True if the deserialization is successful, otherwise false.</returns>
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Year"))
-                year = jObject.Value<int>("Year");
+            if (jsonObject.ContainsKey("Year"))
+                year = jsonObject["Year"]?.GetValue<int>() ?? default;
 
-            if (jObject.ContainsKey("WeatherDays"))
+            if (jsonObject["WeatherDays"] is JsonArray weatherDaysArray && weatherDaysArray.Count == 365)
             {
-                JArray jArray = jObject.Value<JArray>("WeatherDays");
-                if (jArray != null && jArray.Count == 365)
+                weatherDays = new WeatherDay[365];
+                for (int i = 0; i < 365; i++)
                 {
-                    weatherDays = new WeatherDay[365];
-                    for (int i = 0; i < 365; i++)
-                    {
-                        JObject jObject_Temp = jArray[i] as JObject;
-                        if (jObject_Temp == null)
-                            continue;
+                    if (!(weatherDaysArray[i] is JsonObject weatherDayObject))
+                        continue;
 
-                        weatherDays[i] = new WeatherDay(jObject_Temp);
-                    }
+                    weatherDays[i] = new WeatherDay(new JObject((JsonObject)weatherDayObject.DeepClone()));
                 }
             }
 
@@ -329,22 +330,30 @@ namespace SAM.Weather
         /// <returns>A JObject containing the serialized WeatherYear data.</returns>
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (year != int.MinValue)
-                jObject.Add("Year", year);
+                jsonObject["Year"] = year;
 
             if (weatherDays != null)
             {
-                JArray jArray = new JArray();
+                JsonArray weatherDaysArray = new JsonArray();
                 foreach (WeatherDay weatherDay in weatherDays)
-                    jArray.Add(weatherDay?.ToJObject());
+                    weatherDaysArray.Add(weatherDay?.ToJObject()?.Node?.DeepClone());
 
-                jObject.Add("WeatherDays", jArray);
+                jsonObject["WeatherDays"] = weatherDaysArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

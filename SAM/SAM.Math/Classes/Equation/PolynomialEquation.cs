@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace SAM.Math
@@ -138,9 +139,15 @@ namespace SAM.Math
         /// <returns>True if the update was successful, false otherwise.</returns>
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
+            JObject jObject = new JObject(jsonObject);
             if (jObject.ContainsKey("Variables"))
             {
                 JArray jArray = jObject.Value<JArray>("Variables");
@@ -170,8 +177,16 @@ namespace SAM.Math
         /// <returns>The JObject representation of the PolynomialEquation object.</returns>
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (coefficients != null)
             {
@@ -179,10 +194,10 @@ namespace SAM.Math
                 foreach (double variable in coefficients)
                     jArray.Add(variable);
 
-                jObject.Add("Variables", jArray);
+                jsonObject["Variables"] = jArray.Node?.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         /// <summary>

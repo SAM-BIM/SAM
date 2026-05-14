@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Math
 {
@@ -192,9 +193,15 @@ namespace SAM.Math
         /// <returns>true if the operation was successful; otherwise, false.</returns>
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
+            JObject jObject = new JObject(jsonObject);
             if (jObject.ContainsKey("XArray"))
             {
                 JArray jArray = jObject.Value<JArray>("XArray");
@@ -230,26 +237,34 @@ namespace SAM.Math
         /// <returns>The JSON object.</returns>
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (xArray != null)
             {
-                jObject.Add("XArray", new JArray(xArray));
+                jsonObject["XArray"] = new JArray(xArray).Node?.DeepClone();
             }
 
             if (yArray != null)
             {
-                jObject.Add("YArray", new JArray(yArray));
+                jsonObject["YArray"] = new JArray(yArray).Node?.DeepClone();
             }
 
             if (values != null)
             {
                 JArray jArray = Core.Query.JArray(values);
-                jObject.Add("Values", jArray);
+                jsonObject["Values"] = jArray.Node?.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

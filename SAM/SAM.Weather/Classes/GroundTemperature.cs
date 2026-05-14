@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Weather
 {
@@ -194,26 +195,29 @@ namespace SAM.Weather
         /// <returns>true if the initialization was successful; otherwise, false.</returns>
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Depth"))
-                depth = jObject.Value<double>("Depth");
+            if (jsonObject.ContainsKey("Depth"))
+                depth = jsonObject["Depth"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Conductivity"))
-                conductivity = jObject.Value<double>("Conductivity");
+            if (jsonObject.ContainsKey("Conductivity"))
+                conductivity = jsonObject["Conductivity"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Density"))
-                density = jObject.Value<double>("Density");
+            if (jsonObject.ContainsKey("Density"))
+                density = jsonObject["Density"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("SpecificHeat"))
-                specificHeat = jObject.Value<double>("SpecificHeat");
+            if (jsonObject.ContainsKey("SpecificHeat"))
+                specificHeat = jsonObject["SpecificHeat"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Temperatures"))
+            if (jsonObject["Temperatures"] is JsonArray temperaturesArray)
             {
-                JArray jArray = jObject.Value<JArray>("Temperatures");
-                if (jArray != null)
-                    temperatures = jArray.ToList<double>().ToArray();
+                temperatures = temperaturesArray.Select(x => x?.GetValue<double>() ?? default).ToArray();
             }
 
             return true;
@@ -225,20 +229,28 @@ namespace SAM.Weather
         /// <returns>A JObject representing the object.</returns>
         public JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (!double.IsNaN(depth))
-                result.Add("Depth", depth);
+                result["Depth"] = depth;
 
             if (!double.IsNaN(conductivity))
-                result.Add("Conductivity", conductivity);
+                result["Conductivity"] = conductivity;
 
             if (!double.IsNaN(density))
-                result.Add("Density", density);
+                result["Density"] = density;
 
             if (!double.IsNaN(specificHeat))
-                result.Add("SpecificHeat", specificHeat);
+                result["SpecificHeat"] = specificHeat;
 
             if (temperatures != null)
             {
@@ -246,7 +258,7 @@ namespace SAM.Weather
                 for (int i = 0; i < temperatures.Length; i++)
                     jArray.Add(temperatures[i]);
 
-                result.Add("Temperatures", jArray);
+                result["Temperatures"] = jArray.Node?.DeepClone();
             }
 
             return result;

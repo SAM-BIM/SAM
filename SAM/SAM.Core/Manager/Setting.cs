@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -113,24 +114,24 @@ namespace SAM.Core
             return result;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            created = jObject.Value<DateTime>("Created");
-            updated = jObject.Value<DateTime>("Updated");
+            created = jsonObject["Created"]?.GetValue<DateTime>() ?? default;
+            updated = jsonObject["Updated"]?.GetValue<DateTime>() ?? default;
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
+            JsonObject jObject = base.ToJsonObject();
             if (jObject == null)
                 return null;
 
-            jObject.Add("Created", created);
-            jObject.Add("Updated", DateTime.Now);
+            jObject["Created"] = created;
+            jObject["Updated"] = DateTime.Now;
             return jObject;
         }
 
