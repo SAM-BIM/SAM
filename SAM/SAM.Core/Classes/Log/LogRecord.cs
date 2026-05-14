@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -102,32 +103,45 @@ namespace SAM.Core
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            dateTime = jObject.Value<DateTime>("DateTime");
-            text = jObject.Value<string>("Text");
+            dateTime = jsonObject["DateTime"]?.GetValue<DateTime>() ?? default;
+            text = jsonObject["Text"]?.GetValue<string>();
 
             logRecordType = LogRecordType.Undefined;
-            if (jObject.ContainsKey("LogRecordType"))
-                Enum.TryParse(jObject.Value<string>("LogRecordType"), out logRecordType);
+            if (jsonObject.ContainsKey("LogRecordType"))
+                Enum.TryParse(jsonObject["LogRecordType"]?.GetValue<string>(), out logRecordType);
 
             return true;
         }
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
-            jObject.Add("DateTime", dateTime);
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this),
+                ["DateTime"] = dateTime
+            };
 
             if (logRecordType != LogRecordType.Undefined)
-                jObject.Add("LogRecordType", logRecordType.ToString());
+                jsonObject["LogRecordType"] = logRecordType.ToString();
 
             if (text != null)
-                jObject.Add("Text", text);
+                jsonObject["Text"] = text;
 
-            return jObject;
+            return jsonObject;
         }
 
         public bool Write(string path)

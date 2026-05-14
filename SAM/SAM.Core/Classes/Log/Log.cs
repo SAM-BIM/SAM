@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -93,34 +94,44 @@ namespace SAM.Core
             return string.Join(Environment.NewLine, logRecords.ConvertAll(x => x.ToString()));
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
             logRecords = new List<LogRecord>();
 
-            JArray jArray = jObject.Value<JArray>("LogRecords");
-            if (jArray != null)
+            if (jsonObject["LogRecords"] is JsonArray logRecordsArray)
             {
-                foreach (JObject jObject_Temp in jArray)
-                    logRecords.Add(new LogRecord(jObject_Temp));
+                foreach (JsonNode node in logRecordsArray)
+                {
+                    if (node is JsonObject logRecordJson)
+                    {
+                        logRecords.Add(new LogRecord(new JObject((JsonObject)logRecordJson.DeepClone())));
+                    }
+                }
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            JArray jArray = new JArray();
-            logRecords.ForEach(x => jArray.Add(x.ToJObject()));
-            jObject.Add("LogRecords", jArray);
+            JsonArray logRecordsArray = new JsonArray();
+            foreach (LogRecord logRecord in logRecords)
+            {
+                if (logRecord?.ToJObject()?.Node is JsonObject logRecordJson)
+                {
+                    logRecordsArray.Add(logRecordJson.DeepClone());
+                }
+            }
+            jsonObject["LogRecords"] = logRecordsArray;
 
-            return jObject;
+            return jsonObject;
         }
 
         IEnumerator IEnumerable.GetEnumerator()
