@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -32,21 +33,26 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Text"))
+            if (jsonObject.ContainsKey("Text"))
             {
-                text = jObject.Value<string>("Text");
+                text = jsonObject["Text"]?.GetValue<string>();
             }
 
 
             messageType = MessageType.Undefined;
-            if (jObject.ContainsKey("MessageType"))
+            if (jsonObject.ContainsKey("MessageType"))
             {
-                messageType = Query.Enum<MessageType>(jObject.Value<string>("MessageType"));
+                messageType = Query.Enum<MessageType>(jsonObject["MessageType"]?.GetValue<string>());
             }
 
             return true;
@@ -54,16 +60,24 @@ namespace SAM.Core
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        private JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (messageType != MessageType.Undefined)
-                jObject.Add("MessageType", messageType.ToString());
+                jsonObject["MessageType"] = messageType.ToString();
 
             if (text != null)
-                jObject.Add("Text", text);
+                jsonObject["Text"] = text;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }
