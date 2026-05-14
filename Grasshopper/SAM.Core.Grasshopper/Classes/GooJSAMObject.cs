@@ -4,7 +4,6 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using SAM.Core.Json;
 using SAM.Core.Grasshopper.Properties;
 using System;
 using System.Collections.Generic;
@@ -68,10 +67,7 @@ namespace SAM.Core.Grasshopper
                 return false;
             }
 
-            string json = JsonConvert.SerializeObject(new JObject(jsonObject), new JsonSerializerSettings
-            {
-                Formatting = Formatting.None
-            });
+            string json = jsonObject.ToJsonString();
 
             //option2
             //string jsonCompressed = Core.Query.Compress(json);

@@ -19,38 +19,6 @@ namespace SAM.Core.Json
         Indented
     }
 
-    public enum NullValueHandling
-    {
-        Include,
-        Ignore
-    }
-
-    public sealed class JsonSerializerSettings
-    {
-        public Formatting Formatting { get; set; }
-
-        public NullValueHandling NullValueHandling { get; set; }
-    }
-
-    public static class JsonConvert
-    {
-        public static string SerializeObject(object value, JsonSerializerSettings settings = null)
-        {
-            JsonSerializerOptions options = new JsonSerializerOptions
-            {
-                WriteIndented = settings?.Formatting == Formatting.Indented
-            };
-
-            if (settings?.NullValueHandling == NullValueHandling.Ignore)
-                options.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-
-            if (value is JToken jToken)
-                return jToken.ToString(settings?.Formatting ?? Formatting.None);
-
-            return System.Text.Json.JsonSerializer.Serialize(value, options);
-        }
-    }
-
     public enum JTokenType
     {
         None,
