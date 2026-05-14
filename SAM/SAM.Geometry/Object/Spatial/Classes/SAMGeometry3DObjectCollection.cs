@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
@@ -94,22 +95,29 @@ namespace SAM.Geometry.Object.Spatial
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Geometry3DObjects"))
+            if (jsonObject["Geometry3DObjects"] is JsonArray jsonArray_Geometry3DObjects)
             {
                 sAMGeometry3DObjects = new List<ISAMGeometry3DObject>();
 
-                JArray jArray = jObject.Value<JArray>("Geometry3DObjects");
-                foreach (JObject jObject_GeometryObject in jArray)
+                foreach (JsonNode node in jsonArray_Geometry3DObjects)
                 {
-                    ISAMGeometry3DObject sAMGeometryObject = Core.Query.IJSAMObject(jObject_GeometryObject) as ISAMGeometry3DObject;
-                    if (sAMGeometryObject != null)
+                    if (node is JsonObject geometryJson)
                     {
-                        sAMGeometry3DObjects.Add(sAMGeometryObject);
+                        ISAMGeometry3DObject sAMGeometryObject = Core.Query.IJSAMObject(new JObject((JsonObject)geometryJson.DeepClone())) as ISAMGeometry3DObject;
+                        if (sAMGeometryObject != null)
+                        {
+                            sAMGeometry3DObjects.Add(sAMGeometryObject);
+                        }
                     }
                 }
             }
@@ -124,26 +132,32 @@ namespace SAM.Geometry.Object.Spatial
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (sAMGeometry3DObjects != null)
             {
-                JArray jArray = new JArray();
+                JsonArray jsonArray = new JsonArray();
                 foreach (ISAMGeometry3DObject sAMGeometry3DObject in sAMGeometry3DObjects)
                 {
-                    if (sAMGeometry3DObject == null)
+                    if (sAMGeometry3DObject?.ToJObject()?.Node is JsonObject geometryJson)
                     {
-                        continue;
+                        jsonArray.Add(geometryJson.DeepClone());
                     }
-
-                    jArray.Add(sAMGeometry3DObject.ToJObject());
                 }
 
-                jObject.Add("Geometry3DObjects", jArray);
+                jsonObject["Geometry3DObjects"] = jsonArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

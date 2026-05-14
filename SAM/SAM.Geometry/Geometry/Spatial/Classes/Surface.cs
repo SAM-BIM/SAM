@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -73,20 +74,25 @@ namespace SAM.Geometry.Spatial
             return new Surface((IClosed3D)externalEdge3D.GetMoved(vector3D));
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            externalEdge3D = Geometry.Create.ISAMGeometry<IClosed3D>(jObject);
+            if (jsonObject == null)
+                return false;
+
+            externalEdge3D = Core.Create.IJSAMObject<IClosed3D>(new JObject((JsonObject)jsonObject.DeepClone()));
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Boundary", externalEdge3D.ToJObject());
-            return jObject;
+            if (externalEdge3D?.ToJObject()?.Node is JsonObject boundaryJson)
+                jsonObject["Boundary"] = boundaryJson.DeepClone();
+
+            return jsonObject;
         }
 
         public ISAMGeometry3D GetTransformed(Transform3D transform3D)

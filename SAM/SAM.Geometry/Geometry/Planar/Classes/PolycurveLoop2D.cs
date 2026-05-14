@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -30,9 +31,9 @@ namespace SAM.Geometry.Planar
             return new PolycurveLoop2D(this);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            return base.FromJObject(jObject);
+            return base.FromJsonObject(jsonObject);
         }
 
         public double GetArea()
@@ -109,13 +110,13 @@ namespace SAM.Geometry.Planar
             return Query.On(curves.Cast<Segment2D>(), point2D, tolerance);
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

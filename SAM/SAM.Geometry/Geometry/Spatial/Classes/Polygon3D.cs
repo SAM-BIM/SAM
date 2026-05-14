@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -177,22 +178,51 @@ namespace SAM.Geometry.Spatial
             //this.points = point3Ds.ConvertAll(x => this.plane.Convert(x));
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            plane = Geometry.Create.ISAMGeometry<Plane>(jObject.Value<JObject>("Plane"));
-            points = Geometry.Create.ISAMGeometries<Planar.Point2D>(jObject.Value<JArray>("Points"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
+                plane = new Plane(new JObject((JsonObject)jsonObject_Plane.DeepClone()));
+
+            if (jsonObject["Points"] is JsonArray jsonArray_Points)
+            {
+                points = new List<Planar.Point2D>();
+                foreach (JsonNode node in jsonArray_Points)
+                {
+                    if (node is JsonObject pointJson)
+                    {
+                        points.Add(new Planar.Point2D(new JObject((JsonObject)pointJson.DeepClone())));
+                    }
+                }
+            }
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Points", Geometry.Create.JArray(points));
-            jObject.Add("Plane", plane.ToJObject());
-            return jObject;
+            if (points != null)
+            {
+                JsonArray jsonArray_Points = new JsonArray();
+                foreach (Planar.Point2D point2D in points)
+                {
+                    if (point2D?.ToJObject()?.Node is JsonObject pointJson)
+                    {
+                        jsonArray_Points.Add(pointJson.DeepClone());
+                    }
+                }
+                jsonObject["Points"] = jsonArray_Points;
+            }
+
+            if (plane?.ToJObject()?.Node is JsonObject planeJson)
+                jsonObject["Plane"] = planeJson.DeepClone();
+
+            return jsonObject;
         }
 
         public bool On(Point3D point3D, double tolerance = Core.Tolerance.Distance)

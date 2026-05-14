@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -35,42 +36,42 @@ namespace SAM.Geometry.Object
             }
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
             if (!double.IsNaN(Height))
             {
-                jObject.Add("Height", Height);
+                jsonObject["Height"] = Height;
             }
 
             if (!string.IsNullOrEmpty(FontFamilyName))
             {
-                jObject.Add("FontFamilyName", FontFamilyName);
+                jsonObject["FontFamilyName"] = FontFamilyName;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Height"))
+            if (jsonObject.ContainsKey("Height"))
             {
-                Height = jObject.Value<double>("Height");
+                Height = jsonObject["Height"]?.GetValue<double>() ?? 0;
             }
 
-            if (jObject.ContainsKey("FontFamilyName"))
+            if (jsonObject.ContainsKey("FontFamilyName"))
             {
-                FontFamilyName = jObject.Value<string>("FontFamilyName");
+                FontFamilyName = jsonObject["FontFamilyName"]?.GetValue<string>();
             }
 
             return true;

@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -185,9 +186,22 @@ namespace SAM.Geometry.Planar
             return new Segment2D(points[0], points[1]);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            points = Create.Point2Ds(jObject.Value<JArray>("Points"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Points"] is JsonArray jsonArray_Points)
+            {
+                points = new List<Point2D>();
+                foreach (JsonNode node in jsonArray_Points)
+                {
+                    if (node is JsonObject pointJson)
+                    {
+                        points.Add(new Point2D(new JObject((JsonObject)pointJson.DeepClone())));
+                    }
+                }
+            }
             return true;
         }
 
@@ -359,14 +373,25 @@ namespace SAM.Geometry.Planar
             points.Reverse();
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Points", Geometry.Create.JArray(points));
-            return jObject;
+            if (points != null)
+            {
+                JsonArray jsonArray_Points = new JsonArray();
+                foreach (Point2D point2D in points)
+                {
+                    if (point2D?.ToJObject()?.Node is JsonObject pointJson)
+                    {
+                        jsonArray_Points.Add(pointJson.DeepClone());
+                    }
+                }
+                jsonObject["Points"] = jsonArray_Points;
+            }
+            return jsonObject;
         }
 
         public Polygon2D ToPolygon2D()

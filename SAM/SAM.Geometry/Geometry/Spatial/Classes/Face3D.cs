@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Geometry.Planar;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -276,24 +277,27 @@ namespace SAM.Geometry.Spatial
                 internalEdge2Ds = internalEdges.ConvertAll(x => plane.Convert(x));
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            plane = new Plane(jObject.Value<JObject>("Plane"));
+            if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
+                plane = new Plane(new JObject((JsonObject)jsonObject_Plane.DeepClone()));
+
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Plane", plane.ToJObject());
+            if (plane?.ToJObject()?.Node is JsonObject planeJson)
+                jsonObject["Plane"] = planeJson.DeepClone();
 
-            return jObject;
+            return jsonObject;
         }
 
         public double Distance(Point3D point3D, double tolerance = Core.Tolerance.Distance)

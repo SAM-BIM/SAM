@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -113,12 +114,22 @@ namespace SAM.Geometry.Planar
             return Query.Distance(this, point2D);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            points = Geometry.Create.ISAMGeometries<Point2D>(jObject.Value<JArray>("Points"));
+            if (jsonObject["Points"] is JsonArray jsonArray_Points)
+            {
+                points = new List<Point2D>();
+                foreach (JsonNode node in jsonArray_Points)
+                {
+                    if (node is JsonObject pointJson)
+                    {
+                        points.Add(new Point2D(new JObject((JsonObject)pointJson.DeepClone())));
+                    }
+                }
+            }
             return true;
         }
 
@@ -319,14 +330,25 @@ namespace SAM.Geometry.Planar
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Points", Core.Create.JArray(points));
-            return jObject;
+            if (points != null)
+            {
+                JsonArray jsonArray_Points = new JsonArray();
+                foreach (Point2D point2D in points)
+                {
+                    if (point2D?.ToJObject()?.Node is JsonObject pointJson)
+                    {
+                        jsonArray_Points.Add(pointJson.DeepClone());
+                    }
+                }
+                jsonObject["Points"] = jsonArray_Points;
+            }
+            return jsonObject;
         }
 
         public ISegmentable2D Trim(double parameter, bool inverted = false)

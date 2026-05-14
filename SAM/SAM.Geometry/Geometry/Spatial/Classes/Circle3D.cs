@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -136,24 +137,31 @@ namespace SAM.Geometry.Spatial
             return new Circle3D(this);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            plane = new Plane(jObject.Value<JObject>("Plane"));
-            radius = jObject.Value<double>("Radius");
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
+                plane = new Plane(new JObject((JsonObject)jsonObject_Plane.DeepClone()));
+
+            radius = jsonObject["Radius"]?.GetValue<double>() ?? 0;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Plane", plane.ToJObject());
-            jObject.Add("Radius", radius);
+            if (plane?.ToJObject()?.Node is JsonObject planeJson)
+                jsonObject["Plane"] = planeJson.DeepClone();
 
-            return jObject;
+            jsonObject["Radius"] = radius;
+
+            return jsonObject;
         }
 
         public void Reverse()

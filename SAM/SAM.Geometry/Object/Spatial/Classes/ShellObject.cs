@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry.Spatial;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
@@ -59,38 +60,38 @@ namespace SAM.Geometry.Object.Spatial
             SurfaceAppearance = new SurfaceAppearance(surfaceColor, curveColor, curveThickness);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("SurfaceAppearance"))
+            if (jsonObject["SurfaceAppearance"] is JsonObject jsonObject_SurfaceAppearance)
             {
-                SurfaceAppearance = new SurfaceAppearance(jObject.Value<JObject>("SurfaceAppearance"));
+                SurfaceAppearance = new SurfaceAppearance(new JObject((JsonObject)jsonObject_SurfaceAppearance.DeepClone()));
             }
-            Tag = Core.Query.Tag(jObject);
+            Tag = Core.Query.Tag(new JObject(jsonObject));
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (SurfaceAppearance != null)
+            if (SurfaceAppearance?.ToJObject()?.Node is JsonObject surfaceJson)
             {
-                jObject.Add("SurfaceAppearance", SurfaceAppearance.ToJObject());
+                jsonObject["SurfaceAppearance"] = surfaceJson.DeepClone();
             }
 
-            Core.Modify.Add(jObject, Tag);
+            Core.Modify.Add(new JObject(jsonObject), Tag);
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

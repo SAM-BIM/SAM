@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -82,24 +83,33 @@ namespace SAM.Geometry.Spatial
             return new Segment3D(Project(start), Project(end));
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            origin = new Point3D(jObject.Value<JObject>("Origin"));
-            vector = new Vector3D(jObject.Value<JObject>("Vector"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
+                origin = new Point3D(new JObject((JsonObject)jsonObject_Origin.DeepClone()));
+
+            if (jsonObject["Vector"] is JsonObject jsonObject_Vector)
+                vector = new Vector3D(new JObject((JsonObject)jsonObject_Vector.DeepClone()));
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Origin", origin.ToJObject());
-            jObject.Add("Vector", vector.ToJObject());
+            if (origin?.ToJObject()?.Node is JsonObject originJson)
+                jsonObject["Origin"] = originJson.DeepClone();
 
-            return jObject;
+            if (vector?.ToJObject()?.Node is JsonObject vectorJson)
+                jsonObject["Vector"] = vectorJson.DeepClone();
+
+            return jsonObject;
         }
 
         /// <summary>

@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry.Spatial;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
@@ -53,39 +54,39 @@ namespace SAM.Geometry.Object.Spatial
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("PointAppearance"))
+            if (jsonObject["PointAppearance"] is JsonObject jsonObject_PointAppearance)
             {
-                PointAppearance = new PointAppearance(jObject.Value<JObject>("PointAppearance"));
+                PointAppearance = new PointAppearance(new JObject((JsonObject)jsonObject_PointAppearance.DeepClone()));
             }
 
-            Tag = Core.Query.Tag(jObject);
+            Tag = Core.Query.Tag(new JObject(jsonObject));
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (PointAppearance != null)
+            if (PointAppearance?.ToJObject()?.Node is JsonObject pointJson)
             {
-                jObject.Add("PointAppearance", PointAppearance.ToJObject());
+                jsonObject["PointAppearance"] = pointJson.DeepClone();
             }
 
-            Core.Modify.Add(jObject, Tag);
+            Core.Modify.Add(new JObject(jsonObject), Tag);
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

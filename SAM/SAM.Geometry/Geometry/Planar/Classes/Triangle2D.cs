@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -62,10 +63,23 @@ namespace SAM.Geometry.Planar
             return Query.Distance(this, point2D);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            points = Geometry.Create.ISAMGeometries<Point2D>(jObject.Value<JArray>("Points")).ToArray();
+            if (jsonObject == null)
+                return false;
 
+            if (jsonObject["Points"] is JsonArray jsonArray_Points)
+            {
+                List<Point2D> point2Ds = new List<Point2D>();
+                foreach (JsonNode node in jsonArray_Points)
+                {
+                    if (node is JsonObject pointJson)
+                    {
+                        point2Ds.Add(new Point2D(new JObject((JsonObject)pointJson.DeepClone())));
+                    }
+                }
+                points = point2Ds.ToArray();
+            }
             return true;
         }
 
@@ -192,15 +206,26 @@ namespace SAM.Geometry.Planar
             points.Reverse();
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Points", Geometry.Create.JArray(points));
+            if (points != null)
+            {
+                JsonArray jsonArray_Points = new JsonArray();
+                foreach (Point2D point2D in points)
+                {
+                    if (point2D?.ToJObject()?.Node is JsonObject pointJson)
+                    {
+                        jsonArray_Points.Add(pointJson.DeepClone());
+                    }
+                }
+                jsonObject["Points"] = jsonArray_Points;
+            }
 
-            return jObject;
+            return jsonObject;
         }
 
         public IEnumerable<Triangle2D> Triangulate()

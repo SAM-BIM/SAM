@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Geometry.Planar;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -29,10 +30,16 @@ namespace SAM.Geometry.Spatial
             this.plane = new Plane(plane);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            ellipse2D = new Ellipse2D(jObject.Value<JObject>("Ellipse2D"));
-            plane = new Plane(jObject.Value<JObject>("Plane"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Ellipse2D"] is JsonObject jsonObject_Ellipse2D)
+                ellipse2D = new Ellipse2D(new JObject((JsonObject)jsonObject_Ellipse2D.DeepClone()));
+
+            if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
+                plane = new Plane(new JObject((JsonObject)jsonObject_Plane.DeepClone()));
 
             return true;
         }
@@ -75,16 +82,19 @@ namespace SAM.Geometry.Spatial
             throw new System.NotImplementedException();
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Ellipse2D", ellipse2D.ToJObject());
-            jObject.Add("Plane", plane.ToJObject());
+            if (ellipse2D?.ToJObject()?.Node is JsonObject ellipse2DJson)
+                jsonObject["Ellipse2D"] = ellipse2DJson.DeepClone();
 
-            return jObject;
+            if (plane?.ToJObject()?.Node is JsonObject planeJson)
+                jsonObject["Plane"] = planeJson.DeepClone();
+
+            return jsonObject;
         }
 
         public override ISAMGeometry Clone()

@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -113,25 +114,29 @@ namespace SAM.Geometry.Spatial
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("CoordinateSystem3D"))
+            if (jsonObject["CoordinateSystem3D"] is JsonObject jsonObject_CoordinateSystem3D)
             {
-                coordinateSystem3D = new CoordinateSystem3D(jObject.Value<JObject>("CoordinateSystem3D"));
+                coordinateSystem3D = new CoordinateSystem3D(new JObject((JsonObject)jsonObject_CoordinateSystem3D.DeepClone()));
             }
 
-            if (jObject.ContainsKey("SAMGeometry3Ds"))
+            if (jsonObject["SAMGeometry3Ds"] is JsonArray jsonArray_SAMGeometry3Ds)
             {
-                JArray jArray = jObject.Value<JArray>("SAMGeometry3Ds");
-                if (jArray != null)
+                sAMGeometry3Ds = new List<ISAMGeometry3D>();
+                foreach (JsonNode node in jsonArray_SAMGeometry3Ds)
                 {
-                    sAMGeometry3Ds = new List<ISAMGeometry3D>();
-                    foreach (JObject jObject_Temp in jArray)
+                    if (node is JsonObject childJson)
                     {
-                        sAMGeometry3Ds.Add(Core.Query.IJSAMObject<ISAMGeometry3D>(jObject_Temp));
+                        sAMGeometry3Ds.Add(Core.Query.IJSAMObject<ISAMGeometry3D>(new JObject((JsonObject)childJson.DeepClone())));
                     }
                 }
             }
@@ -180,31 +185,37 @@ namespace SAM.Geometry.Spatial
 
         public virtual JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
 
-            if (coordinateSystem3D != null)
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
             {
-                result.Add("CoordinateSystem3D", coordinateSystem3D.ToJObject());
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (coordinateSystem3D?.ToJObject()?.Node is JsonObject coordinateJson)
+            {
+                jsonObject["CoordinateSystem3D"] = coordinateJson.DeepClone();
             }
 
             if (sAMGeometry3Ds != null)
             {
-                JArray jArray = new JArray();
+                JsonArray jsonArray = new JsonArray();
                 foreach (ISAMGeometry3D sAMGeometry3D in sAMGeometry3Ds)
                 {
-                    if (sAMGeometry3D == null)
+                    if (sAMGeometry3D?.ToJObject()?.Node is JsonObject childJson)
                     {
-                        continue;
+                        jsonArray.Add(childJson.DeepClone());
                     }
-
-                    jArray.Add(sAMGeometry3D.ToJObject());
                 }
 
-                result.Add("SAMGeometry3Ds", jArray);
+                jsonObject["SAMGeometry3Ds"] = jsonArray;
             }
 
-            return result;
+            return jsonObject;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry.Spatial;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
@@ -53,39 +54,39 @@ namespace SAM.Geometry.Object.Spatial
             Tag = segment3DObject?.Tag;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("CurveAppearance"))
+            if (jsonObject["CurveAppearance"] is JsonObject jsonObject_CurveAppearance)
             {
-                CurveAppearance = new CurveAppearance(jObject.Value<JObject>("CurveAppearance"));
+                CurveAppearance = new CurveAppearance(new JObject((JsonObject)jsonObject_CurveAppearance.DeepClone()));
             }
 
-            Tag = Core.Query.Tag(jObject);
+            Tag = Core.Query.Tag(new JObject(jsonObject));
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (CurveAppearance != null)
+            if (CurveAppearance?.ToJObject()?.Node is JsonObject curveJson)
             {
-                jObject.Add("CurveAppearance", CurveAppearance.ToJObject());
+                jsonObject["CurveAppearance"] = curveJson.DeepClone();
             }
 
-            Core.Modify.Add(jObject, Tag);
+            Core.Modify.Add(new JObject(jsonObject), Tag);
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

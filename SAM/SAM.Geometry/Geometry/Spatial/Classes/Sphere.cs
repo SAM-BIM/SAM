@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -98,24 +99,31 @@ namespace SAM.Geometry.Spatial
             return Query.Transform(this, transform3D);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            origin = new Point3D(jObject.Value<JObject>("Origin"));
-            radius = jObject.Value<double>("Radius");
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
+                origin = new Point3D(new JObject((JsonObject)jsonObject_Origin.DeepClone()));
+
+            radius = jsonObject["Radius"]?.GetValue<double>() ?? 0;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Origin", origin.ToJObject());
-            jObject.Add("Radius", radius);
+            if (origin?.ToJObject()?.Node is JsonObject originJson)
+                jsonObject["Origin"] = originJson.DeepClone();
 
-            return jObject;
+            jsonObject["Radius"] = radius;
+
+            return jsonObject;
         }
     }
 }

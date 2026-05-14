@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -129,20 +130,44 @@ namespace SAM.Geometry.Spatial
             return points.ConvertAll(x => (Point3D)x.Clone());
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            points = Create.Point3Ds(jObject.Value<JArray>("Points"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Points"] is JsonArray jsonArray_Points)
+            {
+                points = new List<Point3D>();
+                foreach (JsonNode node in jsonArray_Points)
+                {
+                    if (node is JsonObject pointJson)
+                    {
+                        points.Add(new Point3D(new JObject((JsonObject)pointJson.DeepClone())));
+                    }
+                }
+            }
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Points", Geometry.Create.JArray(points));
-            return jObject;
+            if (points != null)
+            {
+                JsonArray jsonArray_Points = new JsonArray();
+                foreach (Point3D point3D in points)
+                {
+                    if (point3D?.ToJObject()?.Node is JsonObject pointJson)
+                    {
+                        jsonArray_Points.Add(pointJson.DeepClone());
+                    }
+                }
+                jsonObject["Points"] = jsonArray_Points;
+            }
+            return jsonObject;
         }
 
         public double GetLength()

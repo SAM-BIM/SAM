@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -69,10 +70,15 @@ namespace SAM.Geometry.Planar
             return new Circle2D(this);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            center = new Point2D(jObject.Value<JObject>("Center"));
-            radius = jObject.Value<double>("Radius");
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Center"] is JsonObject jsonObject_Center)
+                center = new Point2D(new JObject((JsonObject)jsonObject_Center.DeepClone()));
+
+            radius = jsonObject["Radius"]?.GetValue<double>() ?? 0;
             return true;
         }
 
@@ -155,16 +161,18 @@ namespace SAM.Geometry.Planar
             return System.Math.Abs(center.Distance(point2D) - radius) <= tolerance;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Center", center.ToJObject());
-            jObject.Add("Radius", radius);
+            if (center?.ToJObject()?.Node is JsonObject centerJson)
+                jsonObject["Center"] = centerJson.DeepClone();
 
-            return jObject;
+            jsonObject["Radius"] = radius;
+
+            return jsonObject;
         }
 
         public ISAMGeometry2D GetTransformed(ITransform2D transform2D)

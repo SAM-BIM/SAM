@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -31,32 +32,32 @@ namespace SAM.Geometry.Object
             }
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
             if (!double.IsNaN(Thickness))
             {
-                jObject.Add("Thickness", Thickness);
+                jsonObject["Thickness"] = Thickness;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Thickness"))
+            if (jsonObject.ContainsKey("Thickness"))
             {
-                Thickness = jObject.Value<double>("Thickness");
+                Thickness = jsonObject["Thickness"]?.GetValue<double>() ?? 0;
             }
 
             return true;

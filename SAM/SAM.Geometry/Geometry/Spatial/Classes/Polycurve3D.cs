@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -82,25 +83,39 @@ namespace SAM.Geometry.Spatial
             throw new System.NotImplementedException();
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            curves = Create.ICurve3Ds(jObject.Value<JArray>("Curves"));
+            if (jsonObject["Curves"] is JsonArray jsonArray_Curves)
+            {
+                curves = Core.Create.IJSAMObjects<ICurve3D>(jsonArray_Curves);
+            }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Curves", Geometry.Create.JArray(curves));
+            if (curves != null)
+            {
+                JsonArray jsonArray_Curves = new JsonArray();
+                foreach (ICurve3D curve in curves)
+                {
+                    if (curve?.ToJObject()?.Node is JsonObject curveJson)
+                    {
+                        jsonArray_Curves.Add(curveJson.DeepClone());
+                    }
+                }
+                jsonObject["Curves"] = jsonArray_Curves;
+            }
 
-            return jObject;
+            return jsonObject;
         }
 
         public double GetLength()

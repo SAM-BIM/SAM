@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Geometry.Planar;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -118,24 +119,33 @@ namespace SAM.Geometry.Spatial
             return rectangle2D.On(plane.Convert(point3D), tolerance);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            rectangle2D = new Rectangle2D(jObject.Value<JObject>("Rectangle2D"));
-            plane = new Plane(jObject.Value<JObject>("Plane"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Rectangle2D"] is JsonObject jsonObject_Rectangle2D)
+                rectangle2D = new Rectangle2D(new JObject((JsonObject)jsonObject_Rectangle2D.DeepClone()));
+
+            if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
+                plane = new Plane(new JObject((JsonObject)jsonObject_Plane.DeepClone()));
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Rectangle2D", rectangle2D.ToJObject());
-            jObject.Add("Plane", plane.ToJObject());
+            if (rectangle2D?.ToJObject()?.Node is JsonObject rectangle2DJson)
+                jsonObject["Rectangle2D"] = rectangle2DJson.DeepClone();
 
-            return jObject;
+            if (plane?.ToJObject()?.Node is JsonObject planeJson)
+                jsonObject["Plane"] = planeJson.DeepClone();
+
+            return jsonObject;
         }
 
         public double GetArea()

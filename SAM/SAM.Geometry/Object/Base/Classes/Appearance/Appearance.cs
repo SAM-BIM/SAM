@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -36,28 +37,33 @@ namespace SAM.Geometry.Object
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Color"))
+            if (jsonObject["Color"] is JsonObject jsonObject_Color)
             {
-                Core.SAMColor sAMColor = new Core.SAMColor(jObject.Value<JObject>("Color"));
+                Core.SAMColor sAMColor = new Core.SAMColor(new JObject((JsonObject)jsonObject_Color.DeepClone()));
                 if (sAMColor != null)
                 {
                     Color = Color.FromArgb(sAMColor.Alpha, sAMColor.Red, sAMColor.Green, sAMColor.Blue);
                 }
             }
 
-            if (jObject.ContainsKey("Opacity"))
+            if (jsonObject.ContainsKey("Opacity"))
             {
-                Opacity = jObject.Value<double>("Opacity");
+                Opacity = jsonObject["Opacity"]?.GetValue<double>() ?? 0;
             }
 
-            if (jObject.ContainsKey("Visible"))
+            if (jsonObject.ContainsKey("Visible"))
             {
-                Visible = jObject.Value<bool>("Visible");
+                Visible = jsonObject["Visible"]?.GetValue<bool>() ?? false;
             }
 
             return true;
@@ -65,19 +71,28 @@ namespace SAM.Geometry.Object
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
 
-            jObject.Add("Color", new Core.SAMColor(Color.A, Color.R, Color.G, Color.B).ToJObject());
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (new Core.SAMColor(Color.A, Color.R, Color.G, Color.B).ToJObject()?.Node is JsonObject colorJson)
+                jsonObject["Color"] = colorJson.DeepClone();
 
             if (!double.IsNaN(Opacity))
             {
-                jObject.Add("Opacity", Opacity);
+                jsonObject["Opacity"] = Opacity;
             }
 
-            jObject.Add("Visible", Visible);
+            jsonObject["Visible"] = Visible;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

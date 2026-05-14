@@ -6,6 +6,7 @@ using SAM.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -307,30 +308,41 @@ namespace SAM.Geometry.Spatial
             axisY.Negate();
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            origin = new Point3D(jObject.Value<JObject>("Origin"));
-            normal = new Vector3D(jObject.Value<JObject>("Normal"));
+            if (jsonObject == null)
+                return false;
 
-            if (jObject.ContainsKey("AxisY"))
-                axisY = new Vector3D(jObject.Value<JObject>("AxisY"));
+            if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
+                origin = new Point3D(new JObject((JsonObject)jsonObject_Origin.DeepClone()));
+
+            if (jsonObject["Normal"] is JsonObject jsonObject_Normal)
+                normal = new Vector3D(new JObject((JsonObject)jsonObject_Normal.DeepClone()));
+
+            if (jsonObject["AxisY"] is JsonObject jsonObject_AxisY)
+                axisY = new Vector3D(new JObject((JsonObject)jsonObject_AxisY.DeepClone()));
             else
-                axisY = normal.AxisY();
+                axisY = normal?.AxisY();
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Origin", origin.ToJObject());
-            jObject.Add("Normal", normal.ToJObject());
-            jObject.Add("AxisY", axisY.ToJObject());
+            if (origin?.ToJObject()?.Node is JsonObject originJson)
+                jsonObject["Origin"] = originJson.DeepClone();
 
-            return jObject;
+            if (normal?.ToJObject()?.Node is JsonObject normalJson)
+                jsonObject["Normal"] = normalJson.DeepClone();
+
+            if (axisY?.ToJObject()?.Node is JsonObject axisYJson)
+                jsonObject["AxisY"] = axisYJson.DeepClone();
+
+            return jsonObject;
         }
 
         public static Plane WorldXY

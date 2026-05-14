@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -60,26 +61,35 @@ namespace SAM.Geometry.Planar
             return new Mesh2D(points, indexes);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject.ContainsKey("Points"))
-                points = Create.Point2Ds(jObject.Value<JArray>("Points"));
+            if (jsonObject == null)
+                return false;
 
-            if (jObject.ContainsKey("Indexes"))
+            if (jsonObject["Points"] is JsonArray jsonArray_Points)
+            {
+                points = new List<Point2D>();
+                foreach (JsonNode node in jsonArray_Points)
+                {
+                    if (node is JsonObject pointJson)
+                    {
+                        points.Add(new Point2D(new JObject((JsonObject)pointJson.DeepClone())));
+                    }
+                }
+            }
+
+            if (jsonObject["Indexes"] is JsonArray jsonArray_Indexes)
             {
                 indexes = new List<Tuple<int, int, int>>();
 
-                JArray jArray = jObject.Value<JArray>("Indexes");
-                if (jArray != null)
+                foreach (JsonNode node in jsonArray_Indexes)
                 {
-                    foreach (JArray jArray_Temp in jArray)
+                    if (node is JsonArray jsonArray_Temp && jsonArray_Temp.Count >= 3)
                     {
-                        if (jArray_Temp == null || jArray_Temp.Count < 3)
-                        {
-                            continue;
-                        }
-
-                        indexes.Add(new Tuple<int, int, int>(jArray_Temp[0].Value<int>(), jArray_Temp[1].Value<int>(), jArray_Temp[2].Value<int>()));
+                        indexes.Add(new Tuple<int, int, int>(
+                            jsonArray_Temp[0]?.GetValue<int>() ?? 0,
+                            jsonArray_Temp[1]?.GetValue<int>() ?? 0,
+                            jsonArray_Temp[2]?.GetValue<int>() ?? 0));
                     }
                 }
             }
@@ -362,32 +372,42 @@ namespace SAM.Geometry.Planar
             return segment2Ds.Find(x => x.On(point2D, tolerance)) != null;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (points != null)
-                jObject.Add("Points", Geometry.Create.JArray(points));
+            {
+                JsonArray jsonArray_Points = new JsonArray();
+                foreach (Point2D point2D in points)
+                {
+                    if (point2D?.ToJObject()?.Node is JsonObject pointJson)
+                    {
+                        jsonArray_Points.Add(pointJson.DeepClone());
+                    }
+                }
+                jsonObject["Points"] = jsonArray_Points;
+            }
 
             if (indexes != null)
             {
-                JArray jArray = new JArray();
-
+                JsonArray jsonArray = new JsonArray();
                 foreach (Tuple<int, int, int> tuple in indexes)
                 {
-                    JArray jArray_Temp = new JArray();
-                    jArray_Temp.Add(tuple.Item1);
-                    jArray_Temp.Add(tuple.Item2);
-                    jArray_Temp.Add(tuple.Item3);
-                    jArray.Add(jArray_Temp);
+                    JsonArray jsonArray_Temp = new JsonArray
+                    {
+                        tuple.Item1,
+                        tuple.Item2,
+                        tuple.Item3
+                    };
+                    jsonArray.Add(jsonArray_Temp);
                 }
-
-                jObject.Add("Indexes", jArray);
+                jsonObject["Indexes"] = jsonArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public ISAMGeometry2D GetTransformed(ITransform2D transform2D)

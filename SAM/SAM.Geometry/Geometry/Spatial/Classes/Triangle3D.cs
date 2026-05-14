@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -148,30 +149,47 @@ namespace SAM.Geometry.Spatial
         }
 
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
-            {
+            if (jsonObject == null)
                 return false;
-            }
 
-            points = Geometry.Create.ISAMGeometries<Point3D>(jObject.Value<JArray>("Points"))?.ToArray();
+            if (jsonObject["Points"] is JsonArray jsonArray_Points)
+            {
+                List<Point3D> point3Ds = new List<Point3D>();
+                foreach (JsonNode node in jsonArray_Points)
+                {
+                    if (node is JsonObject pointJson)
+                    {
+                        point3Ds.Add(new Point3D(new JObject((JsonObject)pointJson.DeepClone())));
+                    }
+                }
+                points = point3Ds.ToArray();
+            }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (points != null && points.Length == 3)
             {
-                jObject.Add("Points", Geometry.Create.JArray(points));
+                JsonArray jsonArray_Points = new JsonArray();
+                foreach (Point3D point3D in points)
+                {
+                    if (point3D?.ToJObject()?.Node is JsonObject pointJson)
+                    {
+                        jsonArray_Points.Add(pointJson.DeepClone());
+                    }
+                }
+                jsonObject["Points"] = jsonArray_Points;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public bool On(Point3D point3D, double tolerance = Core.Tolerance.Distance)

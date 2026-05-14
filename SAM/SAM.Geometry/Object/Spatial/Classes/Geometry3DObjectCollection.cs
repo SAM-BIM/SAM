@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
@@ -28,29 +29,29 @@ namespace SAM.Geometry.Object.Spatial
             Tag = geometryObjectCollection?.Tag;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            Tag = Core.Query.Tag(jObject);
+            Tag = Core.Query.Tag(new JObject(jsonObject));
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
-            if (result == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            Core.Modify.Add(result, Tag);
+            Core.Modify.Add(new JObject(jsonObject), Tag);
 
-            return result;
+            return jsonObject;
         }
     }
 }

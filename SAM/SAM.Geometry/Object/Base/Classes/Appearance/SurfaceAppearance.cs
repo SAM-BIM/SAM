@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -32,32 +33,32 @@ namespace SAM.Geometry.Object
             }
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (CurveAppearance != null)
+            if (CurveAppearance?.ToJObject()?.Node is JsonObject curveJson)
             {
-                jObject.Add("CurveAppearance", CurveAppearance.ToJObject());
+                jsonObject["CurveAppearance"] = curveJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("CurveAppearance"))
+            if (jsonObject["CurveAppearance"] is JsonObject jsonObject_CurveAppearance)
             {
-                CurveAppearance = new CurveAppearance(jObject.Value<JObject>("CurveAppearance"));
+                CurveAppearance = new CurveAppearance(new JObject((JsonObject)jsonObject_CurveAppearance.DeepClone()));
             }
 
             return true;

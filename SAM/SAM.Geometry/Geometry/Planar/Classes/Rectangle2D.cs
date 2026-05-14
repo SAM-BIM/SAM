@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -139,12 +140,19 @@ namespace SAM.Geometry.Planar
             return Query.Distance(this, point2D);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            origin = new Point2D(jObject.Value<JObject>("Origin"));
-            width = jObject.Value<double>("Width");
-            height = jObject.Value<double>("Height");
-            heightDirection = new Vector2D(jObject.Value<JObject>("HeightDirection"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
+                origin = new Point2D(new JObject((JsonObject)jsonObject_Origin.DeepClone()));
+
+            width = jsonObject["Width"]?.GetValue<double>() ?? 0;
+            height = jsonObject["Height"]?.GetValue<double>() ?? 0;
+
+            if (jsonObject["HeightDirection"] is JsonObject jsonObject_HeightDirection)
+                heightDirection = new Vector2D(new JObject((JsonObject)jsonObject_HeightDirection.DeepClone()));
 
             return true;
         }
@@ -296,18 +304,22 @@ namespace SAM.Geometry.Planar
             height = height * factor;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Origin", origin.ToJObject());
-            jObject.Add("Width", width);
-            jObject.Add("Height", height);
-            jObject.Add("HeightDirection", heightDirection.ToJObject());
+            if (origin?.ToJObject()?.Node is JsonObject originJson)
+                jsonObject["Origin"] = originJson.DeepClone();
 
-            return jObject;
+            jsonObject["Width"] = width;
+            jsonObject["Height"] = height;
+
+            if (heightDirection?.ToJObject()?.Node is JsonObject heightDirectionJson)
+                jsonObject["HeightDirection"] = heightDirectionJson.DeepClone();
+
+            return jsonObject;
         }
 
         public IEnumerable<Triangle2D> Triangulate()

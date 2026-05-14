@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -179,10 +180,17 @@ namespace SAM.Geometry.Planar
             return Query.Distance(this, point2D);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            max = new Point2D(jObject.Value<JObject>("Max"));
-            min = new Point2D(jObject.Value<JObject>("Min"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Max"] is JsonObject jsonObject_Max)
+                max = new Point2D(new JObject((JsonObject)jsonObject_Max.DeepClone()));
+
+            if (jsonObject["Min"] is JsonObject jsonObject_Min)
+                min = new Point2D(new JObject((JsonObject)jsonObject_Min.DeepClone()));
+
             return true;
         }
 
@@ -432,16 +440,19 @@ namespace SAM.Geometry.Planar
             return Query.On(GetSegments(), point2D, tolerance);
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Max", max.ToJObject());
-            jObject.Add("Min", min.ToJObject());
+            if (max?.ToJObject()?.Node is JsonObject maxJson)
+                jsonObject["Max"] = maxJson.DeepClone();
 
-            return jObject;
+            if (min?.ToJObject()?.Node is JsonObject minJson)
+                jsonObject["Min"] = minJson.DeepClone();
+
+            return jsonObject;
         }
 
         public ISegmentable2D Trim(double parameter, bool inverted = false)
