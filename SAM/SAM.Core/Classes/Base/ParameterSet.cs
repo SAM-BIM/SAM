@@ -284,10 +284,24 @@ namespace SAM.Core
         public DateTime ToDateTime(string name)
         {
             DateTime result;
-            if (!Query.TryGetValue(dictionary, name, out result))
+            if (Query.TryGetValue(dictionary, name, out result))
+                return result;
+
+            // JSON has no native date type, so a DateTime parameter round-trips
+            // through the wire as an ISO string and lands back in the dictionary
+            // as a string. Parse on demand so the typed accessor still works,
+            // and strings that merely *look* like dates can keep their type.
+            string text;
+            if (!Query.TryGetValue(dictionary, name, out text))
                 return DateTime.MinValue;
 
-            return result;
+            if (!string.IsNullOrWhiteSpace(text)
+                && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime parsed))
+            {
+                return parsed;
+            }
+
+            return DateTime.MinValue;
         }
 
         public JObject ToJObject(string name)
@@ -451,10 +465,13 @@ namespace SAM.Core
             switch (valueNode.GetValueKind())
             {
                 case JsonValueKind.String:
-                    string stringValue = valueNode.GetValue<string>();
-                    if (JToken.IsIsoDateTime(stringValue))
-                        return DateTime.Parse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-                    return stringValue;
+                    // Stay as string. DateTime parameters were serialized as ISO
+                    // text, but JSON has no native date type — promoting every
+                    // ISO-shaped string to DateTime here would silently change
+                    // the runtime type of any string parameter that happens to
+                    // look like a date. ParameterSet.ToDateTime parses on demand
+                    // instead, which preserves typed access without bleeding.
+                    return valueNode.GetValue<string>();
 
                 case JsonValueKind.Number:
                     if (IsIntegerNumber(valueNode))
