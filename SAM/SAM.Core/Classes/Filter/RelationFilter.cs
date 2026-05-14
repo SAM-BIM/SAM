@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -28,16 +29,16 @@ namespace SAM.Core
 
         public IFilter Filter { get; set; }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Filter"))
+            if (jsonObject["Filter"] is JsonObject filterObject)
             {
-                Filter = Query.IJSAMObject(jObject.Value<JObject>("Filter")) as IFilter;
+                Filter = Query.IJSAMObject(new JObject((JsonObject)filterObject.DeepClone())) as IFilter;
             }
 
             return true;
@@ -65,9 +66,9 @@ namespace SAM.Core
 
             return result;
         }
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
@@ -75,7 +76,8 @@ namespace SAM.Core
 
             if (Filter != null)
             {
-                result.Add("Filter", Filter.ToJObject());
+                if (Filter.ToJObject()?.Node is JsonObject filterObject)
+                    result["Filter"] = filterObject.DeepClone();
             }
 
             return result;

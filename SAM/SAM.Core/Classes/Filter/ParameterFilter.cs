@@ -3,6 +3,9 @@
 
 using SAM.Core.Json;
 using System;
+using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -78,64 +81,27 @@ namespace SAM.Core
         }
 
         public object Value { get; set; }
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Name"))
+            if (jsonObject.ContainsKey("Name"))
             {
-                Name = jObject.Value<string>("Name");
+                Name = jsonObject["Name"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Value"))
+            JsonNode valueNode = jsonObject["Value"];
+            if (valueNode != null)
             {
-                JToken jToken = jObject.GetValue("Value");
-                if (jToken != null)
-                {
-                    switch (jToken.Type)
-                    {
-                        case JTokenType.String:
-                            Value = jToken.Value<string>();
-                            break;
-
-                        case JTokenType.Float:
-                            Value = jToken.Value<double>();
-                            break;
-
-                        case JTokenType.Integer:
-                            Value = jToken.Value<int>();
-                            break;
-
-                        case JTokenType.Boolean:
-                            Value = jToken.Value<bool>();
-                            break;
-
-                        case JTokenType.Date:
-                            Value = jToken.Value<DateTime>();
-                            break;
-
-                        case JTokenType.Object:
-                            JSAMObjectWrapper jSAMObjectWrapper = new JSAMObjectWrapper((JObject)jToken);
-                            IJSAMObject jSAMObject = jSAMObjectWrapper.ToIJSAMObject();
-                            if (jSAMObject == null)
-                                Value = jSAMObjectWrapper.ToJObject();
-                            else
-                                Value = jSAMObject;
-                            break;
-
-                        case JTokenType.Array:
-                            Value = (JArray)jToken;
-                            break;
-                    }
-                }
+                Value = ReadValue(valueNode);
             }
 
-            if (jObject.ContainsKey("Enum"))
+            if (jsonObject.ContainsKey("Enum"))
             {
-                string text = jObject.Value<string>("Enum");
+                string text = jsonObject["Enum"]?.GetValue<string>();
                 if (!string.IsNullOrWhiteSpace(text))
                 {
                     Enum enum_Text = null;
@@ -230,9 +196,10 @@ namespace SAM.Core
 
             return result;
         }
-        public override JObject ToJObject()
+
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
@@ -240,20 +207,83 @@ namespace SAM.Core
 
             if (Name != null)
             {
-                result.Add("Name", Name);
+                result["Name"] = Name;
             }
 
             if (Value != null)
             {
-                result.Add("Value", Value as dynamic);
+                JsonNode valueNode = WriteValue(Value);
+                if (valueNode != null)
+                    result["Value"] = valueNode;
             }
 
             if (@enum != null)
             {
-                result.Add("Enum", @enum.ToString());
+                result["Enum"] = @enum.ToString();
             }
 
             return result;
+        }
+
+        private static object ReadValue(JsonNode valueNode)
+        {
+            switch (valueNode.GetValueKind())
+            {
+                case JsonValueKind.String:
+                    string stringValue = valueNode.GetValue<string>();
+                    if (JToken.IsIsoDateTime(stringValue))
+                        return DateTime.Parse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                    return stringValue;
+
+                case JsonValueKind.Number:
+                    if (IsIntegerNumber(valueNode))
+                        return valueNode.GetValue<int>();
+                    return valueNode.GetValue<double>();
+
+                case JsonValueKind.True:
+                case JsonValueKind.False:
+                    return valueNode.GetValue<bool>();
+
+                case JsonValueKind.Object:
+                    JObject wrappedObject = new JObject((JsonObject)valueNode.DeepClone());
+                    JSAMObjectWrapper wrapper = new JSAMObjectWrapper(wrappedObject);
+                    IJSAMObject inner = wrapper.ToIJSAMObject();
+                    return inner ?? (object)wrapper.ToJObject();
+
+                case JsonValueKind.Array:
+                    return new JArray((JsonArray)valueNode.DeepClone());
+
+                default:
+                    return null;
+            }
+        }
+
+        private static JsonNode WriteValue(object value)
+        {
+            switch (value)
+            {
+                case IJSAMObject jSAMObject:
+                    JsonObject innerJson = jSAMObject.ToJObject()?.Node as JsonObject;
+                    return innerJson == null ? null : (JsonNode)innerJson.DeepClone();
+
+                case JArray shimArray:
+                    return shimArray.Node?.DeepClone();
+
+                case JObject shimObject:
+                    return shimObject.Node?.DeepClone();
+
+                default:
+                    return JToken.ToNode(value);
+            }
+        }
+
+        private static bool IsIntegerNumber(JsonNode node)
+        {
+            if (!(node is JsonValue jsonValue) || !jsonValue.TryGetValue(out JsonElement element))
+                return false;
+
+            string raw = element.GetRawText();
+            return raw.IndexOf('.') < 0 && raw.IndexOf('e') < 0 && raw.IndexOf('E') < 0;
         }
     }
 }

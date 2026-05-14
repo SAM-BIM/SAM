@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -29,16 +30,16 @@ namespace SAM.Core
             SAMObjectRelationCluster = complexReferenceFilter?.SAMObjectRelationCluster;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ComplexReference"))
+            if (jsonObject["ComplexReference"] is JsonObject complexReferenceObject)
             {
-                ComplexReference = Query.IJSAMObject<IComplexReference>(jObject.Value<JObject>("ComplexReference"));
+                ComplexReference = Query.IJSAMObject<IComplexReference>(new JObject((JsonObject)complexReferenceObject.DeepClone()));
             }
 
             return true;
@@ -63,9 +64,9 @@ namespace SAM.Core
 
         protected abstract bool IsValid(IEnumerable<object> values);
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
@@ -73,7 +74,8 @@ namespace SAM.Core
 
             if (ComplexReference != null)
             {
-                result.Add("ComplexReference", ComplexReference.ToJObject());
+                if (ComplexReference.ToJObject()?.Node is JsonObject complexReferenceObject)
+                    result["ComplexReference"] = complexReferenceObject.DeepClone();
             }
 
             return result;

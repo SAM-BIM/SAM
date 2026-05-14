@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -42,27 +43,26 @@ namespace SAM.Core
 
         public List<IFilter> Filters { get; set; }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("FilterLogicalOperator"))
+            if (jsonObject.ContainsKey("FilterLogicalOperator"))
             {
-                FilterLogicalOperator = Query.Enum<FilterLogicalOperator>(jObject.Value<string>("FilterLogicalOperator"));
+                FilterLogicalOperator = Query.Enum<FilterLogicalOperator>(jsonObject["FilterLogicalOperator"]?.GetValue<string>());
             }
 
-            if (jObject.ContainsKey("Filters"))
+            if (jsonObject["Filters"] is JsonArray jsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("Filters");
-                if (jArray != null)
+                Filters = new List<IFilter>();
+                foreach (JsonNode node in jsonArray)
                 {
-                    Filters = new List<IFilter>();
-                    foreach (JObject jObject_Temp in jArray)
+                    if (node is JsonObject filterObject)
                     {
-                        IFilter filter = Query.IJSAMObject(jObject_Temp) as IFilter;
+                        IFilter filter = Query.IJSAMObject(new JObject((JsonObject)filterObject.DeepClone())) as IFilter;
                         if (filter != null)
                         {
                             Filters.Add(filter);
@@ -106,9 +106,9 @@ namespace SAM.Core
             return result;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
@@ -116,7 +116,7 @@ namespace SAM.Core
 
             if (Filters != null)
             {
-                JArray jArray = new JArray();
+                JsonArray jsonArray = new JsonArray();
                 foreach (IFilter filter in Filters)
                 {
                     if (filter == null)
@@ -124,13 +124,14 @@ namespace SAM.Core
                         continue;
                     }
 
-                    jArray.Add(filter.ToJObject());
+                    if (filter.ToJObject()?.Node is JsonObject filterObject)
+                        jsonArray.Add(filterObject.DeepClone());
                 }
 
-                result.Add("Filters", jArray);
+                result["Filters"] = jsonArray;
             }
 
-            result.Add("FilterLogicalOperator", FilterLogicalOperator.ToString());
+            result["FilterLogicalOperator"] = FilterLogicalOperator.ToString();
 
             return result;
         }

@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -39,31 +40,31 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("FilterLogicalOperator"))
+            if (jsonObject.ContainsKey("FilterLogicalOperator"))
             {
-                FilterLogicalOperator = Query.Enum<FilterLogicalOperator>(jObject.Value<string>("FilterLogicalOperator"));
+                FilterLogicalOperator = Query.Enum<FilterLogicalOperator>(jsonObject["FilterLogicalOperator"]?.GetValue<string>());
             }
 
-            if (jObject.ContainsKey("TextComparisonType"))
+            if (jsonObject.ContainsKey("TextComparisonType"))
             {
-                TextComparisonType = Query.Enum<TextComparisonType>(jObject.Value<string>("TextComparisonType"));
+                TextComparisonType = Query.Enum<TextComparisonType>(jsonObject["TextComparisonType"]?.GetValue<string>());
             }
 
-            if (jObject.ContainsKey("Value"))
+            if (jsonObject.ContainsKey("Value"))
             {
-                Value = jObject.Value<string>("Value");
+                Value = jsonObject["Value"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("CaseSensitive"))
+            if (jsonObject.ContainsKey("CaseSensitive"))
             {
-                CaseSensitive = jObject.Value<bool>("CaseSensitive");
+                CaseSensitive = jsonObject["CaseSensitive"]?.GetValue<bool>() ?? true;
             }
 
             return true;
@@ -107,23 +108,23 @@ namespace SAM.Core
             return FilterLogicalOperator == FilterLogicalOperator.And;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
             }
 
-            result.Add("FilterLogicalOperator", FilterLogicalOperator.ToString());
+            result["FilterLogicalOperator"] = FilterLogicalOperator.ToString();
 
-            result.Add("TextComparisonType", TextComparisonType.ToString());
+            result["TextComparisonType"] = TextComparisonType.ToString();
 
-            result.Add("CaseSensitive", CaseSensitive);
+            result["CaseSensitive"] = CaseSensitive;
 
             if (Value != null)
             {
-                result.Add("Value", Value);
+                result["Value"] = Value;
             }
 
             return result;

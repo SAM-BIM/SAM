@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -35,26 +36,26 @@ namespace SAM.Core
 
         public string Value { get; set; }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("TextComparisonType"))
+            if (jsonObject.ContainsKey("TextComparisonType"))
             {
-                TextComparisonType = Query.Enum<TextComparisonType>(jObject.Value<string>("TextComparisonType"));
+                TextComparisonType = Query.Enum<TextComparisonType>(jsonObject["TextComparisonType"]?.GetValue<string>());
             }
 
-            if (jObject.ContainsKey("Value"))
+            if (jsonObject.ContainsKey("Value"))
             {
-                Value = jObject.Value<string>("Value");
+                Value = jsonObject["Value"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("CaseSensitive"))
+            if (jsonObject.ContainsKey("CaseSensitive"))
             {
-                CaseSensitive = jObject.Value<bool>("CaseSensitive");
+                CaseSensitive = jsonObject["CaseSensitive"]?.GetValue<bool>() ?? true;
             }
 
             return true;
@@ -76,22 +77,22 @@ namespace SAM.Core
             return result;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
             }
 
-            result.Add("TextComparisonType", TextComparisonType.ToString());
+            result["TextComparisonType"] = TextComparisonType.ToString();
 
             if (Value != null)
             {
-                result.Add("Value", Value);
+                result["Value"] = Value;
             }
 
-            result.Add("CaseSensitive", CaseSensitive);
+            result["CaseSensitive"] = CaseSensitive;
 
             return result;
         }

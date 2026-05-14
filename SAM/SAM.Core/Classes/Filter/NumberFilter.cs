@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -32,21 +33,21 @@ namespace SAM.Core
 
         public double Value { get; set; }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("NumberComparisonType"))
+            if (jsonObject.ContainsKey("NumberComparisonType"))
             {
-                NumberComparisonType = Query.Enum<NumberComparisonType>(jObject.Value<string>("NumberComparisonType"));
+                NumberComparisonType = Query.Enum<NumberComparisonType>(jsonObject["NumberComparisonType"]?.GetValue<string>());
             }
 
-            if (jObject.ContainsKey("Value"))
+            if (jsonObject.ContainsKey("Value"))
             {
-                Value = jObject.Value<double>("Value");
+                Value = jsonObject["Value"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
@@ -68,19 +69,19 @@ namespace SAM.Core
             return result;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
             }
 
-            result.Add("NumberComparisonType", NumberComparisonType.ToString());
+            result["NumberComparisonType"] = NumberComparisonType.ToString();
 
             if (!double.IsNaN(Value))
             {
-                result.Add("Value", Value);
+                result["Value"] = JToken.ToNode(Value);
             }
 
             return result;

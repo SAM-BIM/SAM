@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -33,26 +34,38 @@ namespace SAM.Core
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
-            {
-                return false;
-            }
-
-            if (jObject.ContainsKey("Inverted"))
-            {
-                Inverted = jObject.Value<bool>("Inverted");
-            }
-            return true;
+            return FromJsonObject(jObject?.Node as JsonObject);
         }
 
         public abstract bool IsValid(IJSAMObject jSAMObject);
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
-            jObject.Add("Inverted", Inverted);
-            return jObject;
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
+            {
+                return false;
+            }
+
+            if (jsonObject.ContainsKey("Inverted"))
+            {
+                Inverted = jsonObject["Inverted"]?.GetValue<bool>() ?? false;
+            }
+            return true;
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            return new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this),
+                ["Inverted"] = Inverted
+            };
         }
     }
 }
