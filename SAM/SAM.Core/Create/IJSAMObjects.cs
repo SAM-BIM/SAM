@@ -4,6 +4,7 @@
 using SAM.Core.Json; // Required for working with JSON
 using System.Collections.Generic; // Required for using List<>
 using System.Linq; // Required for using Enumerable.Repeat() and Enumerable.ToList()
+using System.Text.Json.Nodes;
 using System.Threading.Tasks; // Required for using Parallel.For()
 
 namespace SAM.Core
@@ -13,28 +14,30 @@ namespace SAM.Core
         // This method converts a JArray into a List of IJSAMObjects of type T
         public static List<T> IJSAMObjects<T>(this JArray jArray) where T : IJSAMObject
         {
-            if (jArray == null)
+            return IJSAMObjects<T>(jArray?.Node as JsonArray);
+        }
+
+        public static List<T> IJSAMObjects<T>(this JsonArray jsonArray) where T : IJSAMObject
+        {
+            if (jsonArray == null)
             {
                 return null;
             }
 
             // Initialize a List of type T with default values
-            List<T> result = Enumerable.Repeat<T>(default, jArray.Count).ToList();
+            List<T> result = Enumerable.Repeat<T>(default, jsonArray.Count).ToList();
 
-            // Process each element of the JArray in parallel
-            Parallel.For(0, jArray.Count, (int i) =>
+            // Process each element of the JsonArray in parallel
+            Parallel.For(0, jsonArray.Count, (int i) =>
             {
-                // Convert the current element to a JObject
-                JObject jObject = jArray[i] as JObject;
-
-                // Skip if the current element is not a JObject
-                if (jObject == null)
+                JsonObject jsonObject = jsonArray[i]?.DeepClone() as JsonObject;
+                if (jsonObject == null)
                 {
                     return;
                 }
 
                 // Convert the current element to an IJSAMObject of type T and store it in the result List
-                result[i] = IJSAMObject<T>(jObject);
+                result[i] = IJSAMObject<T>(new JObject(jsonObject));
 
             });
 
@@ -50,17 +53,15 @@ namespace SAM.Core
                 return default;
             }
 
-            // Convert the JSON string to a JArray
-            JArray jArray = Query.JArray(json);
+            JsonNode jsonNode = JsonNode.Parse(json);
 
-            // Return null if the JArray is null
-            if (jArray == null)
+            JsonArray jsonArray = jsonNode as JsonArray;
+            if (jsonArray == null)
             {
                 return null;
             }
 
-            // Convert the JArray to a List of IJSAMObjects of type T using the IJSAMObjects<JObject> method
-            return IJSAMObjects<T>(jArray);
+            return IJSAMObjects<T>(jsonArray);
         }
     }
 }

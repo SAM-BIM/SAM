@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -16,7 +17,7 @@ namespace SAM.Core
 
             try
             {
-                jToken = JToken.Parse(@string);
+                jToken = JToken.Wrap(JsonNode.Parse(@string));
                 return true;
             }
             catch

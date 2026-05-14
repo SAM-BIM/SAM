@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -36,17 +37,12 @@ namespace SAM.Core
 
         public bool FromJson(string path)
         {
-            JArray jArray = null;
-            using (StreamReader streamReader = File.OpenText(path))
-            {
-                JToken jToken = JToken.Parse(streamReader.ReadToEnd());
-                if (jToken is JObject)
-                    jArray = new JArray() { jToken };
-                else if (jToken is JArray)
-                    jArray = (JArray)jToken;
-            }
+            JsonNode jsonNode = JsonNode.Parse(File.ReadAllText(path));
+            JsonArray jsonArray = jsonNode as JsonArray;
+            if (jsonArray == null && jsonNode is JsonObject jsonObject)
+                jsonArray = new JsonArray(jsonObject);
 
-            return FromJArray(jArray);
+            return FromJsonArray(jsonArray);
         }
 
         public bool ToJson(string path)
@@ -54,26 +50,42 @@ namespace SAM.Core
             if (string.IsNullOrWhiteSpace(path))
                 return false;
 
-            File.WriteAllText(path, ToJArray().ToString());
+            File.WriteAllText(path, ToJsonArray().ToJsonString());
             return true;
         }
 
         public JArray ToJArray()
         {
-            JArray jArray = new JArray();
-            foreach (IJSAMObject jSAMObject in this)
-                jArray.Add(jSAMObject.ToJObject());
+            return new JArray(ToJsonArray());
+        }
 
-            return jArray;
+        public JsonArray ToJsonArray()
+        {
+            JsonArray jsonArray = new JsonArray();
+            foreach (IJSAMObject jSAMObject in this)
+            {
+                if (jSAMObject?.ToJObject()?.Node is JsonObject jsonObject)
+                    jsonArray.Add(jsonObject.DeepClone());
+            }
+
+            return jsonArray;
         }
 
         public bool FromJArray(JArray jArray)
         {
-            if (jArray == null)
+            return FromJsonArray(jArray?.Node as JsonArray);
+        }
+
+        public bool FromJsonArray(JsonArray jsonArray)
+        {
+            if (jsonArray == null)
                 return false;
 
-            foreach (JObject jObject in jArray)
-                Add(Create.IJSAMObject<T>(jObject));
+            foreach (JsonNode jsonNode in jsonArray)
+            {
+                if (jsonNode is JsonObject jsonObject)
+                    Add(Create.IJSAMObject<T>(new JObject((JsonObject)jsonObject.DeepClone())));
+            }
 
             return true;
         }
