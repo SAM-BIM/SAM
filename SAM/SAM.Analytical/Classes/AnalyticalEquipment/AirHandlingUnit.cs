@@ -82,7 +82,7 @@ namespace SAM.Analytical
         /// </summary>
         /// <param name="jObject">The JObject containing the air handling unit data</param>
         /// <returns>True if the deserialization is successful, false otherwise</returns>
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -136,7 +136,7 @@ namespace SAM.Analytical
         /// Overrides the SAMObject method to convert the object to a JObject
         /// </summary>
         /// <returns>A JObject containing the air handling unit data</returns>
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)

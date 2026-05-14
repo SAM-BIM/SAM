@@ -30,7 +30,7 @@ namespace SAM.Core
             SAMObjectRelationCluster = complexReferenceFilter?.SAMObjectRelationCluster;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -39,7 +39,7 @@ namespace SAM.Core
 
             if (jsonObject["ComplexReference"] is JsonObject complexReferenceObject)
             {
-                ComplexReference = Query.IJSAMObject<IComplexReference>(new JObject((JsonObject)complexReferenceObject.DeepClone()));
+                ComplexReference = Query.IJSAMObject<IComplexReference>(complexReferenceObject as JsonObject);
             }
 
             return true;
@@ -64,7 +64,7 @@ namespace SAM.Core
 
         protected abstract bool IsValid(IEnumerable<object> values);
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result == null)
@@ -74,7 +74,7 @@ namespace SAM.Core
 
             if (ComplexReference != null)
             {
-                if (ComplexReference.ToJObject()?.Node is JsonObject complexReferenceObject)
+                if (ComplexReference.ToJsonObject() is JsonObject complexReferenceObject)
                     result["ComplexReference"] = complexReferenceObject.DeepClone();
             }
 

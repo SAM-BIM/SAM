@@ -54,7 +54,7 @@ namespace SAM.Geometry.Object.Planar
             Tag = segment2DObject?.Tag;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -71,7 +71,7 @@ namespace SAM.Geometry.Object.Planar
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -79,7 +79,7 @@ namespace SAM.Geometry.Object.Planar
                 return null;
             }
 
-            if (CurveAppearance?.ToJObject()?.Node is JsonObject curveJson)
+            if (CurveAppearance?.ToJsonObject() is JsonObject curveJson)
             {
                 jsonObject["CurveAppearance"] = curveJson.DeepClone();
             }

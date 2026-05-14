@@ -47,7 +47,7 @@ namespace SAM.Analytical
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -81,7 +81,7 @@ namespace SAM.Analytical
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -93,7 +93,7 @@ namespace SAM.Analytical
                 JsonArray nCMNamesArray = new JsonArray();
                 foreach (NCMName nCMName in nCMNames)
                 {
-                    if (nCMName?.ToJObject()?.Node is JsonObject ncmNameJson)
+                    if (nCMName?.ToJsonObject() is JsonObject ncmNameJson)
                     {
                         nCMNamesArray.Add(ncmNameJson.DeepClone());
                     }

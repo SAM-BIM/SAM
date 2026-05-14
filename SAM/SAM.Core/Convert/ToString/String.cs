@@ -23,7 +23,7 @@ namespace SAM.Core
             if (jSAMObject == null)
                 return null;
 
-            JsonObject jsonObject = jSAMObject.ToJObject()?.Node as JsonObject;
+            JsonObject jsonObject = jSAMObject.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
@@ -48,7 +48,7 @@ namespace SAM.Core
                     continue;
                 }
 
-                JsonObject jsonObject = jSAMObject.ToJObject()?.Node as JsonObject;
+                JsonObject jsonObject = jSAMObject.ToJsonObject();
                 if (jsonObject == null)
                 {
                     continue;

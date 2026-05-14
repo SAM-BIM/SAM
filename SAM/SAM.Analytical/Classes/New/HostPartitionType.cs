@@ -123,7 +123,7 @@ namespace SAM.Analytical
             return result;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -134,7 +134,7 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
 
@@ -146,7 +146,7 @@ namespace SAM.Analytical
                 JsonArray materialLayersArray = new JsonArray();
                 foreach (MaterialLayer layer in materialLayers)
                 {
-                    if (layer?.ToJObject()?.Node is JsonObject layerJson)
+                    if (layer?.ToJsonObject() is JsonObject layerJson)
                     {
                         materialLayersArray.Add(layerJson.DeepClone());
                     }

@@ -50,7 +50,7 @@ namespace SAM.Analytical
         {
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -65,7 +65,7 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -73,7 +73,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (location?.ToJObject()?.Node is JsonObject locationJson)
+            if (location?.ToJsonObject() is JsonObject locationJson)
             {
                 jsonObject["Location"] = locationJson.DeepClone();
             }

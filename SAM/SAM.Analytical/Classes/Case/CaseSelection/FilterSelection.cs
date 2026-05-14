@@ -39,7 +39,7 @@ namespace SAM.Analytical
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -48,20 +48,20 @@ namespace SAM.Analytical
 
             if (jsonObject["Filter"] is JsonObject filterJson)
             {
-                filter = Core.Query.IJSAMObject<IFilter>(new JObject((JsonObject)filterJson.DeepClone()));
+                filter = Core.Query.IJSAMObject<IFilter>(filterJson as JsonObject);
             }
 
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
                 ["_type"] = Core.Query.FullTypeName(this)
             };
 
-            if (filter?.ToJObject()?.Node is JsonObject filterJson)
+            if (filter?.ToJsonObject() is JsonObject filterJson)
             {
                 result["Filter"] = filterJson.DeepClone();
             }

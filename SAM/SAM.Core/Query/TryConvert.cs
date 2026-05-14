@@ -57,7 +57,7 @@ namespace SAM.Core
                     }
                     else if (@object is IJSAMObject jSAMObject)
                     {
-                        result = jSAMObject.ToJObject()?.ToString();
+                        result = jSAMObject.ToJsonObject()?.ToJsonString();
                     }
 
                     if (result == default)

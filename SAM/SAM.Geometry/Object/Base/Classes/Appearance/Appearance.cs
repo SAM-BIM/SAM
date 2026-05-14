@@ -40,7 +40,7 @@ namespace SAM.Geometry.Object
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -75,14 +75,14 @@ namespace SAM.Geometry.Object
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
                 ["_type"] = Core.Query.FullTypeName(this)
             };
 
-            if (new Core.SAMColor(Color.A, Color.R, Color.G, Color.B).ToJObject()?.Node is JsonObject colorJson)
+            if (new Core.SAMColor(Color.A, Color.R, Color.G, Color.B).ToJsonObject() is JsonObject colorJson)
                 jsonObject["Color"] = colorJson.DeepClone();
 
             if (!double.IsNaN(Opacity))

@@ -60,7 +60,7 @@ namespace SAM.Geometry.Object.Spatial
             SurfaceAppearance = new SurfaceAppearance(surfaceColor, curveColor, curveThickness);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -77,7 +77,7 @@ namespace SAM.Geometry.Object.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -85,7 +85,7 @@ namespace SAM.Geometry.Object.Spatial
                 return null;
             }
 
-            if (SurfaceAppearance?.ToJObject()?.Node is JsonObject surfaceJson)
+            if (SurfaceAppearance?.ToJsonObject() is JsonObject surfaceJson)
             {
                 jsonObject["SurfaceAppearance"] = surfaceJson.DeepClone();
             }

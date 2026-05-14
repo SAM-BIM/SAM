@@ -67,7 +67,7 @@ namespace SAM.Analytical
             face3D.FlipNormal(flipX);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -84,7 +84,7 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -92,7 +92,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (face3D?.ToJObject()?.Node is JsonObject face3DJson)
+            if (face3D?.ToJsonObject() is JsonObject face3DJson)
             {
                 jsonObject["Face3D"] = face3DJson.DeepClone();
             }

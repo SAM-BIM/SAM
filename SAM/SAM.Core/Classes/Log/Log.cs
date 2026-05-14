@@ -94,7 +94,7 @@ namespace SAM.Core
             return string.Join(Environment.NewLine, logRecords.ConvertAll(x => x.ToString()));
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -115,7 +115,7 @@ namespace SAM.Core
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -124,7 +124,7 @@ namespace SAM.Core
             JsonArray logRecordsArray = new JsonArray();
             foreach (LogRecord logRecord in logRecords)
             {
-                if (logRecord?.ToJObject()?.Node is JsonObject logRecordJson)
+                if (logRecord?.ToJsonObject() is JsonObject logRecordJson)
                 {
                     logRecordsArray.Add(logRecordJson.DeepClone());
                 }

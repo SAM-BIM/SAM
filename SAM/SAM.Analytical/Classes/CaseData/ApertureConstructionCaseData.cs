@@ -40,7 +40,7 @@ namespace SAM.Analytical
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
             if (!result)
@@ -50,13 +50,13 @@ namespace SAM.Analytical
 
             if (jsonObject["ApertureConstruction"] is JsonObject apertureConstructionJson)
             {
-                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(new JObject((JsonObject)apertureConstructionJson.DeepClone()));
+                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(apertureConstructionJson as JsonObject);
             }
 
             return result;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result is null)
@@ -64,7 +64,7 @@ namespace SAM.Analytical
                 return result;
             }
 
-            if (apertureConstruction?.ToJObject()?.Node is JsonObject apertureConstructionJson)
+            if (apertureConstruction?.ToJsonObject() is JsonObject apertureConstructionJson)
             {
                 result["ApertureConstruction"] = apertureConstructionJson.DeepClone();
             }

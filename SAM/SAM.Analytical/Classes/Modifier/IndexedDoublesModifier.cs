@@ -42,7 +42,7 @@ namespace SAM.Analytical
             return Values.ContainsIndex(index);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
             if (!result)
@@ -52,7 +52,7 @@ namespace SAM.Analytical
 
             if (jsonObject["Values"] is JsonObject valuesJson)
             {
-                Values = Core.Query.IJSAMObject<IndexedDoubles>(new JObject((JsonObject)valuesJson.DeepClone()));
+                Values = Core.Query.IJSAMObject<IndexedDoubles>(valuesJson as JsonObject);
             }
 
             return result;
@@ -78,7 +78,7 @@ namespace SAM.Analytical
             return Core.Query.Calculate(ArithmeticOperator, value, value_Temp);
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result == null)
@@ -86,7 +86,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (Values?.ToJObject()?.Node is JsonObject valuesJson)
+            if (Values?.ToJsonObject() is JsonObject valuesJson)
             {
                 result["Values"] = valuesJson.DeepClone();
             }

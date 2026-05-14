@@ -32,7 +32,7 @@ namespace SAM.Analytical
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -48,7 +48,7 @@ namespace SAM.Analytical
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {

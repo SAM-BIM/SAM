@@ -15,7 +15,7 @@ namespace SAM.Geometry
 
             JArray jArray = new JArray();
             foreach (ISAMGeometry sAMGeometry in sAMGeometries)
-                jArray.Add(sAMGeometry.ToJObject());
+                jArray.Add(sAMGeometry?.ToJsonObject());
 
             return jArray;
         }
@@ -27,7 +27,7 @@ namespace SAM.Geometry
 
             JArray jArray = new JArray();
             foreach (T t in sAMGeometries)
-                jArray.Add(t.ToJObject());
+                jArray.Add(t?.ToJsonObject());
 
             return jArray;
         }

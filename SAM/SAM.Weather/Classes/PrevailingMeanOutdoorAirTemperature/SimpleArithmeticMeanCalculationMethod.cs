@@ -38,7 +38,7 @@ namespace SAM.Weather
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -59,7 +59,7 @@ namespace SAM.Weather
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {

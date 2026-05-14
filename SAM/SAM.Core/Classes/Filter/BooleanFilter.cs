@@ -29,7 +29,7 @@ namespace SAM.Core
 
         public bool Value { get; set; }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -60,7 +60,7 @@ namespace SAM.Core
             return result;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result == null)

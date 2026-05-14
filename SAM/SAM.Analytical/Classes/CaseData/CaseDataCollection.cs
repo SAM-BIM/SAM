@@ -56,7 +56,7 @@ namespace SAM.Analytical
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -69,7 +69,7 @@ namespace SAM.Analytical
                 {
                     if (node is JsonObject caseDataJson)
                     {
-                        if (Core.Query.IJSAMObject<CaseData>(new JObject((JsonObject)caseDataJson.DeepClone())) is CaseData caseData)
+                        if (Core.Query.IJSAMObject<CaseData>(caseDataJson as JsonObject) is CaseData caseData)
                         {
                             caseDatas.Add(caseData);
                         }
@@ -120,7 +120,7 @@ namespace SAM.Analytical
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -132,7 +132,7 @@ namespace SAM.Analytical
                 JsonArray caseDatasArray = new JsonArray();
                 foreach (CaseData caseData in caseDatas)
                 {
-                    if (caseData?.ToJObject()?.Node is JsonObject caseDataJson)
+                    if (caseData?.ToJsonObject() is JsonObject caseDataJson)
                     {
                         caseDatasArray.Add(caseDataJson.DeepClone());
                     }

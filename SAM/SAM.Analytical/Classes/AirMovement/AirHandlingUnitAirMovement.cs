@@ -90,7 +90,7 @@ namespace SAM.Analytical
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -125,7 +125,7 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -133,27 +133,27 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (heating?.ToJObject()?.Node is JsonObject heatingJson)
+            if (heating?.ToJsonObject() is JsonObject heatingJson)
             {
                 jsonObject["Heating"] = heatingJson.DeepClone();
             }
 
-            if (cooling?.ToJObject()?.Node is JsonObject coolingJson)
+            if (cooling?.ToJsonObject() is JsonObject coolingJson)
             {
                 jsonObject["Cooling"] = coolingJson.DeepClone();
             }
 
-            if (humidification?.ToJObject()?.Node is JsonObject humidificationJson)
+            if (humidification?.ToJsonObject() is JsonObject humidificationJson)
             {
                 jsonObject["Humidification"] = humidificationJson.DeepClone();
             }
 
-            if (dehumidification?.ToJObject()?.Node is JsonObject dehumidificationJson)
+            if (dehumidification?.ToJsonObject() is JsonObject dehumidificationJson)
             {
                 jsonObject["Dehumidification"] = dehumidificationJson.DeepClone();
             }
 
-            if (density?.ToJObject()?.Node is JsonObject densityJson)
+            if (density?.ToJsonObject() is JsonObject densityJson)
             {
                 jsonObject["Density"] = densityJson.DeepClone();
             }

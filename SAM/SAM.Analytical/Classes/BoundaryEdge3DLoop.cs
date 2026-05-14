@@ -61,7 +61,7 @@ namespace SAM.Analytical
             boundaryEdge3Ds.ForEach(x => x.Transform(transform3D));
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -71,7 +71,7 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -82,7 +82,7 @@ namespace SAM.Analytical
                 JsonArray boundaryEdge3DsArray = new JsonArray();
                 foreach (BoundaryEdge3D edge in boundaryEdge3Ds)
                 {
-                    if (edge?.ToJObject()?.Node is JsonObject edgeJson)
+                    if (edge?.ToJsonObject() is JsonObject edgeJson)
                     {
                         boundaryEdge3DsArray.Add(edgeJson.DeepClone());
                     }

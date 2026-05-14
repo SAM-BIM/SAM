@@ -70,7 +70,7 @@ namespace SAM.Geometry.Planar
             return new Circle2D(this);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -161,13 +161,13 @@ namespace SAM.Geometry.Planar
             return System.Math.Abs(center.Distance(point2D) - radius) <= tolerance;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (center?.ToJObject()?.Node is JsonObject centerJson)
+            if (center?.ToJsonObject() is JsonObject centerJson)
                 jsonObject["Center"] = centerJson.DeepClone();
 
             jsonObject["Radius"] = radius;

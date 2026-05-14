@@ -132,7 +132,7 @@ namespace SAM.Analytical.Classes
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -146,12 +146,12 @@ namespace SAM.Analytical.Classes
 
             if (jsonObject["AzimuthRange"] is JsonObject azimuthRangeJson)
             {
-                azimuthRange = Core.Query.IJSAMObject<Range<double>>(new JObject((JsonObject)azimuthRangeJson.DeepClone()));
+                azimuthRange = Core.Query.IJSAMObject<Range<double>>(azimuthRangeJson as JsonObject);
             }
 
             if (jsonObject["ApertureConstruction"] is JsonObject apertureConstructionJson)
             {
-                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(new JObject((JsonObject)apertureConstructionJson.DeepClone()));
+                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(apertureConstructionJson as JsonObject);
             }
 
             return true;
@@ -163,14 +163,14 @@ namespace SAM.Analytical.Classes
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
                 ["_type"] = Core.Query.FullTypeName(this)
             };
 
-            if (azimuthRange?.ToJObject()?.Node is JsonObject azimuthRangeJson)
+            if (azimuthRange?.ToJsonObject() is JsonObject azimuthRangeJson)
             {
                 result["AzimuthRange"] = azimuthRangeJson.DeepClone();
             }
@@ -180,7 +180,7 @@ namespace SAM.Analytical.Classes
                 result["Ratio"] = ratio;
             }
 
-            if (apertureConstruction?.ToJObject()?.Node is JsonObject apertureConstructionJson)
+            if (apertureConstruction?.ToJsonObject() is JsonObject apertureConstructionJson)
             {
                 result["ApertureConstruction"] = apertureConstructionJson.DeepClone();
             }

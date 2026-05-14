@@ -35,7 +35,7 @@ namespace SAM.Analytical
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
             if (!result)
@@ -50,7 +50,7 @@ namespace SAM.Analytical
                 {
                     if (node is JsonObject objectReferenceJson)
                     {
-                        ObjectReference objectReference = Core.Query.IJSAMObject<ObjectReference>(new JObject((JsonObject)objectReferenceJson.DeepClone()));
+                        ObjectReference objectReference = Core.Query.IJSAMObject<ObjectReference>(objectReferenceJson as JsonObject);
                         if (objectReference != null)
                         {
                             objectReferences.Add(objectReference);
@@ -62,7 +62,7 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result is null)
@@ -76,7 +76,7 @@ namespace SAM.Analytical
 
                 foreach (ObjectReference objectReference in objectReferences)
                 {
-                    if (objectReference?.ToJObject()?.Node is JsonObject objectReferenceJson)
+                    if (objectReference?.ToJsonObject() is JsonObject objectReferenceJson)
                     {
                         objectReferencesArray.Add(objectReferenceJson.DeepClone());
                     }

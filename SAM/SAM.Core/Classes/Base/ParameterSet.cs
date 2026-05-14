@@ -392,7 +392,7 @@ namespace SAM.Core
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        private bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -424,7 +424,7 @@ namespace SAM.Core
             return true;
         }
 
-        private JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -501,7 +501,7 @@ namespace SAM.Core
             switch (value)
             {
                 case IJSAMObject jSAMObject:
-                    JsonObject innerJson = jSAMObject.ToJObject()?.Node as JsonObject;
+                    JsonObject innerJson = jSAMObject.ToJsonObject();
                     return innerJson == null ? null : (JsonNode)innerJson.DeepClone();
 
                 case JArray shimArray:

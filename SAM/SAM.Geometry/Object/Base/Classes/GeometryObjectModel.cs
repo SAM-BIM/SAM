@@ -103,7 +103,7 @@ namespace SAM.Geometry.Object
             return default(T);
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -117,7 +117,7 @@ namespace SAM.Geometry.Object
 
                 foreach (ISAMGeometryObject sAMGeometryObject in sAMGeometryObjectCollection)
                 {
-                    if (sAMGeometryObject?.ToJObject()?.Node is JsonObject geometryJson)
+                    if (sAMGeometryObject?.ToJsonObject() is JsonObject geometryJson)
                     {
                         jsonArray.Add(geometryJson.DeepClone());
                     }
@@ -128,7 +128,7 @@ namespace SAM.Geometry.Object
             return jsonObject;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -142,7 +142,7 @@ namespace SAM.Geometry.Object
                 {
                     if (node is JsonObject geometryJson)
                     {
-                        ISAMGeometryObject sAMGeometryObject = Core.Create.IJSAMObject<ISAMGeometryObject>(new JObject((JsonObject)geometryJson.DeepClone()));
+                        ISAMGeometryObject sAMGeometryObject = Core.Create.IJSAMObject<ISAMGeometryObject>(geometryJson as JsonObject);
                         if (sAMGeometryObject != null)
                         {
                             sAMGeometryObjectCollection.Add(sAMGeometryObject);

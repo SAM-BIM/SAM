@@ -81,7 +81,7 @@ namespace SAM.Core
         }
 
         public object Value { get; set; }
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -197,7 +197,7 @@ namespace SAM.Core
             return result;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result == null)
@@ -263,7 +263,7 @@ namespace SAM.Core
             switch (value)
             {
                 case IJSAMObject jSAMObject:
-                    JsonObject innerJson = jSAMObject.ToJObject()?.Node as JsonObject;
+                    JsonObject innerJson = jSAMObject.ToJsonObject();
                     return innerJson == null ? null : (JsonNode)innerJson.DeepClone();
 
                 case JArray shimArray:

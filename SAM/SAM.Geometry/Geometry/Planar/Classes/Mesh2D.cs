@@ -61,7 +61,7 @@ namespace SAM.Geometry.Planar
             return new Mesh2D(points, indexes);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -372,7 +372,7 @@ namespace SAM.Geometry.Planar
             return segment2Ds.Find(x => x.On(point2D, tolerance)) != null;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -383,7 +383,7 @@ namespace SAM.Geometry.Planar
                 JsonArray jsonArray_Points = new JsonArray();
                 foreach (Point2D point2D in points)
                 {
-                    if (point2D?.ToJObject()?.Node is JsonObject pointJson)
+                    if (point2D?.ToJsonObject() is JsonObject pointJson)
                     {
                         jsonArray_Points.Add(pointJson.DeepClone());
                     }

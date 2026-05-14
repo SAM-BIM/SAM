@@ -40,7 +40,7 @@ namespace SAM.Geometry.Planar
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -54,7 +54,7 @@ namespace SAM.Geometry.Planar
                 {
                     if (node is JsonObject transform2DJson)
                     {
-                        transform2Ds.Add(Core.Query.IJSAMObject<ITransform2D>(new JObject((JsonObject)transform2DJson.DeepClone())));
+                        transform2Ds.Add(Core.Query.IJSAMObject<ITransform2D>(transform2DJson));
                     }
                 }
             }
@@ -88,7 +88,7 @@ namespace SAM.Geometry.Planar
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -100,7 +100,7 @@ namespace SAM.Geometry.Planar
                 JsonArray transform2DsArray = new JsonArray();
                 foreach (Transform2D transform2D in transform2Ds)
                 {
-                    if (transform2D?.ToJObject()?.Node is JsonObject transform2DJson)
+                    if (transform2D?.ToJsonObject() is JsonObject transform2DJson)
                     {
                         transform2DsArray.Add(transform2DJson.DeepClone());
                     }

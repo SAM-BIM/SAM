@@ -41,7 +41,7 @@ namespace SAM.Geometry.Spatial
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -59,14 +59,14 @@ namespace SAM.Geometry.Spatial
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
                 ["_type"] = Core.Query.FullTypeName(this)
             };
 
-            if (matrix4D?.ToJObject()?.Node is JsonObject matrix4DJson)
+            if (matrix4D?.ToJsonObject() is JsonObject matrix4DJson)
             {
                 jsonObject["Matrix4D"] = matrix4DJson.DeepClone();
             }

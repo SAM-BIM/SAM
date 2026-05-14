@@ -41,7 +41,7 @@ namespace SAM.Analytical
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
             if (!result)
@@ -61,7 +61,7 @@ namespace SAM.Analytical
             return result;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result is null)

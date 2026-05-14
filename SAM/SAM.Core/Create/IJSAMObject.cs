@@ -12,16 +12,20 @@ namespace SAM.Core
     {
         public static IJSAMObject IJSAMObject(this JObject jObject)
         {
-            if (jObject == null)
+            return IJSAMObject(jObject?.Node as JsonObject);
+        }
+
+        public static IJSAMObject IJSAMObject(this JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            JSAMObjectWrapper jSAMObjectWrapper = new JSAMObjectWrapper(jObject);
-            IJSAMObject jSAMObject = jSAMObjectWrapper.ToIJSAMObject();
+            IJSAMObject jSAMObject = Query.IJSAMObject(jsonObject);
             if (jSAMObject == null)
             {
-                return jSAMObjectWrapper;
+                return new JSAMObjectWrapper(new JObject(jsonObject));
             }
 
             return jSAMObject;
@@ -30,6 +34,22 @@ namespace SAM.Core
         public static T IJSAMObject<T>(this JObject jObject) where T : IJSAMObject
         {
             IJSAMObject jSAMObject = IJSAMObject(jObject);
+            if (jSAMObject == null)
+            {
+                return default;
+            }
+
+            if (jSAMObject is T)
+            {
+                return (T)jSAMObject;
+            }
+
+            return default;
+        }
+
+        public static T IJSAMObject<T>(this JsonObject jsonObject) where T : IJSAMObject
+        {
+            IJSAMObject jSAMObject = IJSAMObject(jsonObject);
             if (jSAMObject == null)
             {
                 return default;
@@ -69,7 +89,7 @@ namespace SAM.Core
                 return default;
             }
 
-            return IJSAMObject<T>(new JObject(jsonObject));
+            return IJSAMObject<T>(jsonObject);
         }
 
         public static IJSAMObject IJSAMObject(this string json)

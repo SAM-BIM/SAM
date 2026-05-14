@@ -47,7 +47,7 @@ namespace SAM.Core
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -61,7 +61,7 @@ namespace SAM.Core
 
             if (jsonObject["Modifier"] is JsonObject modifierJson)
             {
-                Modifier = Query.IJSAMObject<IModifier>(new JObject((JsonObject)modifierJson.DeepClone()));
+                Modifier = Query.IJSAMObject<IModifier>(modifierJson as JsonObject);
             }
 
             return true;
@@ -73,7 +73,7 @@ namespace SAM.Core
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -85,7 +85,7 @@ namespace SAM.Core
                 jsonObject["Value"] = Value;
             }
 
-            if (Modifier != null && Modifier.ToJObject()?.Node is JsonObject modifierJson)
+            if (Modifier != null && Modifier.ToJsonObject() is JsonObject modifierJson)
             {
                 jsonObject["Modifier"] = modifierJson.DeepClone();
             }

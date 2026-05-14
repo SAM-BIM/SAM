@@ -389,7 +389,7 @@ namespace SAM.Geometry.Spatial
             return new BoundingBox3D((Point3D)min.GetMoved(vector3D), (Point3D)max.GetMoved(vector3D));
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -403,16 +403,16 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (max?.ToJObject()?.Node is JsonObject maxJson)
+            if (max?.ToJsonObject() is JsonObject maxJson)
                 jsonObject["Max"] = maxJson.DeepClone();
 
-            if (min?.ToJObject()?.Node is JsonObject minJson)
+            if (min?.ToJsonObject() is JsonObject minJson)
                 jsonObject["Min"] = minJson.DeepClone();
 
             return jsonObject;

@@ -298,7 +298,7 @@ namespace SAM.Analytical
         {
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -337,7 +337,7 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result == null)
@@ -361,17 +361,17 @@ namespace SAM.Analytical
                 result["OccupiedHourIndices"] = occupiedHourIndicesArray;
             }
 
-            if (minAcceptableTemperatures?.ToJObject()?.Node is JsonObject minAcceptableTemperaturesJson)
+            if (minAcceptableTemperatures?.ToJsonObject() is JsonObject minAcceptableTemperaturesJson)
             {
                 result["MinAcceptableTemperatures"] = minAcceptableTemperaturesJson.DeepClone();
             }
 
-            if (maxAcceptableTemperatures?.ToJObject()?.Node is JsonObject maxAcceptableTemperaturesJson)
+            if (maxAcceptableTemperatures?.ToJsonObject() is JsonObject maxAcceptableTemperaturesJson)
             {
                 result["MaxAcceptableTemperatures"] = maxAcceptableTemperaturesJson.DeepClone();
             }
 
-            if (operativeTemperatures?.ToJObject()?.Node is JsonObject operativeTemperaturesJson)
+            if (operativeTemperatures?.ToJsonObject() is JsonObject operativeTemperaturesJson)
             {
                 result["OperativeTemperatures"] = operativeTemperaturesJson.DeepClone();
             }

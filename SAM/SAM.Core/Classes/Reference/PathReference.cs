@@ -82,7 +82,7 @@ namespace SAM.Core
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        private bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -96,7 +96,7 @@ namespace SAM.Core
                 {
                     if (node is JsonObject objectReferenceJson)
                     {
-                        ObjectReference objectReference = Query.IJSAMObject<ObjectReference>(new JObject((JsonObject)objectReferenceJson.DeepClone()));
+                        ObjectReference objectReference = Query.IJSAMObject<ObjectReference>(objectReferenceJson as JsonObject);
                         if (objectReference != null)
                         {
                             objectReferences.Add(objectReference);
@@ -114,7 +114,7 @@ namespace SAM.Core
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        private JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
@@ -127,7 +127,7 @@ namespace SAM.Core
 
                 foreach (ObjectReference objectReference in objectReferences)
                 {
-                    if (objectReference?.ToJObject()?.Node is JsonObject objectReferenceJson)
+                    if (objectReference?.ToJsonObject() is JsonObject objectReferenceJson)
                     {
                         objectReferencesArray.Add(objectReferenceJson.DeepClone());
                     }

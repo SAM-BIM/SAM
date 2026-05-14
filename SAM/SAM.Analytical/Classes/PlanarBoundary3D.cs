@@ -358,7 +358,7 @@ namespace SAM.Analytical
             internalEdge2DLoops = planarBoundary3D.internalEdge2DLoops;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -374,19 +374,19 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
-            if (plane?.ToJObject()?.Node is JsonObject planeJson)
+            if (plane?.ToJsonObject() is JsonObject planeJson)
                 jsonObject["Plane"] = planeJson.DeepClone();
-            if (externalEdge2DLoop?.ToJObject()?.Node is JsonObject externalEdge2DLoopJson)
+            if (externalEdge2DLoop?.ToJsonObject() is JsonObject externalEdge2DLoopJson)
                 jsonObject["Edge2DLoop"] = externalEdge2DLoopJson.DeepClone();
             if (internalEdge2DLoops != null)
             {
                 JsonArray internalEdge2DLoopsArray = new JsonArray();
                 foreach (BoundaryEdge2DLoop loop in internalEdge2DLoops)
                 {
-                    if (loop?.ToJObject()?.Node is JsonObject loopJson)
+                    if (loop?.ToJsonObject() is JsonObject loopJson)
                     {
                         internalEdge2DLoopsArray.Add(loopJson.DeepClone());
                     }

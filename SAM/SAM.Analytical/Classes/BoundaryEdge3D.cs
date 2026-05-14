@@ -109,7 +109,7 @@ namespace SAM.Analytical
             throw new NotImplementedException();
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -119,13 +119,13 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return jsonObject;
 
-            if (curve3D?.ToJObject()?.Node is JsonObject curve3DJson)
+            if (curve3D?.ToJsonObject() is JsonObject curve3DJson)
                 jsonObject["Curve3D"] = curve3DJson.DeepClone();
             return jsonObject;
         }

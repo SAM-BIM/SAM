@@ -178,7 +178,7 @@ namespace SAM.Geometry.Spatial
             //this.points = point3Ds.ConvertAll(x => this.plane.Convert(x));
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -200,7 +200,7 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -211,7 +211,7 @@ namespace SAM.Geometry.Spatial
                 JsonArray jsonArray_Points = new JsonArray();
                 foreach (Planar.Point2D point2D in points)
                 {
-                    if (point2D?.ToJObject()?.Node is JsonObject pointJson)
+                    if (point2D?.ToJsonObject() is JsonObject pointJson)
                     {
                         jsonArray_Points.Add(pointJson.DeepClone());
                     }
@@ -219,7 +219,7 @@ namespace SAM.Geometry.Spatial
                 jsonObject["Points"] = jsonArray_Points;
             }
 
-            if (plane?.ToJObject()?.Node is JsonObject planeJson)
+            if (plane?.ToJsonObject() is JsonObject planeJson)
                 jsonObject["Plane"] = planeJson.DeepClone();
 
             return jsonObject;

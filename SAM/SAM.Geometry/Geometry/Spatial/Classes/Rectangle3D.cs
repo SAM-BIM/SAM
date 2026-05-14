@@ -119,7 +119,7 @@ namespace SAM.Geometry.Spatial
             return rectangle2D.On(plane.Convert(point3D), tolerance);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -133,16 +133,16 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (rectangle2D?.ToJObject()?.Node is JsonObject rectangle2DJson)
+            if (rectangle2D?.ToJsonObject() is JsonObject rectangle2DJson)
                 jsonObject["Rectangle2D"] = rectangle2DJson.DeepClone();
 
-            if (plane?.ToJObject()?.Node is JsonObject planeJson)
+            if (plane?.ToJsonObject() is JsonObject planeJson)
                 jsonObject["Plane"] = planeJson.DeepClone();
 
             return jsonObject;

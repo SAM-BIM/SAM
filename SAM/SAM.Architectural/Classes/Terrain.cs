@@ -35,7 +35,7 @@ namespace SAM.Architectural
             return Below(face3DObject?.Face3D, tolerance);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -57,7 +57,7 @@ namespace SAM.Architectural
             return On(face3DObject?.Face3D, tolerance);
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
 
@@ -71,7 +71,7 @@ namespace SAM.Architectural
                 JsonArray materialLayersArray = new JsonArray();
                 foreach (MaterialLayer materialLayer in materialLayers)
                 {
-                    if (materialLayer?.ToJObject()?.Node is JsonObject materialLayerJson)
+                    if (materialLayer?.ToJsonObject() is JsonObject materialLayerJson)
                     {
                         materialLayersArray.Add(materialLayerJson.DeepClone());
                     }

@@ -61,7 +61,7 @@ namespace SAM.Analytical.Classes
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -75,7 +75,7 @@ namespace SAM.Analytical.Classes
                 {
                     if (node is JsonObject apertureToPanelRatioJson)
                     {
-                        ApertureToPanelRatio apertureToPanelRatio = Core.Query.IJSAMObject<ApertureToPanelRatio>(new JObject((JsonObject)apertureToPanelRatioJson.DeepClone()));
+                        ApertureToPanelRatio apertureToPanelRatio = Core.Query.IJSAMObject<ApertureToPanelRatio>(apertureToPanelRatioJson as JsonObject);
                         if (apertureToPanelRatio is not null)
                         {
                             apertureToPanelRatios.Add(apertureToPanelRatio);
@@ -93,7 +93,7 @@ namespace SAM.Analytical.Classes
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
@@ -105,7 +105,7 @@ namespace SAM.Analytical.Classes
                 JsonArray apertureToPanelRatiosArray = new JsonArray();
                 foreach (ApertureToPanelRatio apertureToPanelRatio in apertureToPanelRatios)
                 {
-                    if (apertureToPanelRatio?.ToJObject()?.Node is JsonObject apertureToPanelRatioJson)
+                    if (apertureToPanelRatio?.ToJsonObject() is JsonObject apertureToPanelRatioJson)
                     {
                         apertureToPanelRatiosArray.Add(apertureToPanelRatioJson.DeepClone());
                     }

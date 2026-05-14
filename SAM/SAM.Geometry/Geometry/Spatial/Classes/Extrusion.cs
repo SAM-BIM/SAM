@@ -82,7 +82,7 @@ namespace SAM.Geometry.Spatial
             return new Extrusion(this);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -96,16 +96,16 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (face3D?.ToJObject()?.Node is JsonObject faceJson)
+            if (face3D?.ToJsonObject() is JsonObject faceJson)
                 jsonObject["Face"] = faceJson.DeepClone();
 
-            if (vector?.ToJObject()?.Node is JsonObject vectorJson)
+            if (vector?.ToJsonObject() is JsonObject vectorJson)
                 jsonObject["Vector"] = vectorJson.DeepClone();
 
             return jsonObject;

@@ -46,7 +46,7 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
             if (!result)
@@ -62,7 +62,7 @@ namespace SAM.Analytical.Classes
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result is null)
@@ -76,7 +76,7 @@ namespace SAM.Analytical.Classes
 
                 foreach (Panel panel in panels)
                 {
-                    if (panel?.ToJObject()?.Node is JsonObject panelJson)
+                    if (panel?.ToJsonObject() is JsonObject panelJson)
                     {
                         panelsArray.Add(panelJson.DeepClone());
                     }

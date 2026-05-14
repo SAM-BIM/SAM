@@ -277,7 +277,7 @@ namespace SAM.Geometry.Spatial
                 internalEdge2Ds = internalEdges.ConvertAll(x => plane.Convert(x));
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -288,13 +288,13 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (plane?.ToJObject()?.Node is JsonObject planeJson)
+            if (plane?.ToJsonObject() is JsonObject planeJson)
                 jsonObject["Plane"] = planeJson.DeepClone();
 
             return jsonObject;

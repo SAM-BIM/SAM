@@ -234,7 +234,7 @@ namespace SAM.Core
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        private bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -280,7 +280,7 @@ namespace SAM.Core
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        private JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {

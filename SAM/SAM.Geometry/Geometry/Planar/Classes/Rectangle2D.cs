@@ -140,7 +140,7 @@ namespace SAM.Geometry.Planar
             return Query.Distance(this, point2D);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -304,19 +304,19 @@ namespace SAM.Geometry.Planar
             height = height * factor;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (origin?.ToJObject()?.Node is JsonObject originJson)
+            if (origin?.ToJsonObject() is JsonObject originJson)
                 jsonObject["Origin"] = originJson.DeepClone();
 
             jsonObject["Width"] = width;
             jsonObject["Height"] = height;
 
-            if (heightDirection?.ToJObject()?.Node is JsonObject heightDirectionJson)
+            if (heightDirection?.ToJsonObject() is JsonObject heightDirectionJson)
                 jsonObject["HeightDirection"] = heightDirectionJson.DeepClone();
 
             return jsonObject;

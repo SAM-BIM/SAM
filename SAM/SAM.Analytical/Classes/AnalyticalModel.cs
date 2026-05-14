@@ -416,7 +416,7 @@ namespace SAM.Analytical
             return adjacencyCluster.AddObject(new Zone(zone));
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -820,7 +820,7 @@ namespace SAM.Analytical
             return result;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -829,19 +829,19 @@ namespace SAM.Analytical
             if (description != null)
                 jsonObject["Description"] = description;
 
-            if (location?.ToJObject()?.Node is JsonObject locationJson)
+            if (location?.ToJsonObject() is JsonObject locationJson)
                 jsonObject["Location"] = locationJson.DeepClone();
 
-            if (address?.ToJObject()?.Node is JsonObject addressJson)
+            if (address?.ToJsonObject() is JsonObject addressJson)
                 jsonObject["Address"] = addressJson.DeepClone();
 
-            if (adjacencyCluster?.ToJObject()?.Node is JsonObject adjacencyClusterJson)
+            if (adjacencyCluster?.ToJsonObject() is JsonObject adjacencyClusterJson)
                 jsonObject["AdjacencyCluster"] = adjacencyClusterJson.DeepClone();
 
-            if (materialLibrary?.ToJObject()?.Node is JsonObject materialLibraryJson)
+            if (materialLibrary?.ToJsonObject() is JsonObject materialLibraryJson)
                 jsonObject["MaterialLibrary"] = materialLibraryJson.DeepClone();
 
-            if (profileLibrary?.ToJObject()?.Node is JsonObject profileLibraryJson)
+            if (profileLibrary?.ToJsonObject() is JsonObject profileLibraryJson)
                 jsonObject["ProfileLibrary"] = profileLibraryJson.DeepClone();
 
             return jsonObject;

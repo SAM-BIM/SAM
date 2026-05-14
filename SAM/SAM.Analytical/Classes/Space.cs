@@ -118,7 +118,7 @@ namespace SAM.Analytical
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -141,16 +141,16 @@ namespace SAM.Analytical
             location = location?.GetMoved(vector3D) as Point3D;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return jsonObject;
 
-            if (location?.ToJObject()?.Node is JsonObject locationJson)
+            if (location?.ToJsonObject() is JsonObject locationJson)
                 jsonObject["Location"] = locationJson.DeepClone();
 
-            if (internalCondition?.ToJObject()?.Node is JsonObject internalConditionJson)
+            if (internalCondition?.ToJsonObject() is JsonObject internalConditionJson)
                 jsonObject["InternalCondition"] = internalConditionJson.DeepClone();
 
             return jsonObject;

@@ -78,7 +78,7 @@ namespace SAM.Core
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -104,7 +104,7 @@ namespace SAM.Core
                 {
                     if (node is JsonObject itemJson)
                     {
-                        Add(Create.IJSAMObject<T>(new JObject((JsonObject)itemJson.DeepClone())));
+                        Add(Create.IJSAMObject<T>(itemJson));
                     }
                 }
             }
@@ -118,7 +118,7 @@ namespace SAM.Core
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -135,7 +135,7 @@ namespace SAM.Core
                 JsonArray parameterSetsArray = new JsonArray();
                 foreach (ParameterSet parameterSet in parameterSets)
                 {
-                    if (parameterSet?.ToJObject()?.Node is JsonObject parameterSetJson)
+                    if (parameterSet?.ToJsonObject() is JsonObject parameterSetJson)
                     {
                         parameterSetsArray.Add(parameterSetJson.DeepClone());
                     }
@@ -146,7 +146,7 @@ namespace SAM.Core
             JsonArray collectionArray = new JsonArray();
             foreach (T t in this)
             {
-                if (t?.ToJObject()?.Node is JsonObject itemJson)
+                if (t?.ToJsonObject() is JsonObject itemJson)
                 {
                     collectionArray.Add(itemJson.DeepClone());
                 }

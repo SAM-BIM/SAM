@@ -182,7 +182,7 @@ namespace SAM.Core
             return GetNames(id_1, id_2, null, index);
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -204,7 +204,7 @@ namespace SAM.Core
             return jsonObject;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;

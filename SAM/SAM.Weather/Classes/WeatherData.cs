@@ -396,7 +396,7 @@ namespace SAM.Weather
         /// </summary>
         /// <param name="jsonObject">The JSON object to deserialize.</param>
         /// <returns>True if the deserialization was successful, false otherwise.</returns>
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -432,7 +432,7 @@ namespace SAM.Weather
         /// Converts the object to a JSON object.
         /// </summary>
         /// <returns>A JSON object representing the object.</returns>
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -455,7 +455,7 @@ namespace SAM.Weather
                 JsonArray weatherYearsArray = new JsonArray();
                 foreach (WeatherYear weatherYear in weatherYears)
                 {
-                    if (weatherYear?.ToJObject()?.Node is JsonObject weatherYearJson)
+                    if (weatherYear?.ToJsonObject() is JsonObject weatherYearJson)
                         weatherYearsArray.Add(weatherYearJson.DeepClone());
                 }
                 jsonObject["WeatherYears"] = weatherYearsArray;

@@ -131,7 +131,7 @@ namespace SAM.Core
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -140,21 +140,21 @@ namespace SAM.Core
 
             if (jsonObject["Type"] is JsonObject typeObject)
             {
-                type = Create.IJSAMObject<T>(new JObject((JsonObject)typeObject.DeepClone()));
+                type = Create.IJSAMObject<T>(typeObject as JsonObject);
             }
             else
             {
                 //TODO: Remove in the future. This is for backward compability only
                 if (jsonObject["SAMType"] is JsonObject samTypeObject)
                 {
-                    type = Create.IJSAMObject<T>(new JObject((JsonObject)samTypeObject.DeepClone()));
+                    type = Create.IJSAMObject<T>(samTypeObject as JsonObject);
                 }
             }
 
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -162,7 +162,7 @@ namespace SAM.Core
 
             if (type != null)
             {
-                if (type.ToJObject()?.Node is JsonObject typeObject)
+                if (type.ToJsonObject() is JsonObject typeObject)
                     jsonObject["Type"] = typeObject.DeepClone();
             }
 

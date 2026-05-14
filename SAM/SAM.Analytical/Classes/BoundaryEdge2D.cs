@@ -70,7 +70,7 @@ namespace SAM.Analytical
             return false;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -80,13 +80,13 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return jsonObject;
 
-            if (curve2D?.ToJObject()?.Node is JsonObject curve2DJson)
+            if (curve2D?.ToJsonObject() is JsonObject curve2DJson)
                 jsonObject["Curve2D"] = curve2DJson.DeepClone();
             return jsonObject;
         }

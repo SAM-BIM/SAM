@@ -98,7 +98,7 @@ namespace SAM.Geometry.Object.Planar
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -113,7 +113,7 @@ namespace SAM.Geometry.Object.Planar
                 {
                     if (node is JsonObject geometryObjectJson)
                     {
-                        ISAMGeometry2DObject sAMGeometryObject = Core.Query.IJSAMObject(new JObject((JsonObject)geometryObjectJson.DeepClone())) as ISAMGeometry2DObject;
+                        ISAMGeometry2DObject sAMGeometryObject = Core.Query.IJSAMObject(geometryObjectJson as JsonObject) as ISAMGeometry2DObject;
                         if (sAMGeometryObject != null)
                         {
                             sAMGeometry2DObjects.Add(sAMGeometryObject);
@@ -136,7 +136,7 @@ namespace SAM.Geometry.Object.Planar
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -148,7 +148,7 @@ namespace SAM.Geometry.Object.Planar
                 JsonArray geometry2DObjectsArray = new JsonArray();
                 foreach (ISAMGeometry2DObject sAMGeometry2DObject in sAMGeometry2DObjects)
                 {
-                    if (sAMGeometry2DObject?.ToJObject()?.Node is JsonObject geometryObjectJson)
+                    if (sAMGeometry2DObject?.ToJsonObject() is JsonObject geometryObjectJson)
                     {
                         geometry2DObjectsArray.Add(geometryObjectJson.DeepClone());
                     }

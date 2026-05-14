@@ -151,26 +151,26 @@ namespace SAM.Analytical
             return complexEquipmentModel?.GetFlowClassifications();
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
 
             if (jsonObject["ComplexEquipmentModel"] is JsonObject complexEquipmentModelJson)
             {
-                complexEquipmentModel = Core.Query.IJSAMObject<ComplexEquipmentModel>(new JObject((JsonObject)complexEquipmentModelJson.DeepClone()));
+                complexEquipmentModel = Core.Query.IJSAMObject<ComplexEquipmentModel>(complexEquipmentModelJson as JsonObject);
             }
 
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (complexEquipmentModel?.ToJObject()?.Node is JsonObject complexEquipmentModelJson)
+            if (complexEquipmentModel?.ToJsonObject() is JsonObject complexEquipmentModelJson)
             {
                 jsonObject["ComplexEquipmentModel"] = complexEquipmentModelJson.DeepClone();
             }

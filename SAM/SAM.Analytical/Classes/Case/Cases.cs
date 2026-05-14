@@ -97,7 +97,7 @@ namespace SAM.Analytical.Classes
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -111,7 +111,7 @@ namespace SAM.Analytical.Classes
                 {
                     if (node is JsonObject caseJson)
                     {
-                        Case @case = Core.Query.IJSAMObject<Case>(new JObject((JsonObject)caseJson.DeepClone()));
+                        Case @case = Core.Query.IJSAMObject<Case>(caseJson as JsonObject);
                         if (@case == null)
                         {
                             continue;
@@ -160,7 +160,7 @@ namespace SAM.Analytical.Classes
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
@@ -172,7 +172,7 @@ namespace SAM.Analytical.Classes
                 JsonArray valuesArray = new JsonArray();
                 foreach (Case value in values)
                 {
-                    if (value?.ToJObject()?.Node is JsonObject valueJson)
+                    if (value?.ToJsonObject() is JsonObject valueJson)
                     {
                         valuesArray.Add(valueJson.DeepClone());
                     }

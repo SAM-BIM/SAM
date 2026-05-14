@@ -381,7 +381,7 @@ namespace SAM.Analytical
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -400,17 +400,17 @@ namespace SAM.Analytical
 
             if (jsonObject["ApertureConstructionLibrary"] is JsonObject apertureConstructionLibraryJson)
             {
-                apertureConstructionLibrary = Core.Query.IJSAMObject<ApertureConstructionLibrary>(new JObject((JsonObject)apertureConstructionLibraryJson.DeepClone()));
+                apertureConstructionLibrary = Core.Query.IJSAMObject<ApertureConstructionLibrary>(apertureConstructionLibraryJson as JsonObject);
             }
 
             if (jsonObject["ConstructionLibrary"] is JsonObject constructionLibraryJson)
             {
-                constructionLibrary = Core.Query.IJSAMObject<ConstructionLibrary>(new JObject((JsonObject)constructionLibraryJson.DeepClone()));
+                constructionLibrary = Core.Query.IJSAMObject<ConstructionLibrary>(constructionLibraryJson as JsonObject);
             }
 
             if (jsonObject["MaterialLibrary"] is JsonObject materialLibraryJson)
             {
-                materialLibrary = Core.Query.IJSAMObject<MaterialLibrary>(new JObject((JsonObject)materialLibraryJson.DeepClone()));
+                materialLibrary = Core.Query.IJSAMObject<MaterialLibrary>(materialLibraryJson as JsonObject);
             }
 
             return true;
@@ -422,7 +422,7 @@ namespace SAM.Analytical
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -439,17 +439,17 @@ namespace SAM.Analytical
                 jsonObject["Description"] = Description;
             }
 
-            if (apertureConstructionLibrary?.ToJObject()?.Node is JsonObject apertureConstructionLibraryJson)
+            if (apertureConstructionLibrary?.ToJsonObject() is JsonObject apertureConstructionLibraryJson)
             {
                 jsonObject["ApertureConstructionLibrary"] = apertureConstructionLibraryJson.DeepClone();
             }
 
-            if (constructionLibrary?.ToJObject()?.Node is JsonObject constructionLibraryJson)
+            if (constructionLibrary?.ToJsonObject() is JsonObject constructionLibraryJson)
             {
                 jsonObject["ConstructionLibrary"] = constructionLibraryJson.DeepClone();
             }
 
-            if (materialLibrary?.ToJObject()?.Node is JsonObject materialLibraryJson)
+            if (materialLibrary?.ToJsonObject() is JsonObject materialLibraryJson)
             {
                 jsonObject["MaterialLibrary"] = materialLibraryJson.DeepClone();
             }

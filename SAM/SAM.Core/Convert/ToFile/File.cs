@@ -112,7 +112,7 @@ namespace SAM.Core
                     {
                         zipArchiveEntry = zipArchive.CreateEntry(zipArchiveInfo.NewGuid().ToString());
 
-                        JsonObject jsonObject = jSAMObject?.ToJObject()?.Node as JsonObject;
+                        JsonObject jsonObject = jSAMObject?.ToJsonObject();
                         if (jsonObject == null)
                         {
                             continue;
@@ -138,7 +138,7 @@ namespace SAM.Core
                     {
                         using (StreamWriter streamWriter = new StreamWriter(stream))
                         {
-                            JsonObject jsonObject = zipArchiveInfo?.ToJObject()?.Node as JsonObject;
+                            JsonObject jsonObject = zipArchiveInfo?.ToJsonObject();
                             if (jsonObject != null)
                             {
                                 streamWriter.Write(jsonObject.ToJsonString(jsonSerializerOptions));

@@ -45,7 +45,7 @@ namespace SAM.Analytical
             this.singleOpeningProperties = singleOpeningProperties == null ? null : singleOpeningProperties.ToList().ConvertAll(x => Core.Query.Clone(x));
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -59,7 +59,7 @@ namespace SAM.Analytical
                 {
                     if (node is JsonObject openingPropertiesJson)
                     {
-                        ISingleOpeningProperties openingProperties = Core.Query.IJSAMObject<ISingleOpeningProperties>(new JObject((JsonObject)openingPropertiesJson.DeepClone()));
+                        ISingleOpeningProperties openingProperties = Core.Query.IJSAMObject<ISingleOpeningProperties>(openingPropertiesJson as JsonObject);
                         if (openingProperties == null)
                         {
                             continue;
@@ -73,7 +73,7 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -86,7 +86,7 @@ namespace SAM.Analytical
                 JsonArray singleOpeningPropertiesArray = new JsonArray();
                 foreach (ISingleOpeningProperties singleOpeningPropertiesItem in singleOpeningProperties)
                 {
-                    if (singleOpeningPropertiesItem?.ToJObject()?.Node is JsonObject singleOpeningPropertiesJson)
+                    if (singleOpeningPropertiesItem?.ToJsonObject() is JsonObject singleOpeningPropertiesJson)
                     {
                         singleOpeningPropertiesArray.Add(singleOpeningPropertiesJson.DeepClone());
                     }

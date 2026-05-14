@@ -90,7 +90,7 @@ namespace SAM.Geometry.Object.Spatial
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        private JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -102,12 +102,12 @@ namespace SAM.Geometry.Object.Spatial
                 jsonObject["Guid"] = guid.ToString();
             }
 
-            if (face3D?.ToJObject()?.Node is JsonObject face3DJson)
+            if (face3D?.ToJsonObject() is JsonObject face3DJson)
             {
                 jsonObject["Face3D"] = face3DJson.DeepClone();
             }
 
-            if (boundingBox3D?.ToJObject()?.Node is JsonObject boundingBox3DJson)
+            if (boundingBox3D?.ToJsonObject() is JsonObject boundingBox3DJson)
             {
                 jsonObject["BoundingBox3D"] = boundingBox3DJson.DeepClone();
             }
@@ -120,7 +120,7 @@ namespace SAM.Geometry.Object.Spatial
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        private bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {

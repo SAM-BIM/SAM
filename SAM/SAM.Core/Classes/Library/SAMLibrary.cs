@@ -141,7 +141,7 @@ namespace SAM.Core
             return objects.ContainsKey(uniqueId);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -317,7 +317,7 @@ namespace SAM.Core
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -328,7 +328,7 @@ namespace SAM.Core
                 JsonArray jsonArray = new JsonArray();
                 foreach (T jSAMObject in objects.Values)
                 {
-                    if (jSAMObject?.ToJObject()?.Node is JsonObject objectJson)
+                    if (jSAMObject?.ToJsonObject() is JsonObject objectJson)
                         jsonArray.Add(objectJson.DeepClone());
                 }
 

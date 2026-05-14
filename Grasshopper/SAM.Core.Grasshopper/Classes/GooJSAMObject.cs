@@ -9,6 +9,7 @@ using SAM.Core.Grasshopper.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Windows.Forms;
 
 namespace SAM.Core.Grasshopper
@@ -61,13 +62,13 @@ namespace SAM.Core.Grasshopper
                 return false;
             }
 
-            JObject jObject = Value.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = Value.ToJsonObject();
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            string json = JsonConvert.SerializeObject(jObject, new JsonSerializerSettings
+            string json = JsonConvert.SerializeObject(new JObject(jsonObject), new JsonSerializerSettings
             {
                 Formatting = Formatting.None
             });

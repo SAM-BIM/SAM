@@ -37,7 +37,7 @@ namespace SAM.Core
 
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -51,7 +51,7 @@ namespace SAM.Core
                 {
                     if (node is JsonObject modifierJson)
                     {
-                        Modifiers.Add(Query.IJSAMObject<IIndexedModifier>(new JObject((JsonObject)modifierJson.DeepClone())));
+                        Modifiers.Add(Query.IJSAMObject<IIndexedModifier>(modifierJson));
                     }
                 }
             }
@@ -61,7 +61,7 @@ namespace SAM.Core
 
         public List<IIndexedModifier> Modifiers { get; set; }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result == null)
@@ -74,7 +74,7 @@ namespace SAM.Core
                 JsonArray modifiersArray = new JsonArray();
                 foreach (IModifier modifier in Modifiers)
                 {
-                    if (modifier?.ToJObject()?.Node is JsonObject modifierJson)
+                    if (modifier?.ToJsonObject() is JsonObject modifierJson)
                     {
                         modifiersArray.Add(modifierJson.DeepClone());
                     }

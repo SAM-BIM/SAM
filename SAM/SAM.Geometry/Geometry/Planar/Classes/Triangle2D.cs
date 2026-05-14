@@ -63,7 +63,7 @@ namespace SAM.Geometry.Planar
             return Query.Distance(this, point2D);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -206,7 +206,7 @@ namespace SAM.Geometry.Planar
             points.Reverse();
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -217,7 +217,7 @@ namespace SAM.Geometry.Planar
                 JsonArray jsonArray_Points = new JsonArray();
                 foreach (Point2D point2D in points)
                 {
-                    if (point2D?.ToJObject()?.Node is JsonObject pointJson)
+                    if (point2D?.ToJsonObject() is JsonObject pointJson)
                     {
                         jsonArray_Points.Add(pointJson.DeepClone());
                     }

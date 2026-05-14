@@ -31,7 +31,7 @@ namespace SAM.Core
 
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -40,13 +40,13 @@ namespace SAM.Core
 
             if (jsonObject["IndexedDoubles"] is JsonObject indexedDoublesJson)
             {
-                IndexedDoubles = Query.IJSAMObject<IndexedDoubles>(new JObject((JsonObject)indexedDoublesJson.DeepClone()));
+                IndexedDoubles = Query.IJSAMObject<IndexedDoubles>(indexedDoublesJson as JsonObject);
             }
 
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result == null)
@@ -54,7 +54,7 @@ namespace SAM.Core
                 return null;
             }
 
-            if (IndexedDoubles != null && IndexedDoubles.ToJObject()?.Node is JsonObject indexedDoublesJson)
+            if (IndexedDoubles != null && IndexedDoubles.ToJsonObject() is JsonObject indexedDoublesJson)
             {
                 result["IndexedDoubles"] = indexedDoublesJson.DeepClone();
             }

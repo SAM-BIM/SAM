@@ -46,7 +46,7 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
             if (!result)
@@ -56,13 +56,13 @@ namespace SAM.Analytical.Classes
 
             if (jsonObject["WeatherData"] is JsonObject weatherDataJson)
             {
-                weatherData = Core.Query.IJSAMObject<WeatherData>(new JObject((JsonObject)weatherDataJson.DeepClone()));
+                weatherData = Core.Query.IJSAMObject<WeatherData>(weatherDataJson as JsonObject);
             }
 
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result is null)
@@ -70,7 +70,7 @@ namespace SAM.Analytical.Classes
                 return result;
             }
 
-            if (weatherData?.ToJObject()?.Node is JsonObject weatherDataJson)
+            if (weatherData?.ToJsonObject() is JsonObject weatherDataJson)
             {
                 result["WeatherData"] = weatherDataJson.DeepClone();
             }

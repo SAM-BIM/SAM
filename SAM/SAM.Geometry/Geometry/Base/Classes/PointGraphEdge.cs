@@ -64,7 +64,7 @@ namespace SAM.Geometry
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        private bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -73,17 +73,17 @@ namespace SAM.Geometry
 
             if (jsonObject["JSAMObject"] is JsonObject jSAMObjectJson)
             {
-                jSAMObject = Core.Query.IJSAMObject<T>(new JObject((JsonObject)jSAMObjectJson.DeepClone()));
+                jSAMObject = Core.Query.IJSAMObject<T>(jSAMObjectJson as JsonObject);
             }
 
             if (jsonObject["Source"] is JsonObject sourceJson)
             {
-                source = Core.Query.IJSAMObject<X>(new JObject((JsonObject)sourceJson.DeepClone()));
+                source = Core.Query.IJSAMObject<X>(sourceJson as JsonObject);
             }
 
             if (jsonObject["Target"] is JsonObject targetJson)
             {
-                target = Core.Query.IJSAMObject<X>(new JObject((JsonObject)targetJson.DeepClone()));
+                target = Core.Query.IJSAMObject<X>(targetJson as JsonObject);
             }
 
             return true;
@@ -95,24 +95,24 @@ namespace SAM.Geometry
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        private JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
                 ["_type"] = Core.Query.FullTypeName(this)
             };
 
-            if (jSAMObject?.ToJObject()?.Node is JsonObject jSAMObjectJson)
+            if (jSAMObject?.ToJsonObject() is JsonObject jSAMObjectJson)
             {
                 result["JSAMObject"] = jSAMObjectJson.DeepClone();
             }
 
-            if (source?.ToJObject()?.Node is JsonObject sourceJson)
+            if (source?.ToJsonObject() is JsonObject sourceJson)
             {
                 result["Source"] = sourceJson.DeepClone();
             }
 
-            if (target?.ToJObject()?.Node is JsonObject targetJson)
+            if (target?.ToJsonObject() is JsonObject targetJson)
             {
                 result["Target"] = targetJson.DeepClone();
             }

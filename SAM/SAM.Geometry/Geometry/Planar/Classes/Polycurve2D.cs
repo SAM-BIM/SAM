@@ -56,7 +56,7 @@ namespace SAM.Geometry.Planar
             return new Polycurve2D(this);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -119,7 +119,7 @@ namespace SAM.Geometry.Planar
             curves.Reverse();
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -130,7 +130,7 @@ namespace SAM.Geometry.Planar
                 JsonArray jsonArray_Curves = new JsonArray();
                 foreach (ICurve2D curve in curves)
                 {
-                    if (curve?.ToJObject()?.Node is JsonObject curveJson)
+                    if (curve?.ToJsonObject() is JsonObject curveJson)
                     {
                         jsonArray_Curves.Add(curveJson.DeepClone());
                     }

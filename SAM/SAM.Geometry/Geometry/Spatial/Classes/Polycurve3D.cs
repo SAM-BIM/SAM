@@ -83,7 +83,7 @@ namespace SAM.Geometry.Spatial
             throw new System.NotImplementedException();
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -96,7 +96,7 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -107,7 +107,7 @@ namespace SAM.Geometry.Spatial
                 JsonArray jsonArray_Curves = new JsonArray();
                 foreach (ICurve3D curve in curves)
                 {
-                    if (curve?.ToJObject()?.Node is JsonObject curveJson)
+                    if (curve?.ToJsonObject() is JsonObject curveJson)
                     {
                         jsonArray_Curves.Add(curveJson.DeepClone());
                     }

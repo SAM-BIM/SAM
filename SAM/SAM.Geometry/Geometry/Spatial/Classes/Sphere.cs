@@ -99,7 +99,7 @@ namespace SAM.Geometry.Spatial
             return Query.Transform(this, transform3D);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -112,13 +112,13 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (origin?.ToJObject()?.Node is JsonObject originJson)
+            if (origin?.ToJsonObject() is JsonObject originJson)
                 jsonObject["Origin"] = originJson.DeepClone();
 
             jsonObject["Radius"] = radius;

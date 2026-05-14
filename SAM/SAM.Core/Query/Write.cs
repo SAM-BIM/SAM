@@ -7,7 +7,7 @@ namespace SAM.Core
     {
         public static bool Write(this IJSAMObject jSAMObject, string path)
         {
-            string json = jSAMObject?.ToJObject()?.ToString();
+            string json = jSAMObject?.ToJsonObject()?.ToJsonString();
             if (json == null)
                 return false;
 

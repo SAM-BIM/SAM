@@ -126,7 +126,7 @@ namespace SAM.Geometry.Spatial
             return (Point3D)origin.GetMoved(vector / 2);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -140,16 +140,16 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (origin?.ToJObject()?.Node is JsonObject originJson)
+            if (origin?.ToJsonObject() is JsonObject originJson)
                 jsonObject["Origin"] = originJson.DeepClone();
 
-            if (vector?.ToJObject()?.Node is JsonObject vectorJson)
+            if (vector?.ToJsonObject() is JsonObject vectorJson)
                 jsonObject["Vector"] = vectorJson.DeepClone();
 
             return jsonObject;

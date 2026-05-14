@@ -32,7 +32,7 @@ namespace SAM.Core
 
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
             if (!result)
@@ -42,13 +42,13 @@ namespace SAM.Core
 
             if (jsonObject["PolynomialEquation"] is JsonObject polynomialEquationJson)
             {
-                PolynomialEquation = Query.IJSAMObject<PolynomialEquation>(new JObject((JsonObject)polynomialEquationJson.DeepClone()));
+                PolynomialEquation = Query.IJSAMObject<PolynomialEquation>(polynomialEquationJson as JsonObject);
             }
 
             return result;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result == null)
@@ -58,7 +58,7 @@ namespace SAM.Core
 
             if (PolynomialEquation != null)
             {
-                result["PolynomialEquation"] = PolynomialEquation.ToJObject()?.Node?.DeepClone();
+                result["PolynomialEquation"] = PolynomialEquation.ToJsonObject()?.DeepClone();
             }
 
             return result;

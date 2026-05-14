@@ -308,7 +308,7 @@ namespace SAM.Geometry.Spatial
             axisY.Negate();
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -327,19 +327,19 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (origin?.ToJObject()?.Node is JsonObject originJson)
+            if (origin?.ToJsonObject() is JsonObject originJson)
                 jsonObject["Origin"] = originJson.DeepClone();
 
-            if (normal?.ToJObject()?.Node is JsonObject normalJson)
+            if (normal?.ToJsonObject() is JsonObject normalJson)
                 jsonObject["Normal"] = normalJson.DeepClone();
 
-            if (axisY?.ToJObject()?.Node is JsonObject axisYJson)
+            if (axisY?.ToJsonObject() is JsonObject axisYJson)
                 jsonObject["AxisY"] = axisYJson.DeepClone();
 
             return jsonObject;

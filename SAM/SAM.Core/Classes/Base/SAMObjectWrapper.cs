@@ -56,7 +56,7 @@ namespace SAM.Core
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        private bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject? jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -104,7 +104,13 @@ namespace SAM.Core
 
         public JObject ToJObject()
         {
+            JsonObject? jsonObject = ToJsonObject();
             return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        public JsonObject? ToJsonObject()
+        {
+            return jsonObject?.DeepClone() as JsonObject;
         }
     }
 }

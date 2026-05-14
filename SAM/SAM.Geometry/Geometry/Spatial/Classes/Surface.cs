@@ -74,22 +74,22 @@ namespace SAM.Geometry.Spatial
             return new Surface((IClosed3D)externalEdge3D.GetMoved(vector3D));
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
 
-            externalEdge3D = Core.Create.IJSAMObject<IClosed3D>(new JObject((JsonObject)jsonObject.DeepClone()));
+            externalEdge3D = Core.Create.IJSAMObject<IClosed3D>(jsonObject as JsonObject);
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (externalEdge3D?.ToJObject()?.Node is JsonObject boundaryJson)
+            if (externalEdge3D?.ToJsonObject() is JsonObject boundaryJson)
                 jsonObject["Boundary"] = boundaryJson.DeepClone();
 
             return jsonObject;

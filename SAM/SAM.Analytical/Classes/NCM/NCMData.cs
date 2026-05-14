@@ -84,7 +84,7 @@ namespace SAM.Analytical
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
 
@@ -161,7 +161,7 @@ namespace SAM.Analytical
             return result;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -169,7 +169,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (NCMName?.ToJObject()?.Node is JsonObject ncmNameJson)
+            if (NCMName?.ToJsonObject() is JsonObject ncmNameJson)
             {
                 jsonObject["NCMName"] = ncmNameJson.DeepClone();
             }

@@ -552,7 +552,7 @@ namespace SAM.Core
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        private bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -568,7 +568,7 @@ namespace SAM.Core
                     {
                         // Pre-migration code passed the OUTER jObject here by
                         // mistake; the inner element is what should be wrapped.
-                        Relation relation = Query.IJSAMObject<Relation>(new JObject((JsonObject)relationJson.DeepClone()));
+                        Relation relation = Query.IJSAMObject<Relation>(relationJson as JsonObject);
                         if (relation != null)
                         {
                             relations.Add(relation);
@@ -586,7 +586,7 @@ namespace SAM.Core
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        private JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
@@ -598,7 +598,7 @@ namespace SAM.Core
                 JsonArray relationsArray = new JsonArray();
                 foreach (Relation relation in relations)
                 {
-                    if (relation?.ToJObject()?.Node is JsonObject relationJson)
+                    if (relation?.ToJsonObject() is JsonObject relationJson)
                     {
                         relationsArray.Add(relationJson.DeepClone());
                     }

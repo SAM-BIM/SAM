@@ -47,7 +47,7 @@ namespace SAM.Architectural
         // migration fixes the swap — read on FromJsonObject, write on
         // ToJsonObject — so PlanarTerrain instances now serialize and
         // deserialize their Plane.
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -67,7 +67,7 @@ namespace SAM.Architectural
             return plane.On(face3D, tolerance);
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
 
@@ -76,7 +76,7 @@ namespace SAM.Architectural
                 return null;
             }
 
-            if (plane?.ToJObject()?.Node is JsonObject planeJson)
+            if (plane?.ToJsonObject() is JsonObject planeJson)
             {
                 jsonObject["Plane"] = planeJson.DeepClone();
             }

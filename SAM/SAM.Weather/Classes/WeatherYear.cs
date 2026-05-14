@@ -301,7 +301,7 @@ namespace SAM.Weather
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -334,7 +334,7 @@ namespace SAM.Weather
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -348,7 +348,7 @@ namespace SAM.Weather
             {
                 JsonArray weatherDaysArray = new JsonArray();
                 foreach (WeatherDay weatherDay in weatherDays)
-                    weatherDaysArray.Add(weatherDay?.ToJObject()?.Node?.DeepClone());
+                    weatherDaysArray.Add(weatherDay?.ToJsonObject()?.DeepClone());
 
                 jsonObject["WeatherDays"] = weatherDaysArray;
             }

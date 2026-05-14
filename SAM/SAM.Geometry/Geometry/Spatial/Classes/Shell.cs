@@ -421,7 +421,7 @@ namespace SAM.Geometry.Spatial
             return result;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -439,7 +439,7 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -450,7 +450,7 @@ namespace SAM.Geometry.Spatial
                 JsonArray jsonArray_Face3Ds = new JsonArray();
                 foreach (Tuple<BoundingBox3D, Face3D> boundary in boundaries)
                 {
-                    if (boundary?.Item2?.ToJObject()?.Node is JsonObject faceJson)
+                    if (boundary?.Item2?.ToJsonObject() is JsonObject faceJson)
                     {
                         jsonArray_Face3Ds.Add(faceJson.DeepClone());
                     }

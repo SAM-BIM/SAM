@@ -24,6 +24,11 @@ namespace SAM.Core
         {
         }
 
+        public RelationCluster(JsonObject jsonObject)
+            : base(jsonObject == null ? null : new JObject(jsonObject))
+        {
+        }
+
         public RelationCluster(RelationCluster relationCluster)
             : base(relationCluster)
         {
@@ -49,6 +54,11 @@ namespace SAM.Core
         public RelationCluster(JObject jObject)
         {
             FromJObject(jObject);
+        }
+
+        public RelationCluster(JsonObject jsonObject)
+            : this(jsonObject == null ? null : new JObject(jsonObject))
+        {
         }
 
         public RelationCluster(RelationCluster<X> relationCluster)
@@ -342,7 +352,7 @@ namespace SAM.Core
             return count;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -446,7 +456,7 @@ namespace SAM.Core
             switch (valueNode.GetValueKind())
             {
                 case JsonValueKind.Object:
-                    return Create.IJSAMObject(new JObject((JsonObject)valueNode.DeepClone()));
+                    return Create.IJSAMObject(valueNode as JsonObject);
 
                 case JsonValueKind.True:
                 case JsonValueKind.False:
@@ -1337,7 +1347,7 @@ namespace SAM.Core
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -1409,7 +1419,7 @@ namespace SAM.Core
             switch (value)
             {
                 case IJSAMObject jSAMObject:
-                    return jSAMObject.ToJObject()?.Node is JsonObject inner ? inner.DeepClone() : null;
+                    return jSAMObject.ToJsonObject() is JsonObject inner ? inner.DeepClone() : null;
                 case double d:
                     return JToken.ToNode(d);
                 case string s:

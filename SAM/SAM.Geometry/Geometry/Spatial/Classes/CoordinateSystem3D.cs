@@ -99,7 +99,7 @@ namespace SAM.Geometry.Spatial
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        private bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -135,29 +135,29 @@ namespace SAM.Geometry.Spatial
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        private JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
                 ["_type"] = Core.Query.FullTypeName(this)
             };
 
-            if (axisX?.ToJObject()?.Node is JsonObject axisXJson)
+            if (axisX?.ToJsonObject() is JsonObject axisXJson)
             {
                 result["AxisX"] = axisXJson.DeepClone();
             }
 
-            if (axisY?.ToJObject()?.Node is JsonObject axisYJson)
+            if (axisY?.ToJsonObject() is JsonObject axisYJson)
             {
                 result["AxisY"] = axisYJson.DeepClone();
             }
 
-            if (axisZ?.ToJObject()?.Node is JsonObject axisZJson)
+            if (axisZ?.ToJsonObject() is JsonObject axisZJson)
             {
                 result["AxisZ"] = axisZJson.DeepClone();
             }
 
-            if (origin?.ToJObject()?.Node is JsonObject originJson)
+            if (origin?.ToJsonObject() is JsonObject originJson)
             {
                 result["Origin"] = originJson.DeepClone();
             }

@@ -204,7 +204,7 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
             if (!result)
@@ -214,7 +214,7 @@ namespace SAM.Analytical.Classes
 
             if (jsonObject["ApertureToPanelRatios"] is JsonObject apertureToPanelRatiosJson)
             {
-                apertureToPanelRatios = Core.Query.IJSAMObject<ApertureToPanelRatios>(new JObject((JsonObject)apertureToPanelRatiosJson.DeepClone()));
+                apertureToPanelRatios = Core.Query.IJSAMObject<ApertureToPanelRatios>(apertureToPanelRatiosJson as JsonObject);
             }
 
             if (jsonObject.ContainsKey("Subdivide"))
@@ -244,7 +244,7 @@ namespace SAM.Analytical.Classes
 
             if (jsonObject["CaseSelection"] is JsonObject caseSelectionJson)
             {
-                caseSelection = Core.Query.IJSAMObject<CaseSelection>(new JObject((JsonObject)caseSelectionJson.DeepClone()));
+                caseSelection = Core.Query.IJSAMObject<CaseSelection>(caseSelectionJson as JsonObject);
             }
 
             if (jsonObject.ContainsKey("FramePercentage"))
@@ -260,7 +260,7 @@ namespace SAM.Analytical.Classes
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result is null)
@@ -268,7 +268,7 @@ namespace SAM.Analytical.Classes
                 return result;
             }
 
-            if (apertureToPanelRatios?.ToJObject()?.Node is JsonObject apertureToPanelRatiosJson)
+            if (apertureToPanelRatios?.ToJsonObject() is JsonObject apertureToPanelRatiosJson)
             {
                 result["ApertureToPanelRatios"] = apertureToPanelRatiosJson.DeepClone();
             }
@@ -297,7 +297,7 @@ namespace SAM.Analytical.Classes
 
             result["KeepSeparationDistance"] = keepSeparationDistance;
 
-            if (caseSelection?.ToJObject()?.Node is JsonObject caseSelectionJson)
+            if (caseSelection?.ToJsonObject() is JsonObject caseSelectionJson)
             {
                 result["CaseSelection"] = caseSelectionJson.DeepClone();
             }

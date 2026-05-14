@@ -44,7 +44,7 @@ namespace SAM.Core
             return new IntegerId(id);
         }
 
-        protected override bool FromJsonObject(JsonObject? jsonObject)
+        public override bool FromJsonObject(JsonObject? jsonObject)
         {
             if (jsonObject == null)
             {
@@ -60,7 +60,7 @@ namespace SAM.Core
             return true;
         }
 
-        protected override JsonObject? ToJsonObject()
+        public override JsonObject? ToJsonObject()
         {
             JsonObject? result = base.ToJsonObject();
             if (result == null)

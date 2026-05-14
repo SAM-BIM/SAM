@@ -176,7 +176,7 @@ namespace SAM.Core
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -328,7 +328,7 @@ namespace SAM.Core
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -353,7 +353,7 @@ namespace SAM.Core
                     case ValueType.Color:
                         if (Query.TryConvert(Value, out Color color))
                         {
-                            valueNode = new SAMColor(color).ToJObject()?.Node?.DeepClone();
+                            valueNode = new SAMColor(color).ToJsonObject()?.DeepClone();
                         }
                         break;
 
@@ -379,7 +379,7 @@ namespace SAM.Core
                         break;
 
                     case ValueType.IJSAMObject:
-                        valueNode = ((IJSAMObject)Value).ToJObject()?.Node?.DeepClone();
+                        valueNode = ((IJSAMObject)Value).ToJsonObject()?.DeepClone();
                         break;
 
                     case ValueType.Integer:

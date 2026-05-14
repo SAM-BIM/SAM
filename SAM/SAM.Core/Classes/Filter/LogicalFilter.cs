@@ -43,7 +43,7 @@ namespace SAM.Core
 
         public List<IFilter> Filters { get; set; }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -62,7 +62,7 @@ namespace SAM.Core
                 {
                     if (node is JsonObject filterObject)
                     {
-                        IFilter filter = Query.IJSAMObject(new JObject((JsonObject)filterObject.DeepClone())) as IFilter;
+                        IFilter filter = Query.IJSAMObject(filterObject as JsonObject) as IFilter;
                         if (filter != null)
                         {
                             Filters.Add(filter);
@@ -106,7 +106,7 @@ namespace SAM.Core
             return result;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result == null)
@@ -124,7 +124,7 @@ namespace SAM.Core
                         continue;
                     }
 
-                    if (filter.ToJObject()?.Node is JsonObject filterObject)
+                    if (filter.ToJsonObject() is JsonObject filterObject)
                         jsonArray.Add(filterObject.DeepClone());
                 }
 

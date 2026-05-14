@@ -121,7 +121,7 @@ namespace SAM.Core
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -147,7 +147,7 @@ namespace SAM.Core
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
@@ -161,7 +161,7 @@ namespace SAM.Core
 
             if (reference != null && reference.HasValue)
             {
-                if (reference.Value.ToJObject()?.Node is JsonObject referenceJson)
+                if (reference.Value.ToJsonObject() is JsonObject referenceJson)
                 {
                     result["Reference"] = referenceJson.DeepClone();
                 }

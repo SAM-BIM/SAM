@@ -2356,7 +2356,7 @@ namespace SAM.Analytical
             return new BoundingBox3D(boundingBox3Ds);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -2371,21 +2371,21 @@ namespace SAM.Analytical
                 address = new Address(new JObject((JsonObject)addressJson.DeepClone()));
 
             if (jsonObject["RelationCluster"] is JsonObject relationClusterJson)
-                relationCluster = new SAMObjectRelationCluster<IJSAMObject>(new JObject((JsonObject)relationClusterJson.DeepClone()));
+                relationCluster = new SAMObjectRelationCluster<IJSAMObject>(relationClusterJson as JsonObject);
 
             if (jsonObject["Terrain"] is JsonObject terrainJson)
-                terrain = Core.Create.IJSAMObject<Terrain>(new JObject((JsonObject)terrainJson.DeepClone()));
+                terrain = Core.Create.IJSAMObject<Terrain>(terrainJson as JsonObject);
 
             if (jsonObject["MaterialLibrary"] is JsonObject materialLibraryJson)
-                materialLibrary = Core.Create.IJSAMObject<MaterialLibrary>(new JObject((JsonObject)materialLibraryJson.DeepClone()));
+                materialLibrary = Core.Create.IJSAMObject<MaterialLibrary>(materialLibraryJson as JsonObject);
 
             if (jsonObject["ProfileLibrary"] is JsonObject profileLibraryJson)
-                profileLibrary = Core.Create.IJSAMObject<ProfileLibrary>(new JObject((JsonObject)profileLibraryJson.DeepClone()));
+                profileLibrary = Core.Create.IJSAMObject<ProfileLibrary>(profileLibraryJson as JsonObject);
 
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -2394,22 +2394,22 @@ namespace SAM.Analytical
             if (description != null)
                 jsonObject["Description"] = description;
 
-            if (location?.ToJObject()?.Node is JsonObject locationJson)
+            if (location?.ToJsonObject() is JsonObject locationJson)
                 jsonObject["Location"] = locationJson.DeepClone();
 
-            if (address?.ToJObject()?.Node is JsonObject addressJson)
+            if (address?.ToJsonObject() is JsonObject addressJson)
                 jsonObject["Address"] = addressJson.DeepClone();
 
-            if (relationCluster?.ToJObject()?.Node is JsonObject relationClusterJson)
+            if (relationCluster?.ToJsonObject() is JsonObject relationClusterJson)
                 jsonObject["RelationCluster"] = relationClusterJson.DeepClone();
 
-            if (terrain?.ToJObject()?.Node is JsonObject terrainJson)
+            if (terrain?.ToJsonObject() is JsonObject terrainJson)
                 jsonObject["Terrain"] = terrainJson.DeepClone();
 
-            if (materialLibrary?.ToJObject()?.Node is JsonObject materialLibraryJson)
+            if (materialLibrary?.ToJsonObject() is JsonObject materialLibraryJson)
                 jsonObject["MaterialLibrary"] = materialLibraryJson.DeepClone();
 
-            if (profileLibrary?.ToJObject()?.Node is JsonObject profileLibraryJson)
+            if (profileLibrary?.ToJsonObject() is JsonObject profileLibraryJson)
                 jsonObject["ProfileLibrary"] = profileLibraryJson.DeepClone();
 
             return jsonObject;

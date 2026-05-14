@@ -37,7 +37,7 @@ namespace SAM.Core
                 }
 
                 // Convert the current element to an IJSAMObject of type T and store it in the result List
-                result[i] = IJSAMObject<T>(new JObject(jsonObject));
+                result[i] = IJSAMObject<T>(jsonObject);
 
             });
 

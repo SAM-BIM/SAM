@@ -29,7 +29,7 @@ namespace SAM.Geometry.Object.Spatial
             Tag = geometryObjectCollection?.Tag;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -41,7 +41,7 @@ namespace SAM.Geometry.Object.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)

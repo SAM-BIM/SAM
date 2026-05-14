@@ -54,7 +54,7 @@ namespace SAM.Geometry.Object.Spatial
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -71,7 +71,7 @@ namespace SAM.Geometry.Object.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -79,7 +79,7 @@ namespace SAM.Geometry.Object.Spatial
                 return null;
             }
 
-            if (PointAppearance?.ToJObject()?.Node is JsonObject pointJson)
+            if (PointAppearance?.ToJsonObject() is JsonObject pointJson)
             {
                 jsonObject["PointAppearance"] = pointJson.DeepClone();
             }

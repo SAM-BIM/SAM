@@ -27,7 +27,7 @@ namespace SAM.Core
 
             JArray jArray = new JArray();
             foreach (T t in jSAMObjects)
-                jArray.Add(t?.ToJObject());
+                jArray.Add(t?.ToJsonObject());
 
             return jArray;
         }

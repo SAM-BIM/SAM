@@ -36,7 +36,7 @@ namespace SAM.Geometry
             FromJObject(jObject);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -54,13 +54,13 @@ namespace SAM.Geometry
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (externalEdge2D?.ToJObject()?.Node is JsonObject externalEdge2DJson)
+            if (externalEdge2D?.ToJsonObject() is JsonObject externalEdge2DJson)
                 jsonObject["ExternalEdge2D"] = externalEdge2DJson.DeepClone();
 
             if (internalEdge2Ds != null)
@@ -68,7 +68,7 @@ namespace SAM.Geometry
                 JsonArray jsonArray_InternalEdge2Ds = new JsonArray();
                 foreach (IClosed2D internalEdge2D in internalEdge2Ds)
                 {
-                    if (internalEdge2D?.ToJObject()?.Node is JsonObject internalJson)
+                    if (internalEdge2D?.ToJsonObject() is JsonObject internalJson)
                     {
                         jsonArray_InternalEdge2Ds.Add(internalJson.DeepClone());
                     }

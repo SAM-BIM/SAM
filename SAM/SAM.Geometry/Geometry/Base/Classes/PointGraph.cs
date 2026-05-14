@@ -431,7 +431,7 @@ namespace SAM.Geometry
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -453,7 +453,7 @@ namespace SAM.Geometry
                     {
                         if (node is JsonObject vertexJson)
                         {
-                            X point = Core.Query.IJSAMObject<X>(new JObject((JsonObject)vertexJson.DeepClone()));
+                            X point = Core.Query.IJSAMObject<X>(vertexJson as JsonObject);
                             bidirectionalGraph.AddVertex(point);
                         }
                     }
@@ -484,7 +484,7 @@ namespace SAM.Geometry
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
@@ -501,7 +501,7 @@ namespace SAM.Geometry
                     JsonArray verticesArray = new JsonArray();
                     foreach (X point in bidirectionalGraph.Vertices)
                     {
-                        if (point?.ToJObject()?.Node is JsonObject vertexJson)
+                        if (point?.ToJsonObject() is JsonObject vertexJson)
                         {
                             verticesArray.Add(vertexJson.DeepClone());
                         }
@@ -515,7 +515,7 @@ namespace SAM.Geometry
                     JsonArray edgesArray = new JsonArray();
                     foreach (PointGraphEdge<X, T> pointGraphEdge in bidirectionalGraph.Edges)
                     {
-                        if (pointGraphEdge?.ToJObject()?.Node is JsonObject edgeJson)
+                        if (pointGraphEdge?.ToJsonObject() is JsonObject edgeJson)
                         {
                             edgesArray.Add(edgeJson.DeepClone());
                         }

@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -17,6 +18,11 @@ namespace SAM.Core
 
         public SAMObjectRelationCluster(JObject jObject)
             : base(jObject)
+        {
+        }
+
+        public SAMObjectRelationCluster(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -56,6 +62,11 @@ namespace SAM.Core
 
         public SAMObjectRelationCluster(JObject jObject)
             : base(jObject)
+        {
+        }
+
+        public SAMObjectRelationCluster(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 

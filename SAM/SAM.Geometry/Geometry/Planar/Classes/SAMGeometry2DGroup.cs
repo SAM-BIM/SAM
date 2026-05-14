@@ -117,7 +117,7 @@ namespace SAM.Geometry.Planar
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -136,7 +136,7 @@ namespace SAM.Geometry.Planar
                 {
                     if (node is JsonObject childJson)
                     {
-                        sAMGeometry2Ds.Add(Core.Query.IJSAMObject<ISAMGeometry2D>(new JObject((JsonObject)childJson.DeepClone())));
+                        sAMGeometry2Ds.Add(Core.Query.IJSAMObject<ISAMGeometry2D>(childJson));
                     }
                 }
             }
@@ -200,14 +200,14 @@ namespace SAM.Geometry.Planar
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected virtual JsonObject ToJsonObject()
+        public virtual JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject
             {
                 ["_type"] = Core.Query.FullTypeName(this)
             };
 
-            if (coordinateSystem2D?.ToJObject()?.Node is JsonObject coordinateSystem2DJson)
+            if (coordinateSystem2D?.ToJsonObject() is JsonObject coordinateSystem2DJson)
             {
                 result["CoordinateSystem2D"] = coordinateSystem2DJson.DeepClone();
             }
@@ -217,7 +217,7 @@ namespace SAM.Geometry.Planar
                 JsonArray sAMGeometry2DsArray = new JsonArray();
                 foreach (ISAMGeometry2D sAMGeometry2D in sAMGeometry2Ds)
                 {
-                    if (sAMGeometry2D?.ToJObject()?.Node is JsonObject childJson)
+                    if (sAMGeometry2D?.ToJsonObject() is JsonObject childJson)
                     {
                         sAMGeometry2DsArray.Add(childJson.DeepClone());
                     }

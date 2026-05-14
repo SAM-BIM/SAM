@@ -59,7 +59,7 @@ namespace SAM.Analytical
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -73,7 +73,7 @@ namespace SAM.Analytical
                 {
                     if (node is JsonObject typeMergeSettingsJson)
                     {
-                        TypeMergeSettings typeMergeSettings = Core.Query.IJSAMObject<TypeMergeSettings>(new JObject((JsonObject)typeMergeSettingsJson.DeepClone()));
+                        TypeMergeSettings typeMergeSettings = Core.Query.IJSAMObject<TypeMergeSettings>(typeMergeSettingsJson as JsonObject);
                         if (typeMergeSettings?.TypeName == null)
                         {
                             continue;
@@ -93,7 +93,7 @@ namespace SAM.Analytical
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -105,7 +105,7 @@ namespace SAM.Analytical
                 JsonArray typeMergeSettingsArray = new JsonArray();
                 foreach (TypeMergeSettings typeMergeSettings in dictionary.Values)
                 {
-                    if (typeMergeSettings?.ToJObject()?.Node is JsonObject typeMergeSettingsJson)
+                    if (typeMergeSettings?.ToJsonObject() is JsonObject typeMergeSettingsJson)
                     {
                         typeMergeSettingsArray.Add(typeMergeSettingsJson.DeepClone());
                     }

@@ -46,7 +46,7 @@ namespace SAM.Analytical
             return Profile.TryGetValue(index, out Profile profile, out double value);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
             if (!result)
@@ -56,7 +56,7 @@ namespace SAM.Analytical
 
             if (jsonObject["Profile"] is JsonObject profileJson)
             {
-                Profile = Core.Query.IJSAMObject<Profile>(new JObject((JsonObject)profileJson.DeepClone()));
+                Profile = Core.Query.IJSAMObject<Profile>(profileJson as JsonObject);
             }
 
             if (jsonObject.ContainsKey("Setback"))
@@ -87,7 +87,7 @@ namespace SAM.Analytical
             return Setback * value;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject result = base.ToJsonObject();
             if (result == null)
@@ -95,7 +95,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (Profile?.ToJObject()?.Node is JsonObject profileJson)
+            if (Profile?.ToJsonObject() is JsonObject profileJson)
             {
                 result["Profile"] = profileJson.DeepClone();
             }

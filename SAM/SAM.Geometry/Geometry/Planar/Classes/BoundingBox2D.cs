@@ -180,7 +180,7 @@ namespace SAM.Geometry.Planar
             return Query.Distance(this, point2D);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -440,16 +440,16 @@ namespace SAM.Geometry.Planar
             return Query.On(GetSegments(), point2D, tolerance);
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (max?.ToJObject()?.Node is JsonObject maxJson)
+            if (max?.ToJsonObject() is JsonObject maxJson)
                 jsonObject["Max"] = maxJson.DeepClone();
 
-            if (min?.ToJObject()?.Node is JsonObject minJson)
+            if (min?.ToJsonObject() is JsonObject minJson)
                 jsonObject["Min"] = minJson.DeepClone();
 
             return jsonObject;

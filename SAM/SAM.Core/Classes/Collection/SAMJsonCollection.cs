@@ -64,7 +64,7 @@ namespace SAM.Core
             JsonArray jsonArray = new JsonArray();
             foreach (IJSAMObject jSAMObject in this)
             {
-                if (jSAMObject?.ToJObject()?.Node is JsonObject jsonObject)
+                if (jSAMObject?.ToJsonObject() is JsonObject jsonObject)
                     jsonArray.Add(jsonObject.DeepClone());
             }
 
@@ -84,7 +84,7 @@ namespace SAM.Core
             foreach (JsonNode jsonNode in jsonArray)
             {
                 if (jsonNode is JsonObject jsonObject)
-                    Add(Create.IJSAMObject<T>(new JObject((JsonObject)jsonObject.DeepClone())));
+                    Add(Create.IJSAMObject<T>(jsonObject));
             }
 
             return true;

@@ -33,7 +33,7 @@ namespace SAM.Geometry.Object
             }
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -41,7 +41,7 @@ namespace SAM.Geometry.Object
                 return null;
             }
 
-            if (CurveAppearance?.ToJObject()?.Node is JsonObject curveJson)
+            if (CurveAppearance?.ToJsonObject() is JsonObject curveJson)
             {
                 jsonObject["CurveAppearance"] = curveJson.DeepClone();
             }
@@ -49,7 +49,7 @@ namespace SAM.Geometry.Object
             return jsonObject;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {

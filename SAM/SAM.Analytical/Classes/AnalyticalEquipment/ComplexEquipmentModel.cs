@@ -481,7 +481,7 @@ namespace SAM.Analytical
             return FromJsonObject(jObject?.Node as JsonObject);
         }
 
-        protected bool FromJsonObject(JsonObject jsonObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
@@ -494,7 +494,7 @@ namespace SAM.Analytical
                 {
                     if (node is JsonObject simpleEquipmentJson)
                     {
-                        ISimpleEquipment simpleEquipment = Core.Query.IJSAMObject<ISimpleEquipment>(new JObject((JsonObject)simpleEquipmentJson.DeepClone()));
+                        ISimpleEquipment simpleEquipment = Core.Query.IJSAMObject<ISimpleEquipment>(simpleEquipmentJson as JsonObject);
                         if (simpleEquipment != null)
                         {
                             Add(simpleEquipment);
@@ -509,7 +509,7 @@ namespace SAM.Analytical
                 {
                     if (node is JsonObject relationJson)
                     {
-                        Relation relation = Core.Query.IJSAMObject<Relation>(new JObject((JsonObject)relationJson.DeepClone()));
+                        Relation relation = Core.Query.IJSAMObject<Relation>(relationJson as JsonObject);
                         if (relation != null)
                         {
                             AddRelation(relation);
@@ -527,7 +527,7 @@ namespace SAM.Analytical
             return jsonObject == null ? null : new JObject(jsonObject);
         }
 
-        protected JsonObject ToJsonObject()
+        public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
             {
@@ -540,7 +540,7 @@ namespace SAM.Analytical
                 JsonArray simpleEquipmentsArray = new JsonArray();
                 foreach (ISimpleEquipment simpleEquipment in simpleEquipments)
                 {
-                    if (simpleEquipment?.ToJObject()?.Node is JsonObject simpleEquipmentJson)
+                    if (simpleEquipment?.ToJsonObject() is JsonObject simpleEquipmentJson)
                     {
                         simpleEquipmentsArray.Add(simpleEquipmentJson.DeepClone());
                     }
@@ -555,7 +555,7 @@ namespace SAM.Analytical
                 JsonArray relationsArray = new JsonArray();
                 foreach (Relation relation in relationCollection)
                 {
-                    if (relation?.ToJObject()?.Node is JsonObject relationJson)
+                    if (relation?.ToJsonObject() is JsonObject relationJson)
                     {
                         relationsArray.Add(relationJson.DeepClone());
                     }

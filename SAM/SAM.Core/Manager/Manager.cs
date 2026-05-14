@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -179,9 +180,15 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        public bool FromJsonObject(JsonObject? jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
+            JObject jObject = new JObject(jsonObject);
             if (jObject.ContainsKey("settings"))
                 settings = Create.IJSAMObjects<Setting>(jObject.Value<JArray>("settings"));
 
@@ -190,12 +197,18 @@ namespace SAM.Core
 
         public JObject ToJObject()
         {
+            JsonObject? jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        public JsonObject? ToJsonObject()
+        {
             JObject jObject = new JObject();
             if (settings != null)
 
                 jObject.Add("settings", Create.JArray(settings));
 
-            return jObject;
+            return jObject.Node as JsonObject;
         }
 
         public void Clear(Assembly assembly)

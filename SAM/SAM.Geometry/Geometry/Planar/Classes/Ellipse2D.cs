@@ -100,7 +100,7 @@ namespace SAM.Geometry.Planar
             return new Ellipse2D(this);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -172,19 +172,19 @@ namespace SAM.Geometry.Planar
             throw new NotImplementedException();
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
                 return null;
 
-            if (center?.ToJObject()?.Node is JsonObject centerJson)
+            if (center?.ToJsonObject() is JsonObject centerJson)
                 jsonObject["Center"] = centerJson.DeepClone();
 
             jsonObject["Width"] = width;
             jsonObject["Height"] = height;
 
-            if (heightDirection?.ToJObject()?.Node is JsonObject heightDirectionJson)
+            if (heightDirection?.ToJsonObject() is JsonObject heightDirectionJson)
                 jsonObject["HeightDirection"] = heightDirectionJson.DeepClone();
 
             return jsonObject;

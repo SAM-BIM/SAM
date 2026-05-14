@@ -109,7 +109,7 @@ namespace SAM.Geometry.Spatial
             return new Mesh3D(points?.ConvertAll(x => x.GetTransformed(transform3D) as Point3D), indexes);
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
                 return false;
@@ -145,7 +145,7 @@ namespace SAM.Geometry.Spatial
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -156,7 +156,7 @@ namespace SAM.Geometry.Spatial
                 JsonArray jsonArray_Points = new JsonArray();
                 foreach (Point3D point3D in points)
                 {
-                    if (point3D?.ToJObject()?.Node is JsonObject pointJson)
+                    if (point3D?.ToJsonObject() is JsonObject pointJson)
                     {
                         jsonArray_Points.Add(pointJson.DeepClone());
                     }

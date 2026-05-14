@@ -78,7 +78,7 @@ namespace SAM.Analytical
             face3D = face3D?.GetMoved(vector3D) as Face3D;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
             {
@@ -93,7 +93,7 @@ namespace SAM.Analytical
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
 
@@ -102,7 +102,7 @@ namespace SAM.Analytical
                 return jsonObject;
             }
 
-            if (face3D?.ToJObject()?.Node is JsonObject face3DJson)
+            if (face3D?.ToJsonObject() is JsonObject face3DJson)
             {
                 jsonObject["Face3D"] = face3DJson.DeepClone();
             }

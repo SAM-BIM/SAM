@@ -114,7 +114,7 @@ namespace SAM.Core
             return result;
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -124,7 +124,7 @@ namespace SAM.Core
             return true;
         }
 
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jObject = base.ToJsonObject();
             if (jObject == null)

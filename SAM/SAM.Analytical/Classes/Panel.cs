@@ -299,7 +299,7 @@ namespace SAM.Analytical
             }
         }
 
-        protected override bool FromJsonObject(JsonObject jsonObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (!base.FromJsonObject(jsonObject))
                 return false;
@@ -679,7 +679,7 @@ namespace SAM.Analytical
         {
             planarBoundary3D.Snap(planes, maxDistance);
         }
-        protected override JsonObject ToJsonObject()
+        public override JsonObject ToJsonObject()
         {
             JsonObject jsonObject = base.ToJsonObject();
             if (jsonObject == null)
@@ -687,7 +687,7 @@ namespace SAM.Analytical
 
             jsonObject["PanelType"] = panelType.ToString();
 
-            if (planarBoundary3D?.ToJObject()?.Node is JsonObject planarBoundary3DJson)
+            if (planarBoundary3D?.ToJsonObject() is JsonObject planarBoundary3DJson)
                 jsonObject["PlanarBoundary3D"] = planarBoundary3DJson.DeepClone();
 
             if (apertures != null)
@@ -695,7 +695,7 @@ namespace SAM.Analytical
                 JsonArray aperturesArray = new JsonArray();
                 foreach (Aperture aperture in apertures)
                 {
-                    if (aperture?.ToJObject()?.Node is JsonObject apertureJson)
+                    if (aperture?.ToJsonObject() is JsonObject apertureJson)
                     {
                         aperturesArray.Add(apertureJson.DeepClone());
                     }
