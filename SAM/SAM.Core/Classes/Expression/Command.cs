@@ -17,6 +17,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -27,6 +28,11 @@ namespace SAM.Core
         public Command(string text = null)
         {
             this.text = text;
+        }
+
+        public Command(JObject jObject)
+        {
+            FromJObject(jObject);
         }
 
         public List<Command> GetCommands()
@@ -253,24 +259,37 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Text"))
-                text = jObject.Value<string>("Text");
+            if (jsonObject.ContainsKey("Text"))
+                text = jsonObject["Text"]?.GetValue<string>();
 
             return true;
         }
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        private JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (text != null)
-                jObject.Add("Text", text);
+                jsonObject["Text"] = text;
 
-            return jObject;
+            return jsonObject;
         }
 
         private bool IsCommandOperator(CommandOperator commandOperator, out string value)
