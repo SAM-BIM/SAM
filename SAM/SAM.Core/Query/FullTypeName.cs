@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -15,6 +16,14 @@ namespace SAM.Core
                 return null;
 
             return jObject.Value<string>("_type");
+        }
+
+        public static string FullTypeName(this JsonObject jsonObject)
+        {
+            if (jsonObject == null)
+                return null;
+
+            return jsonObject["_type"]?.GetValue<string>();
         }
 
         public static string FullTypeName(Type type)

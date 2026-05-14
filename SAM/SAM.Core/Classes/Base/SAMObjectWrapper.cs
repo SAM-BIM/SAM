@@ -3,31 +3,35 @@
 
 using SAM.Core.Json;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public class JSAMObjectWrapper : ISAMObject
     {
-        private JObject jObject;
+        // Stores the underlying BCL JsonObject directly so the wrapper no
+        // longer depends on the JObject shim for its internal state. JObject
+        // is reconstructed only at the public boundary.
+        private JsonObject jsonObject;
 
         public JSAMObjectWrapper(JSAMObjectWrapper jSAMObjectWrapper)
         {
-            jObject = jSAMObjectWrapper.jObject.DeepClone() as JObject;
+            jsonObject = jSAMObjectWrapper.jsonObject?.DeepClone() as JsonObject;
         }
 
         public JSAMObjectWrapper(JObject jObject)
         {
-            this.jObject = jObject;
+            jsonObject = jObject?.Node as JsonObject;
         }
 
         public Guid Guid
         {
             get
             {
-                if (jObject == null)
+                if (jsonObject == null)
                     return Guid.Empty;
 
-                return Query.Guid(jObject);
+                return Query.Guid(jsonObject);
             }
         }
 
@@ -35,10 +39,10 @@ namespace SAM.Core
         {
             get
             {
-                if (jObject == null)
+                if (jsonObject == null)
                     return null;
 
-                return Query.Name(jObject);
+                return Query.Name(jsonObject);
             }
         }
 
@@ -49,16 +53,21 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            this.jObject = jObject;
+            this.jsonObject = jsonObject;
             return true;
         }
 
         public string GetAssemblyName()
         {
-            string fullTypeName = Query.FullTypeName(jObject);
+            string fullTypeName = Query.FullTypeName(jsonObject);
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
                 return null;
@@ -74,7 +83,7 @@ namespace SAM.Core
 
         public string GetTypeName()
         {
-            string fullTypeName = Query.FullTypeName(jObject);
+            string fullTypeName = Query.FullTypeName(jsonObject);
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
                 return null;
@@ -90,12 +99,12 @@ namespace SAM.Core
 
         public IJSAMObject ToIJSAMObject()
         {
-            return Query.IJSAMObject(jObject);
+            return jsonObject == null ? null : Query.IJSAMObject(new JObject(jsonObject));
         }
 
         public JObject ToJObject()
         {
-            return jObject;
+            return jsonObject == null ? null : new JObject(jsonObject);
         }
     }
 }
