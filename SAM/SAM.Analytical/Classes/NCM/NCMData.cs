@@ -101,29 +101,26 @@ namespace SAM.Analytical
                 NCMName = jObject.Value<string>("Type");
             }
 
-            if (jObject.ContainsKey("SystemType"))
-            {
-                string systemType_String = jObject.Value<string>("SystemType");
-                SystemType = Core.Query.Enum<NCMSystemType>(systemType_String);
-            }
+            // Enum fields default to non-Undefined values, but ToJObject below
+            // skips emission when the parsed value is Undefined. Reset to
+            // Undefined when the key is missing or unparseable so a no-key input
+            // round-trips back to a no-key output (otherwise the constructor
+            // default leaks into the next serialization round).
+            SystemType = jObject.ContainsKey("SystemType")
+                ? Core.Query.Enum<NCMSystemType>(jObject.Value<string>("SystemType"))
+                : NCMSystemType.Undefined;
 
-            if (jObject.ContainsKey("LightingOccupancyControls"))
-            {
-                string lightingOccupancyControls_String = jObject.Value<string>("LightingOccupancyControls");
-                LightingOccupancyControls = Core.Query.Enum<LightingOccupancyControls>(lightingOccupancyControls_String);
-            }
+            LightingOccupancyControls = jObject.ContainsKey("LightingOccupancyControls")
+                ? Core.Query.Enum<LightingOccupancyControls>(jObject.Value<string>("LightingOccupancyControls"))
+                : LightingOccupancyControls.Undefined;
 
-            if (jObject.ContainsKey("LightingPhotoelectricControls"))
-            {
-                string lightingPhotoelectricControls_String = jObject.Value<string>("LightingPhotoelectricControls");
-                LightingPhotoelectricControls = Core.Query.Enum<LightingPhotoelectricControls>(lightingPhotoelectricControls_String);
-            }
+            LightingPhotoelectricControls = jObject.ContainsKey("LightingPhotoelectricControls")
+                ? Core.Query.Enum<LightingPhotoelectricControls>(jObject.Value<string>("LightingPhotoelectricControls"))
+                : LightingPhotoelectricControls.Undefined;
 
-            if (jObject.ContainsKey("Country"))
-            {
-                string Country_String = jObject.Value<string>("Country");
-                Country = Core.Query.Enum<NCMCountry>(Country_String);
-            }
+            Country = jObject.ContainsKey("Country")
+                ? Core.Query.Enum<NCMCountry>(jObject.Value<string>("Country"))
+                : NCMCountry.Undefined;
 
             if (jObject.ContainsKey("LightingPhotoelectricBackSpaceSensor"))
             {
