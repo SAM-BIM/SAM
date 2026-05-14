@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -117,19 +118,24 @@ namespace SAM.Core
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("TypeName"))
+            if (jsonObject.ContainsKey("TypeName"))
             {
-                typeName = jObject.Value<string>("TypeName");
+                typeName = jsonObject["TypeName"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Reference"))
+            if (jsonObject["Reference"] is JsonObject referenceObject)
             {
-                reference = new Reference(jObject.Value<JObject>("Reference"));
+                reference = new Reference(new JObject((JsonObject)referenceObject.DeepClone()));
             }
 
             return true;
@@ -137,17 +143,28 @@ namespace SAM.Core
 
         public virtual JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (typeName != null)
             {
-                result.Add("TypeName", typeName);
+                result["TypeName"] = typeName;
             }
 
             if (reference != null && reference.HasValue)
             {
-                result.Add("Reference", reference.Value.ToJObject());
+                if (reference.Value.ToJObject()?.Node is JsonObject referenceJson)
+                {
+                    result["Reference"] = referenceJson.DeepClone();
+                }
             }
 
             return result;

@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -73,32 +74,32 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("PropertyName"))
+            if (jsonObject.ContainsKey("PropertyName"))
             {
-                propertyName = jObject.Value<string>("PropertyName");
+                propertyName = jsonObject["PropertyName"]?.GetValue<string>();
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
-                return result;
+                return null;
             }
 
             if (propertyName != null)
             {
-                result.Add("PropertyName", propertyName);
+                result["PropertyName"] = propertyName;
             }
 
             return result;

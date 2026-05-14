@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -78,20 +79,24 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ObjectReferences"))
+            if (jsonObject["ObjectReferences"] is JsonArray objectReferencesArray)
             {
-                JArray jArray = jObject.Value<JArray>("ObjectReferences");
-                if (jArray != null)
+                objectReferences = new List<ObjectReference>();
+                foreach (JsonNode node in objectReferencesArray)
                 {
-                    objectReferences = new List<ObjectReference>();
-                    foreach (JObject jObject_ObjectReference in jArray)
+                    if (node is JsonObject objectReferenceJson)
                     {
-                        ObjectReference objectReference = Query.IJSAMObject<ObjectReference>(jObject_ObjectReference);
+                        ObjectReference objectReference = Query.IJSAMObject<ObjectReference>(new JObject((JsonObject)objectReferenceJson.DeepClone()));
                         if (objectReference != null)
                         {
                             objectReferences.Add(objectReference);
@@ -105,19 +110,30 @@ namespace SAM.Core
 
         public JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        private JsonObject ToJsonObject()
+        {
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (objectReferences != null)
             {
-                JArray jArray = new JArray();
+                JsonArray objectReferencesArray = new JsonArray();
 
                 foreach (ObjectReference objectReference in objectReferences)
                 {
-                    jArray.Add(objectReference.ToJObject());
+                    if (objectReference?.ToJObject()?.Node is JsonObject objectReferenceJson)
+                    {
+                        objectReferencesArray.Add(objectReferenceJson.DeepClone());
+                    }
                 }
 
-                result.Add("ObjectReferences", jArray);
+                result["ObjectReferences"] = objectReferencesArray;
             }
 
             return result;
