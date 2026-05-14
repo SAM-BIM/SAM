@@ -37,6 +37,29 @@ namespace SAM.Core
             return guid;
         }
 
+        public static Guid Guid(this JsonObject jsonObject, string name)
+        {
+            if (jsonObject == null || string.IsNullOrWhiteSpace(name))
+                return System.Guid.Empty;
+
+            return Guid(jsonObject[name]);
+        }
+
+        public static Guid Guid(this JsonNode jsonNode)
+        {
+            if (jsonNode == null)
+                return System.Guid.Empty;
+
+            if (jsonNode.GetValueKind() != System.Text.Json.JsonValueKind.String)
+                return System.Guid.Empty;
+
+            string text = jsonNode.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(text) && System.Guid.TryParse(text, out Guid parsed))
+                return parsed;
+
+            return System.Guid.Empty;
+        }
+
         public static Guid Guid(this JObject jObject, string name)
         {
             if (jObject == null || string.IsNullOrWhiteSpace(name))
