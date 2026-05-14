@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -43,19 +44,24 @@ namespace SAM.Core
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Value"))
+            if (jsonObject.ContainsKey("Value"))
             {
-                Value = jObject.Value<double>("Value");
+                Value = jsonObject["Value"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("Modifier"))
+            if (jsonObject["Modifier"] is JsonObject modifierJson)
             {
-                Modifier = Query.IJSAMObject<IModifier>(jObject.Value<JObject>("Modifier"));
+                Modifier = Query.IJSAMObject<IModifier>(new JObject((JsonObject)modifierJson.DeepClone()));
             }
 
             return true;
@@ -63,20 +69,28 @@ namespace SAM.Core
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (!double.IsNaN(Value))
             {
-                jObject.Add("Value", Value);
+                jsonObject["Value"] = Value;
             }
 
-            if (Modifier != null)
+            if (Modifier != null && Modifier.ToJObject()?.Node is JsonObject modifierJson)
             {
-                jObject.Add("Modifier", Modifier.ToJObject());
+                jsonObject["Modifier"] = modifierJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

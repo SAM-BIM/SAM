@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -132,36 +133,41 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Id"))
+            if (jsonObject.ContainsKey("Id"))
             {
-                id = jObject.Value<string>("Id");
+                id = jsonObject["Id"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("References_1"))
+            if (jsonObject["References_1"] is JsonArray references1Array)
             {
-                JArray jArray = jObject.Value<JArray>("References_1");
-                if (jArray != null)
+                references_1 = new HashSet<Reference>();
+                foreach (JsonNode node in references1Array)
                 {
-                    references_1 = new HashSet<Reference>();
-                    foreach (string value in jArray)
+                    string value = node?.GetValue<string>();
+                    if (value != null)
                     {
                         references_1.Add(value);
                     }
                 }
             }
 
-            if (jObject.ContainsKey("References_2"))
+            if (jsonObject["References_2"] is JsonArray references2Array)
             {
-                JArray jArray = jObject.Value<JArray>("References_2");
-                if (jArray != null)
+                references_2 = new HashSet<Reference>();
+                foreach (JsonNode node in references2Array)
                 {
-                    references_2 = new HashSet<Reference>();
-                    foreach (string value in jArray)
+                    string value = node?.GetValue<string>();
+                    if (value != null)
                     {
                         references_2.Add(value);
                     }
@@ -173,32 +179,40 @@ namespace SAM.Core
 
         public JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        private JsonObject ToJsonObject()
+        {
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (id != null)
             {
-                result.Add("Id", id);
+                result["Id"] = id;
             }
 
             if (references_1 != null)
             {
-                JArray jArray = new JArray();
+                JsonArray references1Array = new JsonArray();
                 foreach (Reference reference in references_1)
                 {
-                    jArray.Add(reference.ToString());
+                    references1Array.Add(reference.ToString());
                 }
-                result.Add("References_1", jArray);
+                result["References_1"] = references1Array;
             }
 
             if (references_2 != null)
             {
-                JArray jArray = new JArray();
+                JsonArray references2Array = new JsonArray();
                 foreach (Reference reference in references_2)
                 {
-                    jArray.Add(reference.ToString());
+                    references2Array.Add(reference.ToString());
                 }
-                result.Add("References_2", jArray);
+                result["References_2"] = references2Array;
             }
 
             return result;

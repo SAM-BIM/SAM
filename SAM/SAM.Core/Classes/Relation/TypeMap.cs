@@ -6,6 +6,7 @@ using SAM.Core.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -181,60 +182,62 @@ namespace SAM.Core
             return GetNames(id_1, id_2, null, index);
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            JArray jArray_Map = new JArray();
+            JsonArray mapArray = new JsonArray();
             foreach (Tuple<string, string, string, string, string, string> tuple in tuples)
             {
-                JArray jArray = new JArray();
-                jArray.Add(tuple.Item1);
-                jArray.Add(tuple.Item2);
-                jArray.Add(tuple.Item3);
-                jArray.Add(tuple.Item4);
-                jArray_Map.Add(jArray);
+                JsonArray entryArray = new JsonArray();
+                entryArray.Add(tuple.Item1);
+                entryArray.Add(tuple.Item2);
+                entryArray.Add(tuple.Item3);
+                entryArray.Add(tuple.Item4);
+                mapArray.Add(entryArray);
             }
 
-            jObject.Add("Map", jArray_Map);
+            jsonObject["Map"] = mapArray;
 
-            return jObject;
+            return jsonObject;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
             tuples = new List<Tuple<string, string, string, string, string, string>>();
 
-            JArray jArray_Map = jObject.Value<JArray>("Map");
-            if (jArray_Map != null)
+            if (jsonObject["Map"] is JsonArray mapArray)
             {
-
-                foreach (JArray jArray in jArray_Map)
+                foreach (JsonNode entryNode in mapArray)
                 {
-                    if (jArray.Count < 4)
+                    if (!(entryNode is JsonArray entryArray) || entryArray.Count < 4)
                         continue;
 
                     string formula_1 = null;
                     string formula_2 = null;
-                    if (jArray.Count > 4)
+                    if (entryArray.Count > 4)
                     {
-                        formula_1 = jArray[4].Value<string>();
-                        if (jArray.Count > 5)
-                            formula_2 = jArray[5].Value<string>();
+                        formula_1 = entryArray[4]?.GetValue<string>();
+                        if (entryArray.Count > 5)
+                            formula_2 = entryArray[5]?.GetValue<string>();
                     }
 
-                    Tuple<string, string, string, string, string, string> tuple = new Tuple<string, string, string, string, string, string>(jArray[0].Value<string>(), jArray[1].Value<string>(), jArray[2].Value<string>(), jArray[3].Value<string>(), formula_1, formula_2);
+                    Tuple<string, string, string, string, string, string> tuple = new Tuple<string, string, string, string, string, string>(
+                        entryArray[0]?.GetValue<string>(),
+                        entryArray[1]?.GetValue<string>(),
+                        entryArray[2]?.GetValue<string>(),
+                        entryArray[3]?.GetValue<string>(),
+                        formula_1,
+                        formula_2);
 
                     if (tuple != null)
                         tuples.Add(tuple);
                 }
-
-
             }
 
             return true;

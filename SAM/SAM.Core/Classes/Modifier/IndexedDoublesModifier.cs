@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -30,33 +31,32 @@ namespace SAM.Core
 
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
-            if (!result)
+            if (!base.FromJsonObject(jsonObject))
             {
-                return result;
+                return false;
             }
 
-            if (jObject.ContainsKey("IndexedDoubles"))
+            if (jsonObject["IndexedDoubles"] is JsonObject indexedDoublesJson)
             {
-                IndexedDoubles = Query.IJSAMObject<IndexedDoubles>(jObject.Value<JObject>("IndexedDoubles"));
+                IndexedDoubles = Query.IJSAMObject<IndexedDoubles>(new JObject((JsonObject)indexedDoublesJson.DeepClone()));
             }
 
-            return result;
+            return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
             }
 
-            if (IndexedDoubles != null)
+            if (IndexedDoubles != null && IndexedDoubles.ToJObject()?.Node is JsonObject indexedDoublesJson)
             {
-                result.Add("IndexedDoubles", IndexedDoubles.ToJObject());
+                result["IndexedDoubles"] = indexedDoublesJson.DeepClone();
             }
 
             return result;

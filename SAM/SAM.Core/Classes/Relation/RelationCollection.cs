@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -548,20 +549,26 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Relations"))
+            if (jsonObject["Relations"] is JsonArray relationsArray)
             {
-                JArray jArray = jObject.Value<JArray>("Relations");
-                if (jArray != null)
+                relations = new List<Relation>();
+                foreach (JsonNode node in relationsArray)
                 {
-                    relations = new List<Relation>();
-                    foreach (JObject jObject_Relation in jArray)
+                    if (node is JsonObject relationJson)
                     {
-                        Relation relation = Query.IJSAMObject<Relation>(jObject);
+                        // Pre-migration code passed the OUTER jObject here by
+                        // mistake; the inner element is what should be wrapped.
+                        Relation relation = Query.IJSAMObject<Relation>(new JObject((JsonObject)relationJson.DeepClone()));
                         if (relation != null)
                         {
                             relations.Add(relation);
@@ -575,18 +582,29 @@ namespace SAM.Core
 
         public JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        private JsonObject ToJsonObject()
+        {
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (relations != null)
             {
-                JArray jArray = new JArray();
+                JsonArray relationsArray = new JsonArray();
                 foreach (Relation relation in relations)
                 {
-                    jArray.Add(relation.ToJObject());
+                    if (relation?.ToJObject()?.Node is JsonObject relationJson)
+                    {
+                        relationsArray.Add(relationJson.DeepClone());
+                    }
                 }
 
-                result.Add("Relations", jArray);
+                result["Relations"] = relationsArray;
             }
 
             return result;

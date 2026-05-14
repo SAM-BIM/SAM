@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace SAM.Core
@@ -308,51 +309,49 @@ namespace SAM.Core
             return result;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            JArray jArray_Map = new JArray();
+            JsonArray mapArray = new JsonArray();
             foreach (KeyValuePair<string, HashSet<string>> keyValuePair in dictionary)
             {
-                JArray jArray = new JArray();
-                jArray.Add(keyValuePair.Key);
+                JsonArray entryArray = new JsonArray();
+                entryArray.Add(keyValuePair.Key);
 
                 foreach (string value in keyValuePair.Value)
-                    jArray.Add(value);
+                    entryArray.Add(value);
 
-                jArray_Map.Add(jArray);
+                mapArray.Add(entryArray);
             }
 
-            jObject.Add("Map", jArray_Map);
+            jsonObject["Map"] = mapArray;
 
-            return jObject;
+            return jsonObject;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
             dictionary = new Dictionary<string, HashSet<string>>();
 
-            JArray jArray_Map = jObject.Value<JArray>("Map");
-            if (jArray_Map != null)
+            if (jsonObject["Map"] is JsonArray mapArray)
             {
-
-                foreach (JArray jArray in jArray_Map)
+                foreach (JsonNode entryNode in mapArray)
                 {
-                    if (jArray.Count < 1)
+                    if (!(entryNode is JsonArray entryArray) || entryArray.Count < 1)
                         continue;
 
                     HashSet<string> values = new HashSet<string>();
 
-                    for (int i = 1; i < jArray.Count; i++)
-                        values.Add(jArray[i].ToString());
+                    for (int i = 1; i < entryArray.Count; i++)
+                        values.Add(entryArray[i]?.GetValue<string>());
 
-                    dictionary[jArray[0].ToString()] = values;
+                    dictionary[entryArray[0].GetValue<string>()] = values;
                 }
             }
 

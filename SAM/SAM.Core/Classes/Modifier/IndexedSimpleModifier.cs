@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -30,31 +31,30 @@ namespace SAM.Core
 
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
-            if (!result)
+            if (!base.FromJsonObject(jsonObject))
             {
-                return result;
+                return false;
             }
 
-            if (jObject.ContainsKey("ArithmeticOperator"))
+            if (jsonObject.ContainsKey("ArithmeticOperator"))
             {
-                ArithmeticOperator = Query.Enum<ArithmeticOperator>(jObject.Value<string>("ArithmeticOperator"));
+                ArithmeticOperator = Query.Enum<ArithmeticOperator>(jsonObject["ArithmeticOperator"]?.GetValue<string>());
             }
 
-            return result;
+            return true;
         }
 
-        public virtual JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
-                return result;
+                return null;
             }
 
-            result.Add("ArithmeticOperator", ArithmeticOperator.ToString());
+            result["ArithmeticOperator"] = ArithmeticOperator.ToString();
 
             return result;
         }

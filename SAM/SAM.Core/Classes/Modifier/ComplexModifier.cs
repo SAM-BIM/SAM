@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -36,49 +37,50 @@ namespace SAM.Core
 
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
-            if (!result)
+            if (!base.FromJsonObject(jsonObject))
             {
-                return result;
+                return false;
             }
 
-            if (jObject.ContainsKey("Modifiers"))
+            if (jsonObject["Modifiers"] is JsonArray modifiersArray)
             {
-                JArray jArray = jObject.Value<JArray>("Modifiers");
-                if (jArray != null)
+                Modifiers = new List<IModifier>();
+                foreach (JsonNode node in modifiersArray)
                 {
-                    Modifiers = new List<IModifier>();
-                    foreach (JObject jObject_Modifier in jArray)
+                    if (node is JsonObject modifierJson)
                     {
-                        Modifiers.Add(Query.IJSAMObject<IModifier>(jObject_Modifier));
+                        Modifiers.Add(Query.IJSAMObject<IModifier>(new JObject((JsonObject)modifierJson.DeepClone())));
                     }
                 }
             }
 
-            return result;
+            return true;
         }
 
         public List<IModifier> Modifiers { get; set; }
 
-        public virtual JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
-                return result;
+                return null;
             }
 
             if (Modifiers != null)
             {
-                JArray jArray = new JArray();
+                JsonArray modifiersArray = new JsonArray();
                 foreach (IModifier modifier in Modifiers)
                 {
-                    jArray.Add(modifier.ToJObject());
+                    if (modifier?.ToJObject()?.Node is JsonObject modifierJson)
+                    {
+                        modifiersArray.Add(modifierJson.DeepClone());
+                    }
                 }
 
-                result.Add("Modifiers", jArray);
+                result["Modifiers"] = modifiersArray;
             }
 
             return result;
