@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -193,10 +194,13 @@ namespace SAM.Geometry.Planar
             return Distance(point2D) <= tolerance;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            coordinates[0] = jObject.Value<double>("X");
-            coordinates[1] = jObject.Value<double>("Y");
+            if (jsonObject == null)
+                return false;
+
+            coordinates[0] = jsonObject["X"]?.GetValue<double>() ?? 0;
+            coordinates[1] = jsonObject["Y"]?.GetValue<double>() ?? 0;
 
             return true;
         }
@@ -358,15 +362,15 @@ namespace SAM.Geometry.Planar
             coordinates[1] *= factor;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("X", coordinates[0]);
-            jObject.Add("Y", coordinates[1]);
-            return jObject;
+            jsonObject["X"] = coordinates[0];
+            jsonObject["Y"] = coordinates[1];
+            return jsonObject;
         }
 
         public override string ToString()

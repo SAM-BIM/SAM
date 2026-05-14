@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -176,25 +177,28 @@ namespace SAM.Geometry.Spatial
             return new BoundingBox3D(this, offset);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            coordinates[0] = jObject.Value<double>("X");
-            coordinates[1] = jObject.Value<double>("Y");
-            coordinates[2] = jObject.Value<double>("Z");
+            if (jsonObject == null)
+                return false;
+
+            coordinates[0] = jsonObject["X"]?.GetValue<double>() ?? 0;
+            coordinates[1] = jsonObject["Y"]?.GetValue<double>() ?? 0;
+            coordinates[2] = jsonObject["Z"]?.GetValue<double>() ?? 0;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("X", coordinates[0]);
-            jObject.Add("Y", coordinates[1]);
-            jObject.Add("Z", coordinates[2]);
-            return jObject;
+            jsonObject["X"] = coordinates[0];
+            jsonObject["Y"] = coordinates[1];
+            jsonObject["Z"] = coordinates[2];
+            return jsonObject;
         }
 
         public override bool Equals(object @object)

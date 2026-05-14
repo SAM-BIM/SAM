@@ -75,7 +75,10 @@ namespace SAM.Core.Json
 
     public abstract class JToken : IEnumerable<JToken>
     {
-        internal JsonNode Node { get; private protected set; }
+        // Exposed so packages outside SAM.Core (SAM.Geometry, SAM.Analytical,
+        // SAM.Architectural) can reach the underlying BCL node during their
+        // migration to the JsonObject API. Setter stays private-protected.
+        public JsonNode Node { get; private protected set; }
 
         internal JToken(JsonNode node)
         {
@@ -366,7 +369,9 @@ namespace SAM.Core.Json
         {
         }
 
-        internal JObject(JsonObject jsonObject)
+        // Public so cross-assembly migration code can wrap a JsonObject in the
+        // legacy shim at IJSAMObject boundaries.
+        public JObject(JsonObject jsonObject)
             : base(jsonObject)
         {
         }
