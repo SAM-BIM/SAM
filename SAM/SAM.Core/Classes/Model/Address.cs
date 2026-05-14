@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -77,46 +78,45 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Street"))
-                street = jObject.Value<string>("Street");
+            if (jsonObject.ContainsKey("Street"))
+                street = jsonObject["Street"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("City"))
-                city = jObject.Value<string>("City");
+            if (jsonObject.ContainsKey("City"))
+                city = jsonObject["City"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("PostalCode"))
-                postalCode = jObject.Value<string>("PostalCode");
+            if (jsonObject.ContainsKey("PostalCode"))
+                postalCode = jsonObject["PostalCode"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("CountryCode"))
-                Enum.TryParse(jObject.Value<string>("CountryCode"), out countryCode);
+            if (jsonObject.ContainsKey("CountryCode"))
+                Enum.TryParse(jsonObject["CountryCode"]?.GetValue<string>(), out countryCode);
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return null;
 
             if (street != null)
-                jObject.Add("Street", street);
+                jsonObject["Street"] = street;
 
             if (city != null)
-                jObject.Add("City", city);
+                jsonObject["City"] = city;
 
             if (postalCode != null)
-                jObject.Add("PostalCode", postalCode);
+                jsonObject["PostalCode"] = postalCode;
 
             if (countryCode != CountryCode.Undefined)
-                jObject.Add("CountryCode", countryCode.ToString());
+                jsonObject["CountryCode"] = countryCode.ToString();
 
-            return jObject;
-
+            return jsonObject;
         }
     }
 }

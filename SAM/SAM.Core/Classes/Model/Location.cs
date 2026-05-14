@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System;
+using System.Text.Json.Nodes;
 
 
 namespace SAM.Core
@@ -69,30 +70,29 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            longitude = jObject.Value<double>("Longitude");
-            latitude = jObject.Value<double>("Latitude");
-            elevation = jObject.Value<double>("Elevation");
+            longitude = jsonObject["Longitude"]?.GetValue<double>() ?? 0;
+            latitude = jsonObject["Latitude"]?.GetValue<double>() ?? 0;
+            elevation = jsonObject["Elevation"]?.GetValue<double>() ?? 0;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return null;
 
-            jObject.Add("Longitude", longitude);
-            jObject.Add("Latitude", latitude);
-            jObject.Add("Elevation", elevation);
+            jsonObject["Longitude"] = longitude;
+            jsonObject["Latitude"] = latitude;
+            jsonObject["Elevation"] = elevation;
 
-            return jObject;
-
+            return jsonObject;
         }
     }
 }
