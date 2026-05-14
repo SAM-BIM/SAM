@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -115,18 +116,28 @@ namespace SAM.Core
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Types"))
+            if (jsonObject["Types"] is JsonArray jsonArray)
             {
                 types = new List<object>();
 
-                JArray jArray = jObject.Value<JArray>("Types");
-                foreach (string typeName in jArray)
+                foreach (JsonNode node in jsonArray)
                 {
+                    string typeName = node?.GetValue<string>();
+                    if (string.IsNullOrWhiteSpace(typeName))
+                    {
+                        continue;
+                    }
+
                     Type type = Query.Type(typeName, true);
                     if (type == null)
                     {
@@ -144,12 +155,20 @@ namespace SAM.Core
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (types != null)
             {
-                JArray jArray = new JArray();
+                JsonArray jsonArray = new JsonArray();
                 foreach (object @object in types)
                 {
                     string typeName = null;
@@ -167,13 +186,13 @@ namespace SAM.Core
                         continue;
                     }
 
-                    jArray.Add(typeName);
+                    jsonArray.Add(typeName);
                 }
 
-                jObject.Add("Types", jArray);
+                jsonObject["Types"] = jsonArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

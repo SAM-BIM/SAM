@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -94,19 +95,24 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
             Color color = Color.Empty;
-            if (jObject.ContainsKey("Name"))
-                color = Convert.ToColor(jObject.Value<string>("Name"));
+            if (jsonObject.ContainsKey("Name"))
+                color = Convert.ToColor(jsonObject["Name"]?.GetValue<string>());
 
             if (color.Equals(Color.Empty))
             {
-                alpha = jObject.Value<byte>("Alpha");
-                red = jObject.Value<byte>("Red");
-                green = jObject.Value<byte>("Green");
-                blue = jObject.Value<byte>("Blue");
+                alpha = jsonObject["Alpha"]?.GetValue<byte>() ?? 0;
+                red = jsonObject["Red"]?.GetValue<byte>() ?? 0;
+                green = jsonObject["Green"]?.GetValue<byte>() ?? 0;
+                blue = jsonObject["Blue"]?.GetValue<byte>() ?? 0;
             }
 
             return true;
@@ -119,23 +125,31 @@ namespace SAM.Core
         
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        private JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             string name = Name;
             if (string.IsNullOrWhiteSpace(name))
             {
-                jObject.Add("Alpha", alpha);
-                jObject.Add("Red", red);
-                jObject.Add("Green", green);
-                jObject.Add("Blue", blue);
+                jsonObject["Alpha"] = alpha;
+                jsonObject["Red"] = red;
+                jsonObject["Green"] = green;
+                jsonObject["Blue"] = blue;
             }
             else
             {
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public override string ToString()

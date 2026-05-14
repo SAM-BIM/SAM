@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -73,41 +74,41 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Source"))
-                source = jObject.Value<string>("Source");
+            if (jsonObject.ContainsKey("Source"))
+                source = jsonObject["Source"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("Reference"))
-                reference = jObject.Value<string>("Reference");
+            if (jsonObject.ContainsKey("Reference"))
+                reference = jsonObject["Reference"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("DateTime"))
-                dateTime = jObject.Value<DateTime>("DateTime");
+            if (jsonObject.ContainsKey("DateTime"))
+                dateTime = jsonObject["DateTime"]?.GetValue<DateTime>() ?? DateTime.MinValue;
             else
                 dateTime = DateTime.MinValue;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (source != null)
-                jObject.Add("Source", source);
+                jsonObject["Source"] = source;
 
             if (reference != null)
-                jObject.Add("Reference", reference);
+                jsonObject["Reference"] = reference;
 
             if (dateTime != DateTime.MinValue)
-                jObject.Add("DateTime", dateTime);
+                jsonObject["DateTime"] = JToken.ToNode(dateTime);
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

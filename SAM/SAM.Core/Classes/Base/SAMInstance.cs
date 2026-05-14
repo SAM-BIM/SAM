@@ -5,6 +5,7 @@ using SAM.Core.Json;
 
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -130,39 +131,42 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Type"))
+            if (jsonObject["Type"] is JsonObject typeObject)
             {
-                type = Create.IJSAMObject<T>(jObject.Value<JObject>("Type"));
+                type = Create.IJSAMObject<T>(new JObject((JsonObject)typeObject.DeepClone()));
             }
             else
             {
                 //TODO: Remove in the future. This is for backward compability only
-                if (jObject.ContainsKey("SAMType"))
+                if (jsonObject["SAMType"] is JsonObject samTypeObject)
                 {
-                    type = Create.IJSAMObject<T>(jObject.Value<JObject>("SAMType"));
+                    type = Create.IJSAMObject<T>(new JObject((JsonObject)samTypeObject.DeepClone()));
                 }
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
             if (type != null)
-                jObject.Add("Type", type.ToJObject());
+            {
+                if (type.ToJObject()?.Node is JsonObject typeObject)
+                    jsonObject["Type"] = typeObject.DeepClone();
+            }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

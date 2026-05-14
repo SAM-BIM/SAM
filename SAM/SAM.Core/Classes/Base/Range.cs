@@ -5,6 +5,7 @@ using SAM.Core.Json;
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -109,23 +110,36 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            max = jObject.Value<T>("Max");
-            min = jObject.Value<T>("Min");
+            max = jsonObject["Max"] == null ? default : jsonObject["Max"].GetValue<T>();
+            min = jsonObject["Min"] == null ? default : jsonObject["Min"].GetValue<T>();
 
             return true;
         }
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
-            jObject.Add("Max", max as dynamic);
-            jObject.Add("Min", min as dynamic);
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
 
-            return jObject;
+        private JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this),
+                ["Max"] = JToken.ToNode(max),
+                ["Min"] = JToken.ToNode(min)
+            };
+
+            return jsonObject;
         }
 
         public override string ToString()

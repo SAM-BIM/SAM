@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -91,19 +92,24 @@ namespace SAM.Core
 
         public bool FromJObject(JObject? jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject? jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Name"))
+            if (jsonObject.ContainsKey("Name"))
             {
-                name = jObject.Value<string>("Name");
+                name = jsonObject["Name"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("SubCategory"))
+            if (jsonObject["SubCategory"] is JsonObject subCategoryObject)
             {
-                subCategory = new Category(jObject.Value<JObject>("SubCategory"));
+                subCategory = new Category(new JObject((JsonObject)subCategoryObject.DeepClone()));
             }
 
             return true;
@@ -111,20 +117,29 @@ namespace SAM.Core
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        private JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (name != null)
             {
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
             }
 
             if (subCategory != null)
             {
-                jObject.Add("SubCategory", subCategory.ToJObject());
+                if (subCategory.ToJObject()?.Node is JsonObject subCategoryObject)
+                    jsonObject["SubCategory"] = subCategoryObject.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

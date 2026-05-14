@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.IO.Compression;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -32,23 +33,24 @@ namespace SAM.Core
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Guids"))
+            if (jsonObject["Guids"] is JsonArray jsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("Guids");
-                if (jArray != null)
+                guids = new HashSet<Guid>();
+                foreach (JsonNode node in jsonArray)
                 {
-                    guids = new HashSet<Guid>();
-                    foreach (JToken jToken in jArray)
-                    {
-                        Guid guid;
-                        if (!Guid.TryParse(jToken.Value<string>(), out guid))
-                            continue;
+                    Guid guid;
+                    if (!Guid.TryParse(node?.GetValue<string>(), out guid))
+                        continue;
 
-                        guids.Add(guid);
-                    }
+                    guids.Add(guid);
                 }
             }
 
@@ -83,16 +85,29 @@ namespace SAM.Core
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        private JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (guids != null)
             {
-                JArray jArray = new JArray(guids);
-                jObject.Add("Guids", jArray);
+                JsonArray jsonArray = new JsonArray();
+                foreach (Guid guid in guids)
+                {
+                    jsonArray.Add(guid.ToString());
+                }
+
+                jsonObject["Guids"] = jsonArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }
