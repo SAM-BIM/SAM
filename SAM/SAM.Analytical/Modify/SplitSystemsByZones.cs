@@ -16,7 +16,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            List<Zone> zones = adjacencyCluster.GetZones().FindAll(x => x.GetValue<string>(ZoneParameter.ZoneCategory) == zoneCategoryName);
+            List<Zone> zones = adjacencyCluster.GetZones()?.FindAll(x => x.GetValue<string>(ZoneParameter.ZoneCategory) == zoneCategoryName);
             if(zones is null || zones.Count == 0)
             {
                 return null;
