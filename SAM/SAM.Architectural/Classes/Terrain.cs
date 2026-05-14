@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Geometry.Object.Spatial;
 using SAM.Geometry.Spatial;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Architectural
 {
@@ -34,16 +35,16 @@ namespace SAM.Architectural
             return Below(face3DObject?.Face3D, tolerance);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("MaterialLayers"))
+            if (jsonObject["MaterialLayers"] is JsonArray materialLayersArray)
             {
-                materialLayers = Core.Create.IJSAMObjects<MaterialLayer>(jObject.Value<JArray>("MaterialLayers"));
+                materialLayers = Core.Create.IJSAMObjects<MaterialLayer>(materialLayersArray);
             }
 
             return true;
@@ -56,21 +57,29 @@ namespace SAM.Architectural
             return On(face3DObject?.Face3D, tolerance);
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
+            JsonObject jsonObject = base.ToJsonObject();
 
-            if (jObject == null)
+            if (jsonObject == null)
             {
-                return jObject;
+                return null;
             }
 
             if (materialLayers != null)
             {
-                jObject.Add("MaterialLayers", Core.Create.JArray(materialLayers));
+                JsonArray materialLayersArray = new JsonArray();
+                foreach (MaterialLayer materialLayer in materialLayers)
+                {
+                    if (materialLayer?.ToJObject()?.Node is JsonObject materialLayerJson)
+                    {
+                        materialLayersArray.Add(materialLayerJson.DeepClone());
+                    }
+                }
+                jsonObject["MaterialLayers"] = materialLayersArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

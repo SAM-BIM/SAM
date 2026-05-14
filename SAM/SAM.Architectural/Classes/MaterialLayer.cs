@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Architectural
 {
@@ -67,14 +68,19 @@ namespace SAM.Architectural
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Thickness"))
-                thickness = jObject.Value<double>("Thickness");
+            if (jsonObject.ContainsKey("Thickness"))
+                thickness = jsonObject["Thickness"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Name"))
-                name = jObject.Value<string>("Name");
+            if (jsonObject.ContainsKey("Name"))
+                name = jsonObject["Name"]?.GetValue<string>();
 
             return true;
         }
@@ -86,16 +92,24 @@ namespace SAM.Architectural
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (name != null)
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
 
             if (!double.IsNaN(thickness))
-                jObject.Add("Thickness", thickness);
+                jsonObject["Thickness"] = thickness;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

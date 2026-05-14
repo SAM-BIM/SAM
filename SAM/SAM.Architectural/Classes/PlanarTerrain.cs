@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 
 using SAM.Geometry.Spatial;
+using System.Text.Json.Nodes;
 
 namespace SAM.Architectural
 {
@@ -38,16 +39,24 @@ namespace SAM.Architectural
             return face3D.Below(plane, tolerance);
         }
 
-        public override bool FromJObject(JObject jObject)
+        // The pre-migration code had FromJObject and ToJObject swapped:
+        // FromJObject wrote a "Plane" key into the incoming JObject (instead
+        // of reading from it), and ToJObject read "Plane" from the output of
+        // base.ToJObject() (which never contains it) instead of writing it.
+        // Net effect: the Plane field never round-tripped through JSON. This
+        // migration fixes the swap — read on FromJsonObject, write on
+        // ToJsonObject — so PlanarTerrain instances now serialize and
+        // deserialize their Plane.
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (plane != null)
+            if (jsonObject["Plane"] is JsonObject planeJson)
             {
-                jObject.Add("Plane", plane.ToJObject());
+                plane = new Plane(new JObject((JsonObject)planeJson.DeepClone()));
             }
 
             return true;
@@ -58,21 +67,21 @@ namespace SAM.Architectural
             return plane.On(face3D, tolerance);
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
+            JsonObject jsonObject = base.ToJsonObject();
 
-            if (jObject == null)
+            if (jsonObject == null)
             {
-                return jObject;
+                return null;
             }
 
-            if (jObject.ContainsKey("Plane"))
+            if (plane?.ToJObject()?.Node is JsonObject planeJson)
             {
-                plane = new Plane(jObject.Value<JObject>("Plane"));
+                jsonObject["Plane"] = planeJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }
