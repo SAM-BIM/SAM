@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -163,57 +164,57 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Group"))
-                group = jObject.Value<string>("Group");
+            if (jsonObject.ContainsKey("Group"))
+                group = jsonObject["Group"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("DisplayName"))
-                displayName = jObject.Value<string>("DisplayName");
+            if (jsonObject.ContainsKey("DisplayName"))
+                displayName = jsonObject["DisplayName"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("Description"))
-                description = jObject.Value<string>("Description");
+            if (jsonObject.ContainsKey("Description"))
+                description = jsonObject["Description"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("ThermalConductivity"))
-                thermalConductivity = jObject.Value<double>("ThermalConductivity");
+            if (jsonObject.ContainsKey("ThermalConductivity"))
+                thermalConductivity = jsonObject["ThermalConductivity"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("SpecificHeatCapacity"))
-                specificHeatCapacity = jObject.Value<double>("SpecificHeatCapacity");
+            if (jsonObject.ContainsKey("SpecificHeatCapacity"))
+                specificHeatCapacity = jsonObject["SpecificHeatCapacity"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Density"))
-                density = jObject.Value<double>("Density");
+            if (jsonObject.ContainsKey("Density"))
+                density = jsonObject["Density"]?.GetValue<double>() ?? double.NaN;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return null;
 
             if (group != null)
-                jObject.Add("Group", group);
+                jsonObject["Group"] = group;
 
             if (displayName != null)
-                jObject.Add("DisplayName", displayName);
+                jsonObject["DisplayName"] = displayName;
 
             if (description != null)
-                jObject.Add("Description", description);
+                jsonObject["Description"] = description;
 
             if (!double.IsNaN(thermalConductivity))
-                jObject.Add("ThermalConductivity", thermalConductivity);
+                jsonObject["ThermalConductivity"] = thermalConductivity;
 
             if (!double.IsNaN(specificHeatCapacity))
-                jObject.Add("SpecificHeatCapacity", specificHeatCapacity);
+                jsonObject["SpecificHeatCapacity"] = specificHeatCapacity;
 
             if (!double.IsNaN(density))
-                jObject.Add("Density", density);
+                jsonObject["Density"] = density;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

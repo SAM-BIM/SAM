@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -63,27 +64,27 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("DynamicViscosity"))
-                dynamicViscosity = jObject.Value<double>("DynamicViscosity");
+            if (jsonObject.ContainsKey("DynamicViscosity"))
+                dynamicViscosity = jsonObject["DynamicViscosity"]?.GetValue<double>() ?? double.NaN;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return null;
 
             if (!double.IsNaN(dynamicViscosity))
-                jObject.Add("DynamicViscosity", dynamicViscosity);
+                jsonObject["DynamicViscosity"] = dynamicViscosity;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }
