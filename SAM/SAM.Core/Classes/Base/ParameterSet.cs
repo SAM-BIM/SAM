@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -282,27 +282,27 @@ namespace SAM.Core
         {
             DateTime result;
             if (!Query.TryGetValue(dictionary, name, out result))
-                return result;
+                return DateTime.MinValue;
 
-            return DateTime.MinValue;
+            return result;
         }
 
         public JObject ToJObject(string name)
         {
             JObject result;
             if (!Query.TryGetValue(dictionary, name, out result))
-                return result;
+                return null;
 
-            return null;
+            return result;
         }
 
         public JArray ToJArray(string name)
         {
             JArray result;
             if (!Query.TryGetValue(dictionary, name, out result))
-                return result;
+                return null;
 
-            return null;
+            return result;
         }
 
         public T ToSAMObject<T>(string name) where T : IJSAMObject
