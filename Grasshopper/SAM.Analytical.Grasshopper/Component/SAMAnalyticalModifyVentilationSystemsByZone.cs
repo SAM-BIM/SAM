@@ -10,7 +10,7 @@ using System.Collections.Generic;
 
 namespace SAM.Analytical.Grasshopper
 {
-    public class SAMAnalyticalModifyMechanicalSystemsByZone : GH_SAMVariableOutputParameterComponent
+    public class SAMAnalyticalModifyVentilationSystemsByZone : GH_SAMVariableOutputParameterComponent
     {
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.
@@ -20,7 +20,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.2";
+        public override string LatestComponentVersion => "1.0.3";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -30,9 +30,9 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
         /// </summary>
-        public SAMAnalyticalModifyMechanicalSystemsByZone()
-          : base("SAMAnalytical.ModifyMechanicalSystemsByZone", "SAMAnalytical.ModifyMechanicalSystemsByZone",
-              "Modify Mechanical Systems By Zone",
+        public SAMAnalyticalModifyVentilationSystemsByZone()
+          : base("SAMAnalytical.ModifyVentilationSystemsByZone", "SAMAnalytical.ModifyVentilationSystemsByZone",
+              "Modify Ventilation System By Zone",
               "SAM", "Analytical02")
         {
         }
@@ -69,7 +69,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
                 result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSystemParam() { Name = "mechanicalSystems", NickName = "mechanicalSystems", Description = "SAM MechanicalSystems", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSystemParam() { Name = "ventilationSystems", NickName = "ventilationSystems", Description = "SAM VentilationSystems", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return [.. result];
             }
         }
@@ -107,14 +107,14 @@ namespace SAM.Analytical.Grasshopper
                 dataAccess.GetData(index, ref addPrefix);
             }
 
-            List<MechanicalSystem> mechanicalSystems = null;
+            List<VentilationSystem> ventilationSystem = null;
 
             AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
             if(adjacencyCluster is not null)
             {
                 adjacencyCluster = new AdjacencyCluster(adjacencyCluster, true);
 
-                mechanicalSystems = adjacencyCluster.SplitSystemsByZones<VentilationSystem>(zoneCategoryName, addPrefix);
+                ventilationSystem = adjacencyCluster.SplitSystemsByZones<VentilationSystem>(zoneCategoryName, addPrefix);
 
                 analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
             }
@@ -125,10 +125,10 @@ namespace SAM.Analytical.Grasshopper
                 dataAccess.SetData(index, analyticalModel);
             }
 
-            index = Params.IndexOfOutputParam("mechanicalSystems");
+            index = Params.IndexOfOutputParam("ventilationSystems");
             if (index != -1)
             {
-                dataAccess.SetDataList(index, mechanicalSystems?.ConvertAll(x => new GooSystem(x)));
+                dataAccess.SetDataList(index, ventilationSystem?.ConvertAll(x => new GooSystem(x)));
             }
         }
     }
