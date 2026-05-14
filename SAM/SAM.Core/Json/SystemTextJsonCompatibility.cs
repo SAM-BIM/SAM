@@ -130,7 +130,7 @@ namespace SAM.Core.Json
             }
         }
 
-        private static bool IsIsoDateTime(string text)
+        internal static bool IsIsoDateTime(string text)
         {
             if (text == null || text.Length < 19)
                 return false;
