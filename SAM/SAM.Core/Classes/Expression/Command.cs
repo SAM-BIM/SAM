@@ -13,7 +13,7 @@
 //SAM.Core.Revit.Query.Number($Object_1)
 //$Object == 2 + 50 + Number(SAM.Core.Revit.Value('Some Text (value)')) + $Object_2
 
-using Newtonsoft.Json.Linq;
+using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

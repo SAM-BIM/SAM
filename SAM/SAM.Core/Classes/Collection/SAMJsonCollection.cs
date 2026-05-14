@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -40,14 +39,11 @@ namespace SAM.Core
             JArray jArray = null;
             using (StreamReader streamReader = File.OpenText(path))
             {
-                using (JsonTextReader reader = new JsonTextReader(streamReader))
-                {
-                    JToken jToken = JToken.ReadFrom(reader);
-                    if (jToken is JObject)
-                        jArray = new JArray() { jToken };
-                    else if (jToken is JArray)
-                        jArray = (JArray)jToken;
-                }
+                JToken jToken = JToken.Parse(streamReader.ReadToEnd());
+                if (jToken is JObject)
+                    jArray = new JArray() { jToken };
+                else if (jToken is JArray)
+                    jArray = (JArray)jToken;
             }
 
             return FromJArray(jArray);

@@ -4,7 +4,7 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using Newtonsoft.Json.Linq;
+using SAM.Core.Json;
 using SAM.Core.Grasshopper.Properties;
 using System;
 

@@ -2,7 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 
-using Newtonsoft.Json.Linq;
+using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry.Spatial;
 using System;

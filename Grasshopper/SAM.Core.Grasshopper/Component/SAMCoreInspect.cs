@@ -4,7 +4,7 @@
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Attributes;
 using Grasshopper.Kernel.Types;
-using Newtonsoft.Json.Linq;
+using SAM.Core.Json;
 using SAM.Core.Grasshopper.Properties;
 using System;
 using System.Collections;
