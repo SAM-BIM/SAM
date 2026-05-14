@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -51,22 +52,27 @@ namespace SAM.Analytical
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("TypeName"))
+            if (jsonObject.ContainsKey("TypeName"))
             {
-                typeName = jObject.Value<string>("TypeName");
+                typeName = jsonObject["TypeName"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("ExcludedParameterNames"))
+            if (jsonObject["ExcludedParameterNames"] is JsonArray excludedParameterNamesArray)
             {
                 excludedParameterNames = new HashSet<string>();
-                foreach (string parameterName in jObject.Value<JArray>("ExcludedParameterNames"))
+                foreach (JsonNode node in excludedParameterNamesArray)
                 {
-                    excludedParameterNames.Add(parameterName);
+                    excludedParameterNames.Add(node?.GetValue<string>());
                 }
             }
 
@@ -75,26 +81,34 @@ namespace SAM.Analytical
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (typeName != null)
             {
-                jObject.Add("TypeName", typeName);
+                jsonObject["TypeName"] = typeName;
             }
 
             if (excludedParameterNames != null)
             {
-                JArray jArray = new JArray();
+                JsonArray excludedParameterNamesArray = new JsonArray();
                 foreach (string parameterName in excludedParameterNames)
                 {
-                    jArray.Add(parameterName);
+                    excludedParameterNamesArray.Add(parameterName);
                 }
 
-                jObject.Add("ExcludedParameterNames", jArray);
+                jsonObject["ExcludedParameterNames"] = excludedParameterNamesArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

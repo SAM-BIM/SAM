@@ -62,25 +62,5 @@ namespace SAM.Analytical
             return System.Convert.ToInt32(System.Math.Truncate(GetSummerOccupiedHours() * 0.03));
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject result = base.ToJObject();
-            if (result == null)
-            {
-                return null;
-            }
-
-            return result;
-        }
     }
 }

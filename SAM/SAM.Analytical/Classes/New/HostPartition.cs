@@ -201,29 +201,6 @@ namespace SAM.Analytical
             return openings.Find(x => x.Guid == guid)?.Clone();
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-            {
-                return false;
-            }
-
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-
-            if (jObject == null)
-            {
-                return jObject;
-            }
-
-            return jObject;
-        }
-
         public override void Transform(Transform3D transform3D)
         {
             base.Transform(transform3D);

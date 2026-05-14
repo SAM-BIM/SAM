@@ -177,27 +177,5 @@ namespace SAM.Analytical
             return area_Frame / (area_Frame + area_Pane);
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-
-            if (jObject == null)
-            {
-                return jObject;
-            }
-
-            return jObject;
-        }
-
     }
 }

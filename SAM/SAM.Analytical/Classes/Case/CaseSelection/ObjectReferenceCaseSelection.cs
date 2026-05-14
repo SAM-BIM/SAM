@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -34,23 +35,22 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ObjectReferences"))
+            if (jsonObject["ObjectReferences"] is JsonArray objectReferencesArray)
             {
-                JArray jArray = jObject.Value<JArray>("ObjectReferences");
-                if (jArray != null)
+                objectReferences = [];
+                foreach (JsonNode node in objectReferencesArray)
                 {
-                    objectReferences = [];
-                    foreach (JObject jObject_Temp in jArray)
+                    if (node is JsonObject objectReferenceJson)
                     {
-                        ObjectReference objectReference = Core.Query.IJSAMObject<ObjectReference>(jObject_Temp);
+                        ObjectReference objectReference = Core.Query.IJSAMObject<ObjectReference>(new JObject((JsonObject)objectReferenceJson.DeepClone()));
                         if (objectReference != null)
                         {
                             objectReferences.Add(objectReference);
@@ -62,9 +62,9 @@ namespace SAM.Analytical
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
@@ -72,18 +72,17 @@ namespace SAM.Analytical
 
             if (objectReferences != null)
             {
-                JArray jArray = [];
+                JsonArray objectReferencesArray = new JsonArray();
 
                 foreach (ObjectReference objectReference in objectReferences)
                 {
-                    JObject jObject_Temp = objectReference.ToJObject();
-                    if (jObject_Temp != null)
+                    if (objectReference?.ToJObject()?.Node is JsonObject objectReferenceJson)
                     {
-                        jArray.Add(jObject_Temp);
+                        objectReferencesArray.Add(objectReferenceJson.DeepClone());
                     }
                 }
 
-                result.Add("ObjectReferences", jArray);
+                result["ObjectReferences"] = objectReferencesArray;
             }
 
             return result;

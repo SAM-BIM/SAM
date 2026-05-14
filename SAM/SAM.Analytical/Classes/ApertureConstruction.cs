@@ -6,6 +6,7 @@ using SAM.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -189,38 +190,58 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("FrameConstructionLayers"))
-                frameConstructionLayers = Core.Create.IJSAMObjects<ConstructionLayer>(jObject.Value<JArray>("FrameConstructionLayers"));
+            if (jsonObject["FrameConstructionLayers"] is JsonArray frameConstructionLayersArray)
+                frameConstructionLayers = Core.Create.IJSAMObjects<ConstructionLayer>(frameConstructionLayersArray);
 
-            if (jObject.ContainsKey("PaneConstructionLayers"))
-                paneConstructionLayers = Core.Create.IJSAMObjects<ConstructionLayer>(jObject.Value<JArray>("PaneConstructionLayers"));
+            if (jsonObject["PaneConstructionLayers"] is JsonArray paneConstructionLayersArray)
+                paneConstructionLayers = Core.Create.IJSAMObjects<ConstructionLayer>(paneConstructionLayersArray);
 
-            if (jObject.ContainsKey("ApertureType"))
-                Enum.TryParse(jObject.Value<string>("ApertureType"), out apertureType);
+            if (jsonObject.ContainsKey("ApertureType"))
+                Enum.TryParse(jsonObject["ApertureType"]?.GetValue<string>(), out apertureType);
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
             if (paneConstructionLayers != null)
-                jObject.Add("PaneConstructionLayers", Core.Create.JArray(paneConstructionLayers));
+            {
+                JsonArray paneConstructionLayersArray = new JsonArray();
+                foreach (ConstructionLayer layer in paneConstructionLayers)
+                {
+                    if (layer?.ToJObject()?.Node is JsonObject layerJson)
+                    {
+                        paneConstructionLayersArray.Add(layerJson.DeepClone());
+                    }
+                }
+                jsonObject["PaneConstructionLayers"] = paneConstructionLayersArray;
+            }
 
             if (frameConstructionLayers != null)
-                jObject.Add("FrameConstructionLayers", Core.Create.JArray(frameConstructionLayers));
+            {
+                JsonArray frameConstructionLayersArray = new JsonArray();
+                foreach (ConstructionLayer layer in frameConstructionLayers)
+                {
+                    if (layer?.ToJObject()?.Node is JsonObject layerJson)
+                    {
+                        frameConstructionLayersArray.Add(layerJson.DeepClone());
+                    }
+                }
+                jsonObject["FrameConstructionLayers"] = frameConstructionLayersArray;
+            }
 
-            jObject.Add("ApertureType", apertureType.ToString());
+            jsonObject["ApertureType"] = apertureType.ToString();
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

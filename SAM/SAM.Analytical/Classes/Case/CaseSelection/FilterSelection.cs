@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -38,29 +39,31 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Filter"))
+            if (jsonObject["Filter"] is JsonObject filterJson)
             {
-                filter = Core.Query.IJSAMObject<IFilter>(jObject.Value<JObject>("Filter"));
+                filter = Core.Query.IJSAMObject<IFilter>(new JObject((JsonObject)filterJson.DeepClone()));
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
-
-            if (filter != null)
+            JsonObject result = new JsonObject
             {
-                result.Add("Filter", filter.ToJObject());
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (filter?.ToJObject()?.Node is JsonObject filterJson)
+            {
+                result["Filter"] = filterJson.DeepClone();
             }
 
             return result;

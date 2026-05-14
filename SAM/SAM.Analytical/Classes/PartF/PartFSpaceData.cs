@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Analytical.Enums;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -103,70 +104,70 @@ namespace SAM.Analytical
 
         public bool ScaleSupplyWithVolume { get; private set; }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return result;
             }
 
-            if (jObject.ContainsKey("CalculatedFlowRate_Lps"))
+            if (jsonObject.ContainsKey("CalculatedFlowRate_Lps"))
             {
-                CalculatedFlowRate_Lps = jObject.Value<double>("CalculatedFlowRate_Lps");
+                CalculatedFlowRate_Lps = jsonObject["CalculatedFlowRate_Lps"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("DefaultFlowWeightBasis"))
+            if (jsonObject.ContainsKey("DefaultFlowWeightBasis"))
             {
-                DefaultFlowWeightBasis = jObject.Value<string>("DefaultFlowWeightBasis");
+                DefaultFlowWeightBasis = jsonObject["DefaultFlowWeightBasis"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("IncludeInFloorAreaCheck"))
+            if (jsonObject.ContainsKey("IncludeInFloorAreaCheck"))
             {
-                IncludeInFloorAreaCheck = jObject.Value<bool>("IncludeInFloorAreaCheck");
+                IncludeInFloorAreaCheck = jsonObject["IncludeInFloorAreaCheck"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("IsBedroom"))
+            if (jsonObject.ContainsKey("IsBedroom"))
             {
-                IsBedroom = jObject.Value<bool>("IsBedroom");
+                IsBedroom = jsonObject["IsBedroom"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("IsTerminalSpace"))
+            if (jsonObject.ContainsKey("IsTerminalSpace"))
             {
-                IsTerminalSpace = jObject.Value<bool>("IsTerminalSpace");
+                IsTerminalSpace = jsonObject["IsTerminalSpace"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("MinFlowRate_Lps"))
+            if (jsonObject.ContainsKey("MinFlowRate_Lps"))
             {
-                MinFlowRate_Lps = jObject.Value<double>("MinFlowRate_Lps");
+                MinFlowRate_Lps = jsonObject["MinFlowRate_Lps"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("PartFType"))
+            if (jsonObject.ContainsKey("PartFType"))
             {
-                PartFType = Core.Query.Enum<PartFType>(jObject.Value<string>("PartFType"));
+                PartFType = Core.Query.Enum<PartFType>(jsonObject["PartFType"]?.GetValue<string>());
             }
 
-            if (jObject.ContainsKey("PartFVentilationType"))
+            if (jsonObject.ContainsKey("PartFVentilationType"))
             {
-                PartFVentilationType = Core.Query.Enum<PartFVentilationType>(jObject.Value<string>("PartFVentilationType"));
+                PartFVentilationType = Core.Query.Enum<PartFVentilationType>(jsonObject["PartFVentilationType"]?.GetValue<string>());
             }
 
-            if (jObject.ContainsKey("ScaleExtractAboveMinimum"))
+            if (jsonObject.ContainsKey("ScaleExtractAboveMinimum"))
             {
-                ScaleExtractAboveMinimum = jObject.Value<bool>("ScaleExtractAboveMinimum");
+                ScaleExtractAboveMinimum = jsonObject["ScaleExtractAboveMinimum"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("ScaleSupplyWithVolume"))
+            if (jsonObject.ContainsKey("ScaleSupplyWithVolume"))
             {
-                ScaleSupplyWithVolume = jObject.Value<bool>("ScaleSupplyWithVolume");
+                ScaleSupplyWithVolume = jsonObject["ScaleSupplyWithVolume"]?.GetValue<bool>() ?? false;
             }
 
             return result;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
@@ -174,32 +175,32 @@ namespace SAM.Analytical
 
             if (CalculatedFlowRate_Lps is not null && !double.IsNaN(CalculatedFlowRate_Lps.Value))
             {
-                result.Add("CalculatedFlowRate_Lps", CalculatedFlowRate_Lps.Value);
+                result["CalculatedFlowRate_Lps"] = CalculatedFlowRate_Lps.Value;
             }
 
             if (DefaultFlowWeightBasis is not null)
             {
-                result.Add("DefaultFlowWeightBasis", DefaultFlowWeightBasis);
+                result["DefaultFlowWeightBasis"] = DefaultFlowWeightBasis;
             }
 
-            result.Add("IncludeInFloorAreaCheck", IncludeInFloorAreaCheck);
+            result["IncludeInFloorAreaCheck"] = IncludeInFloorAreaCheck;
 
-            result.Add("IsBedroom", IsBedroom);
+            result["IsBedroom"] = IsBedroom;
 
-            result.Add("IsTerminalSpace", IsTerminalSpace);
+            result["IsTerminalSpace"] = IsTerminalSpace;
 
             if (MinFlowRate_Lps is not null && !double.IsNaN(MinFlowRate_Lps.Value))
             {
-                result.Add("MinFlowRate_Lps", MinFlowRate_Lps.Value);
+                result["MinFlowRate_Lps"] = MinFlowRate_Lps.Value;
             }
 
-            result.Add("PartFType", PartFType.ToString());
+            result["PartFType"] = PartFType.ToString();
 
-            result.Add("PartFVentilationType", PartFVentilationType.ToString());
+            result["PartFVentilationType"] = PartFVentilationType.ToString();
 
-            result.Add("ScaleExtractAboveMinimum", ScaleExtractAboveMinimum);
+            result["ScaleExtractAboveMinimum"] = ScaleExtractAboveMinimum;
 
-            result.Add("ScaleSupplyWithVolume", ScaleSupplyWithVolume);
+            result["ScaleSupplyWithVolume"] = ScaleSupplyWithVolume;
 
             return result;
         }

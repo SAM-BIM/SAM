@@ -6,6 +6,7 @@ using SAM.Core;
 using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -108,23 +109,25 @@ namespace SAM.Analytical
             throw new NotImplementedException();
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            curve3D = Geometry.Spatial.Create.ICurve3D(jObject.Value<JObject>("Curve3D"));
+            if (jsonObject["Curve3D"] is JsonObject curve3DJson)
+                curve3D = Geometry.Spatial.Create.ICurve3D(new JObject((JsonObject)curve3DJson.DeepClone()));
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
-            jObject.Add("Curve3D", curve3D.ToJObject());
-            return jObject;
+            if (curve3D?.ToJObject()?.Node is JsonObject curve3DJson)
+                jsonObject["Curve3D"] = curve3DJson.DeepClone();
+            return jsonObject;
         }
 
         public static IEnumerable<BoundaryEdge3D> FromGeometry(ISAMGeometry3D geometry3D)

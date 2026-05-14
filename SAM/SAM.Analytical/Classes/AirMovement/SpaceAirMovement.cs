@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -81,65 +82,65 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("AirFlow"))
+            if (jsonObject.ContainsKey("AirFlow"))
             {
-                airFlow = jObject.Value<double>("AirFlow");
+                airFlow = jsonObject["AirFlow"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("Profile"))
+            if (jsonObject["Profile"] is JsonObject profileJson)
             {
-                profile = new Profile(jObject.Value<JObject>("Profile"));
+                profile = new Profile(new JObject((JsonObject)profileJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("From"))
+            if (jsonObject.ContainsKey("From"))
             {
-                from = jObject.Value<string>("From");
+                from = jsonObject["From"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("To"))
+            if (jsonObject.ContainsKey("To"))
             {
-                to = jObject.Value<string>("To");
+                to = jsonObject["To"]?.GetValue<string>();
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
             if (!double.IsNaN(airFlow))
             {
-                jObject.Add("AirFlow", airFlow);
+                jsonObject["AirFlow"] = airFlow;
             }
 
-            if (profile != null)
+            if (profile?.ToJObject()?.Node is JsonObject profileJson)
             {
-                jObject.Add("Profile", profile.ToJObject());
+                jsonObject["Profile"] = profileJson.DeepClone();
             }
 
             if (from != null)
             {
-                jObject.Add("From", from);
+                jsonObject["From"] = from;
             }
 
             if (to != null)
             {
-                jObject.Add("To", to);
+                jsonObject["To"] = to;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

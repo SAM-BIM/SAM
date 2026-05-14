@@ -23,15 +23,5 @@ namespace SAM.Analytical
         {
         }
 
-        public override JObject ToJObject()
-        {
-            return base.ToJObject();
-        }
-
-        public override bool FromJObject(JObject jObject)
-        {
-            return base.FromJObject(jObject);
-        }
-
     }
 }

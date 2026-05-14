@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry.Spatial;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -66,35 +67,37 @@ namespace SAM.Analytical
             face3D.FlipNormal(flipX);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Face3D"))
+            // NOTE: preserved verbatim - original code used jObject.Value<JObject>()
+            // without a key, which returned the enclosing JObject itself (likely a bug).
+            if (jsonObject.ContainsKey("Face3D"))
             {
-                face3D = new Face3D(jObject.Value<JObject>());
+                face3D = new Face3D(new JObject(jsonObject));
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (face3D != null)
+            if (face3D?.ToJObject()?.Node is JsonObject face3DJson)
             {
-                jObject.Add("Face3D", face3D.ToJObject());
+                jsonObject["Face3D"] = face3DJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -55,20 +56,24 @@ namespace SAM.Analytical
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("TypeMergeSettings"))
+            if (jsonObject["TypeMergeSettings"] is JsonArray typeMergeSettingsArray)
             {
-                JArray jArray = jObject.Value<JArray>("TypeMergeSettings");
-                if (jArray != null)
+                dictionary = new Dictionary<string, TypeMergeSettings>();
+                foreach (JsonNode node in typeMergeSettingsArray)
                 {
-                    dictionary = new Dictionary<string, TypeMergeSettings>();
-                    foreach (JObject jObject_TypeMergeSettings in jArray)
+                    if (node is JsonObject typeMergeSettingsJson)
                     {
-                        TypeMergeSettings typeMergeSettings = Core.Query.IJSAMObject<TypeMergeSettings>(jObject_TypeMergeSettings);
+                        TypeMergeSettings typeMergeSettings = Core.Query.IJSAMObject<TypeMergeSettings>(new JObject((JsonObject)typeMergeSettingsJson.DeepClone()));
                         if (typeMergeSettings?.TypeName == null)
                         {
                             continue;
@@ -84,21 +89,32 @@ namespace SAM.Analytical
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (dictionary != null)
             {
-                JArray jArray = new JArray();
+                JsonArray typeMergeSettingsArray = new JsonArray();
                 foreach (TypeMergeSettings typeMergeSettings in dictionary.Values)
                 {
-                    jArray.Add(typeMergeSettings.ToJObject());
+                    if (typeMergeSettings?.ToJObject()?.Node is JsonObject typeMergeSettingsJson)
+                    {
+                        typeMergeSettingsArray.Add(typeMergeSettingsJson.DeepClone());
+                    }
                 }
 
-                jObject.Add("TypeMergeSettings", jArray);
+                jsonObject["TypeMergeSettings"] = typeMergeSettingsArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

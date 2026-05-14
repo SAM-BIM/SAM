@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -114,29 +115,34 @@ namespace SAM.Analytical
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Name"))
+            if (jsonObject.ContainsKey("Name"))
             {
-                name = jObject.Value<string>("Name");
+                name = jsonObject["Name"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Version"))
+            if (jsonObject.ContainsKey("Version"))
             {
-                version = jObject.Value<string>("Version");
+                version = jsonObject["Version"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Description"))
+            if (jsonObject.ContainsKey("Description"))
             {
-                description = jObject.Value<string>("Description");
+                description = jsonObject["Description"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Group"))
+            if (jsonObject.ContainsKey("Group"))
             {
-                group = jObject.Value<string>("Group");
+                group = jsonObject["Group"]?.GetValue<string>();
             }
 
             return true;
@@ -144,30 +150,38 @@ namespace SAM.Analytical
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (name != null)
             {
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
             }
 
             if (version != null)
             {
-                jObject.Add("Version", version);
+                jsonObject["Version"] = version;
             }
 
             if (description != null)
             {
-                jObject.Add("Description", description);
+                jsonObject["Description"] = description;
             }
 
             if (group != null)
             {
-                jObject.Add("Group", group);
+                jsonObject["Group"] = group;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public override string ToString()

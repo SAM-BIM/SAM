@@ -6,6 +6,7 @@ using SAM.Core;
 using SAM.Geometry.Spatial;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -220,14 +221,16 @@ namespace SAM.Analytical
         /// <returns>
         ///   <see cref="System.Boolean"/>
         /// </returns>
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            externalEdge2DLoop = new BoundaryEdge2DLoop(jObject.Value<JObject>("Edge2DLoop"));
-            if (jObject.ContainsKey("InternalEdge2DLoops"))
-                internalEdge2DLoops = Core.Create.IJSAMObjects<BoundaryEdge2DLoop>(jObject.Value<JArray>("InternalEdge2DLoops"));
+            if (jsonObject["Edge2DLoop"] is JsonObject edge2DLoopJson)
+                externalEdge2DLoop = new BoundaryEdge2DLoop(new JObject((JsonObject)edge2DLoopJson.DeepClone()));
+
+            if (jsonObject["InternalEdge2DLoops"] is JsonArray internalEdge2DLoopsArray)
+                internalEdge2DLoops = Core.Create.IJSAMObjects<BoundaryEdge2DLoop>(internalEdge2DLoopsArray);
             return true;
         }
 
@@ -237,14 +240,25 @@ namespace SAM.Analytical
         /// <returns>
         ///   <see cref="JObject"/>
         /// </returns>
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            jObject.Add("Edge2DLoop", externalEdge2DLoop.ToJObject());
+            JsonObject jsonObject = base.ToJsonObject();
+            if (externalEdge2DLoop?.ToJObject()?.Node is JsonObject externalEdge2DLoopJson)
+                jsonObject["Edge2DLoop"] = externalEdge2DLoopJson.DeepClone();
             if (internalEdge2DLoops != null)
-                jObject.Add("InternalEdge2DLoops", Core.Create.JArray(internalEdge2DLoops));
+            {
+                JsonArray internalEdge2DLoopsArray = new JsonArray();
+                foreach (BoundaryEdge2DLoop loop in internalEdge2DLoops)
+                {
+                    if (loop?.ToJObject()?.Node is JsonObject loopJson)
+                    {
+                        internalEdge2DLoopsArray.Add(loopJson.DeepClone());
+                    }
+                }
+                jsonObject["InternalEdge2DLoops"] = internalEdge2DLoopsArray;
+            }
 
-            return jObject;
+            return jsonObject;
         }
 
         /// <summary>

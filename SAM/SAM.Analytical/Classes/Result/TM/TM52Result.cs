@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -108,49 +109,49 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("OccupiedHours"))
+            if (jsonObject.ContainsKey("OccupiedHours"))
             {
-                occupiedHours = jObject.Value<int>("OccupiedHours");
+                occupiedHours = jsonObject["OccupiedHours"]?.GetValue<int>() ?? 0;
             }
 
-            if (jObject.ContainsKey("MaxExceedableHours"))
+            if (jsonObject.ContainsKey("MaxExceedableHours"))
             {
-                maxExceedableHours = jObject.Value<int>("MaxExceedableHours");
+                maxExceedableHours = jsonObject["MaxExceedableHours"]?.GetValue<int>() ?? 0;
             }
 
-            if (jObject.ContainsKey("HoursExceedingComfortRange"))
+            if (jsonObject.ContainsKey("HoursExceedingComfortRange"))
             {
-                hoursExceedingComfortRange = jObject.Value<int>("HoursExceedingComfortRange");
+                hoursExceedingComfortRange = jsonObject["HoursExceedingComfortRange"]?.GetValue<int>() ?? 0;
             }
 
-            if (jObject.ContainsKey("PeakDailyWeightedExceedance"))
+            if (jsonObject.ContainsKey("PeakDailyWeightedExceedance"))
             {
-                peakDailyWeightedExceedance = jObject.Value<double>("PeakDailyWeightedExceedance");
+                peakDailyWeightedExceedance = jsonObject["PeakDailyWeightedExceedance"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("HoursExceedeingAbsoluteLimit"))
+            if (jsonObject.ContainsKey("HoursExceedeingAbsoluteLimit"))
             {
-                hoursExceedingAbsoluteLimit = jObject.Value<int>("HoursExceedeingAbsoluteLimit");
+                hoursExceedingAbsoluteLimit = jsonObject["HoursExceedeingAbsoluteLimit"]?.GetValue<int>() ?? 0;
             }
 
-            if (jObject.ContainsKey("Pass"))
+            if (jsonObject.ContainsKey("Pass"))
             {
-                pass = jObject.Value<bool>("Pass");
+                pass = jsonObject["Pass"]?.GetValue<bool>() ?? false;
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
@@ -158,30 +159,30 @@ namespace SAM.Analytical
 
             if (occupiedHours != int.MinValue)
             {
-                result.Add("OccupiedHours", occupiedHours);
+                result["OccupiedHours"] = occupiedHours;
             }
 
             if (maxExceedableHours != int.MinValue)
             {
-                result.Add("MaxExceedableHours", maxExceedableHours);
+                result["MaxExceedableHours"] = maxExceedableHours;
             }
 
             if (hoursExceedingComfortRange != int.MinValue)
             {
-                result.Add("HoursExceedingComfortRange", hoursExceedingComfortRange);
+                result["HoursExceedingComfortRange"] = hoursExceedingComfortRange;
             }
 
             if (!double.IsNaN(peakDailyWeightedExceedance))
             {
-                result.Add("PeakDailyWeightedExceedance", peakDailyWeightedExceedance);
+                result["PeakDailyWeightedExceedance"] = peakDailyWeightedExceedance;
             }
 
             if (hoursExceedingAbsoluteLimit != int.MinValue)
             {
-                result.Add("HoursExceedingAbsoluteLimit", hoursExceedingAbsoluteLimit);
+                result["HoursExceedingAbsoluteLimit"] = hoursExceedingAbsoluteLimit;
             }
 
-            result.Add("Pass", pass);
+            result["Pass"] = pass;
 
             return result;
         }

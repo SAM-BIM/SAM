@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -74,39 +75,39 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("RadiantProportion"))
-                radiantProportion = jObject.Value<double>("RadiantProportion");
+            if (jsonObject.ContainsKey("RadiantProportion"))
+                radiantProportion = jsonObject["RadiantProportion"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("ViewCoefficient"))
-                viewCoefficient = jObject.Value<double>("ViewCoefficient");
+            if (jsonObject.ContainsKey("ViewCoefficient"))
+                viewCoefficient = jsonObject["ViewCoefficient"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("EmitterCategory"))
-                emitterCategory = jObject.Value<string>("EmitterCategory").Enum<EmitterCategory>();
+            if (jsonObject.ContainsKey("EmitterCategory"))
+                emitterCategory = jsonObject["EmitterCategory"]?.GetValue<string>().Enum<EmitterCategory>() ?? EmitterCategory.Undefined;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (!double.IsNaN(radiantProportion))
-                jObject.Add("RadiantProportion", radiantProportion);
+                jsonObject["RadiantProportion"] = radiantProportion;
 
             if (!double.IsNaN(viewCoefficient))
-                jObject.Add("ViewCoefficient", viewCoefficient);
+                jsonObject["ViewCoefficient"] = viewCoefficient;
 
             if (emitterCategory != EmitterCategory.Undefined)
-                jObject.Add("EmitterCategory", emitterCategory.ToString());
+                jsonObject["EmitterCategory"] = emitterCategory.ToString();
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

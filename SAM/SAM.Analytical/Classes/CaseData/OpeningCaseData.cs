@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -38,25 +39,25 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("OpeningAngle"))
+            if (jsonObject.ContainsKey("OpeningAngle"))
             {
-                openingAngle = jObject.Value<double>("OpeningAngle");
+                openingAngle = jsonObject["OpeningAngle"]?.GetValue<double>() ?? double.NaN;
             }
 
             return result;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
@@ -64,7 +65,7 @@ namespace SAM.Analytical
 
             if (!double.IsNaN(openingAngle))
             {
-                result.Add("OpeningAngle", openingAngle);
+                result["OpeningAngle"] = openingAngle;
             }
 
             return result;

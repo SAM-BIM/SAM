@@ -6,6 +6,7 @@ using SAM.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -114,27 +115,37 @@ namespace SAM.Analytical
             return includeSoil ? GetThickness() : constructionLayers.FindAll(x => !x.IsSoil).ConvertAll(x => x.Thickness).Sum();
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("ConstructionLayers"))
-                constructionLayers = Core.Create.IJSAMObjects<ConstructionLayer>(jObject.Value<JArray>("ConstructionLayers"));
+            if (jsonObject["ConstructionLayers"] is JsonArray constructionLayersArray)
+                constructionLayers = Core.Create.IJSAMObjects<ConstructionLayer>(constructionLayersArray);
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (constructionLayers != null)
-                jObject.Add("ConstructionLayers", Core.Create.JArray(constructionLayers));
+            {
+                JsonArray constructionLayersArray = new JsonArray();
+                foreach (ConstructionLayer layer in constructionLayers)
+                {
+                    if (layer?.ToJObject()?.Node is JsonObject layerJson)
+                    {
+                        constructionLayersArray.Add(layerJson.DeepClone());
+                    }
+                }
+                jsonObject["ConstructionLayers"] = constructionLayersArray;
+            }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

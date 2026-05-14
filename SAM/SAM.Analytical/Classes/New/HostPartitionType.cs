@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Architectural;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -122,28 +123,38 @@ namespace SAM.Analytical
             return result;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("MaterialLayers"))
-                materialLayers = Core.Create.IJSAMObjects<MaterialLayer>(jObject.Value<JArray>("MaterialLayers"));
+            if (jsonObject["MaterialLayers"] is JsonArray materialLayersArray)
+                materialLayers = Core.Create.IJSAMObjects<MaterialLayer>(materialLayersArray);
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
+            JsonObject jsonObject = base.ToJsonObject();
 
-            if (jObject == null)
-                return jObject;
+            if (jsonObject == null)
+                return jsonObject;
 
             if (materialLayers != null)
-                jObject.Add("MaterialLayers", Core.Create.JArray(materialLayers));
+            {
+                JsonArray materialLayersArray = new JsonArray();
+                foreach (MaterialLayer layer in materialLayers)
+                {
+                    if (layer?.ToJObject()?.Node is JsonObject layerJson)
+                    {
+                        materialLayersArray.Add(layerJson.DeepClone());
+                    }
+                }
+                jsonObject["MaterialLayers"] = materialLayersArray;
+            }
 
-            return jObject;
+            return jsonObject;
         }
 
     }

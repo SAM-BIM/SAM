@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -41,17 +42,17 @@ namespace SAM.Analytical
             return Values.ContainsIndex(index);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return result;
             }
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonObject valuesJson)
             {
-                Values = Core.Query.IJSAMObject<IndexedDoubles>(jObject.Value<JObject>("Values"));
+                Values = Core.Query.IJSAMObject<IndexedDoubles>(new JObject((JsonObject)valuesJson.DeepClone()));
             }
 
             return result;
@@ -77,17 +78,17 @@ namespace SAM.Analytical
             return Core.Query.Calculate(ArithmeticOperator, value, value_Temp);
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
             }
 
-            if (Values != null)
+            if (Values?.ToJObject()?.Node is JsonObject valuesJson)
             {
-                result.Add("Values", Values.ToJObject());
+                result["Values"] = valuesJson.DeepClone();
             }
 
             return result;

@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -43,26 +44,27 @@ namespace SAM.Analytical
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
             nCMNames = new List<NCMName>();
 
-            if (jObject.ContainsKey("NCMNames"))
+            if (jsonObject["NCMNames"] is JsonArray nCMNamesArray)
             {
-                JArray jArray = jObject.Value<JArray>("NCMNames");
-                foreach (JObject jObject_NCMName in jArray)
+                foreach (JsonNode node in nCMNamesArray)
                 {
-                    if (jObject_NCMName == null)
+                    if (node is JsonObject ncmNameJson)
                     {
-                        continue;
+                        nCMNames.Add(new NCMName(new JObject((JsonObject)ncmNameJson.DeepClone())));
                     }
-
-                    nCMNames.Add(new NCMName(jObject_NCMName));
                 }
-
             }
 
             return true;
@@ -75,26 +77,32 @@ namespace SAM.Analytical
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (nCMNames != null)
             {
-                JArray jArray = new JArray();
+                JsonArray nCMNamesArray = new JsonArray();
                 foreach (NCMName nCMName in nCMNames)
                 {
-                    if (nCMName == null)
+                    if (nCMName?.ToJObject()?.Node is JsonObject ncmNameJson)
                     {
-                        continue;
+                        nCMNamesArray.Add(ncmNameJson.DeepClone());
                     }
-
-                    jArray.Add(nCMName.ToJObject());
                 }
 
-                jObject.Add("NCMNames", jArray);
+                jsonObject["NCMNames"] = nCMNamesArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

@@ -10,6 +10,7 @@ using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -79,24 +80,26 @@ namespace SAM.Analytical
                 planarBoundary3D = new PlanarBoundary3D(aperture.planarBoundary3D);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            planarBoundary3D = new PlanarBoundary3D(jObject.Value<JObject>("PlanarBoundary3D"));
+            if (jsonObject["PlanarBoundary3D"] is JsonObject planarBoundary3DJson)
+                planarBoundary3D = new PlanarBoundary3D(new JObject((JsonObject)planarBoundary3DJson.DeepClone()));
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
-            jObject.Add("PlanarBoundary3D", planarBoundary3D.ToJObject());
+            if (planarBoundary3D?.ToJObject()?.Node is JsonObject planarBoundary3DJson)
+                jsonObject["PlanarBoundary3D"] = planarBoundary3DJson.DeepClone();
 
-            return jObject;
+            return jsonObject;
         }
 
         public Face3D GetFace3D()

@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -150,31 +151,31 @@ namespace SAM.Analytical
             return complexEquipmentModel?.GetFlowClassifications();
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("ComplexEquipmentModel"))
+            if (jsonObject["ComplexEquipmentModel"] is JsonObject complexEquipmentModelJson)
             {
-                complexEquipmentModel = Core.Query.IJSAMObject<ComplexEquipmentModel>(jObject.Value<JObject>("ComplexEquipmentModel"));
+                complexEquipmentModel = Core.Query.IJSAMObject<ComplexEquipmentModel>(new JObject((JsonObject)complexEquipmentModelJson.DeepClone()));
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            if (complexEquipmentModel != null)
+            if (complexEquipmentModel?.ToJObject()?.Node is JsonObject complexEquipmentModelJson)
             {
-                jObject.Add("ComplexEquipmentModel", complexEquipmentModel.ToJObject());
+                jsonObject["ComplexEquipmentModel"] = complexEquipmentModelJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

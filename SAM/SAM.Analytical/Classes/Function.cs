@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -66,22 +67,27 @@ namespace SAM.Analytical
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Name"))
+            if (jsonObject.ContainsKey("Name"))
             {
-                name = jObject.Value<string>("Name");
+                name = jsonObject["Name"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray valuesArray)
             {
                 values = [];
-                foreach (object @object in jObject.Value<JArray>("Values"))
+                foreach (JsonNode node in valuesArray)
                 {
-                    if (Core.Query.TryConvert(@object, out double value))
+                    if (node is JsonValue jsonValue && jsonValue.TryGetValue<double>(out double value))
                     {
                         values.Add(value);
                     }
@@ -117,26 +123,34 @@ namespace SAM.Analytical
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (name != null)
             {
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
             }
 
             if (values != null)
             {
-                JArray jArray = [];
+                JsonArray valuesArray = new JsonArray();
                 foreach (double value in values)
                 {
-                    jArray.Add(value);
+                    valuesArray.Add(value);
                 }
 
-                jObject.Add("Values", jArray);
+                jsonObject["Values"] = valuesArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public override string ToString()

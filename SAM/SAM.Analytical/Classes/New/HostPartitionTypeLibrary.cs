@@ -35,27 +35,6 @@ namespace SAM.Analytical
 
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-            {
-                return jObject;
-            }
-
-            return jObject;
-        }
-
         public override string GetUniqueId(HostPartitionType hostPartitionType)
         {
             if (hostPartitionType == null)

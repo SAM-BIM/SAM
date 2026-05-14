@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -34,23 +35,22 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Objects"))
+            if (jsonObject["Objects"] is JsonArray objectsArray)
             {
-                JArray jArray = jObject.Value<JArray>("Objects");
-                if (jArray != null)
+                objects = [];
+                foreach (JsonNode node in objectsArray)
                 {
-                    objects = [];
-                    foreach (JObject jObject_Temp in jArray)
+                    if (node is JsonObject objectJson)
                     {
-                        TJSAMObject @object = Core.Query.IJSAMObject<TJSAMObject>(jObject_Temp);
+                        TJSAMObject @object = Core.Query.IJSAMObject<TJSAMObject>(new JObject((JsonObject)objectJson.DeepClone()));
                         if (@object != null)
                         {
                             objects.Add(@object);
@@ -62,9 +62,9 @@ namespace SAM.Analytical
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
@@ -72,18 +72,17 @@ namespace SAM.Analytical
 
             if (objects != null)
             {
-                JArray jArray = [];
+                JsonArray objectsArray = new JsonArray();
 
                 foreach (TJSAMObject @object in objects)
                 {
-                    JObject jObject_Temp = @object.ToJObject();
-                    if (jObject_Temp != null)
+                    if (@object?.ToJObject()?.Node is JsonObject objectJson)
                     {
-                        jArray.Add(jObject_Temp);
+                        objectsArray.Add(objectJson.DeepClone());
                     }
                 }
 
-                result.Add("Objects", jArray);
+                result["Objects"] = objectsArray;
             }
 
             return result;
@@ -106,16 +105,5 @@ namespace SAM.Analytical
             : base(jObject)
         {
         }
-
-        public override JObject ToJObject()
-        {
-            return base.ToJObject();
-        }
-
-        public override bool FromJObject(JObject jObject)
-        {
-            return base.FromJObject(jObject);
-        }
-
     }
 }

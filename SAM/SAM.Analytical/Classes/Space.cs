@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry.Spatial;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -117,16 +118,16 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Location"))
-                location = new Point3D(jObject.Value<JObject>("Location"));
+            if (jsonObject["Location"] is JsonObject locationJson)
+                location = new Point3D(new JObject((JsonObject)locationJson.DeepClone()));
 
-            if (jObject.ContainsKey("InternalCondition"))
-                internalCondition = new InternalCondition(jObject.Value<JObject>("InternalCondition"));
+            if (jsonObject["InternalCondition"] is JsonObject internalConditionJson)
+                internalCondition = new InternalCondition(new JObject((JsonObject)internalConditionJson.DeepClone()));
 
             return true;
         }
@@ -140,19 +141,19 @@ namespace SAM.Analytical
             location = location?.GetMoved(vector3D) as Point3D;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
-            if (location != null)
-                jObject.Add("Location", location.ToJObject());
+            if (location?.ToJObject()?.Node is JsonObject locationJson)
+                jsonObject["Location"] = locationJson.DeepClone();
 
-            if (internalCondition != null)
-                jObject.Add("InternalCondition", internalCondition.ToJObject());
+            if (internalCondition?.ToJObject()?.Node is JsonObject internalConditionJson)
+                jsonObject["InternalCondition"] = internalConditionJson.DeepClone();
 
-            return jObject;
+            return jsonObject;
         }
 
         public void Transform(Transform3D transform3D)

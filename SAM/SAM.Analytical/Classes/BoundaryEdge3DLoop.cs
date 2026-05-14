@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry.Spatial;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -60,23 +61,35 @@ namespace SAM.Analytical
             boundaryEdge3Ds.ForEach(x => x.Transform(transform3D));
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            boundaryEdge3Ds = Core.Create.IJSAMObjects<BoundaryEdge3D>(jObject.Value<JArray>("BoundaryEdge3Ds"));
+            if (jsonObject["BoundaryEdge3Ds"] is JsonArray boundaryEdge3DsArray)
+                boundaryEdge3Ds = Core.Create.IJSAMObjects<BoundaryEdge3D>(boundaryEdge3DsArray);
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("BoundaryEdge3Ds", Core.Create.JArray(boundaryEdge3Ds));
-            return jObject;
+            if (boundaryEdge3Ds != null)
+            {
+                JsonArray boundaryEdge3DsArray = new JsonArray();
+                foreach (BoundaryEdge3D edge in boundaryEdge3Ds)
+                {
+                    if (edge?.ToJObject()?.Node is JsonObject edgeJson)
+                    {
+                        boundaryEdge3DsArray.Add(edgeJson.DeepClone());
+                    }
+                }
+                jsonObject["BoundaryEdge3Ds"] = boundaryEdge3DsArray;
+            }
+            return jsonObject;
         }
     }
 }

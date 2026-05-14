@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -57,35 +58,35 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Profile"))
+            if (jsonObject["Profile"] is JsonObject profileJson)
             {
-                profile = Core.Query.IJSAMObject<Profile>(jObject.Value<JObject>("Profile"));
+                profile = Core.Query.IJSAMObject<Profile>(new JObject((JsonObject)profileJson.DeepClone()));
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (profile != null)
+            if (profile?.ToJObject()?.Node is JsonObject profileJson)
             {
-                jObject.Add("Profile", profile.ToJObject());
+                jsonObject["Profile"] = profileJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

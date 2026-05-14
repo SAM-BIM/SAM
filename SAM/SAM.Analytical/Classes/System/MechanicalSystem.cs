@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -55,29 +56,29 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Id"))
+            if (jsonObject.ContainsKey("Id"))
             {
-                id = jObject.Value<string>("Id");
+                id = jsonObject["Id"]?.GetValue<string>();
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (id != null)
-                jObject.Add("Id", id);
+                jsonObject["Id"] = id;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -70,135 +71,135 @@ namespace SAM.Analytical
 
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Description"))
+            if (jsonObject.ContainsKey("Description"))
             {
-                description = jObject.Value<string>("Description");
+                description = jsonObject["Description"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("SurfaceHeight"))
+            if (jsonObject.ContainsKey("SurfaceHeight"))
             {
-                surfaceHeight = jObject.Value<double>("SurfaceHeight");
+                surfaceHeight = jsonObject["SurfaceHeight"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("SurfaceWidth"))
+            if (jsonObject.ContainsKey("SurfaceWidth"))
             {
-                surfaceWidth = jObject.Value<double>("SurfaceWidth");
+                surfaceWidth = jsonObject["SurfaceWidth"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("LeftFinDepth"))
+            if (jsonObject.ContainsKey("LeftFinDepth"))
             {
-                leftFinDepth = jObject.Value<double>("LeftFinDepth");
+                leftFinDepth = jsonObject["LeftFinDepth"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("LeftFinDepth"))
+            if (jsonObject.ContainsKey("LeftFinDepth"))
             {
-                leftFinDepth = jObject.Value<double>("LeftFinDepth");
+                leftFinDepth = jsonObject["LeftFinDepth"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("LeftFinOffset"))
+            if (jsonObject.ContainsKey("LeftFinOffset"))
             {
-                leftFinOffset = jObject.Value<double>("LeftFinOffset");
+                leftFinOffset = jsonObject["LeftFinOffset"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("RightFinTransmittance"))
+            if (jsonObject.ContainsKey("RightFinTransmittance"))
             {
-                rightFinTransmittance = jObject.Value<double>("RightFinTransmittance");
+                rightFinTransmittance = jsonObject["RightFinTransmittance"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("OverhangDepth"))
+            if (jsonObject.ContainsKey("OverhangDepth"))
             {
-                overhangDepth = jObject.Value<double>("OverhangDepth");
+                overhangDepth = jsonObject["OverhangDepth"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("OverhangOffset"))
+            if (jsonObject.ContainsKey("OverhangOffset"))
             {
-                overhangOffset = jObject.Value<double>("OverhangOffset");
+                overhangOffset = jsonObject["OverhangOffset"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("OverhangTransmittance"))
+            if (jsonObject.ContainsKey("OverhangTransmittance"))
             {
-                overhangTransmittance = jObject.Value<double>("OverhangTransmittance");
+                overhangTransmittance = jsonObject["OverhangTransmittance"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
             if (description is not null)
             {
-                jObject.Add("Description", description);
+                jsonObject["Description"] = description;
             }
 
             if (!double.IsNaN(surfaceHeight))
             {
-                jObject.Add("SurfaceHeight", surfaceHeight);
+                jsonObject["SurfaceHeight"] = surfaceHeight;
             }
 
             if (!double.IsNaN(surfaceWidth))
             {
-                jObject.Add("SurfaceWidth", surfaceWidth);
+                jsonObject["SurfaceWidth"] = surfaceWidth;
             }
 
             if (!double.IsNaN(leftFinDepth))
             {
-                jObject.Add("LeftFinDepth", leftFinDepth);
+                jsonObject["LeftFinDepth"] = leftFinDepth;
             }
 
             if (!double.IsNaN(leftFinOffset))
             {
-                jObject.Add("LeftFinOffset", leftFinOffset);
+                jsonObject["LeftFinOffset"] = leftFinOffset;
             }
 
             if (!double.IsNaN(leftFinTransmittance))
             {
-                jObject.Add("LeftFinTransmittance", leftFinTransmittance);
+                jsonObject["LeftFinTransmittance"] = leftFinTransmittance;
             }
 
             if (!double.IsNaN(rightFinDepth))
             {
-                jObject.Add("RightFinDepth", rightFinDepth);
+                jsonObject["RightFinDepth"] = rightFinDepth;
             }
 
             if (!double.IsNaN(rightFinOffset))
             {
-                jObject.Add("RightFinOffset", rightFinOffset);
+                jsonObject["RightFinOffset"] = rightFinOffset;
             }
 
             if (!double.IsNaN(rightFinTransmittance))
             {
-                jObject.Add("RightFinTransmittance", rightFinTransmittance);
+                jsonObject["RightFinTransmittance"] = rightFinTransmittance;
             }
 
             if (!double.IsNaN(overhangDepth))
             {
-                jObject.Add("OverhangDepth", overhangDepth);
+                jsonObject["OverhangDepth"] = overhangDepth;
             }
 
             if (!double.IsNaN(overhangOffset))
             {
-                jObject.Add("OverhangOffset", overhangOffset);
+                jsonObject["OverhangOffset"] = overhangOffset;
             }
 
             if (!double.IsNaN(overhangTransmittance))
             {
-                jObject.Add("OverhangTransmittance", overhangTransmittance);
+                jsonObject["OverhangTransmittance"] = overhangTransmittance;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public string Description

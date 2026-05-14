@@ -7,6 +7,7 @@ using SAM.Geometry.Planar;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -1251,17 +1252,23 @@ namespace SAM.Analytical
             return true;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Category"))
-                category = jObject.Value<string>("Category");
+            if (jsonObject.ContainsKey("Category"))
+                category = jsonObject["Category"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("Values"))
+            // Route through the JObject shim so the JTokenType-based Float/Integer/
+            // Object distinguisher (which mirrors the legacy Newtonsoft semantics)
+            // is preserved exactly. Reading the JsonArray directly via STJ would
+            // collapse Float vs Integer for whole-number values (STJ TryGetInt32
+            // succeeds for both `1` and `1.0`), changing the Profile wire format.
+            JObject jObjectWrapper = new JObject(jsonObject);
+            if (jObjectWrapper.ContainsKey("Values"))
             {
-                JArray jArray = jObject.Value<JArray>("Values");
+                JArray jArray = jObjectWrapper.Value<JArray>("Values");
                 if (jArray != null)
                 {
                     values = new SortedList<int, Tuple<Range<int>, AnyOf<double, Profile>>>();
@@ -1308,47 +1315,55 @@ namespace SAM.Analytical
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
             if (category != null)
-                jObject.Add("Category", category);
+                jsonObject["Category"] = category;
 
             if (values != null)
             {
-                JArray jArray = new JArray();
+                // Build entries via the JArray shim so doubles emit as "1.0"
+                // (the shim's ToNode/FormatFloatingPoint adds the .0 suffix).
+                // STJ's default JsonValue<double> writer drops trailing zeros,
+                // which would round-trip "1.0" -> "1" -> Integer-typed on the
+                // next read, silently dropping case 3 Float entries.
+                JArray valuesJArray = new JArray();
                 foreach (KeyValuePair<int, Tuple<Range<int>, AnyOf<double, Profile>>> keyValuePair in values)
                 {
-                    JArray jArray_Temp = new JArray();
-                    jArray_Temp.Add(keyValuePair.Key);
+                    JArray entryJArray = new JArray();
+                    entryJArray.Add(keyValuePair.Key);
 
                     Tuple<Range<int>, AnyOf<double, Profile>> tuple = keyValuePair.Value;
                     if (tuple != null)
                     {
                         if (tuple.Item1 != null)
-                            jArray_Temp.Add(tuple.Item1.Max);
+                            entryJArray.Add(tuple.Item1.Max);
 
                         AnyOf<double, Profile> value = tuple.Item2;
                         if (value != null)
                         {
                             if (value.Value is double)
-                                jArray_Temp.Add(value.Value);
+                                entryJArray.Add(value.Value);
                             else if (value.Value != null)
-                                jArray_Temp.Add((value.Value as Profile).ToJObject());
+                                entryJArray.Add((value.Value as Profile).ToJObject());
                         }
                     }
 
-                    jArray.Add(jArray_Temp);
+                    valuesJArray.Add(entryJArray);
                 }
 
-                jObject.Add("Values", jArray);
+                if (valuesJArray.Node is JsonArray valuesNode)
+                {
+                    jsonObject["Values"] = (JsonArray)valuesNode.DeepClone();
+                }
             }
 
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

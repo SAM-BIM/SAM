@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -48,33 +49,29 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("TM59SpaceApplications"))
+            if (jsonObject["TM59SpaceApplications"] is JsonArray tM59SpaceApplicationsArray)
             {
-                JArray jArray = jObject.Value<JArray>("TM59SpaceApplications");
-                if (jArray != null)
+                tM59SpaceApplications = new HashSet<TM59SpaceApplication>();
+                foreach (JsonNode node in tM59SpaceApplicationsArray)
                 {
-                    tM59SpaceApplications = new HashSet<TM59SpaceApplication>();
-                    foreach (string text in jArray)
-                    {
-                        TM59SpaceApplication tM59SpaceApplication = Core.Query.Enum<TM59SpaceApplication>(text);
-                        tM59SpaceApplications.Add(tM59SpaceApplication);
-                    }
+                    TM59SpaceApplication tM59SpaceApplication = Core.Query.Enum<TM59SpaceApplication>(node?.GetValue<string>());
+                    tM59SpaceApplications.Add(tM59SpaceApplication);
                 }
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
@@ -82,13 +79,13 @@ namespace SAM.Analytical
 
             if (tM59SpaceApplications != null)
             {
-                JArray jArray = new JArray();
+                JsonArray tM59SpaceApplicationsArray = new JsonArray();
                 foreach (TM59SpaceApplication tM59SpaceApplication in tM59SpaceApplications)
                 {
-                    jArray.Add(tM59SpaceApplication.ToString());
+                    tM59SpaceApplicationsArray.Add(tM59SpaceApplication.ToString());
                 }
 
-                result.Add("TM59SpaceApplications", jArray);
+                result["TM59SpaceApplications"] = tM59SpaceApplicationsArray;
             }
 
             return result;

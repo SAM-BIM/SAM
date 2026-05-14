@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -173,71 +174,71 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("FluidReturnTemperature"))
+            if (jsonObject.ContainsKey("FluidReturnTemperature"))
             {
-                fluidReturnTemperature = jObject.Value<double>("FluidReturnTemperature");
+                fluidReturnTemperature = jsonObject["FluidReturnTemperature"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("FluidSupplyTemperature"))
+            if (jsonObject.ContainsKey("FluidSupplyTemperature"))
             {
-                fluidSupplyTemperature = jObject.Value<double>("FluidSupplyTemperature");
+                fluidSupplyTemperature = jsonObject["FluidSupplyTemperature"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("ContactFactor"))
+            if (jsonObject.ContainsKey("ContactFactor"))
             {
-                contactFactor = jObject.Value<double>("ContactFactor");
+                contactFactor = jsonObject["ContactFactor"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("SummerOffTemperature"))
+            if (jsonObject.ContainsKey("SummerOffTemperature"))
             {
-                summerOffTemperature = jObject.Value<double>("SummerOffTemperature");
+                summerOffTemperature = jsonObject["SummerOffTemperature"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("WinterOffTemperature"))
+            if (jsonObject.ContainsKey("WinterOffTemperature"))
             {
-                winterOffTemperature = jObject.Value<double>("WinterOffTemperature");
+                winterOffTemperature = jsonObject["WinterOffTemperature"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (!double.IsNaN(fluidSupplyTemperature))
             {
-                jObject.Add("FluidSupplyTemperature", fluidSupplyTemperature);
+                jsonObject["FluidSupplyTemperature"] = fluidSupplyTemperature;
             }
 
             if (!double.IsNaN(fluidReturnTemperature))
             {
-                jObject.Add("FluidReturnTemperature", fluidReturnTemperature);
+                jsonObject["FluidReturnTemperature"] = fluidReturnTemperature;
             }
 
             if (!double.IsNaN(contactFactor))
             {
-                jObject.Add("ContactFactor", contactFactor);
+                jsonObject["ContactFactor"] = contactFactor;
             }
 
             if (!double.IsNaN(summerOffTemperature))
             {
-                jObject.Add("SummerOffTemperature", summerOffTemperature);
+                jsonObject["SummerOffTemperature"] = summerOffTemperature;
             }
 
             if (!double.IsNaN(winterOffTemperature))
             {
-                jObject.Add("WinterOffTemperature", winterOffTemperature);
+                jsonObject["WinterOffTemperature"] = winterOffTemperature;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

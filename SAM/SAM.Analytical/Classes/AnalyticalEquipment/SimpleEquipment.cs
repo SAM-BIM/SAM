@@ -36,25 +36,5 @@ namespace SAM.Analytical
 
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-                return false;
-
-            // TODO: Implement specific deserialization logic for AirHandlingUnit properties
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return null;
-
-            // TODO: Implement specific serialization logic for AirHandlingUnit properties
-
-            return jObject;
-        }
     }
 }

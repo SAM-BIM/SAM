@@ -6,6 +6,7 @@ using SAM.Core;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -93,20 +94,24 @@ namespace SAM.Analytical.Classes
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray valuesArray)
             {
-                JArray jArray = jObject.Value<JArray>("Values");
-                if (jArray != null)
+                values = [];
+                foreach (JsonNode node in valuesArray)
                 {
-                    values = [];
-                    foreach (JObject jObject_Temp in jArray)
+                    if (node is JsonObject caseJson)
                     {
-                        Case @case = Core.Query.IJSAMObject<Case>(jObject_Temp);
+                        Case @case = Core.Query.IJSAMObject<Case>(new JObject((JsonObject)caseJson.DeepClone()));
                         if (@case == null)
                         {
                             continue;
@@ -151,21 +156,29 @@ namespace SAM.Analytical.Classes
 
         public virtual JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (values != null)
             {
-                JArray jArray = [];
+                JsonArray valuesArray = new JsonArray();
                 foreach (Case value in values)
                 {
-                    if (value?.ToJObject() is JObject jObject_Temp)
+                    if (value?.ToJObject()?.Node is JsonObject valueJson)
                     {
-                        jArray.Add(jObject_Temp);
+                        valuesArray.Add(valueJson.DeepClone());
                     }
                 }
 
-                result.Add("Values", jArray);
+                result["Values"] = valuesArray;
             }
 
             return result;

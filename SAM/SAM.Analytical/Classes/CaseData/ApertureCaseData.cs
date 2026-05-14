@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -40,30 +41,29 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Ratios"))
+            if (jsonObject["Ratios"] is JsonArray ratiosArray)
             {
                 ratios = [];
-                JArray jArray = jObject.Value<JArray>("Ratios");
-                foreach (double value in jArray)
+                foreach (JsonNode node in ratiosArray)
                 {
-                    ratios.Add(value);
+                    ratios.Add(node?.GetValue<double>() ?? double.NaN);
                 }
             }
 
             return result;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
@@ -71,7 +71,12 @@ namespace SAM.Analytical
 
             if (ratios != null)
             {
-                result.Add("Rations", new JArray(ratios));
+                JsonArray rationsArray = new JsonArray();
+                foreach (double value in ratios)
+                {
+                    rationsArray.Add(value);
+                }
+                result["Rations"] = rationsArray;
             }
 
             return result;

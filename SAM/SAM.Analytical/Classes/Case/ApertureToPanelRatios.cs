@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -57,21 +58,28 @@ namespace SAM.Analytical.Classes
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ApertureToPanelRatios"))
+            if (jsonObject["ApertureToPanelRatios"] is JsonArray apertureToPanelRatiosArray)
             {
                 apertureToPanelRatios = [];
-                JArray jArray = jObject.Value<JArray>("ApertureToPanelRatios");
-                foreach (JObject jObject_ApertureToPanelRatio in jArray)
+                foreach (JsonNode node in apertureToPanelRatiosArray)
                 {
-                    ApertureToPanelRatio apertureToPanelRatio = Core.Query.IJSAMObject<ApertureToPanelRatio>(jObject_ApertureToPanelRatio);
-                    if (apertureToPanelRatio is not null)
+                    if (node is JsonObject apertureToPanelRatioJson)
                     {
-                        apertureToPanelRatios.Add(apertureToPanelRatio);
+                        ApertureToPanelRatio apertureToPanelRatio = Core.Query.IJSAMObject<ApertureToPanelRatio>(new JObject((JsonObject)apertureToPanelRatioJson.DeepClone()));
+                        if (apertureToPanelRatio is not null)
+                        {
+                            apertureToPanelRatios.Add(apertureToPanelRatio);
+                        }
                     }
                 }
             }
@@ -81,18 +89,29 @@ namespace SAM.Analytical.Classes
 
         public virtual JObject ToJObject()
         {
-            JObject result = new();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (apertureToPanelRatios != null)
             {
-                JArray jArray = [];
+                JsonArray apertureToPanelRatiosArray = new JsonArray();
                 foreach (ApertureToPanelRatio apertureToPanelRatio in apertureToPanelRatios)
                 {
-                    jArray.Add(apertureToPanelRatio.ToJObject());
+                    if (apertureToPanelRatio?.ToJObject()?.Node is JsonObject apertureToPanelRatioJson)
+                    {
+                        apertureToPanelRatiosArray.Add(apertureToPanelRatioJson.DeepClone());
+                    }
                 }
 
-                result.Add("ApertureToPanelRatios", jArray);
+                result["ApertureToPanelRatios"] = apertureToPanelRatiosArray;
             }
 
             return result;

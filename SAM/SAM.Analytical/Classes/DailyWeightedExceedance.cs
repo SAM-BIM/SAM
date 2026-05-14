@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -82,19 +83,24 @@ namespace SAM.Analytical
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("DayIndex"))
+            if (jsonObject.ContainsKey("DayIndex"))
             {
-                dayIndex = jObject.Value<int>("DayIndex");
+                dayIndex = jsonObject["DayIndex"]?.GetValue<int>() ?? 0;
             }
 
-            if (jObject.ContainsKey("TemperatureDifferences"))
+            if (jsonObject["TemperatureDifferences"] is JsonObject temperatureDifferencesJson)
             {
-                temperatureDifferences = new IndexedDoubles(jObject.Value<JObject>("TemperatureDifferences"));
+                temperatureDifferences = new IndexedDoubles(new JObject((JsonObject)temperatureDifferencesJson.DeepClone()));
             }
 
             return true;
@@ -102,20 +108,28 @@ namespace SAM.Analytical
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (dayIndex != -1)
             {
-                jObject.Add("DayIndex", dayIndex);
+                jsonObject["DayIndex"] = dayIndex;
             }
 
-            if (temperatureDifferences != null)
+            if (temperatureDifferences?.ToJObject()?.Node is JsonObject temperatureDifferencesJson)
             {
-                jObject.Add("TemperatureDifferences", temperatureDifferences.ToJObject());
+                jsonObject["TemperatureDifferences"] = temperatureDifferencesJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public IndexedDoubles TemperatureDifferences

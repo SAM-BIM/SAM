@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -75,37 +76,37 @@ namespace SAM.Analytical
             return result;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Sensible"))
-                sensible = jObject.Value<double>("Sensible");
+            if (jsonObject.ContainsKey("Sensible"))
+                sensible = jsonObject["Sensible"]?.GetValue<double>() ?? double.NaN;
             else
                 sensible = double.NaN;
 
-            if (jObject.ContainsKey("Latent"))
-                latent = jObject.Value<double>("Latent");
+            if (jsonObject.ContainsKey("Latent"))
+                latent = jsonObject["Latent"]?.GetValue<double>() ?? double.NaN;
             else
                 latent = double.NaN;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
             if (sensible != double.NaN)
-                jObject.Add("Sensible", sensible);
+                jsonObject["Sensible"] = sensible;
 
             if (latent != double.NaN)
-                jObject.Add("Latent", latent);
+                jsonObject["Latent"] = latent;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

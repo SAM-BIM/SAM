@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry.Spatial;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -49,35 +50,35 @@ namespace SAM.Analytical
         {
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Location"))
+            if (jsonObject["Location"] is JsonObject locationJson)
             {
-                location = new Point3D(jObject.Value<JObject>("Location"));
+                location = new Point3D(new JObject((JsonObject)locationJson.DeepClone()));
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (location != null)
+            if (location?.ToJObject()?.Node is JsonObject locationJson)
             {
-                jObject.Add("Location", location.ToJObject());
+                jsonObject["Location"] = locationJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

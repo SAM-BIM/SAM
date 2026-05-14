@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -33,30 +34,33 @@ namespace SAM.Analytical.Classes
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
-
-            //if (jObject.ContainsKey("Name"))
-            //{
-            //    name = jObject.Value<string>("Name");
-            //}
 
             return true;
         }
 
         public virtual JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
 
-            //if (name != null)
-            //{
-            //    jObject.Add("Name", name);
-            //}
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
-            return result;
+            return jsonObject;
         }
     }
 }

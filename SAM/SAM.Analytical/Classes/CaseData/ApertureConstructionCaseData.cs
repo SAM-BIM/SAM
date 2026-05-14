@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -39,33 +40,33 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ApertureConstruction"))
+            if (jsonObject["ApertureConstruction"] is JsonObject apertureConstructionJson)
             {
-                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(jObject.Value<JObject>("ApertureConstruction"));
+                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(new JObject((JsonObject)apertureConstructionJson.DeepClone()));
             }
 
             return result;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
             }
 
-            if (apertureConstruction is not null)
+            if (apertureConstruction?.ToJObject()?.Node is JsonObject apertureConstructionJson)
             {
-                result.Add("ApertureConstruction", apertureConstruction.ToJObject());
+                result["ApertureConstruction"] = apertureConstructionJson.DeepClone();
             }
 
             return result;

@@ -162,21 +162,5 @@ namespace SAM.Analytical
             return systemTypeLibrary.GetSystemTypes<T>(name).FirstOrDefault();
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-                return false;
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
-
-            return jObject;
-        }
     }
 }

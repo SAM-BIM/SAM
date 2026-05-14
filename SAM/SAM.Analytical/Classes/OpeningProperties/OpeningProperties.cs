@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -46,45 +47,45 @@ namespace SAM.Analytical
             this.dischargeCoefficient = dischargeCoefficient;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("DischargeCoefficient"))
+            if (jsonObject.ContainsKey("DischargeCoefficient"))
             {
-                dischargeCoefficient = jObject.Value<double>("DischargeCoefficient");
+                dischargeCoefficient = jsonObject["DischargeCoefficient"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("Factor"))
+            if (jsonObject.ContainsKey("Factor"))
             {
-                Factor = jObject.Value<double>("Factor");
+                Factor = jsonObject["Factor"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
             if (!double.IsNaN(dischargeCoefficient))
             {
-                jObject.Add("DischargeCoefficient", dischargeCoefficient);
+                jsonObject["DischargeCoefficient"] = dischargeCoefficient;
             }
 
             if (!double.IsNaN(Factor))
             {
-                jObject.Add("Factor", Factor);
+                jsonObject["Factor"] = Factor;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public double GetDischargeCoefficient()

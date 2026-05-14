@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -89,75 +90,75 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Heating"))
+            if (jsonObject["Heating"] is JsonObject heatingJson)
             {
-                heating = new Profile(jObject.Value<JObject>("Heating"));
+                heating = new Profile(new JObject((JsonObject)heatingJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("Cooling"))
+            if (jsonObject["Cooling"] is JsonObject coolingJson)
             {
-                cooling = new Profile(jObject.Value<JObject>("Cooling"));
+                cooling = new Profile(new JObject((JsonObject)coolingJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("Humidification"))
+            if (jsonObject["Humidification"] is JsonObject humidificationJson)
             {
-                humidification = new Profile(jObject.Value<JObject>("Humidification"));
+                humidification = new Profile(new JObject((JsonObject)humidificationJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("Dehumidification"))
+            if (jsonObject["Dehumidification"] is JsonObject dehumidificationJson)
             {
-                dehumidification = new Profile(jObject.Value<JObject>("Dehumidification"));
+                dehumidification = new Profile(new JObject((JsonObject)dehumidificationJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("Density"))
+            if (jsonObject["Density"] is JsonObject densityJson)
             {
-                density = new Profile(jObject.Value<JObject>("Density"));
+                density = new Profile(new JObject((JsonObject)densityJson.DeepClone()));
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (heating != null)
+            if (heating?.ToJObject()?.Node is JsonObject heatingJson)
             {
-                jObject.Add("Heating", heating.ToJObject());
+                jsonObject["Heating"] = heatingJson.DeepClone();
             }
 
-            if (cooling != null)
+            if (cooling?.ToJObject()?.Node is JsonObject coolingJson)
             {
-                jObject.Add("Cooling", cooling.ToJObject());
+                jsonObject["Cooling"] = coolingJson.DeepClone();
             }
 
-            if (humidification != null)
+            if (humidification?.ToJObject()?.Node is JsonObject humidificationJson)
             {
-                jObject.Add("Humidification", humidification.ToJObject());
+                jsonObject["Humidification"] = humidificationJson.DeepClone();
             }
 
-            if (dehumidification != null)
+            if (dehumidification?.ToJObject()?.Node is JsonObject dehumidificationJson)
             {
-                jObject.Add("Dehumidification", dehumidification.ToJObject());
+                jsonObject["Dehumidification"] = dehumidificationJson.DeepClone();
             }
 
-            if (density != null)
+            if (density?.ToJObject()?.Node is JsonObject densityJson)
             {
-                jObject.Add("Density", density.ToJObject());
+                jsonObject["Density"] = densityJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

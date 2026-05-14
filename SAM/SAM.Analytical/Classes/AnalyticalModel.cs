@@ -9,6 +9,7 @@ using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -415,28 +416,28 @@ namespace SAM.Analytical
             return adjacencyCluster.AddObject(new Zone(zone));
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Description"))
-                description = jObject.Value<string>("Description");
+            if (jsonObject.ContainsKey("Description"))
+                description = jsonObject["Description"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("Location"))
-                location = new Location(jObject.Value<JObject>("Location"));
+            if (jsonObject["Location"] is JsonObject locationJson)
+                location = new Location(new JObject((JsonObject)locationJson.DeepClone()));
 
-            if (jObject.ContainsKey("Address"))
-                address = new Address(jObject.Value<JObject>("Address"));
+            if (jsonObject["Address"] is JsonObject addressJson)
+                address = new Address(new JObject((JsonObject)addressJson.DeepClone()));
 
-            if (jObject.ContainsKey("AdjacencyCluster"))
-                adjacencyCluster = new AdjacencyCluster(jObject.Value<JObject>("AdjacencyCluster"));
+            if (jsonObject["AdjacencyCluster"] is JsonObject adjacencyClusterJson)
+                adjacencyCluster = new AdjacencyCluster(new JObject((JsonObject)adjacencyClusterJson.DeepClone()));
 
-            if (jObject.ContainsKey("MaterialLibrary"))
-                materialLibrary = new MaterialLibrary(jObject.Value<JObject>("MaterialLibrary"));
+            if (jsonObject["MaterialLibrary"] is JsonObject materialLibraryJson)
+                materialLibrary = new MaterialLibrary(new JObject((JsonObject)materialLibraryJson.DeepClone()));
 
-            if (jObject.ContainsKey("ProfileLibrary"))
-                profileLibrary = new ProfileLibrary(jObject.Value<JObject>("ProfileLibrary"));
+            if (jsonObject["ProfileLibrary"] is JsonObject profileLibraryJson)
+                profileLibrary = new ProfileLibrary(new JObject((JsonObject)profileLibraryJson.DeepClone()));
 
             return true;
         }
@@ -819,31 +820,31 @@ namespace SAM.Analytical
             return result;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
             if (description != null)
-                jObject.Add("Description", description);
+                jsonObject["Description"] = description;
 
-            if (location != null)
-                jObject.Add("Location", location.ToJObject());
+            if (location?.ToJObject()?.Node is JsonObject locationJson)
+                jsonObject["Location"] = locationJson.DeepClone();
 
-            if (address != null)
-                jObject.Add("Address", address.ToJObject());
+            if (address?.ToJObject()?.Node is JsonObject addressJson)
+                jsonObject["Address"] = addressJson.DeepClone();
 
-            if (adjacencyCluster != null)
-                jObject.Add("AdjacencyCluster", adjacencyCluster.ToJObject());
+            if (adjacencyCluster?.ToJObject()?.Node is JsonObject adjacencyClusterJson)
+                jsonObject["AdjacencyCluster"] = adjacencyClusterJson.DeepClone();
 
-            if (materialLibrary != null)
-                jObject.Add("MaterialLibrary", materialLibrary.ToJObject());
+            if (materialLibrary?.ToJObject()?.Node is JsonObject materialLibraryJson)
+                jsonObject["MaterialLibrary"] = materialLibraryJson.DeepClone();
 
-            if (profileLibrary != null)
-                jObject.Add("ProfileLibrary", profileLibrary.ToJObject());
+            if (profileLibrary?.ToJObject()?.Node is JsonObject profileLibraryJson)
+                jsonObject["ProfileLibrary"] = profileLibraryJson.DeepClone();
 
-            return jObject;
+            return jsonObject;
         }
 
         public void Transform(Transform3D transform3D)

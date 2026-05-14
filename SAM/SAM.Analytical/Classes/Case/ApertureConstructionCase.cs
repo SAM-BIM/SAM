@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -61,43 +62,43 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ApertureConstruction"))
+            if (jsonObject["ApertureConstruction"] is JsonObject apertureConstructionJson)
             {
-                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(jObject.Value<JObject>("ApertureConstruction"));
+                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(new JObject((JsonObject)apertureConstructionJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("CaseSelection"))
+            if (jsonObject["CaseSelection"] is JsonObject caseSelectionJson)
             {
-                caseSelection = Core.Query.IJSAMObject<CaseSelection>(jObject.Value<JObject>("CaseSelection"));
+                caseSelection = Core.Query.IJSAMObject<CaseSelection>(new JObject((JsonObject)caseSelectionJson.DeepClone()));
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
             }
 
-            if (apertureConstruction != null)
+            if (apertureConstruction?.ToJObject()?.Node is JsonObject apertureConstructionJson)
             {
-                result.Add("ApertureConstruction", apertureConstruction.ToJObject());
+                result["ApertureConstruction"] = apertureConstructionJson.DeepClone();
             }
 
-            if (caseSelection != null)
+            if (caseSelection?.ToJObject()?.Node is JsonObject caseSelectionJson)
             {
-                result.Add("CaseSelection", caseSelection.ToJObject());
+                result["CaseSelection"] = caseSelectionJson.DeepClone();
             }
 
             return result;

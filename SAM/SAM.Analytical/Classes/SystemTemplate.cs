@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -160,39 +161,44 @@ namespace SAM.Analytical
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Ventilation"))
+            if (jsonObject.ContainsKey("Ventilation"))
             {
-                ventilation = jObject.Value<string>("Ventilation");
+                ventilation = jsonObject["Ventilation"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Heating"))
+            if (jsonObject.ContainsKey("Heating"))
             {
-                heating = jObject.Value<string>("Heating");
+                heating = jsonObject["Heating"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Cooling"))
+            if (jsonObject.ContainsKey("Cooling"))
             {
-                cooling = jObject.Value<string>("Cooling");
+                cooling = jsonObject["Cooling"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("PlantRoom"))
+            if (jsonObject.ContainsKey("PlantRoom"))
             {
-                plantRoom = jObject.Value<string>("PlantRoom");
+                plantRoom = jsonObject["PlantRoom"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Controls"))
+            if (jsonObject.ContainsKey("Controls"))
             {
-                controls = jObject.Value<string>("Controls");
+                controls = jsonObject["Controls"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Version"))
+            if (jsonObject.ContainsKey("Version"))
             {
-                version = jObject.Value<string>("Version");
+                version = jsonObject["Version"]?.GetValue<string>();
             }
 
 
@@ -206,41 +212,49 @@ namespace SAM.Analytical
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (ventilation != null)
             {
-                jObject.Add("Ventilation", ventilation);
+                jsonObject["Ventilation"] = ventilation;
             }
 
             if (heating != null)
             {
-                jObject.Add("Heating", heating);
+                jsonObject["Heating"] = heating;
             }
 
             if (cooling != null)
             {
-                jObject.Add("Cooling", cooling);
+                jsonObject["Cooling"] = cooling;
             }
 
             if (plantRoom != null)
             {
-                jObject.Add("PlantRoom", plantRoom);
+                jsonObject["PlantRoom"] = plantRoom;
             }
 
             if (controls != null)
             {
-                jObject.Add("Controls", controls);
+                jsonObject["Controls"] = controls;
             }
 
             if (version != null)
             {
-                jObject.Add("Version", version);
+                jsonObject["Version"] = version;
             }
 
 
-            return jObject;
+            return jsonObject;
         }
 
         public override string ToString()

@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -477,24 +478,23 @@ namespace SAM.Analytical
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("SimpleEquipments"))
+            if (jsonObject["SimpleEquipments"] is JsonArray simpleEquipmentsArray)
             {
-                JArray jArray = jObject.Value<JArray>("SimpleEquipments");
-                if (jArray != null)
+                foreach (JsonNode node in simpleEquipmentsArray)
                 {
-                    foreach (JObject jObject_SimpleEquipment in jArray)
+                    if (node is JsonObject simpleEquipmentJson)
                     {
-                        if (jObject_SimpleEquipment == null)
-                        {
-                            continue;
-                        }
-
-                        ISimpleEquipment simpleEquipment = Core.Query.IJSAMObject<ISimpleEquipment>(jObject_SimpleEquipment);
+                        ISimpleEquipment simpleEquipment = Core.Query.IJSAMObject<ISimpleEquipment>(new JObject((JsonObject)simpleEquipmentJson.DeepClone()));
                         if (simpleEquipment != null)
                         {
                             Add(simpleEquipment);
@@ -503,19 +503,13 @@ namespace SAM.Analytical
                 }
             }
 
-            if (jObject.ContainsKey("Relations"))
+            if (jsonObject["Relations"] is JsonArray relationsArray)
             {
-                JArray jArray = jObject.Value<JArray>("Relations");
-                if (jArray != null)
+                foreach (JsonNode node in relationsArray)
                 {
-                    foreach (JObject jObject_Relation in jArray)
+                    if (node is JsonObject relationJson)
                     {
-                        if (jObject_Relation == null)
-                        {
-                            continue;
-                        }
-
-                        Relation relation = Core.Query.IJSAMObject<Relation>(jObject_Relation);
+                        Relation relation = Core.Query.IJSAMObject<Relation>(new JObject((JsonObject)relationJson.DeepClone()));
                         if (relation != null)
                         {
                             AddRelation(relation);
@@ -529,44 +523,47 @@ namespace SAM.Analytical
 
         public JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             List<ISimpleEquipment> simpleEquipments = GetObjects();
             if (simpleEquipments != null)
             {
-                JArray jArray = new JArray();
+                JsonArray simpleEquipmentsArray = new JsonArray();
                 foreach (ISimpleEquipment simpleEquipment in simpleEquipments)
                 {
-                    if (simpleEquipment == null)
+                    if (simpleEquipment?.ToJObject()?.Node is JsonObject simpleEquipmentJson)
                     {
-                        continue;
+                        simpleEquipmentsArray.Add(simpleEquipmentJson.DeepClone());
                     }
-
-                    jArray.Add(simpleEquipment.ToJObject());
                 }
 
-                result.Add("SimpleEquipments", jArray);
+                jsonObject["SimpleEquipments"] = simpleEquipmentsArray;
             }
 
             RelationCollection relationCollection = GetRelations();
             if (relationCollection != null)
             {
-                JArray jArray = new JArray();
+                JsonArray relationsArray = new JsonArray();
                 foreach (Relation relation in relationCollection)
                 {
-                    if (relation == null)
+                    if (relation?.ToJObject()?.Node is JsonObject relationJson)
                     {
-                        continue;
+                        relationsArray.Add(relationJson.DeepClone());
                     }
-
-                    jArray.Add(relation.ToJObject());
                 }
-                result.Add("Relations", jArray);
-
+                jsonObject["Relations"] = relationsArray;
             }
 
-            return result;
+            return jsonObject;
         }
     }
 }

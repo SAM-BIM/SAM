@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -45,22 +46,22 @@ namespace SAM.Analytical
             return Profile.TryGetValue(index, out Profile profile, out double value);
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return result;
             }
 
-            if (jObject.ContainsKey("Profile"))
+            if (jsonObject["Profile"] is JsonObject profileJson)
             {
-                Profile = Core.Query.IJSAMObject<Profile>(jObject.Value<JObject>("Profile"));
+                Profile = Core.Query.IJSAMObject<Profile>(new JObject((JsonObject)profileJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("Setback"))
+            if (jsonObject.ContainsKey("Setback"))
             {
-                Setback = jObject.Value<double>("Setback");
+                Setback = jsonObject["Setback"]?.GetValue<double>() ?? double.NaN;
             }
 
             return result;
@@ -86,22 +87,22 @@ namespace SAM.Analytical
             return Setback * value;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
             }
 
-            if (Profile != null)
+            if (Profile?.ToJObject()?.Node is JsonObject profileJson)
             {
-                result.Add("Profile", Profile.ToJObject());
+                result["Profile"] = profileJson.DeepClone();
             }
 
             if (!double.IsNaN(Setback))
             {
-                result.Add("Setback", Setback);
+                result["Setback"] = Setback;
             }
 
             return result;

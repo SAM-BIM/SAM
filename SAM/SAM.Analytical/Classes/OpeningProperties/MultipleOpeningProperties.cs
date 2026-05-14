@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -44,22 +45,21 @@ namespace SAM.Analytical
             this.singleOpeningProperties = singleOpeningProperties == null ? null : singleOpeningProperties.ToList().ConvertAll(x => Core.Query.Clone(x));
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("SingleOpeningProperties"))
+            if (jsonObject["SingleOpeningProperties"] is JsonArray singleOpeningPropertiesArray)
             {
-                JArray jArray = jObject.Value<JArray>("SingleOpeningProperties");
-                if (jArray != null)
+                singleOpeningProperties = new List<ISingleOpeningProperties>();
+                foreach (JsonNode node in singleOpeningPropertiesArray)
                 {
-                    singleOpeningProperties = new List<ISingleOpeningProperties>();
-                    foreach (JObject jObject_OpeningProperties in jArray)
+                    if (node is JsonObject openingPropertiesJson)
                     {
-                        ISingleOpeningProperties openingProperties = Core.Query.IJSAMObject<ISingleOpeningProperties>(jObject_OpeningProperties);
+                        ISingleOpeningProperties openingProperties = Core.Query.IJSAMObject<ISingleOpeningProperties>(new JObject((JsonObject)openingPropertiesJson.DeepClone()));
                         if (openingProperties == null)
                         {
                             continue;
@@ -67,38 +67,35 @@ namespace SAM.Analytical
 
                         this.singleOpeningProperties.Add(openingProperties);
                     }
-
                 }
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
             if (singleOpeningProperties != null)
             {
-                JArray jArray = new JArray();
-                foreach (ISingleOpeningProperties singleOpeningProperties in singleOpeningProperties)
+                JsonArray singleOpeningPropertiesArray = new JsonArray();
+                foreach (ISingleOpeningProperties singleOpeningPropertiesItem in singleOpeningProperties)
                 {
-                    if (singleOpeningProperties == null)
+                    if (singleOpeningPropertiesItem?.ToJObject()?.Node is JsonObject singleOpeningPropertiesJson)
                     {
-                        continue;
+                        singleOpeningPropertiesArray.Add(singleOpeningPropertiesJson.DeepClone());
                     }
-
-                    jArray.Add(singleOpeningProperties.ToJObject());
                 }
 
-                jObject.Add("SingleOpeningProperties", jArray);
+                jsonObject["SingleOpeningProperties"] = singleOpeningPropertiesArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public List<ISingleOpeningProperties> SingleOpeningProperties

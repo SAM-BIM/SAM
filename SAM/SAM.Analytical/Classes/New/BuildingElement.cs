@@ -6,6 +6,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry.Object.Spatial;
 using SAM.Geometry.Spatial;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -77,36 +78,36 @@ namespace SAM.Analytical
             face3D = face3D?.GetMoved(vector3D) as Face3D;
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Face3D"))
+            if (jsonObject["Face3D"] is JsonObject face3DJson)
             {
-                face3D = Geometry.Create.ISAMGeometry<Face3D>(jObject.Value<JObject>("Face3D"));
+                face3D = Geometry.Create.ISAMGeometry<Face3D>(new JObject((JsonObject)face3DJson.DeepClone()));
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
+            JsonObject jsonObject = base.ToJsonObject();
 
-            if (jObject == null)
+            if (jsonObject == null)
             {
-                return jObject;
+                return jsonObject;
             }
 
-            if (face3D != null)
+            if (face3D?.ToJObject()?.Node is JsonObject face3DJson)
             {
-                jObject.Add("Face3D", face3D.ToJObject());
+                jsonObject["Face3D"] = face3DJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public BoundingBox3D GetBoundingBox(double offset = 0)

@@ -6,6 +6,7 @@ using SAM.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -297,52 +298,48 @@ namespace SAM.Analytical
         {
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ExceedanceFactor"))
+            if (jsonObject.ContainsKey("ExceedanceFactor"))
             {
-                exceedanceFactor = jObject.Value<double>("ExceedanceFactor");
+                exceedanceFactor = jsonObject["ExceedanceFactor"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("OccupiedHourIndices"))
+            if (jsonObject["OccupiedHourIndices"] is JsonArray occupiedHourIndicesArray)
             {
-                JArray jArray = jObject.Value<JArray>("OccupiedHourIndices");
-                if (jArray != null)
+                occupiedHourIndices = new HashSet<int>();
+                foreach (JsonNode node in occupiedHourIndicesArray)
                 {
-                    occupiedHourIndices = new HashSet<int>();
-                    foreach (int occupiedHourIndex in jArray)
-                    {
-                        occupiedHourIndices.Add(occupiedHourIndex);
-                    }
+                    occupiedHourIndices.Add(node?.GetValue<int>() ?? 0);
                 }
             }
 
-            if (jObject.ContainsKey("MinAcceptableTemperatures"))
+            if (jsonObject["MinAcceptableTemperatures"] is JsonObject minAcceptableTemperaturesJson)
             {
-                minAcceptableTemperatures = new IndexedDoubles(jObject.Value<JObject>("MinAcceptableTemperatures"));
+                minAcceptableTemperatures = new IndexedDoubles(new JObject((JsonObject)minAcceptableTemperaturesJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("MaxAcceptableTemperatures"))
+            if (jsonObject["MaxAcceptableTemperatures"] is JsonObject maxAcceptableTemperaturesJson)
             {
-                maxAcceptableTemperatures = new IndexedDoubles(jObject.Value<JObject>("MaxAcceptableTemperatures"));
+                maxAcceptableTemperatures = new IndexedDoubles(new JObject((JsonObject)maxAcceptableTemperaturesJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("OperativeTemperatures"))
+            if (jsonObject["OperativeTemperatures"] is JsonObject operativeTemperaturesJson)
             {
-                operativeTemperatures = new IndexedDoubles(jObject.Value<JObject>("OperativeTemperatures"));
+                operativeTemperatures = new IndexedDoubles(new JObject((JsonObject)operativeTemperaturesJson.DeepClone()));
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
@@ -350,33 +347,33 @@ namespace SAM.Analytical
 
             if (!double.IsNaN(exceedanceFactor))
             {
-                result.Add("ExceedanceFactor", exceedanceFactor);
+                result["ExceedanceFactor"] = exceedanceFactor;
             }
 
             if (occupiedHourIndices != null)
             {
-                JArray jArray = new JArray();
+                JsonArray occupiedHourIndicesArray = new JsonArray();
                 foreach (int occupiedHourIndex in occupiedHourIndices)
                 {
-                    jArray.Add(occupiedHourIndex);
+                    occupiedHourIndicesArray.Add(occupiedHourIndex);
                 }
 
-                result.Add("OccupiedHourIndices", jArray);
+                result["OccupiedHourIndices"] = occupiedHourIndicesArray;
             }
 
-            if (minAcceptableTemperatures != null)
+            if (minAcceptableTemperatures?.ToJObject()?.Node is JsonObject minAcceptableTemperaturesJson)
             {
-                result.Add("MinAcceptableTemperatures", minAcceptableTemperatures.ToJObject());
+                result["MinAcceptableTemperatures"] = minAcceptableTemperaturesJson.DeepClone();
             }
 
-            if (maxAcceptableTemperatures != null)
+            if (maxAcceptableTemperatures?.ToJObject()?.Node is JsonObject maxAcceptableTemperaturesJson)
             {
-                result.Add("MaxAcceptableTemperatures", maxAcceptableTemperatures.ToJObject());
+                result["MaxAcceptableTemperatures"] = maxAcceptableTemperaturesJson.DeepClone();
             }
 
-            if (operativeTemperatures != null)
+            if (operativeTemperatures?.ToJObject()?.Node is JsonObject operativeTemperaturesJson)
             {
-                result.Add("OperativeTemperatures", operativeTemperatures.ToJObject());
+                result["OperativeTemperatures"] = operativeTemperaturesJson.DeepClone();
             }
 
             return result;

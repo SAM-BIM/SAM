@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -203,113 +204,112 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        protected override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ApertureToPanelRatios"))
+            if (jsonObject["ApertureToPanelRatios"] is JsonObject apertureToPanelRatiosJson)
             {
-                apertureToPanelRatios = Core.Query.IJSAMObject<ApertureToPanelRatios>(jObject.Value<JObject>("ApertureToPanelRatios"));
+                apertureToPanelRatios = Core.Query.IJSAMObject<ApertureToPanelRatios>(new JObject((JsonObject)apertureToPanelRatiosJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("Subdivide"))
+            if (jsonObject.ContainsKey("Subdivide"))
             {
-                subdivide = jObject.Value<bool>("Subdivide");
+                subdivide = jsonObject["Subdivide"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("ApertureHeight"))
+            if (jsonObject.ContainsKey("ApertureHeight"))
             {
-                apertureHeight = jObject.Value<double>("ApertureHeight");
+                apertureHeight = jsonObject["ApertureHeight"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("SillHeight"))
+            if (jsonObject.ContainsKey("SillHeight"))
             {
-                sillHeight = jObject.Value<double>("SillHeight");
+                sillHeight = jsonObject["SillHeight"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("HorizontalSeparation"))
+            if (jsonObject.ContainsKey("HorizontalSeparation"))
             {
-                horizontalSeparation = jObject.Value<double>("HorizontalSeparation");
+                horizontalSeparation = jsonObject["HorizontalSeparation"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("Offset"))
+            if (jsonObject.ContainsKey("Offset"))
             {
-                offset = jObject.Value<double>("Offset");
+                offset = jsonObject["Offset"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("CaseSelection"))
+            if (jsonObject["CaseSelection"] is JsonObject caseSelectionJson)
             {
-                caseSelection = Core.Query.IJSAMObject<CaseSelection>(jObject.Value<JObject>("CaseSelection"));
+                caseSelection = Core.Query.IJSAMObject<CaseSelection>(new JObject((JsonObject)caseSelectionJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("FramePercentage"))
+            if (jsonObject.ContainsKey("FramePercentage"))
             {
-                framePercentage = jObject.Value<double>("FramePercentage");
+                framePercentage = jsonObject["FramePercentage"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("FrameWidth"))
+            if (jsonObject.ContainsKey("FrameWidth"))
             {
-                frameWidth = jObject.Value<double>("FrameWidth");
+                frameWidth = jsonObject["FrameWidth"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        protected override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
             }
 
-            if (apertureToPanelRatios != null)
+            if (apertureToPanelRatios?.ToJObject()?.Node is JsonObject apertureToPanelRatiosJson)
             {
-                result.Add("ApertureToPanelRatios", apertureToPanelRatios.ToJObject());
+                result["ApertureToPanelRatios"] = apertureToPanelRatiosJson.DeepClone();
             }
 
-            result.Add("Subdivide", subdivide);
+            result["Subdivide"] = subdivide;
 
             if (!double.IsNaN(apertureHeight))
             {
-                result.Add("ApertureHeight", apertureHeight);
+                result["ApertureHeight"] = apertureHeight;
             }
 
             if (!double.IsNaN(sillHeight))
             {
-                result.Add("SillHeight", sillHeight);
+                result["SillHeight"] = sillHeight;
             }
 
             if (!double.IsNaN(horizontalSeparation))
             {
-                result.Add("HorizontalSeparation", horizontalSeparation);
+                result["HorizontalSeparation"] = horizontalSeparation;
             }
 
             if (!double.IsNaN(offset))
             {
-                result.Add("Offset", offset);
+                result["Offset"] = offset;
             }
 
-            result.Add("KeepSeparationDistance", keepSeparationDistance);
+            result["KeepSeparationDistance"] = keepSeparationDistance;
 
-            if (caseSelection != null)
+            if (caseSelection?.ToJObject()?.Node is JsonObject caseSelectionJson)
             {
-                result.Add("CaseSelection", caseSelection.ToJObject());
-                result.Add("CaseSelection", caseSelection.ToJObject());
+                result["CaseSelection"] = caseSelectionJson.DeepClone();
             }
 
             if(framePercentage is not null && !double.IsNaN(framePercentage.Value))
             {
-                result.Add("FramePercentage", framePercentage.Value);
+                result["FramePercentage"] = framePercentage.Value;
             }
 
             if (frameWidth is not null && !double.IsNaN(frameWidth.Value))
             {
-                result.Add("FrameWidth", frameWidth.Value);
+                result["FrameWidth"] = frameWidth.Value;
             }
 
             return result;
