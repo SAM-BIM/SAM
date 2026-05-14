@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -16,11 +17,11 @@ namespace SAM.Core
 
             string json = File.ReadAllText(path);
 
-            JObject jObject = JToken.Parse(json) as JObject;
-            if (jObject == null)
+            JsonObject jsonObject = JsonNode.Parse(json) as JsonObject;
+            if (jsonObject == null)
                 return null;
 
-            return new MaterialLibrary(jObject);
+            return new MaterialLibrary(new JObject(jsonObject));
         }
 
         public static MaterialLibrary MaterialLibrary(string name, IEnumerable<IMaterial> materials)

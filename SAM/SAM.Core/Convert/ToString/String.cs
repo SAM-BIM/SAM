@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -21,16 +23,11 @@ namespace SAM.Core
             if (jSAMObject == null)
                 return null;
 
-            JObject jObject = jSAMObject.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = jSAMObject.ToJObject()?.Node as JsonObject;
+            if (jsonObject == null)
                 return null;
 
-            string json = JsonConvert.SerializeObject(jObject, new JsonSerializerSettings
-            {
-                Formatting = formatting
-            });
-
-            return json;
+            return jsonObject.ToJsonString(SerializerOptions(formatting));
         }
 
         public static string ToString<T>(this IEnumerable<T> jSAMObjects) where T : IJSAMObject
@@ -43,7 +40,7 @@ namespace SAM.Core
             if (jSAMObjects == null)
                 return null;
 
-            JArray jArray = new JArray();
+            JsonArray jsonArray = new JsonArray();
             foreach (T jSAMObject in jSAMObjects)
             {
                 if (jSAMObject == null)
@@ -51,16 +48,27 @@ namespace SAM.Core
                     continue;
                 }
 
-                jArray.Add(jSAMObject.ToJObject());
+                JsonObject jsonObject = jSAMObject.ToJObject()?.Node as JsonObject;
+                if (jsonObject == null)
+                {
+                    continue;
+                }
+
+                // DeepClone detaches the node from the freshly-built JObject
+                // wrapper, so adding it to jsonArray doesn't violate the
+                // single-parent invariant on JsonNode.
+                jsonArray.Add(jsonObject.DeepClone());
             }
 
+            return jsonArray.ToJsonString(SerializerOptions(formatting));
+        }
 
-            string json = JsonConvert.SerializeObject(jArray, new JsonSerializerSettings
+        private static JsonSerializerOptions SerializerOptions(Formatting formatting)
+        {
+            return new JsonSerializerOptions
             {
-                Formatting = formatting
-            });
-
-            return json;
+                WriteIndented = formatting == Formatting.Indented
+            };
         }
 
         public static string ToString<T>(IEnumerable<T> sAMObjects, string path) where T : IJSAMObject

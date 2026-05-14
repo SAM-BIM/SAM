@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.IO;
 using System.IO.Compression;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -49,26 +50,26 @@ namespace SAM.Core
                 return default;
             }
 
-            JToken jToken = JToken.Parse(json);
+            JsonNode jsonNode = JsonNode.Parse(json);
 
-            JObject jObject = jToken as JObject;
-            if (jObject == null)
+            JsonObject jsonObject = jsonNode as JsonObject;
+            if (jsonObject == null)
             {
-                JArray jArray = jToken as JArray;
-                if (jArray == null || jArray.Count == 0)
+                if (jsonNode is JsonArray jsonArray && jsonArray.Count > 0)
                 {
-                    return default;
+                    // DeepClone detaches the first element from its parent
+                    // array so it can be wrapped into a fresh JObject without
+                    // tripping JsonNode's single-parent invariant.
+                    jsonObject = jsonArray[0]?.DeepClone() as JsonObject;
                 }
-
-                jObject = jArray[0] as JObject;
             }
 
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return default;
             }
 
-            return IJSAMObject<T>(jObject);
+            return IJSAMObject<T>(new JObject(jsonObject));
         }
 
         public static IJSAMObject IJSAMObject(this string json)
