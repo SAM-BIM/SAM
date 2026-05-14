@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -84,22 +85,29 @@ namespace SAM.Geometry.Object
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("GeometryObjects"))
+            if (jsonObject["GeometryObjects"] is JsonArray geometryObjectsArray)
             {
                 sAMGeometryObjects = new List<ISAMGeometryObject>();
 
-                JArray jArray = jObject.Value<JArray>("GeometryObjects");
-                foreach (JObject jObject_GeometryObject in jArray)
+                foreach (JsonNode node in geometryObjectsArray)
                 {
-                    ISAMGeometryObject sAMGeometryObject = Core.Query.IJSAMObject(jObject_GeometryObject) as ISAMGeometryObject;
-                    if (sAMGeometryObject != null)
+                    if (node is JsonObject geometryObjectJson)
                     {
-                        sAMGeometryObjects.Add(sAMGeometryObject);
+                        ISAMGeometryObject sAMGeometryObject = Core.Query.IJSAMObject(new JObject((JsonObject)geometryObjectJson.DeepClone())) as ISAMGeometryObject;
+                        if (sAMGeometryObject != null)
+                        {
+                            sAMGeometryObjects.Add(sAMGeometryObject);
+                        }
                     }
                 }
             }
@@ -114,26 +122,32 @@ namespace SAM.Geometry.Object
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        private JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (sAMGeometryObjects != null)
             {
-                JArray jArray = new JArray();
+                JsonArray geometryObjectsArray = new JsonArray();
                 foreach (ISAMGeometryObject sAMGeometryObject in sAMGeometryObjects)
                 {
-                    if (sAMGeometryObject == null)
+                    if (sAMGeometryObject?.ToJObject()?.Node is JsonObject geometryObjectJson)
                     {
-                        continue;
+                        geometryObjectsArray.Add(geometryObjectJson.DeepClone());
                     }
-
-                    jArray.Add(sAMGeometryObject.ToJObject());
                 }
 
-                jObject.Add("GeometryObjects", jArray);
+                jsonObject["GeometryObjects"] = geometryObjectsArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

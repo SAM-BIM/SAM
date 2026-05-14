@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -36,17 +37,25 @@ namespace SAM.Geometry.Planar
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Transform2Ds"))
+            if (jsonObject["Transform2Ds"] is JsonArray transform2DsArray)
             {
                 transform2Ds = new List<ITransform2D>();
-                foreach (JObject jObject_Transform2D in jObject.Value<JArray>("Transform2Ds"))
+                foreach (JsonNode node in transform2DsArray)
                 {
-                    transform2Ds.Add(Core.Query.IJSAMObject<ITransform2D>(jObject_Transform2D));
+                    if (node is JsonObject transform2DJson)
+                    {
+                        transform2Ds.Add(Core.Query.IJSAMObject<ITransform2D>(new JObject((JsonObject)transform2DJson.DeepClone())));
+                    }
                 }
             }
 
@@ -75,26 +84,32 @@ namespace SAM.Geometry.Planar
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (transform2Ds != null)
             {
-                JArray jArray = new JArray();
+                JsonArray transform2DsArray = new JsonArray();
                 foreach (Transform2D transform2D in transform2Ds)
                 {
-                    if (transform2D == null)
+                    if (transform2D?.ToJObject()?.Node is JsonObject transform2DJson)
                     {
-                        continue;
+                        transform2DsArray.Add(transform2DJson.DeepClone());
                     }
-
-                    jArray.Add(transform2D.ToJObject());
                 }
 
-                jObject.Add("Transform2Ds", jArray);
+                jsonObject["Transform2Ds"] = transform2DsArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry
 {
@@ -60,24 +61,29 @@ namespace SAM.Geometry
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("JSAMObject"))
+            if (jsonObject["JSAMObject"] is JsonObject jSAMObjectJson)
             {
-                jSAMObject = Core.Query.IJSAMObject<T>(jObject.Value<JObject>("JSAMObject"));
+                jSAMObject = Core.Query.IJSAMObject<T>(new JObject((JsonObject)jSAMObjectJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("Source"))
+            if (jsonObject["Source"] is JsonObject sourceJson)
             {
-                source = Core.Query.IJSAMObject<X>(jObject.Value<JObject>("Source"));
+                source = Core.Query.IJSAMObject<X>(new JObject((JsonObject)sourceJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("Target"))
+            if (jsonObject["Target"] is JsonObject targetJson)
             {
-                target = Core.Query.IJSAMObject<X>(jObject.Value<JObject>("Target"));
+                target = Core.Query.IJSAMObject<X>(new JObject((JsonObject)targetJson.DeepClone()));
             }
 
             return true;
@@ -85,22 +91,30 @@ namespace SAM.Geometry
 
         public JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
 
-            if (jSAMObject != null)
+        private JsonObject ToJsonObject()
+        {
+            JsonObject result = new JsonObject
             {
-                result.Add("JSAMObject", jSAMObject.ToJObject());
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (jSAMObject?.ToJObject()?.Node is JsonObject jSAMObjectJson)
+            {
+                result["JSAMObject"] = jSAMObjectJson.DeepClone();
             }
 
-            if (source != null)
+            if (source?.ToJObject()?.Node is JsonObject sourceJson)
             {
-                result.Add("Source", source.ToJObject());
+                result["Source"] = sourceJson.DeepClone();
             }
 
-            if (target != null)
+            if (target?.ToJObject()?.Node is JsonObject targetJson)
             {
-                result.Add("Target", target.ToJObject());
+                result["Target"] = targetJson.DeepClone();
             }
 
             return result;

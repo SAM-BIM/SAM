@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry.Spatial;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
@@ -61,54 +62,70 @@ namespace SAM.Geometry.Object.Spatial
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Text"))
+            if (jsonObject.ContainsKey("Text"))
             {
-                Text = jObject.Value<string>("Text");
+                Text = jsonObject["Text"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("TextAppearance"))
+            if (jsonObject["TextAppearance"] is JsonObject textAppearanceJson)
             {
-                TextAppearance = new TextAppearance(jObject.Value<JObject>("TextAppearance"));
+                TextAppearance = new TextAppearance(new JObject((JsonObject)textAppearanceJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("Plane"))
+            if (jsonObject["Plane"] is JsonObject planeJson)
             {
-                Plane = new Plane(jObject.Value<JObject>("Plane"));
+                Plane = new Plane(new JObject((JsonObject)planeJson.DeepClone()));
             }
 
-            Tag = Core.Query.Tag(jObject);
+            // Core.Query.Tag still takes JObject; the wrapper has no copy cost.
+            Tag = Core.Query.Tag(new JObject(jsonObject));
 
             return true;
         }
 
         public JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
 
-            if (TextAppearance != null)
+        private JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
             {
-                jObject.Add("TextAppearance", TextAppearance.ToJObject());
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (TextAppearance?.ToJObject()?.Node is JsonObject textAppearanceJson)
+            {
+                jsonObject["TextAppearance"] = textAppearanceJson.DeepClone();
             }
 
-            if (Plane != null)
+            if (Plane?.ToJObject()?.Node is JsonObject planeJson)
             {
-                jObject.Add("Plane", Plane.ToJObject());
+                jsonObject["Plane"] = planeJson.DeepClone();
             }
 
             if (Text != null)
             {
-                jObject.Add("Text", Text);
+                jsonObject["Text"] = Text;
             }
 
-            Core.Modify.Add(jObject, Tag);
+            // Core.Modify.Add takes JObject; the wrapper shares the same node
+            // so mutations land directly on jsonObject.
+            Core.Modify.Add(new JObject(jsonObject), Tag);
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

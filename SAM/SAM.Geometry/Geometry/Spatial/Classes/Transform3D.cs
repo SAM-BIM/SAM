@@ -5,6 +5,7 @@ using SAM.Core.Json;
 using SAM.Core;
 using SAM.Math;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -37,19 +38,39 @@ namespace SAM.Geometry.Spatial
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            matrix4D = new Matrix4D(jObject.Value<JObject>("Matrix4D"));
+            if (jsonObject["Matrix4D"] is JsonObject matrix4DJson)
+            {
+                matrix4D = new Matrix4D(new JObject((JsonObject)matrix4DJson.DeepClone()));
+            }
             return true;
         }
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
-            jObject.Add("Matrix4D", matrix4D.ToJObject());
-            return jObject;
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (matrix4D?.ToJObject()?.Node is JsonObject matrix4DJson)
+            {
+                jsonObject["Matrix4D"] = matrix4DJson.DeepClone();
+            }
+            return jsonObject;
         }
 
         public Transform3D Multiply(Transform3D transform3D)

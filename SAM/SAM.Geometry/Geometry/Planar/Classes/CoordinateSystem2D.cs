@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -96,24 +97,29 @@ namespace SAM.Geometry.Planar
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        private bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("AxisX"))
+            if (jsonObject["AxisX"] is JsonObject axisXJson)
             {
-                axisX = new Vector2D(jObject.Value<JObject>("AxisX"));
+                axisX = new Vector2D(new JObject((JsonObject)axisXJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("AxisY"))
+            if (jsonObject["AxisY"] is JsonObject axisYJson)
             {
-                axisY = new Vector2D(jObject.Value<JObject>("AxisY"));
+                axisY = new Vector2D(new JObject((JsonObject)axisYJson.DeepClone()));
             }
 
-            if (jObject.ContainsKey("Origin"))
+            if (jsonObject["Origin"] is JsonObject originJson)
             {
-                origin = new Point2D(jObject.Value<JObject>("Origin"));
+                origin = new Point2D(new JObject((JsonObject)originJson.DeepClone()));
             }
 
             return true;
@@ -121,22 +127,30 @@ namespace SAM.Geometry.Planar
 
         public JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
 
-            if (axisX != null)
+        private JsonObject ToJsonObject()
+        {
+            JsonObject result = new JsonObject
             {
-                result.Add("AxisX", axisX.ToJObject());
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (axisX?.ToJObject()?.Node is JsonObject axisXJson)
+            {
+                result["AxisX"] = axisXJson.DeepClone();
             }
 
-            if (axisY != null)
+            if (axisY?.ToJObject()?.Node is JsonObject axisYJson)
             {
-                result.Add("AxisY", axisY.ToJObject());
+                result["AxisY"] = axisYJson.DeepClone();
             }
 
-            if (origin != null)
+            if (origin?.ToJObject()?.Node is JsonObject originJson)
             {
-                result.Add("Origin", origin.ToJObject());
+                result["Origin"] = originJson.DeepClone();
             }
 
             return result;

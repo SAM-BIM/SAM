@@ -7,6 +7,7 @@ using SAM.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry
 {
@@ -427,39 +428,44 @@ namespace SAM.Geometry
 
         public virtual bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Tolerance"))
+            if (jsonObject.ContainsKey("Tolerance"))
             {
-                tolerance = jObject.Value<double>("Tolerance");
+                tolerance = jsonObject["Tolerance"]?.GetValue<double>() ?? 0;
             }
 
-            if (jObject.ContainsKey("BidirectionalGraph"))
+            if (jsonObject["BidirectionalGraph"] is JsonObject bidirectionalGraphJson)
             {
                 bidirectionalGraph = new QuickGraph.BidirectionalGraph<X, PointGraphEdge<X, T>>();
 
-                JObject jObject_AdjacencyGraph = jObject.Value<JObject>("BidirectionalGraph");
-                if (jObject_AdjacencyGraph.ContainsKey("Vertices"))
+                if (bidirectionalGraphJson["Vertices"] is JsonArray verticesArray)
                 {
-                    JArray jArray = jObject_AdjacencyGraph.Value<JArray>("Vertices");
-                    foreach (JObject jObject_Temp in jArray)
+                    foreach (JsonNode node in verticesArray)
                     {
-                        X point = Core.Query.IJSAMObject<X>(jObject_Temp);
-                        bidirectionalGraph.AddVertex(point);
+                        if (node is JsonObject vertexJson)
+                        {
+                            X point = Core.Query.IJSAMObject<X>(new JObject((JsonObject)vertexJson.DeepClone()));
+                            bidirectionalGraph.AddVertex(point);
+                        }
                     }
                 }
 
-                if (jObject_AdjacencyGraph.ContainsKey("PointGraphEdges"))
+                if (bidirectionalGraphJson["PointGraphEdges"] is JsonArray edgesArray)
                 {
-                    JArray jArray = jObject_AdjacencyGraph.Value<JArray>("PointGraphEdges");
-                    if (jArray != null)
+                    foreach (JsonNode node in edgesArray)
                     {
-                        foreach (JObject jObject_Temp in jArray)
+                        if (node is JsonObject edgeJson)
                         {
-                            PointGraphEdge<X, T> pointGraphEdge = new PointGraphEdge<X, T>(jObject_Temp);
+                            PointGraphEdge<X, T> pointGraphEdge = new PointGraphEdge<X, T>(new JObject((JsonObject)edgeJson.DeepClone()));
                             if (pointGraphEdge != null)
                             {
                                 bidirectionalGraph.AddEdge(pointGraphEdge);
@@ -474,38 +480,51 @@ namespace SAM.Geometry
 
         public virtual JObject ToJObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
 
-            result.Add("Tolerance", tolerance);
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this),
+                ["Tolerance"] = tolerance
+            };
 
             if (bidirectionalGraph != null)
             {
-                JObject jObject_BidirectionalGraph = new JObject();
+                JsonObject bidirectionalGraphJson = new JsonObject();
 
                 if (bidirectionalGraph.Vertices != null)
                 {
-                    JArray jArray = new JArray();
+                    JsonArray verticesArray = new JsonArray();
                     foreach (X point in bidirectionalGraph.Vertices)
                     {
-                        jArray.Add(point.ToJObject());
+                        if (point?.ToJObject()?.Node is JsonObject vertexJson)
+                        {
+                            verticesArray.Add(vertexJson.DeepClone());
+                        }
                     }
 
-                    jObject_BidirectionalGraph.Add("Vertices", jArray);
+                    bidirectionalGraphJson["Vertices"] = verticesArray;
                 }
 
                 if (bidirectionalGraph.Edges != null)
                 {
-                    JArray jArray = new JArray();
+                    JsonArray edgesArray = new JsonArray();
                     foreach (PointGraphEdge<X, T> pointGraphEdge in bidirectionalGraph.Edges)
                     {
-                        jArray.Add(pointGraphEdge.ToJObject());
+                        if (pointGraphEdge?.ToJObject()?.Node is JsonObject edgeJson)
+                        {
+                            edgesArray.Add(edgeJson.DeepClone());
+                        }
                     }
 
-                    jObject_BidirectionalGraph.Add("PointGraphEdges", jArray);
+                    bidirectionalGraphJson["PointGraphEdges"] = edgesArray;
                 }
 
-                result.Add("BidirectionalGraph", jObject_BidirectionalGraph);
+                result["BidirectionalGraph"] = bidirectionalGraphJson;
             }
 
             return result;

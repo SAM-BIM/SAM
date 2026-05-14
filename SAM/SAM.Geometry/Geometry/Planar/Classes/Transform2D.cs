@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using SAM.Math;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -35,19 +36,39 @@ namespace SAM.Geometry.Planar
 
         public bool FromJObject(JObject jObject)
         {
-            if (jObject == null)
+            return FromJsonObject(jObject?.Node as JsonObject);
+        }
+
+        protected virtual bool FromJsonObject(JsonObject jsonObject)
+        {
+            if (jsonObject == null)
                 return false;
 
-            matrix3D = new Matrix3D(jObject.Value<JObject>("Matrix3D"));
+            if (jsonObject["Matrix3D"] is JsonObject matrix3DJson)
+            {
+                matrix3D = new Matrix3D(new JObject((JsonObject)matrix3DJson.DeepClone()));
+            }
             return true;
         }
 
         public virtual JObject ToJObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
-            jObject.Add("Matrix3D", matrix3D.ToJObject());
-            return jObject;
+            JsonObject jsonObject = ToJsonObject();
+            return jsonObject == null ? null : new JObject(jsonObject);
+        }
+
+        protected virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (matrix3D?.ToJObject()?.Node is JsonObject matrix3DJson)
+            {
+                jsonObject["Matrix3D"] = matrix3DJson.DeepClone();
+            }
+            return jsonObject;
         }
 
         public static Transform2D GetIdentity()
