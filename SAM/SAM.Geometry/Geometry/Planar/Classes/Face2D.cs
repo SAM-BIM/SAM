@@ -4,6 +4,7 @@
 using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -16,6 +17,11 @@ namespace SAM.Geometry.Planar
 
         public Face2D(JObject jObject)
             : base(jObject)
+        {
+        }
+
+        public Face2D(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 

@@ -98,7 +98,7 @@ namespace SAM.Geometry.Object.Spatial
                 SurfaceAppearance = new SurfaceAppearance((JsonObject)jsonObject_SurfaceAppearance.DeepClone());
             }
 
-            Tag = Core.Query.Tag(new JObject(jsonObject));
+            Tag = Core.Query.Tag(jsonObject);
 
             return true;
         }
@@ -126,7 +126,7 @@ namespace SAM.Geometry.Object.Spatial
                 jsonObject["PointAppearance"] = pointJson.DeepClone();
             }
 
-            Core.Modify.Add(new JObject(jsonObject), Tag);
+            Core.Modify.Add(jsonObject, Tag);
 
             return jsonObject;
         }

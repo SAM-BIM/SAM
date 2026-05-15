@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -47,13 +48,30 @@ namespace SAM.Core
                 return false;
             }
 
-            JObject jObject_Tag = tag.ToJObject();
-            if (jObject_Tag == null)
+            JsonObject jsonObject_Tag = tag.ToJsonObject();
+            if (jsonObject_Tag == null)
             {
                 return false;
             }
 
-            jObject.Add("Tag", jObject_Tag);
+            jObject.Add("Tag", new JObject(jsonObject_Tag));
+            return true;
+        }
+
+        public static bool Add(this JsonObject jsonObject, Tag tag)
+        {
+            if (jsonObject == null || tag == null)
+            {
+                return false;
+            }
+
+            JsonObject jsonObject_Tag = tag.ToJsonObject();
+            if (jsonObject_Tag == null)
+            {
+                return false;
+            }
+
+            jsonObject["Tag"] = jsonObject_Tag.DeepClone();
             return true;
         }
 

@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -9,23 +10,22 @@ namespace SAM.Core
     {
         public static Tag Tag(this JObject jObject)
         {
-            if (jObject == null)
+            return Tag(jObject?.Node as JsonObject);
+        }
+
+        public static Tag Tag(this JsonObject jsonObject)
+        {
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (!jObject.ContainsKey("Tag"))
+            if (!(jsonObject["Tag"] is JsonObject jsonObject_Tag))
             {
                 return null;
             }
 
-            JObject jObject_Tag = jObject.Value<JObject>("Tag");
-            if (jObject_Tag == null)
-            {
-                return null;
-            }
-
-            return new Tag(jObject_Tag);
+            return new Tag(jsonObject_Tag);
         }
     }
 }

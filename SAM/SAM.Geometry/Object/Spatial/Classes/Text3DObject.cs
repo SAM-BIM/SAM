@@ -88,7 +88,7 @@ namespace SAM.Geometry.Object.Spatial
             }
 
             // Core.Query.Tag still takes JObject; the wrapper has no copy cost.
-            Tag = Core.Query.Tag(new JObject(jsonObject));
+            Tag = Core.Query.Tag(jsonObject);
 
             return true;
         }
@@ -123,7 +123,7 @@ namespace SAM.Geometry.Object.Spatial
 
             // Core.Modify.Add takes JObject; the wrapper shares the same node
             // so mutations land directly on jsonObject.
-            Core.Modify.Add(new JObject(jsonObject), Tag);
+            Core.Modify.Add(jsonObject, Tag);
 
             return jsonObject;
         }

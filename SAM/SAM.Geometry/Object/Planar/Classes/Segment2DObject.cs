@@ -66,7 +66,7 @@ namespace SAM.Geometry.Object.Planar
                 CurveAppearance = new CurveAppearance((JsonObject)jsonObject_CurveAppearance.DeepClone());
             }
 
-            Tag = Core.Query.Tag(new JObject(jsonObject));
+            Tag = Core.Query.Tag(jsonObject);
 
             return true;
         }
@@ -84,7 +84,7 @@ namespace SAM.Geometry.Object.Planar
                 jsonObject["CurveAppearance"] = curveJson.DeepClone();
             }
 
-            Core.Modify.Add(new JObject(jsonObject), Tag);
+            Core.Modify.Add(jsonObject, Tag);
 
             return jsonObject;
         }
