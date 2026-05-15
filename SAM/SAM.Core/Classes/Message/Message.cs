@@ -16,10 +16,9 @@ namespace SAM.Core
             this.messageType = messageType;
             this.text = text;
         }
-
-        public Message(JObject jObject)
+        public Message(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Message(Message message)
@@ -29,11 +28,6 @@ namespace SAM.Core
                 messageType = message.messageType;
                 text = message.text;
             }
-        }
-
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
         }
 
         public bool FromJsonObject(JsonObject jsonObject)
@@ -56,12 +50,6 @@ namespace SAM.Core
             }
 
             return true;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public JsonObject ToJsonObject()

@@ -64,10 +64,9 @@ namespace SAM.Core
                 }
             }
         }
-
-        public SearchWrapper(JObject jObject)
+        public SearchWrapper(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public bool Add(string text)
@@ -229,11 +228,6 @@ namespace SAM.Core
             return tuples.ConvertAll(x => x.Item1);
         }
 
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -272,12 +266,6 @@ namespace SAM.Core
             }
 
             return true;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public JsonObject ToJsonObject()

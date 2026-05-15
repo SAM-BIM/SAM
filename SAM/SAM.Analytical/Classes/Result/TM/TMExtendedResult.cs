@@ -294,8 +294,17 @@ namespace SAM.Analytical
         }
 
         public TMExtendedResult(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public TMExtendedResult(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public override bool FromJsonObject(JsonObject jsonObject)

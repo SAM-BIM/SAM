@@ -24,7 +24,16 @@ namespace SAM.Analytical
 
         public ObjectReferenceCaseSelection(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public ObjectReferenceCaseSelection(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public IEnumerable<ObjectReference> ObjectReferences

@@ -45,8 +45,17 @@ namespace SAM.Geometry.Spatial
         }
 
         public Shell(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Shell(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         private bool Add(Face3D face3D)

@@ -42,7 +42,16 @@ namespace SAM.Core
 
         public SAMModel(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public SAMModel(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public SAMModel(string name)

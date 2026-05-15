@@ -28,8 +28,17 @@ namespace SAM.Analytical
         }
 
         public CoolingSystemType(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public CoolingSystemType(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
     }

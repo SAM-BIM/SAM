@@ -16,7 +16,16 @@ namespace SAM.Geometry.Spatial
 
         public Mesh3D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public Mesh3D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public Mesh3D(Mesh3D mesh3D)

@@ -54,7 +54,7 @@ namespace SAM.Geometry.Spatial
 
         public CoordinateSystem3D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public CoordinateSystem3D(JsonObject jsonObject)

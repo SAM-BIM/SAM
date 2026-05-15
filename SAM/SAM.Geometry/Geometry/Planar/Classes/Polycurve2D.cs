@@ -31,8 +31,17 @@ namespace SAM.Geometry.Planar
         }
 
         public Polycurve2D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Polycurve2D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public static implicit operator Polycurve2D(Polyline2D polyline2D)

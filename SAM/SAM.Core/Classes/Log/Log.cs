@@ -32,7 +32,16 @@ namespace SAM.Core
         }
 
         public Log(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public Log(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

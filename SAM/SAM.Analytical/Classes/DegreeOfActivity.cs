@@ -35,8 +35,17 @@ namespace SAM.Analytical
         }
 
         public DegreeOfActivity(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public DegreeOfActivity(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         /// <summary>

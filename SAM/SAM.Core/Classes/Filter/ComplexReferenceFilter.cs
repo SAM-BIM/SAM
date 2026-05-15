@@ -14,8 +14,17 @@ namespace SAM.Core
         public IComplexReference ComplexReference { get; set; }
 
         public ComplexReferenceFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public ComplexReferenceFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public ComplexReferenceFilter()

@@ -47,7 +47,16 @@ namespace SAM.Geometry.Planar
 
         public SAMGeometry2DGroup(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public SAMGeometry2DGroup(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public bool Add(ISAMGeometry2D sAMGeometry2D)

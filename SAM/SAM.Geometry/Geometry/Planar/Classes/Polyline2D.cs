@@ -43,8 +43,17 @@ namespace SAM.Geometry.Planar
         }
 
         public Polyline2D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Polyline2D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public List<Point2D> Points

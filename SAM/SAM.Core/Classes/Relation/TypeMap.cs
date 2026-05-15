@@ -31,7 +31,7 @@ namespace SAM.Core
         }
 
         internal TypeMap(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
 
         }

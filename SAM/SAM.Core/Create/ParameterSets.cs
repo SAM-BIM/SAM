@@ -16,7 +16,7 @@ namespace SAM.Core
             List<ParameterSet> result = new List<ParameterSet>();
 
             foreach (JObject jObject in jArray)
-                result.Add(new ParameterSet(jObject));
+                result.Add(new ParameterSet(jObject?.Node as System.Text.Json.Nodes.JsonObject));
 
             return result;
         }

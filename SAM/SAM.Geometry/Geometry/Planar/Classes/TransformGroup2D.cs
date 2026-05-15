@@ -15,7 +15,16 @@ namespace SAM.Geometry.Planar
 
         public TransformGroup2D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public TransformGroup2D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public TransformGroup2D(IEnumerable<ITransform2D> transform2Ds)

@@ -19,7 +19,16 @@ namespace SAM.Geometry.Object.Planar
 
         public SAMGeometry2DObjectCollection(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public SAMGeometry2DObjectCollection(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public SAMGeometry2DObjectCollection(SAMGeometry2DObjectCollection sAMGeometryObject2DCollection)

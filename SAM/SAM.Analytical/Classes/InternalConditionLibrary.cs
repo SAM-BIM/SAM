@@ -23,7 +23,16 @@ namespace SAM.Analytical
         }
 
         public InternalConditionLibrary(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public InternalConditionLibrary(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

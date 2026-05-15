@@ -48,7 +48,12 @@ namespace SAM.Core
         /// </summary>
         public GuidCollection(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+        public GuidCollection(System.Text.Json.Nodes.JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
         }
 
         /// <summary>

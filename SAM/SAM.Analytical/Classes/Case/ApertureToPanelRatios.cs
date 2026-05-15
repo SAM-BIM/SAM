@@ -19,7 +19,16 @@ namespace SAM.Analytical.Classes
 
         public ApertureToPanelRatios(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public ApertureToPanelRatios(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public ApertureToPanelRatios(ApertureToPanelRatios apertureToPanelRatios)

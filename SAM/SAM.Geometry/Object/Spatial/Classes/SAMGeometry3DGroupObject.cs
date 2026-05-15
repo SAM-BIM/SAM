@@ -31,7 +31,16 @@ namespace SAM.Geometry.Object.Spatial
         }
 
         public SAMGeometry3DGroupObject(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public SAMGeometry3DGroupObject(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

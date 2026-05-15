@@ -55,7 +55,7 @@ namespace SAM.Core
         }
 
         internal TextMap(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
 
         }

@@ -15,7 +15,12 @@ namespace SAM.Geometry.Planar
         private List<Point2D> points;
         public Mesh2D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+        public Mesh2D(System.Text.Json.Nodes.JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
         }
 
         public Mesh2D(Mesh2D mesh2D)

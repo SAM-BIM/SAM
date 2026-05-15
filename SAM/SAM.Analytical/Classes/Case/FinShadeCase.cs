@@ -42,7 +42,16 @@ namespace SAM.Analytical.Classes
         }
 
         public FinShadeCase(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public FinShadeCase(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

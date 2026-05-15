@@ -47,8 +47,17 @@ namespace SAM.Analytical
         }
 
         public DesignDay(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public DesignDay(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public DesignDay(string name, short year, byte month, byte day)

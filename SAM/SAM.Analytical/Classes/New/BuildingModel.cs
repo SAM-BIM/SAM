@@ -25,7 +25,16 @@ namespace SAM.Analytical
         private ProfileLibrary profileLibrary;
 
         public BuildingModel(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public BuildingModel(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

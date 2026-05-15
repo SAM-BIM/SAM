@@ -9,7 +9,12 @@ namespace SAM.Core
     public abstract class TextFilter : Filter, ITextFilter
     {
         public TextFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+        }
+
+        public TextFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 

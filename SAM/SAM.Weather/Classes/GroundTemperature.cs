@@ -93,12 +93,9 @@ namespace SAM.Weather
                 temperatures = (double[])groundTemperature.temperatures.Clone();
         }
 
-        /// <summary>
-        /// Constructor for GroundTemperature class which takes a JObject as parameter. 
-        /// </summary>
-        public GroundTemperature(JObject jObject)
+        public GroundTemperature(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
         /// <summary>
         /// Gets or sets the depth at which the temperature is measured (in meters).
@@ -188,16 +185,6 @@ namespace SAM.Weather
             }
         }
 
-        /// <summary>
-        /// Initializes the GroundTemperature object from a JSON object.
-        /// </summary>
-        /// <param name="jObject">The JSON object containing the ground temperature data.</param>
-        /// <returns>true if the initialization was successful; otherwise, false.</returns>
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -221,16 +208,6 @@ namespace SAM.Weather
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Converts the object to a JObject.
-        /// </summary>
-        /// <returns>A JObject representing the object.</returns>
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

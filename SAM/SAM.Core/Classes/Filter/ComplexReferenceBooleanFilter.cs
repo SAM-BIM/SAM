@@ -15,8 +15,17 @@ namespace SAM.Core
         public bool Value { get; set; }
 
         public ComplexReferenceBooleanFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public ComplexReferenceBooleanFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public ComplexReferenceBooleanFilter()

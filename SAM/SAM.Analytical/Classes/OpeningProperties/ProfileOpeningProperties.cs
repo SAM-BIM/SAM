@@ -25,8 +25,17 @@ namespace SAM.Analytical
         }
 
         public ProfileOpeningProperties(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public ProfileOpeningProperties(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public ProfileOpeningProperties(double dischargeCoefficient, Profile profile)

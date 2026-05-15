@@ -24,8 +24,17 @@ namespace SAM.Geometry.Spatial
         }
 
         public Surface(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Surface(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public Face3D ToFace(double tolerance = Core.Tolerance.Distance)

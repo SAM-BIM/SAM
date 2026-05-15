@@ -22,7 +22,7 @@ namespace SAM.Geometry.Object
 
         public Appearance(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public Appearance(JsonObject jsonObject)

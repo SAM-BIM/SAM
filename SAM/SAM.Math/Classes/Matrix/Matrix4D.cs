@@ -8,11 +8,6 @@ namespace SAM.Math
 {
     public class Matrix4D : Matrix, ISquareMatrix
     {
-        public Matrix4D(JObject jObject)
-            : base(jObject)
-        {
-        }
-
         public Matrix4D(JsonObject jsonObject)
             : base(jsonObject)
         {

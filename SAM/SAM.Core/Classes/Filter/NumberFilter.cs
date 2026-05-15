@@ -9,7 +9,12 @@ namespace SAM.Core
     public abstract class NumberFilter : Filter, INumberFilter
     {
         public NumberFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+        }
+
+        public NumberFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 

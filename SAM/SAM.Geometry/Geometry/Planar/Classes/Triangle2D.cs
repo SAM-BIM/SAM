@@ -26,8 +26,17 @@ namespace SAM.Geometry.Planar
         }
 
         public Triangle2D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Triangle2D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public static implicit operator Triangle2D(Spatial.Triangle3D triangle3D)

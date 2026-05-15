@@ -28,8 +28,17 @@ namespace SAM.Analytical
         }
 
         public TM59NaturalVentilationExtendedResult(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public TM59NaturalVentilationExtendedResult(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public HashSet<int> GetSummerOccupiedHourIndices()

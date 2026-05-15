@@ -14,8 +14,17 @@ namespace SAM.Core
         private Enum @enum;
 
         public ParameterFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public ParameterFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public ParameterFilter(string name, string value, TextComparisonType textComparisonType)

@@ -19,8 +19,17 @@ namespace SAM.Architectural
         }
 
         public PlanarTerrain(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public PlanarTerrain(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public PlanarTerrain(Plane plane)

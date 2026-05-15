@@ -49,11 +49,6 @@ namespace SAM.Core
                 text = string.Empty;
         }
 
-        public LogRecord(JObject jObject)
-        {
-            FromJObject(jObject);
-        }
-
         public LogRecord(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);
@@ -106,11 +101,6 @@ namespace SAM.Core
                 return string.Format("[{0}\t{1}]\t{2}", dateTime.ToString("yyyy-MM-dd HH:mm:ss.f"), logRecordType.ToString(), text_Temp);
         }
 
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -124,12 +114,6 @@ namespace SAM.Core
                 Enum.TryParse(jsonObject["LogRecordType"]?.GetValue<string>(), out logRecordType);
 
             return true;
-        }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

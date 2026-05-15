@@ -34,8 +34,17 @@ namespace SAM.Analytical
         }
 
         public SurfaceSimulationResult(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public SurfaceSimulationResult(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
     }

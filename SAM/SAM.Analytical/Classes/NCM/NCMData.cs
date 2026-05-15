@@ -59,8 +59,8 @@ namespace SAM.Analytical
 
         }
 
-        public NCMData(JObject jObject)
-            : base(jObject)
+        public NCMData(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 

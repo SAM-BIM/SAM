@@ -103,8 +103,17 @@ namespace SAM.Geometry.Planar
         }
 
         public BoundingBox2D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public BoundingBox2D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public double Height

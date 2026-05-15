@@ -17,8 +17,17 @@ namespace SAM.Core
         public double Value { get; set; }
 
         public ComplexReferenceNumberFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public ComplexReferenceNumberFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public ComplexReferenceNumberFilter()

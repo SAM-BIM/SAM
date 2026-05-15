@@ -8,7 +8,12 @@ namespace SAM.Core
     public class NameFilter : TextFilter
     {
         public NameFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+        }
+
+        public NameFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 

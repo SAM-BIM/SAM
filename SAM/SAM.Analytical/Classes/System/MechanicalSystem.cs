@@ -36,8 +36,17 @@ namespace SAM.Analytical
         }
 
         public MechanicalSystem(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public MechanicalSystem(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public string Id

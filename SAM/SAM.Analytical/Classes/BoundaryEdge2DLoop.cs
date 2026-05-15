@@ -60,7 +60,7 @@ namespace SAM.Analytical
         }
 
         public BoundaryEdge2DLoop(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 

@@ -19,9 +19,9 @@ namespace SAM.Core
         {
         }
 
-        internal ZipArchiveInfo(JObject jObject)
+        internal ZipArchiveInfo(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         internal ZipArchiveInfo(ZipArchiveInfo zipArchiveInfo)
@@ -29,11 +29,6 @@ namespace SAM.Core
             guids = new HashSet<Guid>();
             foreach (Guid guid in zipArchiveInfo.guids)
                 guids.Add(guid);
-        }
-
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
         }
 
         public bool FromJsonObject(JsonObject jsonObject)
@@ -81,12 +76,6 @@ namespace SAM.Core
                 result.Add(Create.IJSAMObject(zipArchive.GetEntry(guid.ToString())));
 
             return result;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public JsonObject ToJsonObject()

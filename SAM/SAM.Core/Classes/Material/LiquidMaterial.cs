@@ -34,8 +34,17 @@ namespace SAM.Core
         }
 
         public LiquidMaterial(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public LiquidMaterial(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public LiquidMaterial(LiquidMaterial liquidMaterial)

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.Text.Json.Nodes;
 
 namespace SAM.Weather
@@ -28,14 +27,9 @@ namespace SAM.Weather
             }
         }
 
-        public SimpleArithmeticMeanCalculationMethod(JObject jObject)
+        public SimpleArithmeticMeanCalculationMethod(JsonObject jsonObject)
         {
-            FromJObject(jObject);
-        }
-
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
+            FromJsonObject(jsonObject);
         }
 
         public virtual bool FromJsonObject(JsonObject jsonObject)
@@ -51,12 +45,6 @@ namespace SAM.Weather
             }
 
             return true;
-        }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

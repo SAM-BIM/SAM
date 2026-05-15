@@ -133,7 +133,7 @@ namespace SAM.Analytical
         }
 
         public PlanarBoundary3D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 

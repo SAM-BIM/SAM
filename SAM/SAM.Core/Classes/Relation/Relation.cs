@@ -46,10 +46,9 @@ namespace SAM.Core
             references_2 = new HashSet<Reference>();
             references_2.Add(reference_2);
         }
-
-        public Relation(JObject jObject)
+        public Relation(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Relation(Relation relation)
@@ -131,11 +130,6 @@ namespace SAM.Core
             return references_2 == null ? false : references_2.Contains(reference);
         }
 
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -175,12 +169,6 @@ namespace SAM.Core
             }
 
             return true;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public JsonObject ToJsonObject()

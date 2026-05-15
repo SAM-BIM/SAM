@@ -10,9 +10,14 @@ namespace SAM.Core
     public class LogicalFilter : Filter
     {
         public LogicalFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
 
+        }
+
+        public LogicalFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
+        {
         }
 
         public LogicalFilter(LogicalFilter logicalFilter)

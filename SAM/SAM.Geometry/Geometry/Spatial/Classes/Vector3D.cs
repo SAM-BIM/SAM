@@ -29,7 +29,7 @@ namespace SAM.Geometry.Spatial
 
         public Vector3D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public Vector3D(JsonObject jsonObject)

@@ -28,7 +28,16 @@ namespace SAM.Analytical
 
         public ComplexEquipmentModel(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public ComplexEquipmentModel(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public bool Add(ISimpleEquipment simpleEquipment)

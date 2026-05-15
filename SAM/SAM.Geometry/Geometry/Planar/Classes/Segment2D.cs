@@ -56,8 +56,17 @@ namespace SAM.Geometry.Planar
         }
 
         public Segment2D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Segment2D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public Vector2D Direction

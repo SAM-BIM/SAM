@@ -29,7 +29,16 @@ namespace SAM.Analytical.Classes
         }
 
         public VentilationCase(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public VentilationCase(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

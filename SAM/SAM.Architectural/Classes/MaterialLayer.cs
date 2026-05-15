@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using SAM.Core;
 using System;
 using System.Text.Json.Nodes;
@@ -25,9 +24,9 @@ namespace SAM.Architectural
             name = materialLayer.name;
         }
 
-        public MaterialLayer(JObject jObject)
+        public MaterialLayer(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public string Name
@@ -66,11 +65,6 @@ namespace SAM.Architectural
             return materialLayer.name == name && materialLayer.thickness == thickness;
         }
 
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -88,12 +82,6 @@ namespace SAM.Architectural
         public override int GetHashCode()
         {
             return Tuple.Create(name, thickness).GetHashCode();
-        }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

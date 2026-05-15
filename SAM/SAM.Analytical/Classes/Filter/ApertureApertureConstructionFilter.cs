@@ -36,9 +36,14 @@ namespace SAM.Analytical
         /// </summary>
         /// <param name="jObject">The JSON object to use.</param>
         public ApertureApertureConstructionFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
 
+        }
+
+        public ApertureApertureConstructionFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
+        {
         }
 
         /// <summary>

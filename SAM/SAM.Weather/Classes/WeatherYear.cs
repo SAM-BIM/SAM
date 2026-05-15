@@ -42,15 +42,6 @@ namespace SAM.Weather
             }
         }
 
-        /// <summary>
-        /// Initializes a new instance of the WeatherYear class from a JObject.
-        /// </summary>
-        /// <param name="jObject">The JObject from which to initialize the WeatherYear.</param>
-        public WeatherYear(JObject jObject)
-        {
-            FromJObject(jObject);
-        }
-
         public WeatherYear(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);
@@ -296,16 +287,6 @@ namespace SAM.Weather
             return weatherDays[day]?.GetWeatherHour(hour);
         }
 
-        /// <summary>
-        /// Deserializes a JObject to populate the WeatherYear instance.
-        /// </summary>
-        /// <param name="jObject">The JObject containing the serialized WeatherYear data.</param>
-        /// <returns>True if the deserialization is successful, otherwise false.</returns>
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -327,16 +308,6 @@ namespace SAM.Weather
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Serializes the WeatherYear instance to a JObject.
-        /// </summary>
-        /// <returns>A JObject containing the serialized WeatherYear data.</returns>
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

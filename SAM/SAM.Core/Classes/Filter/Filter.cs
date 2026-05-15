@@ -26,24 +26,12 @@ namespace SAM.Core
                 Inverted = filter.Inverted;
             }
         }
-
-        public Filter(JObject jObject)
+        public Filter(JsonObject jsonObject)
         {
-            FromJObject(jObject);
-        }
-
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
+            FromJsonObject(jsonObject);
         }
 
         public abstract bool IsValid(IJSAMObject jSAMObject);
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
 
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {

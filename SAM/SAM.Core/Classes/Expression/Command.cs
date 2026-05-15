@@ -29,10 +29,9 @@ namespace SAM.Core
         {
             this.text = text;
         }
-
-        public Command(JObject jObject)
+        public Command(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public List<Command> GetCommands()
@@ -257,11 +256,6 @@ namespace SAM.Core
             return text;
         }
 
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -271,12 +265,6 @@ namespace SAM.Core
                 text = jsonObject["Text"]?.GetValue<string>();
 
             return true;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public JsonObject ToJsonObject()

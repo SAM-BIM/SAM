@@ -23,7 +23,16 @@ namespace SAM.Analytical
         }
 
         public ComplexEquipment(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public ComplexEquipment(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

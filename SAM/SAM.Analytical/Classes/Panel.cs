@@ -159,7 +159,7 @@ namespace SAM.Analytical
         }
 
         internal Panel(JObject jObject)
-             : base(jObject)
+             : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 

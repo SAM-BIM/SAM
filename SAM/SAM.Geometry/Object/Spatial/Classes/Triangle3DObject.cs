@@ -29,7 +29,16 @@ namespace SAM.Geometry.Object.Spatial
         }
 
         public Triangle3DObject(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public Triangle3DObject(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

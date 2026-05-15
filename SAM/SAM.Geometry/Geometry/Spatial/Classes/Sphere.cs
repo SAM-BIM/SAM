@@ -27,8 +27,17 @@ namespace SAM.Geometry.Spatial
         }
 
         public Sphere(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Sphere(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public override ISAMGeometry Clone()

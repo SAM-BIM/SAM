@@ -42,7 +42,7 @@ namespace SAM.Core
         }
 
         public Address(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 

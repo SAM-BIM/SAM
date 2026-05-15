@@ -23,7 +23,16 @@ namespace SAM.Analytical
         }
 
         public OpeningTypeLibrary(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public OpeningTypeLibrary(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

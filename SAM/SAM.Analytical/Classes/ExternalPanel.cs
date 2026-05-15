@@ -37,8 +37,17 @@ namespace SAM.Analytical
         }
 
         public ExternalPanel(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public ExternalPanel(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public Face3D Face3D

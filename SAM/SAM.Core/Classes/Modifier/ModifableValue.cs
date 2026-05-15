@@ -27,10 +27,9 @@ namespace SAM.Core
                 Modifier = modifiableValue.Modifier;
             }
         }
-
-        public ModifiableValue(JObject jObject)
+        public ModifiableValue(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public IModifier Modifier { get; set; }
@@ -40,11 +39,6 @@ namespace SAM.Core
         public static implicit operator ModifiableValue(double value)
         {
             return new ModifiableValue(value);
-        }
-
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
         }
 
         public virtual bool FromJsonObject(JsonObject jsonObject)
@@ -65,12 +59,6 @@ namespace SAM.Core
             }
 
             return true;
-        }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

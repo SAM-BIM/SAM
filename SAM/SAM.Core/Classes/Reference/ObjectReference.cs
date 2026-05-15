@@ -50,10 +50,9 @@ namespace SAM.Core
             typeName = objectReference?.typeName;
             reference = objectReference?.reference;
         }
-
-        public ObjectReference(JObject jObject)
+        public ObjectReference(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Reference? Reference
@@ -116,11 +115,6 @@ namespace SAM.Core
             return true;
         }
 
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -139,12 +133,6 @@ namespace SAM.Core
             }
 
             return true;
-        }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

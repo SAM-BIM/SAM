@@ -28,8 +28,17 @@ namespace SAM.Analytical
         }
 
         public TM59CorridorExtendedResult(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public TM59CorridorExtendedResult(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public int GetHoursNumberExceeding28()

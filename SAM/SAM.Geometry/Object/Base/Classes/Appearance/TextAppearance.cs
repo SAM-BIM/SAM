@@ -21,7 +21,7 @@ namespace SAM.Geometry.Object
         }
 
         public TextAppearance(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
 
         }

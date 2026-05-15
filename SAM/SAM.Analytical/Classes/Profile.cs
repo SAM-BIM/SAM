@@ -199,7 +199,7 @@ namespace SAM.Analytical
 
 
         public Profile(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 
@@ -1354,7 +1354,7 @@ namespace SAM.Analytical
                             if (value.Value is double)
                                 entryJArray.Add(value.Value);
                             else if (value.Value != null)
-                                entryJArray.Add((value.Value as Profile).ToJObject());
+                                entryJArray.Add((value.Value as Profile).ToJsonObject());
                         }
                     }
 

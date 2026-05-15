@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.Text.Json.Nodes;
 
 namespace SAM.Weather
@@ -31,9 +30,9 @@ namespace SAM.Weather
             }
         }
 
-        public WeightingCalculationMethod(JObject jObject)
+        public WeightingCalculationMethod(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public override bool FromJsonObject(JsonObject jsonObject)

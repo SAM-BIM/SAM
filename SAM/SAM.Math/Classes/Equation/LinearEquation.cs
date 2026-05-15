@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
@@ -16,9 +15,9 @@ namespace SAM.Math
         private double a; // coefficient A in the equation
         private double b; // coefficient B in the equation
 
-        public LinearEquation(JObject jObject)
+        public LinearEquation(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public LinearEquation(double a, double b)
@@ -70,16 +69,6 @@ namespace SAM.Math
             return result;
         }
 
-        /// <summary>
-        /// Initializes the equation from a JSON object
-        /// </summary>
-        /// <param name="jObject">The JSON object to initialize from</param>
-        /// <returns>True if initialization was successful, otherwise false</returns>
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -96,16 +85,6 @@ namespace SAM.Math
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Returns a JSON representation of the equation
-        /// </summary>
-        /// <returns>A JSON object representing the equation</returns>
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

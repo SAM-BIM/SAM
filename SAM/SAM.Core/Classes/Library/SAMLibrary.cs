@@ -27,7 +27,7 @@ namespace SAM.Core
         }
 
         public SAMLibrary(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 

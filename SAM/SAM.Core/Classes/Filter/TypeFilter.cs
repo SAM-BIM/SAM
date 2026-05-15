@@ -9,7 +9,12 @@ namespace SAM.Core
     public class TypeFilter : Filter
     {
         public TypeFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+        }
+
+        public TypeFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 

@@ -25,8 +25,17 @@ namespace SAM.Geometry.Spatial
         }
 
         public Polycurve3D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Polycurve3D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public override ISAMGeometry Clone()

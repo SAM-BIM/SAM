@@ -20,7 +20,16 @@ namespace SAM.Geometry.Spatial
 
         public Transform3D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public Transform3D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public Transform3D(Transform3D transform3D)

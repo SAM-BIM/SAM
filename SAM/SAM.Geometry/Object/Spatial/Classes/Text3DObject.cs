@@ -19,7 +19,16 @@ namespace SAM.Geometry.Object.Spatial
 
         public Text3DObject(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public Text3DObject(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public Text3DObject(Text3DObject text3DObject)

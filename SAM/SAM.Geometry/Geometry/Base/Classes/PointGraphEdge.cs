@@ -22,7 +22,7 @@ namespace SAM.Geometry
 
         public PointGraphEdge(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public PointGraphEdge(JsonObject jsonObject)

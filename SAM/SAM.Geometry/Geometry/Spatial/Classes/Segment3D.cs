@@ -33,8 +33,17 @@ namespace SAM.Geometry.Spatial
         }
 
         public Segment3D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Segment3D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public Point3D this[int index]

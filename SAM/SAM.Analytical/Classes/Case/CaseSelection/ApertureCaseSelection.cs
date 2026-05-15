@@ -19,9 +19,13 @@ namespace SAM.Analytical
         }
 
         public ApertureCaseSelection(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 
+        public ApertureCaseSelection(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
     }
 }

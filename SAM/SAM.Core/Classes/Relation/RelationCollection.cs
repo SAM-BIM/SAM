@@ -31,10 +31,9 @@ namespace SAM.Core
         {
             relations = relationCollection?.relations == null ? null : relationCollection.relations.ConvertAll(x => x == null ? null : new Relation(x));
         }
-
-        public RelationCollection(JObject jObject)
+        public RelationCollection(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public IEnumerator<Relation> GetEnumerator()
@@ -547,11 +546,6 @@ namespace SAM.Core
             return result;
         }
 
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -578,12 +572,6 @@ namespace SAM.Core
             }
 
             return true;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public JsonObject ToJsonObject()

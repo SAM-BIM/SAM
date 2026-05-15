@@ -45,9 +45,9 @@ namespace SAM.Core
             max = range.max;
         }
 
-        public Range(JObject jObject)
+        public Range(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public T Max
@@ -108,11 +108,6 @@ namespace SAM.Core
             return result;
         }
 
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -122,12 +117,6 @@ namespace SAM.Core
             min = jsonObject["Min"] == null ? default : jsonObject["Min"].GetValue<T>();
 
             return true;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public JsonObject ToJsonObject()

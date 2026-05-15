@@ -26,8 +26,17 @@ namespace SAM.Analytical
         }
 
         public BoundaryEdge3DLoop(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public BoundaryEdge3DLoop(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
 

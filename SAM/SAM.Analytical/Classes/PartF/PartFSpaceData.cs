@@ -80,8 +80,21 @@ namespace SAM.Analytical
 
 
         public PartFSpaceData(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+
+        public PartFSpaceData(System.Text.Json.Nodes.JsonObject jsonObject)
+
+
+            : base(jsonObject)
+
+
+        {
+
+
         }
 
         public double? CalculatedFlowRate_Lps { get; set; }

@@ -45,10 +45,9 @@ namespace SAM.Core
                 this.objectReferences.Add(objectReference);
             }
         }
-
-        public PathReference(JObject jObject)
+        public PathReference(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public override string ToString()
@@ -77,11 +76,6 @@ namespace SAM.Core
             return GetEnumerator();
         }
 
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -106,12 +100,6 @@ namespace SAM.Core
             }
 
             return true;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public JsonObject ToJsonObject()

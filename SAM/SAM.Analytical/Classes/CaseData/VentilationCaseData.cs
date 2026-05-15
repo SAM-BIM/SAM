@@ -17,7 +17,16 @@ namespace SAM.Analytical
         }
 
         public VentilationCaseData(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public VentilationCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

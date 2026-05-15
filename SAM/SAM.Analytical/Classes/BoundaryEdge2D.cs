@@ -38,8 +38,17 @@ namespace SAM.Analytical
         }
 
         public BoundaryEdge2D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public BoundaryEdge2D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public ICurve2D Curve2D

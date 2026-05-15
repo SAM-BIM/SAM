@@ -47,7 +47,16 @@ namespace SAM.Geometry.Spatial
 
         public SAMGeometry3DGroup(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public SAMGeometry3DGroup(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public bool Add(ISAMGeometry3D sAMGeometry3D)

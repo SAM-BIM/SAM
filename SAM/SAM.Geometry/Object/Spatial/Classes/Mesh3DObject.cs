@@ -29,7 +29,16 @@ namespace SAM.Geometry.Object.Spatial
         }
 
         public Mesh3DObject(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public Mesh3DObject(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

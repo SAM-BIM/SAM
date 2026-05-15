@@ -30,8 +30,17 @@ namespace SAM.Geometry.Spatial
         }
 
         public Extrusion(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Extrusion(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public BoundingBox3D GetBoundingBox(double offset = 0)

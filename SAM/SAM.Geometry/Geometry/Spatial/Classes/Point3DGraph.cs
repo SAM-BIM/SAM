@@ -22,7 +22,16 @@ namespace SAM.Geometry.Spatial
         }
 
         public Point3DGraph(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public Point3DGraph(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

@@ -3,8 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 using SAM.Core;
-using SAM.Core.Json;
 using SAM.Tests.Helpers;
 using Xunit;
 
@@ -22,8 +22,8 @@ namespace SAM.Tests
 
         private static T FromJson<T>(string json) where T : IJSAMObject
         {
-            JObject jObject = JObject.Parse(json);
-            return Query.IJSAMObject<T>(jObject);
+            JsonObject jsonObject = JsonNode.Parse(json) as JsonObject;
+            return Query.IJSAMObject<T>(jsonObject);
         }
 
         [Fact]

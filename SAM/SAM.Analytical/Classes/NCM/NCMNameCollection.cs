@@ -28,7 +28,16 @@ namespace SAM.Analytical
 
         public NCMNameCollection(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public NCMNameCollection(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public bool Add(NCMName nCMName)

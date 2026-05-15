@@ -43,8 +43,17 @@ namespace SAM.Geometry.Spatial
         }
 
         public Polygon3D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Polygon3D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public List<Point3D> GetPoints()

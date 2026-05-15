@@ -62,11 +62,6 @@ namespace SAM.Core
             dictionary = new Dictionary<string, object>();
         }
 
-        public ParameterSet(JObject jObject)
-        {
-            FromJObject(jObject);
-        }
-
         public ParameterSet(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);
@@ -384,17 +379,6 @@ namespace SAM.Core
         public ParameterSet Clone()
         {
             return new ParameterSet(this);
-        }
-
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public bool FromJsonObject(JsonObject jsonObject)

@@ -84,7 +84,16 @@ namespace SAM.Analytical
         }
 
         public ApertureConstruction(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public ApertureConstruction(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

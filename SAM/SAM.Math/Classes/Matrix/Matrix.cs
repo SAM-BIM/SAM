@@ -39,12 +39,6 @@ namespace SAM.Math
                     this.values[i, j] = values[i, j];
         }
 
-        public Matrix(JObject jObject)
-        {
-            values = default;
-            FromJObject(jObject);
-        }
-
         public Matrix(JsonObject jsonObject)
         {
             values = default;
@@ -268,11 +262,6 @@ namespace SAM.Math
             return Query.RealCubicRoots_ThreeRootsOnly(A, B, C, D, tolerance);
         }
 
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -299,12 +288,6 @@ namespace SAM.Math
                     values[i, j] = valuesList[i][j];
 
             return true;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

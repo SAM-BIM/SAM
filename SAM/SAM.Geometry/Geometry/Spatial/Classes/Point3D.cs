@@ -17,7 +17,7 @@ namespace SAM.Geometry.Spatial
 
         public Point3D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public Point3D(JsonObject jsonObject)

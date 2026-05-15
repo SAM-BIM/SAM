@@ -25,7 +25,16 @@ namespace SAM.Analytical
 
         public TM59Manager(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public TM59Manager(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public bool FromJObject(JObject jObject)

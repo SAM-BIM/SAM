@@ -19,7 +19,16 @@ namespace SAM.Geometry.Object
 
         public SAMGeometryObjectCollection(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public SAMGeometryObjectCollection(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public SAMGeometryObjectCollection(SAMGeometryObjectCollection sAMGeometryObjectCollection)

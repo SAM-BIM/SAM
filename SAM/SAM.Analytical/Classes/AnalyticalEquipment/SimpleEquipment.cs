@@ -19,7 +19,16 @@ namespace SAM.Analytical
         }
 
         public SimpleEquipment(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public SimpleEquipment(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

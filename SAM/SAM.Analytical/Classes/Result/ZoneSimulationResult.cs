@@ -28,8 +28,17 @@ namespace SAM.Analytical
         }
 
         public ZoneSimulationResult(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public ZoneSimulationResult(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
     }

@@ -25,7 +25,7 @@ namespace SAM.Core
         {
             value = null;
 
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public Reference(JsonObject jsonObject)

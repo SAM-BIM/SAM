@@ -24,7 +24,16 @@ namespace SAM.Analytical.Classes
 
         public Case(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public Case(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         protected void OnPropertyChanged(string propertyName)

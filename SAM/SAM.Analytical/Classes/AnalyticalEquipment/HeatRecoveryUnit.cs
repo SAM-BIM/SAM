@@ -64,7 +64,16 @@ namespace SAM.Analytical
         }
 
         public HeatRecoveryUnit(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public HeatRecoveryUnit(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

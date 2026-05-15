@@ -34,8 +34,17 @@ namespace SAM.Core
         }
 
         public GasMaterial(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public GasMaterial(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public GasMaterial(GasMaterial gasMaterial)

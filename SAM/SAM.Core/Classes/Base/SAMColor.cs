@@ -29,11 +29,6 @@ namespace SAM.Core
             blue = sAMColor.blue;
         }
 
-        public SAMColor(JObject jObject)
-        {
-            FromJObject(jObject);
-        }
-
         public SAMColor(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);
@@ -98,11 +93,6 @@ namespace SAM.Core
             return new SAMColor(this);
         }
 
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -128,12 +118,6 @@ namespace SAM.Core
             return Color.FromArgb(alpha, red, green, blue);
         }
         
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject

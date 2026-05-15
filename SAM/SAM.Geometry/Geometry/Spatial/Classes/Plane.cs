@@ -24,7 +24,7 @@ namespace SAM.Geometry.Spatial
         }
 
         public Plane(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 

@@ -56,7 +56,7 @@ namespace SAM.Geometry.Planar
         }
 
         public Rectangle2D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 

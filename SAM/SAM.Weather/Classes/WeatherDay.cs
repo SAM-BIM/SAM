@@ -44,18 +44,6 @@ namespace SAM.Weather
             }
         }
 
-        /// <summary>
-        /// Constructor for WeatherDay class that takes a JObject as a parameter.
-        /// </summary>
-        /// <param name="jObject">JObject to be used to construct the WeatherDay object.</param>
-        /// <returns>
-        /// WeatherDay object constructed from the given JObject.
-        /// </returns>
-        public WeatherDay(JObject jObject)
-        {
-            FromJObject(jObject);
-        }
-
         public WeatherDay(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);
@@ -314,16 +302,6 @@ namespace SAM.Weather
             return GetIndexedDoubles(weatherDataType.ToString());
         }
 
-        /// <summary>
-        /// Deserializes a JObject into a dictionary of string and double array.
-        /// </summary>
-        /// <param name="jObject">The JObject to deserialize.</param>
-        /// <returns>True if the deserialization was successful, false otherwise.</returns>
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -356,16 +334,6 @@ namespace SAM.Weather
 
 
             return true;
-        }
-
-        /// <summary>
-        /// Converts the object to a JObject.
-        /// </summary>
-        /// <returns>A JObject representing the object.</returns>
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

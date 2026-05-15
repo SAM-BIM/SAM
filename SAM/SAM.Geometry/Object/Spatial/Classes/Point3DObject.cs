@@ -23,7 +23,16 @@ namespace SAM.Geometry.Object.Spatial
         }
 
         public Point3DObject(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public Point3DObject(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

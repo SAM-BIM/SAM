@@ -21,7 +21,16 @@ namespace SAM.Analytical
         }
 
         public PanelMaxElevationFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public PanelMaxElevationFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

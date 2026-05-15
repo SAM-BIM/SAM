@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020-2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
+using System.Text.Json.Nodes;
 using SAM.Analytical;
-using SAM.Core;
-using SAM.Core.Json;
 using SAM.Tests.Helpers;
 using Xunit;
 
@@ -35,10 +34,10 @@ namespace SAM.Tests
                 ""AirPermeability"": 0.0
             }";
 
-            NCMData ncmData = new NCMData(JObject.Parse(json));
+            NCMData ncmData = new NCMData(JsonNode.Parse(json) as JsonObject);
 
             string first = SAM.Core.Convert.ToString(ncmData);
-            NCMData reloaded = new NCMData(JObject.Parse(first));
+            NCMData reloaded = new NCMData(JsonNode.Parse(first) as JsonObject);
             string second = SAM.Core.Convert.ToString(reloaded);
 
             RoundTrip.AssertEquivalent(first, second);
@@ -55,10 +54,10 @@ namespace SAM.Tests
                 ""Country"": ""England""
             }";
 
-            NCMData ncmData = new NCMData(JObject.Parse(json));
+            NCMData ncmData = new NCMData(JsonNode.Parse(json) as JsonObject);
 
             string first = SAM.Core.Convert.ToString(ncmData);
-            NCMData reloaded = new NCMData(JObject.Parse(first));
+            NCMData reloaded = new NCMData(JsonNode.Parse(first) as JsonObject);
             string second = SAM.Core.Convert.ToString(reloaded);
 
             RoundTrip.AssertEquivalent(first, second);

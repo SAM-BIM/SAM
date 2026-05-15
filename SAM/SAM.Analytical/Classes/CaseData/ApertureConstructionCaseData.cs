@@ -18,7 +18,16 @@ namespace SAM.Analytical
         }
 
         public ApertureConstructionCaseData(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public ApertureConstructionCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

@@ -15,7 +15,7 @@ namespace SAM.Geometry.Object
         }
 
         public CurveAppearance(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
 
         }

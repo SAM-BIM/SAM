@@ -18,9 +18,9 @@ namespace SAM.Geometry.Object.Spatial
         }
 
         public Geometry3DObjectCollection(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public Geometry3DObjectCollection(Geometry3DObjectCollection geometryObjectCollection)

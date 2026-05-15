@@ -45,7 +45,16 @@ namespace SAM.Analytical
         }
 
         public SpaceAirMovement(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public SpaceAirMovement(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

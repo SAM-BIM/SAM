@@ -2,8 +2,8 @@
 // Copyright (c) 2020-2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using System;
+using System.Text.Json.Nodes;
 using SAM.Core;
-using SAM.Core.Json;
 using Xunit;
 
 namespace SAM.Tests
@@ -19,7 +19,7 @@ namespace SAM.Tests
         {
             string json = $"{{\"_type\":\"SAM.Core.SAMObject,SAM.Core\",\"Name\":\"Foo\",\"Guid\":\"{Fixed}\"}}";
 
-            JSAMObjectWrapper wrapper = new JSAMObjectWrapper(JObject.Parse(json));
+            JSAMObjectWrapper wrapper = new JSAMObjectWrapper(JsonNode.Parse(json) as JsonObject);
 
             Assert.Equal("Foo", wrapper.Name);
             Assert.Equal(Fixed, wrapper.Guid);
@@ -32,7 +32,7 @@ namespace SAM.Tests
         {
             string json = $"{{\"_type\":\"SAM.Core.SAMObject,SAM.Core\",\"Name\":\"Bar\",\"Guid\":\"{Fixed}\"}}";
 
-            JSAMObjectWrapper wrapper = new JSAMObjectWrapper(JObject.Parse(json));
+            JSAMObjectWrapper wrapper = new JSAMObjectWrapper(JsonNode.Parse(json) as JsonObject);
             IJSAMObject inner = wrapper.ToIJSAMObject();
 
             SAMObject sAMObject = Assert.IsType<SAMObject>(inner);
@@ -41,15 +41,15 @@ namespace SAM.Tests
         }
 
         [Fact]
-        public void Wrapper_ToJObject_PreservesContent()
+        public void Wrapper_ToJsonObject_PreservesContent()
         {
-            // The wrapper reconstructs a JObject from the stored JsonObject on
-            // every ToJObject call. Verify the round-trip JSON is equivalent
-            // even though the JObject identity is new.
+            // The wrapper deep-clones the stored JsonObject on every
+            // ToJsonObject call. Verify the round-trip JSON is equivalent
+            // even though the JsonObject identity is new.
             string json = $"{{\"_type\":\"SAM.Core.SAMObject,SAM.Core\",\"Name\":\"Baz\",\"Guid\":\"{Fixed}\"}}";
 
-            JSAMObjectWrapper wrapper = new JSAMObjectWrapper(JObject.Parse(json));
-            JObject roundTripped = wrapper.ToJObject();
+            JSAMObjectWrapper wrapper = new JSAMObjectWrapper(JsonNode.Parse(json) as JsonObject);
+            JsonObject roundTripped = wrapper.ToJsonObject();
 
             Assert.NotNull(roundTripped);
             Assert.Equal("Baz", Query.Name(roundTripped));

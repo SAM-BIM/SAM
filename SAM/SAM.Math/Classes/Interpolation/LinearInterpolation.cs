@@ -17,9 +17,9 @@ namespace SAM.Math
     {
         private List<KeyValuePair<double, double>> values;
 
-        public LinearInterpolation(JObject jObject)
+        public LinearInterpolation(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public LinearInterpolation(double x_1, double y_1, double x_2, double y_2)
@@ -170,11 +170,6 @@ namespace SAM.Math
             }
         }
 
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -220,12 +215,6 @@ namespace SAM.Math
             }
 
             return true;
-        }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

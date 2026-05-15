@@ -18,13 +18,9 @@ namespace SAM.Math
     {
         private double[] coefficients;
 
-        /// <summary>
-        /// Initializes a new instance of the PolynomialEquation class using a JObject.
-        /// </summary>
-        /// <param name="jObject">The JObject containing the polynomial equation data.</param>
-        public PolynomialEquation(JObject jObject)
+        public PolynomialEquation(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
 
@@ -132,16 +128,6 @@ namespace SAM.Math
             }
         }
 
-        /// <summary>
-        /// Updates the PolynomialEquation object using a JObject.
-        /// </summary>
-        /// <param name="jObject">The JObject containing the polynomial equation data.</param>
-        /// <returns>True if the update was successful, false otherwise.</returns>
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -169,16 +155,6 @@ namespace SAM.Math
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Converts the PolynomialEquation object to a JObject.
-        /// </summary>
-        /// <returns>The JObject representation of the PolynomialEquation object.</returns>
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

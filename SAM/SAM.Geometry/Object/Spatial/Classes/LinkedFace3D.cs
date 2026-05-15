@@ -54,7 +54,16 @@ namespace SAM.Geometry.Object.Spatial
 
         public LinkedFace3D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public LinkedFace3D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public BoundingBox3D GetBoundingBox(double offset = 0)

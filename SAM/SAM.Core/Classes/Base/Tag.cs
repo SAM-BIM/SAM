@@ -12,11 +12,6 @@ namespace SAM.Core
     {
         private object value;
 
-        public Tag(JObject jObject)
-        {
-            FromJObject(jObject);
-        }
-
         public Tag(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);
@@ -176,11 +171,6 @@ namespace SAM.Core
             return false;
         }
 
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -325,12 +315,6 @@ namespace SAM.Core
         public void SetValue(Color value)
         {
             this.value = value;
-        }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

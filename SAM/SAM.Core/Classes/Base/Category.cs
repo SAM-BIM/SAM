@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
@@ -30,11 +29,6 @@ namespace SAM.Core
                 name = category.name;
                 subCategory = category.subCategory == null ? null : new Category(category.subCategory);
             }
-        }
-
-        public Category(JObject? jObject)
-        {
-            FromJObject(jObject);
         }
 
         public Category(JsonObject? jsonObject)
@@ -95,11 +89,6 @@ namespace SAM.Core
             return string.Join(separator, values);
         }
 
-        public bool FromJObject(JObject? jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject? jsonObject)
         {
             if (jsonObject == null)
@@ -118,12 +107,6 @@ namespace SAM.Core
             }
 
             return true;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public JsonObject ToJsonObject()

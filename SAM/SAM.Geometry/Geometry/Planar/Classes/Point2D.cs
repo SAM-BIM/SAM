@@ -22,7 +22,7 @@ namespace SAM.Geometry.Planar
 
         public Point2D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public Point2D(JsonObject jsonObject)

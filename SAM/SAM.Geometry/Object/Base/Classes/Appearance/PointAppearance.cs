@@ -18,7 +18,7 @@ namespace SAM.Geometry.Object
         }
 
         public PointAppearance(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
 
         }

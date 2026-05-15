@@ -24,8 +24,17 @@ namespace SAM.Architectural
         }
 
         public Terrain(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Terrain(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public abstract bool Below(Face3D face3D, double tolerance = Core.Tolerance.Distance);

@@ -29,7 +29,16 @@ namespace SAM.Geometry.Object.Planar
         }
 
         public Polygon2DObject(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public Polygon2DObject(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

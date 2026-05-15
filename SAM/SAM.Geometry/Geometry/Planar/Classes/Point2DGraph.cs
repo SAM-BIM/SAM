@@ -20,8 +20,17 @@ namespace SAM.Geometry.Planar
         }
 
         public Point2DGraph(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public Point2DGraph(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public Point2DGraph(Point2DGraph<T> point2DGraph)

@@ -33,7 +33,7 @@ namespace SAM.Geometry
 
         public Face(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public Face(JsonObject jsonObject)

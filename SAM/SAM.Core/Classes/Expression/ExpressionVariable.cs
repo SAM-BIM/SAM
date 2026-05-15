@@ -20,10 +20,9 @@ namespace SAM.Core
         {
             text = expressionVariable?.text;
         }
-
-        public ExpressionVariable(JObject jObject)
+        public ExpressionVariable(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public string Text
@@ -82,11 +81,6 @@ namespace SAM.Core
             return expressionVariable;
         }
 
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -96,12 +90,6 @@ namespace SAM.Core
                 text = jsonObject["Text"]?.GetValue<string>();
 
             return true;
-        }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public JsonObject ToJsonObject()

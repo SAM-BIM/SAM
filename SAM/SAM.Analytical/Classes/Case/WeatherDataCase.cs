@@ -27,7 +27,16 @@ namespace SAM.Analytical.Classes
         }
 
         public WeatherDataCase(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public WeatherDataCase(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

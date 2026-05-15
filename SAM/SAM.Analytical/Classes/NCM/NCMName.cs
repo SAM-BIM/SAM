@@ -33,7 +33,7 @@ namespace SAM.Analytical
 
         public NCMName(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public NCMName(JsonObject jsonObject)

@@ -25,7 +25,16 @@ namespace SAM.Analytical
         }
 
         public IndexedDoublesModifier(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        {
+
+        }
+
+
+        public IndexedDoublesModifier(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
         {
 
         }

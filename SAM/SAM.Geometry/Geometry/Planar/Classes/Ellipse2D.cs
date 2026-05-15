@@ -39,7 +39,7 @@ namespace SAM.Geometry.Planar
         }
 
         public Ellipse2D(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 

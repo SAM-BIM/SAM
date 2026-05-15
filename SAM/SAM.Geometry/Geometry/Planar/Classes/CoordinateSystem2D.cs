@@ -36,7 +36,7 @@ namespace SAM.Geometry.Planar
 
         public CoordinateSystem2D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public CoordinateSystem2D(JsonObject jsonObject)

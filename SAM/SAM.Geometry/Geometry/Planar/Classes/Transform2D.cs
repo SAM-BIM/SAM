@@ -18,7 +18,16 @@ namespace SAM.Geometry.Planar
 
         public Transform2D(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public Transform2D(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public Transform2D(Transform2D transform2D)

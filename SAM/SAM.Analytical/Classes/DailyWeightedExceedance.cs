@@ -25,7 +25,16 @@ namespace SAM.Analytical
 
         public DailyWeightedExceedance(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public DailyWeightedExceedance(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public DailyWeightedExceedance(int dayIndex, IndexedDoubles temperatureDifferences)

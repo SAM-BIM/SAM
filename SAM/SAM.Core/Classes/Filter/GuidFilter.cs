@@ -8,9 +8,14 @@ namespace SAM.Core
     public class GuidFilter : TextFilter
     {
         public GuidFilter(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
 
+        }
+
+        public GuidFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
+        {
         }
 
         public GuidFilter(GuidFilter guidFilter)

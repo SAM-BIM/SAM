@@ -18,11 +18,6 @@ namespace SAM.Core
 
         }
 
-        public IndexedObjects(JObject jObject)
-        {
-            FromJObject(jObject);
-        }
-
         public IndexedObjects(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);
@@ -262,11 +257,6 @@ namespace SAM.Core
             }
         }
 
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -306,12 +296,6 @@ namespace SAM.Core
         public IEnumerator<T> GetEnumerator()
         {
             return sortedDictionary?.Values?.GetEnumerator();
-        }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

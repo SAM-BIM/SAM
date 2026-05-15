@@ -28,13 +28,9 @@ namespace SAM.Math
         /// </summary>
         private double[,] values;
 
-        /// <summary>
-        /// Initializes a new instance of the BilinearInterpolation class using a JSON object.
-        /// </summary>
-        /// <param name="jObject">The JSON object containing the data.</param>
-        public BilinearInterpolation(JObject jObject)
+        public BilinearInterpolation(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         /// <summary>
@@ -186,16 +182,6 @@ namespace SAM.Math
             return result;
         }
 
-        /// <summary>
-        /// Populates the properties of this instance from a JSON object.
-        /// </summary>
-        /// <param name="jObject">The JSON object.</param>
-        /// <returns>true if the operation was successful; otherwise, false.</returns>
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -229,16 +215,6 @@ namespace SAM.Math
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Converts the properties of this instance to a JSON object.
-        /// </summary>
-        /// <returns>The JSON object.</returns>
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

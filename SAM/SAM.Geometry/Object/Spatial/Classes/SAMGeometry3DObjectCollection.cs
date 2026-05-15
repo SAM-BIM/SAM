@@ -19,7 +19,16 @@ namespace SAM.Geometry.Object.Spatial
 
         public SAMGeometry3DObjectCollection(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public SAMGeometry3DObjectCollection(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public SAMGeometry3DObjectCollection(SAMGeometry3DObjectCollection sAMGeometryObject3DCollection)

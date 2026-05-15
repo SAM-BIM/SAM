@@ -17,15 +17,9 @@ namespace SAM.Core
         {
 
         }
-
-        public Modifier(JObject jObject)
+        public Modifier(JsonObject jsonObject)
         {
-            FromJObject(jObject);
-        }
-
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
+            FromJsonObject(jsonObject);
         }
 
         public virtual bool FromJsonObject(JsonObject jsonObject)
@@ -36,12 +30,6 @@ namespace SAM.Core
             }
 
             return true;
-        }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual JsonObject ToJsonObject()

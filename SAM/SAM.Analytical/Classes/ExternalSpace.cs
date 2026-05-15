@@ -46,8 +46,17 @@ namespace SAM.Analytical
         }
 
         public ExternalSpace(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public ExternalSpace(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public override bool FromJsonObject(JsonObject jsonObject)

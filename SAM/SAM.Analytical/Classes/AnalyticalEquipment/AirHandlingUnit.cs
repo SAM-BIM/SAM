@@ -34,9 +34,14 @@ namespace SAM.Analytical
         /// </summary>
         /// <param name="jObject">The JObject containing the air handling unit data</param>
         public AirHandlingUnit(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
 
+        }
+
+        public AirHandlingUnit(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
+        {
         }
 
         /// <summary>

@@ -27,8 +27,17 @@ namespace SAM.Analytical
         }
 
         public OpeningProperties(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
+        }
+
+
+        public OpeningProperties(System.Text.Json.Nodes.JsonObject jsonObject)
+
+            : base(jsonObject)
+
+        {
+
         }
 
         public OpeningProperties(OpeningProperties openingProperties)

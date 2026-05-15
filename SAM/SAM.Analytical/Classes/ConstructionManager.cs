@@ -51,7 +51,16 @@ namespace SAM.Analytical
 
         public ConstructionManager(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+        }
+
+
+        public ConstructionManager(System.Text.Json.Nodes.JsonObject jsonObject)
+
+        {
+
+            FromJsonObject(jsonObject);
+
         }
 
         public ConstructionManager(ConstructionManager constructionManager)

@@ -20,7 +20,7 @@ namespace SAM.Core
         }
 
         public RelationCluster(JObject jObject)
-            : base(jObject)
+            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
         {
         }
 
@@ -53,7 +53,7 @@ namespace SAM.Core
 
         public RelationCluster(JObject jObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
         }
 
         public RelationCluster(JsonObject jsonObject)

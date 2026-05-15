@@ -41,11 +41,6 @@ namespace SAM.Core
         {
         }
 
-        public ParameterizedSAMObject(JObject? jObject)
-        {
-            FromJObject(jObject);
-        }
-
         public ParameterizedSAMObject(JsonObject? jsonObject)
         {
             FromJsonObject(jsonObject);
@@ -311,17 +306,6 @@ namespace SAM.Core
                 return null;
             else
                 return parameterSets.ConvertAll(x => x == null ? null : new ParameterSet(x)); //Updated 25.05.2022
-        }
-
-        public virtual bool FromJObject(JObject? jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
-        public virtual JObject? ToJObject()
-        {
-            JsonObject? jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
         }
 
         public virtual bool FromJsonObject(JsonObject? jsonObject)
