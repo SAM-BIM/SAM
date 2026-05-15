@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -54,11 +53,6 @@ namespace SAM.Core
             return true;
         }
 
-        public JArray ToJArray()
-        {
-            return new JArray(ToJsonArray());
-        }
-
         public JsonArray ToJsonArray()
         {
             JsonArray jsonArray = new JsonArray();
@@ -69,11 +63,6 @@ namespace SAM.Core
             }
 
             return jsonArray;
-        }
-
-        public bool FromJArray(JArray jArray)
-        {
-            return FromJsonArray(jArray?.Node as JsonArray);
         }
 
         public bool FromJsonArray(JsonArray jsonArray)

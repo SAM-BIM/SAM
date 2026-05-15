@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json; // Required for working with JSON
 using System.Collections.Generic; // Required for using List<>
 using System.Linq; // Required for using Enumerable.Repeat() and Enumerable.ToList()
 using System.Text.Json.Nodes;
@@ -11,12 +10,6 @@ namespace SAM.Core
 {
     public static partial class Create
     {
-        // This method converts a JArray into a List of IJSAMObjects of type T
-        public static List<T> IJSAMObjects<T>(this JArray jArray) where T : IJSAMObject
-        {
-            return IJSAMObjects<T>(jArray?.Node as JsonArray);
-        }
-
         public static List<T> IJSAMObjects<T>(this JsonArray jsonArray) where T : IJSAMObject
         {
             if (jsonArray == null)

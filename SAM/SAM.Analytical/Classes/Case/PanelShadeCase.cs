@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
@@ -57,7 +56,7 @@ namespace SAM.Analytical.Classes
 
             if (jsonObject["Panels"] is JsonArray panelsArray)
             {
-                panels = Core.Convert.ToList<Panel>(new JArray(panelsArray));
+                panels = Core.Create.IJSAMObjects<Panel>(panelsArray);
             }
 
             return true;
