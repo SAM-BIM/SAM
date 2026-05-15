@@ -59,8 +59,8 @@ namespace SAM.Tests
         public void RoundTrip_IndexedObjects_PrimitiveValues()
         {
             // IndexedObjects<int> stores [index, value] pairs as JsonArray
-            // entries. The migration switches the inner JsonArray emission to
-            // JToken.ToNode(value) for primitives.
+            // entries. The migration keeps primitive JsonArray emission on the
+            // non-shim JsonNode writer.
             IndexedObjects<int> indexed = new IndexedObjects<int>();
             indexed.Add(0, 100);
             indexed.Add(5, 500);

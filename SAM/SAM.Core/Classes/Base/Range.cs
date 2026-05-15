@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
-
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
@@ -124,8 +122,8 @@ namespace SAM.Core
             JsonObject jsonObject = new JsonObject
             {
                 ["_type"] = Query.FullTypeName(this),
-                ["Max"] = JToken.ToNode(max),
-                ["Min"] = JToken.ToNode(min)
+                ["Max"] = Query.ToJsonNode(max),
+                ["Min"] = Query.ToJsonNode(min)
             };
 
             return jsonObject;

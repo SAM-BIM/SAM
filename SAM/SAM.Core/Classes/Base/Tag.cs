@@ -335,7 +335,7 @@ namespace SAM.Core
                     case ValueType.Boolean:
                         if (Query.TryConvert(Value, out bool @bool))
                         {
-                            valueNode = JToken.ToNode(@bool);
+                            valueNode = Query.ToJsonNode(@bool);
                         }
                         break;
 
@@ -349,21 +349,21 @@ namespace SAM.Core
                     case ValueType.DateTime:
                         if (Query.TryConvert(Value, out DateTime dateTime))
                         {
-                            valueNode = JToken.ToNode(dateTime);
+                            valueNode = Query.ToJsonNode(dateTime);
                         }
                         break;
 
                     case ValueType.Double:
                         if (Query.TryConvert(Value, out double @double))
                         {
-                            valueNode = JToken.ToNode(@double);
+                            valueNode = Query.ToJsonNode(@double);
                         }
                         break;
 
                     case ValueType.Guid:
                         if (Query.TryConvert(Value, out Guid @guid))
                         {
-                            valueNode = JToken.ToNode(@guid);
+                            valueNode = Query.ToJsonNode(@guid);
                         }
                         break;
 
@@ -374,14 +374,14 @@ namespace SAM.Core
                     case ValueType.Integer:
                         if (Query.TryConvert(Value, out int @int))
                         {
-                            valueNode = JToken.ToNode(@int);
+                            valueNode = Query.ToJsonNode(@int);
                         }
                         break;
 
                     case ValueType.String:
                         if (Query.TryConvert(Value, out string @string))
                         {
-                            valueNode = JToken.ToNode(@string);
+                            valueNode = Query.ToJsonNode(@string);
                         }
                         break;
                 }

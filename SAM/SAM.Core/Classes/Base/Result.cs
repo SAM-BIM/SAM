@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System;
 using System.Text.Json.Nodes;
 
@@ -108,7 +107,7 @@ namespace SAM.Core
                 jsonObject["Reference"] = reference;
 
             if (dateTime != DateTime.MinValue)
-                jsonObject["DateTime"] = JToken.ToNode(dateTime);
+                jsonObject["DateTime"] = Query.ToJsonNode(dateTime);
 
             return jsonObject;
         }

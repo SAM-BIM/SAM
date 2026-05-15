@@ -58,7 +58,7 @@ namespace SAM.Core
                 JsonArray jsonArray = new JsonArray();
                 for (int j = 0; j < values.GetLength(1); j++)
                 {
-                    jsonArray.Add(JToken.ToNode(values[i, j]));
+                    jsonArray.Add(Query.ToJsonNode(values[i, j]));
                 }
 
                 result.Add(jsonArray);

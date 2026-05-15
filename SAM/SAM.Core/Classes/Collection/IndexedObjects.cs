@@ -324,7 +324,7 @@ namespace SAM.Core
                         }
                         else
                         {
-                            entryArray.Add(JToken.ToNode(keyValuePair.Value));
+                            entryArray.Add(Query.ToJsonNode(keyValuePair.Value));
                         }
                     }
 
