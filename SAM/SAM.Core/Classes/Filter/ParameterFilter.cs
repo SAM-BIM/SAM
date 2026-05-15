@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System;
 using System.Globalization;
 using System.Text.Json;
@@ -233,7 +232,7 @@ namespace SAM.Core
             {
                 case JsonValueKind.String:
                     string stringValue = valueNode.GetValue<string>();
-                    if (JToken.IsIsoDateTime(stringValue))
+                    if (Query.IsIsoDateTime(stringValue))
                         return DateTime.Parse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
                     return stringValue;
 
@@ -252,7 +251,7 @@ namespace SAM.Core
                     return inner ?? (object)wrapper.ToJsonObject();
 
                 case JsonValueKind.Array:
-                    return new JArray((JsonArray)valueNode.DeepClone());
+                    return valueNode.DeepClone();
 
                 default:
                     return null;
@@ -267,14 +266,14 @@ namespace SAM.Core
                     JsonObject innerJson = jSAMObject.ToJsonObject();
                     return innerJson == null ? null : (JsonNode)innerJson.DeepClone();
 
-                case JArray shimArray:
-                    return shimArray.Node?.DeepClone();
+                case JsonArray jsonArray:
+                    return jsonArray.DeepClone();
 
-                case JObject shimObject:
-                    return shimObject.Node?.DeepClone();
+                case JsonObject jsonObject:
+                    return jsonObject.DeepClone();
 
                 default:
-                    return JToken.ToNode(value);
+                    return Query.ToJsonNode(value);
             }
         }
 

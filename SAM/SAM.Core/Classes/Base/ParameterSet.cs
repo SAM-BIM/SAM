@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -128,7 +127,7 @@ namespace SAM.Core
             return true;
         }
 
-        public bool Add(string name, JObject value)
+        public bool Add(string name, JsonObject value)
         {
             if (dictionary == null || name == null)
                 return false;
@@ -164,12 +163,12 @@ namespace SAM.Core
             return true;
         }
 
-        public bool Add(string name, JArray jArray)
+        public bool Add(string name, JsonArray jsonArray)
         {
             if (dictionary == null || name == null)
                 return false;
 
-            dictionary[name] = jArray;
+            dictionary[name] = jsonArray;
             return true;
         }
 
@@ -304,18 +303,18 @@ namespace SAM.Core
             return DateTime.MinValue;
         }
 
-        public JObject ToJObject(string name)
+        public JsonObject ToJsonObject(string name)
         {
-            JObject result;
+            JsonObject result;
             if (!Query.TryGetValue(dictionary, name, out result))
                 return null;
 
             return result;
         }
 
-        public JArray ToJArray(string name)
+        public JsonArray ToJsonArray(string name)
         {
-            JArray result;
+            JsonArray result;
             if (!Query.TryGetValue(dictionary, name, out result))
                 return null;
 
@@ -477,7 +476,7 @@ namespace SAM.Core
                     return inner ?? (object)wrapper.ToJsonObject();
 
                 case JsonValueKind.Array:
-                    return new JArray((JsonArray)valueNode.DeepClone());
+                    return valueNode.DeepClone();
 
                 default:
                     return null;
@@ -492,18 +491,16 @@ namespace SAM.Core
                     JsonObject innerJson = jSAMObject.ToJsonObject();
                     return innerJson == null ? null : (JsonNode)innerJson.DeepClone();
 
-                case JArray shimArray:
-                    return shimArray.Node?.DeepClone();
+                case JsonArray jsonArray:
+                    return jsonArray.DeepClone();
 
-                case JObject shimObject:
-                    return shimObject.Node?.DeepClone();
+                case JsonObject jsonObject:
+                    return jsonObject.DeepClone();
 
                 default:
-                    // Delegate primitive handling (string, bool, int, long,
-                    // double, float, decimal, DateTime, Guid, enum, ...) to
-                    // the shim's ToNode helper, which already emits doubles
-                    // with explicit decimals so round-trip preserves Float.
-                    return JToken.ToNode(value);
+                    // Keep explicit decimals for floating values so round-trip
+                    // preserves Float rather than reading back as Integer.
+                    return Query.ToJsonNode(value);
             }
         }
 
