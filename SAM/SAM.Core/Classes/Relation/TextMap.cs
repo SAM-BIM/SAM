@@ -60,6 +60,12 @@ namespace SAM.Core
 
         }
 
+        internal TextMap(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+
+        }
+
         public List<string> Add(string key, params string[] values)
         {
             if (string.IsNullOrEmpty(key) || values == null)

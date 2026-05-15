@@ -115,7 +115,7 @@ namespace SAM.Analytical
                 return false;
 
             if (jsonObject["Curve3D"] is JsonObject curve3DJson)
-                curve3D = Geometry.Spatial.Create.ICurve3D(new JObject((JsonObject)curve3DJson.DeepClone()));
+                curve3D = Geometry.Spatial.Create.ICurve3D((JsonObject)curve3DJson.DeepClone());
             return true;
         }
 

@@ -42,7 +42,7 @@ namespace SAM.Analytical
 
             if (jsonObject["TextMap"] is JsonObject textMapJson)
             {
-                textMap = Core.Create.TextMap(new JObject((JsonObject)textMapJson.DeepClone()));
+                textMap = Core.Create.TextMap((JsonObject)textMapJson.DeepClone());
             }
 
             return true;

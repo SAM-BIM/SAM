@@ -25,6 +25,11 @@ namespace SAM.Geometry
             FromJObject(jObject);
         }
 
+        public PointGraphEdge(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public PointGraphEdge(PointGraphEdge<X, T> pointGraphEdge)
         {
             if (pointGraphEdge != null)

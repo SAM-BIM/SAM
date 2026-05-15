@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry
 {
@@ -12,9 +13,19 @@ namespace SAM.Geometry
             return Core.Create.IJSAMObject(jObject) as ISAMGeometry;
         }
 
+        public static ISAMGeometry ISAMGeometry(this JsonObject jsonObject)
+        {
+            return Core.Create.IJSAMObject(jsonObject) as ISAMGeometry;
+        }
+
         public static T ISAMGeometry<T>(this JObject jObject) where T : ISAMGeometry
         {
             return Core.Create.IJSAMObject<T>(jObject);
+        }
+
+        public static T ISAMGeometry<T>(this JsonObject jsonObject) where T : ISAMGeometry
+        {
+            return Core.Create.IJSAMObject<T>(jsonObject);
         }
     }
 }

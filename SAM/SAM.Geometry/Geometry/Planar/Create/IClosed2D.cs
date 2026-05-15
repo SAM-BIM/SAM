@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -22,6 +23,17 @@ namespace SAM.Geometry.Planar
                 return null;
 
             return Geometry.Create.ISAMGeometry(jObject) as IClosed2D;
+        }
+
+        /// <summary>
+        /// Returns a closed 2D geometry from the specified BCL JsonObject.
+        /// </summary>
+        public static IClosed2D IClosed2D(this JsonObject jsonObject)
+        {
+            if (jsonObject == null)
+                return null;
+
+            return Geometry.Create.ISAMGeometry(jsonObject) as IClosed2D;
         }
         /// <summary>
         /// Returns a closed 2D geometry from the specified 2D polygon, with optional tolerance.

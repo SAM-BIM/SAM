@@ -48,7 +48,7 @@ namespace SAM.Geometry
 
             if (jsonObject["ExternalEdge2D"] is JsonObject jsonObject_ExternalEdge2D)
             {
-                externalEdge2D = Planar.Create.IClosed2D(new JObject((JsonObject)jsonObject_ExternalEdge2D.DeepClone()));
+                externalEdge2D = Planar.Create.IClosed2D((JsonObject)jsonObject_ExternalEdge2D.DeepClone());
             }
 
             if (jsonObject["InternalEdge2Ds"] is JsonArray jsonArray_InternalEdge2Ds)

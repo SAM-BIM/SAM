@@ -465,7 +465,7 @@ namespace SAM.Geometry
                     {
                         if (node is JsonObject edgeJson)
                         {
-                            PointGraphEdge<X, T> pointGraphEdge = new PointGraphEdge<X, T>(new JObject((JsonObject)edgeJson.DeepClone()));
+                            PointGraphEdge<X, T> pointGraphEdge = new PointGraphEdge<X, T>((JsonObject)edgeJson.DeepClone());
                             if (pointGraphEdge != null)
                             {
                                 bidirectionalGraph.AddEdge(pointGraphEdge);

@@ -76,7 +76,7 @@ namespace SAM.Analytical
                 return false;
 
             if (jsonObject["Curve2D"] is JsonObject curve2DJson)
-                curve2D = Geometry.Planar.Create.ICurve2D(new JObject((JsonObject)curve2DJson.DeepClone()));
+                curve2D = Geometry.Planar.Create.ICurve2D((JsonObject)curve2DJson.DeepClone());
             return true;
         }
 

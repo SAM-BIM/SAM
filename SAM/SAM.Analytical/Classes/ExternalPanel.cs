@@ -78,7 +78,7 @@ namespace SAM.Analytical
             // without a key, which returned the enclosing JObject itself (likely a bug).
             if (jsonObject.ContainsKey("Face3D"))
             {
-                face3D = new Face3D(new JObject(jsonObject));
+                face3D = new Face3D(jsonObject);
             }
 
             return true;

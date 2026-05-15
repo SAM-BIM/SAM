@@ -87,7 +87,7 @@ namespace SAM.Analytical
 
             if (jsonObject["Face3D"] is JsonObject face3DJson)
             {
-                face3D = Geometry.Create.ISAMGeometry<Face3D>(new JObject((JsonObject)face3DJson.DeepClone()));
+                face3D = Geometry.Create.ISAMGeometry<Face3D>((JsonObject)face3DJson.DeepClone());
             }
 
             return true;
