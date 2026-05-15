@@ -2,7 +2,6 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using MathNet.Numerics;
-using SAM.Core.Json;
 using SAM.Geometry.Planar;
 using SAM.Geometry.Spatial;
 using System;

@@ -4,7 +4,6 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using SAM.Core.Json;
 using SAM.Math.Grasshopper.Properties;
 using System;
 using System.Collections.Generic;

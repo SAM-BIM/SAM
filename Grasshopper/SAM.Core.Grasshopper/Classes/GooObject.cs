@@ -4,7 +4,7 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using SAM.Core.Json;
+using System.Text.Json.Nodes;
 using SAM.Core.Grasshopper.Properties;
 using System;
 
@@ -69,7 +69,7 @@ namespace SAM.Core.Grasshopper
             if (Value.GetType().IsPrimitive)
                 return Value.ToString();
 
-            if (Value is JToken)
+            if (Value is JsonNode)
                 return Value.ToString();
 
             if (Value is Enum)

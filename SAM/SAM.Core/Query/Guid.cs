@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -47,30 +46,6 @@ namespace SAM.Core
             string text = jsonNode.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(text) && System.Guid.TryParse(text, out Guid parsed))
                 return parsed;
-
-            return System.Guid.Empty;
-        }
-
-        public static Guid Guid(this JToken jToken)
-        {
-            if (jToken == null)
-                return System.Guid.Empty;
-
-            switch (jToken.Type)
-            {
-                case JTokenType.String:
-                    string guidString = jToken.Value<string>();
-                    if (!string.IsNullOrWhiteSpace(guidString))
-                    {
-                        Guid guid_Temp;
-                        if (System.Guid.TryParse(guidString, out guid_Temp))
-                            return guid_Temp;
-                    }
-                    break;
-
-                case JTokenType.Guid:
-                    return jToken.Value<Guid>();
-            }
 
             return System.Guid.Empty;
         }

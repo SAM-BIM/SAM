@@ -4,7 +4,6 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using SAM.Core.Json;
 using Rhino.Geometry;
 using SAM.Geometry.Grasshopper.Properties;
 using SAM.Geometry.Spatial;
