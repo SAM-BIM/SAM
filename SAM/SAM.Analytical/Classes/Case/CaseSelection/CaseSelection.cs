@@ -16,13 +16,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public CaseSelection(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public CaseSelection(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

@@ -10,12 +10,6 @@ namespace SAM.Analytical
 {
     public class PanelAperturesFilter : MultiRelationFilter<Aperture>
     {
-        public PanelAperturesFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
         public PanelAperturesFilter(System.Text.Json.Nodes.JsonObject jsonObject)
             : base(jsonObject)
         {

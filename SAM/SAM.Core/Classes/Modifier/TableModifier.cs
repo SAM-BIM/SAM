@@ -56,14 +56,6 @@ namespace SAM.Core
                 Extrapolate = tableModifier.Extrapolate;
             }
         }
-
-        public TableModifier(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public TableModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

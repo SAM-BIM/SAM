@@ -135,11 +135,6 @@ namespace SAM.Weather
         /// <returns>
         /// WeatherData object constructed from the given JObject.
         /// </returns>
-        public WeatherData(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public WeatherData(System.Text.Json.Nodes.JsonObject jsonObject)
             : base(jsonObject)
         {

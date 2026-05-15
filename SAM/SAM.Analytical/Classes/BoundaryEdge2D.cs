@@ -36,13 +36,6 @@ namespace SAM.Analytical
         {
             this.curve2D = (ICurve2D)curve2D.Clone();
         }
-
-        public BoundaryEdge2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public BoundaryEdge2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

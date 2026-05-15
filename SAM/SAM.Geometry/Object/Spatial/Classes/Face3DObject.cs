@@ -27,14 +27,6 @@ namespace SAM.Geometry.Object.Spatial
         {
 
         }
-
-        public Face3DObject(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public Face3DObject(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

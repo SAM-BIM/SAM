@@ -19,14 +19,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public PanelHasAperturesFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public PanelHasAperturesFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

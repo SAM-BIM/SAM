@@ -62,14 +62,6 @@ namespace SAM.Analytical
             this.summerRelativeHumidity = summerRelativeHumidity;
             this.summerDryBulbTemperature = summerDryBulbTemperature;
         }
-
-        public HeatRecoveryUnit(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public HeatRecoveryUnit(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

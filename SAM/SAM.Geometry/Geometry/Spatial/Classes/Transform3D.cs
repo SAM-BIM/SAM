@@ -17,13 +17,6 @@ namespace SAM.Geometry.Spatial
         {
             this.matrix4D = matrix4D;
         }
-
-        public Transform3D(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public Transform3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

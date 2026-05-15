@@ -30,12 +30,6 @@ namespace SAM.Analytical
             this.description = description;
             this.group = group;
         }
-
-        public NCMName(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public NCMName(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);

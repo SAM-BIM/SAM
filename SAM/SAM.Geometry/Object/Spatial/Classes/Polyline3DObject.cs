@@ -27,14 +27,6 @@ namespace SAM.Geometry.Object.Spatial
         {
 
         }
-
-        public Polyline3DObject(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public Polyline3DObject(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

@@ -46,12 +46,6 @@ namespace SAM.Analytical
             : base(name)
         {
         }
-
-        public InternalCondition(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public InternalCondition(JsonObject jsonObject)
             : base(jsonObject)
         {

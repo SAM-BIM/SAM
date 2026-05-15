@@ -45,13 +45,6 @@ namespace SAM.Analytical
 
             this.loadType = loadType;
         }
-
-        public DesignDay(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public DesignDay(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

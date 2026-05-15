@@ -12,13 +12,6 @@ namespace SAM.Geometry.Planar
     {
         private Point2D origin;
         private Vector2D vector;
-
-        public Line2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Line2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

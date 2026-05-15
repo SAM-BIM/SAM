@@ -15,13 +15,6 @@ namespace SAM.Analytical
         {
             this.name = name;
         }
-
-        public CaseData(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public CaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

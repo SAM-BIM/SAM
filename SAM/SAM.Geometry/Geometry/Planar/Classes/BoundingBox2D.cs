@@ -101,13 +101,6 @@ namespace SAM.Geometry.Planar
                 max = Query.Max(point2Ds_Max);
             }
         }
-
-        public BoundingBox2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public BoundingBox2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

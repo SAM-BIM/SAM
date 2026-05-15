@@ -80,13 +80,6 @@ namespace SAM.Analytical
         {
             this.constructionLayers = constructionLayers?.ToList().ConvertAll(x => new ConstructionLayer(x));
         }
-
-        public Construction(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Construction(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

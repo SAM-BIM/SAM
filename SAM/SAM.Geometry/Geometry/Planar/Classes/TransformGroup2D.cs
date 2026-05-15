@@ -12,13 +12,6 @@ namespace SAM.Geometry.Planar
     public class TransformGroup2D : ITransform2D, IEnumerable<ITransform2D>
     {
         private List<ITransform2D> transform2Ds;
-
-        public TransformGroup2D(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public TransformGroup2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

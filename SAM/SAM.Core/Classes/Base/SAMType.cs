@@ -40,13 +40,6 @@ namespace SAM.Core
         {
 
         }
-
-        public SAMType(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public SAMType(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

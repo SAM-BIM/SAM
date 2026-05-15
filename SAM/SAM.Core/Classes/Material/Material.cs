@@ -59,14 +59,6 @@ namespace SAM.Core
         {
 
         }
-
-        public Material(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public Material(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

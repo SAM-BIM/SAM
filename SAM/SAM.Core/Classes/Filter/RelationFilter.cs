@@ -8,11 +8,6 @@ namespace SAM.Core
 {
     public abstract class RelationFilter<T> : Filter, IRelationFilter where T : IJSAMObject
     {
-        public RelationFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public RelationFilter(System.Text.Json.Nodes.JsonObject jsonObject)
             : base(jsonObject)
         {

@@ -27,14 +27,6 @@ namespace SAM.Geometry.Object.Planar
         {
 
         }
-
-        public BoundingBox2DObject(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public BoundingBox2DObject(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

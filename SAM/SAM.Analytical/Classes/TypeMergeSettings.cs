@@ -23,13 +23,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public TypeMergeSettings(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public TypeMergeSettings(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

@@ -23,13 +23,6 @@ namespace SAM.Analytical.Classes
         {
             values = cases == null ? [] : [.. cases];
         }
-
-        public Cases(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public Cases(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

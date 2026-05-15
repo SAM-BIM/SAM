@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System;
 using System.Text.Json.Nodes;
 
@@ -17,11 +16,6 @@ namespace SAM.Core
         public JSAMObjectWrapper(JSAMObjectWrapper jSAMObjectWrapper)
         {
             jsonObject = jSAMObjectWrapper.jsonObject?.DeepClone() as JsonObject;
-        }
-
-        public JSAMObjectWrapper(JObject jObject)
-        {
-            jsonObject = jObject?.Node as JsonObject;
         }
 
         public JSAMObjectWrapper(JsonObject jsonObject)
@@ -98,7 +92,7 @@ namespace SAM.Core
 
         public IJSAMObject ToIJSAMObject()
         {
-            return jsonObject == null ? null : Query.IJSAMObject(new JObject(jsonObject));
+            return jsonObject == null ? null : Query.IJSAMObject(jsonObject);
         }
         public JsonObject? ToJsonObject()
         {

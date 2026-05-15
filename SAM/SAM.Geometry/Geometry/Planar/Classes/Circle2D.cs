@@ -23,13 +23,6 @@ namespace SAM.Geometry.Planar
             center = new Point2D(circle2D.center);
             radius = circle2D.radius;
         }
-
-        public Circle2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Circle2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

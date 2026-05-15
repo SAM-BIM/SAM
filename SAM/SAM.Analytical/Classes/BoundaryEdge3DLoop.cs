@@ -24,13 +24,6 @@ namespace SAM.Analytical
         {
             boundaryEdge3Ds = boundaryEdge3DLoop.boundaryEdge3Ds.ConvertAll(x => new BoundaryEdge3D(x));
         }
-
-        public BoundaryEdge3DLoop(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public BoundaryEdge3DLoop(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

@@ -95,13 +95,6 @@ namespace SAM.Core
         {
             this.type = type;
         }
-
-        public SAMInstance(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public SAMInstance(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

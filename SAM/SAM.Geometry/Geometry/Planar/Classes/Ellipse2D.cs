@@ -37,12 +37,6 @@ namespace SAM.Geometry.Planar
             height = ellipse2D.height;
             heightDirection = ellipse2D.heightDirection;
         }
-
-        public Ellipse2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public Ellipse2D(JsonObject jsonObject)
             : base(jsonObject)
         {

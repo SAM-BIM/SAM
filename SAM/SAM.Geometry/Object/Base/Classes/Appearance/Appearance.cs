@@ -19,12 +19,6 @@ namespace SAM.Geometry.Object
         {
             Color = color;
         }
-
-        public Appearance(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public Appearance(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);

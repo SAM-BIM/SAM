@@ -35,13 +35,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public MergeSettings(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public MergeSettings(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

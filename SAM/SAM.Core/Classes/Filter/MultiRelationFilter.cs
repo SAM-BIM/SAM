@@ -9,11 +9,6 @@ namespace SAM.Core
 {
     public abstract class MultiRelationFilter<T> : Filter, IMultiRelationFilter where T : IJSAMObject
     {
-        public MultiRelationFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public MultiRelationFilter(System.Text.Json.Nodes.JsonObject jsonObject)
             : base(jsonObject)
         {

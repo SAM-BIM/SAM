@@ -22,13 +22,6 @@ namespace SAM.Analytical
         {
             this.textMap = Query.DefaultInternalConditionTextMap_TM59();
         }
-
-        public TM59Manager(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public TM59Manager(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

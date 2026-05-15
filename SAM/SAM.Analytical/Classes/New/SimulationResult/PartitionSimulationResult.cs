@@ -26,13 +26,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public PartitionSimulationResult(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public PartitionSimulationResult(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

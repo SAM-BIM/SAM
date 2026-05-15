@@ -13,13 +13,6 @@ namespace SAM.Geometry.Object
             : base(color, thickness)
         {
         }
-
-        public CurveAppearance(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
         public CurveAppearance(JsonObject jsonObject)
             : base(jsonObject)
         {

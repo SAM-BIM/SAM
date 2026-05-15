@@ -11,12 +11,6 @@ namespace SAM.Geometry
         public SAMGeometry()
         {
         }
-
-        public SAMGeometry(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public SAMGeometry(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);

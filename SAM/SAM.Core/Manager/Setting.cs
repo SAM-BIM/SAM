@@ -26,13 +26,6 @@ namespace SAM.Core
             created = DateTime.Now;
             updated = DateTime.Now;
         }
-
-        public Setting(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public Setting(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

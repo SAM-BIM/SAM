@@ -44,13 +44,6 @@ namespace SAM.Geometry.Spatial
             coordinateSystem3D = CoordinateSystem3D.World;
             this.sAMGeometry3Ds = sAMGeometry3Ds == null ? null : sAMGeometry3Ds.ToList().ConvertAll(x => x.Clone() as ISAMGeometry3D);
         }
-
-        public SAMGeometry3DGroup(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public SAMGeometry3DGroup(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

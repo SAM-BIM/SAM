@@ -26,12 +26,6 @@ namespace SAM.Geometry.Spatial
         {
             coordinates = new double[] { 0, 0, 0 };
         }
-
-        public Vector3D(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public Vector3D(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);

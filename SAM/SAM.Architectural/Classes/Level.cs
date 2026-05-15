@@ -29,13 +29,6 @@ namespace SAM.Architectural
         {
             this.elevation = elevation;
         }
-
-        public Level(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Level(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

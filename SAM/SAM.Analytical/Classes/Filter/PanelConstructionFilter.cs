@@ -19,14 +19,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public PanelConstructionFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public PanelConstructionFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

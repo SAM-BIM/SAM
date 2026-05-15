@@ -16,14 +16,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public AirPartition(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public AirPartition(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

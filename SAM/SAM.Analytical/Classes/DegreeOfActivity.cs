@@ -33,13 +33,6 @@ namespace SAM.Analytical
             this.sensible = sensible;
             this.latent = latent;
         }
-
-        public DegreeOfActivity(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public DegreeOfActivity(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

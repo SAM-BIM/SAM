@@ -25,13 +25,6 @@ namespace SAM.Analytical
         {
             this.dischargeCoefficient = dischargeCoefficient;
         }
-
-        public OpeningProperties(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public OpeningProperties(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

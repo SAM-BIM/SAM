@@ -100,11 +100,6 @@ namespace SAM.Analytical
         /// Initializes a new instance of the <see cref="Boundary2D"/> class.
         /// </summary>
         /// <param name="jObject">The jobject.</param>
-        public Boundary2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public Boundary2D(System.Text.Json.Nodes.JsonObject jsonObject)
             : base(jsonObject)
         {

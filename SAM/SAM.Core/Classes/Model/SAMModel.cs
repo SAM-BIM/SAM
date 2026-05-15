@@ -39,13 +39,6 @@ namespace SAM.Core
             : base(name, Guid.NewGuid(), sAMModel)
         {
         }
-
-        public SAMModel(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public SAMModel(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

@@ -15,14 +15,6 @@ namespace SAM.Analytical
         {
             Value = boundaryType;
         }
-
-        public PanelBoundaryTypeFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public PanelBoundaryTypeFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

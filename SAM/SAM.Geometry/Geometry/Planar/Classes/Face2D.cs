@@ -14,12 +14,6 @@ namespace SAM.Geometry.Planar
             : base(closed2D)
         {
         }
-
-        public Face2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public Face2D(JsonObject jsonObject)
             : base(jsonObject)
         {

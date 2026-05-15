@@ -20,14 +20,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public WallType(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public WallType(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

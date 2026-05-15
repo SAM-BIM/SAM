@@ -51,12 +51,6 @@ namespace SAM.Geometry.Spatial
             axisY = Vector3D.WorldY;
             axisZ = Vector3D.WorldZ;
         }
-
-        public CoordinateSystem3D(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public CoordinateSystem3D(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);

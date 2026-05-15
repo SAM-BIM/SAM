@@ -39,13 +39,6 @@ namespace SAM.Analytical
         {
             planarBoundary3D = new PlanarBoundary3D(closedPlanar3D);
         }
-
-        public Aperture(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Aperture(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

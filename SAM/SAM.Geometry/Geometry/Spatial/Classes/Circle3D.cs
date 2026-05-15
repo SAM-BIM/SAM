@@ -23,13 +23,6 @@ namespace SAM.Geometry.Spatial
             plane = new Plane(circle3D.plane);
             radius = circle3D.radius;
         }
-
-        public Circle3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Circle3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

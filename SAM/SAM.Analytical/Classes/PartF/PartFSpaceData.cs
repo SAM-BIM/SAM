@@ -77,15 +77,6 @@ namespace SAM.Analytical
                 ScaleSupplyWithVolume = partFCategory.ScaleSupplyWithVolume;
             }
         }
-
-
-        public PartFSpaceData(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
-
         public PartFSpaceData(System.Text.Json.Nodes.JsonObject jsonObject)
 
 

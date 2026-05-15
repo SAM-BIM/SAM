@@ -24,14 +24,6 @@ namespace SAM.Core
                 id = integerId.id;
             }
         }
-
-        public IntegerId(JObject? jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public IntegerId(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

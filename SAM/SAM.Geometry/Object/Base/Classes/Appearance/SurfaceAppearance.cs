@@ -16,13 +16,6 @@ namespace SAM.Geometry.Object
         {
             CurveAppearance = new CurveAppearance(curveColor, curveThickness);
         }
-
-        public SurfaceAppearance(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
         public SurfaceAppearance(JsonObject jsonObject)
             : base(jsonObject)
         {

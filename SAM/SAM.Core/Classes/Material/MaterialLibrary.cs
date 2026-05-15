@@ -22,13 +22,6 @@ namespace SAM.Core
         {
 
         }
-
-        public MaterialLibrary(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
         public MaterialLibrary(JsonObject jsonObject)
             : base(jsonObject)
         {

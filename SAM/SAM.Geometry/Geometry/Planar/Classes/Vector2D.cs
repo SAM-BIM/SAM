@@ -46,12 +46,6 @@ namespace SAM.Geometry.Planar
                 this.coordinates[1] = coordinates[1];
             }
         }
-
-        public Vector2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public Vector2D(JsonObject jsonObject)
             : base(jsonObject)
         {

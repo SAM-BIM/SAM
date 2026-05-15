@@ -18,14 +18,8 @@ namespace SAM.Core
             : base()
         {
         }
-
-        public RelationCluster(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public RelationCluster(JsonObject jsonObject)
-            : base(jsonObject == null ? null : new JObject(jsonObject))
+            : base(jsonObject)
         {
         }
 
@@ -50,14 +44,8 @@ namespace SAM.Core
             dictionary_Objects = new Dictionary<string, Dictionary<Guid, X>>();
             dictionary_Relations = new Dictionary<string, Dictionary<Guid, HashSet<Guid>>>();
         }
-
-        public RelationCluster(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public RelationCluster(JsonObject jsonObject)
-            : this(jsonObject == null ? null : new JObject(jsonObject))
+            : base(jsonObject)
         {
         }
 

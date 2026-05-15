@@ -22,14 +22,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public SpaceVolumeFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public SpaceVolumeFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

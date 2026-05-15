@@ -44,13 +44,6 @@ namespace SAM.Analytical
         {
             location = externalSpace?.Location?.Clone<Point3D>();
         }
-
-        public ExternalSpace(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public ExternalSpace(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

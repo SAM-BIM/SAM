@@ -44,13 +44,6 @@ namespace SAM.Geometry.Planar
             coordinateSystem2D = CoordinateSystem2D.World;
             this.sAMGeometry2Ds = sAMGeometry2Ds == null ? null : sAMGeometry2Ds.ToList().ConvertAll(x => x.Clone() as ISAMGeometry2D);
         }
-
-        public SAMGeometry2DGroup(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public SAMGeometry2DGroup(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

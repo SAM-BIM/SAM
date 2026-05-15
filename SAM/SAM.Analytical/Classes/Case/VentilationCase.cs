@@ -27,14 +27,6 @@ namespace SAM.Analytical.Classes
             this.description = description;
             this.caseSelection = caseSelection;
         }
-
-        public VentilationCase(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public VentilationCase(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

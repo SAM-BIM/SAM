@@ -25,13 +25,6 @@ namespace SAM.Analytical
                 simpleEquipments?.ForEach(x => AddObject(x?.Clone()));
             }
         }
-
-        public ComplexEquipmentModel(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public ComplexEquipmentModel(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

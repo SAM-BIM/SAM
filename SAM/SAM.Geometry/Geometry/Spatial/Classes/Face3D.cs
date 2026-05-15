@@ -36,12 +36,6 @@ namespace SAM.Geometry.Spatial
         {
             plane = closedPlanar3D.GetPlane();
         }
-
-        public Face3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public Face3D(JsonObject jsonObject)
             : base(jsonObject)
         {

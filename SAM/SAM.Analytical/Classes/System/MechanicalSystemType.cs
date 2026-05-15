@@ -29,13 +29,6 @@ namespace SAM.Analytical
         {
             description = mechanicalSystemType.description;
         }
-
-        public MechanicalSystemType(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public MechanicalSystemType(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

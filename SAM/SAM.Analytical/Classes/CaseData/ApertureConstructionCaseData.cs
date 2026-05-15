@@ -16,14 +16,6 @@ namespace SAM.Analytical
         {
             this.apertureConstruction = apertureConstruction?.Clone();
         }
-
-        public ApertureConstructionCaseData(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ApertureConstructionCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

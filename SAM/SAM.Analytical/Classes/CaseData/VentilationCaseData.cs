@@ -15,14 +15,6 @@ namespace SAM.Analytical
         {
             this.aCH = aCH;
         }
-
-        public VentilationCaseData(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public VentilationCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

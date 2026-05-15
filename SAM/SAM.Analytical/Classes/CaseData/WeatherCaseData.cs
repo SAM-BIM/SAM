@@ -15,14 +15,6 @@ namespace SAM.Analytical
         {
             this.weatherDataName = weatherDataName;
         }
-
-        public WeatherCaseData(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public WeatherCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

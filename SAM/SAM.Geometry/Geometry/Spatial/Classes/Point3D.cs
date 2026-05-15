@@ -14,12 +14,6 @@ namespace SAM.Geometry.Spatial
         {
             coordinates = new double[3] { 0, 0, 0 };
         }
-
-        public Point3D(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public Point3D(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);

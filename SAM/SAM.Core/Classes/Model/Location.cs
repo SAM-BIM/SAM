@@ -40,12 +40,6 @@ namespace SAM.Core
             this.latitude = latitude;
             this.elevation = elevation;
         }
-
-        public Location(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public Location(JsonObject jsonObject)
             : base(jsonObject)
         {

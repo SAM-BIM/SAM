@@ -196,13 +196,6 @@ namespace SAM.Analytical
             this.category = category;
 
         }
-
-
-        public Profile(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public Profile(JsonObject jsonObject)
             : base(jsonObject)
         {
@@ -1302,14 +1295,14 @@ namespace SAM.Analytical
                                     else if (jToken_Temp.Type == JTokenType.Integer)
                                         values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(new Range<int>((int)jArray_Temp[0], (int)jArray_Temp[1]), null);
                                     else if (jToken_Temp.Type == JTokenType.Object)
-                                        values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(null, new Profile((JObject)jArray_Temp[1]));
+                                        values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(null, new Profile(jToken_Temp.Node as JsonObject));
                                     break;
                                 case 3:
                                     jToken_Temp = jArray_Temp[2];
                                     if (jToken_Temp.Type == JTokenType.Float)
                                         values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(new Range<int>((int)jArray_Temp[0], (int)jArray_Temp[1]), (double)jToken_Temp);
                                     else if (jToken_Temp.Type == JTokenType.Object)
-                                        values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(new Range<int>((int)jArray_Temp[0], (int)jArray_Temp[1]), new Profile((JObject)jToken_Temp));
+                                        values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(new Range<int>((int)jArray_Temp[0], (int)jArray_Temp[1]), new Profile(jToken_Temp.Node as JsonObject));
                                     break;
                             }
                         }

@@ -22,13 +22,6 @@ namespace SAM.Analytical
                 temperatureDifferences = dailyWeightedExceedance.temperatureDifferences == null ? null : new IndexedDoubles(dailyWeightedExceedance.temperatureDifferences);
             }
         }
-
-        public DailyWeightedExceedance(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public DailyWeightedExceedance(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

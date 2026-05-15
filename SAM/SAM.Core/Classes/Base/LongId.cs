@@ -27,14 +27,6 @@ namespace SAM.Core
         {
             id = longId.id;
         }
-
-        public LongId(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public LongId(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

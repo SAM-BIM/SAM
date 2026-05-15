@@ -15,12 +15,6 @@ namespace SAM.Core
         {
 
         }
-
-        public SAMObjectRelationCluster(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public SAMObjectRelationCluster(JsonObject jsonObject)
             : base(jsonObject)
         {
@@ -59,12 +53,6 @@ namespace SAM.Core
         {
 
         }
-
-        public SAMObjectRelationCluster(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public SAMObjectRelationCluster(JsonObject jsonObject)
             : base(jsonObject)
         {

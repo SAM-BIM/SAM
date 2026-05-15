@@ -25,14 +25,6 @@ namespace SAM.Analytical
                 Setback = scheduleModifier.Setback;
             }
         }
-
-        public ProfileModifier(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ProfileModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

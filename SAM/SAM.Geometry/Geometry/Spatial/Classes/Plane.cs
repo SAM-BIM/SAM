@@ -22,12 +22,6 @@ namespace SAM.Geometry.Spatial
             origin = Point3D.Zero;
             axisY = normal.AxisY();
         }
-
-        public Plane(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public Plane(JsonObject jsonObject)
             : base(jsonObject)
         {

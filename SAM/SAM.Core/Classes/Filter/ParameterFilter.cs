@@ -12,13 +12,6 @@ namespace SAM.Core
     public class ParameterFilter : Filter
     {
         private Enum @enum;
-
-        public ParameterFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public ParameterFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)
@@ -254,8 +247,7 @@ namespace SAM.Core
                     return valueNode.GetValue<bool>();
 
                 case JsonValueKind.Object:
-                    JObject wrappedObject = new JObject((JsonObject)valueNode.DeepClone());
-                    JSAMObjectWrapper wrapper = new JSAMObjectWrapper(wrappedObject);
+                    JSAMObjectWrapper wrapper = new JSAMObjectWrapper((JsonObject)valueNode.DeepClone());
                     IJSAMObject inner = wrapper.ToIJSAMObject();
                     return inner ?? (object)wrapper.ToJsonObject();
 

@@ -15,14 +15,6 @@ namespace SAM.Analytical
         {
             this.apertureScaleFactor = apertureScaleFactor;
         }
-
-        public WindowSizeCaseData(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public WindowSizeCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

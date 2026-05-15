@@ -23,14 +23,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public SpaceMechanicalSystemTypeNameFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public SpaceMechanicalSystemTypeNameFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

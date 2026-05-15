@@ -46,11 +46,6 @@ namespace SAM.Core
         /// <summary>
         /// Constructor for a GuidCollection from a JObject.
         /// </summary>
-        public GuidCollection(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public GuidCollection(System.Text.Json.Nodes.JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);

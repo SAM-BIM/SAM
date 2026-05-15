@@ -29,13 +29,6 @@ namespace SAM.Geometry.Planar
         {
             points = polygon2D.GetPoints();
         }
-
-        public Polygon2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Polygon2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

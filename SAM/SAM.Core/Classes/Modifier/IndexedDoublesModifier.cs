@@ -24,14 +24,6 @@ namespace SAM.Core
                 IndexedDoubles = indexedModifier?.IndexedDoubles == null ? null : new IndexedDoubles(indexedModifier.IndexedDoubles);
             }
         }
-
-        public IndexedDoublesModifier(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public IndexedDoublesModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

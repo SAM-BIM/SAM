@@ -43,13 +43,6 @@ namespace SAM.Geometry.Spatial
                 boundingBox3D = shell.boundingBox3D;
             }
         }
-
-        public Shell(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Shell(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

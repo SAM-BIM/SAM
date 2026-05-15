@@ -21,13 +21,6 @@ namespace SAM.Analytical
         {
             this.objectReferences = objectReferences == null ? [] : [.. objectReferences];
         }
-
-        public ObjectReferenceCaseSelection(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public ObjectReferenceCaseSelection(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

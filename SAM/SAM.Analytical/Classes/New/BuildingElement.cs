@@ -19,14 +19,6 @@ namespace SAM.Analytical
         {
             face3D = buildingElement?.Face3D?.Clone() as Face3D;
         }
-
-        public BuildingElement(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public BuildingElement(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

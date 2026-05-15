@@ -19,14 +19,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public PanelExternalFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public PanelExternalFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

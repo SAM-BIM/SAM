@@ -27,14 +27,6 @@ namespace SAM.Analytical.Classes
                 caseSelection = apertureConstructionCase.caseSelection;
             }
         }
-
-        public ApertureConstructionCase(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ApertureConstructionCase(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

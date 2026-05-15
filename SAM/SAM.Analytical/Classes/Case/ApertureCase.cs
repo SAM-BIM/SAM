@@ -40,14 +40,6 @@ namespace SAM.Analytical.Classes
             this.framePercentage = framePercentage;
             this.frameWidth = frameWidth;
         }
-
-        public ApertureCase(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ApertureCase(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

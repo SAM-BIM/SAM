@@ -33,12 +33,6 @@ namespace SAM.Geometry.Planar
             axisX = Vector2D.WorldX;
             axisY = Vector2D.WorldY;
         }
-
-        public CoordinateSystem2D(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public CoordinateSystem2D(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);

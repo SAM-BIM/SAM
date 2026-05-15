@@ -295,13 +295,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public TM52ExtendedResult(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public TM52ExtendedResult(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

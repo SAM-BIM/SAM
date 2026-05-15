@@ -54,12 +54,6 @@ namespace SAM.Geometry.Planar
             height = rectangle2D.height;
             heightDirection = new Vector2D(rectangle2D.heightDirection);
         }
-
-        public Rectangle2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public Rectangle2D(JsonObject jsonObject)
             : base(jsonObject)
         {

@@ -20,14 +20,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public ApertureApertureTypeFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ApertureApertureTypeFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

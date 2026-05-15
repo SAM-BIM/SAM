@@ -19,14 +19,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public PanelTiltFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public PanelTiltFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

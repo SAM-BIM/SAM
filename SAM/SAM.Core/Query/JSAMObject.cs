@@ -27,13 +27,13 @@ namespace SAM.Core
             string fullTypeName = FullTypeName(jsonObject);
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
-                return new JSAMObjectWrapper(new JObject(jsonObject));
+                return new JSAMObjectWrapper(jsonObject);
             }
 
             Type type = Type(fullTypeName);
             if (type == null)
             {
-                return new JSAMObjectWrapper(new JObject(jsonObject));
+                return new JSAMObjectWrapper(jsonObject);
             }
 
             ConstructorInfo constructorInfo = type.GetConstructor(new Type[] { typeof(JsonObject) });
@@ -62,7 +62,7 @@ namespace SAM.Core
                     return result;
                 }
 
-                return new JSAMObjectWrapper(jObject);
+                return new JSAMObjectWrapper(jsonObject);
             }
 
             return constructorInfo.Invoke(new object[] { jObject }) as IJSAMObject;

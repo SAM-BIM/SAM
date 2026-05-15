@@ -16,13 +16,6 @@ namespace SAM.Analytical.Classes
         {
             this.apertureToPanelRatios = apertureToPanelRatios == null ? [] : [.. apertureToPanelRatios];
         }
-
-        public ApertureToPanelRatios(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public ApertureToPanelRatios(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

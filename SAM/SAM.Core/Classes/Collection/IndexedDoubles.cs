@@ -14,13 +14,6 @@ namespace SAM.Core
         {
 
         }
-
-        public IndexedDoubles(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
         public IndexedDoubles(JsonObject jsonObject)
             : base(jsonObject)
         {

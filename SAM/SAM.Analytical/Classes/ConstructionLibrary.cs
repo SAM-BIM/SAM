@@ -22,14 +22,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public ConstructionLibrary(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ConstructionLibrary(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

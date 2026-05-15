@@ -51,13 +51,6 @@ namespace SAM.Geometry.Object.Spatial
                 boundingBox3D = face3D?.GetBoundingBox();
             }
         }
-
-        public LinkedFace3D(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public LinkedFace3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

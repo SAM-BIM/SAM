@@ -28,13 +28,6 @@ namespace SAM.Geometry.Spatial
             face3D = new Face3D(extrusion.face3D);
             vector = new Vector3D(extrusion.vector);
         }
-
-        public Extrusion(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Extrusion(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

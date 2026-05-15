@@ -21,7 +21,7 @@ namespace SAM.Core
             if (jsonObject == null)
                 return null;
 
-            return new MaterialLibrary(new JObject(jsonObject));
+            return new MaterialLibrary(jsonObject);
         }
 
         public static MaterialLibrary MaterialLibrary(string name, IEnumerable<IMaterial> materials)

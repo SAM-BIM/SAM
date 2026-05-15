@@ -41,13 +41,6 @@ namespace SAM.Geometry.Spatial
             points = polygon3D.points.ConvertAll(x => new Planar.Point2D(x));
             plane = new Plane(polygon3D.plane);
         }
-
-        public Polygon3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Polygon3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

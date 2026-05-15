@@ -17,13 +17,6 @@ namespace SAM.Core
         public string Value { get; set; } = null;
 
         public bool CaseSensitive { get; set; } = true;
-
-        public ComplexReferenceTextFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public ComplexReferenceTextFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

@@ -16,13 +16,6 @@ namespace SAM.Geometry.Object
         {
             sAMGeometryObjects = new List<ISAMGeometryObject>();
         }
-
-        public SAMGeometryObjectCollection(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public SAMGeometryObjectCollection(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

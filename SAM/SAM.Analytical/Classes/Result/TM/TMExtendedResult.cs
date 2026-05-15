@@ -292,13 +292,6 @@ namespace SAM.Analytical
             this.maxAcceptableTemperatures = maxAcceptableTemperatures == null ? null : new IndexedDoubles(maxAcceptableTemperatures);
             this.operativeTemperatures = operativeTemperatures == null ? null : new IndexedDoubles(operativeTemperatures);
         }
-
-        public TMExtendedResult(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public TMExtendedResult(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

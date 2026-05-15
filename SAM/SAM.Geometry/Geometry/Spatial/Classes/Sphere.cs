@@ -25,13 +25,6 @@ namespace SAM.Geometry.Spatial
             origin = new Point3D(sphere.origin);
             radius = sphere.radius;
         }
-
-        public Sphere(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Sphere(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

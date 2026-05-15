@@ -8,11 +8,6 @@ namespace SAM.Core
 {
     public abstract class BooleanFilter : Filter, IBooleanFilter
     {
-        public BooleanFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public BooleanFilter(System.Text.Json.Nodes.JsonObject jsonObject)
             : base(jsonObject)
         {

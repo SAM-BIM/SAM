@@ -16,13 +16,6 @@ namespace SAM.Geometry.Object
         {
             Thickness = thickness;
         }
-
-        public PointAppearance(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
         public PointAppearance(JsonObject jsonObject)
             : base(jsonObject)
         {

@@ -35,13 +35,6 @@ namespace SAM.Core
         {
 
         }
-
-        public FluidMaterial(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public FluidMaterial(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

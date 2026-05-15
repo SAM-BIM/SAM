@@ -22,13 +22,6 @@ namespace SAM.Geometry.Spatial
             this.origin = new Point3D(origin);
             vector = vector3D.Unit;
         }
-
-        public Line3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Line3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

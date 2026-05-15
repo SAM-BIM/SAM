@@ -17,14 +17,6 @@ namespace SAM.Core
                 Value = enumFilter.Value;
             }
         }
-
-        public EnumFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public EnumFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

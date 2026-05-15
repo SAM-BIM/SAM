@@ -45,13 +45,6 @@ namespace SAM.Analytical
             viewCoefficient = emitter.viewCoefficient;
             emitterCategory = emitter.emitterCategory;
         }
-
-        public Emitter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Emitter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

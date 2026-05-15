@@ -31,13 +31,6 @@ namespace SAM.Geometry.Spatial
             this.origin = new Point3D(origin);
             this.vector = new Vector3D(vector);
         }
-
-        public Segment3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Segment3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

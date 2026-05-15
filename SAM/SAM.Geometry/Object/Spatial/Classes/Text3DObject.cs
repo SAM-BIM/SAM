@@ -16,13 +16,6 @@ namespace SAM.Geometry.Object.Spatial
         public TextAppearance TextAppearance { get; set; }
 
         public Tag Tag { get; set; }
-
-        public Text3DObject(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public Text3DObject(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

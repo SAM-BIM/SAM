@@ -23,14 +23,6 @@ namespace SAM.Analytical
                 Values = indexedDoublesModifier?.Values == null ? null : new IndexedDoubles(indexedDoublesModifier.Values);
             }
         }
-
-        public IndexedDoublesModifier(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public IndexedDoublesModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

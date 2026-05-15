@@ -14,14 +14,6 @@ namespace SAM.Analytical
         {
             Filter = filter;
         }
-
-        public MultiRelationAdjacencyClusterFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public MultiRelationAdjacencyClusterFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

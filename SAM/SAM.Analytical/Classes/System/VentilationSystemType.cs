@@ -26,13 +26,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public VentilationSystemType(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public VentilationSystemType(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

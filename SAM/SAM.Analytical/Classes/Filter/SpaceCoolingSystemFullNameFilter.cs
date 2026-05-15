@@ -19,14 +19,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public SpaceCoolingSystemFullNameFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public SpaceCoolingSystemFullNameFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

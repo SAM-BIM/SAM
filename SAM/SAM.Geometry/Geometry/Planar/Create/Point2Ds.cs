@@ -17,7 +17,7 @@ namespace SAM.Geometry.Planar
             List<Point2D> result = new List<Point2D>();
 
             foreach (JObject jObject in jArray)
-                result.Add(new Point2D(jObject));
+                result.Add(new Point2D(jObject?.Node as System.Text.Json.Nodes.JsonObject));
 
             return result;
         }

@@ -32,13 +32,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public AnalyticalModelSimulationResult(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public AnalyticalModelSimulationResult(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

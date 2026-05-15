@@ -58,12 +58,6 @@ namespace SAM.Analytical
         {
             boundaryEdge2Ds = boundaryEdge2DLoop.boundaryEdge2Ds.ConvertAll(x => new BoundaryEdge2D(x));
         }
-
-        public BoundaryEdge2DLoop(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public BoundaryEdge2DLoop(JsonObject jsonObject)
             : base(jsonObject)
         {

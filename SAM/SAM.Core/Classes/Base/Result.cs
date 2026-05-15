@@ -44,13 +44,6 @@ namespace SAM.Core
             reference = result?.reference;
             dateTime = result == null ? DateTime.MinValue : result.dateTime;
         }
-
-        public Result(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Result(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

@@ -15,14 +15,6 @@ namespace SAM.Analytical
         {
             this.openingAngle = openingAngle;
         }
-
-        public OpeningCaseData(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public OpeningCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

@@ -29,13 +29,6 @@ namespace SAM.Geometry.Planar
             if (curves != null)
                 this.curves = new List<ICurve2D>(curves);
         }
-
-        public Polycurve2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Polycurve2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

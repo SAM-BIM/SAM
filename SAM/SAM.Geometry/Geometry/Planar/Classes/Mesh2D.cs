@@ -13,11 +13,6 @@ namespace SAM.Geometry.Planar
     {
         private List<Tuple<int, int, int>> indexes;
         private List<Point2D> points;
-        public Mesh2D(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public Mesh2D(System.Text.Json.Nodes.JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);

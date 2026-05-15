@@ -19,14 +19,6 @@ namespace SAM.Analytical
         {
             openings = hostPartition?.openings?.ConvertAll(x => x.Clone());
         }
-
-        public HostPartition(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public HostPartition(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

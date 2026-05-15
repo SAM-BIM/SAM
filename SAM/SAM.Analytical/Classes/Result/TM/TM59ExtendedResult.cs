@@ -35,13 +35,6 @@ namespace SAM.Analytical
                 tM59SpaceApplications = tM59SpaceExtendedResult.tM59SpaceApplications == null ? null : new HashSet<TM59SpaceApplication>(tM59SpaceApplications);
             }
         }
-
-        public TM59ExtendedResult(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public TM59ExtendedResult(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

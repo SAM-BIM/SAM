@@ -36,14 +36,6 @@ namespace SAM.Geometry.Object.Planar
                 CurveAppearance = new CurveAppearance(curveAppearance);
             }
         }
-
-        public Segment2DObject(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public Segment2DObject(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

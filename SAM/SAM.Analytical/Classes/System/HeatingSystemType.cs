@@ -26,13 +26,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public HeatingSystemType(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public HeatingSystemType(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

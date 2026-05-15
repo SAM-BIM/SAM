@@ -12,13 +12,6 @@ namespace SAM.Core
         public ISAMObjectRelationCluster SAMObjectRelationCluster { get; set; }
 
         public IComplexReference ComplexReference { get; set; }
-
-        public ComplexReferenceFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public ComplexReferenceFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

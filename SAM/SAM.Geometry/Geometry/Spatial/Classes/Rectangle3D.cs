@@ -44,14 +44,6 @@ namespace SAM.Geometry.Spatial
                 return plane.Convert(rectangle2D.Origin);
             }
         }
-
-        public Rectangle3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public Rectangle3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

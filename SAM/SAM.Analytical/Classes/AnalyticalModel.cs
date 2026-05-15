@@ -62,13 +62,6 @@ namespace SAM.Analytical
             : base(guid, name)
         {
         }
-
-        public AnalyticalModel(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public AnalyticalModel(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

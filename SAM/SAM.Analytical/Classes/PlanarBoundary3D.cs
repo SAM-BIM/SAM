@@ -131,12 +131,6 @@ namespace SAM.Analytical
                 internalEdge2DLoops = internalEdge2DLoop.ToList().ConvertAll(x => new BoundaryEdge2DLoop(x));
             }
         }
-
-        public PlanarBoundary3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public PlanarBoundary3D(JsonObject jsonObject)
             : base(jsonObject)
         {

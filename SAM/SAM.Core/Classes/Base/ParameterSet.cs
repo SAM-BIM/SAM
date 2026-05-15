@@ -472,8 +472,7 @@ namespace SAM.Core
                     return valueNode.GetValue<bool>();
 
                 case JsonValueKind.Object:
-                    JObject wrappedObject = new JObject((JsonObject)valueNode.DeepClone());
-                    JSAMObjectWrapper wrapper = new JSAMObjectWrapper(wrappedObject);
+                    JSAMObjectWrapper wrapper = new JSAMObjectWrapper((JsonObject)valueNode.DeepClone());
                     IJSAMObject inner = wrapper.ToIJSAMObject();
                     return inner ?? (object)wrapper.ToJsonObject();
 

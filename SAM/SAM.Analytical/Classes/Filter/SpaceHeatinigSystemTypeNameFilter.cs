@@ -19,14 +19,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public SpaceHeatingSystemTypeNameFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public SpaceHeatingSystemTypeNameFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

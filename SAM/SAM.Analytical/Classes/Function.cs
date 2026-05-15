@@ -28,13 +28,6 @@ namespace SAM.Analytical
                 values = function.values == null ? null : [.. function.values];
             }
         }
-
-        public Function(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public Function(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

@@ -41,14 +41,6 @@ namespace SAM.Analytical
             this.summerOffTemperature = summerOffTemperature;
             this.winterOffTemperature = winterOffTemperature;
         }
-
-        public Coil(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public Coil(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

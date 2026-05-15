@@ -30,14 +30,6 @@ namespace SAM.Core
         {
             logRecords = log?.logRecords?.ConvertAll(x => new LogRecord(x));
         }
-
-        public Log(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public Log(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

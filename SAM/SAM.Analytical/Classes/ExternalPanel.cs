@@ -35,13 +35,6 @@ namespace SAM.Analytical
         {
             face3D = externalPanel?.Face3D?.Clone<Face3D>();
         }
-
-        public ExternalPanel(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public ExternalPanel(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

@@ -22,14 +22,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public Fan(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public Fan(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

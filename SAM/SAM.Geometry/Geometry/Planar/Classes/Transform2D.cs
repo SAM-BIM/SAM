@@ -15,13 +15,6 @@ namespace SAM.Geometry.Planar
         {
             this.matrix3D = matrix3D;
         }
-
-        public Transform2D(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public Transform2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

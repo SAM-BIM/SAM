@@ -23,13 +23,6 @@ namespace SAM.Geometry.Spatial
         {
             curves = polycurve3D.curves.ConvertAll(x => (ICurve3D)x.Clone());
         }
-
-        public Polycurve3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Polycurve3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

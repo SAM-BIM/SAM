@@ -22,14 +22,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public MixingSection(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public MixingSection(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

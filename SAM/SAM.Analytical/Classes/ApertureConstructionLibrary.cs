@@ -21,14 +21,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public ApertureConstructionLibrary(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ApertureConstructionLibrary(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

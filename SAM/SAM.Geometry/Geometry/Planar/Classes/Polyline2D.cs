@@ -41,13 +41,6 @@ namespace SAM.Geometry.Planar
         {
             points = Query.Clone(polyline2D?.points);
         }
-
-        public Polyline2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Polyline2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

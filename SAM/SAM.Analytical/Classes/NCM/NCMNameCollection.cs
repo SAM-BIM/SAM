@@ -25,13 +25,6 @@ namespace SAM.Analytical
                 this.nCMNames = new List<NCMName>(nCMNames);
             }
         }
-
-        public NCMNameCollection(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public NCMNameCollection(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

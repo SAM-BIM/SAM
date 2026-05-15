@@ -82,14 +82,6 @@ namespace SAM.Analytical
             this.frameConstructionLayers = frameConstructionLayers?.ToList().ConvertAll(x => new ConstructionLayer(x));
             this.paneConstructionLayers = paneConstructionLayers?.ToList().ConvertAll(x => new ConstructionLayer(x));
         }
-
-        public ApertureConstruction(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ApertureConstruction(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

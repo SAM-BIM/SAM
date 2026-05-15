@@ -40,14 +40,6 @@ namespace SAM.Analytical.Classes
             this.rightFinFrontOffset = rightFinFrontOffset;
             this.caseSelection = caseSelection;
         }
-
-        public FinShadeCase(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public FinShadeCase(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

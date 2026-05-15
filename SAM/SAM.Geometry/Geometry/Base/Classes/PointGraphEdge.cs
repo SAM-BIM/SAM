@@ -19,12 +19,6 @@ namespace SAM.Geometry
             this.source = source;
             this.target = target;
         }
-
-        public PointGraphEdge(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public PointGraphEdge(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);

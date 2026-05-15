@@ -38,13 +38,6 @@ namespace SAM.Core
         {
 
         }
-
-        public OpaqueMaterial(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public OpaqueMaterial(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

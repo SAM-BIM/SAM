@@ -19,14 +19,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public ApertureAzimuthFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ApertureAzimuthFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

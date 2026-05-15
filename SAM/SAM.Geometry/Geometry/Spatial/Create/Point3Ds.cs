@@ -17,7 +17,7 @@ namespace SAM.Geometry.Spatial
             List<Point3D> result = new List<Point3D>();
 
             foreach (JObject jObject in jArray)
-                result.Add(new Point3D(jObject));
+                result.Add(new Point3D(jObject?.Node as System.Text.Json.Nodes.JsonObject));
 
             return result;
         }

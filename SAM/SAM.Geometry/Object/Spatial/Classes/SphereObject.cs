@@ -27,14 +27,6 @@ namespace SAM.Geometry.Object.Spatial
         {
 
         }
-
-        public SphereObject(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public SphereObject(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

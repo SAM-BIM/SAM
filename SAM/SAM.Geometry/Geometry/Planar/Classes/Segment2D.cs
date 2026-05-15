@@ -54,13 +54,6 @@ namespace SAM.Geometry.Planar
             origin = new Point2D(segment2D.origin);
             vector = new Vector2D(segment2D.vector);
         }
-
-        public Segment2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Segment2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

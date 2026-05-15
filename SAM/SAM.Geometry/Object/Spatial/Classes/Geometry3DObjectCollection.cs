@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using SAM.Core;
 using System.Text.Json.Nodes;
 
@@ -17,10 +16,10 @@ namespace SAM.Geometry.Object.Spatial
 
         }
 
-        public Geometry3DObjectCollection(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        public Geometry3DObjectCollection(JsonObject jsonObject)
+            : base(jsonObject)
         {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
+            FromJsonObject(jsonObject);
         }
 
         public Geometry3DObjectCollection(Geometry3DObjectCollection geometryObjectCollection)

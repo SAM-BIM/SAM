@@ -21,14 +21,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public SpacePanelsFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public SpacePanelsFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

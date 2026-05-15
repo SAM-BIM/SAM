@@ -24,13 +24,6 @@ namespace SAM.Geometry.Planar
         {
             points = Query.Clone(triangle2D.points).ToArray();
         }
-
-        public Triangle2D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Triangle2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

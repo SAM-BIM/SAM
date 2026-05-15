@@ -63,12 +63,6 @@ namespace SAM.Core
         {
             guid = Guid.NewGuid();
         }
-
-        public SAMObject(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public SAMObject(JsonObject jsonObject)
             : base(jsonObject)
         {

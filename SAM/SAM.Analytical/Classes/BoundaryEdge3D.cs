@@ -37,13 +37,6 @@ namespace SAM.Analytical
         {
             curve3D = (ICurve3D)boundaryEdge3D.curve3D.Clone();
         }
-
-        public BoundaryEdge3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public BoundaryEdge3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

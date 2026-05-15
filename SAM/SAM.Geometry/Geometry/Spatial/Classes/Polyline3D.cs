@@ -30,13 +30,6 @@ namespace SAM.Geometry.Spatial
         {
             points = Query.Clone(polyline3D.points);
         }
-
-        public Polyline3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Polyline3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

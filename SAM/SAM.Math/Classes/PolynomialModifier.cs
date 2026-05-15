@@ -25,14 +25,6 @@ namespace SAM.Core
                 PolynomialEquation = polynomialModifier?.PolynomialEquation == null ? null : new PolynomialEquation(polynomialModifier.PolynomialEquation);
             }
         }
-
-        public PolynomialModifier(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public PolynomialModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

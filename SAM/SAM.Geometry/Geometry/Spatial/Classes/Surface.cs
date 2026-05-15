@@ -22,13 +22,6 @@ namespace SAM.Geometry.Spatial
         {
             externalEdge3D = surface.externalEdge3D.Clone() as IClosed3D;
         }
-
-        public Surface(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Surface(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

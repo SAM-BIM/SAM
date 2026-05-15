@@ -19,14 +19,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public SpaceVentilationSystemFullNameFilter(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public SpaceVentilationSystemFullNameFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

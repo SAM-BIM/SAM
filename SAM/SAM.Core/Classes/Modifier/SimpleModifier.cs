@@ -24,14 +24,6 @@ namespace SAM.Core
                 ArithmeticOperator = simpleModifier.ArithmeticOperator;
             }
         }
-
-        public SimpleModifier(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public SimpleModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

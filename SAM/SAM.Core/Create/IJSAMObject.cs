@@ -25,7 +25,7 @@ namespace SAM.Core
             IJSAMObject jSAMObject = Query.IJSAMObject(jsonObject);
             if (jSAMObject == null)
             {
-                return new JSAMObjectWrapper(new JObject(jsonObject));
+                return new JSAMObjectWrapper(jsonObject);
             }
 
             return jSAMObject;

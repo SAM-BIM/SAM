@@ -24,14 +24,6 @@ namespace SAM.Geometry.Object
                 }
             }
         }
-
-        public GeometryObjectModel(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public GeometryObjectModel(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

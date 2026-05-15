@@ -69,13 +69,6 @@ namespace SAM.Analytical
                 this.location = new Point3D(location);
             }
         }
-
-        public Space(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Space(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

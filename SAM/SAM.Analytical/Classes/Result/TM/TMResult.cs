@@ -41,14 +41,6 @@ namespace SAM.Analytical
                 tM52BuildingCategory = tMResult.tM52BuildingCategory;
             }
         }
-
-        public TMResult(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public TMResult(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

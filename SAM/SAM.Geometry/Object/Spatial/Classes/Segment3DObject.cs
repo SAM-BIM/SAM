@@ -36,14 +36,6 @@ namespace SAM.Geometry.Object.Spatial
                 CurveAppearance = new CurveAppearance(curveAppearance);
             }
         }
-
-        public Segment3DObject(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public Segment3DObject(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

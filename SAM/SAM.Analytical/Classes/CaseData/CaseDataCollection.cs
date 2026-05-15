@@ -45,13 +45,6 @@ namespace SAM.Analytical
                 }
             }
         }
-
-        public CaseDataCollection(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public CaseDataCollection(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

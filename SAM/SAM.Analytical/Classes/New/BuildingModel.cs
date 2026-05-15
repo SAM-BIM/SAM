@@ -23,14 +23,6 @@ namespace SAM.Analytical
         private SAMObjectRelationCluster<IJSAMObject> relationCluster;
         private MaterialLibrary materialLibrary;
         private ProfileLibrary profileLibrary;
-
-        public BuildingModel(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public BuildingModel(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

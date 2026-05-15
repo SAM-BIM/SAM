@@ -13,13 +13,6 @@ namespace SAM.Geometry.Spatial
     {
         private List<Point3D> points;
         private List<Tuple<int, int, int>> indexes;
-
-        public Mesh3D(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
-
         public Mesh3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
         {

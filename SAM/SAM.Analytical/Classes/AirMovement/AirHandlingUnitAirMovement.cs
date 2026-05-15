@@ -43,14 +43,6 @@ namespace SAM.Analytical
                 density = airHandlingUnitAirMovement.density == null ? null : new Profile(airHandlingUnitAirMovement.density);
             }
         }
-
-        public AirHandlingUnitAirMovement(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public AirHandlingUnitAirMovement(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

@@ -19,13 +19,6 @@ namespace SAM.Geometry.Object
             Height = height;
             FontFamilyName = fontFamilyName;
         }
-
-        public TextAppearance(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
         public TextAppearance(JsonObject jsonObject)
             : base(jsonObject)
         {

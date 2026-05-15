@@ -24,13 +24,6 @@ namespace SAM.Geometry.Spatial
         {
             points = Query.Clone(triangle3D?.points)?.ToArray();
         }
-
-        public Triangle3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public Triangle3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

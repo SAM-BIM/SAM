@@ -118,12 +118,6 @@ namespace SAM.Geometry.Spatial
                     max = Query.Max(boundingBox3D.Max, max);
             }
         }
-
-        public BoundingBox3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public BoundingBox3D(JsonObject jsonObject)
             : base(jsonObject)
         {

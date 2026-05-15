@@ -30,14 +30,6 @@ namespace SAM.Core
                 Modifiers = complexModifier.Modifiers.ConvertAll(x => x.Clone());
             }
         }
-
-        public ComplexModifier(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ComplexModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

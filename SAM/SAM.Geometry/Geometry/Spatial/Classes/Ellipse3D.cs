@@ -11,14 +11,6 @@ namespace SAM.Geometry.Spatial
     {
         private Ellipse2D ellipse2D;
         private Plane plane;
-
-        public Ellipse3D(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public Ellipse3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

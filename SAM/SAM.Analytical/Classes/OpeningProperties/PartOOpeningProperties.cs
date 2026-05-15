@@ -37,14 +37,6 @@ namespace SAM.Analytical
             this.height = height;
             this.openingAngle = openingAngle;
         }
-
-        public PartOOpeningProperties(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public PartOOpeningProperties(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

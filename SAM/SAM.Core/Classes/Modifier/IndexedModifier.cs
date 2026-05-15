@@ -17,14 +17,6 @@ namespace SAM.Core
         {
 
         }
-
-        public IndexedModifier(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public IndexedModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

@@ -40,12 +40,6 @@ namespace SAM.Core
             this.postalCode = postalCode;
             this.countryCode = countryCode;
         }
-
-        public Address(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public Address(JsonObject jsonObject)
             : base(jsonObject)
         {

@@ -32,13 +32,6 @@ namespace SAM.Analytical
         {
 
         }
-
-        public AdjacencyClusterSimulationResult(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
-
         public AdjacencyClusterSimulationResult(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

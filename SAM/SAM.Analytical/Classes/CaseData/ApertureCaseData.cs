@@ -17,14 +17,6 @@ namespace SAM.Analytical
         {
             this.ratios = ratios == null ? [] : [.. ratios];
         }
-
-        public ApertureCaseData(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-
-        }
-
-
         public ApertureCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
             : base(jsonObject)

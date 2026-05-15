@@ -21,12 +21,6 @@ namespace SAM.Analytical
         {
             this.objects = objects == null ? [] : [.. objects];
         }
-
-        public SAMObjectCaseSelection(JObject jObject)
-        {
-            FromJsonObject(jObject?.Node as System.Text.Json.Nodes.JsonObject);
-        }
-
         public SAMObjectCaseSelection(JsonObject jsonObject)
         {
             FromJsonObject(jsonObject);
@@ -105,12 +99,6 @@ namespace SAM.Analytical
             : base(objects)
         {
         }
-
-        public SAMObjectCaseSelection(JObject jObject)
-            : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
-        {
-        }
-
         public SAMObjectCaseSelection(System.Text.Json.Nodes.JsonObject jsonObject)
             : base(jsonObject)
         {
