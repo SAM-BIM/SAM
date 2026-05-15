@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
@@ -345,15 +344,23 @@ namespace SAM.Weather
 
             if (dictionary != null)
             {
-                JArray dataArray = new JArray();
+                JsonArray dataArray = new JsonArray();
                 foreach (KeyValuePair<string, double[]> keyValuePair in dictionary)
                 {
-                    JObject dataObject = new JObject();
-                    dataObject.Add("Name", keyValuePair.Key);
-                    dataObject.Add("Values", new JArray(keyValuePair.Value));
+                    JsonArray valuesArray = new JsonArray();
+                    foreach (double value in keyValuePair.Value)
+                    {
+                        valuesArray.Add(value);
+                    }
+
+                    JsonObject dataObject = new JsonObject
+                    {
+                        ["Name"] = keyValuePair.Key,
+                        ["Values"] = valuesArray
+                    };
                     dataArray.Add(dataObject);
                 }
-                jsonObject["Data"] = dataArray.Node?.DeepClone();
+                jsonObject["Data"] = dataArray;
             }
 
             return jsonObject;

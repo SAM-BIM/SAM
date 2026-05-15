@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.IO;
 using System.Net;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -45,11 +45,11 @@ namespace SAM.Core
             if (string.IsNullOrWhiteSpace(json))
                 return null;
 
-            JObject jObject = JObject.Parse(json);
-            if (jObject == null)
+            JsonObject jsonObject = JsonNode.Parse(json) as JsonObject;
+            if (jsonObject == null)
                 return null;
 
-            return jObject.Value<string>("tag_name");
+            return jsonObject["tag_name"]?.GetValue<string>();
         }
     }
 }

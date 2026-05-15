@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
@@ -175,24 +174,20 @@ namespace SAM.Math
             if (jsonObject == null)
                 return false;
 
-            JObject jObject = new JObject(jsonObject);
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray jsonArray_Values)
             {
-                JArray jArray_Values = jObject.Value<JArray>("Values");
                 values = new List<KeyValuePair<double, double>>();
-                for (int i = 0; i < jArray_Values.Count; i++)
+                for (int i = 0; i < jsonArray_Values.Count; i++)
                 {
-                    object @object = jArray_Values[i];
-                    if (@object is JArray)
+                    if (jsonArray_Values[i] is JsonArray jsonArray)
                     {
-                        JArray jArray = (JArray)@object;
-                        if (jArray.Count >= 2)
+                        if (jsonArray.Count >= 2)
                         {
                             object object_Temp;
 
                             double key = double.NaN;
 
-                            object_Temp = jArray[0];
+                            object_Temp = jsonArray[0]?.GetValue<object>();
                             if (Core.Query.IsNumeric(object_Temp))
                                 key = System.Convert.ToDouble(object_Temp);
 
@@ -201,7 +196,7 @@ namespace SAM.Math
 
                             double value = double.NaN;
 
-                            object_Temp = jArray[1];
+                            object_Temp = jsonArray[1]?.GetValue<object>();
                             if (Core.Query.IsNumeric(object_Temp))
                                 value = System.Convert.ToDouble(object_Temp);
 
@@ -226,17 +221,19 @@ namespace SAM.Math
 
             if (values != null)
             {
-                JArray jArray = new JArray();
+                JsonArray jsonArray = new JsonArray();
                 foreach (KeyValuePair<double, double> keyValuePair in values)
                 {
-                    JArray jArray_Temp = new JArray();
-                    jArray_Temp.Add(keyValuePair.Key);
-                    jArray_Temp.Add(keyValuePair.Value);
+                    JsonArray jsonArray_Temp = new JsonArray
+                    {
+                        keyValuePair.Key,
+                        keyValuePair.Value
+                    };
 
-                    jArray.Add(jArray_Temp);
+                    jsonArray.Add(jsonArray_Temp);
                 }
 
-                jsonObject["Values"] = jArray.Node?.DeepClone();
+                jsonObject["Values"] = jsonArray;
             }
 
             return jsonObject;

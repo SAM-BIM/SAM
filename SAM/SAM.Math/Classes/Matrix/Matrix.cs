@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -267,17 +266,22 @@ namespace SAM.Math
             if (jsonObject == null)
                 return false;
 
-            JObject jObject = new JObject(jsonObject);
-            JArray jArray_Column = jObject.Value<JArray>("Values");
-            if (jArray_Column == null)
+            JsonArray jsonArray_Column = jsonObject["Values"] as JsonArray;
+            if (jsonArray_Column == null)
                 return true;
 
             List<List<double>> valuesList = new List<List<double>>();
-            foreach (JArray jArray_Row in jArray_Column)
+            foreach (JsonNode jsonNode_Row in jsonArray_Column)
             {
+                JsonArray jsonArray_Row = jsonNode_Row as JsonArray;
+                if (jsonArray_Row == null)
+                {
+                    continue;
+                }
+
                 List<double> values = new List<double>();
-                foreach (double value in jArray_Row)
-                    values.Add(value);
+                foreach (JsonNode jsonNode_Value in jsonArray_Row)
+                    values.Add(jsonNode_Value?.GetValue<double>() ?? default);
 
                 valuesList.Add(values);
             }
@@ -297,18 +301,18 @@ namespace SAM.Math
                 ["_type"] = Core.Query.FullTypeName(this)
             };
 
-            JArray jArray_Column = new JArray();
+            JsonArray jsonArray_Column = new JsonArray();
 
             for (int i = 0; i < values.GetLength(0); i++)
             {
-                JArray jArray_Row = new JArray();
+                JsonArray jsonArray_Row = new JsonArray();
                 for (int j = 0; j < values.GetLength(1); j++)
-                    jArray_Row.Add(values[i, j]);
+                    jsonArray_Row.Add(values[i, j]);
 
-                jArray_Column.Add(jArray_Row);
+                jsonArray_Column.Add(jsonArray_Row);
             }
 
-            jsonObject["Values"] = jArray_Column.Node?.DeepClone();
+            jsonObject["Values"] = jsonArray_Column;
 
             return jsonObject;
         }

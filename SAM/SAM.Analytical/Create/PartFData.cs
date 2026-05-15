@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using SAM.Analytical.Classes;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -17,29 +17,28 @@ namespace SAM.Analytical
             {
                 string json = System.IO.File.ReadAllText(path);
 
-                JObject jObject = JObject.Parse(json);
+                JsonObject jsonObject = JsonNode.Parse(json) as JsonObject;
 
-                if(jObject.ContainsKey("WholeDwellingRates_Lps"))
+                if(jsonObject != null && jsonObject["WholeDwellingRates_Lps"] is JsonObject wholeDwellingRates)
                 {
-                    JObject jObject_Temp = jObject.Value<JObject>("WholeDwellingRates_Lps");
-                    foreach (JProperty property in jObject_Temp.Properties())
+                    foreach (KeyValuePair<string, JsonNode> property in wholeDwellingRates)
                     {
-                        string name = property.Name;
-                        JToken value = property.Value;
+                        string name = property.Key;
+                        JsonNode value = property.Value;
 
-                        double value_Temp;
+                        double value_Temp = value?.GetValue<double>() ?? double.NaN;
 
-                        if(name == "IncrementAbove5" && Core.Query.TryConvert(value, out value_Temp))
+                        if(name == "IncrementAbove5" && !double.IsNaN(value_Temp))
                         {
                             result.IncrementAbove5 = value_Temp;
                             continue;
                         }
-                        else if (name == "AreaRate_LpsPerM2" && Core.Query.TryConvert(value, out value_Temp))
+                        else if (name == "AreaRate_LpsPerM2" && !double.IsNaN(value_Temp))
                         {
                             result.AreaRate_LpsPerM2 = value_Temp;
                             continue;
                         }
-                        else if(Core.Query.TryConvert<int>(name, out int @int) && Core.Query.TryConvert(value, out value_Temp))
+                        else if(Core.Query.TryConvert<int>(name, out int @int) && !double.IsNaN(value_Temp))
                         {
                             result.WholeDwellingRates_Lps[@int] = value_Temp;
                         }
@@ -47,74 +46,79 @@ namespace SAM.Analytical
                     }
                 }
 
-                if(jObject.ContainsKey("Categories"))
+                if(jsonObject != null && jsonObject["Categories"] is JsonArray categoriesArray)
                 {
-                    JArray jArray_Temp = jObject.Value<JArray>("Categories");
-                    if(jArray_Temp is not null)
+                    if(categoriesArray != null)
                     {
-                        foreach(JObject jObject_Category in jArray_Temp)
+                        foreach(JsonNode categoryNode in categoriesArray)
                         {
-                            if(jObject_Category.Value<string>("Category") is not string name || string.IsNullOrWhiteSpace(name))
+                            JsonObject jsonObject_Category = categoryNode as JsonObject;
+                            if(jsonObject_Category == null)
+                            {
+                                continue;
+                            }
+
+                            string name = jsonObject_Category["Category"]?.GetValue<string>();
+                            if(string.IsNullOrWhiteSpace(name))
                             {
                                 continue;
                             }
 
                             Enums.PartFType partFType = Enums.PartFType.Habitable;
-                            if (jObject_Category.Value<string>("PartFCategory") is string category && !string.IsNullOrWhiteSpace(category))
+                            string category = jsonObject_Category["PartFCategory"]?.GetValue<string>();
+                            if (!string.IsNullOrWhiteSpace(category))
                             {
                                 partFType = Core.Query.Enum<Enums.PartFType>(category);
                             }
 
                             Enums.PartFVentilationType partFVentilationType = Enums.PartFVentilationType.supply;
-                            if (jObject_Category.Value<string>("VentilationType") is string ventilationType && !string.IsNullOrWhiteSpace(ventilationType))
+                            string ventilationType = jsonObject_Category["VentilationType"]?.GetValue<string>();
+                            if (!string.IsNullOrWhiteSpace(ventilationType))
                             {
                                 partFVentilationType = Core.Query.Enum<Enums.PartFVentilationType>(ventilationType);
                             }
 
                             bool isBedroom = false;
-                            if (jObject_Category.Value<bool>("IsBedroom") is bool isBedroom_Temp)
+                            if (jsonObject_Category["IsBedroom"] != null)
                             {
-                                isBedroom = isBedroom_Temp;
+                                isBedroom = jsonObject_Category["IsBedroom"].GetValue<bool>();
                             }
 
-                            double? minFlowRate_Lps = jObject_Category["MinFlowRate_Lps"]?.Value<double?>();
+                            double? minFlowRate_Lps = jsonObject_Category["MinFlowRate_Lps"]?.GetValue<double?>();
 
                             bool includeInFloorAreaCheck = false;
-                            if (jObject_Category.Value<bool>("IncludeInFloorAreaCheck") is bool includeInFloorAreaCheck_Temp)
+                            if (jsonObject_Category["IncludeInFloorAreaCheck"] != null)
                             {
-                                includeInFloorAreaCheck = includeInFloorAreaCheck_Temp;
+                                includeInFloorAreaCheck = jsonObject_Category["IncludeInFloorAreaCheck"].GetValue<bool>();
                             }
 
                             bool isTerminalSpace = false;
-                            if (jObject_Category.Value<bool>("IsTerminalSpace") is bool isTerminalSpace_Temp)
+                            if (jsonObject_Category["IsTerminalSpace"] != null)
                             {
-                                isTerminalSpace = isTerminalSpace_Temp;
+                                isTerminalSpace = jsonObject_Category["IsTerminalSpace"].GetValue<bool>();
                             }
 
                             bool scaleSupplyWithVolume = false;
-                            if (jObject_Category.Value<bool>("ScaleSupplyWithVolume") is bool scaleSupplyWithVolume_Temp)
+                            if (jsonObject_Category["ScaleSupplyWithVolume"] != null)
                             {
-                                scaleSupplyWithVolume = scaleSupplyWithVolume_Temp;
+                                scaleSupplyWithVolume = jsonObject_Category["ScaleSupplyWithVolume"].GetValue<bool>();
                             }
 
                             bool scaleExtractAboveMinimum = false;
-                            if (jObject_Category.Value<bool>("ScaleExtractAboveMinimum") is bool scaleExtractAboveMinimum_Temp)
+                            if (jsonObject_Category["ScaleExtractAboveMinimum"] != null)
                             {
-                                scaleExtractAboveMinimum = scaleExtractAboveMinimum_Temp;
+                                scaleExtractAboveMinimum = jsonObject_Category["ScaleExtractAboveMinimum"].GetValue<bool>();
                             }
 
-                            string defaultFlowWeightBasis = null;
-                            if (jObject_Category.Value<string>("DefaultFlowWeightBasis") is string defaultFlowWeightBasis_Temp)
-                            {
-                                defaultFlowWeightBasis = defaultFlowWeightBasis_Temp;
-                            }
+                            string defaultFlowWeightBasis = jsonObject_Category["DefaultFlowWeightBasis"]?.GetValue<string>();
 
                             List<string> synonyms = [];
-                            if (jObject_Category.ContainsKey("Synonyms"))
+                            if (jsonObject_Category["Synonyms"] is JsonArray synonymsArray)
                             {
-                                if (jObject_Category.Value<JArray>("Synonyms") is JArray jArray)
+                                foreach(JsonNode synonymNode in synonymsArray)
                                 {
-                                    foreach(string synonym in jArray)
+                                    string synonym = synonymNode?.GetValue<string>();
+                                    if (synonym != null)
                                     {
                                         synonyms.Add(synonym);
                                     }

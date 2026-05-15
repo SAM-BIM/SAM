@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
@@ -133,14 +132,12 @@ namespace SAM.Math
             if (jsonObject == null)
                 return false;
 
-            JObject jObject = new JObject(jsonObject);
-            if (jObject.ContainsKey("Variables"))
+            if (jsonObject["Variables"] is JsonArray jsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("Variables");
-                coefficients = new double[jArray.Count];
-                for (int i = 0; i < jArray.Count; i++)
+                coefficients = new double[jsonArray.Count];
+                for (int i = 0; i < jsonArray.Count; i++)
                 {
-                    object @object = jArray[i];
+                    object @object = jsonArray[i]?.GetValue<object>();
                     if (@object is double)
                     {
                         coefficients[i] = (double)@object;
@@ -166,11 +163,11 @@ namespace SAM.Math
 
             if (coefficients != null)
             {
-                JArray jArray = new JArray();
+                JsonArray jsonArray = new JsonArray();
                 foreach (double variable in coefficients)
-                    jArray.Add(variable);
+                    jsonArray.Add(variable);
 
-                jsonObject["Variables"] = jArray.Node?.DeepClone();
+                jsonObject["Variables"] = jsonArray;
             }
 
             return jsonObject;

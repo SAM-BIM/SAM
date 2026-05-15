@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using SAM.Core;
 using System.Text.Json.Nodes;
 
@@ -187,31 +186,27 @@ namespace SAM.Math
             if (jsonObject == null)
                 return false;
 
-            JObject jObject = new JObject(jsonObject);
-            if (jObject.ContainsKey("XArray"))
+            if (jsonObject["XArray"] is JsonArray jsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("XArray");
-                xArray = new double[jArray.Count];
-                for (int i = 0; i < jArray.Count; i++)
+                xArray = new double[jsonArray.Count];
+                for (int i = 0; i < jsonArray.Count; i++)
                 {
-                    xArray[i] = jArray[i].Value<double>();
+                    xArray[i] = jsonArray[i]?.GetValue<double>() ?? default;
                 }
             }
 
-            if (jObject.ContainsKey("YArray"))
+            if (jsonObject["YArray"] is JsonArray yJsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("YArray");
-                yArray = new double[jArray.Count];
-                for (int i = 0; i < jArray.Count; i++)
+                yArray = new double[yJsonArray.Count];
+                for (int i = 0; i < yJsonArray.Count; i++)
                 {
-                    yArray[i] = jArray[i].Value<double>();
+                    yArray[i] = yJsonArray[i]?.GetValue<double>() ?? default;
                 }
             }
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray valuesJsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("Values");
-                values = Core.Query.Array<double>(jArray);
+                values = Core.Query.Array<double>(valuesJsonArray);
             }
 
             return true;
@@ -226,18 +221,25 @@ namespace SAM.Math
 
             if (xArray != null)
             {
-                jsonObject["XArray"] = new JArray(xArray).Node?.DeepClone();
+                JsonArray jsonArray = new JsonArray();
+                foreach (double value in xArray)
+                    jsonArray.Add(value);
+
+                jsonObject["XArray"] = jsonArray;
             }
 
             if (yArray != null)
             {
-                jsonObject["YArray"] = new JArray(yArray).Node?.DeepClone();
+                JsonArray jsonArray = new JsonArray();
+                foreach (double value in yArray)
+                    jsonArray.Add(value);
+
+                jsonObject["YArray"] = jsonArray;
             }
 
             if (values != null)
             {
-                JArray jArray = Core.Query.JArray(values);
-                jsonObject["Values"] = jArray.Node?.DeepClone();
+                jsonObject["Values"] = Core.Query.JsonArray(values);
             }
 
             return jsonObject;
