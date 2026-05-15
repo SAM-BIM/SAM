@@ -9,6 +9,7 @@ using SAM.Math.Grasshopper.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Windows.Forms;
 
 namespace SAM.Math.Grasshopper
@@ -59,11 +60,11 @@ namespace SAM.Math.Grasshopper
             if (Value == null)
                 return false;
 
-            JObject jObject = Value.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = Value.ToJsonObject();
+            if (jsonObject == null)
                 return false;
 
-            writer.SetString(typeof(Matrix).FullName, jObject.ToString());
+            writer.SetString(typeof(Matrix).FullName, jsonObject.ToString());
             return true;
         }
 
@@ -76,7 +77,7 @@ namespace SAM.Math.Grasshopper
             if (string.IsNullOrWhiteSpace(value))
                 return false;
 
-            Value = Create.Matrix(JObject.Parse(value));
+            Value = Core.Create.IJSAMObject<Matrix>(value);
             return true;
         }
 

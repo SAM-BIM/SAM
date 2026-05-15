@@ -136,7 +136,7 @@ namespace SAM.Analytical.Rhino
             GeometryBase geometryBase = rhinoDoc.Objects.FindGeometry(guid);
             if (geometryBase != null)
             {
-                string @string = aperture.ToJObject()?.ToString();
+                string @string = aperture.ToJsonObject()?.ToJsonString();
                 if (!string.IsNullOrWhiteSpace(@string))
                     geometryBase.SetUserString("SAM", @string);
             }
