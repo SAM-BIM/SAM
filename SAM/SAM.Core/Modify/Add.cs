@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
@@ -38,24 +37,6 @@ namespace SAM.Core
                 return null;
 
             return log.Add(format, logRecordType, values);
-        }
-
-
-        public static bool Add(this JObject jObject, Tag tag)
-        {
-            if (jObject == null || tag == null)
-            {
-                return false;
-            }
-
-            JsonObject jsonObject_Tag = tag.ToJsonObject();
-            if (jsonObject_Tag == null)
-            {
-                return false;
-            }
-
-            jObject.Add("Tag", new JObject(jsonObject_Tag));
-            return true;
         }
 
         public static bool Add(this JsonObject jsonObject, Tag tag)

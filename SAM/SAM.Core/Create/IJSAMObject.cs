@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.IO;
 using System.IO.Compression;
 using System.Text.Json.Nodes;
@@ -10,11 +9,6 @@ namespace SAM.Core
 {
     public static partial class Create
     {
-        public static IJSAMObject IJSAMObject(this JObject jObject)
-        {
-            return IJSAMObject(jObject?.Node as JsonObject);
-        }
-
         public static IJSAMObject IJSAMObject(this JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -29,22 +23,6 @@ namespace SAM.Core
             }
 
             return jSAMObject;
-        }
-
-        public static T IJSAMObject<T>(this JObject jObject) where T : IJSAMObject
-        {
-            IJSAMObject jSAMObject = IJSAMObject(jObject);
-            if (jSAMObject == null)
-            {
-                return default;
-            }
-
-            if (jSAMObject is T)
-            {
-                return (T)jSAMObject;
-            }
-
-            return default;
         }
 
         public static T IJSAMObject<T>(this JsonObject jsonObject) where T : IJSAMObject
@@ -78,8 +56,7 @@ namespace SAM.Core
                 if (jsonNode is JsonArray jsonArray && jsonArray.Count > 0)
                 {
                     // DeepClone detaches the first element from its parent
-                    // array so it can be wrapped into a fresh JObject without
-                    // tripping JsonNode's single-parent invariant.
+                    // array before handing it to the JsonObject factory path.
                     jsonObject = jsonArray[0]?.DeepClone() as JsonObject;
                 }
             }

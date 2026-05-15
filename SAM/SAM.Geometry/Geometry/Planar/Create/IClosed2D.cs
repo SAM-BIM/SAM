@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
@@ -12,19 +11,6 @@ namespace SAM.Geometry.Planar
     /// </summary>
     public static partial class Create
     {
-        /// <summary>
-        /// Returns a closed 2D geometry from the specified JSON object.
-        /// </summary>
-        /// <param name="jObject">The JSON object.</param>
-        /// <returns>A closed 2D geometry.</returns>
-        public static IClosed2D IClosed2D(this JObject jObject)
-        {
-            if (jObject == null)
-                return null;
-
-            return Geometry.Create.ISAMGeometry(jObject) as IClosed2D;
-        }
-
         /// <summary>
         /// Returns a closed 2D geometry from the specified BCL JsonObject.
         /// </summary>

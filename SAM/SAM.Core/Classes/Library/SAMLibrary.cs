@@ -103,7 +103,7 @@ namespace SAM.Core
 
             if (jsonNode is JsonObject jsonObject)
             {
-                IJSAMObject IJSAMObject = Create.IJSAMObject(new JObject(jsonObject));
+                IJSAMObject IJSAMObject = Create.IJSAMObject(jsonObject);
                 if (IJSAMObject == null)
                     return false;
 

@@ -83,7 +83,6 @@ namespace SAM.Geometry.Object.Spatial
                 Plane = new Plane((JsonObject)planeJson.DeepClone());
             }
 
-            // Core.Query.Tag still takes JObject; the wrapper has no copy cost.
             Tag = Core.Query.Tag(jsonObject);
 
             return true;
@@ -110,8 +109,6 @@ namespace SAM.Geometry.Object.Spatial
                 jsonObject["Text"] = Text;
             }
 
-            // Core.Modify.Add takes JObject; the wrapper shares the same node
-            // so mutations land directly on jsonObject.
             Core.Modify.Add(jsonObject, Tag);
 
             return jsonObject;

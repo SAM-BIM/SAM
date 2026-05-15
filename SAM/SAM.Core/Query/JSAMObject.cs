@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System;
 using System.Reflection;
 using System.Text.Json.Nodes;
@@ -10,11 +9,6 @@ namespace SAM.Core
 {
     public static partial class Query
     {
-        public static IJSAMObject IJSAMObject(this JObject jObject)
-        {
-            return IJSAMObject(jObject?.Node as JsonObject);
-        }
-
         public static IJSAMObject IJSAMObject(this JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -47,41 +41,13 @@ namespace SAM.Core
                 return constructorInfo.Invoke(new object[] { jsonObject }) as IJSAMObject;
             }
 
-            JObject jObject = new JObject(jsonObject);
-            constructorInfo = type.GetConstructor(new Type[] { typeof(JObject) });
-            if (constructorInfo == null)
+            IJSAMObject result = Activator.CreateInstance(type) as IJSAMObject;
+            if (result != null && result.FromJsonObject(jsonObject))
             {
-                constructorInfo = type.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(JObject) }, null);
+                return result;
             }
 
-            if (constructorInfo == null)
-            {
-                IJSAMObject result = Activator.CreateInstance(type) as IJSAMObject;
-                if (result != null && result.FromJsonObject(jsonObject))
-                {
-                    return result;
-                }
-
-                return new JSAMObjectWrapper(jsonObject);
-            }
-
-            return constructorInfo.Invoke(new object[] { jObject }) as IJSAMObject;
-        }
-
-        public static T IJSAMObject<T>(this JObject jObject) where T : IJSAMObject
-        {
-            IJSAMObject jSAMObject = IJSAMObject(jObject);
-            if (jSAMObject == null)
-            {
-                return default;
-            }
-
-            if (!(jSAMObject is T))
-            {
-                return default;
-            }
-
-            return (T)jSAMObject;
+            return new JSAMObjectWrapper(jsonObject);
         }
 
         public static T IJSAMObject<T>(this JsonObject jsonObject) where T : IJSAMObject

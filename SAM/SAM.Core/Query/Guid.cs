@@ -12,15 +12,6 @@ namespace SAM.Core
 {
     public static partial class Query
     {
-        public static Guid Guid(this JObject jObject)
-        {
-            Guid guid = Guid(jObject, "Guid");
-            if (guid == System.Guid.Empty)
-                guid = System.Guid.NewGuid();
-
-            return guid;
-        }
-
         public static Guid Guid(this JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -58,17 +49,6 @@ namespace SAM.Core
                 return parsed;
 
             return System.Guid.Empty;
-        }
-
-        public static Guid Guid(this JObject jObject, string name)
-        {
-            if (jObject == null || string.IsNullOrWhiteSpace(name))
-                return System.Guid.Empty;
-
-            if (!jObject.ContainsKey(name))
-                return System.Guid.Empty;
-
-            return Guid(jObject.Value<JToken>(name));
         }
 
         public static Guid Guid(this JToken jToken)

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
@@ -10,14 +9,6 @@ namespace SAM.Core
 {
     public static partial class Query
     {
-        public static string FullTypeName(this JObject jObject)
-        {
-            if (jObject == null)
-                return null;
-
-            return jObject.Value<string>("_type");
-        }
-
         public static string FullTypeName(this JsonObject jsonObject)
         {
             if (jsonObject == null)

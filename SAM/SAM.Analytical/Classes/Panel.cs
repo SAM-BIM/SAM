@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using SAM.Core;
 using SAM.Geometry;
 using SAM.Geometry.Planar;
@@ -158,8 +157,8 @@ namespace SAM.Analytical
             this.planarBoundary3D = new PlanarBoundary3D(planarBoundary3D);
         }
 
-        internal Panel(JObject jObject)
-             : base(jObject?.Node as System.Text.Json.Nodes.JsonObject)
+        internal Panel(JsonObject jsonObject)
+             : base(jsonObject)
         {
         }
 
