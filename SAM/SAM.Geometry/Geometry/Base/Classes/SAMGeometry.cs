@@ -29,22 +29,10 @@ namespace SAM.Geometry
         // subclasses do their work against the BCL JsonObject API without
         // touching the shim. As subclasses migrate, they replace the public
         // override with a protected override of FromJsonObject.
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             return jsonObject != null;
         }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject

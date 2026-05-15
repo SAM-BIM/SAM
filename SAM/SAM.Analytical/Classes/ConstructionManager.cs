@@ -384,12 +384,6 @@ namespace SAM.Analytical
 
             return result;
         }
-
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -424,13 +418,6 @@ namespace SAM.Analytical
 
             return true;
         }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject

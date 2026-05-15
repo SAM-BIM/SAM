@@ -92,13 +92,6 @@ namespace SAM.Geometry.Object.Spatial
             face3D = face3D?.GetTransformed(transform3D) as Face3D;
             boundingBox3D = face3D?.GetBoundingBox();
         }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
@@ -123,12 +116,6 @@ namespace SAM.Geometry.Object.Spatial
 
             return jsonObject;
         }
-
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)

@@ -120,12 +120,6 @@ namespace SAM.Geometry.Spatial
         {
             return new SAMGeometry3DGroup(this);
         }
-
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -191,13 +185,6 @@ namespace SAM.Geometry.Spatial
 
             return new SAMGeometry3DGroup(coordinateSystem3D_New, sAMGeometry3Ds);
         }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject

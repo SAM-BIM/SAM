@@ -55,12 +55,6 @@ namespace SAM.Core
         {
             return new JSAMObjectWrapper(this);
         }
-
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject? jsonObject)
         {
             if (jsonObject == null)
@@ -106,13 +100,6 @@ namespace SAM.Core
         {
             return jsonObject == null ? null : Query.IJSAMObject(new JObject(jsonObject));
         }
-
-        public JObject ToJObject()
-        {
-            JsonObject? jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public JsonObject? ToJsonObject()
         {
             return jsonObject?.DeepClone() as JsonObject;

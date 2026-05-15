@@ -68,12 +68,6 @@ namespace SAM.Geometry.Object.Spatial
                 Plane = new Plane(plane);
             }
         }
-
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -101,13 +95,6 @@ namespace SAM.Geometry.Object.Spatial
 
             return true;
         }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject

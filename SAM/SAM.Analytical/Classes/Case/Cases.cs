@@ -100,12 +100,6 @@ namespace SAM.Analytical.Classes
 
             values.Add(@case);
         }
-
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -162,13 +156,6 @@ namespace SAM.Analytical.Classes
         {
             return GetEnumerator();
         }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public virtual JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject

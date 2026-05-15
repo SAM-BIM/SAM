@@ -50,12 +50,6 @@ namespace SAM.Analytical
             nCMNames.Add(nCMName);
             return true;
         }
-
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -83,13 +77,6 @@ namespace SAM.Analytical
         {
             return nCMNames.GetEnumerator();
         }
-
-        public JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject

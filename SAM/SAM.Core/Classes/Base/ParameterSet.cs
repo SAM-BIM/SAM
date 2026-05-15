@@ -475,7 +475,7 @@ namespace SAM.Core
                     JObject wrappedObject = new JObject((JsonObject)valueNode.DeepClone());
                     JSAMObjectWrapper wrapper = new JSAMObjectWrapper(wrappedObject);
                     IJSAMObject inner = wrapper.ToIJSAMObject();
-                    return inner ?? (object)wrapper.ToJObject();
+                    return inner ?? (object)wrapper.ToJsonObject();
 
                 case JsonValueKind.Array:
                     return new JArray((JsonArray)valueNode.DeepClone());

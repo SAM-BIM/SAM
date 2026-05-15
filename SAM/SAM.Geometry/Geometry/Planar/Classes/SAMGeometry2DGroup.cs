@@ -120,12 +120,6 @@ namespace SAM.Geometry.Planar
         {
             return new SAMGeometry2DGroup(this);
         }
-
-        public virtual bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -202,13 +196,6 @@ namespace SAM.Geometry.Planar
             coordinateSystem2D = coordinateSystem2D.Transform(transform2D);
             return true;
         }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public virtual JsonObject ToJsonObject()
         {
             JsonObject result = new JsonObject

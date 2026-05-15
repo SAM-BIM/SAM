@@ -44,12 +44,6 @@ namespace SAM.Geometry.Spatial
                 return new Matrix4D(matrix4D);
             }
         }
-
-        public bool FromJObject(JObject jObject)
-        {
-            return FromJsonObject(jObject?.Node as JsonObject);
-        }
-
         public virtual bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -61,13 +55,6 @@ namespace SAM.Geometry.Spatial
             }
             return true;
         }
-
-        public virtual JObject ToJObject()
-        {
-            JsonObject jsonObject = ToJsonObject();
-            return jsonObject == null ? null : new JObject(jsonObject);
-        }
-
         public virtual JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
