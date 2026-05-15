@@ -64,6 +64,11 @@ namespace SAM.Analytical
         {
         }
 
+        public BoundaryEdge2DLoop(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public BoundingBox2D GetBoundingBox(double offset = 0)
         {
             if (boundaryEdge2Ds == null || boundaryEdge2Ds.Count == 0)

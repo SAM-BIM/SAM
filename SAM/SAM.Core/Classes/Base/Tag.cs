@@ -17,6 +17,11 @@ namespace SAM.Core
             FromJObject(jObject);
         }
 
+        public Tag(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public Tag(Tag tag)
         {
             value = tag?.value;
@@ -219,7 +224,7 @@ namespace SAM.Core
                         return false;
                     }
 
-                    value = new SAMColor(new JObject((JsonObject)colorObject.DeepClone())).ToColor();
+                    value = new SAMColor((JsonObject)colorObject.DeepClone()).ToColor();
                     return true;
 
                 case ValueType.DateTime:
@@ -244,7 +249,7 @@ namespace SAM.Core
                         return false;
                     }
 
-                    value = new JSAMObjectWrapper(new JObject((JsonObject)objectNode.DeepClone())).ToIJSAMObject();
+                    value = new JSAMObjectWrapper((JsonObject)objectNode.DeepClone()).ToIJSAMObject();
                     return true;
 
                 case ValueType.Integer:

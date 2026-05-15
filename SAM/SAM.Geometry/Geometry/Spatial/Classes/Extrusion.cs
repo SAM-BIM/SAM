@@ -88,10 +88,10 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             if (jsonObject["Face"] is JsonObject jsonObject_Face)
-                face3D = new Face3D(new JObject((JsonObject)jsonObject_Face.DeepClone()));
+                face3D = new Face3D((JsonObject)jsonObject_Face.DeepClone());
 
             if (jsonObject["Vector"] is JsonObject jsonObject_Vector)
-                vector = new Vector3D(new JObject((JsonObject)jsonObject_Vector.DeepClone()));
+                vector = new Vector3D((JsonObject)jsonObject_Vector.DeepClone());
 
             return true;
         }

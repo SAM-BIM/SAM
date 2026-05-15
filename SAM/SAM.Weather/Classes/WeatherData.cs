@@ -421,7 +421,7 @@ namespace SAM.Weather
                     if (!(weatherYearNode is JsonObject weatherYearObject))
                         continue;
 
-                    weatherYears.Add(new WeatherYear(new JObject((JsonObject)weatherYearObject.DeepClone())));
+                    weatherYears.Add(new WeatherYear((JsonObject)weatherYearObject.DeepClone()));
                 }
             }
 

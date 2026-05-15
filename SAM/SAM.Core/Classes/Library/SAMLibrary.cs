@@ -31,6 +31,11 @@ namespace SAM.Core
         {
         }
 
+        public SAMLibrary(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public SAMLibrary(SAMLibrary<T> sAMLibrary)
             : base(sAMLibrary)
         {

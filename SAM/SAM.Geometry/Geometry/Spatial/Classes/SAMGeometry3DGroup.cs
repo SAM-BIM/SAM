@@ -126,7 +126,7 @@ namespace SAM.Geometry.Spatial
 
             if (jsonObject["CoordinateSystem3D"] is JsonObject jsonObject_CoordinateSystem3D)
             {
-                coordinateSystem3D = new CoordinateSystem3D(new JObject((JsonObject)jsonObject_CoordinateSystem3D.DeepClone()));
+                coordinateSystem3D = new CoordinateSystem3D((JsonObject)jsonObject_CoordinateSystem3D.DeepClone());
             }
 
             if (jsonObject["SAMGeometry3Ds"] is JsonArray jsonArray_SAMGeometry3Ds)

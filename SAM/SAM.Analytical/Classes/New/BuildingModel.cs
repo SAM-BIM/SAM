@@ -2365,10 +2365,10 @@ namespace SAM.Analytical
                 description = jsonObject["Description"]?.GetValue<string>();
 
             if (jsonObject["Location"] is JsonObject locationJson)
-                location = new Location(new JObject((JsonObject)locationJson.DeepClone()));
+                location = new Location((JsonObject)locationJson.DeepClone());
 
             if (jsonObject["Address"] is JsonObject addressJson)
-                address = new Address(new JObject((JsonObject)addressJson.DeepClone()));
+                address = new Address((JsonObject)addressJson.DeepClone());
 
             if (jsonObject["RelationCluster"] is JsonObject relationClusterJson)
                 relationCluster = new SAMObjectRelationCluster<IJSAMObject>(relationClusterJson as JsonObject);

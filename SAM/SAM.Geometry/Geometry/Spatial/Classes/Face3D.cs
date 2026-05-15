@@ -42,6 +42,11 @@ namespace SAM.Geometry.Spatial
         {
         }
 
+        public Face3D(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public Plane GetPlane()
         {
             if (plane == null)
@@ -283,7 +288,7 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
-                plane = new Plane(new JObject((JsonObject)jsonObject_Plane.DeepClone()));
+                plane = new Plane((JsonObject)jsonObject_Plane.DeepClone());
 
             return true;
         }

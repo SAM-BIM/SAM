@@ -121,7 +121,7 @@ namespace SAM.Geometry.Spatial
                 {
                     if (node is JsonObject pointJson)
                     {
-                        points.Add(new Point3D(new JObject((JsonObject)pointJson.DeepClone())));
+                        points.Add(new Point3D((JsonObject)pointJson.DeepClone()));
                     }
                 }
             }

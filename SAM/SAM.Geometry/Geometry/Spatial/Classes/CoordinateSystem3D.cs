@@ -57,6 +57,11 @@ namespace SAM.Geometry.Spatial
             FromJObject(jObject);
         }
 
+        public CoordinateSystem3D(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public Vector3D AxisX
         {
             get
@@ -108,22 +113,22 @@ namespace SAM.Geometry.Spatial
 
             if (jsonObject["AxisX"] is JsonObject axisXJson)
             {
-                axisX = new Vector3D(new JObject((JsonObject)axisXJson.DeepClone()));
+                axisX = new Vector3D((JsonObject)axisXJson.DeepClone());
             }
 
             if (jsonObject["AxisY"] is JsonObject axisYJson)
             {
-                axisY = new Vector3D(new JObject((JsonObject)axisYJson.DeepClone()));
+                axisY = new Vector3D((JsonObject)axisYJson.DeepClone());
             }
 
             if (jsonObject["AxisZ"] is JsonObject axisZJson)
             {
-                axisZ = new Vector3D(new JObject((JsonObject)axisZJson.DeepClone()));
+                axisZ = new Vector3D((JsonObject)axisZJson.DeepClone());
             }
 
             if (jsonObject["Origin"] is JsonObject originJson)
             {
-                origin = new Point3D(new JObject((JsonObject)originJson.DeepClone()));
+                origin = new Point3D((JsonObject)originJson.DeepClone());
             }
 
             return true;

@@ -100,7 +100,7 @@ namespace SAM.Analytical
 
             if (jsonObject["TemperatureDifferences"] is JsonObject temperatureDifferencesJson)
             {
-                temperatureDifferences = new IndexedDoubles(new JObject((JsonObject)temperatureDifferencesJson.DeepClone()));
+                temperatureDifferences = new IndexedDoubles((JsonObject)temperatureDifferencesJson.DeepClone());
             }
 
             return true;

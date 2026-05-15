@@ -143,7 +143,7 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
-                plane = new Plane(new JObject((JsonObject)jsonObject_Plane.DeepClone()));
+                plane = new Plane((JsonObject)jsonObject_Plane.DeepClone());
 
             radius = jsonObject["Radius"]?.GetValue<double>() ?? 0;
 

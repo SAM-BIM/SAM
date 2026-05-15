@@ -124,6 +124,11 @@ namespace SAM.Geometry.Spatial
         {
         }
 
+        public BoundingBox3D(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public bool Intersect(BoundingBox3D boundingBox3D)
         {
             return (min.X <= boundingBox3D.max.X && max.X >= boundingBox3D.min.X) && (min.Y <= boundingBox3D.max.Y && max.Y >= boundingBox3D.min.Y) && (min.Z <= boundingBox3D.max.Z && max.Z >= boundingBox3D.min.Z);
@@ -395,10 +400,10 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             if (jsonObject["Max"] is JsonObject jsonObject_Max)
-                max = new Point3D(new JObject((JsonObject)jsonObject_Max.DeepClone()));
+                max = new Point3D((JsonObject)jsonObject_Max.DeepClone());
 
             if (jsonObject["Min"] is JsonObject jsonObject_Min)
-                min = new Point3D(new JObject((JsonObject)jsonObject_Min.DeepClone()));
+                min = new Point3D((JsonObject)jsonObject_Min.DeepClone());
 
             return true;
         }

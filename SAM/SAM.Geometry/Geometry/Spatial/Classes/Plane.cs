@@ -28,6 +28,11 @@ namespace SAM.Geometry.Spatial
         {
         }
 
+        public Plane(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public Plane(Plane plane)
         {
             normal = new Vector3D(plane.normal);
@@ -314,13 +319,13 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
-                origin = new Point3D(new JObject((JsonObject)jsonObject_Origin.DeepClone()));
+                origin = new Point3D((JsonObject)jsonObject_Origin.DeepClone());
 
             if (jsonObject["Normal"] is JsonObject jsonObject_Normal)
-                normal = new Vector3D(new JObject((JsonObject)jsonObject_Normal.DeepClone()));
+                normal = new Vector3D((JsonObject)jsonObject_Normal.DeepClone());
 
             if (jsonObject["AxisY"] is JsonObject jsonObject_AxisY)
-                axisY = new Vector3D(new JObject((JsonObject)jsonObject_AxisY.DeepClone()));
+                axisY = new Vector3D((JsonObject)jsonObject_AxisY.DeepClone());
             else
                 axisY = normal?.AxisY();
 

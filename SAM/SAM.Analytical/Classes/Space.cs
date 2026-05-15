@@ -124,10 +124,10 @@ namespace SAM.Analytical
                 return false;
 
             if (jsonObject["Location"] is JsonObject locationJson)
-                location = new Point3D(new JObject((JsonObject)locationJson.DeepClone()));
+                location = new Point3D((JsonObject)locationJson.DeepClone());
 
             if (jsonObject["InternalCondition"] is JsonObject internalConditionJson)
-                internalCondition = new InternalCondition(new JObject((JsonObject)internalConditionJson.DeepClone()));
+                internalCondition = new InternalCondition((JsonObject)internalConditionJson.DeepClone());
 
             return true;
         }

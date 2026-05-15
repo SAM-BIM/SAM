@@ -63,7 +63,7 @@ namespace SAM.Geometry.Object.Spatial
 
             if (jsonObject["PointAppearance"] is JsonObject jsonObject_PointAppearance)
             {
-                PointAppearance = new PointAppearance(new JObject((JsonObject)jsonObject_PointAppearance.DeepClone()));
+                PointAppearance = new PointAppearance((JsonObject)jsonObject_PointAppearance.DeepClone());
             }
 
             Tag = Core.Query.Tag(new JObject(jsonObject));

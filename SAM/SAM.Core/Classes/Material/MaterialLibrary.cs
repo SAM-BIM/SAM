@@ -5,6 +5,7 @@ using SAM.Core.Json;
 
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -24,6 +25,12 @@ namespace SAM.Core
 
         public MaterialLibrary(JObject jObject)
             : base(jObject)
+        {
+
+        }
+
+        public MaterialLibrary(JsonObject jsonObject)
+            : base(jsonObject)
         {
 
         }

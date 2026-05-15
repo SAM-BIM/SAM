@@ -52,6 +52,11 @@ namespace SAM.Geometry.Planar
         {
         }
 
+        public Vector2D(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public static Vector2D WorldX
         {
             get

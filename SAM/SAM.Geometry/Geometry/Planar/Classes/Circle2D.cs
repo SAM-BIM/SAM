@@ -76,7 +76,7 @@ namespace SAM.Geometry.Planar
                 return false;
 
             if (jsonObject["Center"] is JsonObject jsonObject_Center)
-                center = new Point2D(new JObject((JsonObject)jsonObject_Center.DeepClone()));
+                center = new Point2D((JsonObject)jsonObject_Center.DeepClone());
 
             radius = jsonObject["Radius"]?.GetValue<double>() ?? 0;
             return true;

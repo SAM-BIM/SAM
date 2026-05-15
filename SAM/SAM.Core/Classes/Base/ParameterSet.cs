@@ -67,6 +67,11 @@ namespace SAM.Core
             FromJObject(jObject);
         }
 
+        public ParameterSet(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public string Name
         {
             get

@@ -96,7 +96,7 @@ namespace SAM.Analytical
 
             if (jsonObject["Profile"] is JsonObject profileJson)
             {
-                profile = new Profile(new JObject((JsonObject)profileJson.DeepClone()));
+                profile = new Profile((JsonObject)profileJson.DeepClone());
             }
 
             if (jsonObject.ContainsKey("From"))

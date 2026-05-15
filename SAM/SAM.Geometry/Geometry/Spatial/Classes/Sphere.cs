@@ -105,7 +105,7 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
-                origin = new Point3D(new JObject((JsonObject)jsonObject_Origin.DeepClone()));
+                origin = new Point3D((JsonObject)jsonObject_Origin.DeepClone());
 
             radius = jsonObject["Radius"]?.GetValue<double>() ?? 0;
 

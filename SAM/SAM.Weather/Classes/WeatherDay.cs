@@ -56,6 +56,11 @@ namespace SAM.Weather
             FromJObject(jObject);
         }
 
+        public WeatherDay(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         /// <summary>
         /// Gets or sets the value of the specified index for the given name.
         /// </summary>

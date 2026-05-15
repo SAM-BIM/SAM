@@ -99,27 +99,27 @@ namespace SAM.Analytical
 
             if (jsonObject["Heating"] is JsonObject heatingJson)
             {
-                heating = new Profile(new JObject((JsonObject)heatingJson.DeepClone()));
+                heating = new Profile((JsonObject)heatingJson.DeepClone());
             }
 
             if (jsonObject["Cooling"] is JsonObject coolingJson)
             {
-                cooling = new Profile(new JObject((JsonObject)coolingJson.DeepClone()));
+                cooling = new Profile((JsonObject)coolingJson.DeepClone());
             }
 
             if (jsonObject["Humidification"] is JsonObject humidificationJson)
             {
-                humidification = new Profile(new JObject((JsonObject)humidificationJson.DeepClone()));
+                humidification = new Profile((JsonObject)humidificationJson.DeepClone());
             }
 
             if (jsonObject["Dehumidification"] is JsonObject dehumidificationJson)
             {
-                dehumidification = new Profile(new JObject((JsonObject)dehumidificationJson.DeepClone()));
+                dehumidification = new Profile((JsonObject)dehumidificationJson.DeepClone());
             }
 
             if (jsonObject["Density"] is JsonObject densityJson)
             {
-                density = new Profile(new JObject((JsonObject)densityJson.DeepClone()));
+                density = new Profile((JsonObject)densityJson.DeepClone());
             }
 
             return true;

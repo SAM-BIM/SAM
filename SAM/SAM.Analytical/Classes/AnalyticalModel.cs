@@ -425,19 +425,19 @@ namespace SAM.Analytical
                 description = jsonObject["Description"]?.GetValue<string>();
 
             if (jsonObject["Location"] is JsonObject locationJson)
-                location = new Location(new JObject((JsonObject)locationJson.DeepClone()));
+                location = new Location((JsonObject)locationJson.DeepClone());
 
             if (jsonObject["Address"] is JsonObject addressJson)
-                address = new Address(new JObject((JsonObject)addressJson.DeepClone()));
+                address = new Address((JsonObject)addressJson.DeepClone());
 
             if (jsonObject["AdjacencyCluster"] is JsonObject adjacencyClusterJson)
-                adjacencyCluster = new AdjacencyCluster(new JObject((JsonObject)adjacencyClusterJson.DeepClone()));
+                adjacencyCluster = new AdjacencyCluster((JsonObject)adjacencyClusterJson.DeepClone());
 
             if (jsonObject["MaterialLibrary"] is JsonObject materialLibraryJson)
-                materialLibrary = new MaterialLibrary(new JObject((JsonObject)materialLibraryJson.DeepClone()));
+                materialLibrary = new MaterialLibrary((JsonObject)materialLibraryJson.DeepClone());
 
             if (jsonObject["ProfileLibrary"] is JsonObject profileLibraryJson)
-                profileLibrary = new ProfileLibrary(new JObject((JsonObject)profileLibraryJson.DeepClone()));
+                profileLibrary = new ProfileLibrary((JsonObject)profileLibraryJson.DeepClone());
 
             return true;
         }

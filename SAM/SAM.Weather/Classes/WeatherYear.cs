@@ -51,6 +51,11 @@ namespace SAM.Weather
             FromJObject(jObject);
         }
 
+        public WeatherYear(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         /// <summary>
         /// Gets or sets the WeatherDay at the specified index.
         /// </summary>
@@ -317,7 +322,7 @@ namespace SAM.Weather
                     if (!(weatherDaysArray[i] is JsonObject weatherDayObject))
                         continue;
 
-                    weatherDays[i] = new WeatherDay(new JObject((JsonObject)weatherDayObject.DeepClone()));
+                    weatherDays[i] = new WeatherDay((JsonObject)weatherDayObject.DeepClone());
                 }
             }
 

@@ -60,6 +60,11 @@ namespace SAM.Geometry.Planar
         {
         }
 
+        public Rectangle2D(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public double Height
         {
             get
@@ -146,13 +151,13 @@ namespace SAM.Geometry.Planar
                 return false;
 
             if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
-                origin = new Point2D(new JObject((JsonObject)jsonObject_Origin.DeepClone()));
+                origin = new Point2D((JsonObject)jsonObject_Origin.DeepClone());
 
             width = jsonObject["Width"]?.GetValue<double>() ?? 0;
             height = jsonObject["Height"]?.GetValue<double>() ?? 0;
 
             if (jsonObject["HeightDirection"] is JsonObject jsonObject_HeightDirection)
-                heightDirection = new Vector2D(new JObject((JsonObject)jsonObject_HeightDirection.DeepClone()));
+                heightDirection = new Vector2D((JsonObject)jsonObject_HeightDirection.DeepClone());
 
             return true;
         }

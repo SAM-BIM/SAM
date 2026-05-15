@@ -23,6 +23,12 @@ namespace SAM.Geometry.Object
 
         }
 
+        public PointAppearance(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+
+        }
+
         public PointAppearance(PointAppearance pointAppearance)
             : base(pointAppearance)
         {

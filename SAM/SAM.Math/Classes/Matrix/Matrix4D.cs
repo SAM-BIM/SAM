@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Math
 {
@@ -9,6 +10,11 @@ namespace SAM.Math
     {
         public Matrix4D(JObject jObject)
             : base(jObject)
+        {
+        }
+
+        public Matrix4D(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 

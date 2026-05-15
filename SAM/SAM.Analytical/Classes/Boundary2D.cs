@@ -227,7 +227,7 @@ namespace SAM.Analytical
                 return false;
 
             if (jsonObject["Edge2DLoop"] is JsonObject edge2DLoopJson)
-                externalEdge2DLoop = new BoundaryEdge2DLoop(new JObject((JsonObject)edge2DLoopJson.DeepClone()));
+                externalEdge2DLoop = new BoundaryEdge2DLoop((JsonObject)edge2DLoopJson.DeepClone());
 
             if (jsonObject["InternalEdge2DLoops"] is JsonArray internalEdge2DLoopsArray)
                 internalEdge2DLoops = Core.Create.IJSAMObjects<BoundaryEdge2DLoop>(internalEdge2DLoopsArray);

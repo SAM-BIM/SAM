@@ -135,7 +135,7 @@ namespace SAM.Core
 
             if (jsonObject["Reference"] is JsonObject referenceObject)
             {
-                reference = new Reference(new JObject((JsonObject)referenceObject.DeepClone()));
+                reference = new Reference((JsonObject)referenceObject.DeepClone());
             }
 
             return true;

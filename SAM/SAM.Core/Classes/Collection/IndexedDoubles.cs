@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -16,6 +17,12 @@ namespace SAM.Core
 
         public IndexedDoubles(JObject jObject)
             : base(jObject)
+        {
+
+        }
+
+        public IndexedDoubles(JsonObject jsonObject)
+            : base(jsonObject)
         {
 
         }

@@ -45,6 +45,12 @@ namespace SAM.Math
             FromJObject(jObject);
         }
 
+        public Matrix(JsonObject jsonObject)
+        {
+            values = default;
+            FromJsonObject(jsonObject);
+        }
+
         public Matrix(Matrix matrix)
         {
             if (matrix == null)

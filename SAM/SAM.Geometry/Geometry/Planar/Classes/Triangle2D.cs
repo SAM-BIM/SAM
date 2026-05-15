@@ -75,7 +75,7 @@ namespace SAM.Geometry.Planar
                 {
                     if (node is JsonObject pointJson)
                     {
-                        point2Ds.Add(new Point2D(new JObject((JsonObject)pointJson.DeepClone())));
+                        point2Ds.Add(new Point2D((JsonObject)pointJson.DeepClone()));
                     }
                 }
                 points = point2Ds.ToArray();

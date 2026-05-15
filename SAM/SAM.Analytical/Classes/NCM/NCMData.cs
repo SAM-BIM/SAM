@@ -95,7 +95,7 @@ namespace SAM.Analytical
 
             if (jsonObject["NCMName"] is JsonObject ncmNameJson)
             {
-                NCMName = new NCMName(new JObject((JsonObject)ncmNameJson.DeepClone()));
+                NCMName = new NCMName((JsonObject)ncmNameJson.DeepClone());
             }
             else if (jsonObject.ContainsKey("Type"))
             {

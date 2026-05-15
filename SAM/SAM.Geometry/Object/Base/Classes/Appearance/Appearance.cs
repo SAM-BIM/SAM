@@ -25,6 +25,11 @@ namespace SAM.Geometry.Object
             FromJObject(jObject);
         }
 
+        public Appearance(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public Appearance(Appearance appearance)
         {
             if (appearance != null)
@@ -49,7 +54,7 @@ namespace SAM.Geometry.Object
 
             if (jsonObject["Color"] is JsonObject jsonObject_Color)
             {
-                Core.SAMColor sAMColor = new Core.SAMColor(new JObject((JsonObject)jsonObject_Color.DeepClone()));
+                Core.SAMColor sAMColor = new Core.SAMColor((JsonObject)jsonObject_Color.DeepClone());
                 if (sAMColor != null)
                 {
                     Color = Color.FromArgb(sAMColor.Alpha, sAMColor.Red, sAMColor.Green, sAMColor.Blue);

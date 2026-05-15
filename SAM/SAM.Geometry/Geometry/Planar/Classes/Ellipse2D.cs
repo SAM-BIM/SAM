@@ -43,6 +43,11 @@ namespace SAM.Geometry.Planar
         {
         }
 
+        public Ellipse2D(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public Point2D Center
         {
             get
@@ -106,13 +111,13 @@ namespace SAM.Geometry.Planar
                 return false;
 
             if (jsonObject["Center"] is JsonObject jsonObject_Center)
-                center = new Point2D(new JObject((JsonObject)jsonObject_Center.DeepClone()));
+                center = new Point2D((JsonObject)jsonObject_Center.DeepClone());
 
             width = jsonObject["Width"]?.GetValue<double>() ?? 0;
             height = jsonObject["Height"]?.GetValue<double>() ?? 0;
 
             if (jsonObject["HeightDirection"] is JsonObject jsonObject_HeightDirection)
-                heightDirection = new Vector2D(new JObject((JsonObject)jsonObject_HeightDirection.DeepClone()));
+                heightDirection = new Vector2D((JsonObject)jsonObject_HeightDirection.DeepClone());
 
             return true;
         }

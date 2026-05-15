@@ -36,10 +36,10 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             if (jsonObject["Ellipse2D"] is JsonObject jsonObject_Ellipse2D)
-                ellipse2D = new Ellipse2D(new JObject((JsonObject)jsonObject_Ellipse2D.DeepClone()));
+                ellipse2D = new Ellipse2D((JsonObject)jsonObject_Ellipse2D.DeepClone());
 
             if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
-                plane = new Plane(new JObject((JsonObject)jsonObject_Plane.DeepClone()));
+                plane = new Plane((JsonObject)jsonObject_Plane.DeepClone());
 
             return true;
         }

@@ -46,6 +46,11 @@ namespace SAM.Core
             FromJObject(jObject);
         }
 
+        public ParameterizedSAMObject(JsonObject? jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public bool RemoveValue(Enum @enum)
         {
             if (!Query.IsValid(GetType(), @enum))
@@ -331,7 +336,7 @@ namespace SAM.Core
                 {
                     if (node is JsonObject parameterSetObject)
                     {
-                        parameterSets.Add(new ParameterSet(new JObject((JsonObject)parameterSetObject.DeepClone())));
+                        parameterSets.Add(new ParameterSet((JsonObject)parameterSetObject.DeepClone()));
                     }
                 }
             }

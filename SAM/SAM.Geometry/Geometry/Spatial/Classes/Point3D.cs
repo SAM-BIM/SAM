@@ -20,6 +20,11 @@ namespace SAM.Geometry.Spatial
             FromJObject(jObject);
         }
 
+        public Point3D(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public Point3D(double x, double y, double z)
         {
             coordinates = new double[3] { x, y, z };

@@ -54,6 +54,11 @@ namespace SAM.Core
             FromJObject(jObject);
         }
 
+        public LogRecord(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public LogRecord(DateTime dateTime, string text)
         {
             this.dateTime = dateTime;

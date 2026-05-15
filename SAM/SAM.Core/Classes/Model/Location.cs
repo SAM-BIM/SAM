@@ -46,6 +46,11 @@ namespace SAM.Core
         {
         }
 
+        public Location(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public double Longitude
         {
             get

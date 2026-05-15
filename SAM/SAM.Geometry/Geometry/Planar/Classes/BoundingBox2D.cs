@@ -186,10 +186,10 @@ namespace SAM.Geometry.Planar
                 return false;
 
             if (jsonObject["Max"] is JsonObject jsonObject_Max)
-                max = new Point2D(new JObject((JsonObject)jsonObject_Max.DeepClone()));
+                max = new Point2D((JsonObject)jsonObject_Max.DeepClone());
 
             if (jsonObject["Min"] is JsonObject jsonObject_Min)
-                min = new Point2D(new JObject((JsonObject)jsonObject_Min.DeepClone()));
+                min = new Point2D((JsonObject)jsonObject_Min.DeepClone());
 
             return true;
         }

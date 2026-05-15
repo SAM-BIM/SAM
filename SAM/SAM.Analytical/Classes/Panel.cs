@@ -307,7 +307,7 @@ namespace SAM.Analytical
             Enum.TryParse(jsonObject["PanelType"]?.GetValue<string>(), out panelType);
 
             if (jsonObject["PlanarBoundary3D"] is JsonObject planarBoundary3DJson)
-                planarBoundary3D = new PlanarBoundary3D(new JObject((JsonObject)planarBoundary3DJson.DeepClone()));
+                planarBoundary3D = new PlanarBoundary3D((JsonObject)planarBoundary3DJson.DeepClone());
 
             if (jsonObject["Apertures"] is JsonArray aperturesArray)
                 apertures = Core.Create.IJSAMObjects<Aperture>(aperturesArray);

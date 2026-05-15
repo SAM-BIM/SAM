@@ -26,6 +26,12 @@ namespace SAM.Geometry.Object
 
         }
 
+        public TextAppearance(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+
+        }
+
         public TextAppearance(TextAppearance textAppearance)
             : base(textAppearance)
         {

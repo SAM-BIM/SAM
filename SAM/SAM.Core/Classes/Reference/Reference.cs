@@ -28,6 +28,13 @@ namespace SAM.Core
             FromJObject(jObject);
         }
 
+        public Reference(JsonObject jsonObject)
+        {
+            value = null;
+
+            FromJsonObject(jsonObject);
+        }
+
         public bool IsValid()
         {
             return !string.IsNullOrWhiteSpace(value);

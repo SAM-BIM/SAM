@@ -125,10 +125,10 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             if (jsonObject["Rectangle2D"] is JsonObject jsonObject_Rectangle2D)
-                rectangle2D = new Rectangle2D(new JObject((JsonObject)jsonObject_Rectangle2D.DeepClone()));
+                rectangle2D = new Rectangle2D((JsonObject)jsonObject_Rectangle2D.DeepClone());
 
             if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
-                plane = new Plane(new JObject((JsonObject)jsonObject_Plane.DeepClone()));
+                plane = new Plane((JsonObject)jsonObject_Plane.DeepClone());
 
             return true;
         }

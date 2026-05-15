@@ -48,7 +48,7 @@ namespace SAM.Geometry.Spatial
 
             if (jsonObject["Matrix4D"] is JsonObject matrix4DJson)
             {
-                matrix4D = new Matrix4D(new JObject((JsonObject)matrix4DJson.DeepClone()));
+                matrix4D = new Matrix4D((JsonObject)matrix4DJson.DeepClone());
             }
             return true;
         }

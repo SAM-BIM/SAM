@@ -321,17 +321,17 @@ namespace SAM.Analytical
 
             if (jsonObject["MinAcceptableTemperatures"] is JsonObject minAcceptableTemperaturesJson)
             {
-                minAcceptableTemperatures = new IndexedDoubles(new JObject((JsonObject)minAcceptableTemperaturesJson.DeepClone()));
+                minAcceptableTemperatures = new IndexedDoubles((JsonObject)minAcceptableTemperaturesJson.DeepClone());
             }
 
             if (jsonObject["MaxAcceptableTemperatures"] is JsonObject maxAcceptableTemperaturesJson)
             {
-                maxAcceptableTemperatures = new IndexedDoubles(new JObject((JsonObject)maxAcceptableTemperaturesJson.DeepClone()));
+                maxAcceptableTemperatures = new IndexedDoubles((JsonObject)maxAcceptableTemperaturesJson.DeepClone());
             }
 
             if (jsonObject["OperativeTemperatures"] is JsonObject operativeTemperaturesJson)
             {
-                operativeTemperatures = new IndexedDoubles(new JObject((JsonObject)operativeTemperaturesJson.DeepClone()));
+                operativeTemperatures = new IndexedDoubles((JsonObject)operativeTemperaturesJson.DeepClone());
             }
 
             return true;

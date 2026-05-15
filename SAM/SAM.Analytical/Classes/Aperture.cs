@@ -86,7 +86,7 @@ namespace SAM.Analytical
                 return false;
 
             if (jsonObject["PlanarBoundary3D"] is JsonObject planarBoundary3DJson)
-                planarBoundary3D = new PlanarBoundary3D(new JObject((JsonObject)planarBoundary3DJson.DeepClone()));
+                planarBoundary3D = new PlanarBoundary3D((JsonObject)planarBoundary3DJson.DeepClone());
             return true;
         }
 

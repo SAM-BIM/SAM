@@ -37,6 +37,11 @@ namespace SAM.Core
             FromJObject(jObject);
         }
 
+        public Category(JsonObject? jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public string? Name
         {
             get
@@ -109,7 +114,7 @@ namespace SAM.Core
 
             if (jsonObject["SubCategory"] is JsonObject subCategoryObject)
             {
-                subCategory = new Category(new JObject((JsonObject)subCategoryObject.DeepClone()));
+                subCategory = new Category((JsonObject)subCategoryObject.DeepClone());
             }
 
             return true;

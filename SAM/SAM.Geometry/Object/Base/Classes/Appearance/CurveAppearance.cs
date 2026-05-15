@@ -3,6 +3,7 @@
 
 using SAM.Core.Json;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -15,6 +16,12 @@ namespace SAM.Geometry.Object
 
         public CurveAppearance(JObject jObject)
             : base(jObject)
+        {
+
+        }
+
+        public CurveAppearance(JsonObject jsonObject)
+            : base(jsonObject)
         {
 
         }

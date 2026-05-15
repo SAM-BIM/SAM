@@ -93,7 +93,7 @@ namespace SAM.Core
                 {
                     if (node is JsonObject parameterSetJson)
                     {
-                        parameterSets.Add(new ParameterSet(new JObject((JsonObject)parameterSetJson.DeepClone())));
+                        parameterSets.Add(new ParameterSet((JsonObject)parameterSetJson.DeepClone()));
                     }
                 }
             }

@@ -63,7 +63,7 @@ namespace SAM.Geometry.Object.Planar
 
             if (jsonObject["CurveAppearance"] is JsonObject jsonObject_CurveAppearance)
             {
-                CurveAppearance = new CurveAppearance(new JObject((JsonObject)jsonObject_CurveAppearance.DeepClone()));
+                CurveAppearance = new CurveAppearance((JsonObject)jsonObject_CurveAppearance.DeepClone());
             }
 
             Tag = Core.Query.Tag(new JObject(jsonObject));

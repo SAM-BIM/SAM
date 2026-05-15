@@ -79,12 +79,12 @@ namespace SAM.Geometry.Object.Spatial
 
             if (jsonObject["TextAppearance"] is JsonObject textAppearanceJson)
             {
-                TextAppearance = new TextAppearance(new JObject((JsonObject)textAppearanceJson.DeepClone()));
+                TextAppearance = new TextAppearance((JsonObject)textAppearanceJson.DeepClone());
             }
 
             if (jsonObject["Plane"] is JsonObject planeJson)
             {
-                Plane = new Plane(new JObject((JsonObject)planeJson.DeepClone()));
+                Plane = new Plane((JsonObject)planeJson.DeepClone());
             }
 
             // Core.Query.Tag still takes JObject; the wrapper has no copy cost.

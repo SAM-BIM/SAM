@@ -69,6 +69,11 @@ namespace SAM.Core
         {
         }
 
+        public SAMObject(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public SAMObject(Guid guid)
             : base()
         {

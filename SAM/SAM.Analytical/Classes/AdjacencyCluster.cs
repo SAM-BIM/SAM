@@ -8,6 +8,7 @@ using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace SAM.Analytical
@@ -34,6 +35,12 @@ namespace SAM.Analytical
 
         public AdjacencyCluster(JObject jObject)
             : base(jObject)
+        {
+
+        }
+
+        public AdjacencyCluster(JsonObject jsonObject)
+            : base(jsonObject)
         {
 
         }

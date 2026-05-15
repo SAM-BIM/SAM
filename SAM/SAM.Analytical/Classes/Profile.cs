@@ -203,6 +203,11 @@ namespace SAM.Analytical
         {
         }
 
+        public Profile(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public void Sum(double value)
         {
             Update((x, y) => x + y, value);

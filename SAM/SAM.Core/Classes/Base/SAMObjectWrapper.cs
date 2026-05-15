@@ -24,6 +24,11 @@ namespace SAM.Core
             jsonObject = jObject?.Node as JsonObject;
         }
 
+        public JSAMObjectWrapper(JsonObject jsonObject)
+        {
+            this.jsonObject = jsonObject;
+        }
+
         public Guid Guid
         {
             get

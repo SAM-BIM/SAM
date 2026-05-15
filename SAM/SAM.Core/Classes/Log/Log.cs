@@ -107,7 +107,7 @@ namespace SAM.Core
                 {
                     if (node is JsonObject logRecordJson)
                     {
-                        logRecords.Add(new LogRecord(new JObject((JsonObject)logRecordJson.DeepClone())));
+                        logRecords.Add(new LogRecord((JsonObject)logRecordJson.DeepClone()));
                     }
                 }
             }

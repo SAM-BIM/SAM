@@ -62,7 +62,7 @@ namespace SAM.Analytical
                 {
                     if (node is JsonObject ncmNameJson)
                     {
-                        nCMNames.Add(new NCMName(new JObject((JsonObject)ncmNameJson.DeepClone())));
+                        nCMNames.Add(new NCMName((JsonObject)ncmNameJson.DeepClone()));
                     }
                 }
             }

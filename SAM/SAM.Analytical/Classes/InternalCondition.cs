@@ -6,6 +6,7 @@ using SAM.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -48,6 +49,11 @@ namespace SAM.Analytical
 
         public InternalCondition(JObject jObject)
             : base(jObject)
+        {
+        }
+
+        public InternalCondition(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 

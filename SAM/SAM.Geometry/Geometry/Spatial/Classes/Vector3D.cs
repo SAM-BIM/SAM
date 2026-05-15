@@ -32,6 +32,11 @@ namespace SAM.Geometry.Spatial
             FromJObject(jObject);
         }
 
+        public Vector3D(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public Vector3D(Vector3D vector3D)
         {
             coordinates[0] = vector3D.coordinates[0];

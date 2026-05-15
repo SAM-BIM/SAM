@@ -36,6 +36,11 @@ namespace SAM.Analytical
             FromJObject(jObject);
         }
 
+        public NCMName(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public string Name
         {
             get

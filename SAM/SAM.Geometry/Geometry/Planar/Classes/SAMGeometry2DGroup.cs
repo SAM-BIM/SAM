@@ -126,7 +126,7 @@ namespace SAM.Geometry.Planar
 
             if (jsonObject["CoordinateSystem2D"] is JsonObject coordinateSystem2DJson)
             {
-                coordinateSystem2D = new CoordinateSystem2D(new JObject((JsonObject)coordinateSystem2DJson.DeepClone()));
+                coordinateSystem2D = new CoordinateSystem2D((JsonObject)coordinateSystem2DJson.DeepClone());
             }
 
             if (jsonObject["SAMGeometry2Ds"] is JsonArray sAMGeometry2DsArray)

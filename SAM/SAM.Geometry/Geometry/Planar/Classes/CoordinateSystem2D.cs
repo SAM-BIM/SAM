@@ -39,6 +39,11 @@ namespace SAM.Geometry.Planar
             FromJObject(jObject);
         }
 
+        public CoordinateSystem2D(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public CoordinateSystem2D(CoordinateSystem2D coordinateSystem2D)
         {
             if (coordinateSystem2D != null)
@@ -109,17 +114,17 @@ namespace SAM.Geometry.Planar
 
             if (jsonObject["AxisX"] is JsonObject axisXJson)
             {
-                axisX = new Vector2D(new JObject((JsonObject)axisXJson.DeepClone()));
+                axisX = new Vector2D((JsonObject)axisXJson.DeepClone());
             }
 
             if (jsonObject["AxisY"] is JsonObject axisYJson)
             {
-                axisY = new Vector2D(new JObject((JsonObject)axisYJson.DeepClone()));
+                axisY = new Vector2D((JsonObject)axisYJson.DeepClone());
             }
 
             if (jsonObject["Origin"] is JsonObject originJson)
             {
-                origin = new Point2D(new JObject((JsonObject)originJson.DeepClone()));
+                origin = new Point2D((JsonObject)originJson.DeepClone());
             }
 
             return true;

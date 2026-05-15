@@ -17,6 +17,11 @@ namespace SAM.Geometry
             FromJObject(jObject);
         }
 
+        public SAMGeometry(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public abstract ISAMGeometry Clone();
 
         // Bridge: most subclasses still override the public JObject variant

@@ -36,6 +36,11 @@ namespace SAM.Geometry
             FromJObject(jObject);
         }
 
+        public Face(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public override bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)

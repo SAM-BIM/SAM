@@ -184,7 +184,7 @@ namespace SAM.Geometry.Spatial
                 return false;
 
             if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
-                plane = new Plane(new JObject((JsonObject)jsonObject_Plane.DeepClone()));
+                plane = new Plane((JsonObject)jsonObject_Plane.DeepClone());
 
             if (jsonObject["Points"] is JsonArray jsonArray_Points)
             {
@@ -193,7 +193,7 @@ namespace SAM.Geometry.Spatial
                 {
                     if (node is JsonObject pointJson)
                     {
-                        points.Add(new Planar.Point2D(new JObject((JsonObject)pointJson.DeepClone())));
+                        points.Add(new Planar.Point2D((JsonObject)pointJson.DeepClone()));
                     }
                 }
             }

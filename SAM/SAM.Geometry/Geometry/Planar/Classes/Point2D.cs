@@ -25,6 +25,11 @@ namespace SAM.Geometry.Planar
             FromJObject(jObject);
         }
 
+        public Point2D(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public Point2D(double x, double y)
         {
             coordinates = new double[2] { x, y };

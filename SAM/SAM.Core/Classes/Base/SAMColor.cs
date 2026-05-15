@@ -34,6 +34,11 @@ namespace SAM.Core
             FromJObject(jObject);
         }
 
+        public SAMColor(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public SAMColor(byte alpha, byte red, byte green, byte blue)
         {
             this.alpha = alpha;

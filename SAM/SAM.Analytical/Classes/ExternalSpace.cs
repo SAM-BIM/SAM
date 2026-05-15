@@ -59,7 +59,7 @@ namespace SAM.Analytical
 
             if (jsonObject["Location"] is JsonObject locationJson)
             {
-                location = new Point3D(new JObject((JsonObject)locationJson.DeepClone()));
+                location = new Point3D((JsonObject)locationJson.DeepClone());
             }
 
             return true;

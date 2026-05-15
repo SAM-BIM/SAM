@@ -432,7 +432,7 @@ namespace SAM.Geometry.Spatial
                 {
                     if (node is JsonObject faceJson)
                     {
-                        Add(new Face3D(new JObject((JsonObject)faceJson.DeepClone())));
+                        Add(new Face3D((JsonObject)faceJson.DeepClone()));
                     }
                 }
             }

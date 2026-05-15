@@ -85,17 +85,17 @@ namespace SAM.Geometry.Object.Spatial
 
             if (jsonObject["CurveAppearance"] is JsonObject jsonObject_CurveAppearance)
             {
-                CurveAppearance = new CurveAppearance(new JObject((JsonObject)jsonObject_CurveAppearance.DeepClone()));
+                CurveAppearance = new CurveAppearance((JsonObject)jsonObject_CurveAppearance.DeepClone());
             }
 
             if (jsonObject["PointAppearance"] is JsonObject jsonObject_PointAppearance)
             {
-                PointAppearance = new PointAppearance(new JObject((JsonObject)jsonObject_PointAppearance.DeepClone()));
+                PointAppearance = new PointAppearance((JsonObject)jsonObject_PointAppearance.DeepClone());
             }
 
             if (jsonObject["SurfaceAppearance"] is JsonObject jsonObject_SurfaceAppearance)
             {
-                SurfaceAppearance = new SurfaceAppearance(new JObject((JsonObject)jsonObject_SurfaceAppearance.DeepClone()));
+                SurfaceAppearance = new SurfaceAppearance((JsonObject)jsonObject_SurfaceAppearance.DeepClone());
             }
 
             Tag = Core.Query.Tag(new JObject(jsonObject));

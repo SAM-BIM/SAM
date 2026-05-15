@@ -23,6 +23,11 @@ namespace SAM.Core
             FromJObject(jObject);
         }
 
+        public IndexedObjects(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
+        }
+
         public IndexedObjects(IEnumerable<T> values)
         {
             if (values != null)

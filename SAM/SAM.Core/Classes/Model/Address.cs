@@ -46,6 +46,11 @@ namespace SAM.Core
         {
         }
 
+        public Address(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+        }
+
         public string Street
         {
             get

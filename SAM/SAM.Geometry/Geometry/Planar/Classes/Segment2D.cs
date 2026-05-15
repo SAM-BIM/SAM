@@ -311,10 +311,10 @@ namespace SAM.Geometry.Planar
                 return false;
 
             if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
-                origin = new Point2D(new JObject((JsonObject)jsonObject_Origin.DeepClone()));
+                origin = new Point2D((JsonObject)jsonObject_Origin.DeepClone());
 
             if (jsonObject["Vector"] is JsonObject jsonObject_Vector)
-                vector = new Vector2D(new JObject((JsonObject)jsonObject_Vector.DeepClone()));
+                vector = new Vector2D((JsonObject)jsonObject_Vector.DeepClone());
 
             return true;
         }

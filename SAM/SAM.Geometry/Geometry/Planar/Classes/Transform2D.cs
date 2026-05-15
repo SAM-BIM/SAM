@@ -46,7 +46,7 @@ namespace SAM.Geometry.Planar
 
             if (jsonObject["Matrix3D"] is JsonObject matrix3DJson)
             {
-                matrix3D = new Matrix3D(new JObject((JsonObject)matrix3DJson.DeepClone()));
+                matrix3D = new Matrix3D((JsonObject)matrix3DJson.DeepClone());
             }
             return true;
         }

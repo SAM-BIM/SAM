@@ -56,7 +56,7 @@ namespace SAM.Architectural
 
             if (jsonObject["Plane"] is JsonObject planeJson)
             {
-                plane = new Plane(new JObject((JsonObject)planeJson.DeepClone()));
+                plane = new Plane((JsonObject)planeJson.DeepClone());
             }
 
             return true;

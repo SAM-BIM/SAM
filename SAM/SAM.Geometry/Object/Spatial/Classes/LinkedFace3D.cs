@@ -134,12 +134,12 @@ namespace SAM.Geometry.Object.Spatial
 
             if (jsonObject["Face3D"] is JsonObject face3DJson)
             {
-                face3D = new Face3D(new JObject((JsonObject)face3DJson.DeepClone()));
+                face3D = new Face3D((JsonObject)face3DJson.DeepClone());
             }
 
             if (jsonObject["BoundingBox3D"] is JsonObject boundingBox3DJson)
             {
-                boundingBox3D = new BoundingBox3D(new JObject((JsonObject)boundingBox3DJson.DeepClone()));
+                boundingBox3D = new BoundingBox3D((JsonObject)boundingBox3DJson.DeepClone());
             }
 
             return true;

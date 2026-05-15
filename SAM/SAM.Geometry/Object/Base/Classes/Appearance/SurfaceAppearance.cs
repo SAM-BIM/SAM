@@ -23,6 +23,12 @@ namespace SAM.Geometry.Object
 
         }
 
+        public SurfaceAppearance(JsonObject jsonObject)
+            : base(jsonObject)
+        {
+
+        }
+
         public SurfaceAppearance(SurfaceAppearance surfaceAppearance)
             : base(surfaceAppearance)
         {
@@ -58,7 +64,7 @@ namespace SAM.Geometry.Object
 
             if (jsonObject["CurveAppearance"] is JsonObject jsonObject_CurveAppearance)
             {
-                CurveAppearance = new CurveAppearance(new JObject((JsonObject)jsonObject_CurveAppearance.DeepClone()));
+                CurveAppearance = new CurveAppearance((JsonObject)jsonObject_CurveAppearance.DeepClone());
             }
 
             return true;
