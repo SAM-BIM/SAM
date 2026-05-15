@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System;
 using System.Drawing;
 using System.Text.Json.Nodes;
@@ -186,7 +185,7 @@ namespace SAM.Core
 
             if (!jsonObject.ContainsKey("ValueType"))
             {
-                value = JToken.Wrap(valueNode?.DeepClone());
+                value = valueNode.ToObject();
                 return true;
             }
 

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using SAM.Core.Json;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -281,8 +280,8 @@ namespace SAM.Core
                     }
                     else
                     {
-                        JToken valueToken = JToken.Wrap(entryArray[1]?.DeepClone());
-                        if (Query.TryConvert(valueToken, out T result))
+                        object valueObject = entryArray[1].ToObject();
+                        if (Query.TryConvert(valueObject, out T result))
                         {
                             sortedDictionary[index] = result;
                         }
