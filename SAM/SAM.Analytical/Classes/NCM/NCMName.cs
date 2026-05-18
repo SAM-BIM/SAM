@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -29,10 +29,9 @@ namespace SAM.Analytical
             this.description = description;
             this.group = group;
         }
-
-        public NCMName(JObject jObject)
+        public NCMName(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public string Name
@@ -110,64 +109,63 @@ namespace SAM.Analytical
                 return string.Join("_", values);
             }
         }
-
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Name"))
+            if (jsonObject.ContainsKey("Name"))
             {
-                name = jObject.Value<string>("Name");
+                name = jsonObject["Name"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Version"))
+            if (jsonObject.ContainsKey("Version"))
             {
-                version = jObject.Value<string>("Version");
+                version = jsonObject["Version"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Description"))
+            if (jsonObject.ContainsKey("Description"))
             {
-                description = jObject.Value<string>("Description");
+                description = jsonObject["Description"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Group"))
+            if (jsonObject.ContainsKey("Group"))
             {
-                group = jObject.Value<string>("Group");
+                group = jsonObject["Group"]?.GetValue<string>();
             }
 
             return true;
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (name != null)
             {
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
             }
 
             if (version != null)
             {
-                jObject.Add("Version", version);
+                jsonObject["Version"] = version;
             }
 
             if (description != null)
             {
-                jObject.Add("Description", description);
+                jsonObject["Description"] = description;
             }
 
             if (group != null)
             {
-                jObject.Add("Group", group);
+                jsonObject["Group"] = group;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public override string ToString()

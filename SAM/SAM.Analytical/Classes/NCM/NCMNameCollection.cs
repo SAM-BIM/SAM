@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -24,10 +24,12 @@ namespace SAM.Analytical
                 this.nCMNames = new List<NCMName>(nCMNames);
             }
         }
+        public NCMNameCollection(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public NCMNameCollection(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public bool Add(NCMName nCMName)
@@ -40,29 +42,24 @@ namespace SAM.Analytical
             nCMNames.Add(nCMName);
             return true;
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
             nCMNames = new List<NCMName>();
 
-            if (jObject.ContainsKey("NCMNames"))
+            if (jsonObject["NCMNames"] is JsonArray nCMNamesArray)
             {
-                JArray jArray = jObject.Value<JArray>("NCMNames");
-                foreach (JObject jObject_NCMName in jArray)
+                foreach (JsonNode node in nCMNamesArray)
                 {
-                    if (jObject_NCMName == null)
+                    if (node is JsonObject ncmNameJson)
                     {
-                        continue;
+                        nCMNames.Add(new NCMName((JsonObject)ncmNameJson.DeepClone()));
                     }
-
-                    nCMNames.Add(new NCMName(jObject_NCMName));
                 }
-
             }
 
             return true;
@@ -72,29 +69,28 @@ namespace SAM.Analytical
         {
             return nCMNames.GetEnumerator();
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (nCMNames != null)
             {
-                JArray jArray = new JArray();
+                JsonArray nCMNamesArray = new JsonArray();
                 foreach (NCMName nCMName in nCMNames)
                 {
-                    if (nCMName == null)
+                    if (nCMName?.ToJsonObject() is JsonObject ncmNameJson)
                     {
-                        continue;
+                        nCMNamesArray.Add(ncmNameJson.DeepClone());
                     }
-
-                    jArray.Add(nCMName.ToJObject());
                 }
 
-                jObject.Add("NCMNames", jArray);
+                jsonObject["NCMNames"] = nCMNamesArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

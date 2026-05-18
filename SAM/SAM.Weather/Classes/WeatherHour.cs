@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Weather
 {
@@ -41,16 +41,9 @@ namespace SAM.Weather
             }
         }
 
-        /// <summary>
-        /// Constructor for WeatherHour class that takes a JObject as a parameter.
-        /// </summary>
-        /// <param name="jObject">JObject to be used to construct the WeatherHour object.</param>
-        /// <returns>
-        /// WeatherHour object constructed from the given JObject.
-        /// </returns>
-        public WeatherHour(JObject jObject)
+        public WeatherHour(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         /// <summary>
@@ -174,39 +167,28 @@ namespace SAM.Weather
             }
         }
 
-        /// <summary>
-        /// Deserializes a JObject into a dictionary of string and double array.
-        /// </summary>
-        /// <param name="jObject">The JObject to deserialize.</param>
-        /// <returns>True if the deserialization was successful, false otherwise.</returns>
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Data"))
+            if (jsonObject["Data"] is JsonArray dataArray)
             {
-                JArray jArray = jObject.Value<JArray>("Data");
-                if (jArray != null)
+                dictionary = new Dictionary<string, double>();
+                foreach (JsonNode dataNode in dataArray)
                 {
-                    dictionary = new Dictionary<string, double>();
-                    foreach (JObject jObject_Temp in jArray)
-                    {
-                        if (!jObject_Temp.ContainsKey("Name"))
-                            continue;
+                    if (!(dataNode is JsonObject dataObject) || !dataObject.ContainsKey("Name"))
+                        continue;
 
-                        string name = jObject_Temp.Value<string>("Name");
-                        if (string.IsNullOrWhiteSpace(name))
-                            continue;
+                    string name = dataObject["Name"]?.GetValue<string>();
+                    if (string.IsNullOrWhiteSpace(name))
+                        continue;
 
-                        double value = double.NaN;
-                        if (jObject_Temp.ContainsKey("Value"))
-                        {
-                            value = jObject_Temp.Value<double>("Value");
-                        }
+                    double value = double.NaN;
+                    if (dataObject.ContainsKey("Value"))
+                        value = dataObject["Value"]?.GetValue<double>() ?? default;
 
-                        dictionary[name] = value;
-                    }
+                    dictionary[name] = value;
                 }
             }
 
@@ -214,29 +196,29 @@ namespace SAM.Weather
             return true;
         }
 
-        /// <summary>
-        /// Converts the object to a JObject.
-        /// </summary>
-        /// <returns>A JObject representing the object.</returns>
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (dictionary != null)
             {
-                JArray jArray = new JArray();
+                JsonArray dataArray = new JsonArray();
                 foreach (KeyValuePair<string, double> keyValuePair in dictionary)
                 {
-                    JObject jObject_Temp = new JObject();
-                    jObject_Temp.Add("Name", keyValuePair.Key);
-                    jObject_Temp.Add("Value", keyValuePair.Value);
-                    jArray.Add(jObject_Temp);
+                    JsonObject dataObject = new JsonObject
+                    {
+                        ["Name"] = keyValuePair.Key,
+                        ["Value"] = keyValuePair.Value
+                    };
+                    dataArray.Add(dataObject);
                 }
-                jObject.Add("Data", jArray);
+                jsonObject["Data"] = dataArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         /// <summary>

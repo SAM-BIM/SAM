@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -18,10 +18,12 @@ namespace SAM.Analytical.Classes
             this.ratio = ratio;
             this.apertureConstruction = apertureConstruction;
         }
+        public ApertureToPanelRatio(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ApertureToPanelRatio(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public ApertureToPanelRatio(ApertureToPanelRatio apertureToPanelRatio)
@@ -125,50 +127,50 @@ namespace SAM.Analytical.Classes
                 ratio = value;
             }
         }
-
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Ratio"))
+            if (jsonObject.ContainsKey("Ratio"))
             {
-                ratio = jObject.Value<double>("Ratio");
+                ratio = jsonObject["Ratio"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("AzimuthRange"))
+            if (jsonObject["AzimuthRange"] is JsonObject azimuthRangeJson)
             {
-                azimuthRange = Core.Query.IJSAMObject<Range<double>>(jObject.Value<JObject>("AzimuthRange"));
+                azimuthRange = Core.Query.IJSAMObject<Range<double>>(azimuthRangeJson as JsonObject);
             }
 
-            if (jObject.ContainsKey("ApertureConstruction"))
+            if (jsonObject["ApertureConstruction"] is JsonObject apertureConstructionJson)
             {
-                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(jObject.Value<JObject>("ApertureConstruction"));
+                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(apertureConstructionJson as JsonObject);
             }
 
             return true;
         }
-
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject result = new();
-            result.Add("_type", Core.Query.FullTypeName(this));
-
-            if (azimuthRange != null)
+            JsonObject result = new JsonObject
             {
-                result.Add("AzimuthRange", azimuthRange.ToJObject());
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (azimuthRange?.ToJsonObject() is JsonObject azimuthRangeJson)
+            {
+                result["AzimuthRange"] = azimuthRangeJson.DeepClone();
             }
 
             if (double.IsNaN(ratio))
             {
-                result.Add("Ratio", ratio);
+                result["Ratio"] = ratio;
             }
 
-            if (apertureConstruction != null)
+            if (apertureConstruction?.ToJsonObject() is JsonObject apertureConstructionJson)
             {
-                result.Add("ApertureConstruction", apertureConstruction.ToJObject());
+                result["ApertureConstruction"] = apertureConstructionJson.DeepClone();
             }
 
             return result;

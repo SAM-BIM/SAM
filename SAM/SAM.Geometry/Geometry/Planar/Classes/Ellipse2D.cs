@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -36,9 +36,8 @@ namespace SAM.Geometry.Planar
             height = ellipse2D.height;
             heightDirection = ellipse2D.heightDirection;
         }
-
-        public Ellipse2D(JObject jObject)
-            : base(jObject)
+        public Ellipse2D(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -99,12 +98,20 @@ namespace SAM.Geometry.Planar
             return new Ellipse2D(this);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            center = new Point2D(jObject.Value<JObject>("Center"));
-            width = jObject.Value<double>("Width");
-            height = jObject.Value<double>("Height");
-            heightDirection = new Vector2D(jObject.Value<JObject>("HeightDirection"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Center"] is JsonObject jsonObject_Center)
+                center = new Point2D((JsonObject)jsonObject_Center.DeepClone());
+
+            width = jsonObject["Width"]?.GetValue<double>() ?? 0;
+            height = jsonObject["Height"]?.GetValue<double>() ?? 0;
+
+            if (jsonObject["HeightDirection"] is JsonObject jsonObject_HeightDirection)
+                heightDirection = new Vector2D((JsonObject)jsonObject_HeightDirection.DeepClone());
+
             return true;
         }
 
@@ -163,18 +170,22 @@ namespace SAM.Geometry.Planar
             throw new NotImplementedException();
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Center", center.ToJObject());
-            jObject.Add("Width", width);
-            jObject.Add("Height", height);
-            jObject.Add("HeightDirection", heightDirection.ToJObject());
+            if (center?.ToJsonObject() is JsonObject centerJson)
+                jsonObject["Center"] = centerJson.DeepClone();
 
-            return jObject;
+            jsonObject["Width"] = width;
+            jsonObject["Height"] = height;
+
+            if (heightDirection?.ToJsonObject() is JsonObject heightDirectionJson)
+                jsonObject["HeightDirection"] = heightDirectionJson.DeepClone();
+
+            return jsonObject;
         }
 
         public ISAMGeometry2D GetTransformed(ITransform2D transform2D)

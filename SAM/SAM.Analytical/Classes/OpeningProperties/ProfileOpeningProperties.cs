@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -22,10 +22,12 @@ namespace SAM.Analytical
         {
 
         }
+        public ProfileOpeningProperties(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ProfileOpeningProperties(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public ProfileOpeningProperties(double dischargeCoefficient, Profile profile)
@@ -57,35 +59,35 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Profile"))
+            if (jsonObject["Profile"] is JsonObject profileJson)
             {
-                profile = Core.Query.IJSAMObject<Profile>(jObject.Value<JObject>("Profile"));
+                profile = Core.Query.IJSAMObject<Profile>(profileJson as JsonObject);
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (profile != null)
+            if (profile?.ToJsonObject() is JsonObject profileJson)
             {
-                jObject.Add("Profile", profile.ToJObject());
+                jsonObject["Profile"] = profileJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

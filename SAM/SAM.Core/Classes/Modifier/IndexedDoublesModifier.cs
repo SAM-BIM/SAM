@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -23,40 +23,40 @@ namespace SAM.Core
                 IndexedDoubles = indexedModifier?.IndexedDoubles == null ? null : new IndexedDoubles(indexedModifier.IndexedDoubles);
             }
         }
+        public IndexedDoublesModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public IndexedDoublesModifier(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
-            if (!result)
+            if (!base.FromJsonObject(jsonObject))
             {
-                return result;
+                return false;
             }
 
-            if (jObject.ContainsKey("IndexedDoubles"))
+            if (jsonObject["IndexedDoubles"] is JsonObject indexedDoublesJson)
             {
-                IndexedDoubles = Query.IJSAMObject<IndexedDoubles>(jObject.Value<JObject>("IndexedDoubles"));
+                IndexedDoubles = Query.IJSAMObject<IndexedDoubles>(indexedDoublesJson as JsonObject);
             }
 
-            return result;
+            return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
             }
 
-            if (IndexedDoubles != null)
+            if (IndexedDoubles != null && IndexedDoubles.ToJsonObject() is JsonObject indexedDoublesJson)
             {
-                result.Add("IndexedDoubles", IndexedDoubles.ToJObject());
+                result["IndexedDoubles"] = indexedDoublesJson.DeepClone();
             }
 
             return result;

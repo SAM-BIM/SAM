@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -25,34 +25,34 @@ namespace SAM.Core
                 Inverted = filter.Inverted;
             }
         }
-
-        public Filter(JObject jObject)
+        public Filter(JsonObject jsonObject)
         {
-            FromJObject(jObject);
-        }
-
-        public virtual bool FromJObject(JObject jObject)
-        {
-            if (jObject == null)
-            {
-                return false;
-            }
-
-            if (jObject.ContainsKey("Inverted"))
-            {
-                Inverted = jObject.Value<bool>("Inverted");
-            }
-            return true;
+            FromJsonObject(jsonObject);
         }
 
         public abstract bool IsValid(IJSAMObject jSAMObject);
 
-        public virtual JObject ToJObject()
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
-            jObject.Add("Inverted", Inverted);
-            return jObject;
+            if (jsonObject == null)
+            {
+                return false;
+            }
+
+            if (jsonObject.ContainsKey("Inverted"))
+            {
+                Inverted = jsonObject["Inverted"]?.GetValue<bool>() ?? false;
+            }
+            return true;
+        }
+
+        public virtual JsonObject ToJsonObject()
+        {
+            return new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this),
+                ["Inverted"] = Inverted
+            };
         }
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Math
 {
@@ -29,12 +29,12 @@ namespace SAM.Math
             return new Matrix(matrix);
         }
 
-        public static Matrix Matrix(JObject jObject)
+        public static Matrix Matrix(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return null;
 
-            return Core.Query.IJSAMObject(jObject) as Matrix;
+            return Core.Query.IJSAMObject(jsonObject) as Matrix;
         }
     }
 }

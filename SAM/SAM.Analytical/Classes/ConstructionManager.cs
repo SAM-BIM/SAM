@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -47,10 +47,12 @@ namespace SAM.Analytical
             }
 
         }
+        public ConstructionManager(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ConstructionManager(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public ConstructionManager(ConstructionManager constructionManager)
@@ -374,73 +376,73 @@ namespace SAM.Analytical
 
             return result;
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Name"))
+            if (jsonObject.ContainsKey("Name"))
             {
-                Name = jObject.Value<string>("Name");
+                Name = jsonObject["Name"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Description"))
+            if (jsonObject.ContainsKey("Description"))
             {
-                Description = jObject.Value<string>("Description");
+                Description = jsonObject["Description"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("ApertureConstructionLibrary"))
+            if (jsonObject["ApertureConstructionLibrary"] is JsonObject apertureConstructionLibraryJson)
             {
-                apertureConstructionLibrary = Core.Query.IJSAMObject<ApertureConstructionLibrary>(jObject.Value<JObject>("ApertureConstructionLibrary"));
+                apertureConstructionLibrary = Core.Query.IJSAMObject<ApertureConstructionLibrary>(apertureConstructionLibraryJson as JsonObject);
             }
 
-            if (jObject.ContainsKey("ConstructionLibrary"))
+            if (jsonObject["ConstructionLibrary"] is JsonObject constructionLibraryJson)
             {
-                constructionLibrary = Core.Query.IJSAMObject<ConstructionLibrary>(jObject.Value<JObject>("ConstructionLibrary"));
+                constructionLibrary = Core.Query.IJSAMObject<ConstructionLibrary>(constructionLibraryJson as JsonObject);
             }
 
-            if (jObject.ContainsKey("MaterialLibrary"))
+            if (jsonObject["MaterialLibrary"] is JsonObject materialLibraryJson)
             {
-                materialLibrary = Core.Query.IJSAMObject<MaterialLibrary>(jObject.Value<JObject>("MaterialLibrary"));
+                materialLibrary = Core.Query.IJSAMObject<MaterialLibrary>(materialLibraryJson as JsonObject);
             }
 
             return true;
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (Name != null)
             {
-                jObject.Add("Name", Name);
+                jsonObject["Name"] = Name;
             }
 
             if (Description != null)
             {
-                jObject.Add("Description", Description);
+                jsonObject["Description"] = Description;
             }
 
-            if (apertureConstructionLibrary != null)
+            if (apertureConstructionLibrary?.ToJsonObject() is JsonObject apertureConstructionLibraryJson)
             {
-                jObject.Add("ApertureConstructionLibrary", apertureConstructionLibrary.ToJObject());
+                jsonObject["ApertureConstructionLibrary"] = apertureConstructionLibraryJson.DeepClone();
             }
 
-            if (constructionLibrary != null)
+            if (constructionLibrary?.ToJsonObject() is JsonObject constructionLibraryJson)
             {
-                jObject.Add("ConstructionLibrary", constructionLibrary.ToJObject());
+                jsonObject["ConstructionLibrary"] = constructionLibraryJson.DeepClone();
             }
 
-            if (materialLibrary != null)
+            if (materialLibrary?.ToJsonObject() is JsonObject materialLibraryJson)
             {
-                jObject.Add("MaterialLibrary", materialLibrary.ToJObject());
+                jsonObject["MaterialLibrary"] = materialLibraryJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

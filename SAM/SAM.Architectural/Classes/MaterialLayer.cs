@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Architectural
 {
@@ -24,9 +24,9 @@ namespace SAM.Architectural
             name = materialLayer.name;
         }
 
-        public MaterialLayer(JObject jObject)
+        public MaterialLayer(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public string Name
@@ -65,16 +65,16 @@ namespace SAM.Architectural
             return materialLayer.name == name && materialLayer.thickness == thickness;
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Thickness"))
-                thickness = jObject.Value<double>("Thickness");
+            if (jsonObject.ContainsKey("Thickness"))
+                thickness = jsonObject["Thickness"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Name"))
-                name = jObject.Value<string>("Name");
+            if (jsonObject.ContainsKey("Name"))
+                name = jsonObject["Name"]?.GetValue<string>();
 
             return true;
         }
@@ -84,18 +84,20 @@ namespace SAM.Architectural
             return Tuple.Create(name, thickness).GetHashCode();
         }
 
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (name != null)
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
 
             if (!double.IsNaN(thickness))
-                jObject.Add("Thickness", thickness);
+                jsonObject["Thickness"] = thickness;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

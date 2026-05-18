@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 
 namespace SAM.Analytical
@@ -19,9 +18,10 @@ namespace SAM.Analytical
         {
 
         }
+        public SpaceCoolingSystemTypeNameFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public SpaceCoolingSystemTypeNameFilter(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }

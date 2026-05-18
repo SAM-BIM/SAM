@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -44,10 +44,12 @@ namespace SAM.Analytical
 
             this.loadType = loadType;
         }
+        public DesignDay(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public DesignDay(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public DesignDay(string name, short year, byte month, byte day)
@@ -143,70 +145,73 @@ namespace SAM.Analytical
             return result;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Name"))
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject.ContainsKey("Name"))
             {
-                name = jObject.Value<string>("Name");
+                name = jsonObject["Name"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Description"))
+            if (jsonObject.ContainsKey("Description"))
             {
-                description = jObject.Value<string>("Description");
+                description = jsonObject["Description"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Year"))
+            if (jsonObject.ContainsKey("Year"))
             {
-                year = System.Convert.ToInt16(jObject.Value<int>("Year"));
+                year = System.Convert.ToInt16(jsonObject["Year"]?.GetValue<int>() ?? 0);
             }
 
-            if (jObject.ContainsKey("Month"))
+            if (jsonObject.ContainsKey("Month"))
             {
-                month = System.Convert.ToByte(jObject.Value<int>("Month"));
+                month = System.Convert.ToByte(jsonObject["Month"]?.GetValue<int>() ?? 0);
             }
 
-            if (jObject.ContainsKey("Day"))
+            if (jsonObject.ContainsKey("Day"))
             {
-                day = System.Convert.ToByte(jObject.Value<int>("Day"));
+                day = System.Convert.ToByte(jsonObject["Day"]?.GetValue<int>() ?? 0);
             }
 
-            if (jObject.ContainsKey("LoadType"))
+            if (jsonObject.ContainsKey("LoadType"))
             {
-                loadType = Core.Query.Enum<LoadType>(jObject.Value<string>("LoadType"));
+                loadType = Core.Query.Enum<LoadType>(jsonObject["LoadType"]?.GetValue<string>());
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (name != null)
             {
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
             }
 
             if (description != null)
             {
-                jObject.Add("Description", description);
+                jsonObject["Description"] = description;
             }
 
-            jObject.Add("Year", System.Convert.ToInt32(year));
-            jObject.Add("Month", System.Convert.ToInt32(month));
-            jObject.Add("Day", System.Convert.ToInt32(day));
+            jsonObject["Year"] = System.Convert.ToInt32(year);
+            jsonObject["Month"] = System.Convert.ToInt32(month);
+            jsonObject["Day"] = System.Convert.ToInt32(day);
 
             if (loadType != LoadType.Undefined)
             {
-                jObject.Add("LoadType", loadType.ToString());
+                jsonObject["LoadType"] = loadType.ToString();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

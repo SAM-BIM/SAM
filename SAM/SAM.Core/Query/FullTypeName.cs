@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public static partial class Query
     {
-        public static string FullTypeName(this JObject jObject)
+        public static string FullTypeName(this JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return null;
 
-            return jObject.Value<string>("_type");
+            return jsonObject["_type"]?.GetValue<string>();
         }
 
         public static string FullTypeName(Type type)

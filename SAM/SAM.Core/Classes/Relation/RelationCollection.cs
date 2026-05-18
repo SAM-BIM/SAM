@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -30,10 +30,9 @@ namespace SAM.Core
         {
             relations = relationCollection?.relations == null ? null : relationCollection.relations.ConvertAll(x => x == null ? null : new Relation(x));
         }
-
-        public RelationCollection(JObject jObject)
+        public RelationCollection(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public IEnumerator<Relation> GetEnumerator()
@@ -546,22 +545,23 @@ namespace SAM.Core
             return result;
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Relations"))
+            if (jsonObject["Relations"] is JsonArray relationsArray)
             {
-                JArray jArray = jObject.Value<JArray>("Relations");
-                if (jArray != null)
+                relations = new List<Relation>();
+                foreach (JsonNode node in relationsArray)
                 {
-                    relations = new List<Relation>();
-                    foreach (JObject jObject_Relation in jArray)
+                    if (node is JsonObject relationJson)
                     {
-                        Relation relation = Query.IJSAMObject<Relation>(jObject);
+                        // Pre-migration code passed the OUTER jObject here by
+                        // mistake; the inner element is what should be wrapped.
+                        Relation relation = Query.IJSAMObject<Relation>(relationJson as JsonObject);
                         if (relation != null)
                         {
                             relations.Add(relation);
@@ -573,20 +573,25 @@ namespace SAM.Core
             return true;
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Query.FullTypeName(this));
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (relations != null)
             {
-                JArray jArray = new JArray();
+                JsonArray relationsArray = new JsonArray();
                 foreach (Relation relation in relations)
                 {
-                    jArray.Add(relation.ToJObject());
+                    if (relation?.ToJsonObject() is JsonObject relationJson)
+                    {
+                        relationsArray.Add(relationJson.DeepClone());
+                    }
                 }
 
-                result.Add("Relations", jArray);
+                result["Relations"] = relationsArray;
             }
 
             return result;

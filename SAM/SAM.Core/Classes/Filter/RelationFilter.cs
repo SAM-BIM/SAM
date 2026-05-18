@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public abstract class RelationFilter<T> : Filter, IRelationFilter where T : IJSAMObject
     {
-        public RelationFilter(JObject jObject)
-            : base(jObject)
+        public RelationFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -28,16 +28,16 @@ namespace SAM.Core
 
         public IFilter Filter { get; set; }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Filter"))
+            if (jsonObject["Filter"] is JsonObject filterObject)
             {
-                Filter = Query.IJSAMObject(jObject.Value<JObject>("Filter")) as IFilter;
+                Filter = Query.IJSAMObject(filterObject as JsonObject) as IFilter;
             }
 
             return true;
@@ -65,9 +65,9 @@ namespace SAM.Core
 
             return result;
         }
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
@@ -75,7 +75,8 @@ namespace SAM.Core
 
             if (Filter != null)
             {
-                result.Add("Filter", Filter.ToJObject());
+                if (Filter.ToJsonObject() is JsonObject filterObject)
+                    result["Filter"] = filterObject.DeepClone();
             }
 
             return result;

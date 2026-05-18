@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -14,9 +14,8 @@ namespace SAM.Core
         {
 
         }
-
-        public SAMObjectRelationCluster(JObject jObject)
-            : base(jObject)
+        public SAMObjectRelationCluster(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -53,9 +52,8 @@ namespace SAM.Core
         {
 
         }
-
-        public SAMObjectRelationCluster(JObject jObject)
-            : base(jObject)
+        public SAMObjectRelationCluster(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 

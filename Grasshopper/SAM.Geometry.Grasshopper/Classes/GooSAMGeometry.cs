@@ -4,7 +4,6 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using Newtonsoft.Json.Linq;
 using Rhino;
 using Rhino.DocObjects;
 using Rhino.Geometry;
@@ -111,11 +110,11 @@ namespace SAM.Geometry.Grasshopper
             if (Value == null)
                 return false;
 
-            JObject jObject = Value.ToJObject();
-            if (jObject == null)
+            string json = Value.ToJsonObject()?.ToJsonString();
+            if (json == null)
                 return false;
 
-            writer.SetString(typeof(ISAMGeometry).FullName, jObject.ToString());
+            writer.SetString(typeof(ISAMGeometry).FullName, json);
             return true;
         }
 

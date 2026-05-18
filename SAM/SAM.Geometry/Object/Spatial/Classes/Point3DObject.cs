@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Spatial;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
@@ -20,9 +20,10 @@ namespace SAM.Geometry.Object.Spatial
                 return new Point3D(this);
             }
         }
+        public Point3DObject(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Point3DObject(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -53,39 +54,39 @@ namespace SAM.Geometry.Object.Spatial
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("PointAppearance"))
+            if (jsonObject["PointAppearance"] is JsonObject jsonObject_PointAppearance)
             {
-                PointAppearance = new PointAppearance(jObject.Value<JObject>("PointAppearance"));
+                PointAppearance = new PointAppearance((JsonObject)jsonObject_PointAppearance.DeepClone());
             }
 
-            Tag = Core.Query.Tag(jObject);
+            Tag = Core.Query.Tag(jsonObject);
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (PointAppearance != null)
+            if (PointAppearance?.ToJsonObject() is JsonObject pointJson)
             {
-                jObject.Add("PointAppearance", PointAppearance.ToJObject());
+                jsonObject["PointAppearance"] = pointJson.DeepClone();
             }
 
-            Core.Modify.Add(jObject, Tag);
+            Core.Modify.Add(jsonObject, Tag);
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

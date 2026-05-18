@@ -1,22 +1,19 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core.Attributes;
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public static partial class Query
     {
-        public static string Name(this JObject jObject)
+        public static string Name(this JsonObject jsonObject)
         {
-            if (jObject == null)
-                return null;
-
-            return jObject.Value<string>("Name");
+            return jsonObject?["Name"]?.GetValue<string>();
         }
 
         public static string Name(this Assembly assembly)

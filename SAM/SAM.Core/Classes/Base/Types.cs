@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -28,9 +28,9 @@ namespace SAM.Core
             }
         }
 
-        public Types(JObject jObject)
+        public Types(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Types(Types types)
@@ -113,20 +113,25 @@ namespace SAM.Core
             return false;
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Types"))
+            if (jsonObject["Types"] is JsonArray jsonArray)
             {
                 types = new List<object>();
 
-                JArray jArray = jObject.Value<JArray>("Types");
-                foreach (string typeName in jArray)
+                foreach (JsonNode node in jsonArray)
                 {
+                    string typeName = node?.GetValue<string>();
+                    if (string.IsNullOrWhiteSpace(typeName))
+                    {
+                        continue;
+                    }
+
                     Type type = Query.Type(typeName, true);
                     if (type == null)
                     {
@@ -142,14 +147,16 @@ namespace SAM.Core
             return true;
         }
 
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (types != null)
             {
-                JArray jArray = new JArray();
+                JsonArray jsonArray = new JsonArray();
                 foreach (object @object in types)
                 {
                     string typeName = null;
@@ -167,13 +174,13 @@ namespace SAM.Core
                         continue;
                     }
 
-                    jArray.Add(typeName);
+                    jsonArray.Add(typeName);
                 }
 
-                jObject.Add("Types", jArray);
+                jsonObject["Types"] = jsonArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

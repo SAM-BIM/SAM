@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Spatial;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
@@ -15,10 +15,12 @@ namespace SAM.Geometry.Object.Spatial
         public TextAppearance TextAppearance { get; set; }
 
         public Tag Tag { get; set; }
+        public Text3DObject(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Text3DObject(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public Text3DObject(Text3DObject text3DObject)
@@ -58,57 +60,57 @@ namespace SAM.Geometry.Object.Spatial
                 Plane = new Plane(plane);
             }
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Text"))
+            if (jsonObject.ContainsKey("Text"))
             {
-                Text = jObject.Value<string>("Text");
+                Text = jsonObject["Text"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("TextAppearance"))
+            if (jsonObject["TextAppearance"] is JsonObject textAppearanceJson)
             {
-                TextAppearance = new TextAppearance(jObject.Value<JObject>("TextAppearance"));
+                TextAppearance = new TextAppearance((JsonObject)textAppearanceJson.DeepClone());
             }
 
-            if (jObject.ContainsKey("Plane"))
+            if (jsonObject["Plane"] is JsonObject planeJson)
             {
-                Plane = new Plane(jObject.Value<JObject>("Plane"));
+                Plane = new Plane((JsonObject)planeJson.DeepClone());
             }
 
-            Tag = Core.Query.Tag(jObject);
+            Tag = Core.Query.Tag(jsonObject);
 
             return true;
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
-
-            if (TextAppearance != null)
+            JsonObject jsonObject = new JsonObject
             {
-                jObject.Add("TextAppearance", TextAppearance.ToJObject());
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (TextAppearance?.ToJsonObject() is JsonObject textAppearanceJson)
+            {
+                jsonObject["TextAppearance"] = textAppearanceJson.DeepClone();
             }
 
-            if (Plane != null)
+            if (Plane?.ToJsonObject() is JsonObject planeJson)
             {
-                jObject.Add("Plane", Plane.ToJObject());
+                jsonObject["Plane"] = planeJson.DeepClone();
             }
 
             if (Text != null)
             {
-                jObject.Add("Text", Text);
+                jsonObject["Text"] = Text;
             }
 
-            Core.Modify.Add(jObject, Tag);
+            Core.Modify.Add(jsonObject, Tag);
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

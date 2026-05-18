@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -24,9 +24,8 @@ namespace SAM.Core
         {
 
         }
-
-        public SAMLibrary(JObject jObject)
-            : base(jObject)
+        public SAMLibrary(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -84,13 +83,13 @@ namespace SAM.Core
 
             string json = File.ReadAllText(path);
 
-            JToken jToken = JToken.Parse(json);
-            if (jToken == null)
+            JsonNode jsonNode = JsonNode.Parse(json);
+            if (jsonNode == null)
                 return false;
 
-            if (jToken.Type == JTokenType.Array)
+            if (jsonNode is JsonArray jsonArray)
             {
-                List<T> jSAMObjects = Create.IJSAMObjects<T>((JArray)jToken);
+                List<T> jSAMObjects = Create.IJSAMObjects<T>(jsonArray);
                 if (jSAMObjects == null)
                     return false;
 
@@ -101,9 +100,9 @@ namespace SAM.Core
             }
 
 
-            if (jToken is JObject)
+            if (jsonNode is JsonObject jsonObject)
             {
-                IJSAMObject IJSAMObject = Create.IJSAMObject((JObject)jToken);
+                IJSAMObject IJSAMObject = Create.IJSAMObject(jsonObject);
                 if (IJSAMObject == null)
                     return false;
 
@@ -140,14 +139,14 @@ namespace SAM.Core
             return objects.ContainsKey(uniqueId);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Objects"))
+            if (jsonObject["Objects"] is JsonArray jsonArray)
             {
-                List<T> jSAMObjects = Create.IJSAMObjects<T>(jObject.Value<JArray>("Objects"));
+                List<T> jSAMObjects = Create.IJSAMObjects<T>(jsonArray);
                 if (jSAMObjects != null && jSAMObjects.Count != 0)
                     jSAMObjects.ForEach(x => Add(x));
             }
@@ -316,16 +315,25 @@ namespace SAM.Core
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
             if (objects != null && objects.Count != 0)
-                jObject.Add("Objects", Create.JArray(objects.Values));
+            {
+                JsonArray jsonArray = new JsonArray();
+                foreach (T jSAMObject in objects.Values)
+                {
+                    if (jSAMObject?.ToJsonObject() is JsonObject objectJson)
+                        jsonArray.Add(objectJson.DeepClone());
+                }
 
-            return jObject;
+                jsonObject["Objects"] = jsonArray;
+            }
+
+            return jsonObject;
         }
 
         public bool Update(T jSAMObject)

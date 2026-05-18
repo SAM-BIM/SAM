@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public class TypeFilter : Filter
     {
-        public TypeFilter(JObject jObject)
-            : base(jObject)
+        public TypeFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -24,16 +24,16 @@ namespace SAM.Core
 
         public System.Type Type { get; set; }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Type"))
+            if (jsonObject.ContainsKey("Type"))
             {
-                string fullTypeName = jObject.Value<string>("Type");
+                string fullTypeName = jsonObject["Type"]?.GetValue<string>();
                 if (!string.IsNullOrWhiteSpace(fullTypeName))
                 {
                     Type = Query.Type(fullTypeName);
@@ -64,9 +64,9 @@ namespace SAM.Core
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
@@ -74,7 +74,7 @@ namespace SAM.Core
 
             if (Type != null)
             {
-                result.Add("Type", Query.FullTypeName(Type));
+                result["Type"] = Query.FullTypeName(Type);
             }
 
             return result;

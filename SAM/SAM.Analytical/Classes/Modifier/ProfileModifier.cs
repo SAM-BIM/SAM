@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -24,9 +24,10 @@ namespace SAM.Analytical
                 Setback = scheduleModifier.Setback;
             }
         }
+        public ProfileModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ProfileModifier(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -45,22 +46,22 @@ namespace SAM.Analytical
             return Profile.TryGetValue(index, out Profile profile, out double value);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return result;
             }
 
-            if (jObject.ContainsKey("Profile"))
+            if (jsonObject["Profile"] is JsonObject profileJson)
             {
-                Profile = Core.Query.IJSAMObject<Profile>(jObject.Value<JObject>("Profile"));
+                Profile = Core.Query.IJSAMObject<Profile>(profileJson as JsonObject);
             }
 
-            if (jObject.ContainsKey("Setback"))
+            if (jsonObject.ContainsKey("Setback"))
             {
-                Setback = jObject.Value<double>("Setback");
+                Setback = jsonObject["Setback"]?.GetValue<double>() ?? double.NaN;
             }
 
             return result;
@@ -86,22 +87,22 @@ namespace SAM.Analytical
             return Setback * value;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
             }
 
-            if (Profile != null)
+            if (Profile?.ToJsonObject() is JsonObject profileJson)
             {
-                result.Add("Profile", Profile.ToJObject());
+                result["Profile"] = profileJson.DeepClone();
             }
 
             if (!double.IsNaN(Setback))
             {
-                result.Add("Setback", Setback);
+                result["Setback"] = Setback;
             }
 
             return result;

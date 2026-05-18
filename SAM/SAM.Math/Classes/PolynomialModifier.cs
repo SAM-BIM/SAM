@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Math;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -24,32 +24,33 @@ namespace SAM.Core
                 PolynomialEquation = polynomialModifier?.PolynomialEquation == null ? null : new PolynomialEquation(polynomialModifier.PolynomialEquation);
             }
         }
+        public PolynomialModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public PolynomialModifier(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return result;
             }
 
-            if (jObject.ContainsKey("PolynomialEquation"))
+            if (jsonObject["PolynomialEquation"] is JsonObject polynomialEquationJson)
             {
-                PolynomialEquation = Query.IJSAMObject<PolynomialEquation>(jObject.Value<JObject>("PolynomialEquation"));
+                PolynomialEquation = Query.IJSAMObject<PolynomialEquation>(polynomialEquationJson as JsonObject);
             }
 
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
@@ -57,7 +58,7 @@ namespace SAM.Core
 
             if (PolynomialEquation != null)
             {
-                result.Add("PolynomialEquation", PolynomialEquation.ToJObject());
+                result["PolynomialEquation"] = PolynomialEquation.ToJsonObject()?.DeepClone();
             }
 
             return result;

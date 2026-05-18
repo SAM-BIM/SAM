@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Geometry.Planar;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -10,9 +10,10 @@ namespace SAM.Geometry.Spatial
     {
         private Ellipse2D ellipse2D;
         private Plane plane;
+        public Ellipse3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Ellipse3D(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -29,10 +30,16 @@ namespace SAM.Geometry.Spatial
             this.plane = new Plane(plane);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            ellipse2D = new Ellipse2D(jObject.Value<JObject>("Ellipse2D"));
-            plane = new Plane(jObject.Value<JObject>("Plane"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Ellipse2D"] is JsonObject jsonObject_Ellipse2D)
+                ellipse2D = new Ellipse2D((JsonObject)jsonObject_Ellipse2D.DeepClone());
+
+            if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
+                plane = new Plane((JsonObject)jsonObject_Plane.DeepClone());
 
             return true;
         }
@@ -75,16 +82,19 @@ namespace SAM.Geometry.Spatial
             throw new System.NotImplementedException();
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Ellipse2D", ellipse2D.ToJObject());
-            jObject.Add("Plane", plane.ToJObject());
+            if (ellipse2D?.ToJsonObject() is JsonObject ellipse2DJson)
+                jsonObject["Ellipse2D"] = ellipse2DJson.DeepClone();
 
-            return jObject;
+            if (plane?.ToJsonObject() is JsonObject planeJson)
+                jsonObject["Plane"] = planeJson.DeepClone();
+
+            return jsonObject;
         }
 
         public override ISAMGeometry Clone()

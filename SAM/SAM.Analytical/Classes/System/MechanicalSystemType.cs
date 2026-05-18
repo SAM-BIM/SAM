@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -28,10 +28,12 @@ namespace SAM.Analytical
         {
             description = mechanicalSystemType.description;
         }
+        public MechanicalSystemType(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public MechanicalSystemType(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public string Description
@@ -42,27 +44,27 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Description"))
-                description = jObject.Value<string>("Description");
+            if (jsonObject.ContainsKey("Description"))
+                description = jsonObject["Description"]?.GetValue<string>();
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (description != null)
-                jObject.Add("Description", description);
+                jsonObject["Description"] = description;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

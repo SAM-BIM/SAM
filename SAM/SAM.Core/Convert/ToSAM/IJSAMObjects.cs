@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -21,11 +21,11 @@ namespace SAM.Core
                 return jSAMObjects?.ConvertAll(x => x is T ? (T)x : default);
             }
 
-            JArray jArray = Query.JArray(pathOrJson);
-            if (jArray == null)
+            JsonArray jsonArray = JsonArray(pathOrJson);
+            if (jsonArray == null)
                 return null;
 
-            return Create.IJSAMObjects<T>(jArray);
+            return Create.IJSAMObjects<T>(jsonArray);
         }
 
         public static List<IJSAMObject> ToSAM(string pathOrJson)
@@ -58,11 +58,11 @@ namespace SAM.Core
             if (string.IsNullOrWhiteSpace(json))
                 return null;
 
-            JArray jArray = Query.JArray(json);
-            if (jArray == null)
+            JsonArray jsonArray = JsonArray(json);
+            if (jsonArray == null)
                 return null;
 
-            return Create.IJSAMObjects<IJSAMObject>(jArray);
+            return Create.IJSAMObjects<IJSAMObject>(jsonArray);
         }
 
         private static List<IJSAMObject> ToSAM_FromSAMFile(string path)
@@ -83,6 +83,21 @@ namespace SAM.Core
 
             return result;
 
+        }
+
+        private static JsonArray JsonArray(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return null;
+
+            JsonNode jsonNode = JsonNode.Parse(json);
+            if (jsonNode is JsonArray jsonArray)
+                return jsonArray;
+
+            if (jsonNode is JsonObject jsonObject)
+                return new JsonArray(jsonObject);
+
+            return null;
         }
     }
 }

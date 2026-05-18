@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -48,9 +48,9 @@ namespace SAM.Core
                 text = string.Empty;
         }
 
-        public LogRecord(JObject jObject)
+        public LogRecord(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public LogRecord(DateTime dateTime, string text)
@@ -100,34 +100,36 @@ namespace SAM.Core
                 return string.Format("[{0}\t{1}]\t{2}", dateTime.ToString("yyyy-MM-dd HH:mm:ss.f"), logRecordType.ToString(), text_Temp);
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            dateTime = jObject.Value<DateTime>("DateTime");
-            text = jObject.Value<string>("Text");
+            dateTime = jsonObject["DateTime"]?.GetValue<DateTime>() ?? default;
+            text = jsonObject["Text"]?.GetValue<string>();
 
             logRecordType = LogRecordType.Undefined;
-            if (jObject.ContainsKey("LogRecordType"))
-                Enum.TryParse(jObject.Value<string>("LogRecordType"), out logRecordType);
+            if (jsonObject.ContainsKey("LogRecordType"))
+                Enum.TryParse(jsonObject["LogRecordType"]?.GetValue<string>(), out logRecordType);
 
             return true;
         }
 
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
-            jObject.Add("DateTime", dateTime);
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this),
+                ["DateTime"] = dateTime
+            };
 
             if (logRecordType != LogRecordType.Undefined)
-                jObject.Add("LogRecordType", logRecordType.ToString());
+                jsonObject["LogRecordType"] = logRecordType.ToString();
 
             if (text != null)
-                jObject.Add("Text", text);
+                jsonObject["Text"] = text;
 
-            return jObject;
+            return jsonObject;
         }
 
         public bool Write(string path)

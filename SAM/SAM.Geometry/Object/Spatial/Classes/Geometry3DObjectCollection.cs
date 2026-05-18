@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
@@ -16,10 +16,10 @@ namespace SAM.Geometry.Object.Spatial
 
         }
 
-        public Geometry3DObjectCollection(JObject jObject)
-            : base(jObject)
+        public Geometry3DObjectCollection(JsonObject jsonObject)
+            : base(jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Geometry3DObjectCollection(Geometry3DObjectCollection geometryObjectCollection)
@@ -28,29 +28,29 @@ namespace SAM.Geometry.Object.Spatial
             Tag = geometryObjectCollection?.Tag;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            Tag = Core.Query.Tag(jObject);
+            Tag = Core.Query.Tag(jsonObject);
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
-            if (result == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            Core.Modify.Add(result, Tag);
+            Core.Modify.Add(jsonObject, Tag);
 
-            return result;
+            return jsonObject;
         }
     }
 }

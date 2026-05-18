@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public abstract class BooleanFilter : Filter, IBooleanFilter
     {
-        public BooleanFilter(JObject jObject)
-            : base(jObject)
+        public BooleanFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -28,16 +28,16 @@ namespace SAM.Core
 
         public bool Value { get; set; }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Value"))
+            if (jsonObject.ContainsKey("Value"))
             {
-                Value = jObject.Value<bool>("Value");
+                Value = jsonObject["Value"]?.GetValue<bool>() ?? false;
             }
 
             return true;
@@ -59,15 +59,15 @@ namespace SAM.Core
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
             }
 
-            result.Add("Value", Value);
+            result["Value"] = Value;
 
             return result;
         }

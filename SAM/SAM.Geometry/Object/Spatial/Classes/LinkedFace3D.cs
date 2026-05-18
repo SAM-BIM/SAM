@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Geometry.Spatial;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
@@ -50,10 +50,12 @@ namespace SAM.Geometry.Object.Spatial
                 boundingBox3D = face3D?.GetBoundingBox();
             }
         }
+        public LinkedFace3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public LinkedFace3D(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public BoundingBox3D GetBoundingBox(double offset = 0)
@@ -82,50 +84,50 @@ namespace SAM.Geometry.Object.Spatial
             face3D = face3D?.GetTransformed(transform3D) as Face3D;
             boundingBox3D = face3D?.GetBoundingBox();
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (guid != Guid.Empty)
             {
-                jObject.Add("Guid", guid);
+                jsonObject["Guid"] = guid.ToString();
             }
 
-            if (face3D != null)
+            if (face3D?.ToJsonObject() is JsonObject face3DJson)
             {
-                jObject.Add("Face3D", face3D.ToJObject());
+                jsonObject["Face3D"] = face3DJson.DeepClone();
             }
 
-            if (boundingBox3D != null)
+            if (boundingBox3D?.ToJsonObject() is JsonObject boundingBox3DJson)
             {
-                jObject.Add("BoundingBox3D", boundingBox3D.ToJObject());
+                jsonObject["BoundingBox3D"] = boundingBox3DJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Guid"))
+            if (jsonObject.ContainsKey("Guid"))
             {
-                guid = Core.Query.Guid(jObject, "Guid");
+                guid = Core.Query.Guid(jsonObject, "Guid");
             }
 
-            if (jObject.ContainsKey("Face3D"))
+            if (jsonObject["Face3D"] is JsonObject face3DJson)
             {
-                face3D = new Face3D(jObject.Value<JObject>("Face3D"));
+                face3D = new Face3D((JsonObject)face3DJson.DeepClone());
             }
 
-            if (jObject.ContainsKey("BoundingBox3D"))
+            if (jsonObject["BoundingBox3D"] is JsonObject boundingBox3DJson)
             {
-                boundingBox3D = new BoundingBox3D(jObject.Value<JObject>("BoundingBox3D"));
+                boundingBox3D = new BoundingBox3D((JsonObject)boundingBox3DJson.DeepClone());
             }
 
             return true;

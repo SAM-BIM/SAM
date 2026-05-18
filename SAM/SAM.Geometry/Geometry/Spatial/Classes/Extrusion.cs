@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -27,10 +27,12 @@ namespace SAM.Geometry.Spatial
             face3D = new Face3D(extrusion.face3D);
             vector = new Vector3D(extrusion.vector);
         }
+        public Extrusion(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Extrusion(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public BoundingBox3D GetBoundingBox(double offset = 0)
@@ -81,23 +83,33 @@ namespace SAM.Geometry.Spatial
             return new Extrusion(this);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            face3D = new Face3D(jObject.Value<JObject>("Face"));
-            vector = new Vector3D(jObject.Value<JObject>("Vector"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Face"] is JsonObject jsonObject_Face)
+                face3D = new Face3D((JsonObject)jsonObject_Face.DeepClone());
+
+            if (jsonObject["Vector"] is JsonObject jsonObject_Vector)
+                vector = new Vector3D((JsonObject)jsonObject_Vector.DeepClone());
+
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Face", face3D.ToJObject());
-            jObject.Add("Vector", vector.ToJObject());
+            if (face3D?.ToJsonObject() is JsonObject faceJson)
+                jsonObject["Face"] = faceJson.DeepClone();
 
-            return jObject;
+            if (vector?.ToJsonObject() is JsonObject vectorJson)
+                jsonObject["Vector"] = vectorJson.DeepClone();
+
+            return jsonObject;
         }
 
         public ISAMGeometry3D GetTransformed(Transform3D transform3D)

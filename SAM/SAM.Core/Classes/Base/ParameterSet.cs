@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -59,9 +61,9 @@ namespace SAM.Core
             dictionary = new Dictionary<string, object>();
         }
 
-        public ParameterSet(JObject jObject)
+        public ParameterSet(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public string Name
@@ -125,7 +127,7 @@ namespace SAM.Core
             return true;
         }
 
-        public bool Add(string name, JObject value)
+        public bool Add(string name, JsonObject value)
         {
             if (dictionary == null || name == null)
                 return false;
@@ -161,12 +163,12 @@ namespace SAM.Core
             return true;
         }
 
-        public bool Add(string name, JArray jArray)
+        public bool Add(string name, JsonArray jsonArray)
         {
             if (dictionary == null || name == null)
                 return false;
 
-            dictionary[name] = jArray;
+            dictionary[name] = jsonArray;
             return true;
         }
 
@@ -281,28 +283,42 @@ namespace SAM.Core
         public DateTime ToDateTime(string name)
         {
             DateTime result;
-            if (!Query.TryGetValue(dictionary, name, out result))
+            if (Query.TryGetValue(dictionary, name, out result))
                 return result;
+
+            // JSON has no native date type, so a DateTime parameter round-trips
+            // through the wire as an ISO string and lands back in the dictionary
+            // as a string. Parse on demand so the typed accessor still works,
+            // and strings that merely *look* like dates can keep their type.
+            string text;
+            if (!Query.TryGetValue(dictionary, name, out text))
+                return DateTime.MinValue;
+
+            if (!string.IsNullOrWhiteSpace(text)
+                && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime parsed))
+            {
+                return parsed;
+            }
 
             return DateTime.MinValue;
         }
 
-        public JObject ToJObject(string name)
+        public JsonObject ToJsonObject(string name)
         {
-            JObject result;
+            JsonObject result;
             if (!Query.TryGetValue(dictionary, name, out result))
-                return result;
+                return null;
 
-            return null;
+            return result;
         }
 
-        public JArray ToJArray(string name)
+        public JsonArray ToJsonArray(string name)
         {
-            JArray result;
+            JsonArray result;
             if (!Query.TryGetValue(dictionary, name, out result))
-                return result;
+                return null;
 
-            return null;
+            return result;
         }
 
         public T ToSAMObject<T>(string name) where T : IJSAMObject
@@ -364,97 +380,137 @@ namespace SAM.Core
             return new ParameterSet(this);
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
             dictionary = new Dictionary<string, object>();
 
-            name = Query.Name(jObject);
-            guid = Query.Guid(jObject);
+            name = Query.Name(jsonObject);
+            guid = Query.Guid(jsonObject);
 
-            JArray jArray = jObject.Value<JArray>("Parameters");
-            if (jArray == null)
+            if (!(jsonObject["Parameters"] is JsonArray parametersArray))
                 return true;
 
-            foreach (JObject jObject_Temp in jArray)
+            foreach (JsonNode parameterNode in parametersArray)
             {
-                JToken jToken = jObject_Temp.GetValue("Value");
-                if (jToken == null)
+                if (!(parameterNode is JsonObject parameterObject))
                     continue;
 
-                switch (jToken.Type)
-                {
-                    case JTokenType.String:
-                        dictionary[jObject_Temp.Value<string>("Name")] = jToken.Value<string>();
-                        break;
+                string parameterName = parameterObject["Name"]?.GetValue<string>();
+                if (parameterName == null)
+                    continue;
 
-                    case JTokenType.Float:
-                        dictionary[jObject_Temp.Value<string>("Name")] = jToken.Value<double>();
-                        break;
+                JsonNode valueNode = parameterObject["Value"];
+                if (valueNode == null)
+                    continue;
 
-                    case JTokenType.Integer:
-                        dictionary[jObject_Temp.Value<string>("Name")] = jToken.Value<int>();
-                        break;
-
-                    case JTokenType.Boolean:
-                        dictionary[jObject_Temp.Value<string>("Name")] = jToken.Value<bool>();
-                        break;
-
-                    case JTokenType.Date:
-                        dictionary[jObject_Temp.Value<string>("Name")] = jToken.Value<DateTime>();
-                        break;
-
-                    case JTokenType.Object:
-                        JSAMObjectWrapper jSAMObjectWrapper = new JSAMObjectWrapper((JObject)jToken);
-                        IJSAMObject jSAMObject = jSAMObjectWrapper.ToIJSAMObject();
-                        if (jSAMObject == null)
-                            dictionary[jObject_Temp.Value<string>("Name")] = jSAMObjectWrapper.ToJObject();
-                        else
-                            dictionary[jObject_Temp.Value<string>("Name")] = jSAMObject;
-                        break;
-
-                    case JTokenType.Array:
-                        dictionary[jObject_Temp.Value<string>("Name")] = (JArray)jToken;
-                        break;
-                }
+                dictionary[parameterName] = ReadParameterValue(valueNode);
             }
 
             return true;
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", GetType().FullName);
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = GetType().FullName
+            };
+
             if (name != null)
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
 
-            jObject.Add("Guid", guid);
+            jsonObject["Guid"] = guid.ToString();
 
-            JArray jArray = new JArray();
+            JsonArray parametersArray = new JsonArray();
             foreach (KeyValuePair<string, object> keyValuePair in dictionary)
             {
-                JObject jObject_Temp = new JObject();
-                jObject_Temp.Add("Name", keyValuePair.Key);
+                JsonObject parameterObject = new JsonObject
+                {
+                    ["Name"] = keyValuePair.Key
+                };
+
                 if (keyValuePair.Value != null)
                 {
-                    if (keyValuePair.Value is IJSAMObject)
-                        jObject_Temp.Add("Value", ((IJSAMObject)keyValuePair.Value).ToJObject());
-                    else if (keyValuePair.Value is JArray)
-                        jObject_Temp.Add("Value", (JArray)keyValuePair.Value);
-                    else
-                        jObject_Temp.Add("Value", keyValuePair.Value as dynamic);
+                    JsonNode valueNode = WriteParameterValue(keyValuePair.Value);
+                    if (valueNode != null)
+                        parameterObject["Value"] = valueNode;
                 }
 
-                jArray.Add(jObject_Temp);
+                parametersArray.Add(parameterObject);
             }
 
-            if (jArray.Count != 0)
-                jObject.Add("Parameters", jArray);
+            if (parametersArray.Count != 0)
+                jsonObject["Parameters"] = parametersArray;
 
-            return jObject;
+            return jsonObject;
+        }
+
+        private static object ReadParameterValue(JsonNode valueNode)
+        {
+            switch (valueNode.GetValueKind())
+            {
+                case JsonValueKind.String:
+                    // Stay as string. DateTime parameters were serialized as ISO
+                    // text, but JSON has no native date type — promoting every
+                    // ISO-shaped string to DateTime here would silently change
+                    // the runtime type of any string parameter that happens to
+                    // look like a date. ParameterSet.ToDateTime parses on demand
+                    // instead, which preserves typed access without bleeding.
+                    return valueNode.GetValue<string>();
+
+                case JsonValueKind.Number:
+                    if (IsIntegerNumber(valueNode))
+                        return valueNode.GetValue<int>();
+                    return valueNode.GetValue<double>();
+
+                case JsonValueKind.True:
+                case JsonValueKind.False:
+                    return valueNode.GetValue<bool>();
+
+                case JsonValueKind.Object:
+                    JSAMObjectWrapper wrapper = new JSAMObjectWrapper((JsonObject)valueNode.DeepClone());
+                    IJSAMObject inner = wrapper.ToIJSAMObject();
+                    return inner ?? (object)wrapper.ToJsonObject();
+
+                case JsonValueKind.Array:
+                    return valueNode.DeepClone();
+
+                default:
+                    return null;
+            }
+        }
+
+        private static JsonNode WriteParameterValue(object value)
+        {
+            switch (value)
+            {
+                case IJSAMObject jSAMObject:
+                    JsonObject innerJson = jSAMObject.ToJsonObject();
+                    return innerJson == null ? null : (JsonNode)innerJson.DeepClone();
+
+                case JsonArray jsonArray:
+                    return jsonArray.DeepClone();
+
+                case JsonObject jsonObject:
+                    return jsonObject.DeepClone();
+
+                default:
+                    // Keep explicit decimals for floating values so round-trip
+                    // preserves Float rather than reading back as Integer.
+                    return Query.ToJsonNode(value);
+            }
+        }
+
+        private static bool IsIntegerNumber(JsonNode node)
+        {
+            if (!(node is JsonValue jsonValue) || !jsonValue.TryGetValue(out JsonElement element))
+                return false;
+
+            string raw = element.GetRawText();
+            return raw.IndexOf('.') < 0 && raw.IndexOf('e') < 0 && raw.IndexOf('E') < 0;
         }
     }
 }

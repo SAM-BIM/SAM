@@ -32,6 +32,12 @@ namespace SAM.Analytical
                 }
 
                 List<Tuple<List<Guid>, List<Panel>>> tuples = new List<Tuple<List<Guid>, List<Panel>>>();
+                // Dict keyed by the sorted-guid-set string so tuple matching is O(1) instead of
+                // O(tuples * guids^2) (Find + TrueForAll + Contains).
+                Dictionary<string, Tuple<List<Guid>, List<Panel>>> tuplesByKey = new Dictionary<string, Tuple<List<Guid>, List<Panel>>>();
+                // Parallel HashSet per tuple so the "already in this tuple?" check below is O(1).
+                Dictionary<Tuple<List<Guid>, List<Panel>>, HashSet<Guid>> panelGuidsByTuple = new Dictionary<Tuple<List<Guid>, List<Panel>>, HashSet<Guid>>();
+
                 foreach (Panel panel in panels)
                 {
                     List<Space> spaces_Panel = adjacencyCluster.GetSpaces(panel);
@@ -42,15 +48,20 @@ namespace SAM.Analytical
                         guids = new List<Guid>();
                     }
 
-                    Tuple<List<Guid>, List<Panel>> tuple = tuples.Find(x => x.Item1.Count == guids.Count && x.Item1.TrueForAll(y => guids.Contains(y)));
-                    if (tuple == null)
+                    List<Guid> guidsSorted = new List<Guid>(guids);
+                    guidsSorted.Sort();
+                    string key = string.Join("|", guidsSorted);
+
+                    if (!tuplesByKey.TryGetValue(key, out Tuple<List<Guid>, List<Panel>> tuple))
                     {
-                        tuple = new Tuple<List<Guid>, List<Panel>>(guids, new List<Panel>());
+                        tuple = new Tuple<List<Guid>, List<Panel>>(guidsSorted, new List<Panel>());
                         tuples.Add(tuple);
+                        tuplesByKey[key] = tuple;
+                        panelGuidsByTuple[tuple] = new HashSet<Guid>();
                     }
 
-                    int index = tuple.Item2.FindIndex(x => x.Guid == panel.Guid);
-                    if (index == -1)
+                    HashSet<Guid> panelGuids = panelGuidsByTuple[tuple];
+                    if (panelGuids.Add(panel.Guid))
                     {
                         tuple.Item2.Add(panel);
                     }

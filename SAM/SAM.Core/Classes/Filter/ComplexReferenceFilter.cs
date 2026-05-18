@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -11,10 +11,12 @@ namespace SAM.Core
         public ISAMObjectRelationCluster SAMObjectRelationCluster { get; set; }
 
         public IComplexReference ComplexReference { get; set; }
+        public ComplexReferenceFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ComplexReferenceFilter(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public ComplexReferenceFilter()
@@ -29,16 +31,16 @@ namespace SAM.Core
             SAMObjectRelationCluster = complexReferenceFilter?.SAMObjectRelationCluster;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ComplexReference"))
+            if (jsonObject["ComplexReference"] is JsonObject complexReferenceObject)
             {
-                ComplexReference = Query.IJSAMObject<IComplexReference>(jObject.Value<JObject>("ComplexReference"));
+                ComplexReference = Query.IJSAMObject<IComplexReference>(complexReferenceObject as JsonObject);
             }
 
             return true;
@@ -63,9 +65,9 @@ namespace SAM.Core
 
         protected abstract bool IsValid(IEnumerable<object> values);
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
@@ -73,7 +75,8 @@ namespace SAM.Core
 
             if (ComplexReference != null)
             {
-                result.Add("ComplexReference", ComplexReference.ToJObject());
+                if (ComplexReference.ToJsonObject() is JsonObject complexReferenceObject)
+                    result["ComplexReference"] = complexReferenceObject.DeepClone();
             }
 
             return result;

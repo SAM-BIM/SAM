@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -19,10 +19,12 @@ namespace SAM.Analytical
         {
 
         }
+        public FilterSelection(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public FilterSelection(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public IFilter Filter
@@ -38,29 +40,31 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Filter"))
+            if (jsonObject["Filter"] is JsonObject filterJson)
             {
-                filter = Core.Query.IJSAMObject<IFilter>(jObject.Value<JObject>("Filter"));
+                filter = Core.Query.IJSAMObject<IFilter>(filterJson as JsonObject);
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
-
-            if (filter != null)
+            JsonObject result = new JsonObject
             {
-                result.Add("Filter", filter.ToJObject());
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (filter?.ToJsonObject() is JsonObject filterJson)
+            {
+                result["Filter"] = filterJson.DeepClone();
             }
 
             return result;

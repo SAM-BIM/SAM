@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace SAM.Math
@@ -17,13 +17,9 @@ namespace SAM.Math
     {
         private double[] coefficients;
 
-        /// <summary>
-        /// Initializes a new instance of the PolynomialEquation class using a JObject.
-        /// </summary>
-        /// <param name="jObject">The JObject containing the polynomial equation data.</param>
-        public PolynomialEquation(JObject jObject)
+        public PolynomialEquation(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
 
@@ -131,23 +127,17 @@ namespace SAM.Math
             }
         }
 
-        /// <summary>
-        /// Updates the PolynomialEquation object using a JObject.
-        /// </summary>
-        /// <param name="jObject">The JObject containing the polynomial equation data.</param>
-        /// <returns>True if the update was successful, false otherwise.</returns>
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Variables"))
+            if (jsonObject["Variables"] is JsonArray jsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("Variables");
-                coefficients = new double[jArray.Count];
-                for (int i = 0; i < jArray.Count; i++)
+                coefficients = new double[jsonArray.Count];
+                for (int i = 0; i < jsonArray.Count; i++)
                 {
-                    object @object = jArray[i];
+                    object @object = jsonArray[i]?.GetValue<object>();
                     if (@object is double)
                     {
                         coefficients[i] = (double)@object;
@@ -164,25 +154,23 @@ namespace SAM.Math
             return true;
         }
 
-        /// <summary>
-        /// Converts the PolynomialEquation object to a JObject.
-        /// </summary>
-        /// <returns>The JObject representation of the PolynomialEquation object.</returns>
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (coefficients != null)
             {
-                JArray jArray = new JArray();
+                JsonArray jsonArray = new JsonArray();
                 foreach (double variable in coefficients)
-                    jArray.Add(variable);
+                    jsonArray.Add(variable);
 
-                jObject.Add("Variables", jArray);
+                jsonObject["Variables"] = jsonArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         /// <summary>

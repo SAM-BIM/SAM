@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -37,27 +37,22 @@ namespace SAM.Core
             {
                 if (@object != null)
                 {
-                    if (@object is JValue)
+                    if (@object is IEnumerable && @object is not string)
                     {
-                        @object = ((JValue)@object).Value;
-                    }
-
-                    if (@object is IEnumerable)
-                    {
-                        JArray jArray = [];
+                        JsonArray jsonArray = new JsonArray();
                         foreach (object @object_Temp in (IEnumerable)@object)
                         {
                             if (TryConvert(@object_Temp, out string? value) && value != null)
-                                jArray.Add(value);
+                                jsonArray.Add(value);
                             else
-                                jArray.Add(string.Empty);
+                                jsonArray.Add(string.Empty);
                         }
 
-                        result = jArray.ToString();
+                        result = jsonArray.ToJsonString();
                     }
                     else if (@object is IJSAMObject jSAMObject)
                     {
-                        result = jSAMObject.ToJObject()?.ToString();
+                        result = jSAMObject.ToJsonObject()?.ToJsonString();
                     }
 
                     if (result == default)
@@ -76,11 +71,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -114,11 +104,6 @@ namespace SAM.Core
                     return false;
                 }
 
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     int @int;
@@ -149,11 +134,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -206,11 +186,6 @@ namespace SAM.Core
                     return false;
                 }
 
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     uint @uint;
@@ -243,11 +218,6 @@ namespace SAM.Core
                     return false;
                 }
 
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     short @short;
@@ -275,11 +245,6 @@ namespace SAM.Core
                     return false;
                 }
 
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     if (byte.TryParse((string)@object, out byte @byte))
@@ -304,11 +269,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -338,11 +298,6 @@ namespace SAM.Core
                     return false;
                 }
 
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     long @long;
@@ -370,11 +325,6 @@ namespace SAM.Core
                     return false;
                 }
 
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     if (System.Guid.TryParse((string)@object, out Guid guid))
@@ -394,11 +344,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -430,11 +375,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -484,11 +424,6 @@ namespace SAM.Core
             }
             else if (typeof(IJSAMObject).IsAssignableFrom(type_Temp))
             {
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     List<IJSAMObject> sAMObjects = Convert.ToSAM((string)@object);
@@ -557,25 +492,11 @@ namespace SAM.Core
                     return true;
                 }
             }
-            else if (typeof(JObject).IsAssignableFrom(type_Temp))
+            else if (typeof(JsonObject).IsAssignableFrom(type_Temp))
             {
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
-                    result = JObject.Parse((string)@object);
-                    return true;
-                }
-            }
-            else if (@object is JToken)
-            {
-                double value;
-                if (TryConvert(((JValue)@object).Value, out value))
-                {
-                    result = value;
+                    result = JsonNode.Parse((string)@object) as JsonObject;
                     return true;
                 }
             }

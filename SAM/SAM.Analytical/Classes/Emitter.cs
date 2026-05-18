@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -44,10 +44,12 @@ namespace SAM.Analytical
             viewCoefficient = emitter.viewCoefficient;
             emitterCategory = emitter.emitterCategory;
         }
+        public Emitter(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Emitter(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public double RadiantProportion
@@ -74,39 +76,39 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("RadiantProportion"))
-                radiantProportion = jObject.Value<double>("RadiantProportion");
+            if (jsonObject.ContainsKey("RadiantProportion"))
+                radiantProportion = jsonObject["RadiantProportion"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("ViewCoefficient"))
-                viewCoefficient = jObject.Value<double>("ViewCoefficient");
+            if (jsonObject.ContainsKey("ViewCoefficient"))
+                viewCoefficient = jsonObject["ViewCoefficient"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("EmitterCategory"))
-                emitterCategory = jObject.Value<string>("EmitterCategory").Enum<EmitterCategory>();
+            if (jsonObject.ContainsKey("EmitterCategory"))
+                emitterCategory = jsonObject["EmitterCategory"]?.GetValue<string>().Enum<EmitterCategory>() ?? EmitterCategory.Undefined;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (!double.IsNaN(radiantProportion))
-                jObject.Add("RadiantProportion", radiantProportion);
+                jsonObject["RadiantProportion"] = radiantProportion;
 
             if (!double.IsNaN(viewCoefficient))
-                jObject.Add("ViewCoefficient", viewCoefficient);
+                jsonObject["ViewCoefficient"] = viewCoefficient;
 
             if (emitterCategory != EmitterCategory.Undefined)
-                jObject.Add("EmitterCategory", emitterCategory.ToString());
+                jsonObject["EmitterCategory"] = emitterCategory.ToString();
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

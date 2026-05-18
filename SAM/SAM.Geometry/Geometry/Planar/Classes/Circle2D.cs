@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -22,10 +22,12 @@ namespace SAM.Geometry.Planar
             center = new Point2D(circle2D.center);
             radius = circle2D.radius;
         }
+        public Circle2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Circle2D(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public Point2D Center
@@ -69,10 +71,15 @@ namespace SAM.Geometry.Planar
             return new Circle2D(this);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            center = new Point2D(jObject.Value<JObject>("Center"));
-            radius = jObject.Value<double>("Radius");
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Center"] is JsonObject jsonObject_Center)
+                center = new Point2D((JsonObject)jsonObject_Center.DeepClone());
+
+            radius = jsonObject["Radius"]?.GetValue<double>() ?? 0;
             return true;
         }
 
@@ -155,16 +162,18 @@ namespace SAM.Geometry.Planar
             return System.Math.Abs(center.Distance(point2D) - radius) <= tolerance;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Center", center.ToJObject());
-            jObject.Add("Radius", radius);
+            if (center?.ToJsonObject() is JsonObject centerJson)
+                jsonObject["Center"] = centerJson.DeepClone();
 
-            return jObject;
+            jsonObject["Radius"] = radius;
+
+            return jsonObject;
         }
 
         public ISAMGeometry2D GetTransformed(ITransform2D transform2D)

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Math
 {
@@ -15,9 +15,9 @@ namespace SAM.Math
         private double a; // coefficient A in the equation
         private double b; // coefficient B in the equation
 
-        public LinearEquation(JObject jObject)
+        public LinearEquation(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public LinearEquation(double a, double b)
@@ -69,49 +69,42 @@ namespace SAM.Math
             return result;
         }
 
-        /// <summary>
-        /// Initializes the equation from a JSON object
-        /// </summary>
-        /// <param name="jObject">The JSON object to initialize from</param>
-        /// <returns>True if initialization was successful, otherwise false</returns>
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("A"))
+            if (jsonObject.ContainsKey("A"))
             {
-                a = jObject.Value<double>("A");
+                a = jsonObject["A"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("B"))
+            if (jsonObject.ContainsKey("B"))
             {
-                b = jObject.Value<double>("B");
+                b = jsonObject["B"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
         }
 
-        /// <summary>
-        /// Returns a JSON representation of the equation
-        /// </summary>
-        /// <returns>A JSON object representing the equation</returns>
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (!double.IsNaN(a))
             {
-                jObject.Add("A", a);
+                jsonObject["A"] = a;
             }
 
             if (!double.IsNaN(b))
             {
-                jObject.Add("B", b);
+                jsonObject["B"] = b;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         /// <summary>

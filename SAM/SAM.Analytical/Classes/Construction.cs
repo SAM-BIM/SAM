@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -79,10 +79,12 @@ namespace SAM.Analytical
         {
             this.constructionLayers = constructionLayers?.ToList().ConvertAll(x => new ConstructionLayer(x));
         }
+        public Construction(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Construction(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         /// <summary>
@@ -114,27 +116,37 @@ namespace SAM.Analytical
             return includeSoil ? GetThickness() : constructionLayers.FindAll(x => !x.IsSoil).ConvertAll(x => x.Thickness).Sum();
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("ConstructionLayers"))
-                constructionLayers = Core.Create.IJSAMObjects<ConstructionLayer>(jObject.Value<JArray>("ConstructionLayers"));
+            if (jsonObject["ConstructionLayers"] is JsonArray constructionLayersArray)
+                constructionLayers = Core.Create.IJSAMObjects<ConstructionLayer>(constructionLayersArray);
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (constructionLayers != null)
-                jObject.Add("ConstructionLayers", Core.Create.JArray(constructionLayers));
+            {
+                JsonArray constructionLayersArray = new JsonArray();
+                foreach (ConstructionLayer layer in constructionLayers)
+                {
+                    if (layer?.ToJsonObject() is JsonObject layerJson)
+                    {
+                        constructionLayersArray.Add(layerJson.DeepClone());
+                    }
+                }
+                jsonObject["ConstructionLayers"] = constructionLayersArray;
+            }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

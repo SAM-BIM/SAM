@@ -13,10 +13,10 @@
 //SAM.Core.Revit.Query.Number($Object_1)
 //$Object == 2 + 50 + Number(SAM.Core.Revit.Value('Some Text (value)')) + $Object_2
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -27,6 +27,10 @@ namespace SAM.Core
         public Command(string text = null)
         {
             this.text = text;
+        }
+        public Command(JsonObject jsonObject)
+        {
+            FromJsonObject(jsonObject);
         }
 
         public List<Command> GetCommands()
@@ -251,26 +255,28 @@ namespace SAM.Core
             return text;
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Text"))
-                text = jObject.Value<string>("Text");
+            if (jsonObject.ContainsKey("Text"))
+                text = jsonObject["Text"]?.GetValue<string>();
 
             return true;
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (text != null)
-                jObject.Add("Text", text);
+                jsonObject["Text"] = text;
 
-            return jObject;
+            return jsonObject;
         }
 
         private bool IsCommandOperator(CommandOperator commandOperator, out string value)

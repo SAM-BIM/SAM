@@ -1,33 +1,36 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public class JSAMObjectWrapper : ISAMObject
     {
-        private JObject jObject;
+        // Stores the underlying BCL JsonObject directly so the wrapper no
+        // longer depends on the JObject shim for its internal state. JObject
+        // is reconstructed only at the public boundary.
+        private JsonObject jsonObject;
 
         public JSAMObjectWrapper(JSAMObjectWrapper jSAMObjectWrapper)
         {
-            jObject = jSAMObjectWrapper.jObject.DeepClone() as JObject;
+            jsonObject = jSAMObjectWrapper.jsonObject?.DeepClone() as JsonObject;
         }
 
-        public JSAMObjectWrapper(JObject jObject)
+        public JSAMObjectWrapper(JsonObject jsonObject)
         {
-            this.jObject = jObject;
+            this.jsonObject = jsonObject;
         }
 
         public Guid Guid
         {
             get
             {
-                if (jObject == null)
+                if (jsonObject == null)
                     return Guid.Empty;
 
-                return Query.Guid(jObject);
+                return Query.Guid(jsonObject);
             }
         }
 
@@ -35,10 +38,10 @@ namespace SAM.Core
         {
             get
             {
-                if (jObject == null)
+                if (jsonObject == null)
                     return null;
 
-                return Query.Name(jObject);
+                return Query.Name(jsonObject);
             }
         }
 
@@ -46,19 +49,18 @@ namespace SAM.Core
         {
             return new JSAMObjectWrapper(this);
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject? jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            this.jObject = jObject;
+            this.jsonObject = jsonObject;
             return true;
         }
 
         public string GetAssemblyName()
         {
-            string fullTypeName = Query.FullTypeName(jObject);
+            string fullTypeName = Query.FullTypeName(jsonObject);
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
                 return null;
@@ -74,7 +76,7 @@ namespace SAM.Core
 
         public string GetTypeName()
         {
-            string fullTypeName = Query.FullTypeName(jObject);
+            string fullTypeName = Query.FullTypeName(jsonObject);
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
                 return null;
@@ -90,12 +92,11 @@ namespace SAM.Core
 
         public IJSAMObject ToIJSAMObject()
         {
-            return Query.IJSAMObject(jObject);
+            return jsonObject == null ? null : Query.IJSAMObject(jsonObject);
         }
-
-        public JObject ToJObject()
+        public JsonObject? ToJsonObject()
         {
-            return jObject;
+            return jsonObject?.DeepClone() as JsonObject;
         }
     }
 }

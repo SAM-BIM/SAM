@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -176,26 +176,31 @@ namespace SAM.Core
 
             return result;
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject? jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("settings"))
-                settings = Create.IJSAMObjects<Setting>(jObject.Value<JArray>("settings"));
+            if (jsonObject["settings"] is JsonArray settingsArray)
+                settings = Create.IJSAMObjects<Setting>(settingsArray);
 
             return true;
         }
-
-        public JObject ToJObject()
+        public JsonObject? ToJsonObject()
         {
-            JObject jObject = new JObject();
+            JsonObject jsonObject = new JsonObject();
             if (settings != null)
+            {
+                JsonArray settingsArray = new JsonArray();
+                foreach (Setting setting in settings)
+                {
+                    settingsArray.Add(setting?.ToJsonObject());
+                }
 
-                jObject.Add("settings", Create.JArray(settings));
+                jsonObject["settings"] = settingsArray;
+            }
 
-            return jObject;
+            return jsonObject;
         }
 
         public void Clear(Assembly assembly)

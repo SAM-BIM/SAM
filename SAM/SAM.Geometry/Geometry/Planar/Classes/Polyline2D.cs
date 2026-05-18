@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -40,10 +40,12 @@ namespace SAM.Geometry.Planar
         {
             points = Query.Clone(polyline2D?.points);
         }
+        public Polyline2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Polyline2D(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public List<Point2D> Points
@@ -185,9 +187,22 @@ namespace SAM.Geometry.Planar
             return new Segment2D(points[0], points[1]);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            points = Create.Point2Ds(jObject.Value<JArray>("Points"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Points"] is JsonArray jsonArray_Points)
+            {
+                points = new List<Point2D>();
+                foreach (JsonNode node in jsonArray_Points)
+                {
+                    if (node is JsonObject pointJson)
+                    {
+                        points.Add(new Point2D((JsonObject)pointJson.DeepClone()));
+                    }
+                }
+            }
             return true;
         }
 
@@ -359,14 +374,25 @@ namespace SAM.Geometry.Planar
             points.Reverse();
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Points", Geometry.Create.JArray(points));
-            return jObject;
+            if (points != null)
+            {
+                JsonArray jsonArray_Points = new JsonArray();
+                foreach (Point2D point2D in points)
+                {
+                    if (point2D?.ToJsonObject() is JsonObject pointJson)
+                    {
+                        jsonArray_Points.Add(pointJson.DeepClone());
+                    }
+                }
+                jsonObject["Points"] = jsonArray_Points;
+            }
+            return jsonObject;
         }
 
         public Polygon2D ToPolygon2D()

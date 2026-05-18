@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry;
 using SAM.Geometry.Planar;
@@ -9,6 +8,7 @@ using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -130,9 +130,8 @@ namespace SAM.Analytical
                 internalEdge2DLoops = internalEdge2DLoop.ToList().ConvertAll(x => new BoundaryEdge2DLoop(x));
             }
         }
-
-        public PlanarBoundary3D(JObject jObject)
-            : base(jObject)
+        public PlanarBoundary3D(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -357,27 +356,43 @@ namespace SAM.Analytical
             internalEdge2DLoops = planarBoundary3D.internalEdge2DLoops;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            plane = new Plane(jObject.Value<JObject>("Plane"));
-            externalEdge2DLoop = new BoundaryEdge2DLoop(jObject.Value<JObject>("Edge2DLoop"));
-            if (jObject.ContainsKey("InternalEdge2DLoops"))
-                internalEdge2DLoops = Core.Create.IJSAMObjects<BoundaryEdge2DLoop>(jObject.Value<JArray>("InternalEdge2DLoops"));
+            if (jsonObject["Plane"] is JsonObject planeJson)
+                plane = new Plane((JsonObject)planeJson.DeepClone());
+
+            if (jsonObject["Edge2DLoop"] is JsonObject edge2DLoopJson)
+                externalEdge2DLoop = new BoundaryEdge2DLoop((JsonObject)edge2DLoopJson.DeepClone());
+
+            if (jsonObject["InternalEdge2DLoops"] is JsonArray internalEdge2DLoopsArray)
+                internalEdge2DLoops = Core.Create.IJSAMObjects<BoundaryEdge2DLoop>(internalEdge2DLoopsArray);
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            jObject.Add("Plane", plane.ToJObject());
-            jObject.Add("Edge2DLoop", externalEdge2DLoop.ToJObject());
+            JsonObject jsonObject = base.ToJsonObject();
+            if (plane?.ToJsonObject() is JsonObject planeJson)
+                jsonObject["Plane"] = planeJson.DeepClone();
+            if (externalEdge2DLoop?.ToJsonObject() is JsonObject externalEdge2DLoopJson)
+                jsonObject["Edge2DLoop"] = externalEdge2DLoopJson.DeepClone();
             if (internalEdge2DLoops != null)
-                jObject.Add("InternalEdge2DLoops", Core.Create.JArray(internalEdge2DLoops));
+            {
+                JsonArray internalEdge2DLoopsArray = new JsonArray();
+                foreach (BoundaryEdge2DLoop loop in internalEdge2DLoops)
+                {
+                    if (loop?.ToJsonObject() is JsonObject loopJson)
+                    {
+                        internalEdge2DLoopsArray.Add(loopJson.DeepClone());
+                    }
+                }
+                jsonObject["InternalEdge2DLoops"] = internalEdge2DLoopsArray;
+            }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

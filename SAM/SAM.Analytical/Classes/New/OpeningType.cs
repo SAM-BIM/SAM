@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Architectural;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,9 +23,10 @@ namespace SAM.Analytical
         {
 
         }
+        public OpeningType(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public OpeningType(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -69,24 +69,6 @@ namespace SAM.Analytical
             : base(guid, name)
         {
 
-        }
-
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-                return false;
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-
-            if (jObject == null)
-                return jObject;
-
-            return jObject;
         }
 
         public List<MaterialLayer> FrameMaterialLayers

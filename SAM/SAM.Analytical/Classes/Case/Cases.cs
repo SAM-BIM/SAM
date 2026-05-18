@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -22,10 +22,12 @@ namespace SAM.Analytical.Classes
         {
             values = cases == null ? [] : [.. cases];
         }
+        public Cases(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Cases(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public Type BaseType
@@ -90,23 +92,21 @@ namespace SAM.Analytical.Classes
 
             values.Add(@case);
         }
-
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray valuesArray)
             {
-                JArray jArray = jObject.Value<JArray>("Values");
-                if (jArray != null)
+                values = [];
+                foreach (JsonNode node in valuesArray)
                 {
-                    values = [];
-                    foreach (JObject jObject_Temp in jArray)
+                    if (node is JsonObject caseJson)
                     {
-                        Case @case = Core.Query.IJSAMObject<Case>(jObject_Temp);
+                        Case @case = Core.Query.IJSAMObject<Case>(caseJson as JsonObject);
                         if (@case == null)
                         {
                             continue;
@@ -148,24 +148,25 @@ namespace SAM.Analytical.Classes
         {
             return GetEnumerator();
         }
-
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (values != null)
             {
-                JArray jArray = [];
+                JsonArray valuesArray = new JsonArray();
                 foreach (Case value in values)
                 {
-                    if (value?.ToJObject() is JObject jObject_Temp)
+                    if (value?.ToJsonObject() is JsonObject valueJson)
                     {
-                        jArray.Add(jObject_Temp);
+                        valuesArray.Add(valueJson.DeepClone());
                     }
                 }
 
-                result.Add("Values", jArray);
+                result["Values"] = valuesArray;
             }
 
             return result;

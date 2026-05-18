@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Architectural
 {
@@ -28,10 +28,12 @@ namespace SAM.Architectural
         {
             this.elevation = elevation;
         }
+        public Level(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Level(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public double Elevation
@@ -42,12 +44,12 @@ namespace SAM.Architectural
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            elevation = jObject.Value<double>("Elevation");
+            elevation = jsonObject["Elevation"]?.GetValue<double>() ?? 0;
             return true;
         }
 
@@ -56,16 +58,16 @@ namespace SAM.Architectural
             return new Geometry.Spatial.Plane(new Geometry.Spatial.Point3D(0, 0, elevation), Geometry.Spatial.Vector3D.WorldZ);
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
+            JsonObject jsonObject = base.ToJsonObject();
 
-            if (jObject == null)
-                return jObject;
+            if (jsonObject == null)
+                return null;
 
-            jObject.Add("Elevation", elevation);
+            jsonObject["Elevation"] = elevation;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

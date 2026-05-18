@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -40,9 +40,9 @@ namespace SAM.Core
         {
         }
 
-        public ParameterizedSAMObject(JObject? jObject)
+        public ParameterizedSAMObject(JsonObject? jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public bool RemoveValue(Enum @enum)
@@ -307,24 +307,47 @@ namespace SAM.Core
                 return parameterSets.ConvertAll(x => x == null ? null : new ParameterSet(x)); //Updated 25.05.2022
         }
 
-        public virtual bool FromJObject(JObject? jObject)
+        public virtual bool FromJsonObject(JsonObject? jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            parameterSets = Create.ParameterSets(jObject.Value<JArray>("ParameterSets"));
+            if (jsonObject["ParameterSets"] is JsonArray parameterSetsArray)
+            {
+                parameterSets = new List<ParameterSet>();
+                foreach (JsonNode? node in parameterSetsArray)
+                {
+                    if (node is JsonObject parameterSetObject)
+                    {
+                        parameterSets.Add(new ParameterSet((JsonObject)parameterSetObject.DeepClone()));
+                    }
+                }
+            }
+
             return true;
         }
 
-        public virtual JObject? ToJObject()
+        public virtual JsonObject? ToJsonObject()
         {
-            JObject jObject = new ();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
-            if (parameterSets != null)
-                jObject.Add("ParameterSets", Create.JArray(parameterSets));
+            if (parameterSets != null && parameterSets.Count > 0)
+            {
+                JsonArray parameterSetsArray = new JsonArray();
+                foreach (ParameterSet parameterSet in parameterSets)
+                {
+                    if (parameterSet?.ToJsonObject() is JsonObject parameterSetJson)
+                    {
+                        parameterSetsArray.Add(parameterSetJson.DeepClone());
+                    }
+                }
+                jsonObject["ParameterSets"] = parameterSetsArray;
+            }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

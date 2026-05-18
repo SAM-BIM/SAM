@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -29,56 +29,58 @@ namespace SAM.Core
                 Modifiers = complexModifier.Modifiers.ConvertAll(x => x.Clone());
             }
         }
+        public IndexedComplexModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public IndexedComplexModifier(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
-            if (!result)
+            if (!base.FromJsonObject(jsonObject))
             {
-                return result;
+                return false;
             }
 
-            if (jObject.ContainsKey("Modifiers"))
+            if (jsonObject["Modifiers"] is JsonArray modifiersArray)
             {
-                JArray jArray = jObject.Value<JArray>("Modifiers");
-                if (jArray != null)
+                Modifiers = new List<IIndexedModifier>();
+                foreach (JsonNode node in modifiersArray)
                 {
-                    Modifiers = new List<IIndexedModifier>();
-                    foreach (JObject jObject_Modifier in jArray)
+                    if (node is JsonObject modifierJson)
                     {
-                        Modifiers.Add(Query.IJSAMObject<IIndexedModifier>(jObject_Modifier));
+                        Modifiers.Add(Query.IJSAMObject<IIndexedModifier>(modifierJson));
                     }
                 }
             }
 
-            return result;
+            return true;
         }
 
         public List<IIndexedModifier> Modifiers { get; set; }
 
-        public virtual JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
-                return result;
+                return null;
             }
 
             if (Modifiers != null)
             {
-                JArray jArray = new JArray();
+                JsonArray modifiersArray = new JsonArray();
                 foreach (IModifier modifier in Modifiers)
                 {
-                    jArray.Add(modifier.ToJObject());
+                    if (modifier?.ToJsonObject() is JsonObject modifierJson)
+                    {
+                        modifiersArray.Add(modifierJson.DeepClone());
+                    }
                 }
 
-                result.Add("Modifiers", jArray);
+                result["Modifiers"] = modifiersArray;
             }
 
             return result;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -14,9 +14,10 @@ namespace SAM.Analytical
         {
             this.weatherDataName = weatherDataName;
         }
+        public WeatherCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public WeatherCaseData(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -38,25 +39,25 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("WeatherDataName"))
+            if (jsonObject.ContainsKey("WeatherDataName"))
             {
-                weatherDataName = jObject.Value<string>("WeatherDataName");
+                weatherDataName = jsonObject["WeatherDataName"]?.GetValue<string>();
             }
 
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
@@ -64,7 +65,7 @@ namespace SAM.Analytical
 
             if (weatherDataName is not null)
             {
-                result.Add("WeatherDataName", weatherDataName);
+                result["WeatherDataName"] = weatherDataName;
             }
 
             return result;

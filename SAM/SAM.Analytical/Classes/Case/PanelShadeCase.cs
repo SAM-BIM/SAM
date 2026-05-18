@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -15,9 +15,10 @@ namespace SAM.Analytical.Classes
         {
 
         }
+        public PanelShadeCase(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public PanelShadeCase(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -45,25 +46,25 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Panels"))
+            if (jsonObject["Panels"] is JsonArray panelsArray)
             {
-                panels = Core.Convert.ToList<Panel>(jObject.Value<JArray>("Panels"));
+                panels = Core.Create.IJSAMObjects<Panel>(panelsArray);
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
@@ -71,14 +72,21 @@ namespace SAM.Analytical.Classes
 
             if (panels is not null)
             {
-                JArray jArray = [];
+                JsonArray panelsArray = new JsonArray();
 
                 foreach (Panel panel in panels)
                 {
-                    jArray.Add(panel?.ToJObject());
+                    if (panel?.ToJsonObject() is JsonObject panelJson)
+                    {
+                        panelsArray.Add(panelJson.DeepClone());
+                    }
+                    else
+                    {
+                        panelsArray.Add(null);
+                    }
                 }
 
-                result.Add("Panels", jArray);
+                result["Panels"] = panelsArray;
             }
 
             return result;

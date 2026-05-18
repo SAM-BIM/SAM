@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -32,14 +32,14 @@ namespace SAM.Core
             return new TextMap(name, textMap);
         }
 
-        public static TextMap TextMap(JObject jObject)
+        public static TextMap TextMap(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            return new TextMap(jObject);
+            return new TextMap(jsonObject);
         }
     }
 }

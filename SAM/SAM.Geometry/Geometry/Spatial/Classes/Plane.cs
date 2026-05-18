@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -21,9 +21,8 @@ namespace SAM.Geometry.Spatial
             origin = Point3D.Zero;
             axisY = normal.AxisY();
         }
-
-        public Plane(JObject jObject)
-            : base(jObject)
+        public Plane(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -307,30 +306,41 @@ namespace SAM.Geometry.Spatial
             axisY.Negate();
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            origin = new Point3D(jObject.Value<JObject>("Origin"));
-            normal = new Vector3D(jObject.Value<JObject>("Normal"));
+            if (jsonObject == null)
+                return false;
 
-            if (jObject.ContainsKey("AxisY"))
-                axisY = new Vector3D(jObject.Value<JObject>("AxisY"));
+            if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
+                origin = new Point3D((JsonObject)jsonObject_Origin.DeepClone());
+
+            if (jsonObject["Normal"] is JsonObject jsonObject_Normal)
+                normal = new Vector3D((JsonObject)jsonObject_Normal.DeepClone());
+
+            if (jsonObject["AxisY"] is JsonObject jsonObject_AxisY)
+                axisY = new Vector3D((JsonObject)jsonObject_AxisY.DeepClone());
             else
-                axisY = normal.AxisY();
+                axisY = normal?.AxisY();
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Origin", origin.ToJObject());
-            jObject.Add("Normal", normal.ToJObject());
-            jObject.Add("AxisY", axisY.ToJObject());
+            if (origin?.ToJsonObject() is JsonObject originJson)
+                jsonObject["Origin"] = originJson.DeepClone();
 
-            return jObject;
+            if (normal?.ToJsonObject() is JsonObject normalJson)
+                jsonObject["Normal"] = normalJson.DeepClone();
+
+            if (axisY?.ToJsonObject() is JsonObject axisYJson)
+                jsonObject["AxisY"] = axisYJson.DeepClone();
+
+            return jsonObject;
         }
 
         public static Plane WorldXY

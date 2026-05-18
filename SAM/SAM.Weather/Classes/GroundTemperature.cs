@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Weather
 {
@@ -92,12 +92,9 @@ namespace SAM.Weather
                 temperatures = (double[])groundTemperature.temperatures.Clone();
         }
 
-        /// <summary>
-        /// Constructor for GroundTemperature class which takes a JObject as parameter. 
-        /// </summary>
-        public GroundTemperature(JObject jObject)
+        public GroundTemperature(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
         /// <summary>
         /// Gets or sets the depth at which the temperature is measured (in meters).
@@ -187,66 +184,57 @@ namespace SAM.Weather
             }
         }
 
-        /// <summary>
-        /// Initializes the GroundTemperature object from a JSON object.
-        /// </summary>
-        /// <param name="jObject">The JSON object containing the ground temperature data.</param>
-        /// <returns>true if the initialization was successful; otherwise, false.</returns>
-        public bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Depth"))
-                depth = jObject.Value<double>("Depth");
+            if (jsonObject.ContainsKey("Depth"))
+                depth = jsonObject["Depth"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Conductivity"))
-                conductivity = jObject.Value<double>("Conductivity");
+            if (jsonObject.ContainsKey("Conductivity"))
+                conductivity = jsonObject["Conductivity"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Density"))
-                density = jObject.Value<double>("Density");
+            if (jsonObject.ContainsKey("Density"))
+                density = jsonObject["Density"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("SpecificHeat"))
-                specificHeat = jObject.Value<double>("SpecificHeat");
+            if (jsonObject.ContainsKey("SpecificHeat"))
+                specificHeat = jsonObject["SpecificHeat"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Temperatures"))
+            if (jsonObject["Temperatures"] is JsonArray temperaturesArray)
             {
-                JArray jArray = jObject.Value<JArray>("Temperatures");
-                if (jArray != null)
-                    temperatures = jArray.ToList<double>().ToArray();
+                temperatures = temperaturesArray.Select(x => x?.GetValue<double>() ?? default).ToArray();
             }
 
             return true;
         }
 
-        /// <summary>
-        /// Converts the object to a JObject.
-        /// </summary>
-        /// <returns>A JObject representing the object.</returns>
-        public JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (!double.IsNaN(depth))
-                result.Add("Depth", depth);
+                result["Depth"] = depth;
 
             if (!double.IsNaN(conductivity))
-                result.Add("Conductivity", conductivity);
+                result["Conductivity"] = conductivity;
 
             if (!double.IsNaN(density))
-                result.Add("Density", density);
+                result["Density"] = density;
 
             if (!double.IsNaN(specificHeat))
-                result.Add("SpecificHeat", specificHeat);
+                result["SpecificHeat"] = specificHeat;
 
             if (temperatures != null)
             {
-                JArray jArray = new JArray();
+                JsonArray jsonArray = new JsonArray();
                 for (int i = 0; i < temperatures.Length; i++)
-                    jArray.Add(temperatures[i]);
+                    jsonArray.Add(temperatures[i]);
 
-                result.Add("Temperatures", jArray);
+                result["Temperatures"] = jsonArray;
             }
 
             return result;

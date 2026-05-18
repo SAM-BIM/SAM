@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Geometry.Planar;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -35,9 +35,8 @@ namespace SAM.Geometry.Spatial
         {
             plane = closedPlanar3D.GetPlane();
         }
-
-        public Face3D(JObject jObject)
-            : base(jObject)
+        public Face3D(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -276,24 +275,27 @@ namespace SAM.Geometry.Spatial
                 internalEdge2Ds = internalEdges.ConvertAll(x => plane.Convert(x));
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            plane = new Plane(jObject.Value<JObject>("Plane"));
+            if (jsonObject["Plane"] is JsonObject jsonObject_Plane)
+                plane = new Plane((JsonObject)jsonObject_Plane.DeepClone());
+
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Plane", plane.ToJObject());
+            if (plane?.ToJsonObject() is JsonObject planeJson)
+                jsonObject["Plane"] = planeJson.DeepClone();
 
-            return jObject;
+            return jsonObject;
         }
 
         public double Distance(Point3D point3D, double tolerance = Core.Tolerance.Distance)

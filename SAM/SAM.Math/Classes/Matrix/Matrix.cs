@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Math
 {
@@ -38,10 +38,10 @@ namespace SAM.Math
                     this.values[i, j] = values[i, j];
         }
 
-        public Matrix(JObject jObject)
+        public Matrix(JsonObject jsonObject)
         {
             values = default;
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Matrix(Matrix matrix)
@@ -261,19 +261,27 @@ namespace SAM.Math
             return Query.RealCubicRoots_ThreeRootsOnly(A, B, C, D, tolerance);
         }
 
-        public bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            JArray jArray_Column = jObject.Value<JArray>("Values");
+            JsonArray jsonArray_Column = jsonObject["Values"] as JsonArray;
+            if (jsonArray_Column == null)
+                return true;
 
             List<List<double>> valuesList = new List<List<double>>();
-            foreach (JArray jArray_Row in jArray_Column)
+            foreach (JsonNode jsonNode_Row in jsonArray_Column)
             {
+                JsonArray jsonArray_Row = jsonNode_Row as JsonArray;
+                if (jsonArray_Row == null)
+                {
+                    continue;
+                }
+
                 List<double> values = new List<double>();
-                foreach (double value in jArray_Row)
-                    values.Add(value);
+                foreach (JsonNode jsonNode_Value in jsonArray_Row)
+                    values.Add(jsonNode_Value?.GetValue<double>() ?? default);
 
                 valuesList.Add(values);
             }
@@ -286,25 +294,27 @@ namespace SAM.Math
             return true;
         }
 
-        public JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
-            JArray jArray_Column = new JArray();
+            JsonArray jsonArray_Column = new JsonArray();
 
             for (int i = 0; i < values.GetLength(0); i++)
             {
-                JArray jArray_Row = new JArray();
+                JsonArray jsonArray_Row = new JsonArray();
                 for (int j = 0; j < values.GetLength(1); j++)
-                    jArray_Row.Add(values[i, j]);
+                    jsonArray_Row.Add(values[i, j]);
 
-                jArray_Column.Add(jArray_Row);
+                jsonArray_Column.Add(jsonArray_Row);
             }
 
-            jObject.Add("Values", jArray_Column);
+            jsonObject["Values"] = jsonArray_Column;
 
-            return jObject;
+            return jsonObject;
         }
 
         public override int GetHashCode()

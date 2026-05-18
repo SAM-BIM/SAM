@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -20,9 +20,10 @@ namespace SAM.Analytical
         {
 
         }
+        public ComplexEquipment(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ComplexEquipment(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -150,31 +151,31 @@ namespace SAM.Analytical
             return complexEquipmentModel?.GetFlowClassifications();
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("ComplexEquipmentModel"))
+            if (jsonObject["ComplexEquipmentModel"] is JsonObject complexEquipmentModelJson)
             {
-                complexEquipmentModel = Core.Query.IJSAMObject<ComplexEquipmentModel>(jObject.Value<JObject>("ComplexEquipmentModel"));
+                complexEquipmentModel = Core.Query.IJSAMObject<ComplexEquipmentModel>(complexEquipmentModelJson as JsonObject);
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            if (complexEquipmentModel != null)
+            if (complexEquipmentModel?.ToJsonObject() is JsonObject complexEquipmentModelJson)
             {
-                jObject.Add("ComplexEquipmentModel", complexEquipmentModel.ToJObject());
+                jsonObject["ComplexEquipmentModel"] = complexEquipmentModelJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -34,10 +34,12 @@ namespace SAM.Core
         {
 
         }
+        public FluidMaterial(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public FluidMaterial(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public FluidMaterial(FluidMaterial fluidMaterial)
@@ -63,27 +65,27 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("DynamicViscosity"))
-                dynamicViscosity = jObject.Value<double>("DynamicViscosity");
+            if (jsonObject.ContainsKey("DynamicViscosity"))
+                dynamicViscosity = jsonObject["DynamicViscosity"]?.GetValue<double>() ?? double.NaN;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return null;
 
             if (!double.IsNaN(dynamicViscosity))
-                jObject.Add("DynamicViscosity", dynamicViscosity);
+                jsonObject["DynamicViscosity"] = dynamicViscosity;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

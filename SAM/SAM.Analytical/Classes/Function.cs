@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -27,10 +27,12 @@ namespace SAM.Analytical
                 values = function.values == null ? null : [.. function.values];
             }
         }
+        public Function(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Function(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public double Count
@@ -63,25 +65,24 @@ namespace SAM.Analytical
                 values[index] = value;
             }
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Name"))
+            if (jsonObject.ContainsKey("Name"))
             {
-                name = jObject.Value<string>("Name");
+                name = jsonObject["Name"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray valuesArray)
             {
                 values = [];
-                foreach (object @object in jObject.Value<JArray>("Values"))
+                foreach (JsonNode node in valuesArray)
                 {
-                    if (Core.Query.TryConvert(@object, out double value))
+                    if (node is JsonValue jsonValue && jsonValue.TryGetValue<double>(out double value))
                     {
                         values.Add(value);
                     }
@@ -114,29 +115,30 @@ namespace SAM.Analytical
         {
             return ToString().GetHashCode();
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (name != null)
             {
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
             }
 
             if (values != null)
             {
-                JArray jArray = [];
+                JsonArray valuesArray = new JsonArray();
                 foreach (double value in values)
                 {
-                    jArray.Add(value);
+                    valuesArray.Add(value);
                 }
 
-                jObject.Add("Values", jArray);
+                jsonObject["Values"] = valuesArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public override string ToString()

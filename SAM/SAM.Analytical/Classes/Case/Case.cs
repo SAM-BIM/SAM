@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -20,43 +20,35 @@ namespace SAM.Analytical.Classes
         {
 
         }
+        public Case(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Case(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         protected void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            //if (jObject.ContainsKey("Name"))
-            //{
-            //    name = jObject.Value<string>("Name");
-            //}
-
             return true;
         }
-
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
-            //if (name != null)
-            //{
-            //    jObject.Add("Name", name);
-            //}
-
-            return result;
+            return jsonObject;
         }
     }
 }

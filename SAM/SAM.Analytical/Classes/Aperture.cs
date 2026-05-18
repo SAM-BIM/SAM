@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 
 using SAM.Core;
 using SAM.Geometry;
@@ -10,6 +9,7 @@ using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -38,10 +38,12 @@ namespace SAM.Analytical
         {
             planarBoundary3D = new PlanarBoundary3D(closedPlanar3D);
         }
+        public Aperture(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Aperture(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public Aperture(ApertureConstruction apertureConstruction, IClosedPlanar3D closedPlanar3D)
@@ -79,24 +81,26 @@ namespace SAM.Analytical
                 planarBoundary3D = new PlanarBoundary3D(aperture.planarBoundary3D);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            planarBoundary3D = new PlanarBoundary3D(jObject.Value<JObject>("PlanarBoundary3D"));
+            if (jsonObject["PlanarBoundary3D"] is JsonObject planarBoundary3DJson)
+                planarBoundary3D = new PlanarBoundary3D((JsonObject)planarBoundary3DJson.DeepClone());
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
-            jObject.Add("PlanarBoundary3D", planarBoundary3D.ToJObject());
+            if (planarBoundary3D?.ToJsonObject() is JsonObject planarBoundary3DJson)
+                jsonObject["PlanarBoundary3D"] = planarBoundary3DJson.DeepClone();
 
-            return jObject;
+            return jsonObject;
         }
 
         public Face3D GetFace3D()

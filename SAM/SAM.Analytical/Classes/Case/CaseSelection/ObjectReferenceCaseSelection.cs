@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -20,10 +20,12 @@ namespace SAM.Analytical
         {
             this.objectReferences = objectReferences == null ? [] : [.. objectReferences];
         }
+        public ObjectReferenceCaseSelection(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ObjectReferenceCaseSelection(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public IEnumerable<ObjectReference> ObjectReferences
@@ -34,23 +36,22 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ObjectReferences"))
+            if (jsonObject["ObjectReferences"] is JsonArray objectReferencesArray)
             {
-                JArray jArray = jObject.Value<JArray>("ObjectReferences");
-                if (jArray != null)
+                objectReferences = [];
+                foreach (JsonNode node in objectReferencesArray)
                 {
-                    objectReferences = [];
-                    foreach (JObject jObject_Temp in jArray)
+                    if (node is JsonObject objectReferenceJson)
                     {
-                        ObjectReference objectReference = Core.Query.IJSAMObject<ObjectReference>(jObject_Temp);
+                        ObjectReference objectReference = Core.Query.IJSAMObject<ObjectReference>(objectReferenceJson as JsonObject);
                         if (objectReference != null)
                         {
                             objectReferences.Add(objectReference);
@@ -62,9 +63,9 @@ namespace SAM.Analytical
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
@@ -72,18 +73,17 @@ namespace SAM.Analytical
 
             if (objectReferences != null)
             {
-                JArray jArray = [];
+                JsonArray objectReferencesArray = new JsonArray();
 
                 foreach (ObjectReference objectReference in objectReferences)
                 {
-                    JObject jObject_Temp = objectReference.ToJObject();
-                    if (jObject_Temp != null)
+                    if (objectReference?.ToJsonObject() is JsonObject objectReferenceJson)
                     {
-                        jArray.Add(jObject_Temp);
+                        objectReferencesArray.Add(objectReferenceJson.DeepClone());
                     }
                 }
 
-                result.Add("ObjectReferences", jArray);
+                result["ObjectReferences"] = objectReferencesArray;
             }
 
             return result;

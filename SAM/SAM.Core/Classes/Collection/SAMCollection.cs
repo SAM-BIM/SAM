@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -13,10 +13,9 @@ namespace SAM.Core
         private string name;
         private Guid guid;
         private List<ParameterSet> parameterSets;
-
-        public SAMCollection(JObject jObject)
+        public SAMCollection(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public SAMCollection(SAMCollection<T> sAMCollection)
@@ -72,47 +71,76 @@ namespace SAM.Core
             }
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            name = Query.Name(jObject);
-            guid = Query.Guid(jObject);
-            parameterSets = Create.ParameterSets(jObject.Value<JArray>("ParameterSets"));
+            name = Query.Name(jsonObject);
+            guid = Query.Guid(jsonObject);
 
-            if (jObject.ContainsKey("Collection"))
+            if (jsonObject["ParameterSets"] is JsonArray parameterSetsArray)
             {
-                foreach (JObject jObject_Collection in jObject.Value<JArray>("Collection"))
-                    Add(Create.IJSAMObject<T>(jObject_Collection));
+                parameterSets = new List<ParameterSet>();
+                foreach (JsonNode node in parameterSetsArray)
+                {
+                    if (node is JsonObject parameterSetJson)
+                    {
+                        parameterSets.Add(new ParameterSet((JsonObject)parameterSetJson.DeepClone()));
+                    }
+                }
+            }
+
+            if (jsonObject["Collection"] is JsonArray collectionArray)
+            {
+                foreach (JsonNode node in collectionArray)
+                {
+                    if (node is JsonObject itemJson)
+                    {
+                        Add(Create.IJSAMObject<T>(itemJson));
+                    }
+                }
             }
 
             return true;
         }
 
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (name != null)
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
 
-            jObject.Add("Guid", guid);
+            jsonObject["Guid"] = guid.ToString();
 
             if (parameterSets != null)
-                jObject.Add("ParameterSets", Create.JArray(parameterSets));
-
-            JArray jArray = new JArray();
-            foreach (T t in this)
             {
-                jArray.Add(t?.ToJObject());
+                JsonArray parameterSetsArray = new JsonArray();
+                foreach (ParameterSet parameterSet in parameterSets)
+                {
+                    if (parameterSet?.ToJsonObject() is JsonObject parameterSetJson)
+                    {
+                        parameterSetsArray.Add(parameterSetJson.DeepClone());
+                    }
+                }
+                jsonObject["ParameterSets"] = parameterSetsArray;
             }
 
+            JsonArray collectionArray = new JsonArray();
+            foreach (T t in this)
+            {
+                if (t?.ToJsonObject() is JsonObject itemJson)
+                {
+                    collectionArray.Add(itemJson.DeepClone());
+                }
+            }
+            jsonObject["Collection"] = collectionArray;
 
-            jObject.Add("Collection", jArray);
-
-            return jObject;
+            return jsonObject;
         }
 
         public new List<T> Items

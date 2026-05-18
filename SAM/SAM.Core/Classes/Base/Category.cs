@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -31,9 +31,9 @@ namespace SAM.Core
             }
         }
 
-        public Category(JObject? jObject)
+        public Category(JsonObject? jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public string? Name
@@ -89,42 +89,45 @@ namespace SAM.Core
             return string.Join(separator, values);
         }
 
-        public bool FromJObject(JObject? jObject)
+        public bool FromJsonObject(JsonObject? jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Name"))
+            if (jsonObject.ContainsKey("Name"))
             {
-                name = jObject.Value<string>("Name");
+                name = jsonObject["Name"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("SubCategory"))
+            if (jsonObject["SubCategory"] is JsonObject subCategoryObject)
             {
-                subCategory = new Category(jObject.Value<JObject>("SubCategory"));
+                subCategory = new Category((JsonObject)subCategoryObject.DeepClone());
             }
 
             return true;
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (name != null)
             {
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
             }
 
             if (subCategory != null)
             {
-                jObject.Add("SubCategory", subCategory.ToJObject());
+                if (subCategory.ToJsonObject() is JsonObject subCategoryObject)
+                    jsonObject["SubCategory"] = subCategoryObject.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

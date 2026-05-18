@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -102,22 +102,22 @@ namespace SAM.Core
 
                     ZipArchiveInfo zipArchiveInfo = new ZipArchiveInfo();
 
-                    JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings()
+                    JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions
                     {
-                        Formatting = Formatting.None
+                        WriteIndented = false
                     };
 
                     foreach (IJSAMObject jSAMObject in jSAMObjects)
                     {
                         zipArchiveEntry = zipArchive.CreateEntry(zipArchiveInfo.NewGuid().ToString());
 
-                        JObject jObject = jSAMObject?.ToJObject();
-                        if (jObject == null)
+                        JsonObject jsonObject = jSAMObject?.ToJsonObject();
+                        if (jsonObject == null)
                         {
                             continue;
                         }
 
-                        string json = JsonConvert.SerializeObject(jObject, jsonSerializerSettings);
+                        string json = jsonObject.ToJsonString(jsonSerializerOptions);
                         if (json == null)
                         {
                             continue;
@@ -137,11 +137,10 @@ namespace SAM.Core
                     {
                         using (StreamWriter streamWriter = new StreamWriter(stream))
                         {
-                            JObject jObject = zipArchiveInfo?.ToJObject();
-                            string json = JsonConvert.SerializeObject(jObject, jsonSerializerSettings);
-                            if (json != null)
+                            JsonObject jsonObject = zipArchiveInfo?.ToJsonObject();
+                            if (jsonObject != null)
                             {
-                                streamWriter.Write(json);
+                                streamWriter.Write(jsonObject.ToJsonString(jsonSerializerOptions));
                             }
                         }
                     }

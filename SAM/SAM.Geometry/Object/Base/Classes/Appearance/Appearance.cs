@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -18,10 +18,9 @@ namespace SAM.Geometry.Object
         {
             Color = color;
         }
-
-        public Appearance(JObject jObject)
+        public Appearance(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Appearance(Appearance appearance)
@@ -33,51 +32,52 @@ namespace SAM.Geometry.Object
                 Visible = appearance.Visible;
             }
         }
-
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Color"))
+            if (jsonObject["Color"] is JsonObject jsonObject_Color)
             {
-                Core.SAMColor sAMColor = new Core.SAMColor(jObject.Value<JObject>("Color"));
+                Core.SAMColor sAMColor = new Core.SAMColor((JsonObject)jsonObject_Color.DeepClone());
                 if (sAMColor != null)
                 {
                     Color = Color.FromArgb(sAMColor.Alpha, sAMColor.Red, sAMColor.Green, sAMColor.Blue);
                 }
             }
 
-            if (jObject.ContainsKey("Opacity"))
+            if (jsonObject.ContainsKey("Opacity"))
             {
-                Opacity = jObject.Value<double>("Opacity");
+                Opacity = jsonObject["Opacity"]?.GetValue<double>() ?? 0;
             }
 
-            if (jObject.ContainsKey("Visible"))
+            if (jsonObject.ContainsKey("Visible"))
             {
-                Visible = jObject.Value<bool>("Visible");
+                Visible = jsonObject["Visible"]?.GetValue<bool>() ?? false;
             }
 
             return true;
         }
-
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
-            jObject.Add("Color", new Core.SAMColor(Color.A, Color.R, Color.G, Color.B).ToJObject());
+            if (new Core.SAMColor(Color.A, Color.R, Color.G, Color.B).ToJsonObject() is JsonObject colorJson)
+                jsonObject["Color"] = colorJson.DeepClone();
 
             if (!double.IsNaN(Opacity))
             {
-                jObject.Add("Opacity", Opacity);
+                jsonObject["Opacity"] = Opacity;
             }
 
-            jObject.Add("Visible", Visible);
+            jsonObject["Visible"] = Visible;
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

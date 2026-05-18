@@ -4,7 +4,6 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using Newtonsoft.Json.Linq;
 using Rhino.Geometry;
 using SAM.Geometry.Grasshopper.Properties;
 using SAM.Geometry.Spatial;
@@ -13,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Grasshopper
 {
@@ -56,11 +56,11 @@ namespace SAM.Geometry.Grasshopper
             if (Value == null)
                 return false;
 
-            JObject jObject = Value.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = Value.ToJsonObject();
+            if (jsonObject == null)
                 return false;
 
-            writer.SetString(typeof(Transform3D).FullName, jObject.ToString());
+            writer.SetString(typeof(Transform3D).FullName, jsonObject.ToJsonString());
             return true;
         }
 
@@ -73,12 +73,21 @@ namespace SAM.Geometry.Grasshopper
             if (string.IsNullOrWhiteSpace(value))
                 return false;
 
-            JObject jObject = JObject.Parse(value);
-            if (jObject == null)
+            if (string.IsNullOrWhiteSpace(value))
                 return false;
 
-            Value = new Transform3D(jObject);
+            //option2
+            //value = Core.Query.Decompress(value);
+
+            Value = Core.Create.IJSAMObject<Transform3D>(value);
             return true;
+
+            //JObject jObject = JObject.Parse(value);
+            //if (jObject == null)
+            //    return false;
+
+            //Value = new Transform3D(jObject);
+            //return true;
         }
 
         public override string ToString()

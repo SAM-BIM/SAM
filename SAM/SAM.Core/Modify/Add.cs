@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -39,21 +39,20 @@ namespace SAM.Core
             return log.Add(format, logRecordType, values);
         }
 
-
-        public static bool Add(this JObject jObject, Tag tag)
+        public static bool Add(this JsonObject jsonObject, Tag tag)
         {
-            if (jObject == null || tag == null)
+            if (jsonObject == null || tag == null)
             {
                 return false;
             }
 
-            JObject jObject_Tag = tag.ToJObject();
-            if (jObject_Tag == null)
+            JsonObject jsonObject_Tag = tag.ToJsonObject();
+            if (jsonObject_Tag == null)
             {
                 return false;
             }
 
-            jObject.Add("Tag", jObject_Tag);
+            jsonObject["Tag"] = jsonObject_Tag.DeepClone();
             return true;
         }
 

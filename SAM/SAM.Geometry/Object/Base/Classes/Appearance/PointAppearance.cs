@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -15,9 +15,8 @@ namespace SAM.Geometry.Object
         {
             Thickness = thickness;
         }
-
-        public PointAppearance(JObject jObject)
-            : base(jObject)
+        public PointAppearance(JsonObject jsonObject)
+            : base(jsonObject)
         {
 
         }
@@ -31,32 +30,32 @@ namespace SAM.Geometry.Object
             }
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
             if (!double.IsNaN(Thickness))
             {
-                jObject.Add("Thickness", Thickness);
+                jsonObject["Thickness"] = Thickness;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Thickness"))
+            if (jsonObject.ContainsKey("Thickness"))
             {
-                Thickness = jObject.Value<double>("Thickness");
+                Thickness = jsonObject["Thickness"]?.GetValue<double>() ?? 0;
             }
 
             return true;

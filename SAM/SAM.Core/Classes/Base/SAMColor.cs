@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -28,9 +28,9 @@ namespace SAM.Core
             blue = sAMColor.blue;
         }
 
-        public SAMColor(JObject jObject)
+        public SAMColor(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public SAMColor(byte alpha, byte red, byte green, byte blue)
@@ -92,21 +92,21 @@ namespace SAM.Core
             return new SAMColor(this);
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
             Color color = Color.Empty;
-            if (jObject.ContainsKey("Name"))
-                color = Convert.ToColor(jObject.Value<string>("Name"));
+            if (jsonObject.ContainsKey("Name"))
+                color = Convert.ToColor(jsonObject["Name"]?.GetValue<string>());
 
             if (color.Equals(Color.Empty))
             {
-                alpha = jObject.Value<byte>("Alpha");
-                red = jObject.Value<byte>("Red");
-                green = jObject.Value<byte>("Green");
-                blue = jObject.Value<byte>("Blue");
+                alpha = jsonObject["Alpha"]?.GetValue<byte>() ?? 0;
+                red = jsonObject["Red"]?.GetValue<byte>() ?? 0;
+                green = jsonObject["Green"]?.GetValue<byte>() ?? 0;
+                blue = jsonObject["Blue"]?.GetValue<byte>() ?? 0;
             }
 
             return true;
@@ -117,25 +117,27 @@ namespace SAM.Core
             return Color.FromArgb(alpha, red, green, blue);
         }
         
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             string name = Name;
             if (string.IsNullOrWhiteSpace(name))
             {
-                jObject.Add("Alpha", alpha);
-                jObject.Add("Red", red);
-                jObject.Add("Green", green);
-                jObject.Add("Blue", blue);
+                jsonObject["Alpha"] = alpha;
+                jsonObject["Red"] = red;
+                jsonObject["Green"] = green;
+                jsonObject["Blue"] = blue;
             }
             else
             {
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public override string ToString()

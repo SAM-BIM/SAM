@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -94,10 +94,12 @@ namespace SAM.Core
         {
             this.type = type;
         }
+        public SAMInstance(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public SAMInstance(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public T Type
@@ -130,39 +132,42 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Type"))
+            if (jsonObject["Type"] is JsonObject typeObject)
             {
-                type = Create.IJSAMObject<T>(jObject.Value<JObject>("Type"));
+                type = Create.IJSAMObject<T>(typeObject as JsonObject);
             }
             else
             {
                 //TODO: Remove in the future. This is for backward compability only
-                if (jObject.ContainsKey("SAMType"))
+                if (jsonObject["SAMType"] is JsonObject samTypeObject)
                 {
-                    type = Create.IJSAMObject<T>(jObject.Value<JObject>("SAMType"));
+                    type = Create.IJSAMObject<T>(samTypeObject as JsonObject);
                 }
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
             if (type != null)
-                jObject.Add("Type", type.ToJObject());
+            {
+                if (type.ToJsonObject() is JsonObject typeObject)
+                    jsonObject["Type"] = typeObject.DeepClone();
+            }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

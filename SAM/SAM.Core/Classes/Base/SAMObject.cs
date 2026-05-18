@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -62,9 +62,8 @@ namespace SAM.Core
         {
             guid = Guid.NewGuid();
         }
-
-        public SAMObject(JObject jObject)
-            : base(jObject)
+        public SAMObject(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -97,37 +96,37 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            name = Query.Name(jObject);
-            guid = Query.Guid(jObject);
+            name = Query.Name(jsonObject);
+            guid = Query.Guid(jsonObject);
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
             if (name != null)
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
 
-            jObject.Add("Guid", guid);
+            jsonObject["Guid"] = guid.ToString();
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Geometry.Planar;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -42,10 +42,12 @@ namespace SAM.Geometry.Spatial
                 boundingBox3D = shell.boundingBox3D;
             }
         }
+        public Shell(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Shell(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         private bool Add(Face3D face3D)
@@ -420,30 +422,44 @@ namespace SAM.Geometry.Spatial
             return result;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Face3Ds"))
+            if (jsonObject["Face3Ds"] is JsonArray jsonArray_Face3Ds)
             {
-                List<Face3D> face3Ds = Geometry.Create.ISAMGeometries<Face3D>(jObject.Value<JArray>("Face3Ds"));
-                if (face3Ds != null)
-                    face3Ds.ForEach(x => Add(x));
+                foreach (JsonNode node in jsonArray_Face3Ds)
+                {
+                    if (node is JsonObject faceJson)
+                    {
+                        Add(new Face3D((JsonObject)faceJson.DeepClone()));
+                    }
+                }
             }
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (boundaries != null)
-                jObject.Add("Face3Ds", Geometry.Create.JArray(boundaries.ConvertAll(x => x.Item2)));
+            {
+                JsonArray jsonArray_Face3Ds = new JsonArray();
+                foreach (Tuple<BoundingBox3D, Face3D> boundary in boundaries)
+                {
+                    if (boundary?.Item2?.ToJsonObject() is JsonObject faceJson)
+                    {
+                        jsonArray_Face3Ds.Add(faceJson.DeepClone());
+                    }
+                }
+                jsonObject["Face3Ds"] = jsonArray_Face3Ds;
+            }
 
-            return jObject;
+            return jsonObject;
         }
 
         public ISAMGeometry3D GetMoved(Vector3D vector3D)

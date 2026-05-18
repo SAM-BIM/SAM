@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
-
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -44,9 +43,9 @@ namespace SAM.Core
             max = range.max;
         }
 
-        public Range(JObject jObject)
+        public Range(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public T Max
@@ -107,25 +106,27 @@ namespace SAM.Core
             return result;
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            max = jObject.Value<T>("Max");
-            min = jObject.Value<T>("Min");
+            max = jsonObject["Max"] == null ? default : jsonObject["Max"].GetValue<T>();
+            min = jsonObject["Min"] == null ? default : jsonObject["Min"].GetValue<T>();
 
             return true;
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
-            jObject.Add("Max", max as dynamic);
-            jObject.Add("Min", min as dynamic);
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this),
+                ["Max"] = Query.ToJsonNode(max),
+                ["Min"] = Query.ToJsonNode(min)
+            };
 
-            return jObject;
+            return jsonObject;
         }
 
         public override string ToString()

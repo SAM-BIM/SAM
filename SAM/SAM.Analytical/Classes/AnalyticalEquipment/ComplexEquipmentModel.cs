@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -24,10 +24,12 @@ namespace SAM.Analytical
                 simpleEquipments?.ForEach(x => AddObject(x?.Clone()));
             }
         }
+        public ComplexEquipmentModel(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ComplexEquipmentModel(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public bool Add(ISimpleEquipment simpleEquipment)
@@ -474,27 +476,20 @@ namespace SAM.Analytical
 
             return result;
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("SimpleEquipments"))
+            if (jsonObject["SimpleEquipments"] is JsonArray simpleEquipmentsArray)
             {
-                JArray jArray = jObject.Value<JArray>("SimpleEquipments");
-                if (jArray != null)
+                foreach (JsonNode node in simpleEquipmentsArray)
                 {
-                    foreach (JObject jObject_SimpleEquipment in jArray)
+                    if (node is JsonObject simpleEquipmentJson)
                     {
-                        if (jObject_SimpleEquipment == null)
-                        {
-                            continue;
-                        }
-
-                        ISimpleEquipment simpleEquipment = Core.Query.IJSAMObject<ISimpleEquipment>(jObject_SimpleEquipment);
+                        ISimpleEquipment simpleEquipment = Core.Query.IJSAMObject<ISimpleEquipment>(simpleEquipmentJson as JsonObject);
                         if (simpleEquipment != null)
                         {
                             Add(simpleEquipment);
@@ -503,19 +498,13 @@ namespace SAM.Analytical
                 }
             }
 
-            if (jObject.ContainsKey("Relations"))
+            if (jsonObject["Relations"] is JsonArray relationsArray)
             {
-                JArray jArray = jObject.Value<JArray>("Relations");
-                if (jArray != null)
+                foreach (JsonNode node in relationsArray)
                 {
-                    foreach (JObject jObject_Relation in jArray)
+                    if (node is JsonObject relationJson)
                     {
-                        if (jObject_Relation == null)
-                        {
-                            continue;
-                        }
-
-                        Relation relation = Core.Query.IJSAMObject<Relation>(jObject_Relation);
+                        Relation relation = Core.Query.IJSAMObject<Relation>(relationJson as JsonObject);
                         if (relation != null)
                         {
                             AddRelation(relation);
@@ -526,47 +515,43 @@ namespace SAM.Analytical
 
             return true;
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             List<ISimpleEquipment> simpleEquipments = GetObjects();
             if (simpleEquipments != null)
             {
-                JArray jArray = new JArray();
+                JsonArray simpleEquipmentsArray = new JsonArray();
                 foreach (ISimpleEquipment simpleEquipment in simpleEquipments)
                 {
-                    if (simpleEquipment == null)
+                    if (simpleEquipment?.ToJsonObject() is JsonObject simpleEquipmentJson)
                     {
-                        continue;
+                        simpleEquipmentsArray.Add(simpleEquipmentJson.DeepClone());
                     }
-
-                    jArray.Add(simpleEquipment.ToJObject());
                 }
 
-                result.Add("SimpleEquipments", jArray);
+                jsonObject["SimpleEquipments"] = simpleEquipmentsArray;
             }
 
             RelationCollection relationCollection = GetRelations();
             if (relationCollection != null)
             {
-                JArray jArray = new JArray();
+                JsonArray relationsArray = new JsonArray();
                 foreach (Relation relation in relationCollection)
                 {
-                    if (relation == null)
+                    if (relation?.ToJsonObject() is JsonObject relationJson)
                     {
-                        continue;
+                        relationsArray.Add(relationJson.DeepClone());
                     }
-
-                    jArray.Add(relation.ToJObject());
                 }
-                result.Add("Relations", jArray);
-
+                jsonObject["Relations"] = relationsArray;
             }
 
-            return result;
+            return jsonObject;
         }
     }
 }

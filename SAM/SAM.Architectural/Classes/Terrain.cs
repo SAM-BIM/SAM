@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Geometry.Object.Spatial;
 using SAM.Geometry.Spatial;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Architectural
 {
@@ -21,10 +21,12 @@ namespace SAM.Architectural
             : base(terrain)
         {
         }
+        public Terrain(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Terrain(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public abstract bool Below(Face3D face3D, double tolerance = Core.Tolerance.Distance);
@@ -34,16 +36,16 @@ namespace SAM.Architectural
             return Below(face3DObject?.Face3D, tolerance);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("MaterialLayers"))
+            if (jsonObject["MaterialLayers"] is JsonArray materialLayersArray)
             {
-                materialLayers = Core.Create.IJSAMObjects<MaterialLayer>(jObject.Value<JArray>("MaterialLayers"));
+                materialLayers = Core.Create.IJSAMObjects<MaterialLayer>(materialLayersArray);
             }
 
             return true;
@@ -56,21 +58,29 @@ namespace SAM.Architectural
             return On(face3DObject?.Face3D, tolerance);
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
+            JsonObject jsonObject = base.ToJsonObject();
 
-            if (jObject == null)
+            if (jsonObject == null)
             {
-                return jObject;
+                return null;
             }
 
             if (materialLayers != null)
             {
-                jObject.Add("MaterialLayers", Core.Create.JArray(materialLayers));
+                JsonArray materialLayersArray = new JsonArray();
+                foreach (MaterialLayer materialLayer in materialLayers)
+                {
+                    if (materialLayer?.ToJsonObject() is JsonObject materialLayerJson)
+                    {
+                        materialLayersArray.Add(materialLayerJson.DeepClone());
+                    }
+                }
+                jsonObject["MaterialLayers"] = materialLayersArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

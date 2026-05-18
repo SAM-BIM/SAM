@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 
 namespace SAM.Analytical
@@ -34,9 +33,10 @@ namespace SAM.Analytical
         {
 
         }
+        public HeatingCoil(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public HeatingCoil(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -53,21 +53,5 @@ namespace SAM.Analytical
 
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-                return false;
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return null;
-
-            return jObject;
-        }
     }
 }

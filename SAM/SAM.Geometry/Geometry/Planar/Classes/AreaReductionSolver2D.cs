@@ -34,14 +34,14 @@ namespace SAM.Geometry.Planar
             if (face2D is null) return null;
 
             // Consistent bounds handling
-            if (targetReductionPercent <= 0) return [new Face2D(face2D.ToJObject())];
+            if (targetReductionPercent <= 0) return [new Face2D(face2D.ToJsonObject())];
             if (targetReductionPercent >= 100) return null;
 
             double offset = Solve_Offset(face2D, targetReductionPercent);
             if (double.IsNaN(offset)) return null;
 
             if (offset <= ToleranceDistance)
-                return [new Face2D(face2D.ToJObject())];
+                return [new Face2D(face2D.ToJsonObject())];
 
             return face2D.Offset(-offset, IncludeExternalEdge, IncludeInternalEdges);
         }

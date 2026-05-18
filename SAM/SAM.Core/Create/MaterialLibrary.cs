@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -16,11 +16,11 @@ namespace SAM.Core
 
             string json = File.ReadAllText(path);
 
-            JObject jObject = JToken.Parse(json) as JObject;
-            if (jObject == null)
+            JsonObject jsonObject = JsonNode.Parse(json) as JsonObject;
+            if (jsonObject == null)
                 return null;
 
-            return new MaterialLibrary(jObject);
+            return new MaterialLibrary(jsonObject);
         }
 
         public static MaterialLibrary MaterialLibrary(string name, IEnumerable<IMaterial> materials)

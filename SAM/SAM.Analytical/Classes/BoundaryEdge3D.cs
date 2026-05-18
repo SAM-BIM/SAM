@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -36,10 +36,12 @@ namespace SAM.Analytical
         {
             curve3D = (ICurve3D)boundaryEdge3D.curve3D.Clone();
         }
+        public BoundaryEdge3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public BoundaryEdge3D(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public List<Segment3D> ToSegments()
@@ -108,23 +110,25 @@ namespace SAM.Analytical
             throw new NotImplementedException();
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            curve3D = Geometry.Spatial.Create.ICurve3D(jObject.Value<JObject>("Curve3D"));
+            if (jsonObject["Curve3D"] is JsonObject curve3DJson)
+                curve3D = Geometry.Spatial.Create.ICurve3D((JsonObject)curve3DJson.DeepClone());
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
-            jObject.Add("Curve3D", curve3D.ToJObject());
-            return jObject;
+            if (curve3D?.ToJsonObject() is JsonObject curve3DJson)
+                jsonObject["Curve3D"] = curve3DJson.DeepClone();
+            return jsonObject;
         }
 
         public static IEnumerable<BoundaryEdge3D> FromGeometry(ISAMGeometry3D geometry3D)

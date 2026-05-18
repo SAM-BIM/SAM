@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -13,10 +13,9 @@ namespace SAM.Geometry.Spatial
         {
             coordinates = new double[3] { 0, 0, 0 };
         }
-
-        public Point3D(JObject jObject)
+        public Point3D(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Point3D(double x, double y, double z)
@@ -176,25 +175,28 @@ namespace SAM.Geometry.Spatial
             return new BoundingBox3D(this, offset);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            coordinates[0] = jObject.Value<double>("X");
-            coordinates[1] = jObject.Value<double>("Y");
-            coordinates[2] = jObject.Value<double>("Z");
+            if (jsonObject == null)
+                return false;
+
+            coordinates[0] = jsonObject["X"]?.GetValue<double>() ?? 0;
+            coordinates[1] = jsonObject["Y"]?.GetValue<double>() ?? 0;
+            coordinates[2] = jsonObject["Z"]?.GetValue<double>() ?? 0;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("X", coordinates[0]);
-            jObject.Add("Y", coordinates[1]);
-            jObject.Add("Z", coordinates[2]);
-            return jObject;
+            jsonObject["X"] = coordinates[0];
+            jsonObject["Y"] = coordinates[1];
+            jsonObject["Z"] = coordinates[2];
+            return jsonObject;
         }
 
         public override bool Equals(object @object)

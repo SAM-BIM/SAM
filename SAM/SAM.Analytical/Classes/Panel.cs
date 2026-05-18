@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry;
 using SAM.Geometry.Planar;
@@ -9,6 +8,7 @@ using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -157,8 +157,8 @@ namespace SAM.Analytical
             this.planarBoundary3D = new PlanarBoundary3D(planarBoundary3D);
         }
 
-        internal Panel(JObject jObject)
-             : base(jObject)
+        internal Panel(JsonObject jsonObject)
+             : base(jsonObject)
         {
         }
 
@@ -298,18 +298,18 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            Enum.TryParse(jObject.Value<string>("PanelType"), out panelType);
+            Enum.TryParse(jsonObject["PanelType"]?.GetValue<string>(), out panelType);
 
-            if (jObject.ContainsKey("PlanarBoundary3D"))
-                planarBoundary3D = new PlanarBoundary3D(jObject.Value<JObject>("PlanarBoundary3D"));
+            if (jsonObject["PlanarBoundary3D"] is JsonObject planarBoundary3DJson)
+                planarBoundary3D = new PlanarBoundary3D((JsonObject)planarBoundary3DJson.DeepClone());
 
-            if (jObject.ContainsKey("Apertures"))
-                apertures = Core.Create.IJSAMObjects<Aperture>(jObject.Value<JArray>("Apertures"));
+            if (jsonObject["Apertures"] is JsonArray aperturesArray)
+                apertures = Core.Create.IJSAMObjects<Aperture>(aperturesArray);
 
             return true;
         }
@@ -678,21 +678,31 @@ namespace SAM.Analytical
         {
             planarBoundary3D.Snap(planes, maxDistance);
         }
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
-            jObject.Add("PanelType", panelType.ToString());
+            jsonObject["PanelType"] = panelType.ToString();
 
-            if (planarBoundary3D != null)
-                jObject.Add("PlanarBoundary3D", planarBoundary3D.ToJObject());
+            if (planarBoundary3D?.ToJsonObject() is JsonObject planarBoundary3DJson)
+                jsonObject["PlanarBoundary3D"] = planarBoundary3DJson.DeepClone();
 
             if (apertures != null)
-                jObject.Add("Apertures", Core.Create.JArray(apertures));
+            {
+                JsonArray aperturesArray = new JsonArray();
+                foreach (Aperture aperture in apertures)
+                {
+                    if (aperture?.ToJsonObject() is JsonObject apertureJson)
+                    {
+                        aperturesArray.Add(apertureJson.DeepClone());
+                    }
+                }
+                jsonObject["Apertures"] = aperturesArray;
+            }
 
-            return jObject;
+            return jsonObject;
         }
 
         /// <summary>

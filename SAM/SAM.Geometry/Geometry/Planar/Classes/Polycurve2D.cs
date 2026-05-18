@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -28,10 +28,12 @@ namespace SAM.Geometry.Planar
             if (curves != null)
                 this.curves = new List<ICurve2D>(curves);
         }
+        public Polycurve2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Polycurve2D(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public static implicit operator Polycurve2D(Polyline2D polyline2D)
@@ -55,12 +57,15 @@ namespace SAM.Geometry.Planar
             return new Polycurve2D(this);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            curves = Geometry.Create.ISAMGeometries<ICurve2D>(jObject.Value<JArray>("Curves"));
+            if (jsonObject["Curves"] is JsonArray jsonArray_Curves)
+            {
+                curves = Core.Create.IJSAMObjects<ICurve2D>(jsonArray_Curves);
+            }
 
             return true;
         }
@@ -115,15 +120,26 @@ namespace SAM.Geometry.Planar
             curves.Reverse();
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Curves", Geometry.Create.JArray(curves));
+            if (curves != null)
+            {
+                JsonArray jsonArray_Curves = new JsonArray();
+                foreach (ICurve2D curve in curves)
+                {
+                    if (curve?.ToJsonObject() is JsonObject curveJson)
+                    {
+                        jsonArray_Curves.Add(curveJson.DeepClone());
+                    }
+                }
+                jsonObject["Curves"] = jsonArray_Curves;
+            }
 
-            return jObject;
+            return jsonObject;
         }
 
         public Polygon2D ToPolygon2D()

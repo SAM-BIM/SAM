@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Spatial;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -34,10 +34,12 @@ namespace SAM.Analytical
         {
             face3D = externalPanel?.Face3D?.Clone<Face3D>();
         }
+        public ExternalPanel(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ExternalPanel(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public Face3D Face3D
@@ -66,35 +68,37 @@ namespace SAM.Analytical
             face3D.FlipNormal(flipX);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Face3D"))
+            // NOTE: preserved verbatim - original code used jObject.Value<JObject>()
+            // without a key, which returned the enclosing JObject itself (likely a bug).
+            if (jsonObject.ContainsKey("Face3D"))
             {
-                face3D = new Face3D(jObject.Value<JObject>());
+                face3D = new Face3D(jsonObject);
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (face3D != null)
+            if (face3D?.ToJsonObject() is JsonObject face3DJson)
             {
-                jObject.Add("Face3D", face3D.ToJObject());
+                jsonObject["Face3D"] = face3DJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }
