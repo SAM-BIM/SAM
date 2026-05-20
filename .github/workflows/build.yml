@@ -2,9 +2,9 @@ name: Build (Windows)
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: [ "master", "main", "sow/**" ]
   pull_request:
-    branches: [ "master", "main" ]
+    branches: [ "master", "main", "sow/**" ]
   workflow_dispatch:
 
 jobs:
@@ -56,6 +56,26 @@ jobs:
 
           throw "No root .sln or root .csproj found to build."
 
+      - name: Compute SAMVersion
+        id: ver
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ref = if ('${{ github.event_name }}' -eq 'pull_request') { '${{ github.base_ref }}' } else { '${{ github.ref_name }}' }
+          # .NET AssemblyVersion components are UInt16 (max 65535). Cap to 60000 for headroom.
+          $run = ${{ github.run_number }} % 60000
+          if ($ref -match 'sow/(\d{4})-Q(\d)') {
+            $v = "$($Matches[1]).$($Matches[2]).$run"
+            $src = "branch '$ref'"
+          } else {
+            $now = (Get-Date).ToUniversalTime()
+            $quarter = [int][Math]::Ceiling($now.Month / 3.0)
+            $v = "$($now.Year).$quarter.$run"
+            $src = "date $($now.ToString('yyyy-MM-dd')) (ref '$ref' not sow/yyyy-Qx)"
+          }
+          Write-Host "SAMVersion = $v (from $src)"
+          "samversion=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
       - name: Restore
         shell: pwsh
         env:
@@ -66,6 +86,7 @@ jobs:
             /t:Restore `
             /m:1 /nr:false /v:m `
             /p:Configuration=${{ matrix.configuration }} `
+            /p:SAMVersion=${{ steps.ver.outputs.samversion }} `
             /p:UseSharedCompilation=false
 
       - name: Build
@@ -78,4 +99,5 @@ jobs:
             /t:Rebuild `
             /m:1 /nr:false /v:m `
             /p:Configuration=${{ matrix.configuration }} `
+            /p:SAMVersion=${{ steps.ver.outputs.samversion }} `
             /p:UseSharedCompilation=false
