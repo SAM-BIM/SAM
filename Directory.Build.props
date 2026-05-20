@@ -9,13 +9,16 @@
   </PropertyGroup>
 
   <!--
-    Projects with <GenerateAssemblyInfo>false</GenerateAssemblyInfo> ignore the
-    AssemblyVersion/FileVersion MSBuild properties above. Inject the attributes via a
-    generated source file so those assemblies also get stamped by CI.
+    Projects where SDK assembly-attribute generation is disabled (legacy AssemblyInfo.cs
+    with GenerateAssemblyInfo=false) OR projects where the SDK doesn't auto-generate
+    attributes at all (classic-style csprojs that don't set the property — '' evaluates
+    as not 'true') ignore the AssemblyVersion/FileVersion MSBuild properties above.
+    Inject the attributes via a generated source file so those assemblies also get
+    stamped by CI.
   -->
   <Target Name="_GenerateSAMVersionFile"
           BeforeTargets="CoreCompile"
-          Condition="'$(GenerateAssemblyInfo)' == 'false'">
+          Condition="'$(GenerateAssemblyInfo)' != 'true'">
     <ItemGroup>
       <_SAMVersionLine Include="// &lt;auto-generated /&gt;" />
       <_SAMVersionLine Include="[assembly: System.Reflection.AssemblyVersionAttribute(&quot;$(SAMVersion)&quot;)]" />
