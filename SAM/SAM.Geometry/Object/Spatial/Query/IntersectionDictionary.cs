@@ -12,6 +12,23 @@ namespace SAM.Geometry.Object.Spatial
     {
         public static Dictionary<T, Point3D> IntersectionDictionary<T>(this Segment3D segment3D, IEnumerable<T> face3DObjects, bool sort = true, double tolerance = Core.Tolerance.Distance) where T : IFace3DObject
         {
+            List<Tuple<T, Point3D>> tuples = IntersectionTuples(segment3D, face3DObjects, sort, tolerance);
+            if (tuples == null)
+            {
+                return null;
+            }
+            
+            Dictionary<T, Point3D> result = new Dictionary<T, Point3D>();
+            foreach (Tuple<T, Point3D> tuple in tuples)
+            {
+                result[tuple.Item1] = tuple.Item2;
+            }
+
+            return result;
+        }
+
+        public static List<Tuple<T, Point3D>> IntersectionTuples<T>(this Segment3D segment3D, IEnumerable<T> face3DObjects, bool sort = true, double tolerance = Core.Tolerance.Distance) where T : IFace3DObject
+        {
             if (segment3D == null || face3DObjects == null)
             {
                 return null;
@@ -35,18 +52,17 @@ namespace SAM.Geometry.Object.Spatial
                 return null;
             }
 
-            List<Tuple<Point3D, T>> tuples = new List<Tuple<Point3D, T>>();
-            List<Point3D> point3Ds = new List<Point3D>();
+            List<Tuple<T, Point3D>> result = new List<Tuple<T, Point3D>>();
             foreach (T face3DObject in face3DObjects)
             {
-                BoundingBox3D boundingBox3D_Face3DObject = face3DObject?.Face3D.GetBoundingBox();
-                if (!boundingBox3D.InRange(boundingBox3D_Face3DObject, tolerance))
+                Face3D face3D = face3DObject?.Face3D;
+                if (face3D == null)
                 {
                     continue;
                 }
 
-                Face3D face3D = face3DObject?.Face3D;
-                if (face3D == null)
+                BoundingBox3D boundingBox3D_Face3DObject = face3D.GetBoundingBox();
+                if (!boundingBox3D.InRange(boundingBox3D_Face3DObject, tolerance))
                 {
                     continue;
                 }
@@ -68,20 +84,12 @@ namespace SAM.Geometry.Object.Spatial
                     continue;
                 }
 
-                point3Ds.Add(point3D_Intersection);
-                tuples.Add(new Tuple<Point3D, T>(point3D_Intersection, face3DObject));
+                result.Add(new Tuple<T, Point3D>(face3DObject, point3D_Intersection));
             }
 
             if (sort)
             {
-                Modify.SortByDistance(point3Ds, point3D);
-            }
-
-            Dictionary<T, Point3D> result = new Dictionary<T, Point3D>();
-            foreach (Point3D point3D_Temp in point3Ds)
-            {
-                foreach (Tuple<Point3D, T> tuple in tuples.FindAll(x => x.Item1 == point3D_Temp))
-                    result[tuple.Item2] = tuple.Item1;
+                result.Sort((x, y) => x.Item2.Distance(point3D).CompareTo(y.Item2.Distance(point3D)));
             }
 
             return result;

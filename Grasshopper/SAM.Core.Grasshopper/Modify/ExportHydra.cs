@@ -384,7 +384,7 @@ namespace SAM.Core.Grasshopper
         private static void WriteMetadataFile(string fileName, string repoTargetFolder, Dictionary<string, object> metaDataDict)
         {
             string jsonFilePath = Path.Combine(repoTargetFolder, "input.json");
-            JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = true };
+            JsonSerializerOptions options = Core.Convert.SerializerOptions(Core.Formatting.Indented);
             string json = JsonSerializer.Serialize(metaDataDict, options);
             File.WriteAllText(jsonFilePath, json);
         }
