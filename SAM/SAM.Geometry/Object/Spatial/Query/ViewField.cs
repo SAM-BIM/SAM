@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
+using NetTopologySuite.Geometries;
+using NetTopologySuite.Index.Strtree;
 using SAM.Core;
 using SAM.Geometry.Spatial;
 using System;
@@ -63,7 +65,12 @@ namespace SAM.Geometry.Object.Spatial
                 linkedFace3Ds.Add(linkedFace3D);
             }
 
-            if (linkedFace3Ds.Count() < 2)
+            if (linkedFace3Ds.Count == 0)
+            {
+                return;
+            }
+
+            if (linkedFace3Ds.Count < 2)
             {
                 LinkedFace3D linkedFace3D = linkedFace3Ds.ElementAt(0);
                 if (linkedFace3D != null && linkedFace3Ds_Visible != null)
@@ -83,7 +90,6 @@ namespace SAM.Geometry.Object.Spatial
             Vector3D vector3D = new Vector3D(viewDirection).Unit * boundingBox3D.Min.Distance(boundingBox3D.Max);
             Point3D point3D = boundingBox3D.GetCentroid().GetMoved(vector3D.GetNegated()) as Point3D;
 
-            Line3D line3D = new Line3D(point3D, vector3D);
             Plane plane = new Plane(point3D, vector3D.Unit);
 
             Vector3D vector3D_Ray = 2 * vector3D;
@@ -111,6 +117,17 @@ namespace SAM.Geometry.Object.Spatial
 
                 tuples.Add(new Tuple<LinkedFace3D, Geometry.Planar.BoundingBox2D, Geometry.Planar.Face2D>(linkedFace3D, face2D.GetBoundingBox(), face2D));
             }
+
+            STRtree<int> index = new STRtree<int>();
+            for (int i = 0; i < tuples.Count; i++)
+            {
+                Envelope envelope = ToEnvelope(tuples[i].Item2, tolerance_Distance);
+                if (envelope != null)
+                {
+                    index.Insert(envelope, i);
+                }
+            }
+            index.Build();
 
             List<Tuple<LinkedFace3D, List<Geometry.Planar.Face2D>>> tuples_Hidden = Enumerable.Repeat<Tuple<LinkedFace3D, List<Geometry.Planar.Face2D>>>(null, tuples.Count).ToList();
             List<Tuple<LinkedFace3D, List<Geometry.Planar.Face2D>>> tuples_Visible = Enumerable.Repeat<Tuple<LinkedFace3D, List<Geometry.Planar.Face2D>>>(null, tuples.Count).ToList();
@@ -190,11 +207,37 @@ namespace SAM.Geometry.Object.Spatial
                     }
                 }
 
+                Envelope envelope = ToEnvelope(tuple.Item2, tolerance_Distance);
+                if (envelope == null)
+                {
+                    continue;
+                }
+
+                IList<int> indexes = index.Query(envelope);
+                if (indexes == null || indexes.Count == 0)
+                {
+                    continue;
+                }
+
+                List<Tuple<LinkedFace3D, Geometry.Planar.BoundingBox2D, Geometry.Planar.Face2D>> tuples_Temp = new List<Tuple<LinkedFace3D, Geometry.Planar.BoundingBox2D, Geometry.Planar.Face2D>>();
+                foreach (int index_Temp in indexes)
+                {
+                    Tuple<LinkedFace3D, Geometry.Planar.BoundingBox2D, Geometry.Planar.Face2D> tuple_Temp = tuples[index_Temp];
+                    if (tuple_Temp.Item2.InRange(tuple.Item2, tolerance_Distance))
+                    {
+                        tuples_Temp.Add(tuple_Temp);
+                    }
+                }
+
+                if (tuples_Temp == null || tuples_Temp.Count == 0)
+                {
+                    continue;
+                }
+
+                List<LinkedFace3D> linkedFace3Ds_Temp = tuples_Temp.ConvertAll(x => x.Item1);
                 foreach (Tuple<Geometry.Planar.Face2D, Geometry.Planar.Point2D> tuple_2D in tuples_2D)
                 {
                     Geometry.Planar.Point2D point2D = tuple_2D.Item2;
-
-                    List<Tuple<LinkedFace3D, Geometry.Planar.BoundingBox2D, Geometry.Planar.Face2D>> tuples_Temp = tuples.FindAll(x => x.Item2.InRange(tuple.Item2, tolerance_Distance));
 
                     if (!tuple.Item2.InRange(point2D, tolerance_Distance) || !tuple.Item3.Inside(point2D, tolerance_Distance))
                     {
@@ -205,20 +248,20 @@ namespace SAM.Geometry.Object.Spatial
                     Point3D point3D_End = point3D_Start.GetMoved(vector3D_Ray) as Point3D;
 
                     Segment3D segment3D = new Segment3D(point3D_Start, point3D_End);
-                    BoundingBox3D boundingBox3D_Segment3D = segment3D.GetBoundingBox();
 
-                    Dictionary<LinkedFace3D, Point3D> dictionary_Intersection = Query.IntersectionDictionary<LinkedFace3D>(segment3D, tuples_Temp.ConvertAll(x => x.Item1), true, tolerance_Distance);
-                    if (dictionary_Intersection == null || dictionary_Intersection.Count == 0)
+                    List<Tuple<LinkedFace3D, Point3D>> tuples_Intersection = Query.IntersectionTuples(segment3D, linkedFace3Ds_Temp, true, tolerance_Distance);
+                    if (tuples_Intersection == null || tuples_Intersection.Count == 0)
                     {
                         continue;
                     }
 
+                    LinkedFace3D linkedFace3D_Closest = tuples_Intersection[0].Item1;
                     List<Tuple<LinkedFace3D, List<Geometry.Planar.Face2D>>> tuples_Result = null;
-                    if (dictionary_Intersection.Keys.FirstOrDefault() == tuple.Item1 && visible)
+                    if (linkedFace3D_Closest == tuple.Item1 && visible)
                     {
                         tuples_Result = tuples_Visible;
                     }
-                    else if (dictionary_Intersection.Keys.FirstOrDefault() != tuple.Item1 && hidden)
+                    else if (linkedFace3D_Closest != tuple.Item1 && hidden)
                     {
                         tuples_Result = tuples_Hidden;
                     }
@@ -381,6 +424,23 @@ namespace SAM.Geometry.Object.Spatial
                 }
             }
 
+        }
+
+        private static Envelope ToEnvelope(Geometry.Planar.BoundingBox2D boundingBox2D, double tolerance = Tolerance.Distance)
+        {
+            if (boundingBox2D == null)
+            {
+                return null;
+            }
+
+            Geometry.Planar.Point2D min = boundingBox2D.Min;
+            Geometry.Planar.Point2D max = boundingBox2D.Max;
+            if (min == null || max == null)
+            {
+                return null;
+            }
+
+            return new Envelope(min.X - tolerance, max.X + tolerance, min.Y - tolerance, max.Y + tolerance);
         }
 
         //    public static void ViewField_Obsolete1<T>(this IEnumerable<T> face3DObjects, Vector3D viewDirection, out List<LinkedFace3D> linkedFace3Ds_Hidden, out List<LinkedFace3D> linkedFace3Ds_Visible, bool hidden = true, bool visible = true, double tolerance_Area = Tolerance.MacroDistance, double tolerance_Snap = Tolerance.MacroDistance, double tolerance_Distance = Tolerance.Distance) where T : IFace3DObject

@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 
 namespace SAM.Core
 {
@@ -62,11 +63,14 @@ namespace SAM.Core
             return jsonArray.ToJsonString(SerializerOptions(formatting));
         }
 
-        private static JsonSerializerOptions SerializerOptions(Formatting formatting)
+        private static readonly IJsonTypeInfoResolver typeInfoResolver = new DefaultJsonTypeInfoResolver();
+
+        public static JsonSerializerOptions SerializerOptions(Formatting formatting)
         {
             return new JsonSerializerOptions
             {
-                WriteIndented = formatting == Formatting.Indented
+                WriteIndented = formatting == Formatting.Indented,
+                TypeInfoResolver = typeInfoResolver
             };
         }
 

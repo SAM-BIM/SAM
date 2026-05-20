@@ -102,10 +102,7 @@ namespace SAM.Core
 
                     ZipArchiveInfo zipArchiveInfo = new ZipArchiveInfo();
 
-                    JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions
-                    {
-                        WriteIndented = false
-                    };
+                    JsonSerializerOptions jsonSerializerOptions = SerializerOptions(Formatting.None);
 
                     foreach (IJSAMObject jSAMObject in jSAMObjects)
                     {
