@@ -12,6 +12,7 @@ namespace SAM.Geometry.Object.Spatial
         private Guid guid;
         private BoundingBox3D boundingBox3D;
         private Face3D face3D;
+        private string reference;
 
         public Face3D Face3D
         {
@@ -29,11 +30,31 @@ namespace SAM.Geometry.Object.Spatial
             }
         }
 
+        /// <summary>
+        /// Optional external reference — e.g. a TBD zoneSurface.GUID string — stored for
+        /// round-trip look-ups after the object leaves the TAS COM boundary.
+        /// </summary>
+        public string Reference
+        {
+            get
+            {
+                return reference;
+            }
+        }
+
         public LinkedFace3D(Guid guid, Face3D face3D)
         {
             this.guid = guid;
             this.face3D = new Face3D(face3D);
             boundingBox3D = this.face3D?.GetBoundingBox();
+        }
+
+        public LinkedFace3D(Guid guid, Face3D face3D, string reference)
+        {
+            this.guid = guid;
+            this.face3D = new Face3D(face3D);
+            boundingBox3D = this.face3D?.GetBoundingBox();
+            this.reference = reference;
         }
 
         public LinkedFace3D(LinkedFace3D linkedFace3D)
@@ -44,18 +65,17 @@ namespace SAM.Geometry.Object.Spatial
             }
 
             guid = linkedFace3D.guid;
+            reference = linkedFace3D.reference;
             if (linkedFace3D.face3D != null)
             {
                 face3D = new Face3D(linkedFace3D.face3D);
                 boundingBox3D = face3D?.GetBoundingBox();
             }
         }
+
         public LinkedFace3D(System.Text.Json.Nodes.JsonObject jsonObject)
-
         {
-
             FromJsonObject(jsonObject);
-
         }
 
         public BoundingBox3D GetBoundingBox(double offset = 0)
@@ -84,6 +104,7 @@ namespace SAM.Geometry.Object.Spatial
             face3D = face3D?.GetTransformed(transform3D) as Face3D;
             boundingBox3D = face3D?.GetBoundingBox();
         }
+
         public JsonObject ToJsonObject()
         {
             JsonObject jsonObject = new JsonObject
@@ -94,6 +115,11 @@ namespace SAM.Geometry.Object.Spatial
             if (guid != Guid.Empty)
             {
                 jsonObject["Guid"] = guid.ToString();
+            }
+
+            if (!string.IsNullOrWhiteSpace(reference))
+            {
+                jsonObject["Reference"] = reference;
             }
 
             if (face3D?.ToJsonObject() is JsonObject face3DJson)
@@ -108,6 +134,7 @@ namespace SAM.Geometry.Object.Spatial
 
             return jsonObject;
         }
+
         public bool FromJsonObject(JsonObject jsonObject)
         {
             if (jsonObject == null)
@@ -118,6 +145,11 @@ namespace SAM.Geometry.Object.Spatial
             if (jsonObject.ContainsKey("Guid"))
             {
                 guid = Core.Query.Guid(jsonObject, "Guid");
+            }
+
+            if (jsonObject.ContainsKey("Reference"))
+            {
+                reference = jsonObject["Reference"]?.GetValue<string>();
             }
 
             if (jsonObject["Face3D"] is JsonObject face3DJson)
