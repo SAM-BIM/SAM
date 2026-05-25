@@ -41,6 +41,16 @@ namespace SAM.Analytical
                 return -1;
             }
 
+            if (operativeTemperatures.Count <= 0)
+            {
+                return 0;
+            }
+
+            if (operativeTemperatures.GetMaxIndex() is not int maxIndex || operativeTemperatures.GetMinIndex() is not int minIndex)
+            {
+                return 0;
+            }
+
             int count = 0;
             foreach (double operativeTemperature in operativeTemperatures)
             {
@@ -63,7 +73,17 @@ namespace SAM.Analytical
                     return -1;
                 }
 
-                int count = operativeTemperatures.GetMaxIndex().Value - operativeTemperatures.GetMinIndex().Value + 1;
+                if(operativeTemperatures.Count <= 0)
+                {
+                    return 0;
+                }
+
+                if (operativeTemperatures.GetMaxIndex() is not int maxIndex || operativeTemperatures.GetMinIndex() is not int minIndex)
+                {
+                    return 0;
+                }
+
+                int count = maxIndex - minIndex + 1;
                 return System.Convert.ToInt32(System.Math.Truncate(count * ExceedanceFactor));
             }
         }
