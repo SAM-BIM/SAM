@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace SAM.Core
@@ -31,6 +32,11 @@ namespace SAM.Core
             if (type_Temp == null)
             {
                 type_Temp = type;
+            }
+
+            if (@object is JsonNode jsonNode && TryConvertJsonNode(jsonNode, out result, type_Temp))
+            {
+                return true;
             }
 
             if (type_Temp == typeof(string))
@@ -601,6 +607,142 @@ namespace SAM.Core
 
             result = (T)result_Object;
             return true;
+        }
+
+        private static bool TryConvertJsonNode(JsonNode jsonNode, out object? result, Type type)
+        {
+            result = default;
+
+            JsonValueKind jsonValueKind = jsonNode.GetValueKind();
+            if (jsonValueKind == JsonValueKind.Null)
+            {
+                return type == typeof(string);
+            }
+
+            if (type == typeof(JsonNode) || type.IsAssignableFrom(jsonNode.GetType()))
+            {
+                result = jsonNode;
+                return true;
+            }
+
+            if (type == typeof(string))
+            {
+                result = jsonValueKind == JsonValueKind.String ? jsonNode.GetValue<string>() : jsonNode.ToJsonString();
+                return true;
+            }
+
+            if (jsonValueKind == JsonValueKind.Object || jsonValueKind == JsonValueKind.Array)
+            {
+                return false;
+            }
+
+            if (jsonValueKind == JsonValueKind.String)
+            {
+                return TryConvert((object?)jsonNode.GetValue<string>(), out result, type);
+            }
+
+            if (jsonValueKind == JsonValueKind.True || jsonValueKind == JsonValueKind.False)
+            {
+                return TryConvert((object)jsonNode.GetValue<bool>(), out result, type);
+            }
+
+            if (jsonValueKind == JsonValueKind.Number)
+            {
+                return TryConvertJsonNumber(jsonNode.ToJsonString(), out result, type);
+            }
+
+            return false;
+        }
+
+        private static bool TryConvertJsonNumber(string value, out object? result, Type type)
+        {
+            result = default;
+
+            try
+            {
+                if (type == typeof(bool))
+                {
+                    if (TryParseDouble(value, out double @double))
+                    {
+                        result = System.Convert.ToInt64(@double) == 1;
+                        return true;
+                    }
+                }
+                else if (type == typeof(int))
+                {
+                    if (int.TryParse(value, out int @int))
+                    {
+                        result = @int;
+                        return true;
+                    }
+
+                    if (TryParseDouble(value, out double @double))
+                    {
+                        result = System.Convert.ToInt32(@double);
+                        return true;
+                    }
+                }
+                else if (type == typeof(double))
+                {
+                    if (TryParseDouble(value, out double @double))
+                    {
+                        result = @double;
+                        return true;
+                    }
+                }
+                else if (type == typeof(uint))
+                {
+                    if (uint.TryParse(value, out uint @uint))
+                    {
+                        result = @uint;
+                        return true;
+                    }
+                }
+                else if (type == typeof(short))
+                {
+                    if (short.TryParse(value, out short @short))
+                    {
+                        result = @short;
+                        return true;
+                    }
+                }
+                else if (type == typeof(byte))
+                {
+                    if (byte.TryParse(value, out byte @byte))
+                    {
+                        result = @byte;
+                        return true;
+                    }
+                }
+                else if (type == typeof(long))
+                {
+                    if (long.TryParse(value, out long @long))
+                    {
+                        result = @long;
+                        return true;
+                    }
+                }
+                else if (type == typeof(DateTime))
+                {
+                    if (long.TryParse(value, out long @long))
+                    {
+                        result = new DateTime(@long);
+                        return true;
+                    }
+
+                    if (TryParseDouble(value, out double @double))
+                    {
+                        result = DateTime.FromOADate(@double);
+                        return true;
+                    }
+                }
+            }
+            catch (OverflowException)
+            {
+                result = default;
+            }
+
+            return false;
         }
     }
 }
