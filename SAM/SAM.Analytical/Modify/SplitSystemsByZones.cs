@@ -70,7 +70,7 @@ namespace SAM.Analytical
 
                                 spaces_All.RemoveAt(index);
 
-                                Tuple<MechanicalSystemType, List<Space>> tuple = tuples.Find(x => x.Item1?.Name == mechanicalSystemType.Name);
+                                Tuple<MechanicalSystemType, List<Space>> tuple = tuples.Find(x => x.Item1?.Guid == mechanicalSystemType.Guid);
                                 if (tuple is null)
                                 {
                                     tuple = new Tuple<MechanicalSystemType, List<Space>>(mechanicalSystemType, []);

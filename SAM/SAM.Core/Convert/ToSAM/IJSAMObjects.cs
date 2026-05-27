@@ -90,7 +90,10 @@ namespace SAM.Core
             if (string.IsNullOrWhiteSpace(json))
                 return null;
 
-            JsonNode jsonNode = JsonNode.Parse(json);
+            JsonNode jsonNode;
+            try { jsonNode = JsonNode.Parse(json); }
+            catch { return null; }
+
             if (jsonNode is JsonArray jsonArray)
                 return jsonArray;
 

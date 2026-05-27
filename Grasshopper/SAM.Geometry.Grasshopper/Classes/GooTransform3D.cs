@@ -80,7 +80,7 @@ namespace SAM.Geometry.Grasshopper
             //value = Core.Query.Decompress(value);
 
             Value = Core.Create.IJSAMObject<Transform3D>(value);
-            return true;
+            return Value != null;
 
             //JObject jObject = JObject.Parse(value);
             //if (jObject == null)

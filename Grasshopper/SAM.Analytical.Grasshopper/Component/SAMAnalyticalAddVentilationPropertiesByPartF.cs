@@ -122,6 +122,9 @@ namespace SAM.Analytical.Grasshopper
                     foreach(Zone zone in zones)
                     {
                         List<Space> spaces_Zone = adjacencyCluster.GetRelatedObjects<Space>(zone);
+                        if (spaces_Zone == null || spaces_Zone.Count == 0)
+                            continue;
+
                         partFCalculator.Calculate(spaces_Zone);
 
                         adjacencyCluster = partFCalculator.AdjacencyCluster;

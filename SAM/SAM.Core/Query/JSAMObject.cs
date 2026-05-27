@@ -41,11 +41,15 @@ namespace SAM.Core
                 return constructorInfo.Invoke(new object[] { jsonObject }) as IJSAMObject;
             }
 
-            IJSAMObject result = Activator.CreateInstance(type) as IJSAMObject;
-            if (result != null && result.FromJsonObject(jsonObject))
+            try
             {
-                return result;
+                IJSAMObject result = Activator.CreateInstance(type) as IJSAMObject;
+                if (result != null && result.FromJsonObject(jsonObject))
+                {
+                    return result;
+                }
             }
+            catch { }
 
             return new JSAMObjectWrapper(jsonObject);
         }

@@ -208,6 +208,9 @@ namespace SAM.Weather
                 JsonArray dataArray = new JsonArray();
                 foreach (KeyValuePair<string, double> keyValuePair in dictionary)
                 {
+                    if (!double.IsFinite(keyValuePair.Value))
+                        continue;
+
                     JsonObject dataObject = new JsonObject
                     {
                         ["Name"] = keyValuePair.Key,
