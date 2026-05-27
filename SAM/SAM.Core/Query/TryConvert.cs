@@ -170,15 +170,6 @@ namespace SAM.Core
                     result = @double;
                     return true;
                 }
-                else if (@object is int)
-                {
-                    int @int = 0;
-                    if ((bool)@object)
-                        @int = 1;
-
-                    result = @int;
-                    return true;
-                }
             }
             else if (type_Temp == typeof(uint))
             {
@@ -265,33 +256,6 @@ namespace SAM.Core
                     return true;
                 }
             }
-            else if (type_Temp == typeof(int))
-            {
-                if (@object == null)
-                {
-                    return false;
-                }
-
-                if (@object is Type)
-                {
-                    return false;
-                }
-
-                if (@object is string)
-                {
-                    int @int;
-                    if (int.TryParse((string)@object, out @int))
-                    {
-                        result = @int;
-                        return true;
-                    }
-                }
-                else if (IsNumeric(@object))
-                {
-                    result = System.Convert.ToInt16(@object);
-                    return true;
-                }
-            }
             else if (type_Temp == typeof(long))
             {
                 if (@object == null)
@@ -315,7 +279,7 @@ namespace SAM.Core
                 }
                 else if (IsNumeric(@object))
                 {
-                    result = System.Convert.ToInt32(@object);
+                    result = System.Convert.ToInt64(@object);
                     return true;
                 }
             }
@@ -506,59 +470,6 @@ namespace SAM.Core
                     return true;
                 }
             }
-            else if (result is Enum)
-            {
-                if (@object == null)
-                    return false;
-
-                if (@object is string)
-                {
-                    string @string = (string)@object;
-
-                    Type type_Result = result.GetType();
-
-                    Array array = System.Enum.GetValues(type_Result);
-                    if (array != null)
-                    {
-                        foreach (Enum @enum in array)
-                        {
-                            if (@enum.ToString().Equals(@string))
-                            {
-                                result = @enum;
-                                return true;
-                            }
-                        }
-                    }
-
-                    int @int;
-                    if (int.TryParse(@string, out @int))
-                    {
-                        if (System.Enum.IsDefined(type_Temp, @int))
-                        {
-                            result = @int;
-                            return true;
-                        }
-                    }
-                }
-                else if (@object is int)
-                {
-                    int @int = default;
-                    if (System.Enum.IsDefined(result.GetType(), @int))
-                    {
-                        result = @int;
-                        return true;
-                    }
-                }
-                else if (IsNumeric(@object))
-                {
-                    int @int = System.Convert.ToInt32(@object);
-                    if (System.Enum.IsDefined(result.GetType(), @int))
-                    {
-                        result = @int;
-                        return true;
-                    }
-                }
-            }
             else if (type_Temp.IsEnum)
             {
                 if (@object == null)
@@ -633,6 +544,14 @@ namespace SAM.Core
 
             if (jsonValueKind == JsonValueKind.Object || jsonValueKind == JsonValueKind.Array)
             {
+                // Allow IJSAMObject deserialization from a stored JsonObject so that
+                // GetValue<T> round-trips correctly for parameters typed as IJSAMObject
+                // (e.g. AnalyticalModelParameter.SolarModel).
+                if (typeof(IJSAMObject).IsAssignableFrom(type) && jsonNode is JsonObject jsonObjectForISAM)
+                {
+                    return TryConvert((object?)jsonObjectForISAM.ToJsonString(), out result, type);
+                }
+
                 return false;
             }
 
