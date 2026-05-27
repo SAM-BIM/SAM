@@ -46,15 +46,17 @@ namespace SAM.Core
                 return default;
             }
 
-            JsonNode jsonNode = JsonNode.Parse(json);
+            JsonNode jsonNode;
+            try { jsonNode = JsonNode.Parse(json); }
+            catch { return null; }
 
-            JsonArray jsonArray = jsonNode as JsonArray;
-            if (jsonArray == null)
-            {
-                return null;
-            }
+            if (jsonNode is JsonArray jsonArray)
+                return IJSAMObjects<T>(jsonArray);
 
-            return IJSAMObjects<T>(jsonArray);
+            if (jsonNode is JsonObject jsonObject)
+                return IJSAMObjects<T>(new JsonArray(jsonObject));
+
+            return null;
         }
     }
 }

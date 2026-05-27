@@ -217,7 +217,7 @@ namespace SAM.Analytical
                 {
                     if (s == null) continue;
                     spacesByGuid[s.Guid] = s;
-                    if (!string.IsNullOrEmpty(s.Name))
+                    if (!string.IsNullOrEmpty(s.Name) && !spacesByName.ContainsKey(s.Name))
                         spacesByName[s.Name] = s;
                 }
             }
@@ -235,7 +235,7 @@ namespace SAM.Analytical
                 {
                     if (p == null) continue;
                     panelsByGuid[p.Guid] = p;
-                    if (!string.IsNullOrEmpty(p.Name))
+                    if (!string.IsNullOrEmpty(p.Name) && !panelsByName.ContainsKey(p.Name))
                         panelsByName[p.Name] = p;
                 }
             }
@@ -253,7 +253,7 @@ namespace SAM.Analytical
                 {
                     if (z == null) continue;
                     zonesByGuid[z.Guid] = z;
-                    if (!string.IsNullOrEmpty(z.Name))
+                    if (!string.IsNullOrEmpty(z.Name) && !zonesByName.ContainsKey(z.Name))
                         zonesByName[z.Name] = z;
                 }
             }
