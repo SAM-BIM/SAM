@@ -552,6 +552,11 @@ namespace SAM.Core
                     return TryConvert((object?)jsonObjectForISAM.ToJsonString(), out result, type);
                 }
 
+                if (jsonNode is JsonArray jsonArray && TryConvertJsonArray(jsonArray, out result, type))
+                {
+                    return true;
+                }
+
                 return false;
             }
 
@@ -571,6 +576,88 @@ namespace SAM.Core
             }
 
             return false;
+        }
+
+        private static bool TryConvertJsonArray(JsonArray jsonArray, out object? result, Type type)
+        {
+            result = default;
+
+            Type? elementType = GetEnumerableElementType(type);
+            if (elementType == null || !typeof(IJSAMObject).IsAssignableFrom(elementType))
+            {
+                return false;
+            }
+
+            IList list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+            foreach (JsonNode? itemNode in jsonArray)
+            {
+                // Mirror the object branch: each element is round-tripped through the
+                // string -> IJSAMObject path rather than re-parsing the JsonObject inline.
+                if (!(itemNode is JsonObject itemObject))
+                {
+                    return false;
+                }
+
+                if (!TryConvert((object?)itemObject.ToJsonString(), out object? item, elementType) || item == null)
+                {
+                    return false;
+                }
+
+                list.Add(item);
+            }
+
+            if (type.IsArray)
+            {
+                System.Array array = System.Array.CreateInstance(elementType, list.Count);
+                list.CopyTo(array, 0);
+                result = array;
+                return true;
+            }
+
+            if (type.IsAssignableFrom(list.GetType()))
+            {
+                result = list;
+                return true;
+            }
+
+            try
+            {
+                result = Activator.CreateInstance(type, list);
+                return result != null;
+            }
+            catch (MissingMethodException)
+            {
+                result = default;
+                return false;
+            }
+        }
+
+        private static Type? GetEnumerableElementType(Type type)
+        {
+            if (type == typeof(string))
+            {
+                return null;
+            }
+
+            if (type.IsArray)
+            {
+                return type.GetElementType();
+            }
+
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            {
+                return type.GetGenericArguments()[0];
+            }
+
+            foreach (Type interfaceType in type.GetInterfaces())
+            {
+                if (interfaceType.IsGenericType && interfaceType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                {
+                    return interfaceType.GetGenericArguments()[0];
+                }
+            }
+
+            return null;
         }
 
         private static bool TryConvertJsonNumber(string value, out object? result, Type type)
