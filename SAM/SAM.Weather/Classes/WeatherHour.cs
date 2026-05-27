@@ -208,7 +208,7 @@ namespace SAM.Weather
                 JsonArray dataArray = new JsonArray();
                 foreach (KeyValuePair<string, double> keyValuePair in dictionary)
                 {
-                    if (!double.IsFinite(keyValuePair.Value))
+                    if (double.IsNaN(keyValuePair.Value) || double.IsInfinity(keyValuePair.Value))
                         continue;
 
                     JsonObject dataObject = new JsonObject
