@@ -282,17 +282,14 @@ namespace SAM.Core
                 return false;
             }
 
-            Guid guid = Guid.Empty;
-            if (@object is IGuidObject guidObject)
+            if (@object is IGuidObject guidObject && dictionary.ContainsKey(guidObject.Guid))
             {
-                guid = guidObject.Guid;
+                return true;
             }
 
-            if (guid != Guid.Empty)
-            {
-                return dictionary.ContainsKey(guid);
-            }
-
+            // Fallback equality scan — also rescues legacy clusters where an
+            // IGuidObject (e.g. LinkedFace3D, pre-IGuidObject fix) was stored
+            // under a generated key rather than its own Guid.
             foreach (KeyValuePair<Guid, X> keyValuePair in dictionary)
             {
                 if (@object.Equals(keyValuePair.Value))
@@ -488,18 +485,15 @@ namespace SAM.Core
             if (dictionary == null)
                 return Guid.Empty;
 
-            if (@object is IGuidObject guidObject)
-            {
-                Guid guid = guidObject.Guid;
-                if (dictionary.ContainsKey(guid))
-                    return guid;
-            }
-            else
-            {
-                foreach (KeyValuePair<Guid, X> keyValuePair in dictionary)
-                    if (@object.Equals(keyValuePair.Value))
-                        return keyValuePair.Key;
-            }
+            if (@object is IGuidObject guidObject && dictionary.ContainsKey(guidObject.Guid))
+                return guidObject.Guid;
+
+            // Fallback equality scan — also rescues legacy clusters where an
+            // IGuidObject (e.g. LinkedFace3D, pre-IGuidObject fix) was stored
+            // under a generated key rather than its own Guid.
+            foreach (KeyValuePair<Guid, X> keyValuePair in dictionary)
+                if (@object.Equals(keyValuePair.Value))
+                    return keyValuePair.Key;
 
             return Guid.Empty;
         }
@@ -1589,9 +1583,12 @@ namespace SAM.Core
             }
 
             guid = Guid.Empty;
-            if (@object is IGuidObject guidObject)
+            if (@object is IGuidObject guidObject && dictionary.ContainsKey(guidObject.Guid))
                 guid = guidObject.Guid;
 
+            // Fallback equality scan — also rescues legacy clusters where an
+            // IGuidObject (e.g. LinkedFace3D, pre-IGuidObject fix) was stored
+            // under a generated key rather than its own Guid.
             if (guid == Guid.Empty)
             {
                 foreach (KeyValuePair<Guid, X> keyValuePair in dictionary)

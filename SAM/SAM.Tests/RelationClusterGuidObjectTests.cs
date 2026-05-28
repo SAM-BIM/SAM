@@ -24,6 +24,16 @@ namespace SAM.Tests
             public bool FromJsonObject(JsonObject? jsonObject) => false;
         }
 
+        // Simulates a legacy cluster where the dictionary key and the object's
+        // own Guid have diverged (pre-IGuidObject saves stored LinkedFace3D
+        // under Guid.NewGuid() while the object's own Guid was its true id).
+        private sealed class MutableGuidObjectStub : IGuidObject
+        {
+            public Guid Guid { get; set; }
+            public JsonObject? ToJsonObject() => null;
+            public bool FromJsonObject(JsonObject? jsonObject) => false;
+        }
+
         private sealed class SAMObjectStub : ISAMObject
         {
             public SAMObjectStub(Guid guid, string name) { Guid = guid; Name = name; }
@@ -93,6 +103,26 @@ namespace SAM.Tests
             Assert.Equal(guid, removed);
             Assert.False(cluster.Contains(@object));
             Assert.Null(cluster.GetObject<GuidObjectStub>(guid));
+        }
+
+        [Fact]
+        public void Contains_LegacyStoredKey_FallsBackToEqualityScan()
+        {
+            // Object is stored under guidA, then its own Guid diverges to guidB
+            // (mirroring a pre-IGuidObject cluster loaded from JSON). The fix
+            // must still find the object via equality scan.
+            Guid guidA = Guid.NewGuid();
+            Guid guidB = Guid.NewGuid();
+            MutableGuidObjectStub @object = new MutableGuidObjectStub { Guid = guidA };
+            RelationCluster<IJSAMObject> cluster = new RelationCluster<IJSAMObject>();
+            cluster.AddObject(@object);
+
+            @object.Guid = guidB;
+
+            Assert.True(cluster.Contains(@object));
+            Assert.Equal(guidA, cluster.GetGuid(@object));
+            Assert.True(cluster.TryRemoveObject(@object, out _, out Guid removed));
+            Assert.Equal(guidA, removed);
         }
 
         [Fact]
