@@ -283,9 +283,9 @@ namespace SAM.Core
             }
 
             Guid guid = Guid.Empty;
-            if (@object is ISAMObject)
+            if (@object is IGuidObject guidObject)
             {
-                guid = ((ISAMObject)@object).Guid;
+                guid = guidObject.Guid;
             }
 
             if (guid != Guid.Empty)
@@ -488,9 +488,9 @@ namespace SAM.Core
             if (dictionary == null)
                 return Guid.Empty;
 
-            if (@object is ISAMObject)
+            if (@object is IGuidObject guidObject)
             {
-                Guid guid = ((ISAMObject)@object).Guid;
+                Guid guid = guidObject.Guid;
                 if (dictionary.ContainsKey(guid))
                     return guid;
             }
@@ -1437,8 +1437,8 @@ namespace SAM.Core
             }
 
             guid = Guid.Empty;
-            if (@object is ISAMObject)
-                guid = ((ISAMObject)@object).Guid;
+            if (@object is IGuidObject guidObject)
+                guid = guidObject.Guid;
 
             if (guid == Guid.Empty)
             {
@@ -1589,8 +1589,8 @@ namespace SAM.Core
             }
 
             guid = Guid.Empty;
-            if (@object is ISAMObject)
-                guid = ((ISAMObject)@object).Guid;
+            if (@object is IGuidObject guidObject)
+                guid = guidObject.Guid;
 
             if (guid == Guid.Empty)
             {
