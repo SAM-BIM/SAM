@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.9";
+        public override string LatestComponentVersion => "1.0.10";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -67,6 +67,7 @@ namespace SAM.Analytical.Grasshopper
 
                 param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_saveWeatherData_", NickName = "_saveWeatherData_", Description = "Save WeatherData, Design Days for Cooling and Design Days for Heating", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(false);
+                result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new GooAdjacencyClusterParam() { Name = "_adjacencyCluster", NickName = "_adjacencyCluster", Description = "SAM Adjacency Cluster", Access = GH_ParamAccess.item, Optional = false }, ParamVisibility.Binding));
 
