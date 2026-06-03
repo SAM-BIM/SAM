@@ -27,7 +27,7 @@ namespace SAM.Core
         {
             text = null;
 
-            ISAMObject sAMObject = jSAMObject as ISAMObject;
+            IGuidObject sAMObject = jSAMObject as IGuidObject;
             if (sAMObject == null)
             {
                 return false;

@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
-    public class LinkedFace3D : Core.IJSAMObject, IFace3DObject
+    public class LinkedFace3D : Core.IGuidObject, IFace3DObject
     {
         private Guid guid;
         private BoundingBox3D boundingBox3D;
