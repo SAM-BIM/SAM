@@ -372,6 +372,41 @@ namespace SAM.Analytical
             return true;
         }
 
+        /// <summary>
+        /// Attaches <paramref name="result"/> and relates it to <paramref name="object"/>, registering
+        /// the object in the cluster first if needed. Unlike the Guid overload — which only relates when
+        /// the object is ALREADY a top-level cluster object — this works for nested objects such as
+        /// <see cref="Aperture"/> (which live inside Panels and are not registered by default), so their
+        /// results become readable back via <see cref="GetResults{T}(IJSAMObject)"/>. Mirrors the
+        /// register-then-relate pattern used by the TAS import (SAM.Analytical.Tas.Modify.CopyResults).
+        /// </summary>
+        public bool AddResult<T>(IResult result, T @object) where T : IJSAMObject
+        {
+            IResult result_Temp = result?.Clone();
+            if (result_Temp == null)
+            {
+                return false;
+            }
+
+            if (adjacencyCluster == null)
+            {
+                adjacencyCluster = new AdjacencyCluster();
+            }
+
+            if (!adjacencyCluster.AddObject(result_Temp))
+            {
+                return false;
+            }
+
+            if (@object != null)
+            {
+                adjacencyCluster.AddObject(@object);
+                adjacencyCluster.AddRelation(result_Temp, @object);
+            }
+
+            return true;
+        }
+
         public bool AddResult(AnalyticalModelSimulationResult analyticalModelSimulationResult)
         {
             AnalyticalModelSimulationResult analyticalModelSimulationResult_Temp = analyticalModelSimulationResult?.Clone();
