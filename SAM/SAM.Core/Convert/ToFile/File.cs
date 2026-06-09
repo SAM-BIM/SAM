@@ -91,7 +91,7 @@ namespace SAM.Core
 
         private static bool ToFile_SAM(this IEnumerable<IJSAMObject> jSAMObjects, string path)
         {
-            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(Path.GetDirectoryName(path)))
+            if (jSAMObjects == null || string.IsNullOrWhiteSpace(path) || !Directory.Exists(Path.GetDirectoryName(path)))
                 return false;
 
             using (MemoryStream memoryStream = new MemoryStream())
@@ -101,13 +101,12 @@ namespace SAM.Core
                     ZipArchiveEntry zipArchiveEntry = null;
 
                     ZipArchiveInfo zipArchiveInfo = new ZipArchiveInfo();
+                    int count = 0;
 
                     JsonSerializerOptions jsonSerializerOptions = SerializerOptions(Formatting.None);
 
                     foreach (IJSAMObject jSAMObject in jSAMObjects)
                     {
-                        zipArchiveEntry = zipArchive.CreateEntry(zipArchiveInfo.NewGuid().ToString());
-
                         JsonObject jsonObject = jSAMObject?.ToJsonObject();
                         if (jsonObject == null)
                         {
@@ -120,6 +119,7 @@ namespace SAM.Core
                             continue;
                         }
 
+                        zipArchiveEntry = zipArchive.CreateEntry(zipArchiveInfo.NewGuid().ToString());
                         using (Stream stream = zipArchiveEntry.Open())
                         {
                             using (StreamWriter streamWriter = new StreamWriter(stream))
@@ -127,6 +127,13 @@ namespace SAM.Core
                                 streamWriter.Write(json);
                             }
                         }
+
+                        count++;
+                    }
+
+                    if (count == 0)
+                    {
+                        return false;
                     }
 
                     zipArchiveEntry = zipArchive.CreateEntry(ZipArchiveInfo.EntryName);
