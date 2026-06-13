@@ -55,6 +55,15 @@ namespace SAM.Geometry.Planar
 
             solver2DDatas.Sort((x, y) => x.Priority.CompareTo(y.Priority));
 
+            // Spatial index over already-placed rectangles. Without it Solve() is ~O(N^2): every one of
+            // the up-to IterationCount*8 candidate positions per label linearly scans every previously
+            // placed label (see intersect), which is ~150 s on a ~10k-label floor plan. The grid returns
+            // a superset of potential overlaps - all placed rectangles whose cells the candidate's
+            // bounding box touches, plus a one-cell halo - and the exact InRange test in intersect is
+            // unchanged, so placement results are identical to the linear scan. Built only above a size
+            // threshold so small inputs (e.g. Mollier chart labels) keep the original path byte-for-byte.
+            RectangleGrid grid = solver2DDatas.Count > 256 ? RectangleGrid.Create(solver2DDatas) : null;
+
             foreach (Solver2DData solver2DData in solver2DDatas)
             {
                 Rectangle2D rectangle2D = solver2DData.Closed2D<Rectangle2D>();
@@ -81,7 +90,7 @@ namespace SAM.Geometry.Planar
                             Vector2D scaledOffset = offset * (solver2DSettings.StartingDistance + (i * solver2DSettings.ShiftDistance));
                             Rectangle2D rectangleTemp = rectangle2DWithGivenPointInCenter.GetMoved(scaledOffset);
 
-                            if (area.Inside(rectangleTemp) && !intersect(rectangleTemp, result))
+                            if (area.Inside(rectangleTemp) && !intersect(rectangleTemp, result, grid))
                             {
                                 if (solver2DSettings.LimitArea != null && !solver2DSettings.LimitArea.Inside(rectangleTemp.GetCentroid()))
                                 {
@@ -125,7 +134,7 @@ namespace SAM.Geometry.Planar
                             Rectangle2D rectangleTemp = fix(Query.MoveToSegment2D(rectangle2D, segment, newPoint, distanceToCenter, clockwise), rectangle2D);
 
 
-                            if (area.Inside(rectangleTemp) && !intersect(rectangleTemp, result))
+                            if (area.Inside(rectangleTemp) && !intersect(rectangleTemp, result, grid))
                             {
                                 if (solver2DSettings.LimitArea != null && !solver2DSettings.LimitArea.Inside(rectangleTemp.GetCentroid()))
                                 {
@@ -143,6 +152,13 @@ namespace SAM.Geometry.Planar
                 }
 
                 result.Add(new Solver2DResult(solver2DData, resultRectangle2D));
+
+                // Mirror the placed rectangle into the spatial index for subsequent labels' overlap
+                // tests. Unplaced labels (null) carry no footprint, exactly as the linear scan treats them.
+                if (grid != null && resultRectangle2D != null)
+                {
+                    grid.Add(resultRectangle2D);
+                }
             }
 
             return result;
@@ -216,11 +232,136 @@ namespace SAM.Geometry.Planar
             Rectangle2D result = new Rectangle2D(calculatedRectangle.Origin, -calculatedRectangle.Height, calculatedRectangle.Width, calculatedRectangle.WidthDirection);
             return result;
         }
-        private bool intersect(Rectangle2D rectangle2D, List<Solver2DResult> solver2DResults)
+        private bool intersect(Rectangle2D rectangle2D, List<Solver2DResult> solver2DResults, RectangleGrid grid)
         {
-            return (obstacles2D.Find(x => x.InRange(rectangle2D) == true) != null) ||
-                    (solver2DResults.Find(x => x.Closed2D<Rectangle2D>().InRange(rectangle2D) == true) != null) ||
+            if (obstacles2D.Find(x => x.InRange(rectangle2D) == true) != null)
+            {
+                return true;
+            }
+
+            if (grid != null)
+            {
+                // Only the placed rectangles near rectangle2D can overlap it; the grid yields that set
+                // and the InRange test below is the same as the linear path, so the outcome is identical.
+                foreach (Rectangle2D placed in grid.Query(rectangle2D))
+                {
+                    if (placed.InRange(rectangle2D) == true || rectangle2D.InRange(placed) == true)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            return (solver2DResults.Find(x => x.Closed2D<Rectangle2D>().InRange(rectangle2D) == true) != null) ||
                     (solver2DResults.Find(x => rectangle2D.InRange(x.Closed2D<Rectangle2D>()) == true) != null);
+        }
+
+        // Uniform-grid spatial index over placed label rectangles, keyed by their (tolerance-expanded)
+        // bounding-box cells. A rectangle is inserted into every cell its box overlaps; a query returns
+        // every rectangle in the cells the query box overlaps plus a one-cell halo. Two rectangles can
+        // only be InRange if their boxes overlap (within tolerance), so an overlapping pair always shares
+        // a queried cell - the index never drops a real overlap, only skips the far-apart ones the linear
+        // scan would have tested and rejected. Cell size only affects speed, not correctness.
+        private sealed class RectangleGrid
+        {
+            private readonly double cellSize;
+            private readonly Dictionary<long, List<Rectangle2D>> cells = new Dictionary<long, List<Rectangle2D>>();
+
+            private RectangleGrid(double cellSize)
+            {
+                this.cellSize = cellSize;
+            }
+
+            public static RectangleGrid Create(List<Solver2DData> solver2DDatas)
+            {
+                double maxDimension = 0;
+                foreach (Solver2DData solver2DData in solver2DDatas)
+                {
+                    Rectangle2D rectangle2D = solver2DData?.Closed2D<Rectangle2D>();
+                    BoundingBox2D boundingBox2D = rectangle2D?.GetBoundingBox();
+                    if (boundingBox2D == null)
+                    {
+                        continue;
+                    }
+
+                    maxDimension = System.Math.Max(maxDimension, System.Math.Max(boundingBox2D.Width, boundingBox2D.Height));
+                }
+
+                // No usable footprint to size the grid by - let the caller fall back to the linear scan.
+                return maxDimension > Core.Tolerance.Distance ? new RectangleGrid(maxDimension) : null;
+            }
+
+            public void Add(Rectangle2D rectangle2D)
+            {
+                if (!range(rectangle2D, out long minX, out long minY, out long maxX, out long maxY))
+                {
+                    return;
+                }
+
+                for (long x = minX; x <= maxX; x++)
+                {
+                    for (long y = minY; y <= maxY; y++)
+                    {
+                        long key = (x << 32) ^ (y & 0xffffffffL);
+                        if (!cells.TryGetValue(key, out List<Rectangle2D> list))
+                        {
+                            list = new List<Rectangle2D>();
+                            cells[key] = list;
+                        }
+
+                        list.Add(rectangle2D);
+                    }
+                }
+            }
+
+            public IEnumerable<Rectangle2D> Query(Rectangle2D rectangle2D)
+            {
+                if (!range(rectangle2D, out long minX, out long minY, out long maxX, out long maxY))
+                {
+                    yield break;
+                }
+
+                HashSet<Rectangle2D> seen = new HashSet<Rectangle2D>();
+
+                // One-cell halo: absorbs the InRange tolerance and any box that straddles a cell border.
+                for (long x = minX - 1; x <= maxX + 1; x++)
+                {
+                    for (long y = minY - 1; y <= maxY + 1; y++)
+                    {
+                        if (cells.TryGetValue((x << 32) ^ (y & 0xffffffffL), out List<Rectangle2D> list))
+                        {
+                            foreach (Rectangle2D placed in list)
+                            {
+                                if (seen.Add(placed))
+                                {
+                                    yield return placed;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            private bool range(Rectangle2D rectangle2D, out long minX, out long minY, out long maxX, out long maxY)
+            {
+                minX = minY = maxX = maxY = 0;
+
+                BoundingBox2D boundingBox2D = rectangle2D?.GetBoundingBox(Core.Tolerance.Distance);
+                if (boundingBox2D == null)
+                {
+                    return false;
+                }
+
+                Point2D min = boundingBox2D.Min;
+                Point2D max = boundingBox2D.Max;
+                minX = (long)System.Math.Floor(min.X / cellSize);
+                minY = (long)System.Math.Floor(min.Y / cellSize);
+                maxX = (long)System.Math.Floor(max.X / cellSize);
+                maxY = (long)System.Math.Floor(max.Y / cellSize);
+                return true;
+            }
         }
 
     }
