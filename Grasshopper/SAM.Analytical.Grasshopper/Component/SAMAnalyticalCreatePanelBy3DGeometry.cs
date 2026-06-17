@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.3";
+        public override string LatestComponentVersion => "1.0.4";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -48,7 +48,13 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "3Dgeometry_", NickName = "3Dgeometry_", Description = "3D Geometry", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new Param_String() { Name = "panelType_", NickName = "panelType_", Description = "SAM Analytical PanelType", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction_", NickName = "construction_", Description = "SAM Analytical Construction", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Boolean() { Name = "simplify_", NickName = "simplify_", Description = "Simplify", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+
+                Param_Boolean param_Boolean;
+
+                param_Boolean = new Param_Boolean() { Name = "simplify_", NickName = "simplify_", Description = "Simplify", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean.SetPersistentData(true);
+
+                result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
                 Param_Number param_Number;
 
