@@ -731,7 +731,7 @@ OUTPUTS
             return false;
         }
 
-        /// <summary>Normalise angle to [0, 359].</summary>
+        /// <summary>Normalise angle to [0, 360). Fractions are preserved (e.g. 359.98 stays 359.98).</summary>
         private static double NormalizeAngleDegrees(double angleDeg)
         {
             if (double.IsNaN(angleDeg) || double.IsInfinity(angleDeg)) return double.NaN;
@@ -740,7 +740,7 @@ OUTPUTS
             return (a >= 360.0) ? 359.0 : a;
         }
 
-        /// <summary>Clamp arbitrary double to [0, 359] while preserving values in that range.</summary>
+        /// <summary>Clamp arbitrary double into [0, 360) while preserving fractional values in that range.</summary>
         private static double ClampTo360(double v)
         {
             if (double.IsNaN(v)) return 0.0;
