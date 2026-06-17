@@ -5,6 +5,7 @@ using Grasshopper.Kernel;
 using SAM.Analytical.Grasshopper.Properties;
 using SAM.Core;
 using SAM.Core.Grasshopper;
+using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,12 +17,12 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.
         /// </summary>
-        public override Guid ComponentGuid => new Guid("c8a0fb53-360b-4ab7-be97-49336b516847");
+        public override Guid ComponentGuid => new ("c8a0fb53-360b-4ab7-be97-49336b516847");
 
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.5";
+        public override string LatestComponentVersion => "1.0.6";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -48,24 +49,24 @@ namespace SAM.Analytical.Grasshopper
         {
             get
             {
-                List<GH_SAMParam> result = new List<GH_SAMParam>();
+                List<GH_SAMParam> result = [];
 
                 GooAnalyticalObjectParam gooAnalyticalObjectParam = new GooAnalyticalObjectParam() { Name = "_analyticals", NickName = "_analyticals", Description = "SAM Analytical Object \nAnalytical Model, Adjacency Cluster, Panels or Spaces", Access = GH_ParamAccess.list };
                 gooAnalyticalObjectParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gooAnalyticalObjectParam, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Brep() { Name = "_brep", NickName = "_brep", Description = "Brep", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Brep() { Name = "_breps", NickName = "_breps", Description = "Breps", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_insideOnly_", NickName = "_insideOnly_", Description = "Inside Only\nif True only fully inside element will be return", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = new() { Name = "_insideOnly_", NickName = "_insideOnly_", Description = "Inside Only\nif True only fully inside element will be return", Access = GH_ParamAccess.item };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Number paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_tolerance_", NickName = "_tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Number paramNumber = new() { Name = "_tolerance_", NickName = "_tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Tolerance.Distance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
 
-                return result.ToArray();
+                return [.. result];
             }
         }
 
@@ -76,10 +77,12 @@ namespace SAM.Analytical.Grasshopper
         {
             get
             {
-                List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "In", NickName = "In", Description = "SAM Analytical Objects In - Panels or Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Out", NickName = "Out", Description = "SAM Analytical Objects Out", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                return result.ToArray();
+                List<GH_SAMParam> result =
+                [
+                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "In", NickName = "In", Description = "SAM Analytical Objects In - Panels or Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
+                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Out", NickName = "Out", Description = "SAM Analytical Objects Out", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
+                ];
+                return [.. result];
             }
         }
 
@@ -97,19 +100,21 @@ namespace SAM.Analytical.Grasshopper
             int index_Out = Params.IndexOfOutputParam("Out");
 
             index = Params.IndexOfInputParam("_analyticals");
-            List<IAnalyticalObject> analyticalObjects = new List<IAnalyticalObject>();
+            List<IAnalyticalObject> analyticalObjects = [];
             if (index == -1 || !dataAccess.GetDataList(index, analyticalObjects))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
             }
 
-            index = Params.IndexOfInputParam("_brep");
-            global::Rhino.Geometry.Brep brep = null;
-            if (index == -1 || !dataAccess.GetData(index, ref brep))
+            index = Params.IndexOfInputParam("_breps");
+            List<global::Rhino.Geometry.Brep> breps = [];
+            if (index == -1 || !dataAccess.GetDataList(index, breps))
             {
                 if (index_In != -1)
+                {
                     dataAccess.SetDataList(index_In, analyticalObjects);
+                }
 
                 return;
             }
@@ -130,27 +135,38 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
-            Geometry.Spatial.Shell shell = Geometry.Rhino.Convert.ToSAM_Shell(brep, true);
-            if (shell == null)
+            List<Shell> shells = [];
+            foreach(global::Rhino.Geometry.Brep brep in breps)
+            {
+                Shell shell = Geometry.Rhino.Convert.ToSAM_Shell(brep, true);
+                if(shell is null)
+                {
+                    continue;
+                }
+
+                shells.Add(shell);
+            }
+
+            if (shells == null || shells.Count == 0)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
                 return;
             }
 
-            List<Panel> panels = analyticalObjects.FindAll(x => x is Panel).Cast<Panel>().ToList();
-            List<Space> spaces = analyticalObjects.FindAll(x => x is Space).Cast<Space>().ToList();
+            List<Panel> panels = [.. analyticalObjects.FindAll(x => x is Panel).Cast<Panel>()];
+            List<Space> spaces = [.. analyticalObjects.FindAll(x => x is Space).Cast<Space>()];
 
-            List<AdjacencyCluster> adjacencyClusters = new List<AdjacencyCluster>();
+            List<AdjacencyCluster> adjacencyClusters = [];
             foreach (IAnalyticalObject analyticalObject in analyticalObjects)
             {
                 List<Panel> panels_Temp = null;
-                if (analyticalObject is AdjacencyCluster)
+                if (analyticalObject is AdjacencyCluster adjacencyCluster)
                 {
-                    panels_Temp = ((AdjacencyCluster)analyticalObject).GetPanels();
+                    panels_Temp = adjacencyCluster.GetPanels();
                 }
-                else if (analyticalObject is AnalyticalModel)
+                else if (analyticalObject is AnalyticalModel analyticalModel)
                 {
-                    panels_Temp = ((AnalyticalModel)analyticalObject).GetPanels();
+                    panels_Temp = analyticalModel.GetPanels();
                 }
 
                 if (panels_Temp == null || panels_Temp.Count == 0)
@@ -160,22 +176,29 @@ namespace SAM.Analytical.Grasshopper
 
                 if (panels == null)
                 {
-                    panels = new List<Panel>();
+                    panels = [];
                 }
 
                 panels.AddRange(panels_Temp);
             }
 
-            List<IAnalyticalObject> analyticalObjects_Result = new List<IAnalyticalObject>();
-            if (insideOnly)
+            List<IAnalyticalObject> analyticalObjects_Result = [];
+
+            foreach (Shell shell in shells)
             {
-                analyticalObjects_Result.AddRange(Geometry.Object.Spatial.Query.Inside(shell, panels, Tolerance.MacroDistance, tolerance));
-                analyticalObjects_Result.AddRange(Analytical.Query.Inside(spaces, shell, Tolerance.MacroDistance, tolerance));
-            }
-            else
-            {
-                analyticalObjects_Result.AddRange(Geometry.Object.Spatial.Query.InRange(shell, panels, tolerance));
-                analyticalObjects_Result.AddRange(Analytical.Query.InRange(spaces, shell, tolerance));
+                List<Panel> panels_Temp = insideOnly ? Geometry.Object.Spatial.Query.Inside(shell, panels, Tolerance.MacroDistance, tolerance) : Geometry.Object.Spatial.Query.InRange(shell, panels, tolerance);
+                if (panels_Temp is not null && panels_Temp.Count > 0)
+                {
+                    panels.RemoveAll(panels_Temp.Contains);
+                    analyticalObjects_Result.AddRange(panels_Temp);
+                }
+
+                List<Space> spaces_Temp = insideOnly ? Analytical.Query.Inside(spaces, shell, Tolerance.MacroDistance, tolerance) : Analytical.Query.InRange(spaces, shell, tolerance);
+                if (spaces_Temp is not null && spaces_Temp.Count > 0)
+                {
+                    spaces.RemoveAll(spaces_Temp.Contains);
+                    analyticalObjects_Result.AddRange(spaces_Temp);
+                }
             }
 
             if (index_In != -1)
