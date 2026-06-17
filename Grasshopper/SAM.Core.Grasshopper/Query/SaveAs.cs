@@ -24,7 +24,7 @@ namespace SAM.Core.Grasshopper
             string path = null;
             using (SaveFileDialog saveFileDialog = new SaveFileDialog())
             {
-                saveFileDialog.Filter = "json files (*.json)|*.json|All files (*.*)|*.*";
+                saveFileDialog.Filter = "json files (*.json)|*.json|SAM files (*.sam)|*.sam|All files (*.*)|*.*";
                 saveFileDialog.FilterIndex = 1;
                 saveFileDialog.RestoreDirectory = true;
                 if (saveFileDialog.ShowDialog() != DialogResult.OK)
@@ -39,7 +39,14 @@ namespace SAM.Core.Grasshopper
                 return false;
             }
 
-            return Core.Convert.ToFile(jSAMObjects, path);
+            SAMFileType sAMFileType = Core.Query.SAMFileType(path);
+            if(sAMFileType == SAMFileType.Undefined)
+            {
+                sAMFileType = SAMFileType.Json;
+            }
+
+
+            return Core.Convert.ToFile(jSAMObjects, path, sAMFileType);
         }
     }
 }
