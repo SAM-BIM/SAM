@@ -97,7 +97,7 @@ namespace SAM.Analytical.Grasshopper
     public class SAMAnalyticalAddAperturesByAzimuths : GH_SAMVariableOutputParameterComponent
     {
         public override Guid ComponentGuid => new("84d34834-8ce0-42cb-a3de-7366337bac4a");
-        public override string LatestComponentVersion => "1.0.10";
+        public override string LatestComponentVersion => "1.0.11";
         protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -713,6 +713,9 @@ OUTPUTS
             out ApertureConstruction apertureConstruction)
         {
             double azimuthDeg_Round = System.Math.Round(azimuthDeg, MidpointRounding.ToEven);
+            // Rounding can push values just below 360 (e.g. 359.98) up to 360, which falls
+            // outside the wrap-split intervals (316→359 & 0→44). Wrap back since 0° ≡ 360°.
+            if (azimuthDeg_Round >= 360.0) azimuthDeg_Round -= 360.0;
             apertureConstruction = null;
             ratio = 0.0;
 
