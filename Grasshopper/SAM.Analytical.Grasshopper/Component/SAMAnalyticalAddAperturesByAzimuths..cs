@@ -681,7 +681,7 @@ OUTPUTS
                 ApertureConstruction apertureConstruction =
                     (apertureConstructions == null || apertureConstructions.Count == 0)
                         ? null
-                        : apertureConstructions[System.Math.Min(i, ratios.Count - 1)];
+                        : apertureConstructions[System.Math.Min(i, apertureConstructions.Count - 1)];
 
                 // Normalize inputs to [0, 359] where sensible
                 double a = ClampTo360(interval.T0);
