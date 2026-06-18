@@ -370,7 +370,7 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
-            if (typeof(Y) == typeof(GH_Line))
+            if (typeof(Y).IsAssignableFrom(typeof(GH_Line)))
             {
                 if (Value is Segment3D)
                 {
@@ -388,7 +388,7 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
-            if (typeof(Y) == typeof(GH_Curve))
+            if (typeof(Y).IsAssignableFrom(typeof(GH_Curve)))
             {
                 if (Value is Segment3D)
                 {
@@ -532,7 +532,7 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
-            if (typeof(Y) == typeof(GH_Surface))
+            if (typeof(Y).IsAssignableFrom(typeof(GH_Surface)))
             {
                 if (Value is Face3D)
                 {
