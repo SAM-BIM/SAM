@@ -68,7 +68,16 @@ namespace SAM.Geometry.Planar
                 return false;
             }
 
-            NetTopologySuite.Geometries.Geometry geometry = Convert.ToNTS(face2D, tolerance);
+            NetTopologySuite.Geometries.Geometry geometry;
+            try
+            {
+                geometry = Convert.ToNTS(face2D, tolerance);
+            }
+            catch
+            {
+                geometry = null;
+            }
+
             if (geometry == null)
             {
                 reason = "Geometry could not be converted to NetTopologySuite.";
@@ -107,7 +116,16 @@ namespace SAM.Geometry.Planar
                 return false;
             }
 
-            NetTopologySuite.Geometries.Geometry geometry = Convert.ToNTS_Polygon(polygon2D, tolerance);
+            NetTopologySuite.Geometries.Geometry geometry;
+            try
+            {
+                geometry = Convert.ToNTS_Polygon(polygon2D, tolerance);
+            }
+            catch
+            {
+                geometry = null;
+            }
+
             if (geometry == null)
             {
                 reason = "Geometry could not be converted to NetTopologySuite.";

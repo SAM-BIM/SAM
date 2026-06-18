@@ -40,7 +40,11 @@ namespace SAM.Geometry.Planar
         /// </summary>
         /// <param name="face2D">Face2D to repair.</param>
         /// <param name="tolerance">Tolerance used when converting to and from NetTopologySuite.</param>
-        /// <returns>A repaired Face2D, or null when the input is null or cannot be repaired.</returns>
+        /// <returns>
+        /// A repaired Face2D; the original face unchanged when it is already valid or cannot be
+        /// represented in NetTopologySuite (e.g. curved edges); or null when the input is null or
+        /// is invalid and cannot be repaired.
+        /// </returns>
         public static Face2D Fix(this Face2D face2D, double tolerance = Core.Tolerance.MicroDistance)
         {
             if (face2D == null)
@@ -48,12 +52,16 @@ namespace SAM.Geometry.Planar
                 return null;
             }
 
-            if (face2D.IsValidTopologically(tolerance))
+            NetTopologySuite.Geometries.Geometry geometry = ToNTS(face2D, tolerance);
+
+            // Cannot be represented in NetTopologySuite (e.g. curved edges) -> nothing to repair,
+            // so preserve the face rather than dropping it.
+            if (geometry == null || geometry.IsValid)
             {
                 return face2D;
             }
 
-            List<Face2D> face2Ds = FixToFace2Ds(face2D, tolerance);
+            List<Face2D> face2Ds = FixToFace2Ds(geometry, tolerance);
             if (face2Ds == null || face2Ds.Count == 0)
             {
                 return null;
@@ -78,7 +86,9 @@ namespace SAM.Geometry.Planar
         /// Repairs each <see cref="Face2D"/> in a collection, keeping every face produced by the
         /// repair. A self-intersecting "bowtie", for example, is split into the two valid faces it
         /// describes rather than being collapsed or discarded, so no area is silently lost.
-        /// Already-valid faces are passed through unchanged; faces that cannot be repaired are dropped.
+        /// Already-valid faces, and faces that cannot be represented in NetTopologySuite (e.g.
+        /// curved edges), are passed through unchanged; only faces that are invalid and cannot be
+        /// repaired are dropped.
         /// </summary>
         /// <param name="face2Ds">Faces to repair.</param>
         /// <param name="tolerance">Tolerance used when converting to and from NetTopologySuite.</param>
@@ -98,13 +108,17 @@ namespace SAM.Geometry.Planar
                     continue;
                 }
 
-                if (face2D.IsValidTopologically(tolerance))
+                NetTopologySuite.Geometries.Geometry geometry = ToNTS(face2D, tolerance);
+
+                // Cannot be represented in NetTopologySuite (e.g. curved edges) or already valid
+                // -> preserve the face rather than dropping it.
+                if (geometry == null || geometry.IsValid)
                 {
                     result.Add(face2D);
                     continue;
                 }
 
-                List<Face2D> face2Ds_Fixed = FixToFace2Ds(face2D, tolerance);
+                List<Face2D> face2Ds_Fixed = FixToFace2Ds(geometry, tolerance);
                 if (face2Ds_Fixed != null)
                 {
                     result.AddRange(face2Ds_Fixed);
@@ -114,9 +128,20 @@ namespace SAM.Geometry.Planar
             return result;
         }
 
-        private static List<Face2D> FixToFace2Ds(Face2D face2D, double tolerance)
+        private static NetTopologySuite.Geometries.Geometry ToNTS(Face2D face2D, double tolerance)
         {
-            NetTopologySuite.Geometries.Geometry geometry = Convert.ToNTS(face2D, tolerance);
+            try
+            {
+                return Convert.ToNTS(face2D, tolerance);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static List<Face2D> FixToFace2Ds(NetTopologySuite.Geometries.Geometry geometry, double tolerance)
+        {
             if (geometry == null)
             {
                 return null;

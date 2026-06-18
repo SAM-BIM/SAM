@@ -80,6 +80,21 @@ namespace SAM.Tests
         }
 
         [Fact]
+        public void Fix_CurvedFace_PreservedNotDropped()
+        {
+            // Circle2D implements IClosed2D but not ISegmentable2D, so it has no NTS
+            // representation. Fix must preserve such a (valid) face rather than drop it.
+            Face2D face2D = new Face2D(new Circle2D(new Point2D(0, 0), 1));
+
+            Face2D result = face2D.Fix();
+            Assert.Same(face2D, result);
+
+            List<Face2D> results = new List<Face2D>() { face2D }.Fix();
+            Assert.Single(results);
+            Assert.Same(face2D, results[0]);
+        }
+
+        [Fact]
         public void Fix_Collection_KeepsEveryRepairedFace()
         {
             List<Face2D> face2Ds = new List<Face2D>() { UnitSquare(), Bowtie() };
