@@ -17,27 +17,42 @@ namespace SAM.Geometry.Rhino
 
             Mesh result = new Mesh();
 
-            List<Spatial.Triangle3D> triangle3Ds = mesh3D.GetTriangles();
-            if (triangle3Ds != null)
+            // Build the Rhino mesh directly from the SAM mesh's shared vertices and face
+            // indices. The previous approach rebuilt each triangle from its three edge lines
+            // with Mesh.CreateFromLines at a distance tolerance and silently dropped any
+            // triangle it could not reconstruct (slivers, near-coincident edges), which lost
+            // faces on bake/preview. Indexing the stored topology directly is exact - every
+            // triangle becomes one face and no face is dropped.
+            List<Spatial.Point3D> point3Ds = mesh3D.GetPoints();
+            if (point3Ds == null || point3Ds.Count == 0)
             {
-                foreach (Spatial.Triangle3D triangle in triangle3Ds)
-                {
-                    if (triangle == null)
-                    {
-                        continue;
-                    }
-
-                    List<Curve> lines = triangle.GetSegments().ConvertAll(x => (Curve)x.ToRhino_LineCurve());
-
-                    Mesh mesh = Mesh.CreateFromLines(lines.ToArray(), 3, Core.Tolerance.Distance);
-                    if (mesh == null)
-                    {
-                        continue;
-                    }
-
-                    result.Append(mesh);
-                }
+                return result;
             }
+
+            foreach (Spatial.Point3D point3D in point3Ds)
+            {
+                if (point3D == null)
+                {
+                    return result;
+                }
+
+                result.Vertices.Add(point3D.X, point3D.Y, point3D.Z);
+            }
+
+            int trianglesCount = mesh3D.TrianglesCount;
+            for (int i = 0; i < trianglesCount; i++)
+            {
+                System.Tuple<int, int, int> indexes = mesh3D.GetTriangleIndexes(i);
+                if (indexes == null)
+                {
+                    continue;
+                }
+
+                result.Faces.AddFace(indexes.Item1, indexes.Item2, indexes.Item3);
+            }
+
+            result.Normals.ComputeNormals();
+            result.Compact();
 
             return result;
         }
