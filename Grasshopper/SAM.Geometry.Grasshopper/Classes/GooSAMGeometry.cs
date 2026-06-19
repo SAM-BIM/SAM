@@ -709,7 +709,7 @@ namespace SAM.Geometry.Grasshopper
                 return true;
             }
 
-            if(typeof(Y).IsAssignableFrom(typeof(IGH_GeometricGoo)) && Value.ToGrasshopper() is Y y)
+            if(typeof(IGH_GeometricGoo).IsAssignableFrom(typeof(Y)) && Value.ToGrasshopper() is Y y)
             {
                 target = y;
                 return true;
