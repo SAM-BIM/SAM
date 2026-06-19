@@ -769,12 +769,67 @@ namespace SAM.Geometry.Grasshopper
 
         protected override GH_GetterResult Prompt_Plural(ref List<GooSAMGeometry> values)
         {
-            throw new NotImplementedException();
+            global::Rhino.Input.Custom.GetObject getObject = new global::Rhino.Input.Custom.GetObject();
+            getObject.SetCommandPrompt("Select geometry");
+            getObject.GeometryFilter = global::Rhino.DocObjects.ObjectType.Brep
+                | global::Rhino.DocObjects.ObjectType.Mesh
+                | global::Rhino.DocObjects.ObjectType.Curve
+                | global::Rhino.DocObjects.ObjectType.Point
+                | global::Rhino.DocObjects.ObjectType.Extrusion
+                | global::Rhino.DocObjects.ObjectType.Surface;
+            getObject.SubObjectSelect = false;
+            getObject.DeselectAllBeforePostSelect = false;
+            getObject.OneByOnePostSelect = false;
+            getObject.GetMultiple(1, 0);
+
+            if (getObject.CommandResult() != global::Rhino.Commands.Result.Success)
+                return GH_GetterResult.cancel;
+
+            if (getObject.ObjectCount == 0)
+                return GH_GetterResult.cancel;
+
+            values = new List<GooSAMGeometry>();
+            for (int i = 0; i < getObject.ObjectCount; i++)
+            {
+                global::Rhino.Geometry.GeometryBase geometry = getObject.Object(i).Geometry();
+                if (geometry == null)
+                    continue;
+
+                GooSAMGeometry goo = new GooSAMGeometry();
+                if (goo.CastFrom(geometry))
+                    values.Add(goo);
+            }
+
+            return values.Count > 0 ? GH_GetterResult.success : GH_GetterResult.cancel;
         }
 
         protected override GH_GetterResult Prompt_Singular(ref GooSAMGeometry value)
         {
-            throw new NotImplementedException();
+            global::Rhino.Input.Custom.GetObject getObject = new global::Rhino.Input.Custom.GetObject();
+            getObject.SetCommandPrompt("Select geometry");
+            getObject.GeometryFilter = global::Rhino.DocObjects.ObjectType.Brep
+                | global::Rhino.DocObjects.ObjectType.Mesh
+                | global::Rhino.DocObjects.ObjectType.Curve
+                | global::Rhino.DocObjects.ObjectType.Point
+                | global::Rhino.DocObjects.ObjectType.Extrusion
+                | global::Rhino.DocObjects.ObjectType.Surface;
+            getObject.SubObjectSelect = false;
+            getObject.DeselectAllBeforePostSelect = false;
+            getObject.OneByOnePostSelect = false;
+            getObject.GetMultiple(1, 1);
+
+            if (getObject.CommandResult() != global::Rhino.Commands.Result.Success)
+                return GH_GetterResult.cancel;
+
+            if (getObject.ObjectCount == 0)
+                return GH_GetterResult.cancel;
+
+            global::Rhino.Geometry.GeometryBase geometry = getObject.Object(0).Geometry();
+            if (geometry == null)
+                return GH_GetterResult.cancel;
+
+            value = new GooSAMGeometry();
+            return value.CastFrom(geometry) ? GH_GetterResult.success : GH_GetterResult.cancel;
         }
 
         public void BakeGeometry(RhinoDoc doc, List<Guid> obj_ids)
