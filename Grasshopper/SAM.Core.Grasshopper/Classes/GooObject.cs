@@ -139,6 +139,11 @@ namespace SAM.Core.Grasshopper
                 if (gooSAMGeometryType != null)
                 {
                     IGooSAMGeometry gooSAMGeometryInstance = (IGooSAMGeometry)System.Activator.CreateInstance(gooSAMGeometryType, Value);
+                    if (gooSAMGeometryInstance is Y geoGoo)
+                    {
+                        target = geoGoo;
+                        return true;
+                    }
                     if (gooSAMGeometryInstance.CastTo<Y>(out target))
                     {
                         return true;
