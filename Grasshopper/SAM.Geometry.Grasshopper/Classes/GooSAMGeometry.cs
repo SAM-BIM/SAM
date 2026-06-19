@@ -16,10 +16,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using SAM.Core.Grasshopper;
 
 namespace SAM.Geometry.Grasshopper
 {
-    public class GooSAMGeometry : GH_Goo<ISAMGeometry>, IGH_PreviewData, IGH_BakeAwareData
+    public class GooSAMGeometry : GH_Goo<ISAMGeometry>, IGooSAMGeometry, IGH_PreviewData, IGH_BakeAwareData
     {
         public GooSAMGeometry()
             : base()
@@ -674,6 +675,12 @@ namespace SAM.Geometry.Grasshopper
             if (typeof(Y).IsAssignableFrom(Value.GetType()))
             {
                 target = (Y)(object)Value;
+                return true;
+            }
+
+            if(typeof(Y).IsAssignableFrom(typeof(IGH_GeometricGoo)) && Value.ToGrasshopper() is Y y)
+            {
+                target = y;
                 return true;
             }
 
