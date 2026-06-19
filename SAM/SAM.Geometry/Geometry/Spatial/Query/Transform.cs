@@ -88,6 +88,11 @@ namespace SAM.Geometry.Spatial
             return Transform(coordinateSystem3D, transform3D?.Matrix4D);
         }
 
+        public static Mesh3D Transform(this Mesh3D mesh3D, Transform3D transform3D)
+        {
+            return Transform(mesh3D, transform3D?.Matrix4D);
+        }
+
         public static Circle3D Transform(this Circle3D circle3D, Matrix4D matrix4D)
         {
             if (matrix4D == null)
@@ -323,6 +328,20 @@ namespace SAM.Geometry.Spatial
             Vector3D axisZ = coordinateSystem3D.AxisZ.Transform(matrix4D);
 
             return new CoordinateSystem3D(origin, axisX, axisY, axisZ);
+        }
+
+        public static Mesh3D Transform(this Mesh3D mesh3D, Matrix4D matrix4D)
+        {
+            if (mesh3D == null || matrix4D == null)
+                return null;
+
+            List<Point3D> points = mesh3D.GetPoints()?.ConvertAll(x => x.Transform(matrix4D));
+
+            List<System.Tuple<int, int, int>> indexes = new List<System.Tuple<int, int, int>>();
+            for (int i = 0; i < mesh3D.TrianglesCount; i++)
+                indexes.Add(mesh3D.GetTriangleIndexes(i));
+
+            return new Mesh3D(points, indexes);
         }
     }
 }
