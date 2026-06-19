@@ -351,6 +351,34 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
+            if (source is global::Rhino.Geometry.Extrusion)
+            {
+                Brep brep = ((global::Rhino.Geometry.Extrusion)source).ToBrep(true);
+                if (brep != null)
+                {
+                    List<ISAMGeometry3D> sAMGeometry3Ds = Rhino.Convert.ToSAM(brep);
+                    if (sAMGeometry3Ds != null && sAMGeometry3Ds.Count != 0)
+                    {
+                        Value = sAMGeometry3Ds[0];
+                        return true;
+                    }
+                }
+            }
+
+            if (source is GH_Extrusion)
+            {
+                Brep brep = ((GH_Extrusion)source).Value?.ToBrep(true);
+                if (brep != null)
+                {
+                    List<ISAMGeometry3D> sAMGeometry3Ds = Rhino.Convert.ToSAM(brep);
+                    if (sAMGeometry3Ds != null && sAMGeometry3Ds.Count != 0)
+                    {
+                        Value = sAMGeometry3Ds[0];
+                        return true;
+                    }
+                }
+            }
+
             return base.CastFrom(source);
         }
 
