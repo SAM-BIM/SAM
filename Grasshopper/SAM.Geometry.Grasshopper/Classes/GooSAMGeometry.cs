@@ -356,10 +356,13 @@ namespace SAM.Geometry.Grasshopper
 
         public override bool CastTo<Y>(ref Y target)
         {
-            if (typeof(Y) is ISAMGeometry)
+            if (typeof(ISAMGeometry).IsAssignableFrom(typeof(Y)))
             {
-                target = (Y)(object)Value;
-                return true;
+                if (Value is Y val)
+                {
+                    target = val;
+                    return true;
+                }
             }
 
             if (typeof(Y) == typeof(Polyline))
