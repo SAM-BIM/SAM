@@ -75,13 +75,18 @@ namespace SAM.Geometry.Planar
                 Rectangle2D resultRectangle2D = null;
 
                 ISAMGeometry2D sAMGeometry2D = solver2DData.Geometry2D<ISAMGeometry2D>();
+                // With a non-positive ShiftDistance the candidate offset (StartingDistance + i * ShiftDistance)
+                // does not grow with i, so every iteration tests the same positions - one pass is enough and
+                // repeating it is pure cost. Guards a degenerate caller from an IterationCount-fold blow-up.
+                double iterationCount = solver2DSettings.ShiftDistance > 0 ? solver2DSettings.IterationCount : 1;
+
                 if (sAMGeometry2D is Point2D)
                 {
                     Point2D point2D = (Point2D)sAMGeometry2D;
                     Rectangle2D rectangle2DWithGivenPointInCenter = rectangle2D.GetMoved(new Vector2D(rectangle2D.GetCentroid(), point2D));
                     List<Vector2D> offsets = generateOffsets();
 
-                    for (int i = 0; i < solver2DSettings.IterationCount; i++)
+                    for (int i = 0; i < iterationCount; i++)
                     {
                         if (resultRectangle2D != null) break;
 
@@ -109,7 +114,7 @@ namespace SAM.Geometry.Planar
                     Point2D point = polyline2D.Closest(rectangle2D.GetCentroid());
                     double distanceToCenter = point.Distance(rectangle2D.GetCentroid());
 
-                    for (int i = 0; i < solver2DSettings.IterationCount; i++)
+                    for (int i = 0; i < iterationCount; i++)
                     {
                         if (resultRectangle2D != null) break;
 
