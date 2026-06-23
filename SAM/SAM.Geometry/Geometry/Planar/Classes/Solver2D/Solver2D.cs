@@ -64,6 +64,25 @@ namespace SAM.Geometry.Planar
             // threshold so small inputs (e.g. Mollier chart labels) keep the original path byte-for-byte.
             RectangleGrid grid = solver2DDatas.Count > 256 ? RectangleGrid.Create(solver2DDatas) : null;
 
+            // Degenerate-layout backstop. Each label that cannot be placed first runs its full
+            // IterationCount * 8 candidate sweep before giving up; when a whole batch is unplaceable (e.g. a
+            // floor-plan section taken at the wrong elevation collapses every space to a sliver, so no label
+            // centre fits its LimitArea) that is an O(N * IterationCount) blow-up - a ~2-minute hang on a 10k
+            // -label plan. A long run of consecutive failures means the layout is degenerate, so once it is
+            // hit we stop sweeping and give each remaining label a single anchor attempt. The counter resets
+            // on any successful placement, so a normal plan with the odd unplaceable label is unaffected.
+            const int maxConsecutiveUnplaced = 32;
+            int consecutiveUnplaced = 0;
+
+            // Hard wall-clock safety cap. The consecutive-unplaced backstop only catches the case where labels
+            // *fail* to place; a degenerate layout can also be slow while every label *succeeds* - e.g. when all
+            // anchors collapse onto the same point, each label still places but only after spiralling out past a
+            // growing pile of already-placed rectangles (O(N^2)). This budget bounds the whole solve regardless of
+            // the mechanism: once exceeded, the remaining labels skip the search and fall back to their anchor.
+            // A full 10k-label plan solves in well under this, so a normal solve never reaches it.
+            const double budgetMilliseconds = 10000;
+            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             foreach (Solver2DData solver2DData in solver2DDatas)
             {
                 Rectangle2D rectangle2D = solver2DData.Closed2D<Rectangle2D>();
@@ -75,29 +94,54 @@ namespace SAM.Geometry.Planar
                 Rectangle2D resultRectangle2D = null;
 
                 ISAMGeometry2D sAMGeometry2D = solver2DData.Geometry2D<ISAMGeometry2D>();
+                // With a non-positive ShiftDistance the candidate offset (StartingDistance + i * ShiftDistance)
+                // does not grow with i, so every iteration tests the same positions - one pass is enough and
+                // repeating it is pure cost. Guards a degenerate caller from an IterationCount-fold blow-up.
+                double iterationCount = solver2DSettings.ShiftDistance > 0 ? solver2DSettings.IterationCount : 1;
+
+                // Degenerate layout already detected (see maxConsecutiveUnplaced): skip the full sweep and
+                // make a single anchor attempt for the rest, so the whole solve stays bounded.
+                if (consecutiveUnplaced >= maxConsecutiveUnplaced)
+                {
+                    iterationCount = 1;
+                }
+
+                // Over the wall-clock budget: stop searching and place every remaining label AT its anchor
+                // (visible, possibly overlapping) rather than dropping it. The consumer blanks an unplaced
+                // (null) label, so returning null here would make tags vanish; placing at the anchor keeps
+                // them on screen. See budgetMilliseconds.
+                bool overBudget = stopwatch.Elapsed.TotalMilliseconds > budgetMilliseconds;
+
                 if (sAMGeometry2D is Point2D)
                 {
                     Point2D point2D = (Point2D)sAMGeometry2D;
                     Rectangle2D rectangle2DWithGivenPointInCenter = rectangle2D.GetMoved(new Vector2D(rectangle2D.GetCentroid(), point2D));
                     List<Vector2D> offsets = generateOffsets();
 
-                    for (int i = 0; i < solver2DSettings.IterationCount; i++)
+                    if (overBudget)
                     {
-                        if (resultRectangle2D != null) break;
-
-                        foreach (Vector2D offset in offsets)
+                        resultRectangle2D = rectangle2DWithGivenPointInCenter;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < iterationCount; i++)
                         {
-                            Vector2D scaledOffset = offset * (solver2DSettings.StartingDistance + (i * solver2DSettings.ShiftDistance));
-                            Rectangle2D rectangleTemp = rectangle2DWithGivenPointInCenter.GetMoved(scaledOffset);
+                            if (resultRectangle2D != null) break;
 
-                            if (area.Inside(rectangleTemp) && !intersect(rectangleTemp, result, grid))
+                            foreach (Vector2D offset in offsets)
                             {
-                                if (solver2DSettings.LimitArea != null && !solver2DSettings.LimitArea.Inside(rectangleTemp.GetCentroid()))
+                                Vector2D scaledOffset = offset * (solver2DSettings.StartingDistance + (i * solver2DSettings.ShiftDistance));
+                                Rectangle2D rectangleTemp = rectangle2DWithGivenPointInCenter.GetMoved(scaledOffset);
+
+                                if (area.Inside(rectangleTemp) && !intersect(rectangleTemp, result, grid))
                                 {
-                                    continue;
+                                    if (solver2DSettings.LimitArea != null && !solver2DSettings.LimitArea.Inside(rectangleTemp.GetCentroid()))
+                                    {
+                                        continue;
+                                    }
+                                    resultRectangle2D = rectangleTemp;
+                                    break;
                                 }
-                                resultRectangle2D = rectangleTemp;
-                                break;
                             }
                         }
                     }
@@ -109,7 +153,12 @@ namespace SAM.Geometry.Planar
                     Point2D point = polyline2D.Closest(rectangle2D.GetCentroid());
                     double distanceToCenter = point.Distance(rectangle2D.GetCentroid());
 
-                    for (int i = 0; i < solver2DSettings.IterationCount; i++)
+                    if (overBudget)
+                    {
+                        resultRectangle2D = rectangle2D;
+                    }
+
+                    for (int i = 0; !overBudget && i < iterationCount; i++)
                     {
                         if (resultRectangle2D != null) break;
 
@@ -152,6 +201,16 @@ namespace SAM.Geometry.Planar
                 }
 
                 result.Add(new Solver2DResult(solver2DData, resultRectangle2D));
+
+                // Track consecutive failures for the degenerate-layout backstop above; any success resets it.
+                if (resultRectangle2D == null)
+                {
+                    consecutiveUnplaced++;
+                }
+                else
+                {
+                    consecutiveUnplaced = 0;
+                }
 
                 // Mirror the placed rectangle into the spatial index for subsequent labels' overlap
                 // tests. Unplaced labels (null) carry no footprint, exactly as the linear scan treats them.
