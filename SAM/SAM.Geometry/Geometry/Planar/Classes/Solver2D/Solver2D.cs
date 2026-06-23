@@ -64,6 +64,16 @@ namespace SAM.Geometry.Planar
             // threshold so small inputs (e.g. Mollier chart labels) keep the original path byte-for-byte.
             RectangleGrid grid = solver2DDatas.Count > 256 ? RectangleGrid.Create(solver2DDatas) : null;
 
+            // Degenerate-layout backstop. Each label that cannot be placed first runs its full
+            // IterationCount * 8 candidate sweep before giving up; when a whole batch is unplaceable (e.g. a
+            // floor-plan section taken at the wrong elevation collapses every space to a sliver, so no label
+            // centre fits its LimitArea) that is an O(N * IterationCount) blow-up - a ~2-minute hang on a 10k
+            // -label plan. A long run of consecutive failures means the layout is degenerate, so once it is
+            // hit we stop sweeping and give each remaining label a single anchor attempt. The counter resets
+            // on any successful placement, so a normal plan with the odd unplaceable label is unaffected.
+            const int maxConsecutiveUnplaced = 32;
+            int consecutiveUnplaced = 0;
+
             foreach (Solver2DData solver2DData in solver2DDatas)
             {
                 Rectangle2D rectangle2D = solver2DData.Closed2D<Rectangle2D>();
@@ -79,6 +89,13 @@ namespace SAM.Geometry.Planar
                 // does not grow with i, so every iteration tests the same positions - one pass is enough and
                 // repeating it is pure cost. Guards a degenerate caller from an IterationCount-fold blow-up.
                 double iterationCount = solver2DSettings.ShiftDistance > 0 ? solver2DSettings.IterationCount : 1;
+
+                // Degenerate layout already detected (see maxConsecutiveUnplaced): skip the full sweep and
+                // make a single anchor attempt for the rest, so the whole solve stays bounded.
+                if (consecutiveUnplaced >= maxConsecutiveUnplaced)
+                {
+                    iterationCount = 1;
+                }
 
                 if (sAMGeometry2D is Point2D)
                 {
@@ -157,6 +174,16 @@ namespace SAM.Geometry.Planar
                 }
 
                 result.Add(new Solver2DResult(solver2DData, resultRectangle2D));
+
+                // Track consecutive failures for the degenerate-layout backstop above; any success resets it.
+                if (resultRectangle2D == null)
+                {
+                    consecutiveUnplaced++;
+                }
+                else
+                {
+                    consecutiveUnplaced = 0;
+                }
 
                 // Mirror the placed rectangle into the spatial index for subsequent labels' overlap
                 // tests. Unplaced labels (null) carry no footprint, exactly as the linear scan treats them.
