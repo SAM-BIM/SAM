@@ -74,6 +74,15 @@ namespace SAM.Geometry.Planar
             const int maxConsecutiveUnplaced = 32;
             int consecutiveUnplaced = 0;
 
+            // Hard wall-clock safety cap. The consecutive-unplaced backstop only catches the case where labels
+            // *fail* to place; a degenerate layout can also be slow while every label *succeeds* - e.g. when all
+            // anchors collapse onto the same point, each label still places but only after spiralling out past a
+            // growing pile of already-placed rectangles (O(N^2)). This budget bounds the whole solve regardless of
+            // the mechanism: once exceeded, the remaining labels skip the search and fall back to their anchor.
+            // A full 10k-label plan solves in well under this, so a normal solve never reaches it.
+            const double budgetMilliseconds = 5000;
+            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             foreach (Solver2DData solver2DData in solver2DDatas)
             {
                 Rectangle2D rectangle2D = solver2DData.Closed2D<Rectangle2D>();
@@ -95,6 +104,12 @@ namespace SAM.Geometry.Planar
                 if (consecutiveUnplaced >= maxConsecutiveUnplaced)
                 {
                     iterationCount = 1;
+                }
+
+                // Over the wall-clock budget: stop searching entirely and anchor every remaining label.
+                if (stopwatch.Elapsed.TotalMilliseconds > budgetMilliseconds)
+                {
+                    iterationCount = 0;
                 }
 
                 if (sAMGeometry2D is Point2D)
