@@ -341,7 +341,7 @@ namespace SAM.Core
                     case ValueType.Color:
                         if (Query.TryConvert(Value, out Color color))
                         {
-                            valueNode = new SAMColor(color).ToJsonObject()?.DeepClone();
+                            valueNode = new SAMColor(color).ToJsonObject();
                         }
                         break;
 
@@ -367,7 +367,8 @@ namespace SAM.Core
                         break;
 
                     case ValueType.IJSAMObject:
-                        valueNode = ((IJSAMObject)Value).ToJsonObject()?.DeepClone();
+                        // ToJsonObject() returns a fresh, parent-less node - assign it directly (no redundant clone).
+                        valueNode = ((IJSAMObject)Value).ToJsonObject();
                         break;
 
                     case ValueType.Integer:

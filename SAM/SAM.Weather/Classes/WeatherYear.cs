@@ -323,7 +323,7 @@ namespace SAM.Weather
             {
                 JsonArray weatherDaysArray = new JsonArray();
                 foreach (WeatherDay weatherDay in weatherDays)
-                    weatherDaysArray.Add(weatherDay?.ToJsonObject()?.DeepClone());
+                    weatherDaysArray.Add(weatherDay?.ToJsonObject());
 
                 jsonObject["WeatherDays"] = weatherDaysArray;
             }
