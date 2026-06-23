@@ -1400,7 +1400,15 @@ namespace SAM.Core
             switch (value)
             {
                 case IJSAMObject jSAMObject:
-                    return jSAMObject.ToJsonObject() is JsonObject inner ? inner.DeepClone() : null;
+                    {
+                        // ToJsonObject() normally returns a fresh, parent-less node, so the caller can attach it
+                        // directly - no DeepClone needed (the unconditional clone doubled allocations for every
+                        // relation value). The IJSAMObject contract does not *guarantee* a fresh node, though, so
+                        // clone only when the returned node is already parented; attaching such a node would
+                        // otherwise throw under the JsonNode single-parent invariant.
+                        JsonObject inner = jSAMObject.ToJsonObject();
+                        return inner == null ? null : (inner.Parent == null ? inner : inner.DeepClone());
+                    }
                 case double d:
                     return Query.ToJsonNode(d);
                 case string s:

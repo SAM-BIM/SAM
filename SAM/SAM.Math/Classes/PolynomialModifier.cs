@@ -58,7 +58,7 @@ namespace SAM.Core
 
             if (PolynomialEquation != null)
             {
-                result["PolynomialEquation"] = PolynomialEquation.ToJsonObject()?.DeepClone();
+                result["PolynomialEquation"] = PolynomialEquation.ToJsonObject();
             }
 
             return result;
