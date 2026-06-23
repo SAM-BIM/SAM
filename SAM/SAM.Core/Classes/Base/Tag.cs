@@ -367,8 +367,14 @@ namespace SAM.Core
                         break;
 
                     case ValueType.IJSAMObject:
-                        // ToJsonObject() returns a fresh, parent-less node - assign it directly (no redundant clone).
-                        valueNode = ((IJSAMObject)Value).ToJsonObject();
+                        {
+                            // ToJsonObject() normally returns a fresh, parent-less node - assign it directly (no
+                            // redundant clone). The IJSAMObject contract does not guarantee freshness, so clone
+                            // only when the node is already parented, which would otherwise throw under the
+                            // JsonNode single-parent invariant.
+                            JsonObject jsonObject_Value = ((IJSAMObject)Value).ToJsonObject();
+                            valueNode = jsonObject_Value == null ? null : (jsonObject_Value.Parent == null ? jsonObject_Value : jsonObject_Value.DeepClone());
+                        }
                         break;
 
                     case ValueType.Integer:
