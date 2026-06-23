@@ -83,6 +83,9 @@ namespace SAM.Geometry.Planar
             const double budgetMilliseconds = 10000;
             System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
+            // The 8 search directions are identical for every label, so build them once rather than per label.
+            List<Vector2D> offsets = generateOffsets();
+
             foreach (Solver2DData solver2DData in solver2DDatas)
             {
                 Rectangle2D rectangle2D = solver2DData.Closed2D<Rectangle2D>();
@@ -116,7 +119,6 @@ namespace SAM.Geometry.Planar
                 {
                     Point2D point2D = (Point2D)sAMGeometry2D;
                     Rectangle2D rectangle2DWithGivenPointInCenter = rectangle2D.GetMoved(new Vector2D(rectangle2D.GetCentroid(), point2D));
-                    List<Vector2D> offsets = generateOffsets();
 
                     if (overBudget)
                     {
@@ -328,6 +330,11 @@ namespace SAM.Geometry.Planar
             private readonly double cellSize;
             private readonly Dictionary<long, List<Rectangle2D>> cells = new Dictionary<long, List<Rectangle2D>>();
 
+            // Reused across Query calls to de-duplicate the rectangles a query box's cells share, without
+            // allocating a HashSet on every call. Query is enumerated fully and sequentially by the solver
+            // (one query finishes before the next starts), so a single shared scratch set is safe here.
+            private readonly HashSet<Rectangle2D> querySeen = new HashSet<Rectangle2D>();
+
             private RectangleGrid(double cellSize)
             {
                 this.cellSize = cellSize;
@@ -382,7 +389,7 @@ namespace SAM.Geometry.Planar
                     yield break;
                 }
 
-                HashSet<Rectangle2D> seen = new HashSet<Rectangle2D>();
+                querySeen.Clear();
 
                 // One-cell halo: absorbs the InRange tolerance and any box that straddles a cell border.
                 for (long x = minX - 1; x <= maxX + 1; x++)
@@ -393,7 +400,7 @@ namespace SAM.Geometry.Planar
                         {
                             foreach (Rectangle2D placed in list)
                             {
-                                if (seen.Add(placed))
+                                if (querySeen.Add(placed))
                                 {
                                     yield return placed;
                                 }
