@@ -80,7 +80,7 @@ namespace SAM.Geometry.Planar
             // growing pile of already-placed rectangles (O(N^2)). This budget bounds the whole solve regardless of
             // the mechanism: once exceeded, the remaining labels skip the search and fall back to their anchor.
             // A full 10k-label plan solves in well under this, so a normal solve never reaches it.
-            const double budgetMilliseconds = 5000;
+            const double budgetMilliseconds = 10000;
             System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             foreach (Solver2DData solver2DData in solver2DDatas)
@@ -106,11 +106,11 @@ namespace SAM.Geometry.Planar
                     iterationCount = 1;
                 }
 
-                // Over the wall-clock budget: stop searching entirely and anchor every remaining label.
-                if (stopwatch.Elapsed.TotalMilliseconds > budgetMilliseconds)
-                {
-                    iterationCount = 0;
-                }
+                // Over the wall-clock budget: stop searching and place every remaining label AT its anchor
+                // (visible, possibly overlapping) rather than dropping it. The consumer blanks an unplaced
+                // (null) label, so returning null here would make tags vanish; placing at the anchor keeps
+                // them on screen. See budgetMilliseconds.
+                bool overBudget = stopwatch.Elapsed.TotalMilliseconds > budgetMilliseconds;
 
                 if (sAMGeometry2D is Point2D)
                 {
@@ -118,23 +118,30 @@ namespace SAM.Geometry.Planar
                     Rectangle2D rectangle2DWithGivenPointInCenter = rectangle2D.GetMoved(new Vector2D(rectangle2D.GetCentroid(), point2D));
                     List<Vector2D> offsets = generateOffsets();
 
-                    for (int i = 0; i < iterationCount; i++)
+                    if (overBudget)
                     {
-                        if (resultRectangle2D != null) break;
-
-                        foreach (Vector2D offset in offsets)
+                        resultRectangle2D = rectangle2DWithGivenPointInCenter;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < iterationCount; i++)
                         {
-                            Vector2D scaledOffset = offset * (solver2DSettings.StartingDistance + (i * solver2DSettings.ShiftDistance));
-                            Rectangle2D rectangleTemp = rectangle2DWithGivenPointInCenter.GetMoved(scaledOffset);
+                            if (resultRectangle2D != null) break;
 
-                            if (area.Inside(rectangleTemp) && !intersect(rectangleTemp, result, grid))
+                            foreach (Vector2D offset in offsets)
                             {
-                                if (solver2DSettings.LimitArea != null && !solver2DSettings.LimitArea.Inside(rectangleTemp.GetCentroid()))
+                                Vector2D scaledOffset = offset * (solver2DSettings.StartingDistance + (i * solver2DSettings.ShiftDistance));
+                                Rectangle2D rectangleTemp = rectangle2DWithGivenPointInCenter.GetMoved(scaledOffset);
+
+                                if (area.Inside(rectangleTemp) && !intersect(rectangleTemp, result, grid))
                                 {
-                                    continue;
+                                    if (solver2DSettings.LimitArea != null && !solver2DSettings.LimitArea.Inside(rectangleTemp.GetCentroid()))
+                                    {
+                                        continue;
+                                    }
+                                    resultRectangle2D = rectangleTemp;
+                                    break;
                                 }
-                                resultRectangle2D = rectangleTemp;
-                                break;
                             }
                         }
                     }
@@ -146,7 +153,12 @@ namespace SAM.Geometry.Planar
                     Point2D point = polyline2D.Closest(rectangle2D.GetCentroid());
                     double distanceToCenter = point.Distance(rectangle2D.GetCentroid());
 
-                    for (int i = 0; i < iterationCount; i++)
+                    if (overBudget)
+                    {
+                        resultRectangle2D = rectangle2D;
+                    }
+
+                    for (int i = 0; !overBudget && i < iterationCount; i++)
                     {
                         if (resultRectangle2D != null) break;
 
