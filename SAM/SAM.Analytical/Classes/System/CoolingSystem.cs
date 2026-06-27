@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 namespace SAM.Analytical
 {
     public class CoolingSystem : MechanicalSystem
     {
+        public CoolingSystem(string prefix, string id, CoolingSystemType coolingSystemType)
+            : base(prefix, id, coolingSystemType)
+        {
+
+        }
+
         public CoolingSystem(string id, CoolingSystemType coolingSystemType)
             : base(id, coolingSystemType)
         {
@@ -23,27 +28,13 @@ namespace SAM.Analytical
         {
 
         }
+        public CoolingSystem(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public CoolingSystem(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-                return false;
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return null;
-
-            return jObject;
-        }
     }
 }

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -49,10 +49,9 @@ namespace SAM.Core
             typeName = objectReference?.typeName;
             reference = objectReference?.reference;
         }
-
-        public ObjectReference(JObject jObject)
+        public ObjectReference(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Reference? Reference
@@ -115,39 +114,44 @@ namespace SAM.Core
             return true;
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("TypeName"))
+            if (jsonObject.ContainsKey("TypeName"))
             {
-                typeName = jObject.Value<string>("TypeName");
+                typeName = jsonObject["TypeName"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Reference"))
+            if (jsonObject["Reference"] is JsonObject referenceObject)
             {
-                reference = new Reference(jObject.Value<JObject>("Reference"));
+                reference = new Reference((JsonObject)referenceObject.DeepClone());
             }
 
             return true;
         }
 
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Query.FullTypeName(this));
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (typeName != null)
             {
-                result.Add("TypeName", typeName);
+                result["TypeName"] = typeName;
             }
 
             if (reference != null && reference.HasValue)
             {
-                result.Add("Reference", reference.Value.ToJObject());
+                if (reference.Value.ToJsonObject() is JsonObject referenceJson)
+                {
+                    result["Reference"] = referenceJson.DeepClone();
+                }
             }
 
             return result;

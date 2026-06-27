@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -61,9 +61,10 @@ namespace SAM.Analytical
 
             }
         }
+        public DailyModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public DailyModifier(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -93,37 +94,43 @@ namespace SAM.Analytical
             return index >= count * 24;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return result;
             }
 
-            if (jObject.ContainsKey("DayNames"))
+            if (jsonObject["DayNames"] is JsonArray dayNamesArray)
             {
                 dayNames = new List<string>();
-                foreach (string dayName in jObject.Value<JArray>("DayNames"))
+                foreach (JsonNode node in dayNamesArray)
                 {
-                    dayNames.Add(dayName);
+                    dayNames.Add(node?.GetValue<string>());
                 }
             }
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray valuesArray)
             {
                 values = new Dictionary<string, double[]>();
-                foreach (JArray jArray in jObject.Value<JArray>("Values"))
+                foreach (JsonNode node in valuesArray)
                 {
-                    string dayName = jArray[0]?.ToString();
-
-                    List<double> values_Temp = new List<double>();
-                    foreach (double value in jArray[1])
+                    if (node is JsonArray entryArray)
                     {
-                        values_Temp.Add(value);
-                    }
+                        string dayName = entryArray[0]?.GetValue<string>();
 
-                    values[dayName] = values_Temp.ToArray();
+                        List<double> values_Temp = new List<double>();
+                        if (entryArray[1] is JsonArray innerValuesArray)
+                        {
+                            foreach (JsonNode valueNode in innerValuesArray)
+                            {
+                                values_Temp.Add(valueNode?.GetValue<double>() ?? double.NaN);
+                            }
+                        }
+
+                        values[dayName] = values_Temp.ToArray();
+                    }
                 }
             }
 
@@ -175,9 +182,9 @@ namespace SAM.Analytical
             return double.NaN;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
@@ -185,31 +192,31 @@ namespace SAM.Analytical
 
             if (dayNames != null)
             {
-                JArray jArray = new JArray();
-                dayNames.ForEach(x => jArray.Add(x));
+                JsonArray dayNamesArray = new JsonArray();
+                dayNames.ForEach(x => dayNamesArray.Add(x));
 
-                result.Add("DayNames", jArray);
+                result["DayNames"] = dayNamesArray;
             }
 
             if (values != null)
             {
-                JArray jArray = new JArray();
+                JsonArray valuesArray = new JsonArray();
                 foreach (KeyValuePair<string, double[]> keyValuePair in values)
                 {
-                    JArray jArray_Temp = new JArray();
-                    jArray_Temp.Add(keyValuePair.Key);
+                    JsonArray entryArray = new JsonArray();
+                    entryArray.Add(keyValuePair.Key);
 
-                    JArray jArray_Values = new JArray();
+                    JsonArray innerValuesArray = new JsonArray();
                     foreach (double value in keyValuePair.Value)
                     {
-                        jArray_Values.Add(value);
+                        innerValuesArray.Add(value);
                     }
-                    jArray_Temp.Add(jArray_Values);
+                    entryArray.Add(innerValuesArray);
 
-                    jArray.Add(jArray_Temp);
+                    valuesArray.Add(entryArray);
                 }
 
-                result.Add("Values", jArray);
+                result["Values"] = valuesArray;
             }
 
             return result;

@@ -2,9 +2,9 @@ name: Build (Windows)
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: [ "master", "main", "sow/**" ]
   pull_request:
-    branches: [ "master", "main" ]
+    branches: [ "master", "main", "sow/**" ]
   workflow_dispatch:
 
 jobs:
@@ -56,6 +56,38 @@ jobs:
 
           throw "No root .sln or root .csproj found to build."
 
+      - name: Compute SAMVersion
+        id: ver
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Prefer head_ref when it's a sow branch (release-promotion PRs from sow/* to main),
+          # else use base_ref on PR events / ref_name on push events.
+          $headRef = '${{ github.head_ref }}'
+          $baseRef = '${{ github.base_ref }}'
+          $refName = '${{ github.ref_name }}'
+          if ($headRef -match '^sow/\d{4}-Q\d$') {
+            $ref = $headRef
+          } elseif ('${{ github.event_name }}' -eq 'pull_request') {
+            $ref = $baseRef
+          } else {
+            $ref = $refName
+          }
+          # .NET AssemblyVersion components are UInt16 (max 65535). Cap to 60000 for headroom.
+          $run = ${{ github.run_number }} % 60000
+          if ($ref -match 'sow/(\d{4})-Q(\d)') {
+            # Four-part version: YYYY.Q.<run>.0 (AssemblyFileVersion expects 4 parts).
+            $v = "$($Matches[1]).$($Matches[2]).$run.0"
+            $src = "branch '$ref'"
+          } else {
+            $now = (Get-Date).ToUniversalTime()
+            $quarter = [int][Math]::Ceiling($now.Month / 3.0)
+            $v = "$($now.Year).$quarter.$run.0"
+            $src = "date $($now.ToString('yyyy-MM-dd')) (ref '$ref' not sow/yyyy-Qx)"
+          }
+          Write-Host "SAMVersion = $v (from $src)"
+          "samversion=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
       - name: Restore
         shell: pwsh
         env:
@@ -66,6 +98,7 @@ jobs:
             /t:Restore `
             /m:1 /nr:false /v:m `
             /p:Configuration=${{ matrix.configuration }} `
+            /p:SAMVersion=${{ steps.ver.outputs.samversion }} `
             /p:UseSharedCompilation=false
 
       - name: Build
@@ -78,4 +111,5 @@ jobs:
             /t:Rebuild `
             /m:1 /nr:false /v:m `
             /p:Configuration=${{ matrix.configuration }} `
+            /p:SAMVersion=${{ steps.ver.outputs.samversion }} `
             /p:UseSharedCompilation=false

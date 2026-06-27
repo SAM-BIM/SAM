@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Planar;
 using SAM.Geometry.Spatial;
@@ -19,9 +18,10 @@ namespace SAM.Analytical
         {
             openings = hostPartition?.openings?.ConvertAll(x => x.Clone());
         }
+        public HostPartition(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public HostPartition(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -199,29 +199,6 @@ namespace SAM.Analytical
             }
 
             return openings.Find(x => x.Guid == guid)?.Clone();
-        }
-
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-            {
-                return false;
-            }
-
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-
-            if (jObject == null)
-            {
-                return jObject;
-            }
-
-            return jObject;
         }
 
         public override void Transform(Transform3D transform3D)

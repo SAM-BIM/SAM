@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 
 using System;
 
@@ -38,10 +37,12 @@ namespace SAM.Core
         {
 
         }
+        public OpaqueMaterial(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public OpaqueMaterial(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public OpaqueMaterial(OpaqueMaterial opaqueMaterial)
@@ -49,21 +50,5 @@ namespace SAM.Core
         {
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-                return false;
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
-
-            return jObject;
-        }
     }
 }

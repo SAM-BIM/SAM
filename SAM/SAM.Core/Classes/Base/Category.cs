@@ -1,28 +1,28 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public class Category : IJSAMObject
     {
-        private string name;
-        private Category subCategory;
+        private string? name;
+        private Category? subCategory;
 
         public Category(string name)
         {
             this.name = name;
         }
 
-        public Category(string name, Category subCategory)
+        public Category(string? name, Category? subCategory)
         {
             this.name = name;
             this.subCategory = subCategory;
         }
 
-        public Category(Category category)
+        public Category(Category? category)
         {
             if (category != null)
             {
@@ -31,12 +31,12 @@ namespace SAM.Core
             }
         }
 
-        public Category(JObject jObject)
+        public Category(JsonObject? jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
-        public string Name
+        public string? Name
         {
             get
             {
@@ -44,7 +44,7 @@ namespace SAM.Core
             }
         }
 
-        public Category SubCategory
+        public Category? SubCategory
         {
             get
             {
@@ -52,7 +52,7 @@ namespace SAM.Core
             }
         }
 
-        public override string ToString()
+        public override string? ToString()
         {
             return name;
         }
@@ -64,14 +64,14 @@ namespace SAM.Core
                 separator = string.Empty;
             }
 
-            List<string> values = new List<string>();
+            List<string> values = [];
 
             List<Category> categories = this.SubCategories();
             if (categories != null)
             {
                 foreach (Category category in categories)
                 {
-                    string name_Category = category?.Name;
+                    string? name_Category = category?.Name;
                     if (name_Category == null)
                     {
                         name_Category = string.Empty;
@@ -89,42 +89,45 @@ namespace SAM.Core
             return string.Join(separator, values);
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject? jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Name"))
+            if (jsonObject.ContainsKey("Name"))
             {
-                name = jObject.Value<string>("Name");
+                name = jsonObject["Name"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("SubCategory"))
+            if (jsonObject["SubCategory"] is JsonObject subCategoryObject)
             {
-                subCategory = new Category(jObject.Value<JObject>("SubCategory"));
+                subCategory = new Category((JsonObject)subCategoryObject.DeepClone());
             }
 
             return true;
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (name != null)
             {
-                jObject.Add("Name", name);
+                jsonObject["Name"] = name;
             }
 
             if (subCategory != null)
             {
-                jObject.Add("SubCategory", subCategory.ToJObject());
+                if (subCategory.ToJsonObject() is JsonObject subCategoryObject)
+                    jsonObject["SubCategory"] = subCategoryObject.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

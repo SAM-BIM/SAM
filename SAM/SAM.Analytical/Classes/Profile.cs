@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Planar;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -195,10 +197,8 @@ namespace SAM.Analytical
             this.category = category;
 
         }
-
-
-        public Profile(JObject jObject)
-            : base(jObject)
+        public Profile(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -1251,55 +1251,49 @@ namespace SAM.Analytical
             return true;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Category"))
-                category = jObject.Value<string>("Category");
+            if (jsonObject.ContainsKey("Category"))
+                category = jsonObject["Category"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray valuesArray)
             {
-                JArray jArray = jObject.Value<JArray>("Values");
-                if (jArray != null)
+                values = new SortedList<int, Tuple<Range<int>, AnyOf<double, Profile>>>();
+
+                foreach (JsonNode valueNode in valuesArray)
                 {
-                    values = new SortedList<int, Tuple<Range<int>, AnyOf<double, Profile>>>();
-
-                    foreach (JToken jToken in jArray)
+                    if (IsFloatNumber(valueNode))
                     {
-                        if (jToken.Type == JTokenType.Float)
-                        {
-                            values[values.Count == 0 ? 0 : values.Keys.Max() + 1] = new Tuple<Range<int>, AnyOf<double, Profile>>(null, (double)jToken);
-                        }
-                        else if (jToken.Type == JTokenType.Array)
-                        {
-                            JArray jArray_Temp = (JArray)jToken;
+                        values[values.Count == 0 ? 0 : values.Keys.Max() + 1] = new Tuple<Range<int>, AnyOf<double, Profile>>(null, valueNode.GetValue<double>());
+                    }
+                    else if (valueNode is JsonArray entryArray)
+                    {
+                        JsonNode valueNode_Temp;
 
-                            JToken jToken_Temp;
-
-                            switch (jArray_Temp.Count)
-                            {
-                                case 1:
-                                    values[(int)jArray_Temp[0]] = null;
-                                    break;
-                                case 2:
-                                    jToken_Temp = jArray_Temp[1];
-                                    if (jToken_Temp.Type == JTokenType.Float)
-                                        values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(null, (double)jToken_Temp);
-                                    else if (jToken_Temp.Type == JTokenType.Integer)
-                                        values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(new Range<int>((int)jArray_Temp[0], (int)jArray_Temp[1]), null);
-                                    else if (jToken_Temp.Type == JTokenType.Object)
-                                        values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(null, new Profile((JObject)jArray_Temp[1]));
-                                    break;
-                                case 3:
-                                    jToken_Temp = jArray_Temp[2];
-                                    if (jToken_Temp.Type == JTokenType.Float)
-                                        values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(new Range<int>((int)jArray_Temp[0], (int)jArray_Temp[1]), (double)jToken_Temp);
-                                    else if (jToken_Temp.Type == JTokenType.Object)
-                                        values[(int)jArray_Temp[0]] = new Tuple<Range<int>, AnyOf<double, Profile>>(new Range<int>((int)jArray_Temp[0], (int)jArray_Temp[1]), new Profile((JObject)jToken_Temp));
-                                    break;
-                            }
+                        switch (entryArray.Count)
+                        {
+                            case 1:
+                                values[entryArray[0].GetValue<int>()] = null;
+                                break;
+                            case 2:
+                                valueNode_Temp = entryArray[1];
+                                if (IsFloatNumber(valueNode_Temp))
+                                    values[entryArray[0].GetValue<int>()] = new Tuple<Range<int>, AnyOf<double, Profile>>(null, valueNode_Temp.GetValue<double>());
+                                else if (IsIntegerNumber(valueNode_Temp))
+                                    values[entryArray[0].GetValue<int>()] = new Tuple<Range<int>, AnyOf<double, Profile>>(new Range<int>(entryArray[0].GetValue<int>(), entryArray[1].GetValue<int>()), null);
+                                else if (valueNode_Temp is JsonObject nestedProfileJson)
+                                    values[entryArray[0].GetValue<int>()] = new Tuple<Range<int>, AnyOf<double, Profile>>(null, new Profile(nestedProfileJson));
+                                break;
+                            case 3:
+                                valueNode_Temp = entryArray[2];
+                                if (IsFloatNumber(valueNode_Temp))
+                                    values[entryArray[0].GetValue<int>()] = new Tuple<Range<int>, AnyOf<double, Profile>>(new Range<int>(entryArray[0].GetValue<int>(), entryArray[1].GetValue<int>()), valueNode_Temp.GetValue<double>());
+                                else if (valueNode_Temp is JsonObject nestedProfileJson)
+                                    values[entryArray[0].GetValue<int>()] = new Tuple<Range<int>, AnyOf<double, Profile>>(new Range<int>(entryArray[0].GetValue<int>(), entryArray[1].GetValue<int>()), new Profile(nestedProfileJson));
+                                break;
                         }
                     }
                 }
@@ -1308,47 +1302,83 @@ namespace SAM.Analytical
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
             if (category != null)
-                jObject.Add("Category", category);
+                jsonObject["Category"] = category;
 
             if (values != null)
             {
-                JArray jArray = new JArray();
+                JsonArray valuesArray = new JsonArray();
                 foreach (KeyValuePair<int, Tuple<Range<int>, AnyOf<double, Profile>>> keyValuePair in values)
                 {
-                    JArray jArray_Temp = new JArray();
-                    jArray_Temp.Add(keyValuePair.Key);
+                    JsonArray entryArray = new JsonArray();
+                    entryArray.Add(keyValuePair.Key);
 
                     Tuple<Range<int>, AnyOf<double, Profile>> tuple = keyValuePair.Value;
                     if (tuple != null)
                     {
                         if (tuple.Item1 != null)
-                            jArray_Temp.Add(tuple.Item1.Max);
+                            entryArray.Add(tuple.Item1.Max);
 
                         AnyOf<double, Profile> value = tuple.Item2;
                         if (value != null)
                         {
                             if (value.Value is double)
-                                jArray_Temp.Add(value.Value);
+                                entryArray.Add(FloatingPointNode((double)value.Value));
                             else if (value.Value != null)
-                                jArray_Temp.Add((value.Value as Profile).ToJObject());
+                                entryArray.Add((value.Value as Profile).ToJsonObject());
                         }
                     }
 
-                    jArray.Add(jArray_Temp);
+                    valuesArray.Add(entryArray);
                 }
 
-                jObject.Add("Values", jArray);
+                jsonObject["Values"] = valuesArray;
             }
 
 
-            return jObject;
+            return jsonObject;
+        }
+
+        private static bool IsFloatNumber(JsonNode jsonNode)
+        {
+            return IsNumberWithRawText(jsonNode, false);
+        }
+
+        private static bool IsIntegerNumber(JsonNode jsonNode)
+        {
+            return IsNumberWithRawText(jsonNode, true);
+        }
+
+        private static bool IsNumberWithRawText(JsonNode jsonNode, bool integer)
+        {
+            if (jsonNode == null || jsonNode.GetValueKind() != JsonValueKind.Number)
+                return false;
+
+            JsonValue jsonValue = jsonNode as JsonValue;
+            if (jsonValue == null || !jsonValue.TryGetValue(out JsonElement jsonElement))
+                return false;
+
+            string raw = jsonElement.GetRawText();
+            bool hasDecimal = raw.IndexOf('.') >= 0 || raw.IndexOf('e') >= 0 || raw.IndexOf('E') >= 0;
+            return integer ? !hasDecimal : hasDecimal;
+        }
+
+        private static JsonNode FloatingPointNode(double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+                return null;
+
+            string text = value.ToString("R", CultureInfo.InvariantCulture);
+            if (text.IndexOf('.') < 0 && text.IndexOf('e') < 0 && text.IndexOf('E') < 0)
+                text += ".0";
+
+            return JsonNode.Parse(text);
         }
     }
 }

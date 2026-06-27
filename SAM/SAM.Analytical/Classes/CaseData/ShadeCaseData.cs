@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -24,9 +24,10 @@ namespace SAM.Analytical
             this.leftFinDepth = leftFinDepth;
             this.rightFinDepth = rightFinDepth;
         }
+        public ShadeCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ShadeCaseData(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -66,35 +67,35 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("OverhangDepth"))
+            if (jsonObject.ContainsKey("OverhangDepth"))
             {
-                overhangDepth = jObject.Value<double>("OverhangDepth");
+                overhangDepth = jsonObject["OverhangDepth"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("LeftFinDepth"))
+            if (jsonObject.ContainsKey("LeftFinDepth"))
             {
-                leftFinDepth = jObject.Value<double>("LeftFinDepth");
+                leftFinDepth = jsonObject["LeftFinDepth"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("RightFinDepth"))
+            if (jsonObject.ContainsKey("RightFinDepth"))
             {
-                rightFinDepth = jObject.Value<double>("RightFinDepth");
+                rightFinDepth = jsonObject["RightFinDepth"]?.GetValue<double>() ?? double.NaN;
             }
 
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
@@ -102,17 +103,17 @@ namespace SAM.Analytical
 
             if (!double.IsNaN(overhangDepth))
             {
-                result.Add("OverhangDepth", overhangDepth);
+                result["OverhangDepth"] = overhangDepth;
             }
 
             if (!double.IsNaN(leftFinDepth))
             {
-                result.Add("LeftFinDepth", leftFinDepth);
+                result["LeftFinDepth"] = leftFinDepth;
             }
 
             if (!double.IsNaN(rightFinDepth))
             {
-                result.Add("RightFinDepth", rightFinDepth);
+                result["RightFinDepth"] = rightFinDepth;
             }
 
             return result;

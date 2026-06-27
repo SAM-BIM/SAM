@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO.Compression;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -18,9 +18,9 @@ namespace SAM.Core
         {
         }
 
-        internal ZipArchiveInfo(JObject jObject)
+        internal ZipArchiveInfo(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         internal ZipArchiveInfo(ZipArchiveInfo zipArchiveInfo)
@@ -30,25 +30,21 @@ namespace SAM.Core
                 guids.Add(guid);
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Guids"))
+            if (jsonObject["Guids"] is JsonArray jsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("Guids");
-                if (jArray != null)
+                guids = new HashSet<Guid>();
+                foreach (JsonNode node in jsonArray)
                 {
-                    guids = new HashSet<Guid>();
-                    foreach (JToken jToken in jArray)
-                    {
-                        Guid guid;
-                        if (!Guid.TryParse(jToken.Value<string>(), out guid))
-                            continue;
+                    Guid guid;
+                    if (!Guid.TryParse(node?.GetValue<string>(), out guid))
+                        continue;
 
-                        guids.Add(guid);
-                    }
+                    guids.Add(guid);
                 }
             }
 
@@ -81,18 +77,25 @@ namespace SAM.Core
             return result;
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (guids != null)
             {
-                JArray jArray = new JArray(guids);
-                jObject.Add("Guids", jArray);
+                JsonArray jsonArray = new JsonArray();
+                foreach (Guid guid in guids)
+                {
+                    jsonArray.Add(guid.ToString());
+                }
+
+                jsonObject["Guids"] = jsonArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

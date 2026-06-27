@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -11,9 +11,9 @@ namespace SAM.Core
     {
         private object value;
 
-        public Tag(JObject jObject)
+        public Tag(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Tag(Tag tag)
@@ -170,51 +170,62 @@ namespace SAM.Core
             return false;
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (!jObject.ContainsKey("Value"))
+            JsonNode valueNode = jsonObject["Value"];
+            if (valueNode == null && !jsonObject.ContainsKey("ValueType"))
             {
                 return false;
             }
 
-            if (!jObject.ContainsKey("ValueType"))
+            if (!jsonObject.ContainsKey("ValueType"))
             {
-                value = jObject.GetValue("Value");
+                value = valueNode.ToObject();
                 return true;
             }
 
-            ValueType valueType = Query.Enum<ValueType>(jObject.Value<string>("ValueType"));
+            ValueType valueType = Query.Enum<ValueType>(jsonObject["ValueType"]?.GetValue<string>());
             if (valueType == ValueType.Undefined)
             {
                 value = null;
                 return true;
             }
 
+            if (valueNode == null)
+            {
+                return false;
+            }
+
             switch (valueType)
             {
                 case ValueType.Boolean:
-                    value = jObject.Value<bool>("Value");
+                    value = valueNode.GetValue<bool>();
                     return true;
 
                 case ValueType.Color:
-                    value = new SAMColor(jObject.Value<JObject>("Value")).ToColor();
+                    if (!(valueNode is JsonObject colorObject))
+                    {
+                        return false;
+                    }
+
+                    value = new SAMColor((JsonObject)colorObject.DeepClone()).ToColor();
                     return true;
 
                 case ValueType.DateTime:
-                    value = jObject.Value<DateTime>("Value");
+                    value = valueNode.GetValue<DateTime>();
                     return true;
 
                 case ValueType.Double:
-                    value = jObject.Value<double>("Value");
+                    value = valueNode.GetValue<double>();
                     return true;
 
                 case ValueType.Guid:
-                    if (!Enum.TryParse(jObject.Value<string>("Value"), out Guid guid))
+                    if (!Guid.TryParse(valueNode.GetValue<string>(), out Guid guid))
                     {
                         return false;
                     }
@@ -222,21 +233,20 @@ namespace SAM.Core
                     return true;
 
                 case ValueType.IJSAMObject:
-                    JObject jObject_Temp = jObject.Value<JObject>("Value");
-                    if (jObject_Temp == null)
+                    if (!(valueNode is JsonObject objectNode))
                     {
                         return false;
                     }
 
-                    value = new JSAMObjectWrapper(jObject_Temp).ToIJSAMObject();
+                    value = new JSAMObjectWrapper((JsonObject)objectNode.DeepClone()).ToIJSAMObject();
                     return true;
 
                 case ValueType.Integer:
-                    value = jObject.Value<int>("Value");
+                    value = valueNode.GetValue<int>();
                     return true;
 
                 case ValueType.String:
-                    value = jObject.Value<string>("Value");
+                    value = valueNode.GetValue<string>();
                     return true;
             }
 
@@ -306,80 +316,89 @@ namespace SAM.Core
             this.value = value;
         }
 
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             ValueType valueType = ValueType;
-            jObject.Add("ValueType", valueType.ToString());
+            jsonObject["ValueType"] = valueType.ToString();
 
             if (valueType != ValueType.Undefined)
             {
-                object value = null;
+                JsonNode valueNode = null;
                 switch (valueType)
                 {
                     case ValueType.Boolean:
                         if (Query.TryConvert(Value, out bool @bool))
                         {
-                            value = @bool;
+                            valueNode = Query.ToJsonNode(@bool);
                         }
                         break;
 
                     case ValueType.Color:
                         if (Query.TryConvert(Value, out Color color))
                         {
-                            value = new SAMColor(color).ToJObject();
+                            valueNode = new SAMColor(color).ToJsonObject();
                         }
                         break;
 
                     case ValueType.DateTime:
                         if (Query.TryConvert(Value, out DateTime dateTime))
                         {
-                            value = dateTime;
+                            valueNode = Query.ToJsonNode(dateTime);
                         }
                         break;
 
                     case ValueType.Double:
                         if (Query.TryConvert(Value, out double @double))
                         {
-                            value = @double;
+                            valueNode = Query.ToJsonNode(@double);
                         }
                         break;
 
                     case ValueType.Guid:
                         if (Query.TryConvert(Value, out Guid @guid))
                         {
-                            value = @guid;
+                            valueNode = Query.ToJsonNode(@guid);
                         }
                         break;
 
                     case ValueType.IJSAMObject:
-                        value = ((IJSAMObject)Value).ToJObject();
+                        {
+                            // ToJsonObject() normally returns a fresh, parent-less node - assign it directly (no
+                            // redundant clone). The IJSAMObject contract does not guarantee freshness, so clone
+                            // only when the node is already parented, which would otherwise throw under the
+                            // JsonNode single-parent invariant.
+                            JsonObject jsonObject_Value = ((IJSAMObject)Value).ToJsonObject();
+                            valueNode = jsonObject_Value == null ? null : (jsonObject_Value.Parent == null ? jsonObject_Value : jsonObject_Value.DeepClone());
+                        }
                         break;
 
                     case ValueType.Integer:
                         if (Query.TryConvert(Value, out int @int))
                         {
-                            value = @int;
+                            valueNode = Query.ToJsonNode(@int);
                         }
                         break;
 
                     case ValueType.String:
                         if (Query.TryConvert(Value, out string @string))
                         {
-                            value = @string;
+                            valueNode = Query.ToJsonNode(@string);
                         }
                         break;
                 }
 
-                if (value != null)
+                if (valueNode != null)
                 {
-                    jObject.Add("Value", value as dynamic);
+                    jsonObject["Value"] = valueNode;
                 }
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

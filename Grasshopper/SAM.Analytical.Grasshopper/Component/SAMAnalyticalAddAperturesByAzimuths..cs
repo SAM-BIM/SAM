@@ -97,7 +97,7 @@ namespace SAM.Analytical.Grasshopper
     public class SAMAnalyticalAddAperturesByAzimuths : GH_SAMVariableOutputParameterComponent
     {
         public override Guid ComponentGuid => new("84d34834-8ce0-42cb-a3de-7366337bac4a");
-        public override string LatestComponentVersion => "1.0.10";
+        public override string LatestComponentVersion => "1.0.11";
         protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
@@ -681,7 +681,7 @@ OUTPUTS
                 ApertureConstruction apertureConstruction =
                     (apertureConstructions == null || apertureConstructions.Count == 0)
                         ? null
-                        : apertureConstructions[System.Math.Min(i, ratios.Count - 1)];
+                        : apertureConstructions[System.Math.Min(i, apertureConstructions.Count - 1)];
 
                 // Normalize inputs to [0, 359] where sensible
                 double a = ClampTo360(interval.T0);
@@ -713,6 +713,9 @@ OUTPUTS
             out ApertureConstruction apertureConstruction)
         {
             double azimuthDeg_Round = System.Math.Round(azimuthDeg, MidpointRounding.ToEven);
+            // Rounding can push values just below 360 (e.g. 359.98) up to 360, which falls
+            // outside the wrap-split intervals (316→359 & 0→44). Wrap back since 0° ≡ 360°.
+            if (azimuthDeg_Round >= 360.0) azimuthDeg_Round -= 360.0;
             apertureConstruction = null;
             ratio = 0.0;
 
@@ -728,7 +731,7 @@ OUTPUTS
             return false;
         }
 
-        /// <summary>Normalise angle to [0, 359].</summary>
+        /// <summary>Normalise angle to [0, 360). Fractions are preserved (e.g. 359.98 stays 359.98).</summary>
         private static double NormalizeAngleDegrees(double angleDeg)
         {
             if (double.IsNaN(angleDeg) || double.IsInfinity(angleDeg)) return double.NaN;
@@ -737,7 +740,7 @@ OUTPUTS
             return (a >= 360.0) ? 359.0 : a;
         }
 
-        /// <summary>Clamp arbitrary double to [0, 359] while preserving values in that range.</summary>
+        /// <summary>Clamp arbitrary double into [0, 360) while preserving fractional values in that range.</summary>
         private static double ClampTo360(double v)
         {
             if (double.IsNaN(v)) return 0.0;

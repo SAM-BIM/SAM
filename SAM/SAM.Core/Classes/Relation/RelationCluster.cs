@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace SAM.Core
@@ -15,9 +17,8 @@ namespace SAM.Core
             : base()
         {
         }
-
-        public RelationCluster(JObject jObject)
-            : base(jObject)
+        public RelationCluster(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -42,10 +43,9 @@ namespace SAM.Core
             dictionary_Objects = new Dictionary<string, Dictionary<Guid, X>>();
             dictionary_Relations = new Dictionary<string, Dictionary<Guid, HashSet<Guid>>>();
         }
-
-        public RelationCluster(JObject jObject)
+        public RelationCluster(JsonObject jsonObject)
+            : base(jsonObject)
         {
-            FromJObject(jObject);
         }
 
         public RelationCluster(RelationCluster<X> relationCluster)
@@ -282,17 +282,14 @@ namespace SAM.Core
                 return false;
             }
 
-            Guid guid = Guid.Empty;
-            if (@object is ISAMObject)
+            if (@object is IGuidObject guidObject && dictionary.ContainsKey(guidObject.Guid))
             {
-                guid = ((ISAMObject)@object).Guid;
+                return true;
             }
 
-            if (guid != Guid.Empty)
-            {
-                return dictionary.ContainsKey(guid);
-            }
-
+            // Fallback equality scan — also rescues legacy clusters where an
+            // IGuidObject (e.g. LinkedFace3D, pre-IGuidObject fix) was stored
+            // under a generated key rather than its own Guid.
             foreach (KeyValuePair<Guid, X> keyValuePair in dictionary)
             {
                 if (@object.Equals(keyValuePair.Value))
@@ -339,75 +336,45 @@ namespace SAM.Core
             return count;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
             dictionary_Objects = new Dictionary<string, Dictionary<Guid, X>>();
             dictionary_Relations = new Dictionary<string, Dictionary<Guid, HashSet<Guid>>>();
 
-            JArray jArray_Objects = jObject.Value<JArray>("Objects");
-            if (jArray_Objects != null)
+            if (jsonObject["Objects"] is JsonArray jsonArray_Objects)
             {
-                foreach (JObject jObject_Objects in jArray_Objects)
+                foreach (JsonNode objectsNode in jsonArray_Objects)
                 {
-                    string typeName = jObject_Objects.Value<string>("Key");
-                    if (string.IsNullOrWhiteSpace((typeName)))
+                    if (!(objectsNode is JsonObject jsonObject_Objects))
                         continue;
 
-                    JArray jArray = jObject_Objects.Value<JArray>("Value");
-                    if (jArray == null)
+                    string typeName = jsonObject_Objects["Key"]?.GetValue<string>();
+                    if (string.IsNullOrWhiteSpace(typeName))
                         continue;
 
-                    List<Tuple<Guid, X>> tuples = Enumerable.Repeat(new Tuple<Guid, X>(Guid.Empty, default(X)), jArray.Count).ToList();
-                    Parallel.For(0, jArray.Count, (int i) =>
+                    if (!(jsonObject_Objects["Value"] is JsonArray jsonArray))
+                        continue;
+
+                    List<Tuple<Guid, X>> tuples = Enumerable.Repeat(new Tuple<Guid, X>(Guid.Empty, default(X)), jsonArray.Count).ToList();
+                    Parallel.For(0, jsonArray.Count, (int i) =>
                     {
-                        JObject jObject_Temp = jArray[i] as JObject;
-                        if (jObject_Temp == null)
-                        {
+                        if (!(jsonArray[i] is JsonObject jsonObject_Temp))
                             return;
-                        }
 
-                        Guid guid = jObject_Temp.Guid("Key");
+                        Guid guid = Query.Guid(jsonObject_Temp, "Key");
                         if (guid == Guid.Empty)
-                        {
                             return;
-                        }
 
-                        object @object = null;
-                        JToken jToken = jObject_Temp.GetValue("Value");
-                        switch (jToken.Type)
-                        {
-                            case JTokenType.Object:
-                                @object = Create.IJSAMObject((JObject)jToken);
-                                break;
+                        JsonNode valueNode = jsonObject_Temp["Value"];
+                        if (valueNode == null)
+                            return;
 
-                            case JTokenType.Boolean:
-                                @object = jToken.Value<bool>();
-                                break;
-
-                            case JTokenType.Integer:
-                                @object = jToken.Value<int>();
-                                break;
-
-                            case JTokenType.String:
-                                @object = jToken.Value<string>();
-                                break;
-
-                            case JTokenType.Float:
-                                @object = jToken.Value<double>();
-                                break;
-
-                            case JTokenType.Date:
-                                @object = jToken.Value<DateTime>();
-                                break;
-                        }
-
+                        object @object = ReadRelationValue(valueNode);
                         if (@object == null && @object is X)
-                        {
                             return;
-                        }
 
                         tuples[i] = new Tuple<Guid, X>(guid, (X)@object);
                     });
@@ -416,9 +383,7 @@ namespace SAM.Core
                     foreach (Tuple<Guid, X> tuple in tuples)
                     {
                         if (tuple.Item1 == Guid.Empty && tuple.Item2 == null)
-                        {
                             continue;
-                        }
 
                         dictionary[tuple.Item1] = tuple.Item2;
                     }
@@ -427,34 +392,37 @@ namespace SAM.Core
                 }
             }
 
-            JArray jArray_Relations = jObject.Value<JArray>("Relations");
-            if (jArray_Relations != null)
+            if (jsonObject["Relations"] is JsonArray jsonArray_Relations)
             {
-                foreach (JObject jObject_Relations in jArray_Relations)
+                foreach (JsonNode relationsNode in jsonArray_Relations)
                 {
-                    string typeName = jObject_Relations.Value<string>("Key");
-                    if (string.IsNullOrWhiteSpace((typeName)))
+                    if (!(relationsNode is JsonObject jsonObject_Relations))
                         continue;
 
-                    JArray jArray = jObject_Relations.Value<JArray>("Value");
-                    if (jArray == null)
+                    string typeName = jsonObject_Relations["Key"]?.GetValue<string>();
+                    if (string.IsNullOrWhiteSpace(typeName))
+                        continue;
+
+                    if (!(jsonObject_Relations["Value"] is JsonArray jsonArray))
                         continue;
 
                     Dictionary<Guid, HashSet<Guid>> dictionary = new Dictionary<Guid, HashSet<Guid>>();
-                    foreach (JObject jObject_Temp in jArray)
+                    foreach (JsonNode entryNode in jsonArray)
                     {
-                        Guid guid = jObject_Temp.Guid("Key");
+                        if (!(entryNode is JsonObject jsonObject_Temp))
+                            continue;
+
+                        Guid guid = Query.Guid(jsonObject_Temp, "Key");
                         if (guid == Guid.Empty)
                             continue;
 
-                        JArray jArray_Guids = jObject_Temp.Value<JArray>("Value");
-                        if (jArray_Guids == null)
+                        if (!(jsonObject_Temp["Value"] is JsonArray jsonArray_Guids))
                             continue;
 
                         HashSet<Guid> guids = new HashSet<Guid>();
-                        foreach (JToken jToken in jArray_Guids)
+                        foreach (JsonNode guidNode in jsonArray_Guids)
                         {
-                            Guid guid_Temp = Query.Guid(jToken);
+                            Guid guid_Temp = Query.Guid(guidNode);
                             if (guid_Temp != Guid.Empty)
                                 guids.Add(guid_Temp);
                         }
@@ -465,6 +433,42 @@ namespace SAM.Core
             }
 
             return true;
+        }
+
+        private static object ReadRelationValue(JsonNode valueNode)
+        {
+            switch (valueNode.GetValueKind())
+            {
+                case JsonValueKind.Object:
+                    return Create.IJSAMObject(valueNode as JsonObject);
+
+                case JsonValueKind.True:
+                case JsonValueKind.False:
+                    return valueNode.GetValue<bool>();
+
+                case JsonValueKind.Number:
+                    if (IsIntegerNumber(valueNode))
+                        return valueNode.GetValue<int>();
+                    return valueNode.GetValue<double>();
+
+                case JsonValueKind.String:
+                    string stringValue = valueNode.GetValue<string>();
+                    if (Query.IsIsoDateTime(stringValue))
+                        return DateTime.Parse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                    return stringValue;
+
+                default:
+                    return null;
+            }
+        }
+
+        private static bool IsIntegerNumber(JsonNode node)
+        {
+            if (!(node is JsonValue jsonValue) || !jsonValue.TryGetValue(out JsonElement element))
+                return false;
+
+            string raw = element.GetRawText();
+            return raw.IndexOf('.') < 0 && raw.IndexOf('e') < 0 && raw.IndexOf('E') < 0;
         }
 
         public Guid GetGuid(X @object)
@@ -481,18 +485,15 @@ namespace SAM.Core
             if (dictionary == null)
                 return Guid.Empty;
 
-            if (@object is ISAMObject)
-            {
-                Guid guid = ((ISAMObject)@object).Guid;
-                if (dictionary.ContainsKey(guid))
-                    return guid;
-            }
-            else
-            {
-                foreach (KeyValuePair<Guid, X> keyValuePair in dictionary)
-                    if (@object.Equals(keyValuePair.Value))
-                        return keyValuePair.Key;
-            }
+            if (@object is IGuidObject guidObject && dictionary.ContainsKey(guidObject.Guid))
+                return guidObject.Guid;
+
+            // Fallback equality scan — also rescues legacy clusters where an
+            // IGuidObject (e.g. LinkedFace3D, pre-IGuidObject fix) was stored
+            // under a generated key rather than its own Guid.
+            foreach (KeyValuePair<Guid, X> keyValuePair in dictionary)
+                if (@object.Equals(keyValuePair.Value))
+                    return keyValuePair.Key;
 
             return Guid.Empty;
         }
@@ -1327,69 +1328,98 @@ namespace SAM.Core
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            JArray jArray_Objects = new JArray();
+            JsonArray jsonArray_Objects = new JsonArray();
             foreach (KeyValuePair<string, Dictionary<Guid, X>> keyValuePair_Type in dictionary_Objects)
             {
-                JObject jObject_Objects = new JObject();
-                jObject_Objects.Add("Key", keyValuePair_Type.Key);
-                JArray jArray = new JArray();
+                JsonObject jsonObject_Objects = new JsonObject
+                {
+                    ["Key"] = keyValuePair_Type.Key
+                };
+
+                JsonArray jsonArray = new JsonArray();
                 foreach (KeyValuePair<Guid, X> keyValuePair in keyValuePair_Type.Value)
                 {
-                    JObject jObject_Temp = new JObject();
-                    jObject_Temp.Add("Key", keyValuePair.Key);
+                    JsonObject jsonObject_Temp = new JsonObject
+                    {
+                        ["Key"] = keyValuePair.Key.ToString()
+                    };
 
-                    object @object = keyValuePair.Value;
+                    JsonNode valueNode = WriteRelationValue(keyValuePair.Value);
+                    if (valueNode != null)
+                        jsonObject_Temp["Value"] = valueNode;
 
-                    if (@object is IJSAMObject)
-                        jObject_Temp.Add("Value", ((IJSAMObject)@object).ToJObject());
-                    else if (@object is double)
-                        jObject_Temp.Add("Value", (double)@object);
-                    else if (@object is string)
-                        jObject_Temp.Add("Value", (string)@object);
-                    else if (@object is int)
-                        jObject_Temp.Add("Value", (int)@object);
-                    else if (@object is bool)
-                        jObject_Temp.Add("Value", (bool)@object);
-
-                    jArray.Add(jObject_Temp);
+                    jsonArray.Add(jsonObject_Temp);
                 }
-                jObject_Objects.Add("Value", jArray);
 
-                jArray_Objects.Add(jObject_Objects);
+                jsonObject_Objects["Value"] = jsonArray;
+                jsonArray_Objects.Add(jsonObject_Objects);
             }
 
-            jObject.Add("Objects", jArray_Objects);
+            jsonObject["Objects"] = jsonArray_Objects;
 
-            JArray jArray_Relations = new JArray();
+            JsonArray jsonArray_Relations = new JsonArray();
             foreach (KeyValuePair<string, Dictionary<Guid, HashSet<Guid>>> keyValuePair_Type in dictionary_Relations)
             {
-                JObject jObject_Objects = new JObject();
-                jObject_Objects.Add("Key", keyValuePair_Type.Key);
-                JArray jArray = new JArray();
+                JsonObject jsonObject_Relations = new JsonObject
+                {
+                    ["Key"] = keyValuePair_Type.Key
+                };
+
+                JsonArray jsonArray = new JsonArray();
                 foreach (KeyValuePair<Guid, HashSet<Guid>> keyValuePair in keyValuePair_Type.Value)
                 {
-                    JObject jObject_Temp = new JObject();
-                    jObject_Temp.Add("Key", keyValuePair.Key);
-                    JArray jArray_Guids = new JArray();
+                    JsonObject jsonObject_Temp = new JsonObject
+                    {
+                        ["Key"] = keyValuePair.Key.ToString()
+                    };
+
+                    JsonArray jsonArray_Guids = new JsonArray();
                     foreach (Guid guid in keyValuePair.Value)
-                        jArray_Guids.Add(guid);
-                    jObject_Temp.Add("Value", jArray_Guids);
+                        jsonArray_Guids.Add(guid.ToString());
 
-                    jArray.Add(jObject_Temp);
+                    jsonObject_Temp["Value"] = jsonArray_Guids;
+                    jsonArray.Add(jsonObject_Temp);
                 }
-                jObject_Objects.Add("Value", jArray);
 
-                jArray_Relations.Add(jObject_Objects);
+                jsonObject_Relations["Value"] = jsonArray;
+                jsonArray_Relations.Add(jsonObject_Relations);
             }
-            jObject.Add("Relations", jArray_Relations);
+            jsonObject["Relations"] = jsonArray_Relations;
 
-            return jObject;
+            return jsonObject;
+        }
+
+        private static JsonNode WriteRelationValue(object value)
+        {
+            switch (value)
+            {
+                case IJSAMObject jSAMObject:
+                    {
+                        // ToJsonObject() normally returns a fresh, parent-less node, so the caller can attach it
+                        // directly - no DeepClone needed (the unconditional clone doubled allocations for every
+                        // relation value). The IJSAMObject contract does not *guarantee* a fresh node, though, so
+                        // clone only when the returned node is already parented; attaching such a node would
+                        // otherwise throw under the JsonNode single-parent invariant.
+                        JsonObject inner = jSAMObject.ToJsonObject();
+                        return inner == null ? null : (inner.Parent == null ? inner : inner.DeepClone());
+                    }
+                case double d:
+                    return Query.ToJsonNode(d);
+                case string s:
+                    return JsonValue.Create(s);
+                case int i:
+                    return JsonValue.Create(i);
+                case bool b:
+                    return JsonValue.Create(b);
+                default:
+                    return null;
+            }
         }
 
         public bool TryAddObject(X @object, out string typeName, out Guid guid)
@@ -1409,8 +1439,8 @@ namespace SAM.Core
             }
 
             guid = Guid.Empty;
-            if (@object is ISAMObject)
-                guid = ((ISAMObject)@object).Guid;
+            if (@object is IGuidObject guidObject)
+                guid = guidObject.Guid;
 
             if (guid == Guid.Empty)
             {
@@ -1561,9 +1591,12 @@ namespace SAM.Core
             }
 
             guid = Guid.Empty;
-            if (@object is ISAMObject)
-                guid = ((ISAMObject)@object).Guid;
+            if (@object is IGuidObject guidObject && dictionary.ContainsKey(guidObject.Guid))
+                guid = guidObject.Guid;
 
+            // Fallback equality scan — also rescues legacy clusters where an
+            // IGuidObject (e.g. LinkedFace3D, pre-IGuidObject fix) was stored
+            // under a generated key rather than its own Guid.
             if (guid == Guid.Empty)
             {
                 foreach (KeyValuePair<Guid, X> keyValuePair in dictionary)

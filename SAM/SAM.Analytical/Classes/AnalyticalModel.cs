@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Architectural;
 using SAM.Core;
 using SAM.Geometry;
@@ -9,6 +8,7 @@ using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -61,10 +61,12 @@ namespace SAM.Analytical
             : base(guid, name)
         {
         }
+        public AnalyticalModel(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public AnalyticalModel(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public AnalyticalModel(AnalyticalModel analyticalModel)
@@ -370,6 +372,41 @@ namespace SAM.Analytical
             return true;
         }
 
+        /// <summary>
+        /// Attaches <paramref name="result"/> and relates it to <paramref name="object"/>, registering
+        /// the object in the cluster first if needed. Unlike the Guid overload — which only relates when
+        /// the object is ALREADY a top-level cluster object — this works for nested objects such as
+        /// <see cref="Aperture"/> (which live inside Panels and are not registered by default), so their
+        /// results become readable back via <see cref="GetResults{T}(IJSAMObject)"/>. Mirrors the
+        /// register-then-relate pattern used by the TAS import (SAM.Analytical.Tas.Modify.CopyResults).
+        /// </summary>
+        public bool AddResult<T>(IResult result, T @object) where T : IJSAMObject
+        {
+            IResult result_Temp = result?.Clone();
+            if (result_Temp == null)
+            {
+                return false;
+            }
+
+            if (adjacencyCluster == null)
+            {
+                adjacencyCluster = new AdjacencyCluster();
+            }
+
+            if (!adjacencyCluster.AddObject(result_Temp))
+            {
+                return false;
+            }
+
+            if (@object != null)
+            {
+                adjacencyCluster.AddObject(@object);
+                adjacencyCluster.AddRelation(result_Temp, @object);
+            }
+
+            return true;
+        }
+
         public bool AddResult(AnalyticalModelSimulationResult analyticalModelSimulationResult)
         {
             AnalyticalModelSimulationResult analyticalModelSimulationResult_Temp = analyticalModelSimulationResult?.Clone();
@@ -415,28 +452,28 @@ namespace SAM.Analytical
             return adjacencyCluster.AddObject(new Zone(zone));
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Description"))
-                description = jObject.Value<string>("Description");
+            if (jsonObject.ContainsKey("Description"))
+                description = jsonObject["Description"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("Location"))
-                location = new Location(jObject.Value<JObject>("Location"));
+            if (jsonObject["Location"] is JsonObject locationJson)
+                location = new Location((JsonObject)locationJson.DeepClone());
 
-            if (jObject.ContainsKey("Address"))
-                address = new Address(jObject.Value<JObject>("Address"));
+            if (jsonObject["Address"] is JsonObject addressJson)
+                address = new Address((JsonObject)addressJson.DeepClone());
 
-            if (jObject.ContainsKey("AdjacencyCluster"))
-                adjacencyCluster = new AdjacencyCluster(jObject.Value<JObject>("AdjacencyCluster"));
+            if (jsonObject["AdjacencyCluster"] is JsonObject adjacencyClusterJson)
+                adjacencyCluster = new AdjacencyCluster((JsonObject)adjacencyClusterJson.DeepClone());
 
-            if (jObject.ContainsKey("MaterialLibrary"))
-                materialLibrary = new MaterialLibrary(jObject.Value<JObject>("MaterialLibrary"));
+            if (jsonObject["MaterialLibrary"] is JsonObject materialLibraryJson)
+                materialLibrary = new MaterialLibrary((JsonObject)materialLibraryJson.DeepClone());
 
-            if (jObject.ContainsKey("ProfileLibrary"))
-                profileLibrary = new ProfileLibrary(jObject.Value<JObject>("ProfileLibrary"));
+            if (jsonObject["ProfileLibrary"] is JsonObject profileLibraryJson)
+                profileLibrary = new ProfileLibrary((JsonObject)profileLibraryJson.DeepClone());
 
             return true;
         }
@@ -819,31 +856,31 @@ namespace SAM.Analytical
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
             if (description != null)
-                jObject.Add("Description", description);
+                jsonObject["Description"] = description;
 
-            if (location != null)
-                jObject.Add("Location", location.ToJObject());
+            if (location?.ToJsonObject() is JsonObject locationJson)
+                jsonObject["Location"] = locationJson.DeepClone();
 
-            if (address != null)
-                jObject.Add("Address", address.ToJObject());
+            if (address?.ToJsonObject() is JsonObject addressJson)
+                jsonObject["Address"] = addressJson.DeepClone();
 
-            if (adjacencyCluster != null)
-                jObject.Add("AdjacencyCluster", adjacencyCluster.ToJObject());
+            if (adjacencyCluster?.ToJsonObject() is JsonObject adjacencyClusterJson)
+                jsonObject["AdjacencyCluster"] = adjacencyClusterJson.DeepClone();
 
-            if (materialLibrary != null)
-                jObject.Add("MaterialLibrary", materialLibrary.ToJObject());
+            if (materialLibrary?.ToJsonObject() is JsonObject materialLibraryJson)
+                jsonObject["MaterialLibrary"] = materialLibraryJson.DeepClone();
 
-            if (profileLibrary != null)
-                jObject.Add("ProfileLibrary", profileLibrary.ToJObject());
+            if (profileLibrary?.ToJsonObject() is JsonObject profileLibraryJson)
+                jsonObject["ProfileLibrary"] = profileLibraryJson.DeepClone();
 
-            return jObject;
+            return jsonObject;
         }
 
         public void Transform(Transform3D transform3D)

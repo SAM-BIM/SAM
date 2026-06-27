@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -61,9 +61,10 @@ namespace SAM.Analytical
             this.summerRelativeHumidity = summerRelativeHumidity;
             this.summerDryBulbTemperature = summerDryBulbTemperature;
         }
+        public HeatRecoveryUnit(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public HeatRecoveryUnit(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -194,101 +195,101 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("WinterSensibleEfficiency"))
+            if (jsonObject.ContainsKey("WinterSensibleEfficiency"))
             {
-                winterSensibleEfficiency = jObject.Value<double>("WinterSensibleEfficiency");
+                winterSensibleEfficiency = jsonObject["WinterSensibleEfficiency"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("WinterLatentEfficiency"))
+            if (jsonObject.ContainsKey("WinterLatentEfficiency"))
             {
-                winterLatentEfficiency = jObject.Value<double>("WinterLatentEfficiency");
+                winterLatentEfficiency = jsonObject["WinterLatentEfficiency"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("SummerSensibleEfficiency"))
+            if (jsonObject.ContainsKey("SummerSensibleEfficiency"))
             {
-                summerSensibleEfficiency = jObject.Value<double>("SummerSensibleEfficiency");
+                summerSensibleEfficiency = jsonObject["SummerSensibleEfficiency"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("SummerLatentEfficiency"))
+            if (jsonObject.ContainsKey("SummerLatentEfficiency"))
             {
-                summerLatentEfficiency = jObject.Value<double>("SummerLatentEfficiency");
+                summerLatentEfficiency = jsonObject["SummerLatentEfficiency"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("WinterRelativeHumidity"))
+            if (jsonObject.ContainsKey("WinterRelativeHumidity"))
             {
-                winterRelativeHumidity = jObject.Value<double>("WinterRelativeHumidity");
+                winterRelativeHumidity = jsonObject["WinterRelativeHumidity"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("WinterDryBulbTemperature"))
+            if (jsonObject.ContainsKey("WinterDryBulbTemperature"))
             {
-                winterDryBulbTemperature = jObject.Value<double>("WinterDryBulbTemperature");
+                winterDryBulbTemperature = jsonObject["WinterDryBulbTemperature"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("SummerRelativeHumidity"))
+            if (jsonObject.ContainsKey("SummerRelativeHumidity"))
             {
-                summerRelativeHumidity = jObject.Value<double>("SummerRelativeHumidity");
+                summerRelativeHumidity = jsonObject["SummerRelativeHumidity"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("SummerDryBulbTemperature"))
+            if (jsonObject.ContainsKey("SummerDryBulbTemperature"))
             {
-                summerDryBulbTemperature = jObject.Value<double>("SummerDryBulbTemperature");
+                summerDryBulbTemperature = jsonObject["SummerDryBulbTemperature"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (!double.IsNaN(winterSensibleEfficiency))
             {
-                jObject.Add("WinterSensibleEfficiency", winterSensibleEfficiency);
+                jsonObject["WinterSensibleEfficiency"] = winterSensibleEfficiency;
             }
 
             if (!double.IsNaN(winterLatentEfficiency))
             {
-                jObject.Add("WinterLatentEfficiency", winterLatentEfficiency);
+                jsonObject["WinterLatentEfficiency"] = winterLatentEfficiency;
             }
 
             if (!double.IsNaN(summerSensibleEfficiency))
             {
-                jObject.Add("SummerSensibleEfficiency", summerSensibleEfficiency);
+                jsonObject["SummerSensibleEfficiency"] = summerSensibleEfficiency;
             }
 
             if (!double.IsNaN(summerLatentEfficiency))
             {
-                jObject.Add("SummerLatentEfficiency", summerLatentEfficiency);
+                jsonObject["SummerLatentEfficiency"] = summerLatentEfficiency;
             }
 
             if (!double.IsNaN(winterRelativeHumidity))
             {
-                jObject.Add("WinterRelativeHumidity", winterRelativeHumidity);
+                jsonObject["WinterRelativeHumidity"] = winterRelativeHumidity;
             }
 
             if (!double.IsNaN(winterDryBulbTemperature))
             {
-                jObject.Add("WinterDryBulbTemperature", winterDryBulbTemperature);
+                jsonObject["WinterDryBulbTemperature"] = winterDryBulbTemperature;
             }
 
             if (!double.IsNaN(summerRelativeHumidity))
             {
-                jObject.Add("SummerRelativeHumidity", summerRelativeHumidity);
+                jsonObject["SummerRelativeHumidity"] = summerRelativeHumidity;
             }
 
             if (!double.IsNaN(summerDryBulbTemperature))
             {
-                jObject.Add("SummerDryBulbTemperature", summerDryBulbTemperature);
+                jsonObject["SummerDryBulbTemperature"] = summerDryBulbTemperature;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

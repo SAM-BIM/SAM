@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -36,9 +36,10 @@ namespace SAM.Analytical
             this.height = height;
             this.openingAngle = openingAngle;
         }
+        public PartOOpeningProperties(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public PartOOpeningProperties(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -55,65 +56,65 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Width"))
+            if (jsonObject.ContainsKey("Width"))
             {
-                width = jObject.Value<double>("Width");
+                width = jsonObject["Width"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("Height"))
+            if (jsonObject.ContainsKey("Height"))
             {
-                height = jObject.Value<double>("Height");
+                height = jsonObject["Height"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("OpeningAngle"))
+            if (jsonObject.ContainsKey("OpeningAngle"))
             {
-                openingAngle = jObject.Value<double>("OpeningAngle");
+                openingAngle = jsonObject["OpeningAngle"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("Factor"))
+            if (jsonObject.ContainsKey("Factor"))
             {
-                Factor = jObject.Value<double>("Factor");
+                Factor = jsonObject["Factor"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
             if (!double.IsNaN(width))
             {
-                jObject.Add("Width", width);
+                jsonObject["Width"] = width;
             }
 
             if (!double.IsNaN(height))
             {
-                jObject.Add("Height", height);
+                jsonObject["Height"] = height;
             }
 
             if (!double.IsNaN(openingAngle))
             {
-                jObject.Add("OpeningAngle", openingAngle);
+                jsonObject["OpeningAngle"] = openingAngle;
             }
 
             if (!double.IsNaN(Factor))
             {
-                jObject.Add("Factor", Factor);
+                jsonObject["Factor"] = Factor;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         // --------------------------------------------------------------------------------------

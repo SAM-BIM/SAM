@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public abstract class TextFilter : Filter, ITextFilter
     {
-        public TextFilter(JObject jObject)
-            : base(jObject)
+        public TextFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -35,26 +35,26 @@ namespace SAM.Core
 
         public string Value { get; set; }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("TextComparisonType"))
+            if (jsonObject.ContainsKey("TextComparisonType"))
             {
-                TextComparisonType = Query.Enum<TextComparisonType>(jObject.Value<string>("TextComparisonType"));
+                TextComparisonType = Query.Enum<TextComparisonType>(jsonObject["TextComparisonType"]?.GetValue<string>());
             }
 
-            if (jObject.ContainsKey("Value"))
+            if (jsonObject.ContainsKey("Value"))
             {
-                Value = jObject.Value<string>("Value");
+                Value = jsonObject["Value"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("CaseSensitive"))
+            if (jsonObject.ContainsKey("CaseSensitive"))
             {
-                CaseSensitive = jObject.Value<bool>("CaseSensitive");
+                CaseSensitive = jsonObject["CaseSensitive"]?.GetValue<bool>() ?? true;
             }
 
             return true;
@@ -76,22 +76,22 @@ namespace SAM.Core
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
             }
 
-            result.Add("TextComparisonType", TextComparisonType.ToString());
+            result["TextComparisonType"] = TextComparisonType.ToString();
 
             if (Value != null)
             {
-                result.Add("Value", Value);
+                result["Value"] = Value;
             }
 
-            result.Add("CaseSensitive", CaseSensitive);
+            result["CaseSensitive"] = CaseSensitive;
 
             return result;
         }

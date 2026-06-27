@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Weather
 {
@@ -27,32 +27,35 @@ namespace SAM.Weather
             }
         }
 
-        public SimpleArithmeticMeanCalculationMethod(JObject jObject)
+        public SimpleArithmeticMeanCalculationMethod(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("SequentialDays"))
+            if (jsonObject.ContainsKey("SequentialDays"))
             {
-                SequentialDays = jObject.Value<int>("SequentialDays");
+                SequentialDays = jsonObject["SequentialDays"]?.GetValue<int>() ?? default;
             }
 
             return true;
         }
 
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
-            jObject.Add("SequentialDays", SequentialDays);
-            return jObject;
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this),
+                ["SequentialDays"] = SequentialDays
+            };
+
+            return jsonObject;
         }
     }
 }

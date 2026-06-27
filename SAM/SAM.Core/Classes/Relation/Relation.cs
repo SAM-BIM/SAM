@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -45,10 +45,9 @@ namespace SAM.Core
             references_2 = new HashSet<Reference>();
             references_2.Add(reference_2);
         }
-
-        public Relation(JObject jObject)
+        public Relation(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public Relation(Relation relation)
@@ -130,38 +129,38 @@ namespace SAM.Core
             return references_2 == null ? false : references_2.Contains(reference);
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Id"))
+            if (jsonObject.ContainsKey("Id"))
             {
-                id = jObject.Value<string>("Id");
+                id = jsonObject["Id"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("References_1"))
+            if (jsonObject["References_1"] is JsonArray references1Array)
             {
-                JArray jArray = jObject.Value<JArray>("References_1");
-                if (jArray != null)
+                references_1 = new HashSet<Reference>();
+                foreach (JsonNode node in references1Array)
                 {
-                    references_1 = new HashSet<Reference>();
-                    foreach (string value in jArray)
+                    string value = node?.GetValue<string>();
+                    if (value != null)
                     {
                         references_1.Add(value);
                     }
                 }
             }
 
-            if (jObject.ContainsKey("References_2"))
+            if (jsonObject["References_2"] is JsonArray references2Array)
             {
-                JArray jArray = jObject.Value<JArray>("References_2");
-                if (jArray != null)
+                references_2 = new HashSet<Reference>();
+                foreach (JsonNode node in references2Array)
                 {
-                    references_2 = new HashSet<Reference>();
-                    foreach (string value in jArray)
+                    string value = node?.GetValue<string>();
+                    if (value != null)
                     {
                         references_2.Add(value);
                     }
@@ -171,34 +170,36 @@ namespace SAM.Core
             return true;
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Query.FullTypeName(this));
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (id != null)
             {
-                result.Add("Id", id);
+                result["Id"] = id;
             }
 
             if (references_1 != null)
             {
-                JArray jArray = new JArray();
+                JsonArray references1Array = new JsonArray();
                 foreach (Reference reference in references_1)
                 {
-                    jArray.Add(reference.ToString());
+                    references1Array.Add(reference.ToString());
                 }
-                result.Add("References_1", jArray);
+                result["References_1"] = references1Array;
             }
 
             if (references_2 != null)
             {
-                JArray jArray = new JArray();
+                JsonArray references2Array = new JsonArray();
                 foreach (Reference reference in references_2)
                 {
-                    jArray.Add(reference.ToString());
+                    references2Array.Add(reference.ToString());
                 }
-                result.Add("References_2", jArray);
+                result["References_2"] = references2Array;
             }
 
             return result;

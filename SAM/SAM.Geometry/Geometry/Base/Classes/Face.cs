@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Geometry.Planar;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry
 {
@@ -29,35 +29,52 @@ namespace SAM.Geometry
                 }
             }
         }
-
-        public Face(JObject jObject)
+        public Face(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            externalEdge2D = Planar.Create.IClosed2D(jObject.Value<JObject>("ExternalEdge2D"));
+            if (jsonObject == null)
+                return false;
 
-            if (jObject.ContainsKey("InternalEdge2Ds"))
+            if (jsonObject["ExternalEdge2D"] is JsonObject jsonObject_ExternalEdge2D)
             {
-                internalEdge2Ds = Core.Create.IJSAMObjects<IClosed2D>(jObject.Value<JArray>("InternalEdge2Ds"));
+                externalEdge2D = Planar.Create.IClosed2D((JsonObject)jsonObject_ExternalEdge2D.DeepClone());
+            }
+
+            if (jsonObject["InternalEdge2Ds"] is JsonArray jsonArray_InternalEdge2Ds)
+            {
+                internalEdge2Ds = Core.Create.IJSAMObjects<IClosed2D>(jsonArray_InternalEdge2Ds);
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("ExternalEdge2D", externalEdge2D.ToJObject());
-            if (internalEdge2Ds != null)
-                jObject.Add("InternalEdge2Ds", Core.Create.JArray(internalEdge2Ds));
+            if (externalEdge2D?.ToJsonObject() is JsonObject externalEdge2DJson)
+                jsonObject["ExternalEdge2D"] = externalEdge2DJson.DeepClone();
 
-            return jObject;
+            if (internalEdge2Ds != null)
+            {
+                JsonArray jsonArray_InternalEdge2Ds = new JsonArray();
+                foreach (IClosed2D internalEdge2D in internalEdge2Ds)
+                {
+                    if (internalEdge2D?.ToJsonObject() is JsonObject internalJson)
+                    {
+                        jsonArray_InternalEdge2Ds.Add(internalJson.DeepClone());
+                    }
+                }
+                jsonObject["InternalEdge2Ds"] = jsonArray_InternalEdge2Ds;
+            }
+
+            return jsonObject;
         }
 
         public IClosed2D ExternalEdge2D

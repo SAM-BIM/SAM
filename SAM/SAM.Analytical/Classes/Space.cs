@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Spatial;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -68,10 +68,12 @@ namespace SAM.Analytical
                 this.location = new Point3D(location);
             }
         }
+        public Space(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Space(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public InternalCondition InternalCondition
@@ -117,16 +119,16 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Location"))
-                location = new Point3D(jObject.Value<JObject>("Location"));
+            if (jsonObject["Location"] is JsonObject locationJson)
+                location = new Point3D((JsonObject)locationJson.DeepClone());
 
-            if (jObject.ContainsKey("InternalCondition"))
-                internalCondition = new InternalCondition(jObject.Value<JObject>("InternalCondition"));
+            if (jsonObject["InternalCondition"] is JsonObject internalConditionJson)
+                internalCondition = new InternalCondition((JsonObject)internalConditionJson.DeepClone());
 
             return true;
         }
@@ -140,19 +142,19 @@ namespace SAM.Analytical
             location = location?.GetMoved(vector3D) as Point3D;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
-            if (location != null)
-                jObject.Add("Location", location.ToJObject());
+            if (location?.ToJsonObject() is JsonObject locationJson)
+                jsonObject["Location"] = locationJson.DeepClone();
 
-            if (internalCondition != null)
-                jObject.Add("InternalCondition", internalCondition.ToJObject());
+            if (internalCondition?.ToJsonObject() is JsonObject internalConditionJson)
+                jsonObject["InternalCondition"] = internalConditionJson.DeepClone();
 
-            return jObject;
+            return jsonObject;
         }
 
         public void Transform(Transform3D transform3D)

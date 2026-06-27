@@ -2,7 +2,6 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
 
@@ -21,9 +20,10 @@ namespace SAM.Analytical
         {
 
         }
+        public SpacePanelsFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public SpacePanelsFilter(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }

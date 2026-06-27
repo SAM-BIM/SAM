@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 
 namespace SAM.Analytical
@@ -35,10 +34,9 @@ namespace SAM.Analytical
         /// Initializes a new instance of the ApertureApertureConstructionFilter class with the specified JSON object.
         /// </summary>
         /// <param name="jObject">The JSON object to use.</param>
-        public ApertureApertureConstructionFilter(JObject jObject)
-            : base(jObject)
+        public ApertureApertureConstructionFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
-
         }
 
         /// <summary>

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -24,10 +24,12 @@ namespace SAM.Geometry.Spatial
             origin = new Point3D(sphere.origin);
             radius = sphere.radius;
         }
+        public Sphere(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Sphere(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public override ISAMGeometry Clone()
@@ -98,24 +100,31 @@ namespace SAM.Geometry.Spatial
             return Query.Transform(this, transform3D);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            origin = new Point3D(jObject.Value<JObject>("Origin"));
-            radius = jObject.Value<double>("Radius");
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
+                origin = new Point3D((JsonObject)jsonObject_Origin.DeepClone());
+
+            radius = jsonObject["Radius"]?.GetValue<double>() ?? 0;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Origin", origin.ToJObject());
-            jObject.Add("Radius", radius);
+            if (origin?.ToJsonObject() is JsonObject originJson)
+                jsonObject["Origin"] = originJson.DeepClone();
 
-            return jObject;
+            jsonObject["Radius"] = radius;
+
+            return jsonObject;
         }
     }
 }

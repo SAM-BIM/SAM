@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -23,10 +23,12 @@ namespace SAM.Geometry.Planar
         {
             points = Query.Clone(triangle2D.points).ToArray();
         }
+        public Triangle2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Triangle2D(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public static implicit operator Triangle2D(Spatial.Triangle3D triangle3D)
@@ -62,10 +64,23 @@ namespace SAM.Geometry.Planar
             return Query.Distance(this, point2D);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            points = Geometry.Create.ISAMGeometries<Point2D>(jObject.Value<JArray>("Points")).ToArray();
+            if (jsonObject == null)
+                return false;
 
+            if (jsonObject["Points"] is JsonArray jsonArray_Points)
+            {
+                List<Point2D> point2Ds = new List<Point2D>();
+                foreach (JsonNode node in jsonArray_Points)
+                {
+                    if (node is JsonObject pointJson)
+                    {
+                        point2Ds.Add(new Point2D((JsonObject)pointJson.DeepClone()));
+                    }
+                }
+                points = point2Ds.ToArray();
+            }
             return true;
         }
 
@@ -192,15 +207,26 @@ namespace SAM.Geometry.Planar
             points.Reverse();
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Points", Geometry.Create.JArray(points));
+            if (points != null)
+            {
+                JsonArray jsonArray_Points = new JsonArray();
+                foreach (Point2D point2D in points)
+                {
+                    if (point2D?.ToJsonObject() is JsonObject pointJson)
+                    {
+                        jsonArray_Points.Add(pointJson.DeepClone());
+                    }
+                }
+                jsonObject["Points"] = jsonArray_Points;
+            }
 
-            return jObject;
+            return jsonObject;
         }
 
         public IEnumerable<Triangle2D> Triangulate()

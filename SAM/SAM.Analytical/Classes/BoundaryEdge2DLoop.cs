@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Planar;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -57,9 +57,8 @@ namespace SAM.Analytical
         {
             boundaryEdge2Ds = boundaryEdge2DLoop.boundaryEdge2Ds.ConvertAll(x => new BoundaryEdge2D(x));
         }
-
-        public BoundaryEdge2DLoop(JObject jObject)
-            : base(jObject)
+        public BoundaryEdge2DLoop(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -124,23 +123,35 @@ namespace SAM.Analytical
             boundaryEdge2Ds.Reverse();
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            boundaryEdge2Ds = Core.Create.IJSAMObjects<BoundaryEdge2D>(jObject.Value<JArray>("BoundaryEdge2Ds"));
+            if (jsonObject["BoundaryEdge2Ds"] is JsonArray boundaryEdge2DsArray)
+                boundaryEdge2Ds = Core.Create.IJSAMObjects<BoundaryEdge2D>(boundaryEdge2DsArray);
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
-            jObject.Add("BoundaryEdge2Ds", Core.Create.JArray(boundaryEdge2Ds));
-            return jObject;
+            if (boundaryEdge2Ds != null)
+            {
+                JsonArray boundaryEdge2DsArray = new JsonArray();
+                foreach (BoundaryEdge2D edge in boundaryEdge2Ds)
+                {
+                    if (edge?.ToJsonObject() is JsonObject edgeJson)
+                    {
+                        boundaryEdge2DsArray.Add(edgeJson.DeepClone());
+                    }
+                }
+                jsonObject["BoundaryEdge2Ds"] = boundaryEdge2DsArray;
+            }
+            return jsonObject;
         }
 
         public static IClosed2D ToGeometry(BoundaryEdge2DLoop boundaryEdge2DLoop)

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -43,10 +43,12 @@ namespace SAM.Geometry.Planar
             coordinateSystem2D = CoordinateSystem2D.World;
             this.sAMGeometry2Ds = sAMGeometry2Ds == null ? null : sAMGeometry2Ds.ToList().ConvertAll(x => x.Clone() as ISAMGeometry2D);
         }
+        public SAMGeometry2DGroup(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public SAMGeometry2DGroup(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public bool Add(ISAMGeometry2D sAMGeometry2D)
@@ -110,28 +112,26 @@ namespace SAM.Geometry.Planar
         {
             return new SAMGeometry2DGroup(this);
         }
-
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("CoordinateSystem2D"))
+            if (jsonObject["CoordinateSystem2D"] is JsonObject coordinateSystem2DJson)
             {
-                coordinateSystem2D = new CoordinateSystem2D(jObject.Value<JObject>("CoordinateSystem2D"));
+                coordinateSystem2D = new CoordinateSystem2D((JsonObject)coordinateSystem2DJson.DeepClone());
             }
 
-            if (jObject.ContainsKey("SAMGeometry2Ds"))
+            if (jsonObject["SAMGeometry2Ds"] is JsonArray sAMGeometry2DsArray)
             {
-                JArray jArray = jObject.Value<JArray>("SAMGeometry2Ds");
-                if (jArray != null)
+                sAMGeometry2Ds = new List<ISAMGeometry2D>();
+                foreach (JsonNode node in sAMGeometry2DsArray)
                 {
-                    sAMGeometry2Ds = new List<ISAMGeometry2D>();
-                    foreach (JObject jObject_Temp in jArray)
+                    if (node is JsonObject childJson)
                     {
-                        sAMGeometry2Ds.Add(Core.Query.IJSAMObject<ISAMGeometry2D>(jObject_Temp));
+                        sAMGeometry2Ds.Add(Core.Query.IJSAMObject<ISAMGeometry2D>(childJson));
                     }
                 }
             }
@@ -188,31 +188,30 @@ namespace SAM.Geometry.Planar
             coordinateSystem2D = coordinateSystem2D.Transform(transform2D);
             return true;
         }
-
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
-
-            if (coordinateSystem2D != null)
+            JsonObject result = new JsonObject
             {
-                result.Add("CoordinateSystem2D", coordinateSystem2D.ToJObject());
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (coordinateSystem2D?.ToJsonObject() is JsonObject coordinateSystem2DJson)
+            {
+                result["CoordinateSystem2D"] = coordinateSystem2DJson.DeepClone();
             }
 
             if (sAMGeometry2Ds != null)
             {
-                JArray jArray = new JArray();
-                foreach (ISAMGeometry2D sAMGeometry3D in sAMGeometry2Ds)
+                JsonArray sAMGeometry2DsArray = new JsonArray();
+                foreach (ISAMGeometry2D sAMGeometry2D in sAMGeometry2Ds)
                 {
-                    if (sAMGeometry3D == null)
+                    if (sAMGeometry2D?.ToJsonObject() is JsonObject childJson)
                     {
-                        continue;
+                        sAMGeometry2DsArray.Add(childJson.DeepClone());
                     }
-
-                    jArray.Add(sAMGeometry3D.ToJObject());
                 }
 
-                result.Add("SAMGeometry2Ds", jArray);
+                result["SAMGeometry2Ds"] = sAMGeometry2DsArray;
             }
 
             return result;

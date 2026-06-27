@@ -34,7 +34,16 @@ namespace SAM.Core
                 memoryStream.Position = 0;
                 using (var gZipStream = new GZipStream(memoryStream, CompressionMode.Decompress))
                 {
-                    gZipStream.Read(buffer, 0, buffer.Length);
+                    // GZipStream.Read is not guaranteed to fill the buffer in a single call - for large
+                    // payloads (e.g. a whole model) it returns only part of the data, leaving the rest of
+                    // the buffer as zero bytes and so producing a truncated/corrupt result. Loop until the
+                    // expected dataLength bytes have been read (or the stream ends).
+                    int offset = 0;
+                    int read;
+                    while (offset < buffer.Length && (read = gZipStream.Read(buffer, offset, buffer.Length - offset)) > 0)
+                    {
+                        offset += read;
+                    }
                 }
 
                 return Encoding.UTF8.GetString(buffer);

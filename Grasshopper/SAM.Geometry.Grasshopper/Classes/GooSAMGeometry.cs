@@ -4,7 +4,6 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using Newtonsoft.Json.Linq;
 using Rhino;
 using Rhino.DocObjects;
 using Rhino.Geometry;
@@ -17,10 +16,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using SAM.Core.Grasshopper;
 
 namespace SAM.Geometry.Grasshopper
 {
-    public class GooSAMGeometry : GH_Goo<ISAMGeometry>, IGH_PreviewData, IGH_BakeAwareData
+    public class GooSAMGeometry : GH_Goo<ISAMGeometry>, IGooSAMGeometry, IGH_PreviewData, IGH_BakeAwareData
     {
         public GooSAMGeometry()
             : base()
@@ -111,11 +111,11 @@ namespace SAM.Geometry.Grasshopper
             if (Value == null)
                 return false;
 
-            JObject jObject = Value.ToJObject();
-            if (jObject == null)
+            string json = Value.ToJsonObject()?.ToJsonString();
+            if (json == null)
                 return false;
 
-            writer.SetString(typeof(ISAMGeometry).FullName, jObject.ToString());
+            writer.SetString(typeof(ISAMGeometry).FullName, json);
             return true;
         }
 
@@ -279,14 +279,66 @@ namespace SAM.Geometry.Grasshopper
                 return true;
             }
 
+            if (source is GH_Line)
+            {
+                Value = Convert.ToSAM((GH_Line)source);
+                return true;
+            }
+
+            if (source is global::Rhino.Geometry.Line)
+            {
+                Value = Rhino.Convert.ToSAM((global::Rhino.Geometry.Line)source);
+                return true;
+            }
+
+            if (source is global::Rhino.Geometry.Curve)
+            {
+                ISAMGeometry3D geometry3D = Rhino.Convert.ToSAM((global::Rhino.Geometry.Curve)source);
+                if (geometry3D != null)
+                {
+                    Value = geometry3D;
+                    return true;
+                }
+            }
+
+            if (source is GH_Surface)
+            {
+                List<ISAMGeometry3D> sAMGeometry3Ds = Convert.ToSAM((GH_Surface)source);
+                if (sAMGeometry3Ds != null && sAMGeometry3Ds.Count != 0)
+                {
+                    Value = sAMGeometry3Ds[0];
+                    return true;
+                }
+            }
+
+            if (source is GH_Brep)
+            {
+                List<ISAMGeometry3D> sAMGeometry3Ds = Convert.ToSAM((GH_Brep)source);
+                if (sAMGeometry3Ds != null && sAMGeometry3Ds.Count != 0)
+                {
+                    Value = sAMGeometry3Ds[0];
+                    return true;
+                }
+            }
+
             if (source is Mesh)
             {
-                Value = Rhino.Convert.ToSAM((Mesh)source);
+                Mesh3D mesh3D = Rhino.Convert.ToSAM((Mesh)source);
+                if (mesh3D != null)
+                {
+                    Value = mesh3D;
+                    return true;
+                }
             }
 
             if (source is GH_Mesh)
             {
-                Value = Convert.ToSAM((GH_Mesh)source);
+                Mesh3D mesh3D = Convert.ToSAM((GH_Mesh)source);
+                if (mesh3D != null)
+                {
+                    Value = mesh3D;
+                    return true;
+                }
             }
 
             if (source is Brep)
@@ -299,15 +351,46 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
+            if (source is global::Rhino.Geometry.Extrusion)
+            {
+                Brep brep = ((global::Rhino.Geometry.Extrusion)source).ToBrep(true);
+                if (brep != null)
+                {
+                    List<ISAMGeometry3D> sAMGeometry3Ds = Rhino.Convert.ToSAM(brep);
+                    if (sAMGeometry3Ds != null && sAMGeometry3Ds.Count != 0)
+                    {
+                        Value = sAMGeometry3Ds[0];
+                        return true;
+                    }
+                }
+            }
+
+            if (source is GH_Extrusion)
+            {
+                Brep brep = ((GH_Extrusion)source).Value?.ToBrep(true);
+                if (brep != null)
+                {
+                    List<ISAMGeometry3D> sAMGeometry3Ds = Rhino.Convert.ToSAM(brep);
+                    if (sAMGeometry3Ds != null && sAMGeometry3Ds.Count != 0)
+                    {
+                        Value = sAMGeometry3Ds[0];
+                        return true;
+                    }
+                }
+            }
+
             return base.CastFrom(source);
         }
 
         public override bool CastTo<Y>(ref Y target)
         {
-            if (typeof(Y) is ISAMGeometry)
+            if (typeof(ISAMGeometry).IsAssignableFrom(typeof(Y)))
             {
-                target = (Y)(object)Value;
-                return true;
+                if (Value is Y val)
+                {
+                    target = val;
+                    return true;
+                }
             }
 
             if (typeof(Y) == typeof(Polyline))
@@ -316,6 +399,78 @@ namespace SAM.Geometry.Grasshopper
                 {
                     target = (Y)(object)(new Polyline(((ISegmentable3D)Value).GetPoints().ConvertAll(x => Rhino.Convert.ToRhino(x))));
                     return true;
+                }
+            }
+
+            if (typeof(Y).IsAssignableFrom(typeof(GH_Line)))
+            {
+                if (Value is Segment3D)
+                {
+                    target = (Y)(object)(((Segment3D)Value).ToGrasshopper());
+                    return true;
+                }
+            }
+
+            if (typeof(Y) == typeof(global::Rhino.Geometry.Line))
+            {
+                if (Value is Segment3D)
+                {
+                    target = (Y)(object)Rhino.Convert.ToRhino((Segment3D)Value);
+                    return true;
+                }
+            }
+
+            if (typeof(Y).IsAssignableFrom(typeof(GH_Curve)))
+            {
+                if (Value is Segment3D)
+                {
+                    target = (Y)(object)new GH_Curve(Rhino.Convert.ToRhino_LineCurve((Segment3D)Value));
+                    return true;
+                }
+
+                if (Value is Polygon3D)
+                {
+                    target = (Y)(object)(((Polygon3D)Value).ToGrasshopper());
+                    return true;
+                }
+
+                if (Value is Polyline3D)
+                {
+                    Polyline3D polyline3D = (Polyline3D)Value;
+                    target = (Y)(object)(polyline3D.ToGrasshopper(polyline3D.GetStart() == polyline3D.GetEnd()));
+                    return true;
+                }
+
+                if (Value is Polycurve3D)
+                {
+                    target = (Y)(object)(((Polycurve3D)Value).ToGrasshopper());
+                    return true;
+                }
+            }
+
+            if (typeof(Y) == typeof(global::Rhino.Geometry.Curve))
+            {
+                if (Value is Polygon3D)
+                {
+                    target = (Y)(object)Rhino.Convert.ToRhino_PolylineCurve((Polygon3D)Value);
+                    return true;
+                }
+
+                if (Value is Polyline3D)
+                {
+                    Polyline3D polyline3D = (Polyline3D)Value;
+                    target = (Y)(object)Rhino.Convert.ToRhino_PolylineCurve(polyline3D, polyline3D.GetStart() == polyline3D.GetEnd());
+                    return true;
+                }
+
+                if (Value is ICurve3D)
+                {
+                    global::Rhino.Geometry.Curve curve = Rhino.Convert.ToRhino((ICurve3D)Value);
+                    if (curve != null)
+                    {
+                        target = (Y)(object)curve;
+                        return true;
+                    }
                 }
             }
 
@@ -409,12 +564,55 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
+            if (typeof(Y).IsAssignableFrom(typeof(GH_Surface)))
+            {
+                if (Value is Face3D)
+                {
+                    GH_Surface gH_Surface = ((Face3D)Value).ToGrasshopper();
+                    if (gH_Surface != null)
+                    {
+                        target = (Y)(object)gH_Surface;
+                        return true;
+                    }
+                }
+
+                if (Value is Spatial.Surface)
+                {
+                    GH_Surface gH_Surface = ((Spatial.Surface)Value).ToGrasshopper();
+                    if (gH_Surface != null)
+                    {
+                        target = (Y)(object)gH_Surface;
+                        return true;
+                    }
+                }
+            }
+
             if (typeof(Y).IsAssignableFrom(typeof(Brep)))
             {
                 if (Value is Shell)
                 {
                     target = (Y)(object)Rhino.Convert.ToRhino((Shell)Value);
                     return true;
+                }
+
+                if (Value is Face3D)
+                {
+                    Brep brep = Rhino.Convert.ToRhino_Brep((Face3D)Value);
+                    if (brep != null)
+                    {
+                        target = (Y)(object)brep;
+                        return true;
+                    }
+                }
+
+                if (Value is Spatial.Surface)
+                {
+                    GH_Surface gH_Surface = ((Spatial.Surface)Value).ToGrasshopper();
+                    if (gH_Surface?.Value != null)
+                    {
+                        target = (Y)(object)gH_Surface.Value;
+                        return true;
+                    }
                 }
             }
 
@@ -424,6 +622,26 @@ namespace SAM.Geometry.Grasshopper
                 {
                     target = (Y)(object)new GH_Brep(Rhino.Convert.ToRhino((Shell)Value));
                     return true;
+                }
+
+                if (Value is Face3D)
+                {
+                    GH_Brep gH_Brep = ((Face3D)Value).ToGrasshopper_Brep();
+                    if (gH_Brep != null)
+                    {
+                        target = (Y)(object)gH_Brep;
+                        return true;
+                    }
+                }
+
+                if (Value is Spatial.Surface)
+                {
+                    GH_Surface gH_Surface = ((Spatial.Surface)Value).ToGrasshopper();
+                    if (gH_Surface?.Value != null)
+                    {
+                        target = (Y)(object)new GH_Brep(gH_Surface.Value);
+                        return true;
+                    }
                 }
             }
 
@@ -439,6 +657,16 @@ namespace SAM.Geometry.Grasshopper
                     }
                 }
 
+                if (Value is Face3D)
+                {
+                    Mesh mesh = Rhino.Convert.ToRhino_Mesh((Face3D)Value);
+                    if (mesh != null)
+                    {
+                        target = (Y)(object)new GH_Mesh(mesh);
+                        return true;
+                    }
+                }
+
                 if (Value is Mesh3D)
                 {
                     target = (Y)(object)new GH_Mesh(Rhino.Convert.ToRhino((Mesh3D)Value));
@@ -446,9 +674,44 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
+            if (typeof(Y) == typeof(Mesh))
+            {
+                if (Value is Shell)
+                {
+                    Mesh mesh = Rhino.Convert.ToRhino_Mesh((Shell)Value);
+                    if (mesh != null)
+                    {
+                        target = (Y)(object)mesh;
+                        return true;
+                    }
+                }
+
+                if (Value is Face3D)
+                {
+                    Mesh mesh = Rhino.Convert.ToRhino_Mesh((Face3D)Value);
+                    if (mesh != null)
+                    {
+                        target = (Y)(object)mesh;
+                        return true;
+                    }
+                }
+
+                if (Value is Mesh3D)
+                {
+                    target = (Y)(object)Rhino.Convert.ToRhino((Mesh3D)Value);
+                    return true;
+                }
+            }
+
             if (typeof(Y).IsAssignableFrom(Value.GetType()))
             {
                 target = (Y)(object)Value;
+                return true;
+            }
+
+            if(typeof(IGH_GeometricGoo).IsAssignableFrom(typeof(Y)) && Value.ToGrasshopper() is Y y)
+            {
+                target = y;
                 return true;
             }
 
@@ -506,12 +769,67 @@ namespace SAM.Geometry.Grasshopper
 
         protected override GH_GetterResult Prompt_Plural(ref List<GooSAMGeometry> values)
         {
-            throw new NotImplementedException();
+            global::Rhino.Input.Custom.GetObject getObject = new global::Rhino.Input.Custom.GetObject();
+            getObject.SetCommandPrompt("Select geometry");
+            getObject.GeometryFilter = global::Rhino.DocObjects.ObjectType.Brep
+                | global::Rhino.DocObjects.ObjectType.Mesh
+                | global::Rhino.DocObjects.ObjectType.Curve
+                | global::Rhino.DocObjects.ObjectType.Point
+                | global::Rhino.DocObjects.ObjectType.Extrusion
+                | global::Rhino.DocObjects.ObjectType.Surface;
+            getObject.SubObjectSelect = false;
+            getObject.DeselectAllBeforePostSelect = false;
+            getObject.OneByOnePostSelect = false;
+            getObject.GetMultiple(1, 0);
+
+            if (getObject.CommandResult() != global::Rhino.Commands.Result.Success)
+                return GH_GetterResult.cancel;
+
+            if (getObject.ObjectCount == 0)
+                return GH_GetterResult.cancel;
+
+            values = new List<GooSAMGeometry>();
+            for (int i = 0; i < getObject.ObjectCount; i++)
+            {
+                global::Rhino.Geometry.GeometryBase geometry = getObject.Object(i).Geometry();
+                if (geometry == null)
+                    continue;
+
+                GooSAMGeometry goo = new GooSAMGeometry();
+                if (goo.CastFrom(geometry))
+                    values.Add(goo);
+            }
+
+            return values.Count > 0 ? GH_GetterResult.success : GH_GetterResult.cancel;
         }
 
         protected override GH_GetterResult Prompt_Singular(ref GooSAMGeometry value)
         {
-            throw new NotImplementedException();
+            global::Rhino.Input.Custom.GetObject getObject = new global::Rhino.Input.Custom.GetObject();
+            getObject.SetCommandPrompt("Select geometry");
+            getObject.GeometryFilter = global::Rhino.DocObjects.ObjectType.Brep
+                | global::Rhino.DocObjects.ObjectType.Mesh
+                | global::Rhino.DocObjects.ObjectType.Curve
+                | global::Rhino.DocObjects.ObjectType.Point
+                | global::Rhino.DocObjects.ObjectType.Extrusion
+                | global::Rhino.DocObjects.ObjectType.Surface;
+            getObject.SubObjectSelect = false;
+            getObject.DeselectAllBeforePostSelect = false;
+            getObject.OneByOnePostSelect = false;
+            getObject.GetMultiple(1, 1);
+
+            if (getObject.CommandResult() != global::Rhino.Commands.Result.Success)
+                return GH_GetterResult.cancel;
+
+            if (getObject.ObjectCount == 0)
+                return GH_GetterResult.cancel;
+
+            global::Rhino.Geometry.GeometryBase geometry = getObject.Object(0).Geometry();
+            if (geometry == null)
+                return GH_GetterResult.cancel;
+
+            value = new GooSAMGeometry();
+            return value.CastFrom(geometry) ? GH_GetterResult.success : GH_GetterResult.cancel;
         }
 
         public void BakeGeometry(RhinoDoc doc, List<Guid> obj_ids)

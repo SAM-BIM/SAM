@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -75,34 +75,34 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("HoursExceedingComfortRange"))
+            if (jsonObject.ContainsKey("HoursExceedingComfortRange"))
             {
-                hoursExceedingComfortRange = jObject.Value<int>("HoursExceedingComfortRange");
+                hoursExceedingComfortRange = jsonObject["HoursExceedingComfortRange"]?.GetValue<int>() ?? 0;
             }
 
-            if (jObject.ContainsKey("SummerOccupiedHours"))
+            if (jsonObject.ContainsKey("SummerOccupiedHours"))
             {
-                summerOccupiedHours = jObject.Value<int>("SummerOccupiedHours");
+                summerOccupiedHours = jsonObject["SummerOccupiedHours"]?.GetValue<int>() ?? 0;
             }
 
-            if (jObject.ContainsKey("MaxExceedableSummerHours"))
+            if (jsonObject.ContainsKey("MaxExceedableSummerHours"))
             {
-                maxExceedableSummerHours = jObject.Value<int>("MaxExceedableSummerHours");
+                maxExceedableSummerHours = jsonObject["MaxExceedableSummerHours"]?.GetValue<int>() ?? 0;
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
@@ -110,17 +110,17 @@ namespace SAM.Analytical
 
             if (hoursExceedingComfortRange != int.MinValue)
             {
-                result.Add("HoursExceedingComfortRange", hoursExceedingComfortRange);
+                result["HoursExceedingComfortRange"] = hoursExceedingComfortRange;
             }
 
             if (summerOccupiedHours != int.MinValue)
             {
-                result.Add("SummerOccupiedHours", summerOccupiedHours);
+                result["SummerOccupiedHours"] = summerOccupiedHours;
             }
 
             if (maxExceedableSummerHours != int.MinValue)
             {
-                result.Add("MaxExceedableSummerHours", maxExceedableSummerHours);
+                result["MaxExceedableSummerHours"] = maxExceedableSummerHours;
             }
 
             return result;

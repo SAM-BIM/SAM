@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -21,10 +21,12 @@ namespace SAM.Geometry.Spatial
         {
             externalEdge3D = surface.externalEdge3D.Clone() as IClosed3D;
         }
+        public Surface(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Surface(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public Face3D ToFace(double tolerance = Core.Tolerance.Distance)
@@ -73,20 +75,25 @@ namespace SAM.Geometry.Spatial
             return new Surface((IClosed3D)externalEdge3D.GetMoved(vector3D));
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            externalEdge3D = Geometry.Create.ISAMGeometry<IClosed3D>(jObject);
+            if (jsonObject == null)
+                return false;
+
+            externalEdge3D = Core.Create.IJSAMObject<IClosed3D>(jsonObject as JsonObject);
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Boundary", externalEdge3D.ToJObject());
-            return jObject;
+            if (externalEdge3D?.ToJsonObject() is JsonObject boundaryJson)
+                jsonObject["Boundary"] = boundaryJson.DeepClone();
+
+            return jsonObject;
         }
 
         public ISAMGeometry3D GetTransformed(Transform3D transform3D)

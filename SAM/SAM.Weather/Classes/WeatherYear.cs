@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Weather
 {
@@ -41,13 +41,9 @@ namespace SAM.Weather
             }
         }
 
-        /// <summary>
-        /// Initializes a new instance of the WeatherYear class from a JObject.
-        /// </summary>
-        /// <param name="jObject">The JObject from which to initialize the WeatherYear.</param>
-        public WeatherYear(JObject jObject)
+        public WeatherYear(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         /// <summary>
@@ -290,61 +286,49 @@ namespace SAM.Weather
             return weatherDays[day]?.GetWeatherHour(hour);
         }
 
-        /// <summary>
-        /// Deserializes a JObject to populate the WeatherYear instance.
-        /// </summary>
-        /// <param name="jObject">The JObject containing the serialized WeatherYear data.</param>
-        /// <returns>True if the deserialization is successful, otherwise false.</returns>
-        public bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("Year"))
-                year = jObject.Value<int>("Year");
+            if (jsonObject.ContainsKey("Year"))
+                year = jsonObject["Year"]?.GetValue<int>() ?? default;
 
-            if (jObject.ContainsKey("WeatherDays"))
+            if (jsonObject["WeatherDays"] is JsonArray weatherDaysArray && weatherDaysArray.Count == 365)
             {
-                JArray jArray = jObject.Value<JArray>("WeatherDays");
-                if (jArray != null && jArray.Count == 365)
+                weatherDays = new WeatherDay[365];
+                for (int i = 0; i < 365; i++)
                 {
-                    weatherDays = new WeatherDay[365];
-                    for (int i = 0; i < 365; i++)
-                    {
-                        JObject jObject_Temp = jArray[i] as JObject;
-                        if (jObject_Temp == null)
-                            continue;
+                    if (!(weatherDaysArray[i] is JsonObject weatherDayObject))
+                        continue;
 
-                        weatherDays[i] = new WeatherDay(jObject_Temp);
-                    }
+                    weatherDays[i] = new WeatherDay((JsonObject)weatherDayObject.DeepClone());
                 }
             }
 
             return true;
         }
 
-        /// <summary>
-        /// Serializes the WeatherYear instance to a JObject.
-        /// </summary>
-        /// <returns>A JObject containing the serialized WeatherYear data.</returns>
-        public JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (year != int.MinValue)
-                jObject.Add("Year", year);
+                jsonObject["Year"] = year;
 
             if (weatherDays != null)
             {
-                JArray jArray = new JArray();
+                JsonArray weatherDaysArray = new JsonArray();
                 foreach (WeatherDay weatherDay in weatherDays)
-                    jArray.Add(weatherDay?.ToJObject());
+                    weatherDaysArray.Add(weatherDay?.ToJsonObject());
 
-                jObject.Add("WeatherDays", jArray);
+                jsonObject["WeatherDays"] = weatherDaysArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

@@ -2,7 +2,6 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
 
@@ -10,10 +9,9 @@ namespace SAM.Analytical
 {
     public class PanelAperturesFilter : MultiRelationFilter<Aperture>
     {
-        public PanelAperturesFilter(JObject jObject)
-            : base(jObject)
+        public PanelAperturesFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
-
         }
 
         public PanelAperturesFilter(PanelAperturesFilter panelAperturesFilter)

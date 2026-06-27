@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
     public static partial class Create
     {
-        public static List<Point3D> Point3Ds(this JArray jArray)
+        public static List<Point3D> Point3Ds(this JsonArray jsonArray)
         {
-            if (jArray == null)
+            if (jsonArray == null)
                 return null;
 
             List<Point3D> result = new List<Point3D>();
 
-            foreach (JObject jObject in jArray)
-                result.Add(new Point3D(jObject));
+            foreach (JsonNode jsonNode in jsonArray)
+                result.Add(new Point3D(jsonNode as JsonObject));
 
             return result;
         }

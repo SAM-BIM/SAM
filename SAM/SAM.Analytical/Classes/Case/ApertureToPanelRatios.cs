@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -15,10 +15,12 @@ namespace SAM.Analytical.Classes
         {
             this.apertureToPanelRatios = apertureToPanelRatios == null ? [] : [.. apertureToPanelRatios];
         }
+        public ApertureToPanelRatios(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ApertureToPanelRatios(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public ApertureToPanelRatios(ApertureToPanelRatios apertureToPanelRatios)
@@ -54,45 +56,50 @@ namespace SAM.Analytical.Classes
                 return apertureToPanelRatios?.Count ?? 0;
             }
         }
-
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ApertureToPanelRatios"))
+            if (jsonObject["ApertureToPanelRatios"] is JsonArray apertureToPanelRatiosArray)
             {
                 apertureToPanelRatios = [];
-                JArray jArray = jObject.Value<JArray>("ApertureToPanelRatios");
-                foreach (JObject jObject_ApertureToPanelRatio in jArray)
+                foreach (JsonNode node in apertureToPanelRatiosArray)
                 {
-                    ApertureToPanelRatio apertureToPanelRatio = Core.Query.IJSAMObject<ApertureToPanelRatio>(jObject_ApertureToPanelRatio);
-                    if (apertureToPanelRatio is not null)
+                    if (node is JsonObject apertureToPanelRatioJson)
                     {
-                        apertureToPanelRatios.Add(apertureToPanelRatio);
+                        ApertureToPanelRatio apertureToPanelRatio = Core.Query.IJSAMObject<ApertureToPanelRatio>(apertureToPanelRatioJson as JsonObject);
+                        if (apertureToPanelRatio is not null)
+                        {
+                            apertureToPanelRatios.Add(apertureToPanelRatio);
+                        }
                     }
                 }
             }
 
             return true;
         }
-
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject result = new();
-            result.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (apertureToPanelRatios != null)
             {
-                JArray jArray = [];
+                JsonArray apertureToPanelRatiosArray = new JsonArray();
                 foreach (ApertureToPanelRatio apertureToPanelRatio in apertureToPanelRatios)
                 {
-                    jArray.Add(apertureToPanelRatio.ToJObject());
+                    if (apertureToPanelRatio?.ToJsonObject() is JsonObject apertureToPanelRatioJson)
+                    {
+                        apertureToPanelRatiosArray.Add(apertureToPanelRatioJson.DeepClone());
+                    }
                 }
 
-                result.Add("ApertureToPanelRatios", jArray);
+                result["ApertureToPanelRatios"] = apertureToPanelRatiosArray;
             }
 
             return result;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -26,9 +26,10 @@ namespace SAM.Analytical.Classes
             this.description = description;
             this.caseSelection = caseSelection;
         }
+        public VentilationCase(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public VentilationCase(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -146,55 +147,55 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Function"))
+            if (jsonObject.ContainsKey("Function"))
             {
-                function = jObject.Value<string>("Function");
+                function = jsonObject["Function"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("ACH"))
+            if (jsonObject.ContainsKey("ACH"))
             {
-                ach = jObject.Value<double>("ACH");
+                ach = jsonObject["ACH"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("M3h"))
+            if (jsonObject.ContainsKey("M3h"))
             {
-                m3h = jObject.Value<double>("M3h");
+                m3h = jsonObject["M3h"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("Factor"))
+            if (jsonObject.ContainsKey("Factor"))
             {
-                factor = jObject.Value<double>("Factor");
+                factor = jsonObject["Factor"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("Setback"))
+            if (jsonObject.ContainsKey("Setback"))
             {
-                setback = jObject.Value<double>("Setback");
+                setback = jsonObject["Setback"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("Description"))
+            if (jsonObject.ContainsKey("Description"))
             {
-                description = jObject.Value<string>("Description");
+                description = jsonObject["Description"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("CaseSelection"))
+            if (jsonObject["CaseSelection"] is JsonObject caseSelectionJson)
             {
-                caseSelection = Core.Query.IJSAMObject<CaseSelection>(jObject.Value<JObject>("CaseSelection"));
+                caseSelection = Core.Query.IJSAMObject<CaseSelection>(caseSelectionJson as JsonObject);
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
@@ -202,37 +203,37 @@ namespace SAM.Analytical.Classes
 
             if (function != null)
             {
-                result.Add("Function", function);
+                result["Function"] = function;
             }
 
             if (!double.IsNaN(ach))
             {
-                result.Add("ACH", ach);
+                result["ACH"] = ach;
             }
 
             if (!double.IsNaN(m3h))
             {
-                result.Add("M3h", m3h);
+                result["M3h"] = m3h;
             }
 
             if (!double.IsNaN(factor))
             {
-                result.Add("Factor", factor);
+                result["Factor"] = factor;
             }
 
             if (!double.IsNaN(setback))
             {
-                result.Add("Setback", setback);
+                result["Setback"] = setback;
             }
 
             if (description != null)
             {
-                result.Add("Description", description);
+                result["Description"] = description;
             }
 
-            if (caseSelection != null)
+            if (caseSelection?.ToJsonObject() is JsonObject caseSelectionJson)
             {
-                result.Add("CaseSelection", caseSelection.ToJObject());
+                result["CaseSelection"] = caseSelectionJson.DeepClone();
             }
 
             return result;

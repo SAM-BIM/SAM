@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Planar;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -35,10 +35,12 @@ namespace SAM.Analytical
         {
             this.curve2D = (ICurve2D)curve2D.Clone();
         }
+        public BoundaryEdge2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public BoundaryEdge2D(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public ICurve2D Curve2D
@@ -69,23 +71,25 @@ namespace SAM.Analytical
             return false;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            curve2D = Geometry.Planar.Create.ICurve2D(jObject.Value<JObject>("Curve2D"));
+            if (jsonObject["Curve2D"] is JsonObject curve2DJson)
+                curve2D = Geometry.Planar.Create.ICurve2D((JsonObject)curve2DJson.DeepClone());
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
-            jObject.Add("Curve2D", curve2D.ToJObject());
-            return jObject;
+            if (curve2D?.ToJsonObject() is JsonObject curve2DJson)
+                jsonObject["Curve2D"] = curve2DJson.DeepClone();
+            return jsonObject;
         }
 
         public static IEnumerable<BoundaryEdge2D> FromGeometry(ISAMGeometry2D geometry2D)

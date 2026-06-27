@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -39,30 +39,20 @@ namespace SAM.Core
             return result;
         }
 
-        public static List<T> ToList<T>(this JArray jArray, bool skipInvalid = false, bool tryConvert = false)
+        public static List<T> ToList<T>(this JsonArray jsonArray, bool skipInvalid = false, bool tryConvert = false)
         {
-            if (jArray == null)
+            if (jsonArray == null)
                 return null;
 
             List<T> result = new List<T>();
-            foreach (object @object in jArray)
+            foreach (JsonNode jsonNode in jsonArray)
             {
-                object object_Temp = @object;
+                object object_Temp = jsonNode.ToObject();
 
                 if (object_Temp is T)
                 {
                     result.Add((T)object_Temp);
                     continue;
-                }
-
-                if (@object is JValue)
-                {
-                    object_Temp = ((JValue)@object).Value;
-                    if (object_Temp is T)
-                    {
-                        result.Add((T)object_Temp);
-                        continue;
-                    }
                 }
 
                 if (!tryConvert)

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -26,9 +26,10 @@ namespace SAM.Core
         {
             id = longId.id;
         }
+        public LongId(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public LongId(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -51,31 +52,31 @@ namespace SAM.Core
             return new LongId(System.Convert.ToInt64(id));
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject? jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            id = jObject.Value<long>("Id");
+            id = jsonObject["Id"]?.GetValue<long>() ?? 0;
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject? ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject? result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
             }
 
-            result.Add("Id", id);
+            result["Id"] = id;
 
             return result;
         }

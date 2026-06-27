@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Planar
 {
@@ -15,10 +15,12 @@ namespace SAM.Geometry.Object.Planar
         {
             sAMGeometry2DObjects = new List<ISAMGeometry2DObject>();
         }
+        public SAMGeometry2DObjectCollection(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public SAMGeometry2DObjectCollection(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public SAMGeometry2DObjectCollection(SAMGeometry2DObjectCollection sAMGeometryObject2DCollection)
@@ -91,25 +93,26 @@ namespace SAM.Geometry.Object.Planar
 
             sAMGeometry2DObjects.Add(sAMGeometry2DObject_Temp);
         }
-
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Geometry2DObjects"))
+            if (jsonObject["Geometry2DObjects"] is JsonArray geometry2DObjectsArray)
             {
                 sAMGeometry2DObjects = new List<ISAMGeometry2DObject>();
 
-                JArray jArray = jObject.Value<JArray>("Geometry2DObjects");
-                foreach (JObject jObject_GeometryObject in jArray)
+                foreach (JsonNode node in geometry2DObjectsArray)
                 {
-                    ISAMGeometry2DObject sAMGeometryObject = Core.Query.IJSAMObject(jObject_GeometryObject) as ISAMGeometry2DObject;
-                    if (sAMGeometryObject != null)
+                    if (node is JsonObject geometryObjectJson)
                     {
-                        sAMGeometry2DObjects.Add(sAMGeometryObject);
+                        ISAMGeometry2DObject sAMGeometryObject = Core.Query.IJSAMObject(geometryObjectJson as JsonObject) as ISAMGeometry2DObject;
+                        if (sAMGeometryObject != null)
+                        {
+                            sAMGeometry2DObjects.Add(sAMGeometryObject);
+                        }
                     }
                 }
             }
@@ -121,29 +124,28 @@ namespace SAM.Geometry.Object.Planar
         {
             return sAMGeometry2DObjects?.GetEnumerator();
         }
-
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (sAMGeometry2DObjects != null)
             {
-                JArray jArray = new JArray();
+                JsonArray geometry2DObjectsArray = new JsonArray();
                 foreach (ISAMGeometry2DObject sAMGeometry2DObject in sAMGeometry2DObjects)
                 {
-                    if (sAMGeometry2DObject == null)
+                    if (sAMGeometry2DObject?.ToJsonObject() is JsonObject geometryObjectJson)
                     {
-                        continue;
+                        geometry2DObjectsArray.Add(geometryObjectJson.DeepClone());
                     }
-
-                    jArray.Add(sAMGeometry2DObject.ToJObject());
                 }
 
-                jObject.Add("Geometry2DObjects", jArray);
+                jsonObject["Geometry2DObjects"] = geometry2DObjectsArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

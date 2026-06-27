@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Math
 {
@@ -27,13 +27,9 @@ namespace SAM.Math
         /// </summary>
         private double[,] values;
 
-        /// <summary>
-        /// Initializes a new instance of the BilinearInterpolation class using a JSON object.
-        /// </summary>
-        /// <param name="jObject">The JSON object containing the data.</param>
-        public BilinearInterpolation(JObject jObject)
+        public BilinearInterpolation(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         /// <summary>
@@ -185,71 +181,68 @@ namespace SAM.Math
             return result;
         }
 
-        /// <summary>
-        /// Populates the properties of this instance from a JSON object.
-        /// </summary>
-        /// <param name="jObject">The JSON object.</param>
-        /// <returns>true if the operation was successful; otherwise, false.</returns>
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            if (jObject.ContainsKey("XArray"))
+            if (jsonObject["XArray"] is JsonArray jsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("XArray");
-                xArray = new double[jArray.Count];
-                for (int i = 0; i < jArray.Count; i++)
+                xArray = new double[jsonArray.Count];
+                for (int i = 0; i < jsonArray.Count; i++)
                 {
-                    xArray[i] = jArray[i].Value<double>();
+                    xArray[i] = jsonArray[i]?.GetValue<double>() ?? default;
                 }
             }
 
-            if (jObject.ContainsKey("YArray"))
+            if (jsonObject["YArray"] is JsonArray yJsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("YArray");
-                yArray = new double[jArray.Count];
-                for (int i = 0; i < jArray.Count; i++)
+                yArray = new double[yJsonArray.Count];
+                for (int i = 0; i < yJsonArray.Count; i++)
                 {
-                    yArray[i] = jArray[i].Value<double>();
+                    yArray[i] = yJsonArray[i]?.GetValue<double>() ?? default;
                 }
             }
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray valuesJsonArray)
             {
-                JArray jArray = jObject.Value<JArray>("Values");
-                values = Core.Query.Array<double>(jArray);
+                values = Core.Query.Array<double>(valuesJsonArray);
             }
 
             return true;
         }
 
-        /// <summary>
-        /// Converts the properties of this instance to a JSON object.
-        /// </summary>
-        /// <returns>The JSON object.</returns>
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (xArray != null)
             {
-                jObject.Add("XArray", new JArray(xArray));
+                JsonArray jsonArray = new JsonArray();
+                foreach (double value in xArray)
+                    jsonArray.Add(value);
+
+                jsonObject["XArray"] = jsonArray;
             }
 
             if (yArray != null)
             {
-                jObject.Add("YArray", new JArray(yArray));
+                JsonArray jsonArray = new JsonArray();
+                foreach (double value in yArray)
+                    jsonArray.Add(value);
+
+                jsonObject["YArray"] = jsonArray;
             }
 
             if (values != null)
             {
-                JArray jArray = Core.Query.JArray(values);
-                jObject.Add("Values", jArray);
+                jsonObject["Values"] = Core.Query.JsonArray(values);
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Geometry.Spatial;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object.Spatial
 {
-    public class LinkedFace3D : Core.IJSAMObject, IFace3DObject
+    public class LinkedFace3D : Core.IGuidObject, IFace3DObject
     {
         private Guid guid;
         private BoundingBox3D boundingBox3D;
         private Face3D face3D;
+        private string reference;
 
         public Face3D Face3D
         {
@@ -29,11 +30,31 @@ namespace SAM.Geometry.Object.Spatial
             }
         }
 
+        /// <summary>
+        /// Optional external reference — e.g. a TBD zoneSurface.GUID string — stored for
+        /// round-trip look-ups after the object leaves the TAS COM boundary.
+        /// </summary>
+        public string Reference
+        {
+            get
+            {
+                return reference;
+            }
+        }
+
         public LinkedFace3D(Guid guid, Face3D face3D)
         {
             this.guid = guid;
             this.face3D = new Face3D(face3D);
             boundingBox3D = this.face3D?.GetBoundingBox();
+        }
+
+        public LinkedFace3D(Guid guid, Face3D face3D, string reference)
+        {
+            this.guid = guid;
+            this.face3D = new Face3D(face3D);
+            boundingBox3D = this.face3D?.GetBoundingBox();
+            this.reference = reference;
         }
 
         public LinkedFace3D(LinkedFace3D linkedFace3D)
@@ -44,6 +65,7 @@ namespace SAM.Geometry.Object.Spatial
             }
 
             guid = linkedFace3D.guid;
+            reference = linkedFace3D.reference;
             if (linkedFace3D.face3D != null)
             {
                 face3D = new Face3D(linkedFace3D.face3D);
@@ -51,9 +73,9 @@ namespace SAM.Geometry.Object.Spatial
             }
         }
 
-        public LinkedFace3D(JObject jObject)
+        public LinkedFace3D(System.Text.Json.Nodes.JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public BoundingBox3D GetBoundingBox(double offset = 0)
@@ -83,49 +105,61 @@ namespace SAM.Geometry.Object.Spatial
             boundingBox3D = face3D?.GetBoundingBox();
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (guid != Guid.Empty)
             {
-                jObject.Add("Guid", guid);
+                jsonObject["Guid"] = guid.ToString();
             }
 
-            if (face3D != null)
+            if (!string.IsNullOrWhiteSpace(reference))
             {
-                jObject.Add("Face3D", face3D.ToJObject());
+                jsonObject["Reference"] = reference;
             }
 
-            if (boundingBox3D != null)
+            if (face3D?.ToJsonObject() is JsonObject face3DJson)
             {
-                jObject.Add("BoundingBox3D", boundingBox3D.ToJObject());
+                jsonObject["Face3D"] = face3DJson.DeepClone();
             }
 
-            return jObject;
+            if (boundingBox3D?.ToJsonObject() is JsonObject boundingBox3DJson)
+            {
+                jsonObject["BoundingBox3D"] = boundingBox3DJson.DeepClone();
+            }
+
+            return jsonObject;
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Guid"))
+            if (jsonObject.ContainsKey("Guid"))
             {
-                guid = Core.Query.Guid(jObject, "Guid");
+                guid = Core.Query.Guid(jsonObject, "Guid");
             }
 
-            if (jObject.ContainsKey("Face3D"))
+            if (jsonObject.ContainsKey("Reference"))
             {
-                face3D = new Face3D(jObject.Value<JObject>("Face3D"));
+                reference = jsonObject["Reference"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("BoundingBox3D"))
+            if (jsonObject["Face3D"] is JsonObject face3DJson)
             {
-                boundingBox3D = new BoundingBox3D(jObject.Value<JObject>("BoundingBox3D"));
+                face3D = new Face3D((JsonObject)face3DJson.DeepClone());
+            }
+
+            if (jsonObject["BoundingBox3D"] is JsonObject boundingBox3DJson)
+            {
+                boundingBox3D = new BoundingBox3D((JsonObject)boundingBox3DJson.DeepClone());
             }
 
             return true;

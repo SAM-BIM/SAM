@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Weather
 {
@@ -134,8 +134,8 @@ namespace SAM.Weather
         /// <returns>
         /// WeatherData object constructed from the given JObject.
         /// </returns>
-        public WeatherData(JObject jObject)
-            : base(jObject)
+        public WeatherData(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -393,38 +393,34 @@ namespace SAM.Weather
         /// <summary>
         /// Deserializes a JObject into a WeatherStation object.
         /// </summary>
-        /// <param name="jObject">The JObject to deserialize.</param>
+        /// <param name="jsonObject">The JSON object to deserialize.</param>
         /// <returns>True if the deserialization was successful, false otherwise.</returns>
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Description"))
-                description = jObject.Value<string>("Description");
+            if (jsonObject.ContainsKey("Description"))
+                description = jsonObject["Description"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("Latitude"))
-                latitude = jObject.Value<double>("Latitude");
+            if (jsonObject.ContainsKey("Latitude"))
+                latitude = jsonObject["Latitude"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Longitude"))
-                longitude = jObject.Value<double>("Longitude");
+            if (jsonObject.ContainsKey("Longitude"))
+                longitude = jsonObject["Longitude"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("Elevation"))
-                elevation = jObject.Value<double>("Elevation");
+            if (jsonObject.ContainsKey("Elevation"))
+                elevation = jsonObject["Elevation"]?.GetValue<double>() ?? double.NaN;
 
-            if (jObject.ContainsKey("WeatherYears"))
+            if (jsonObject["WeatherYears"] is JsonArray weatherYearsArray)
             {
-                JArray jArray = jObject.Value<JArray>("WeatherYears");
-                if (jArray != null)
+                weatherYears = new List<WeatherYear>();
+                foreach (JsonNode weatherYearNode in weatherYearsArray)
                 {
-                    weatherYears = new List<WeatherYear>();
-                    foreach (JObject jObject_Temp in jArray)
-                    {
-                        if (jObject_Temp == null)
-                            continue;
+                    if (!(weatherYearNode is JsonObject weatherYearObject))
+                        continue;
 
-                        weatherYears.Add(new WeatherYear(jObject_Temp));
-                    }
+                    weatherYears.Add(new WeatherYear((JsonObject)weatherYearObject.DeepClone()));
                 }
             }
 
@@ -435,37 +431,36 @@ namespace SAM.Weather
         /// Converts the object to a JSON object.
         /// </summary>
         /// <returns>A JSON object representing the object.</returns>
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
-                return jObject;
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
+                return jsonObject;
 
             if (description != null)
-                jObject.Add("Description", description);
+                jsonObject["Description"] = description;
 
             if (!double.IsNaN(latitude))
-                jObject.Add("Latitude", latitude);
+                jsonObject["Latitude"] = latitude;
 
             if (!double.IsNaN(longitude))
-                jObject.Add("Longitude", longitude);
+                jsonObject["Longitude"] = longitude;
 
             if (!double.IsNaN(elevation))
-                jObject.Add("Elevation", elevation);
+                jsonObject["Elevation"] = elevation;
 
             if (weatherYears != null)
             {
-                JArray jArray = new JArray();
+                JsonArray weatherYearsArray = new JsonArray();
                 foreach (WeatherYear weatherYear in weatherYears)
                 {
-                    JObject jObject_Temp = weatherYear?.ToJObject();
-                    if (jObject_Temp != null)
-                        jArray.Add(jObject_Temp);
+                    if (weatherYear?.ToJsonObject() is JsonObject weatherYearJson)
+                        weatherYearsArray.Add(weatherYearJson.DeepClone());
                 }
-                jObject.Add("WeatherYears", jArray);
+                jsonObject["WeatherYears"] = weatherYearsArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

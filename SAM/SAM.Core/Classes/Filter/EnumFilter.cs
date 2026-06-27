@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -16,9 +16,10 @@ namespace SAM.Core
                 Value = enumFilter.Value;
             }
         }
+        public EnumFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public EnumFilter(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -47,16 +48,16 @@ namespace SAM.Core
 
         public T Value { get; set; }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Enum"))
+            if (jsonObject.ContainsKey("Enum"))
             {
-                string text = jObject.Value<string>("Enum");
+                string text = jsonObject["Enum"]?.GetValue<string>();
                 if (!string.IsNullOrWhiteSpace(text))
                 {
                     Value = Query.Enum<T>(text);
@@ -103,9 +104,9 @@ namespace SAM.Core
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
@@ -113,7 +114,7 @@ namespace SAM.Core
 
             if (Value != null)
             {
-                result.Add("Enum", Value.ToString());
+                result["Enum"] = Value.ToString();
             }
 
             return result;

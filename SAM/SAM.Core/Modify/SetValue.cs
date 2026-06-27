@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -69,11 +68,6 @@ namespace SAM.Core
             return SetValue(parameterizedSAMObject, null, name, value as object);
         }
 
-        public static bool SetValue(this ParameterizedSAMObject parameterizedSAMObject, string name, JObject value)
-        {
-            return SetValue(parameterizedSAMObject, null, name, value as object);
-        }
-
         public static bool SetValue(this ParameterizedSAMObject parameterizedSAMObject, string name, DateTime value)
         {
             return SetValue(parameterizedSAMObject, null, name, value as object);
@@ -116,11 +110,6 @@ namespace SAM.Core
         }
 
         public static bool SetValue(this ParameterizedSAMObject parameterizedSAMObject, Assembly assembly, string name, IJSAMObject value)
-        {
-            return SetValue(parameterizedSAMObject, assembly, name, value as object);
-        }
-
-        public static bool SetValue(this ParameterizedSAMObject parameterizedSAMObject, Assembly assembly, string name, JObject value)
         {
             return SetValue(parameterizedSAMObject, assembly, name, value as object);
         }

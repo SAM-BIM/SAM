@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry
 {
@@ -18,10 +18,9 @@ namespace SAM.Geometry
             this.source = source;
             this.target = target;
         }
-
-        public PointGraphEdge(JObject jObject)
+        public PointGraphEdge(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public PointGraphEdge(PointGraphEdge<X, T> pointGraphEdge)
@@ -57,50 +56,50 @@ namespace SAM.Geometry
                 return jSAMObject;
             }
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("JSAMObject"))
+            if (jsonObject["JSAMObject"] is JsonObject jSAMObjectJson)
             {
-                jSAMObject = Core.Query.IJSAMObject<T>(jObject.Value<JObject>("JSAMObject"));
+                jSAMObject = Core.Query.IJSAMObject<T>(jSAMObjectJson as JsonObject);
             }
 
-            if (jObject.ContainsKey("Source"))
+            if (jsonObject["Source"] is JsonObject sourceJson)
             {
-                source = Core.Query.IJSAMObject<X>(jObject.Value<JObject>("Source"));
+                source = Core.Query.IJSAMObject<X>(sourceJson as JsonObject);
             }
 
-            if (jObject.ContainsKey("Target"))
+            if (jsonObject["Target"] is JsonObject targetJson)
             {
-                target = Core.Query.IJSAMObject<X>(jObject.Value<JObject>("Target"));
+                target = Core.Query.IJSAMObject<X>(targetJson as JsonObject);
             }
 
             return true;
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Core.Query.FullTypeName(this));
-
-            if (jSAMObject != null)
+            JsonObject result = new JsonObject
             {
-                result.Add("JSAMObject", jSAMObject.ToJObject());
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (jSAMObject?.ToJsonObject() is JsonObject jSAMObjectJson)
+            {
+                result["JSAMObject"] = jSAMObjectJson.DeepClone();
             }
 
-            if (source != null)
+            if (source?.ToJsonObject() is JsonObject sourceJson)
             {
-                result.Add("Source", source.ToJObject());
+                result["Source"] = sourceJson.DeepClone();
             }
 
-            if (target != null)
+            if (target?.ToJsonObject() is JsonObject targetJson)
             {
-                result.Add("Target", target.ToJObject());
+                result["Target"] = targetJson.DeepClone();
             }
 
             return result;

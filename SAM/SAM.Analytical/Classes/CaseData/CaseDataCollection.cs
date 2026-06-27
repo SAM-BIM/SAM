@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -44,27 +44,30 @@ namespace SAM.Analytical
                 }
             }
         }
+        public CaseDataCollection(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public CaseDataCollection(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("CaseDatas"))
+            if (jsonObject["CaseDatas"] is JsonArray caseDatasArray)
             {
-                JArray jArray = jObject.Value<JArray>("CaseDatas");
-                foreach (JObject jObject_Temp in jArray)
+                foreach (JsonNode node in caseDatasArray)
                 {
-                    if (Core.Query.IJSAMObject<CaseData>(jObject_Temp) is CaseData caseData)
+                    if (node is JsonObject caseDataJson)
                     {
-                        caseDatas.Add(caseData);
+                        if (Core.Query.IJSAMObject<CaseData>(caseDataJson as JsonObject) is CaseData caseData)
+                        {
+                            caseDatas.Add(caseData);
+                        }
                     }
                 }
             }
@@ -105,24 +108,28 @@ namespace SAM.Analytical
         {
             return GetEnumerator();
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (caseDatas != null)
             {
-                JArray jArray = [];
+                JsonArray caseDatasArray = new JsonArray();
                 foreach (CaseData caseData in caseDatas)
                 {
-                    jArray.Add(caseData.ToJObject());
+                    if (caseData?.ToJsonObject() is JsonObject caseDataJson)
+                    {
+                        caseDatasArray.Add(caseDataJson.DeepClone());
+                    }
                 }
 
-                jObject.Add("CaseDatas", jArray);
+                jsonObject["CaseDatas"] = caseDatasArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

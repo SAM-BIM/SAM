@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Math;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -14,10 +14,12 @@ namespace SAM.Geometry.Planar
         {
             this.matrix3D = matrix3D;
         }
+        public Transform2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Transform2D(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public Transform2D(Transform2D transform2D)
@@ -32,22 +34,29 @@ namespace SAM.Geometry.Planar
                 return new Matrix3D(matrix3D);
             }
         }
-
-        public bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            matrix3D = new Matrix3D(jObject.Value<JObject>("Matrix3D"));
+            if (jsonObject["Matrix3D"] is JsonObject matrix3DJson)
+            {
+                matrix3D = new Matrix3D((JsonObject)matrix3DJson.DeepClone());
+            }
             return true;
         }
-
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
-            jObject.Add("Matrix3D", matrix3D.ToJObject());
-            return jObject;
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (matrix3D?.ToJsonObject() is JsonObject matrix3DJson)
+            {
+                jsonObject["Matrix3D"] = matrix3DJson.DeepClone();
+            }
+            return jsonObject;
         }
 
         public static Transform2D GetIdentity()

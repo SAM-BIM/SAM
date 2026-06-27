@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -32,10 +32,9 @@ namespace SAM.Analytical
         /// Constructor that takes a JObject parameter and creates a new object from it
         /// </summary>
         /// <param name="jObject">The JObject containing the air handling unit data</param>
-        public AirHandlingUnit(JObject jObject)
-            : base(jObject)
+        public AirHandlingUnit(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
-
         }
 
         /// <summary>
@@ -81,19 +80,19 @@ namespace SAM.Analytical
         /// </summary>
         /// <param name="jObject">The JObject containing the air handling unit data</param>
         /// <returns>True if the deserialization is successful, false otherwise</returns>
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("SummerSupplyTemperature"))
+            if (jsonObject.ContainsKey("SummerSupplyTemperature"))
             {
-                summerSupplyTemperature = jObject.Value<double>("SummerSupplyTemperature");
+                summerSupplyTemperature = jsonObject["SummerSupplyTemperature"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("WinterSupplyTemperature"))
+            if (jsonObject.ContainsKey("WinterSupplyTemperature"))
             {
-                winterSupplyTemperature = jObject.Value<double>("WinterSupplyTemperature");
+                winterSupplyTemperature = jsonObject["WinterSupplyTemperature"]?.GetValue<double>() ?? double.NaN;
             }
 
             return true;
@@ -135,23 +134,23 @@ namespace SAM.Analytical
         /// Overrides the SAMObject method to convert the object to a JObject
         /// </summary>
         /// <returns>A JObject containing the air handling unit data</returns>
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (!double.IsNaN(summerSupplyTemperature))
             {
-                jObject.Add("SummerSupplyTemperature", summerSupplyTemperature);
+                jsonObject["SummerSupplyTemperature"] = summerSupplyTemperature;
             }
 
             if (!double.IsNaN(winterSupplyTemperature))
             {
-                jObject.Add("WinterSupplyTemperature", winterSupplyTemperature);
+                jsonObject["WinterSupplyTemperature"] = winterSupplyTemperature;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 
@@ -39,10 +38,12 @@ namespace SAM.Core
             : base(name, Guid.NewGuid(), sAMModel)
         {
         }
+        public SAMModel(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public SAMModel(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public SAMModel(string name)
@@ -50,14 +51,5 @@ namespace SAM.Core
         {
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            return base.FromJObject(jObject);
-        }
-
-        public override JObject ToJObject()
-        {
-            return base.ToJObject();
-        }
     }
 }

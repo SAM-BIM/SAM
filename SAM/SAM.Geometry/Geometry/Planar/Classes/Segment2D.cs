@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
@@ -53,10 +53,12 @@ namespace SAM.Geometry.Planar
             origin = new Point2D(segment2D.origin);
             vector = new Vector2D(segment2D.vector);
         }
+        public Segment2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Segment2D(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public Vector2D Direction
@@ -304,10 +306,16 @@ namespace SAM.Geometry.Planar
             return segment2D.origin.Equals(origin) && segment2D.vector.Equals(vector);
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            origin = new Point2D(jObject.Value<JObject>("Origin"));
-            vector = new Vector2D(jObject.Value<JObject>("Vector"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Origin"] is JsonObject jsonObject_Origin)
+                origin = new Point2D((JsonObject)jsonObject_Origin.DeepClone());
+
+            if (jsonObject["Vector"] is JsonObject jsonObject_Vector)
+                vector = new Vector2D((JsonObject)jsonObject_Vector.DeepClone());
 
             return true;
         }
@@ -610,16 +618,19 @@ namespace SAM.Geometry.Planar
             vector.Length = value;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Origin", origin.ToJObject());
-            jObject.Add("Vector", vector.ToJObject());
+            if (origin?.ToJsonObject() is JsonObject originJson)
+                jsonObject["Origin"] = originJson.DeepClone();
 
-            return jObject;
+            if (vector?.ToJsonObject() is JsonObject vectorJson)
+                jsonObject["Vector"] = vectorJson.DeepClone();
+
+            return jsonObject;
         }
 
         /// <summary>

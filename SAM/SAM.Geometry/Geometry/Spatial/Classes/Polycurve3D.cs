@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -22,10 +22,12 @@ namespace SAM.Geometry.Spatial
         {
             curves = polycurve3D.curves.ConvertAll(x => (ICurve3D)x.Clone());
         }
+        public Polycurve3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Polycurve3D(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public override ISAMGeometry Clone()
@@ -82,25 +84,39 @@ namespace SAM.Geometry.Spatial
             throw new System.NotImplementedException();
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            curves = Create.ICurve3Ds(jObject.Value<JArray>("Curves"));
+            if (jsonObject["Curves"] is JsonArray jsonArray_Curves)
+            {
+                curves = Core.Create.IJSAMObjects<ICurve3D>(jsonArray_Curves);
+            }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Curves", Geometry.Create.JArray(curves));
+            if (curves != null)
+            {
+                JsonArray jsonArray_Curves = new JsonArray();
+                foreach (ICurve3D curve in curves)
+                {
+                    if (curve?.ToJsonObject() is JsonObject curveJson)
+                    {
+                        jsonArray_Curves.Add(curveJson.DeepClone());
+                    }
+                }
+                jsonObject["Curves"] = jsonArray_Curves;
+            }
 
-            return jObject;
+            return jsonObject;
         }
 
         public double GetLength()

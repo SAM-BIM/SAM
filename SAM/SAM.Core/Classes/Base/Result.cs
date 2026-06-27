@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -43,10 +43,12 @@ namespace SAM.Core
             reference = result?.reference;
             dateTime = result == null ? DateTime.MinValue : result.dateTime;
         }
+        public Result(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Result(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public string Reference
@@ -73,41 +75,41 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
                 return false;
 
-            if (jObject.ContainsKey("Source"))
-                source = jObject.Value<string>("Source");
+            if (jsonObject.ContainsKey("Source"))
+                source = jsonObject["Source"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("Reference"))
-                reference = jObject.Value<string>("Reference");
+            if (jsonObject.ContainsKey("Reference"))
+                reference = jsonObject["Reference"]?.GetValue<string>();
 
-            if (jObject.ContainsKey("DateTime"))
-                dateTime = jObject.Value<DateTime>("DateTime");
+            if (jsonObject.ContainsKey("DateTime"))
+                dateTime = jsonObject["DateTime"]?.GetValue<DateTime>() ?? DateTime.MinValue;
             else
                 dateTime = DateTime.MinValue;
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
             if (source != null)
-                jObject.Add("Source", source);
+                jsonObject["Source"] = source;
 
             if (reference != null)
-                jObject.Add("Reference", reference);
+                jsonObject["Reference"] = reference;
 
             if (dateTime != DateTime.MinValue)
-                jObject.Add("DateTime", dateTime);
+                jsonObject["DateTime"] = Query.ToJsonNode(dateTime);
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

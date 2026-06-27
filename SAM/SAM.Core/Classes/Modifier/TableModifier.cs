@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -55,59 +55,59 @@ namespace SAM.Core
                 Extrapolate = tableModifier.Extrapolate;
             }
         }
+        public TableModifier(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public TableModifier(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
-            if (!result)
+            if (!base.FromJsonObject(jsonObject))
             {
-                return result;
+                return false;
             }
 
-            if (jObject.ContainsKey("Extrapolate"))
+            if (jsonObject.ContainsKey("Extrapolate"))
             {
-                Extrapolate = jObject.Value<bool>("Extrapolate");
+                Extrapolate = jsonObject["Extrapolate"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("Headers"))
+            if (jsonObject["Headers"] is JsonArray headersArray)
             {
-                JArray jArray = jObject.Value<JArray>("Headers");
-                if (jArray != null)
+                headers = new SortedDictionary<int, string>();
+                foreach (JsonNode headerNode in headersArray)
                 {
-                    headers = new SortedDictionary<int, string>();
-                    foreach (JArray jArray_Header in jArray)
+                    if (headerNode is JsonArray headerEntry && headerEntry.Count >= 2)
                     {
-                        headers[((JValue)jArray_Header[0]).Value<int>()] = ((JValue)jArray_Header[1]).Value<string>();
+                        headers[headerEntry[0].GetValue<int>()] = headerEntry[1]?.GetValue<string>();
                     }
                 }
             }
 
-            if (jObject.ContainsKey("Values"))
+            if (jsonObject["Values"] is JsonArray valuesArray)
             {
-                JArray jArray = jObject.Value<JArray>("Values");
-                if (jArray != null)
+                values = new List<SortedDictionary<int, double>>();
+                foreach (JsonNode rowNode in valuesArray)
                 {
-                    values = new List<SortedDictionary<int, double>>();
-                    foreach (JArray jArray_Row in jArray)
+                    if (!(rowNode is JsonArray rowArray)) continue;
+
+                    SortedDictionary<int, double> sortedDictionary = new SortedDictionary<int, double>();
+                    foreach (JsonNode cellNode in rowArray)
                     {
-                        SortedDictionary<int, double> sortedDictionary = new SortedDictionary<int, double>();
-                        foreach (JArray jArray_Values in jArray_Row)
+                        if (cellNode is JsonArray cellArray && cellArray.Count >= 2)
                         {
-                            sortedDictionary[((JValue)jArray_Values[0]).Value<int>()] = ((JValue)jArray_Values[1]).Value<double>();
+                            sortedDictionary[cellArray[0].GetValue<int>()] = cellArray[1].GetValue<double>();
                         }
-
-                        values.Add(sortedDictionary);
                     }
+
+                    values.Add(sortedDictionary);
                 }
             }
 
-            return result;
+            return true;
         }
 
         public IEnumerable<string> Headers
@@ -508,41 +508,43 @@ namespace SAM.Core
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
             }
 
-            result.Add("Extrapolate", Extrapolate);
+            result["Extrapolate"] = Extrapolate;
 
             if (headers != null)
             {
-                JArray jArray = new JArray();
+                JsonArray headersArray = new JsonArray();
                 foreach (KeyValuePair<int, string> keyValuePair in headers)
                 {
-                    jArray.Add(new JArray() { keyValuePair.Key, keyValuePair.Value });
+                    JsonArray headerEntry = new JsonArray { keyValuePair.Key, keyValuePair.Value };
+                    headersArray.Add(headerEntry);
                 }
 
-                result.Add("Headers", jArray);
+                result["Headers"] = headersArray;
             }
 
             if (values != null)
             {
-                JArray jArray_Values = new JArray();
+                JsonArray valuesArray = new JsonArray();
                 foreach (SortedDictionary<int, double> sortedDictionary in values)
                 {
-                    JArray jArray_Row = new JArray();
+                    JsonArray rowArray = new JsonArray();
                     foreach (KeyValuePair<int, double> keyValuePair in sortedDictionary)
                     {
-                        jArray_Row.Add(new JArray() { keyValuePair.Key, keyValuePair.Value });
+                        JsonArray cellArray = new JsonArray { keyValuePair.Key, keyValuePair.Value };
+                        rowArray.Add(cellArray);
                     }
-                    jArray_Values.Add(jArray_Row);
+                    valuesArray.Add(rowArray);
                 }
 
-                result.Add("Values", jArray_Values);
+                result["Values"] = valuesArray;
             }
 
             return result;

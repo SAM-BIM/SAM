@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
 
@@ -18,10 +17,12 @@ namespace SAM.Geometry.Planar
             : base(tolerance)
         {
         }
+        public Point2DGraph(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Point2DGraph(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public Point2DGraph(Point2DGraph<T> point2DGraph)

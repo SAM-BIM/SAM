@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public class ParameterizedSAMObject : IParameterizedSAMObject
     {
-        private List<ParameterSet> parameterSets;
+        private List<ParameterSet>? parameterSets;
 
-        public ParameterizedSAMObject(ParameterizedSAMObject parameterizedSAMObject)
+        public ParameterizedSAMObject(ParameterizedSAMObject? parameterizedSAMObject)
         {
             if (parameterizedSAMObject?.parameterSets != null)
             {
@@ -24,7 +24,7 @@ namespace SAM.Core
             }
         }
 
-        public ParameterizedSAMObject(IEnumerable<ParameterSet> parameterSets)
+        public ParameterizedSAMObject(IEnumerable<ParameterSet>? parameterSets)
         {
             if (parameterSets != null)
             {
@@ -40,9 +40,9 @@ namespace SAM.Core
         {
         }
 
-        public ParameterizedSAMObject(JObject jObject)
+        public ParameterizedSAMObject(JsonObject? jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public bool RemoveValue(Enum @enum)
@@ -63,7 +63,7 @@ namespace SAM.Core
                 return false;
             }
 
-            string name = parameterProperties.Name;
+            string? name = parameterProperties.Name;
             if (string.IsNullOrEmpty(name))
             {
                 return false;
@@ -72,12 +72,12 @@ namespace SAM.Core
             return Modify.RemoveValue(this, name, @enum.GetType().Assembly);
         }
 
-        public bool RemoveValue(string name, Assembly assembly = null)
+        public bool RemoveValue(string name, Assembly? assembly = null)
         {
             return Modify.RemoveValue(this, name, assembly == null ? Assembly.GetExecutingAssembly() : assembly);
         }
 
-        public bool TryGetValue(Enum @enum, out object value)
+        public bool TryGetValue(Enum? @enum, out object? value)
         {
             value = null;
 
@@ -97,13 +97,13 @@ namespace SAM.Core
                 return false;
             }
 
-            string name = parameterProperties.Name;
+            string? name = parameterProperties.Name;
             if (string.IsNullOrEmpty(name))
             {
                 return false;
             }
 
-            object result = null;
+            object? result = null;
             if (!Query.TryGetValue(this, name, @enum.GetType().Assembly, out result))
             {
                 return false;
@@ -115,7 +115,7 @@ namespace SAM.Core
 
         public bool HasValue(Enum @enum)
         {
-            return TryGetValue(@enum, out object value);
+            return TryGetValue(@enum, out _);
         }
 
         public bool HasParameter(Enum @enum)
@@ -139,11 +139,11 @@ namespace SAM.Core
             return true;
         }
 
-        public bool TryGetValue(string name, out object value)
+        public bool TryGetValue(string name, out object? value)
         {
             value = null;
 
-            object result = null;
+            object? result = null;
             if (!Query.TryGetValue(this, name, out result))
             {
                 return false;
@@ -153,7 +153,7 @@ namespace SAM.Core
             return true;
         }
 
-        public bool TryGetValue<T>(string name, out T value, bool tryConvert = true)
+        public bool TryGetValue<T>(string name, out T? value, bool tryConvert = true)
         {
             value = default;
 
@@ -175,7 +175,7 @@ namespace SAM.Core
             return Query.TryConvert(result, out value);
         }
 
-        public bool TryGetValue<T>(Enum @enum, out T value, bool tryConvert = true)
+        public bool TryGetValue<T>(Enum @enum, out T? value, bool tryConvert = true)
         {
             value = default;
 
@@ -307,24 +307,47 @@ namespace SAM.Core
                 return parameterSets.ConvertAll(x => x == null ? null : new ParameterSet(x)); //Updated 25.05.2022
         }
 
-        public virtual bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject? jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            parameterSets = Create.ParameterSets(jObject.Value<JArray>("ParameterSets"));
+            if (jsonObject["ParameterSets"] is JsonArray parameterSetsArray)
+            {
+                parameterSets = new List<ParameterSet>();
+                foreach (JsonNode? node in parameterSetsArray)
+                {
+                    if (node is JsonObject parameterSetObject)
+                    {
+                        parameterSets.Add(new ParameterSet((JsonObject)parameterSetObject.DeepClone()));
+                    }
+                }
+            }
+
             return true;
         }
 
-        public virtual JObject ToJObject()
+        public virtual JsonObject? ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
-            if (parameterSets != null)
-                jObject.Add("ParameterSets", Create.JArray(parameterSets));
+            if (parameterSets != null && parameterSets.Count > 0)
+            {
+                JsonArray parameterSetsArray = new JsonArray();
+                foreach (ParameterSet parameterSet in parameterSets)
+                {
+                    if (parameterSet?.ToJsonObject() is JsonObject parameterSetJson)
+                    {
+                        parameterSetsArray.Add(parameterSetJson.DeepClone());
+                    }
+                }
+                jsonObject["ParameterSets"] = parameterSetsArray;
+            }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

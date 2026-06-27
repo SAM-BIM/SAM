@@ -4,7 +4,7 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 using SAM.Core.Grasshopper.Properties;
 using System;
 
@@ -69,7 +69,7 @@ namespace SAM.Core.Grasshopper
             if (Value.GetType().IsPrimitive)
                 return Value.ToString();
 
-            if (Value is JToken)
+            if (Value is JsonNode)
                 return Value.ToString();
 
             if (Value is Enum)
@@ -113,6 +113,43 @@ namespace SAM.Core.Grasshopper
         {
             if (Value == null)
                 return false;
+
+            bool isSAMGeometry = false;
+            System.Type valueType = Value.GetType();
+            if (valueType.FullName == "SAM.Geometry.ISAMGeometry")
+            {
+                isSAMGeometry = true;
+            }
+            else
+            {
+                System.Type[] interfaces = valueType.GetInterfaces();
+                for (int i = 0; i < interfaces.Length; i++)
+                {
+                    if (interfaces[i].FullName == "SAM.Geometry.ISAMGeometry")
+                    {
+                        isSAMGeometry = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isSAMGeometry)
+            {
+                System.Type gooSAMGeometryType = System.Type.GetType("SAM.Geometry.Grasshopper.GooSAMGeometry, SAM.Geometry.Grasshopper");
+                if (gooSAMGeometryType != null)
+                {
+                    IGooSAMGeometry gooSAMGeometryInstance = (IGooSAMGeometry)System.Activator.CreateInstance(gooSAMGeometryType, Value);
+                    if (typeof(IGH_Goo).IsAssignableFrom(typeof(Y)) && gooSAMGeometryInstance is Y geoGoo)
+                    {
+                        target = geoGoo;
+                        return true;
+                    }
+                    if (gooSAMGeometryInstance.CastTo<Y>(out target))
+                    {
+                        return true;
+                    }
+                }
+            }
 
             if (Value is Y)
             {

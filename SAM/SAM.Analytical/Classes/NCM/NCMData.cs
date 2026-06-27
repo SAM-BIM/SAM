@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -58,8 +58,8 @@ namespace SAM.Analytical
 
         }
 
-        public NCMData(JObject jObject)
-            : base(jObject)
+        public NCMData(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -83,140 +83,137 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
 
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("NCMName"))
+            if (jsonObject["NCMName"] is JsonObject ncmNameJson)
             {
-                NCMName = new NCMName(jObject.Value<JObject>("NCMName"));
+                NCMName = new NCMName((JsonObject)ncmNameJson.DeepClone());
             }
-            else if (jObject.ContainsKey("Type"))
+            else if (jsonObject.ContainsKey("Type"))
             {
-                NCMName = jObject.Value<string>("Type");
-            }
-
-            if (jObject.ContainsKey("SystemType"))
-            {
-                string systemType_String = jObject.Value<string>("SystemType");
-                SystemType = Core.Query.Enum<NCMSystemType>(systemType_String);
+                NCMName = jsonObject["Type"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("LightingOccupancyControls"))
+            // Enum fields default to non-Undefined values, but ToJObject below
+            // skips emission when the parsed value is Undefined. Reset to
+            // Undefined when the key is missing or unparseable so a no-key input
+            // round-trips back to a no-key output (otherwise the constructor
+            // default leaks into the next serialization round).
+            SystemType = jsonObject.ContainsKey("SystemType")
+                ? Core.Query.Enum<NCMSystemType>(jsonObject["SystemType"]?.GetValue<string>())
+                : NCMSystemType.Undefined;
+
+            LightingOccupancyControls = jsonObject.ContainsKey("LightingOccupancyControls")
+                ? Core.Query.Enum<LightingOccupancyControls>(jsonObject["LightingOccupancyControls"]?.GetValue<string>())
+                : LightingOccupancyControls.Undefined;
+
+            LightingPhotoelectricControls = jsonObject.ContainsKey("LightingPhotoelectricControls")
+                ? Core.Query.Enum<LightingPhotoelectricControls>(jsonObject["LightingPhotoelectricControls"]?.GetValue<string>())
+                : LightingPhotoelectricControls.Undefined;
+
+            Country = jsonObject.ContainsKey("Country")
+                ? Core.Query.Enum<NCMCountry>(jsonObject["Country"]?.GetValue<string>())
+                : NCMCountry.Undefined;
+
+            if (jsonObject.ContainsKey("LightingPhotoelectricBackSpaceSensor"))
             {
-                string lightingOccupancyControls_String = jObject.Value<string>("LightingOccupancyControls");
-                LightingOccupancyControls = Core.Query.Enum<LightingOccupancyControls>(lightingOccupancyControls_String);
+                LightingPhotoelectricBackSpaceSensor = jsonObject["LightingPhotoelectricBackSpaceSensor"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("LightingPhotoelectricControls"))
+            if (jsonObject.ContainsKey("LightingPhotoelectricControlsTimeSwitch"))
             {
-                string lightingPhotoelectricControls_String = jObject.Value<string>("LightingPhotoelectricControls");
-                LightingPhotoelectricControls = Core.Query.Enum<LightingPhotoelectricControls>(lightingPhotoelectricControls_String);
+                LightingPhotoelectricControlsTimeSwitch = jsonObject["LightingPhotoelectricControlsTimeSwitch"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("Country"))
+            if (jsonObject.ContainsKey("LightingDaylightFactorMethod"))
             {
-                string Country_String = jObject.Value<string>("Country");
-                Country = Core.Query.Enum<NCMCountry>(Country_String);
+                LightingDaylightFactorMethod = jsonObject["LightingDaylightFactorMethod"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("LightingPhotoelectricBackSpaceSensor"))
+            if (jsonObject.ContainsKey("IsMainsGasAvailable"))
             {
-                LightingPhotoelectricBackSpaceSensor = jObject.Value<bool>("LightingPhotoelectricBackSpaceSensor");
+                IsMainsGasAvailable = jsonObject["IsMainsGasAvailable"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("LightingPhotoelectricControlsTimeSwitch"))
+            if (jsonObject.ContainsKey("LightingPhotoelectricParasiticPower"))
             {
-                LightingPhotoelectricControlsTimeSwitch = jObject.Value<bool>("LightingPhotoelectricControlsTimeSwitch");
+                LightingPhotoelectricParasiticPower = jsonObject["LightingPhotoelectricParasiticPower"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("LightingDaylightFactorMethod"))
+            if (jsonObject.ContainsKey("AirPermeability"))
             {
-                LightingDaylightFactorMethod = jObject.Value<bool>("LightingDaylightFactorMethod");
+                AirPermeability = jsonObject["AirPermeability"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("IsMainsGasAvailable"))
+            if (jsonObject.ContainsKey("Description"))
             {
-                IsMainsGasAvailable = jObject.Value<bool>("IsMainsGasAvailable");
-            }
-
-            if (jObject.ContainsKey("LightingPhotoelectricParasiticPower"))
-            {
-                LightingPhotoelectricParasiticPower = jObject.Value<double>("LightingPhotoelectricParasiticPower");
-            }
-
-            if (jObject.ContainsKey("AirPermeability"))
-            {
-                AirPermeability = jObject.Value<double>("AirPermeability");
-            }
-
-            if (jObject.ContainsKey("Description"))
-            {
-                Description = jObject.Value<string>("Description");
+                Description = jsonObject["Description"]?.GetValue<string>();
             }
 
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (NCMName != null)
+            if (NCMName?.ToJsonObject() is JsonObject ncmNameJson)
             {
-                jObject.Add("NCMName", NCMName.ToJObject());
+                jsonObject["NCMName"] = ncmNameJson.DeepClone();
             }
 
             if (SystemType != NCMSystemType.Undefined)
             {
-                jObject.Add("SystemType", SystemType.ToString());
+                jsonObject["SystemType"] = SystemType.ToString();
             }
 
             if (LightingOccupancyControls != LightingOccupancyControls.Undefined)
             {
-                jObject.Add("LightingOccupancyControls", LightingOccupancyControls.ToString());
+                jsonObject["LightingOccupancyControls"] = LightingOccupancyControls.ToString();
             }
 
             if (LightingPhotoelectricControls != LightingPhotoelectricControls.Undefined)
             {
-                jObject.Add("LightingPhotoelectricControls", LightingPhotoelectricControls.ToString());
+                jsonObject["LightingPhotoelectricControls"] = LightingPhotoelectricControls.ToString();
             }
 
             if (Country != NCMCountry.Undefined)
             {
-                jObject.Add("Country", Country.ToString());
+                jsonObject["Country"] = Country.ToString();
             }
 
-            jObject.Add("LightingPhotoelectricBackSpaceSensor", LightingPhotoelectricBackSpaceSensor);
-            jObject.Add("LightingPhotoelectricControlsTimeSwitch", LightingPhotoelectricControlsTimeSwitch);
-            jObject.Add("LightingDaylightFactorMethod", LightingDaylightFactorMethod);
-            jObject.Add("IsMainsGasAvailable", IsMainsGasAvailable);
+            jsonObject["LightingPhotoelectricBackSpaceSensor"] = LightingPhotoelectricBackSpaceSensor;
+            jsonObject["LightingPhotoelectricControlsTimeSwitch"] = LightingPhotoelectricControlsTimeSwitch;
+            jsonObject["LightingDaylightFactorMethod"] = LightingDaylightFactorMethod;
+            jsonObject["IsMainsGasAvailable"] = IsMainsGasAvailable;
 
             if (!double.IsNaN(LightingPhotoelectricParasiticPower))
             {
-                jObject.Add("LightingPhotoelectricParasiticPower", LightingPhotoelectricParasiticPower);
+                jsonObject["LightingPhotoelectricParasiticPower"] = LightingPhotoelectricParasiticPower;
             }
 
             if (!double.IsNaN(AirPermeability))
             {
-                jObject.Add("AirPermeability", AirPermeability);
+                jsonObject["AirPermeability"] = AirPermeability;
             }
 
             if (Description != null)
             {
-                jObject.Add("Description", Description);
+                jsonObject["Description"] = Description;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

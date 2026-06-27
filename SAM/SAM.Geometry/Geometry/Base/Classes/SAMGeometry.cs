@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry
 {
@@ -10,21 +10,29 @@ namespace SAM.Geometry
         public SAMGeometry()
         {
         }
-
-        public SAMGeometry(JObject jObject)
+        public SAMGeometry(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public abstract ISAMGeometry Clone();
 
-        public abstract bool FromJObject(JObject jObject);
-
-        public virtual JObject ToJObject()
+        // Bridge: most subclasses still override the public JObject variant
+        // directly. The protected FromJsonObject hook lets newly-migrated
+        // subclasses do their work against the BCL JsonObject API without
+        // touching the shim. As subclasses migrate, they replace the public
+        // override with a protected override of FromJsonObject.
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
-            return jObject;
+            return jsonObject != null;
+        }
+        public virtual JsonObject ToJsonObject()
+        {
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+            return jsonObject;
         }
     }
 }

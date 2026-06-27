@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -21,42 +21,40 @@ namespace SAM.Analytical
         {
             this.textMap = Query.DefaultInternalConditionTextMap_TM59();
         }
+        public TM59Manager(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public TM59Manager(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("TextMap"))
+            if (jsonObject["TextMap"] is JsonObject textMapJson)
             {
-                textMap = Core.Create.TextMap(jObject.Value<JObject>("TextMap"));
+                textMap = Core.Create.TextMap((JsonObject)textMapJson.DeepClone());
             }
 
             return true;
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
-            if (jObject == null)
+            JsonObject jsonObject = new JsonObject
             {
-                return null;
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (textMap?.ToJsonObject() is JsonObject textMapJson)
+            {
+                jsonObject["TextMap"] = textMapJson.DeepClone();
             }
 
-            if (textMap != null)
-            {
-                jObject.Add("TextMap", textMap.ToJObject());
-            }
-
-            return jObject;
+            return jsonObject;
         }
 
         public bool IsSleeping(Space space)

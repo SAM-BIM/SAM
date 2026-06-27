@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -44,10 +44,9 @@ namespace SAM.Core
                 this.objectReferences.Add(objectReference);
             }
         }
-
-        public PathReference(JObject jObject)
+        public PathReference(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public override string ToString()
@@ -76,22 +75,21 @@ namespace SAM.Core
             return GetEnumerator();
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ObjectReferences"))
+            if (jsonObject["ObjectReferences"] is JsonArray objectReferencesArray)
             {
-                JArray jArray = jObject.Value<JArray>("ObjectReferences");
-                if (jArray != null)
+                objectReferences = new List<ObjectReference>();
+                foreach (JsonNode node in objectReferencesArray)
                 {
-                    objectReferences = new List<ObjectReference>();
-                    foreach (JObject jObject_ObjectReference in jArray)
+                    if (node is JsonObject objectReferenceJson)
                     {
-                        ObjectReference objectReference = Query.IJSAMObject<ObjectReference>(jObject_ObjectReference);
+                        ObjectReference objectReference = Query.IJSAMObject<ObjectReference>(objectReferenceJson as JsonObject);
                         if (objectReference != null)
                         {
                             objectReferences.Add(objectReference);
@@ -103,21 +101,26 @@ namespace SAM.Core
             return true;
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Query.FullTypeName(this));
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (objectReferences != null)
             {
-                JArray jArray = new JArray();
+                JsonArray objectReferencesArray = new JsonArray();
 
                 foreach (ObjectReference objectReference in objectReferences)
                 {
-                    jArray.Add(objectReference.ToJObject());
+                    if (objectReference?.ToJsonObject() is JsonObject objectReferenceJson)
+                    {
+                        objectReferencesArray.Add(objectReferenceJson.DeepClone());
+                    }
                 }
 
-                result.Add("ObjectReferences", jArray);
+                result["ObjectReferences"] = objectReferencesArray;
             }
 
             return result;

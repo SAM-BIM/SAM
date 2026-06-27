@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -21,10 +21,12 @@ namespace SAM.Analytical
                 temperatureDifferences = dailyWeightedExceedance.temperatureDifferences == null ? null : new IndexedDoubles(dailyWeightedExceedance.temperatureDifferences);
             }
         }
+        public DailyWeightedExceedance(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public DailyWeightedExceedance(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public DailyWeightedExceedance(int dayIndex, IndexedDoubles temperatureDifferences)
@@ -79,43 +81,43 @@ namespace SAM.Analytical
 
             return result;
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("DayIndex"))
+            if (jsonObject.ContainsKey("DayIndex"))
             {
-                dayIndex = jObject.Value<int>("DayIndex");
+                dayIndex = jsonObject["DayIndex"]?.GetValue<int>() ?? 0;
             }
 
-            if (jObject.ContainsKey("TemperatureDifferences"))
+            if (jsonObject["TemperatureDifferences"] is JsonObject temperatureDifferencesJson)
             {
-                temperatureDifferences = new IndexedDoubles(jObject.Value<JObject>("TemperatureDifferences"));
+                temperatureDifferences = new IndexedDoubles((JsonObject)temperatureDifferencesJson.DeepClone());
             }
 
             return true;
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (dayIndex != -1)
             {
-                jObject.Add("DayIndex", dayIndex);
+                jsonObject["DayIndex"] = dayIndex;
             }
 
-            if (temperatureDifferences != null)
+            if (temperatureDifferences?.ToJsonObject() is JsonObject temperatureDifferencesJson)
             {
-                jObject.Add("TemperatureDifferences", temperatureDifferences.ToJObject());
+                jsonObject["TemperatureDifferences"] = temperatureDifferencesJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         public IndexedDoubles TemperatureDifferences

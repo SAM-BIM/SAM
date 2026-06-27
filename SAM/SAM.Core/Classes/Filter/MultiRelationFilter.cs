@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public abstract class MultiRelationFilter<T> : Filter, IMultiRelationFilter where T : IJSAMObject
     {
-        public MultiRelationFilter(JObject jObject)
-            : base(jObject)
+        public MultiRelationFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -32,21 +32,21 @@ namespace SAM.Core
 
         public FilterLogicalOperator FilterLogicalOperator { get; set; } = FilterLogicalOperator.Or;
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("FilterLogicalOperator"))
+            if (jsonObject.ContainsKey("FilterLogicalOperator"))
             {
-                FilterLogicalOperator = Query.Enum<FilterLogicalOperator>(jObject.Value<string>("FilterLogicalOperator"));
+                FilterLogicalOperator = Query.Enum<FilterLogicalOperator>(jsonObject["FilterLogicalOperator"]?.GetValue<string>());
             }
 
-            if (jObject.ContainsKey("Filter"))
+            if (jsonObject["Filter"] is JsonObject filterObject)
             {
-                Filter = Query.IJSAMObject(jObject.Value<JObject>("Filter")) as IFilter;
+                Filter = Query.IJSAMObject(filterObject as JsonObject) as IFilter;
             }
 
             return true;
@@ -90,9 +90,9 @@ namespace SAM.Core
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
@@ -100,10 +100,11 @@ namespace SAM.Core
 
             if (Filter != null)
             {
-                result.Add("Filter", Filter.ToJObject());
+                if (Filter.ToJsonObject() is JsonObject filterObject)
+                    result["Filter"] = filterObject.DeepClone();
             }
 
-            result.Add("FilterLogicalOperator", FilterLogicalOperator.ToString());
+            result["FilterLogicalOperator"] = FilterLogicalOperator.ToString();
 
             return result;
         }

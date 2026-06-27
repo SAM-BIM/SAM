@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -12,9 +12,8 @@ namespace SAM.Geometry.Object
             : base(color, thickness)
         {
         }
-
-        public CurveAppearance(JObject jObject)
-            : base(jObject)
+        public CurveAppearance(JsonObject jsonObject)
+            : base(jsonObject)
         {
 
         }

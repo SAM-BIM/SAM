@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public static partial class Query
     {
-        public static bool TryConvert(this object @object, out object result, Type type)
+        public static bool TryConvert(this object? @object, out object? result, Type type)
         {
             result = default;
 
@@ -20,7 +21,7 @@ namespace SAM.Core
                 return true;
             }
 
-            Type type_Object = @object?.GetType();
+            Type? type_Object = @object?.GetType();
             if (type_Object == type || type == null)
             {
                 result = @object;
@@ -33,35 +34,35 @@ namespace SAM.Core
                 type_Temp = type;
             }
 
+            if (@object is JsonNode jsonNode && TryConvertJsonNode(jsonNode, out result, type_Temp))
+            {
+                return true;
+            }
+
             if (type_Temp == typeof(string))
             {
                 if (@object != null)
                 {
-                    if (@object is JValue)
+                    if (@object is IEnumerable && @object is not string)
                     {
-                        @object = ((JValue)@object).Value;
-                    }
-
-                    if (@object is IEnumerable)
-                    {
-                        JArray jArray = new();
+                        JsonArray jsonArray = new JsonArray();
                         foreach (object @object_Temp in (IEnumerable)@object)
                         {
-                            if (TryConvert(@object_Temp, out string value) && value != null)
-                                jArray.Add(value);
+                            if (TryConvert(@object_Temp, out string? value) && value != null)
+                                jsonArray.Add(value);
                             else
-                                jArray.Add(string.Empty);
+                                jsonArray.Add(string.Empty);
                         }
 
-                        result = jArray.ToString();
+                        result = jsonArray.ToJsonString();
                     }
-                    else if (@object is IJSAMObject)
+                    else if (@object is IJSAMObject jSAMObject)
                     {
-                        result = ((IJSAMObject)@object).ToJObject()?.ToString();
+                        result = jSAMObject.ToJsonObject()?.ToJsonString();
                     }
 
                     if (result == default)
-                        result = @object.ToString();
+                        result = @object?.ToString();
                 }
 
                 return true;
@@ -76,11 +77,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -112,11 +108,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -151,11 +142,6 @@ namespace SAM.Core
                     return false;
                 }
 
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     double @double;
@@ -184,15 +170,6 @@ namespace SAM.Core
                     result = @double;
                     return true;
                 }
-                else if (@object is int)
-                {
-                    int @int = 0;
-                    if ((bool)@object)
-                        @int = 1;
-
-                    result = @int;
-                    return true;
-                }
             }
             else if (type_Temp == typeof(uint))
             {
@@ -204,11 +181,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -243,11 +215,6 @@ namespace SAM.Core
                     return false;
                 }
 
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     short @short;
@@ -275,11 +242,6 @@ namespace SAM.Core
                     return false;
                 }
 
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     if (byte.TryParse((string)@object, out byte @byte))
@@ -291,38 +253,6 @@ namespace SAM.Core
                 else if (IsNumeric(@object))
                 {
                     result = System.Convert.ToByte(@object);
-                    return true;
-                }
-            }
-            else if (type_Temp == typeof(int))
-            {
-                if (@object == null)
-                {
-                    return false;
-                }
-
-                if (@object is Type)
-                {
-                    return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
-                if (@object is string)
-                {
-                    int @int;
-                    if (int.TryParse((string)@object, out @int))
-                    {
-                        result = @int;
-                        return true;
-                    }
-                }
-                else if (IsNumeric(@object))
-                {
-                    result = System.Convert.ToInt16(@object);
                     return true;
                 }
             }
@@ -338,11 +268,6 @@ namespace SAM.Core
                     return false;
                 }
 
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     long @long;
@@ -354,7 +279,7 @@ namespace SAM.Core
                 }
                 else if (IsNumeric(@object))
                 {
-                    result = System.Convert.ToInt32(@object);
+                    result = System.Convert.ToInt64(@object);
                     return true;
                 }
             }
@@ -368,11 +293,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -394,11 +314,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -430,11 +345,6 @@ namespace SAM.Core
                 if (@object is Type)
                 {
                     return false;
-                }
-
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
                 }
 
                 if (@object is string)
@@ -484,11 +394,6 @@ namespace SAM.Core
             }
             else if (typeof(IJSAMObject).IsAssignableFrom(type_Temp))
             {
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
                     List<IJSAMObject> sAMObjects = Convert.ToSAM((string)@object);
@@ -557,79 +462,12 @@ namespace SAM.Core
                     return true;
                 }
             }
-            else if (typeof(JObject).IsAssignableFrom(type_Temp))
+            else if (typeof(JsonObject).IsAssignableFrom(type_Temp))
             {
-                if (@object is JValue)
-                {
-                    @object = ((JValue)@object).Value;
-                }
-
                 if (@object is string)
                 {
-                    result = JObject.Parse((string)@object);
+                    result = JsonNode.Parse((string)@object) as JsonObject;
                     return true;
-                }
-            }
-            else if (@object is JToken)
-            {
-                double value;
-                if (TryConvert(((JValue)@object).Value, out value))
-                {
-                    result = value;
-                    return true;
-                }
-            }
-            else if (result is Enum)
-            {
-                if (@object == null)
-                    return false;
-
-                if (@object is string)
-                {
-                    string @string = (string)@object;
-
-                    Type type_Result = result.GetType();
-
-                    Array array = System.Enum.GetValues(type_Result);
-                    if (array != null)
-                    {
-                        foreach (Enum @enum in array)
-                        {
-                            if (@enum.ToString().Equals(@string))
-                            {
-                                result = @enum;
-                                return true;
-                            }
-                        }
-                    }
-
-                    int @int;
-                    if (int.TryParse(@string, out @int))
-                    {
-                        if (System.Enum.IsDefined(type_Temp, @int))
-                        {
-                            result = @int;
-                            return true;
-                        }
-                    }
-                }
-                else if (@object is int)
-                {
-                    int @int = default;
-                    if (System.Enum.IsDefined(result.GetType(), @int))
-                    {
-                        result = @int;
-                        return true;
-                    }
-                }
-                else if (IsNumeric(@object))
-                {
-                    int @int = System.Convert.ToInt32(@object);
-                    if (System.Enum.IsDefined(result.GetType(), @int))
-                    {
-                        result = @int;
-                        return true;
-                    }
                 }
             }
             else if (type_Temp.IsEnum)
@@ -670,7 +508,7 @@ namespace SAM.Core
             return false;
         }
 
-        public static bool TryConvert<T>(this object @object, out T result)
+        public static bool TryConvert<T>(this object? @object, out T? result)
         {
             result = default;
 
@@ -680,6 +518,237 @@ namespace SAM.Core
 
             result = (T)result_Object;
             return true;
+        }
+
+        private static bool TryConvertJsonNode(JsonNode jsonNode, out object? result, Type type)
+        {
+            result = default;
+
+            JsonValueKind jsonValueKind = jsonNode.GetValueKind();
+            if (jsonValueKind == JsonValueKind.Null)
+            {
+                return type == typeof(string);
+            }
+
+            if (type == typeof(JsonNode) || type.IsAssignableFrom(jsonNode.GetType()))
+            {
+                result = jsonNode;
+                return true;
+            }
+
+            if (type == typeof(string))
+            {
+                result = jsonValueKind == JsonValueKind.String ? jsonNode.GetValue<string>() : jsonNode.ToJsonString();
+                return true;
+            }
+
+            if (jsonValueKind == JsonValueKind.Object || jsonValueKind == JsonValueKind.Array)
+            {
+                // Allow IJSAMObject deserialization from a stored JsonObject so that
+                // GetValue<T> round-trips correctly for parameters typed as IJSAMObject
+                // (e.g. AnalyticalModelParameter.SolarModel).
+                if (typeof(IJSAMObject).IsAssignableFrom(type) && jsonNode is JsonObject jsonObjectForISAM)
+                {
+                    return TryConvert((object?)jsonObjectForISAM.ToJsonString(), out result, type);
+                }
+
+                if (jsonNode is JsonArray jsonArray && TryConvertJsonArray(jsonArray, out result, type))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (jsonValueKind == JsonValueKind.String)
+            {
+                return TryConvert((object?)jsonNode.GetValue<string>(), out result, type);
+            }
+
+            if (jsonValueKind == JsonValueKind.True || jsonValueKind == JsonValueKind.False)
+            {
+                return TryConvert((object)jsonNode.GetValue<bool>(), out result, type);
+            }
+
+            if (jsonValueKind == JsonValueKind.Number)
+            {
+                return TryConvertJsonNumber(jsonNode.ToJsonString(), out result, type);
+            }
+
+            return false;
+        }
+
+        private static bool TryConvertJsonArray(JsonArray jsonArray, out object? result, Type type)
+        {
+            result = default;
+
+            Type? elementType = GetEnumerableElementType(type);
+            if (elementType == null || !typeof(IJSAMObject).IsAssignableFrom(elementType))
+            {
+                return false;
+            }
+
+            IList list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+            foreach (JsonNode? itemNode in jsonArray)
+            {
+                // Mirror the object branch: each element is round-tripped through the
+                // string -> IJSAMObject path rather than re-parsing the JsonObject inline.
+                if (!(itemNode is JsonObject itemObject))
+                {
+                    return false;
+                }
+
+                if (!TryConvert((object?)itemObject.ToJsonString(), out object? item, elementType) || item == null)
+                {
+                    return false;
+                }
+
+                list.Add(item);
+            }
+
+            if (type.IsArray)
+            {
+                System.Array array = System.Array.CreateInstance(elementType, list.Count);
+                list.CopyTo(array, 0);
+                result = array;
+                return true;
+            }
+
+            if (type.IsAssignableFrom(list.GetType()))
+            {
+                result = list;
+                return true;
+            }
+
+            try
+            {
+                result = Activator.CreateInstance(type, list);
+                return result != null;
+            }
+            catch (MissingMethodException)
+            {
+                result = default;
+                return false;
+            }
+        }
+
+        private static Type? GetEnumerableElementType(Type type)
+        {
+            if (type == typeof(string))
+            {
+                return null;
+            }
+
+            if (type.IsArray)
+            {
+                return type.GetElementType();
+            }
+
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            {
+                return type.GetGenericArguments()[0];
+            }
+
+            foreach (Type interfaceType in type.GetInterfaces())
+            {
+                if (interfaceType.IsGenericType && interfaceType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                {
+                    return interfaceType.GetGenericArguments()[0];
+                }
+            }
+
+            return null;
+        }
+
+        private static bool TryConvertJsonNumber(string value, out object? result, Type type)
+        {
+            result = default;
+
+            try
+            {
+                if (type == typeof(bool))
+                {
+                    if (TryParseDouble(value, out double @double))
+                    {
+                        result = System.Convert.ToInt64(@double) == 1;
+                        return true;
+                    }
+                }
+                else if (type == typeof(int))
+                {
+                    if (int.TryParse(value, out int @int))
+                    {
+                        result = @int;
+                        return true;
+                    }
+
+                    if (TryParseDouble(value, out double @double))
+                    {
+                        result = System.Convert.ToInt32(@double);
+                        return true;
+                    }
+                }
+                else if (type == typeof(double))
+                {
+                    if (TryParseDouble(value, out double @double))
+                    {
+                        result = @double;
+                        return true;
+                    }
+                }
+                else if (type == typeof(uint))
+                {
+                    if (uint.TryParse(value, out uint @uint))
+                    {
+                        result = @uint;
+                        return true;
+                    }
+                }
+                else if (type == typeof(short))
+                {
+                    if (short.TryParse(value, out short @short))
+                    {
+                        result = @short;
+                        return true;
+                    }
+                }
+                else if (type == typeof(byte))
+                {
+                    if (byte.TryParse(value, out byte @byte))
+                    {
+                        result = @byte;
+                        return true;
+                    }
+                }
+                else if (type == typeof(long))
+                {
+                    if (long.TryParse(value, out long @long))
+                    {
+                        result = @long;
+                        return true;
+                    }
+                }
+                else if (type == typeof(DateTime))
+                {
+                    if (long.TryParse(value, out long @long))
+                    {
+                        result = new DateTime(@long);
+                        return true;
+                    }
+
+                    if (TryParseDouble(value, out double @double))
+                    {
+                        result = DateTime.FromOADate(@double);
+                        return true;
+                    }
+                }
+            }
+            catch (OverflowException)
+            {
+                result = default;
+            }
+
+            return false;
         }
     }
 }

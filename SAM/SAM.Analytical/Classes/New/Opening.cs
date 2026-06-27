@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 
 using SAM.Geometry.Spatial;
 using System.Collections.Generic;
@@ -16,9 +15,10 @@ namespace SAM.Analytical
         {
 
         }
+        public Opening(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Opening(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -175,28 +175,6 @@ namespace SAM.Analytical
             }
 
             return area_Frame / (area_Frame + area_Pane);
-        }
-
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject jObject = base.ToJObject();
-
-            if (jObject == null)
-            {
-                return jObject;
-            }
-
-            return jObject;
         }
 
     }

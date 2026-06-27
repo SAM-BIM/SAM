@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Spatial;
 
@@ -24,9 +23,10 @@ namespace SAM.Analytical
         {
 
         }
+        public SpaceAreaFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public SpaceAreaFilter(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }

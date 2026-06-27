@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -39,9 +39,10 @@ namespace SAM.Analytical.Classes
             this.rightFinFrontOffset = rightFinFrontOffset;
             this.caseSelection = caseSelection;
         }
+        public FinShadeCase(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public FinShadeCase(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -219,130 +220,130 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("GlassPartOnly"))
+            if (jsonObject.ContainsKey("GlassPartOnly"))
             {
-                glassPartOnly = jObject.Value<bool>("GlassPartOnly");
+                glassPartOnly = jsonObject["GlassPartOnly"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("OverhangDepth"))
+            if (jsonObject.ContainsKey("OverhangDepth"))
             {
-                overhangDepth = jObject.Value<double>("OverhangDepth");
+                overhangDepth = jsonObject["OverhangDepth"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("OverhangVerticalOffset"))
+            if (jsonObject.ContainsKey("OverhangVerticalOffset"))
             {
-                overhangVerticalOffset = jObject.Value<double>("OverhangVerticalOffset");
+                overhangVerticalOffset = jsonObject["OverhangVerticalOffset"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("OverhangFrontOffset"))
+            if (jsonObject.ContainsKey("OverhangFrontOffset"))
             {
-                overhangFrontOffset = jObject.Value<double>("OverhangFrontOffset");
+                overhangFrontOffset = jsonObject["OverhangFrontOffset"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("LeftFinDepth"))
+            if (jsonObject.ContainsKey("LeftFinDepth"))
             {
-                leftFinDepth = jObject.Value<double>("LeftFinDepth");
+                leftFinDepth = jsonObject["LeftFinDepth"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("LeftFinOffset"))
+            if (jsonObject.ContainsKey("LeftFinOffset"))
             {
-                leftFinOffset = jObject.Value<double>("LeftFinOffset");
+                leftFinOffset = jsonObject["LeftFinOffset"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("LeftFinFrontOffset"))
+            if (jsonObject.ContainsKey("LeftFinFrontOffset"))
             {
-                leftFinFrontOffset = jObject.Value<double>("LeftFinFrontOffset");
+                leftFinFrontOffset = jsonObject["LeftFinFrontOffset"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("RightFinDepth"))
+            if (jsonObject.ContainsKey("RightFinDepth"))
             {
-                rightFinDepth = jObject.Value<double>("RightFinDepth");
+                rightFinDepth = jsonObject["RightFinDepth"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("RightFinOffset"))
+            if (jsonObject.ContainsKey("RightFinOffset"))
             {
-                rightFinOffset = jObject.Value<double>("RightFinOffset");
+                rightFinOffset = jsonObject["RightFinOffset"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("RightFinFrontOffset"))
+            if (jsonObject.ContainsKey("RightFinFrontOffset"))
             {
-                rightFinFrontOffset = jObject.Value<double>("RightFinFrontOffset");
+                rightFinFrontOffset = jsonObject["RightFinFrontOffset"]?.GetValue<double>() ?? double.NaN;
             }
 
-            if (jObject.ContainsKey("CaseSelection"))
+            if (jsonObject["CaseSelection"] is JsonObject caseSelectionJson)
             {
-                caseSelection = Core.Query.IJSAMObject<CaseSelection>(jObject.Value<JObject>("CaseSelection"));
+                caseSelection = Core.Query.IJSAMObject<CaseSelection>(caseSelectionJson as JsonObject);
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
             }
 
-            result.Add("GlassPartOnly", glassPartOnly);
+            result["GlassPartOnly"] = glassPartOnly;
 
             if (!double.IsNaN(overhangDepth))
             {
-                result.Add("OverhangDepth", overhangDepth);
+                result["OverhangDepth"] = overhangDepth;
             }
 
             if (!double.IsNaN(overhangVerticalOffset))
             {
-                result.Add("OverhangVerticalOffset", overhangVerticalOffset);
+                result["OverhangVerticalOffset"] = overhangVerticalOffset;
             }
 
             if (!double.IsNaN(overhangFrontOffset))
             {
-                result.Add("OverhangFrontOffset", overhangFrontOffset);
+                result["OverhangFrontOffset"] = overhangFrontOffset;
             }
 
             if (!double.IsNaN(leftFinDepth))
             {
-                result.Add("LeftFinDepth", leftFinDepth);
+                result["LeftFinDepth"] = leftFinDepth;
             }
 
             if (!double.IsNaN(leftFinOffset))
             {
-                result.Add("LeftFinOffset", leftFinOffset);
+                result["LeftFinOffset"] = leftFinOffset;
             }
 
             if (!double.IsNaN(leftFinFrontOffset))
             {
-                result.Add("LeftFinFrontOffset", leftFinFrontOffset);
+                result["LeftFinFrontOffset"] = leftFinFrontOffset;
             }
 
             if (!double.IsNaN(rightFinDepth))
             {
-                result.Add("RightFinDepth", rightFinDepth);
+                result["RightFinDepth"] = rightFinDepth;
             }
 
             if (!double.IsNaN(rightFinOffset))
             {
-                result.Add("RightFinOffset", rightFinOffset);
+                result["RightFinOffset"] = rightFinOffset;
             }
 
             if (!double.IsNaN(rightFinFrontOffset))
             {
-                result.Add("RightFinFrontOffset", rightFinFrontOffset);
+                result["RightFinFrontOffset"] = rightFinFrontOffset;
             }
 
-            if (caseSelection != null)
+            if (caseSelection?.ToJsonObject() is JsonObject caseSelectionJson)
             {
-                result.Add("CaseSelection", caseSelection.ToJObject());
+                result["CaseSelection"] = caseSelectionJson.DeepClone();
             }
 
             return result;

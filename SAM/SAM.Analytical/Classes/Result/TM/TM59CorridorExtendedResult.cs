@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
 
@@ -26,10 +25,12 @@ namespace SAM.Analytical
         {
 
         }
+        public TM59CorridorExtendedResult(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public TM59CorridorExtendedResult(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public int GetHoursNumberExceeding28()
@@ -38,6 +39,16 @@ namespace SAM.Analytical
             if (operativeTemperatures == null)
             {
                 return -1;
+            }
+
+            if (operativeTemperatures.Count <= 0)
+            {
+                return 0;
+            }
+
+            if (operativeTemperatures.GetMaxIndex() is not int maxIndex || operativeTemperatures.GetMinIndex() is not int minIndex)
+            {
+                return 0;
             }
 
             int count = 0;
@@ -62,7 +73,17 @@ namespace SAM.Analytical
                     return -1;
                 }
 
-                int count = operativeTemperatures.GetMaxIndex().Value - operativeTemperatures.GetMinIndex().Value + 1;
+                if(operativeTemperatures.Count <= 0)
+                {
+                    return 0;
+                }
+
+                if (operativeTemperatures.GetMaxIndex() is not int maxIndex || operativeTemperatures.GetMinIndex() is not int minIndex)
+                {
+                    return 0;
+                }
+
+                int count = maxIndex - minIndex + 1;
                 return System.Convert.ToInt32(System.Math.Truncate(count * ExceedanceFactor));
             }
         }
@@ -75,25 +96,5 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            if (!base.FromJObject(jObject))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public override JObject ToJObject()
-        {
-            JObject result = base.ToJObject();
-            if (result == null)
-            {
-                return null;
-            }
-
-            return result;
-        }
     }
 }

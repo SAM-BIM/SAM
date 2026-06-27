@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -34,10 +34,12 @@ namespace SAM.Analytical
         {
 
         }
+        public MergeSettings(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public MergeSettings(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public TypeMergeSettings this[string name]
@@ -52,23 +54,21 @@ namespace SAM.Analytical
                 return result;
             }
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("TypeMergeSettings"))
+            if (jsonObject["TypeMergeSettings"] is JsonArray typeMergeSettingsArray)
             {
-                JArray jArray = jObject.Value<JArray>("TypeMergeSettings");
-                if (jArray != null)
+                dictionary = new Dictionary<string, TypeMergeSettings>();
+                foreach (JsonNode node in typeMergeSettingsArray)
                 {
-                    dictionary = new Dictionary<string, TypeMergeSettings>();
-                    foreach (JObject jObject_TypeMergeSettings in jArray)
+                    if (node is JsonObject typeMergeSettingsJson)
                     {
-                        TypeMergeSettings typeMergeSettings = Core.Query.IJSAMObject<TypeMergeSettings>(jObject_TypeMergeSettings);
+                        TypeMergeSettings typeMergeSettings = Core.Query.IJSAMObject<TypeMergeSettings>(typeMergeSettingsJson as JsonObject);
                         if (typeMergeSettings?.TypeName == null)
                         {
                             continue;
@@ -81,24 +81,28 @@ namespace SAM.Analytical
 
             return true;
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (dictionary != null)
             {
-                JArray jArray = new JArray();
+                JsonArray typeMergeSettingsArray = new JsonArray();
                 foreach (TypeMergeSettings typeMergeSettings in dictionary.Values)
                 {
-                    jArray.Add(typeMergeSettings.ToJObject());
+                    if (typeMergeSettings?.ToJsonObject() is JsonObject typeMergeSettingsJson)
+                    {
+                        typeMergeSettingsArray.Add(typeMergeSettingsJson.DeepClone());
+                    }
                 }
 
-                jObject.Add("TypeMergeSettings", jArray);
+                jsonObject["TypeMergeSettings"] = typeMergeSettingsArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

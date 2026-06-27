@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -91,7 +91,7 @@ namespace SAM.Core
 
         private static bool ToFile_SAM(this IEnumerable<IJSAMObject> jSAMObjects, string path)
         {
-            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(Path.GetDirectoryName(path)))
+            if (jSAMObjects == null || string.IsNullOrWhiteSpace(path) || !Directory.Exists(Path.GetDirectoryName(path)))
                 return false;
 
             using (MemoryStream memoryStream = new MemoryStream())
@@ -101,28 +101,25 @@ namespace SAM.Core
                     ZipArchiveEntry zipArchiveEntry = null;
 
                     ZipArchiveInfo zipArchiveInfo = new ZipArchiveInfo();
+                    int count = 0;
 
-                    JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings()
-                    {
-                        Formatting = Formatting.None
-                    };
+                    JsonSerializerOptions jsonSerializerOptions = SerializerOptions(Formatting.None);
 
                     foreach (IJSAMObject jSAMObject in jSAMObjects)
                     {
-                        zipArchiveEntry = zipArchive.CreateEntry(zipArchiveInfo.NewGuid().ToString());
-
-                        JObject jObject = jSAMObject?.ToJObject();
-                        if (jObject == null)
+                        JsonObject jsonObject = jSAMObject?.ToJsonObject();
+                        if (jsonObject == null)
                         {
                             continue;
                         }
 
-                        string json = JsonConvert.SerializeObject(jObject, jsonSerializerSettings);
+                        string json = jsonObject.ToJsonString(jsonSerializerOptions);
                         if (json == null)
                         {
                             continue;
                         }
 
+                        zipArchiveEntry = zipArchive.CreateEntry(zipArchiveInfo.NewGuid().ToString());
                         using (Stream stream = zipArchiveEntry.Open())
                         {
                             using (StreamWriter streamWriter = new StreamWriter(stream))
@@ -130,6 +127,13 @@ namespace SAM.Core
                                 streamWriter.Write(json);
                             }
                         }
+
+                        count++;
+                    }
+
+                    if (count == 0)
+                    {
+                        return false;
                     }
 
                     zipArchiveEntry = zipArchive.CreateEntry(ZipArchiveInfo.EntryName);
@@ -137,11 +141,10 @@ namespace SAM.Core
                     {
                         using (StreamWriter streamWriter = new StreamWriter(stream))
                         {
-                            JObject jObject = zipArchiveInfo?.ToJObject();
-                            string json = JsonConvert.SerializeObject(jObject, jsonSerializerSettings);
-                            if (json != null)
+                            JsonObject jsonObject = zipArchiveInfo?.ToJsonObject();
+                            if (jsonObject != null)
                             {
-                                streamWriter.Write(json);
+                                streamWriter.Write(jsonObject.ToJsonString(jsonSerializerOptions));
                             }
                         }
                     }

@@ -4,12 +4,11 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using SAM.Core.Grasshopper.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Windows.Forms;
 
 namespace SAM.Core.Grasshopper
@@ -62,16 +61,13 @@ namespace SAM.Core.Grasshopper
                 return false;
             }
 
-            JObject jObject = Value.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = Value.ToJsonObject();
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            string json = JsonConvert.SerializeObject(jObject, new JsonSerializerSettings
-            {
-                Formatting = Formatting.None
-            });
+            string json = jsonObject.ToJsonString();
 
             //option2
             //string jsonCompressed = Core.Query.Compress(json);

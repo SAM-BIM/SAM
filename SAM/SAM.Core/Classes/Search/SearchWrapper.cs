@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -63,10 +63,9 @@ namespace SAM.Core
                 }
             }
         }
-
-        public SearchWrapper(JObject jObject)
+        public SearchWrapper(JsonObject jsonObject)
         {
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public bool Add(string text)
@@ -228,69 +227,67 @@ namespace SAM.Core
             return tuples.ConvertAll(x => x.Item1);
         }
 
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("CaseSensitive"))
+            if (jsonObject.ContainsKey("CaseSensitive"))
             {
-                caseSensitive = jObject.Value<bool>("CaseSensitive");
+                caseSensitive = jsonObject["CaseSensitive"]?.GetValue<bool>() ?? false;
             }
 
-            if (jObject.ContainsKey("Separators"))
+            if (jsonObject["Separators"] is JsonArray separatorsArray)
             {
-                JArray jArray = jObject.Value<JArray>("Separators");
-                if (jArray != null)
+                List<char> separators_temp = new List<char>();
+                foreach (JsonNode node in separatorsArray)
                 {
-                    List<char> separators_temp = new List<char>();
-                    foreach (string separator_String in jArray)
+                    string separator_String = node?.GetValue<string>();
+                    if (string.IsNullOrEmpty(separator_String))
                     {
-                        if (separator_String == null || separator_String.Length == 0)
-                        {
-                            continue;
-                        }
-
-                        separators_temp.Add(separator_String[0]);
+                        continue;
                     }
 
-                    separators = separators_temp.ToArray();
+                    separators_temp.Add(separator_String[0]);
                 }
+
+                separators = separators_temp.ToArray();
             }
 
-            if (jObject.ContainsKey("Texts"))
+            if (jsonObject["Texts"] is JsonArray textsArray)
             {
-                JArray jArray = jObject.Value<JArray>("Texts");
-                foreach (string text in jArray)
+                foreach (JsonNode node in textsArray)
                 {
-                    Add(text);
+                    Add(node?.GetValue<string>());
                 }
             }
 
             return true;
         }
 
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-
-            result.Add("CaseSensitive", caseSensitive);
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this),
+                ["CaseSensitive"] = caseSensitive
+            };
 
             if (separators != null)
             {
-                JArray jArray = new JArray();
+                JsonArray separatorsArray = new JsonArray();
                 foreach (char separator in separators)
                 {
-                    jArray.Add(separator.ToString());
+                    separatorsArray.Add(separator.ToString());
                 }
-                result.Add("Separators", jArray);
+                result["Separators"] = separatorsArray;
             }
 
             if (dictionary != null)
             {
-                JArray jArray = new JArray();
+                JsonArray textsArray = new JsonArray();
                 foreach (string text in dictionary.Keys)
                 {
                     if (text == null)
@@ -298,9 +295,9 @@ namespace SAM.Core
                         continue;
                     }
 
-                    jArray.Add(text);
+                    textsArray.Add(text);
                 }
-                result.Add("Texts", jArray);
+                result["Texts"] = textsArray;
             }
 
             return result;

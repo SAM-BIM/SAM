@@ -43,7 +43,7 @@ namespace SAM.Core
 
         public static string Compress(this IJSAMObject jSAMObject)
         {
-            string @string = jSAMObject?.ToJObject()?.ToString();
+            string @string = jSAMObject?.ToJsonObject()?.ToJsonString();
             if (string.IsNullOrEmpty(@string))
             {
                 return @string;

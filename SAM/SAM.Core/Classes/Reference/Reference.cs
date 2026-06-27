@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -20,11 +20,11 @@ namespace SAM.Core
             value = reference.value;
         }
 
-        public Reference(JObject jObject)
+        public Reference(JsonObject jsonObject)
         {
             value = null;
 
-            FromJObject(jObject);
+            FromJsonObject(jsonObject);
         }
 
         public bool IsValid()
@@ -50,31 +50,31 @@ namespace SAM.Core
         {
             return value == null ? 0 : value.GetHashCode();
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
             value = null;
-            if (jObject.ContainsKey("Value"))
+            if (jsonObject.ContainsKey("Value"))
             {
-                value = jObject.Value<string>("Value");
+                value = jsonObject["Value"]?.GetValue<string>();
             }
 
             return true;
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject result = new JObject();
-            result.Add("_type", Query.FullTypeName(this));
+            JsonObject result = new JsonObject
+            {
+                ["_type"] = Query.FullTypeName(this)
+            };
 
             if (value != null)
             {
-                result.Add("Value", value);
+                result["Value"] = value;
             }
 
             return result;

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -117,9 +117,8 @@ namespace SAM.Geometry.Spatial
                     max = Query.Max(boundingBox3D.Max, max);
             }
         }
-
-        public BoundingBox3D(JObject jObject)
-            : base(jObject)
+        public BoundingBox3D(JsonObject jsonObject)
+            : base(jsonObject)
         {
         }
 
@@ -388,24 +387,33 @@ namespace SAM.Geometry.Spatial
             return new BoundingBox3D((Point3D)min.GetMoved(vector3D), (Point3D)max.GetMoved(vector3D));
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            max = new Point3D(jObject.Value<JObject>("Max"));
-            min = new Point3D(jObject.Value<JObject>("Min"));
+            if (jsonObject == null)
+                return false;
+
+            if (jsonObject["Max"] is JsonObject jsonObject_Max)
+                max = new Point3D((JsonObject)jsonObject_Max.DeepClone());
+
+            if (jsonObject["Min"] is JsonObject jsonObject_Min)
+                min = new Point3D((JsonObject)jsonObject_Min.DeepClone());
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
                 return null;
 
-            jObject.Add("Max", max.ToJObject());
-            jObject.Add("Min", min.ToJObject());
+            if (max?.ToJsonObject() is JsonObject maxJson)
+                jsonObject["Max"] = maxJson.DeepClone();
 
-            return jObject;
+            if (min?.ToJsonObject() is JsonObject minJson)
+                jsonObject["Min"] = minJson.DeepClone();
+
+            return jsonObject;
         }
 
         public bool On(Point3D point3D, double tolerance = Core.Tolerance.Distance)

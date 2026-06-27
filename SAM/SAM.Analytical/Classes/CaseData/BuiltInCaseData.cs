@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 
 namespace SAM.Analytical
 {
@@ -12,9 +11,10 @@ namespace SAM.Analytical
         {
 
         }
+        public BuiltInCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public BuiltInCaseData(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -25,14 +25,5 @@ namespace SAM.Analytical
 
         }
 
-        public override bool FromJObject(JObject jObject)
-        {
-            return base.FromJObject(jObject);
-        }
-
-        public override JObject ToJObject()
-        {
-            return base.ToJObject();
-        }
     }
 }

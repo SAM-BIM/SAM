@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Drawing;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -15,9 +15,8 @@ namespace SAM.Geometry.Object
         {
             CurveAppearance = new CurveAppearance(curveColor, curveThickness);
         }
-
-        public SurfaceAppearance(JObject jObject)
-            : base(jObject)
+        public SurfaceAppearance(JsonObject jsonObject)
+            : base(jsonObject)
         {
 
         }
@@ -32,32 +31,32 @@ namespace SAM.Geometry.Object
             }
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (CurveAppearance != null)
+            if (CurveAppearance?.ToJsonObject() is JsonObject curveJson)
             {
-                jObject.Add("CurveAppearance", CurveAppearance.ToJObject());
+                jsonObject["CurveAppearance"] = curveJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("CurveAppearance"))
+            if (jsonObject["CurveAppearance"] is JsonObject jsonObject_CurveAppearance)
             {
-                CurveAppearance = new CurveAppearance(jObject.Value<JObject>("CurveAppearance"));
+                CurveAppearance = new CurveAppearance((JsonObject)jsonObject_CurveAppearance.DeepClone());
             }
 
             return true;

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -15,9 +15,10 @@ namespace SAM.Analytical
         {
             this.apertureConstruction = apertureConstruction?.Clone();
         }
+        public ApertureConstructionCaseData(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ApertureConstructionCaseData(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -39,33 +40,33 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("ApertureConstruction"))
+            if (jsonObject["ApertureConstruction"] is JsonObject apertureConstructionJson)
             {
-                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(jObject.Value<JObject>("ApertureConstruction"));
+                apertureConstruction = Core.Query.IJSAMObject<ApertureConstruction>(apertureConstructionJson as JsonObject);
             }
 
             return result;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
             }
 
-            if (apertureConstruction is not null)
+            if (apertureConstruction?.ToJsonObject() is JsonObject apertureConstructionJson)
             {
-                result.Add("ApertureConstruction", apertureConstruction.ToJObject());
+                result["ApertureConstruction"] = apertureConstructionJson.DeepClone();
             }
 
             return result;

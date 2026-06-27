@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
@@ -12,10 +12,12 @@ namespace SAM.Core
         public FilterLogicalOperator FilterLogicalOperator { get; set; } = FilterLogicalOperator.Or;
 
         public bool Value { get; set; }
+        public ComplexReferenceBooleanFilter(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ComplexReferenceBooleanFilter(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
         public ComplexReferenceBooleanFilter()
@@ -33,21 +35,21 @@ namespace SAM.Core
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("FilterLogicalOperator"))
+            if (jsonObject.ContainsKey("FilterLogicalOperator"))
             {
-                FilterLogicalOperator = Query.Enum<FilterLogicalOperator>(jObject.Value<string>("FilterLogicalOperator"));
+                FilterLogicalOperator = Query.Enum<FilterLogicalOperator>(jsonObject["FilterLogicalOperator"]?.GetValue<string>());
             }
 
-            if (jObject.ContainsKey("Value"))
+            if (jsonObject.ContainsKey("Value"))
             {
-                Value = jObject.Value<bool>("Value");
+                Value = jsonObject["Value"]?.GetValue<bool>() ?? false;
             }
 
             return true;
@@ -91,17 +93,17 @@ namespace SAM.Core
             return FilterLogicalOperator == FilterLogicalOperator.And;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return result;
             }
 
-            result.Add("FilterLogicalOperator", FilterLogicalOperator.ToString());
+            result["FilterLogicalOperator"] = FilterLogicalOperator.ToString();
 
-            result.Add("Value", Value);
+            result["Value"] = Value;
 
             return result;
         }

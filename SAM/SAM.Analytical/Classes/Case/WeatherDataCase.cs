@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Weather;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical.Classes
 {
@@ -24,9 +24,10 @@ namespace SAM.Analytical.Classes
                 weatherData = weatherDataCase.weatherData;
             }
         }
+        public WeatherDataCase(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public WeatherDataCase(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -45,33 +46,33 @@ namespace SAM.Analytical.Classes
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            bool result = base.FromJObject(jObject);
+            bool result = base.FromJsonObject(jsonObject);
             if (!result)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("WeatherData"))
+            if (jsonObject["WeatherData"] is JsonObject weatherDataJson)
             {
-                weatherData = Core.Query.IJSAMObject<WeatherData>(jObject.Value<JObject>("WeatherData"));
+                weatherData = Core.Query.IJSAMObject<WeatherData>(weatherDataJson as JsonObject);
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result is null)
             {
                 return result;
             }
 
-            if (weatherData != null)
+            if (weatherData?.ToJsonObject() is JsonObject weatherDataJson)
             {
-                result.Add("WeatherData", weatherData.ToJObject());
+                result["WeatherData"] = weatherDataJson.DeepClone();
             }
 
             return result;

@@ -1,34 +1,33 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.IO;
 using System.IO.Compression;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public static partial class Create
     {
-        public static IJSAMObject IJSAMObject(this JObject jObject)
+        public static IJSAMObject IJSAMObject(this JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            JSAMObjectWrapper jSAMObjectWrapper = new JSAMObjectWrapper(jObject);
-            IJSAMObject jSAMObject = jSAMObjectWrapper.ToIJSAMObject();
+            IJSAMObject jSAMObject = Query.IJSAMObject(jsonObject);
             if (jSAMObject == null)
             {
-                return jSAMObjectWrapper;
+                return new JSAMObjectWrapper(jsonObject);
             }
 
             return jSAMObject;
         }
 
-        public static T IJSAMObject<T>(this JObject jObject) where T : IJSAMObject
+        public static T IJSAMObject<T>(this JsonObject jsonObject) where T : IJSAMObject
         {
-            IJSAMObject jSAMObject = IJSAMObject(jObject);
+            IJSAMObject jSAMObject = IJSAMObject(jsonObject);
             if (jSAMObject == null)
             {
                 return default;
@@ -49,26 +48,25 @@ namespace SAM.Core
                 return default;
             }
 
-            JToken jToken = JToken.Parse(json);
+            JsonNode jsonNode = JsonNode.Parse(json);
 
-            JObject jObject = jToken as JObject;
-            if (jObject == null)
+            JsonObject jsonObject = jsonNode as JsonObject;
+            if (jsonObject == null)
             {
-                JArray jArray = jToken as JArray;
-                if (jArray == null || jArray.Count == 0)
+                if (jsonNode is JsonArray jsonArray && jsonArray.Count > 0)
                 {
-                    return default;
+                    // DeepClone detaches the first element from its parent
+                    // array before handing it to the JsonObject factory path.
+                    jsonObject = jsonArray[0]?.DeepClone() as JsonObject;
                 }
-
-                jObject = jArray[0] as JObject;
             }
 
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return default;
             }
 
-            return IJSAMObject<T>(jObject);
+            return IJSAMObject<T>(jsonObject);
         }
 
         public static IJSAMObject IJSAMObject(this string json)

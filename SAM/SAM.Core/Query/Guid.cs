@@ -1,56 +1,51 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public static partial class Query
     {
-        public static Guid Guid(this JObject jObject)
+        public static Guid Guid(this JsonObject jsonObject)
         {
-            Guid guid = Guid(jObject, "Guid");
+            if (jsonObject == null)
+                return System.Guid.Empty;
+
+            string text = jsonObject["Guid"]?.GetValue<string>();
+            Guid guid = !string.IsNullOrWhiteSpace(text) && System.Guid.TryParse(text, out Guid parsed)
+                ? parsed
+                : System.Guid.Empty;
+
             if (guid == System.Guid.Empty)
                 guid = System.Guid.NewGuid();
 
             return guid;
         }
 
-        public static Guid Guid(this JObject jObject, string name)
+        public static Guid Guid(this JsonObject jsonObject, string name)
         {
-            if (jObject == null || string.IsNullOrWhiteSpace(name))
+            if (jsonObject == null || string.IsNullOrWhiteSpace(name))
                 return System.Guid.Empty;
 
-            if (!jObject.ContainsKey(name))
-                return System.Guid.Empty;
-
-            return Guid(jObject.Value<JToken>(name));
+            return Guid(jsonObject[name]);
         }
 
-        public static Guid Guid(this JToken jToken)
+        public static Guid Guid(this JsonNode jsonNode)
         {
-            if (jToken == null)
+            if (jsonNode == null)
                 return System.Guid.Empty;
 
-            switch (jToken.Type)
-            {
-                case JTokenType.String:
-                    string guidString = jToken.Value<string>();
-                    if (!string.IsNullOrWhiteSpace(guidString))
-                    {
-                        Guid guid_Temp;
-                        if (System.Guid.TryParse(guidString, out guid_Temp))
-                            return guid_Temp;
-                    }
-                    break;
+            if (jsonNode.GetValueKind() != System.Text.Json.JsonValueKind.String)
+                return System.Guid.Empty;
 
-                case JTokenType.Guid:
-                    return jToken.Value<Guid>();
-            }
+            string text = jsonNode.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(text) && System.Guid.TryParse(text, out Guid parsed))
+                return parsed;
 
             return System.Guid.Empty;
         }

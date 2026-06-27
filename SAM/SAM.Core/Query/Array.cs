@@ -1,39 +1,39 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Core
 {
     public static partial class Query
     {
-        public static T[,] Array<T>(this JArray jArray, T @default = default)
+        public static T[,] Array<T>(this JsonArray jsonArray, T @default = default)
         {
-            if (jArray == null)
+            if (jsonArray == null)
             {
                 return null;
             }
 
             List<T[]> values_Temp = new List<T[]>();
             int maxCount = 0;
-            for (int i = 0; i < jArray.Count; i++)
+            for (int i = 0; i < jsonArray.Count; i++)
             {
-                JArray jArray_Temp = jArray[i].Value<JArray>();
-                if (jArray_Temp == null)
+                JsonArray jsonArray_Temp = jsonArray[i] as JsonArray;
+                if (jsonArray_Temp == null)
                 {
                     continue;
                 }
 
-                T[] values_Temp_Temp = new T[jArray_Temp.Count];
-                if (jArray_Temp.Count > maxCount)
+                T[] values_Temp_Temp = new T[jsonArray_Temp.Count];
+                if (jsonArray_Temp.Count > maxCount)
                 {
-                    maxCount = jArray_Temp.Count;
+                    maxCount = jsonArray_Temp.Count;
                 }
 
-                for (int j = 0; j < jArray_Temp.Count; j++)
+                for (int j = 0; j < jsonArray_Temp.Count; j++)
                 {
-                    object @object = jArray_Temp[j].Value<object>();
+                    object @object = jsonArray_Temp[j]?.GetValue<object>();
                     if (@object == null)
                     {
                         values_Temp_Temp[j] = default;

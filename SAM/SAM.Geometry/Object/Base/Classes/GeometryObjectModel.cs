@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Object
 {
@@ -23,9 +23,10 @@ namespace SAM.Geometry.Object
                 }
             }
         }
+        public GeometryObjectModel(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public GeometryObjectModel(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
 
         }
@@ -102,51 +103,50 @@ namespace SAM.Geometry.Object
             return default(T);
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
-            if (result == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
-                result = new JObject();
+                jsonObject = new JsonObject();
             }
 
             if (sAMGeometryObjectCollection != null)
             {
-                JArray jArray = new JArray();
+                JsonArray jsonArray = new JsonArray();
 
                 foreach (ISAMGeometryObject sAMGeometryObject in sAMGeometryObjectCollection)
                 {
-                    if (sAMGeometryObject == null)
+                    if (sAMGeometryObject?.ToJsonObject() is JsonObject geometryJson)
                     {
-                        continue;
+                        jsonArray.Add(geometryJson.DeepClone());
                     }
-
-                    jArray.Add(sAMGeometryObject.ToJObject());
                 }
 
-                result.Add("GeometryObjects", jArray);
+                jsonObject["GeometryObjects"] = jsonArray;
             }
-            return result;
+            return jsonObject;
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("GeometryObjects"))
+            if (jsonObject["GeometryObjects"] is JsonArray jsonArray_GeometryObjects)
             {
-                JArray jArray = jObject.Value<JArray>("GeometryObjects");
-
                 sAMGeometryObjectCollection = new SAMGeometryObjectCollection();
-                foreach (JObject jObject_GeometryObject in jArray)
+                foreach (JsonNode node in jsonArray_GeometryObjects)
                 {
-                    ISAMGeometryObject sAMGeometryObject = Core.Create.IJSAMObject<ISAMGeometryObject>(jObject_GeometryObject);
-                    if (sAMGeometryObject != null)
+                    if (node is JsonObject geometryJson)
                     {
-                        sAMGeometryObjectCollection.Add(sAMGeometryObject);
+                        ISAMGeometryObject sAMGeometryObject = Core.Create.IJSAMObject<ISAMGeometryObject>(geometryJson as JsonObject);
+                        if (sAMGeometryObject != null)
+                        {
+                            sAMGeometryObjectCollection.Add(sAMGeometryObject);
+                        }
                     }
                 }
             }

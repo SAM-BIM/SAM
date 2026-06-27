@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Math;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Spatial
 {
@@ -16,10 +16,12 @@ namespace SAM.Geometry.Spatial
         {
             this.matrix4D = matrix4D;
         }
+        public Transform3D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public Transform3D(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public Transform3D(Transform3D transform3D)
@@ -34,22 +36,29 @@ namespace SAM.Geometry.Spatial
                 return new Matrix4D(matrix4D);
             }
         }
-
-        public bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
                 return false;
 
-            matrix4D = new Matrix4D(jObject.Value<JObject>("Matrix4D"));
+            if (jsonObject["Matrix4D"] is JsonObject matrix4DJson)
+            {
+                matrix4D = new Matrix4D((JsonObject)matrix4DJson.DeepClone());
+            }
             return true;
         }
-
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
-            jObject.Add("Matrix4D", matrix4D.ToJObject());
-            return jObject;
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
+
+            if (matrix4D?.ToJsonObject() is JsonObject matrix4DJson)
+            {
+                jsonObject["Matrix4D"] = matrix4DJson.DeepClone();
+            }
+            return jsonObject;
         }
 
         public Transform3D Multiply(Transform3D transform3D)

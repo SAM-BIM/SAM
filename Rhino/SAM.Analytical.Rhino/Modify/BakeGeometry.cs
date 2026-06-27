@@ -67,7 +67,7 @@ namespace SAM.Analytical.Rhino
 
             if (guids != null && guids.Count != 0)
             {
-                string @string = panel.ToJObject()?.ToString();
+                string @string = panel.ToJsonObject()?.ToJsonString();
                 if (!string.IsNullOrWhiteSpace(@string))
                 {
                     foreach (Guid guid in guids)
@@ -136,7 +136,7 @@ namespace SAM.Analytical.Rhino
             GeometryBase geometryBase = rhinoDoc.Objects.FindGeometry(guid);
             if (geometryBase != null)
             {
-                string @string = aperture.ToJObject()?.ToString();
+                string @string = aperture.ToJsonObject()?.ToJsonString();
                 if (!string.IsNullOrWhiteSpace(@string))
                     geometryBase.SetUserString("SAM", @string);
             }
@@ -160,7 +160,7 @@ namespace SAM.Analytical.Rhino
             GeometryBase geometryBase = rhinoDoc.Objects.FindGeometry(guid);
             if (geometryBase != null)
             {
-                string @string = space.ToJObject()?.ToString();
+                string @string = space.ToJsonObject()?.ToJsonString();
                 if (!string.IsNullOrWhiteSpace(@string))
                     geometryBase.SetUserString("SAM", @string);
             }

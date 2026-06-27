@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -80,34 +80,34 @@ namespace SAM.Analytical
             }
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("AnnualNightOccupiedHours"))
+            if (jsonObject.ContainsKey("AnnualNightOccupiedHours"))
             {
-                annualNightOccupiedHours = jObject.Value<int>("AnnualNightOccupiedHours");
+                annualNightOccupiedHours = jsonObject["AnnualNightOccupiedHours"]?.GetValue<int>() ?? 0;
             }
 
-            if (jObject.ContainsKey("MaxExceedableNightHours"))
+            if (jsonObject.ContainsKey("MaxExceedableNightHours"))
             {
-                maxExceedableNightHours = jObject.Value<int>("MaxExceedableNightHours");
+                maxExceedableNightHours = jsonObject["MaxExceedableNightHours"]?.GetValue<int>() ?? 0;
             }
 
-            if (jObject.ContainsKey("NightHoursNumberExceeding26"))
+            if (jsonObject.ContainsKey("NightHoursNumberExceeding26"))
             {
-                nightHoursNumberExceeding26 = jObject.Value<int>("NightHoursNumberExceeding26");
+                nightHoursNumberExceeding26 = jsonObject["NightHoursNumberExceeding26"]?.GetValue<int>() ?? 0;
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
@@ -115,17 +115,17 @@ namespace SAM.Analytical
 
             if (annualNightOccupiedHours != int.MinValue)
             {
-                result.Add("AnnualNightOccupiedHours", annualNightOccupiedHours);
+                result["AnnualNightOccupiedHours"] = annualNightOccupiedHours;
             }
 
             if (maxExceedableNightHours != int.MinValue)
             {
-                result.Add("MaxExceedableNightHours", maxExceedableNightHours);
+                result["MaxExceedableNightHours"] = maxExceedableNightHours;
             }
 
             if (nightHoursNumberExceeding26 != int.MinValue)
             {
-                result.Add("NightHoursNumberExceeding26", nightHoursNumberExceeding26);
+                result["NightHoursNumberExceeding26"] = nightHoursNumberExceeding26;
             }
 
             return result;

@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 
 namespace SAM.Core
 {
     public class GuidFilter : TextFilter
     {
-        public GuidFilter(JObject jObject)
-            : base(jObject)
+        public GuidFilter(System.Text.Json.Nodes.JsonObject jsonObject)
+            : base(jsonObject)
         {
-
         }
 
         public GuidFilter(GuidFilter guidFilter)
@@ -29,7 +27,7 @@ namespace SAM.Core
         {
             text = null;
 
-            ISAMObject sAMObject = jSAMObject as ISAMObject;
+            IGuidObject sAMObject = jSAMObject as IGuidObject;
             if (sAMObject == null)
             {
                 return false;

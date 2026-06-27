@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using SAM.Geometry.Spatial;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -43,41 +43,43 @@ namespace SAM.Analytical
         {
             location = externalSpace?.Location?.Clone<Point3D>();
         }
+        public ExternalSpace(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public ExternalSpace(JObject jObject)
-            : base(jObject)
+            : base(jsonObject)
+
         {
+
         }
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Location"))
+            if (jsonObject["Location"] is JsonObject locationJson)
             {
-                location = new Point3D(jObject.Value<JObject>("Location"));
+                location = new Point3D((JsonObject)locationJson.DeepClone());
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject jObject = base.ToJObject();
-            if (jObject == null)
+            JsonObject jsonObject = base.ToJsonObject();
+            if (jsonObject == null)
             {
                 return null;
             }
 
-            if (location != null)
+            if (location?.ToJsonObject() is JsonObject locationJson)
             {
-                jObject.Add("Location", location.ToJObject());
+                jsonObject["Location"] = locationJson.DeepClone();
             }
 
-            return jObject;
+            return jsonObject;
         }
     }
 }

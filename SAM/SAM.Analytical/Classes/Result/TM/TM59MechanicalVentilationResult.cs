@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -50,24 +50,24 @@ namespace SAM.Analytical
         }
 
 
-        public override bool FromJObject(JObject jObject)
+        public override bool FromJsonObject(JsonObject jsonObject)
         {
-            if (!base.FromJObject(jObject))
+            if (!base.FromJsonObject(jsonObject))
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("HoursExceeding26"))
+            if (jsonObject.ContainsKey("HoursExceeding26"))
             {
-                hoursExceeding26 = jObject.Value<int>("HoursExceeding26");
+                hoursExceeding26 = jsonObject["HoursExceeding26"]?.GetValue<int>() ?? 0;
             }
 
             return true;
         }
 
-        public override JObject ToJObject()
+        public override JsonObject ToJsonObject()
         {
-            JObject result = base.ToJObject();
+            JsonObject result = base.ToJsonObject();
             if (result == null)
             {
                 return null;
@@ -75,7 +75,7 @@ namespace SAM.Analytical
 
             if (hoursExceeding26 != int.MinValue)
             {
-                result.Add("HoursExceeding26", hoursExceeding26);
+                result["HoursExceeding26"] = hoursExceeding26;
             }
 
             return result;

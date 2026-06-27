@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Geometry.Planar
 {
     public class TransformGroup2D : ITransform2D, IEnumerable<ITransform2D>
     {
         private List<ITransform2D> transform2Ds;
+        public TransformGroup2D(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public TransformGroup2D(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public TransformGroup2D(IEnumerable<ITransform2D> transform2Ds)
@@ -33,20 +35,22 @@ namespace SAM.Geometry.Planar
                 }
             }
         }
-
-        public bool FromJObject(JObject jObject)
+        public virtual bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Transform2Ds"))
+            if (jsonObject["Transform2Ds"] is JsonArray transform2DsArray)
             {
                 transform2Ds = new List<ITransform2D>();
-                foreach (JObject jObject_Transform2D in jObject.Value<JArray>("Transform2Ds"))
+                foreach (JsonNode node in transform2DsArray)
                 {
-                    transform2Ds.Add(Core.Query.IJSAMObject<ITransform2D>(jObject_Transform2D));
+                    if (node is JsonObject transform2DJson)
+                    {
+                        transform2Ds.Add(Core.Query.IJSAMObject<ITransform2D>(transform2DJson));
+                    }
                 }
             }
 
@@ -72,29 +76,28 @@ namespace SAM.Geometry.Planar
                 transform2D.Inverse();
             }
         }
-
-        public virtual JObject ToJObject()
+        public virtual JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (transform2Ds != null)
             {
-                JArray jArray = new JArray();
+                JsonArray transform2DsArray = new JsonArray();
                 foreach (Transform2D transform2D in transform2Ds)
                 {
-                    if (transform2D == null)
+                    if (transform2D?.ToJsonObject() is JsonObject transform2DJson)
                     {
-                        continue;
+                        transform2DsArray.Add(transform2DJson.DeepClone());
                     }
-
-                    jArray.Add(transform2D.ToJObject());
                 }
 
-                jObject.Add("Transform2Ds", jArray);
+                jsonObject["Transform2Ds"] = transform2DsArray;
             }
 
-            return jObject;
+            return jsonObject;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

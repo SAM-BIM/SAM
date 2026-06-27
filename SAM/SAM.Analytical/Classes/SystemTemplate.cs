@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
-using Newtonsoft.Json.Linq;
 using SAM.Core;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -45,10 +45,12 @@ namespace SAM.Analytical
                 version = systemTemplate.version;
             }
         }
+        public SystemTemplate(System.Text.Json.Nodes.JsonObject jsonObject)
 
-        public SystemTemplate(JObject jObject)
         {
-            FromJObject(jObject);
+
+            FromJsonObject(jsonObject);
+
         }
 
         public string Controls
@@ -157,42 +159,41 @@ namespace SAM.Analytical
 
             return base.Equals(obj);
         }
-
-        public bool FromJObject(JObject jObject)
+        public bool FromJsonObject(JsonObject jsonObject)
         {
-            if (jObject == null)
+            if (jsonObject == null)
             {
                 return false;
             }
 
-            if (jObject.ContainsKey("Ventilation"))
+            if (jsonObject.ContainsKey("Ventilation"))
             {
-                ventilation = jObject.Value<string>("Ventilation");
+                ventilation = jsonObject["Ventilation"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Heating"))
+            if (jsonObject.ContainsKey("Heating"))
             {
-                heating = jObject.Value<string>("Heating");
+                heating = jsonObject["Heating"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Cooling"))
+            if (jsonObject.ContainsKey("Cooling"))
             {
-                cooling = jObject.Value<string>("Cooling");
+                cooling = jsonObject["Cooling"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("PlantRoom"))
+            if (jsonObject.ContainsKey("PlantRoom"))
             {
-                plantRoom = jObject.Value<string>("PlantRoom");
+                plantRoom = jsonObject["PlantRoom"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Controls"))
+            if (jsonObject.ContainsKey("Controls"))
             {
-                controls = jObject.Value<string>("Controls");
+                controls = jsonObject["Controls"]?.GetValue<string>();
             }
 
-            if (jObject.ContainsKey("Version"))
+            if (jsonObject.ContainsKey("Version"))
             {
-                version = jObject.Value<string>("Version");
+                version = jsonObject["Version"]?.GetValue<string>();
             }
 
 
@@ -203,44 +204,45 @@ namespace SAM.Analytical
         {
             return ToString().GetHashCode();
         }
-
-        public JObject ToJObject()
+        public JsonObject ToJsonObject()
         {
-            JObject jObject = new JObject();
-            jObject.Add("_type", Core.Query.FullTypeName(this));
+            JsonObject jsonObject = new JsonObject
+            {
+                ["_type"] = Core.Query.FullTypeName(this)
+            };
 
             if (ventilation != null)
             {
-                jObject.Add("Ventilation", ventilation);
+                jsonObject["Ventilation"] = ventilation;
             }
 
             if (heating != null)
             {
-                jObject.Add("Heating", heating);
+                jsonObject["Heating"] = heating;
             }
 
             if (cooling != null)
             {
-                jObject.Add("Cooling", cooling);
+                jsonObject["Cooling"] = cooling;
             }
 
             if (plantRoom != null)
             {
-                jObject.Add("PlantRoom", plantRoom);
+                jsonObject["PlantRoom"] = plantRoom;
             }
 
             if (controls != null)
             {
-                jObject.Add("Controls", controls);
+                jsonObject["Controls"] = controls;
             }
 
             if (version != null)
             {
-                jObject.Add("Version", version);
+                jsonObject["Version"] = version;
             }
 
 
-            return jObject;
+            return jsonObject;
         }
 
         public override string ToString()

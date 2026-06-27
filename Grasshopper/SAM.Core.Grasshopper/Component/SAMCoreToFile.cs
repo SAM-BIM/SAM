@@ -6,6 +6,8 @@ using Grasshopper.Kernel.Types;
 using SAM.Core.Grasshopper.Properties;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
 namespace SAM.Core.Grasshopper
 {
@@ -74,7 +76,7 @@ namespace SAM.Core.Grasshopper
             if (!dataAccess.GetData(2, ref run))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
-                dataAccess.SetData(1, false);
+                dataAccess.SetData(0, false);
                 return;
             }
             if (!run)
@@ -88,26 +90,93 @@ namespace SAM.Core.Grasshopper
             if (!dataAccess.GetDataList(0, objectWrapperList) || objectWrapperList == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
-                dataAccess.SetData(1, false);
+                dataAccess.SetData(0, false);
                 return;
             }
 
             List<IJSAMObject> jSAMObjects = new List<IJSAMObject>();
             foreach (GH_ObjectWrapper gH_ObjectWrapper in objectWrapperList)
             {
-                object @object = null;
-
-                if (gH_ObjectWrapper.Value is IGooJSAMObject)
-                    @object = ((IGooJSAMObject)gH_ObjectWrapper.Value).GetJSAMObject();
-                else
-                    @object = gH_ObjectWrapper.Value;
-
-                if (@object is IJSAMObject)
-                    jSAMObjects.Add((IJSAMObject)@object);
+                IJSAMObject jSAMObject = ToJSAMObject(gH_ObjectWrapper?.Value);
+                if (jSAMObject != null)
+                {
+                    jSAMObjects.Add(jSAMObject);
+                }
             }
 
             bool result = Core.Convert.ToFile(jSAMObjects, path);
             dataAccess.SetData(0, result);
+        }
+
+        private static IJSAMObject ToJSAMObject(object @object)
+        {
+            if (@object == null)
+            {
+                return null;
+            }
+
+            if (@object is IGooJSAMObject gooJSAMObject)
+            {
+                return gooJSAMObject.GetJSAMObject();
+            }
+
+            object value = @object;
+            if (@object is IGH_Goo gH_Goo)
+            {
+                try
+                {
+                    value = (gH_Goo as dynamic).Value;
+                }
+                catch
+                {
+                    value = @object;
+                }
+            }
+
+            if (value is IJSAMObject jSAMObject)
+            {
+                if (ImplementsInterface(value, "SAM.Geometry.Object.ISAMGeometryObject"))
+                {
+                    return jSAMObject;
+                }
+
+                return ToSAMGeometryObject(value) ?? jSAMObject;
+            }
+
+            return ToSAMGeometryObject(value);
+        }
+
+        private static IJSAMObject ToSAMGeometryObject(object @object)
+        {
+            if (@object == null || !ImplementsInterface(@object, "SAM.Geometry.ISAMGeometry"))
+            {
+                return null;
+            }
+
+            Type convertType = @object.GetType().Assembly.GetType("SAM.Geometry.Object.Convert") ?? Type.GetType("SAM.Geometry.Object.Convert, SAM.Geometry");
+            MethodInfo methodInfo = convertType?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .FirstOrDefault(x => x.Name == "ToSAM_ISAMGeometryObject"
+                    && x.GetParameters().Length == 4
+                    && x.GetParameters()[0].ParameterType.FullName == "SAM.Geometry.ISAMGeometry");
+
+            if (methodInfo == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return methodInfo.Invoke(null, new object[] { @object, null, null, null }) as IJSAMObject;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static bool ImplementsInterface(object @object, string fullName)
+        {
+            return @object?.GetType().GetInterfaces().Any(x => x.FullName == fullName) == true;
         }
     }
 }

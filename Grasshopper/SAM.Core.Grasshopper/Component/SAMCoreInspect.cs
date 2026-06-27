@@ -4,7 +4,7 @@
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Attributes;
 using Grasshopper.Kernel.Types;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 using SAM.Core.Grasshopper.Properties;
 using System;
 using System.Collections;
@@ -282,7 +282,7 @@ namespace SAM.Core.Grasshopper
                 {
                     dataAccess.SetData(i, new GooJSAMObject<IJSAMObject>((IJSAMObject)result));
                 }
-                if (result is JToken)
+                if (result is JsonNode)
                 {
                     dataAccess.SetData(i, new GooObject(result.ToString()));
                 }
