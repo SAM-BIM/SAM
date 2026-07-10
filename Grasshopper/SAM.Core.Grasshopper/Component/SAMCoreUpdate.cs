@@ -168,8 +168,8 @@ namespace SAM.Core.Grasshopper
                 return null;
             }
 
-            List<object> rawItems = new List<object>();
-            if (!dataAccess.GetDataList(index, rawItems) || rawItems.Count == 0)
+            IGH_Param componentsParam = Params.Input[index];
+            if (componentsParam == null || componentsParam.VolatileData.IsEmpty)
             {
                 return null;
             }
@@ -182,12 +182,14 @@ namespace SAM.Core.Grasshopper
             List<GH_SAMComponent> result = new List<GH_SAMComponent>();
             IList<IGH_DocumentObject> allObjects = gH_Document.Objects;
 
-            foreach (object item in rawItems)
+            foreach (object rawItem in componentsParam.VolatileData.AllData(true))
             {
-                if (item == null)
+                if (rawItem == null)
                 {
                     continue;
                 }
+
+                object item = rawItem is IGH_Goo gooWrapper ? gooWrapper.ScriptVariable() : rawItem;
 
                 if (item is GH_SAMComponent component)
                 {
@@ -195,65 +197,51 @@ namespace SAM.Core.Grasshopper
                     continue;
                 }
 
-                Guid guid = Guid.Empty;
-                bool hasGuid = false;
-                string nameQuery = null;
-
                 if (item is Guid guidItem)
-                {
-                    guid = guidItem;
-                    hasGuid = true;
-                }
-                else if (item is string str)
-                {
-                    if (Guid.TryParse(str, out Guid parsedGuid))
-                    {
-                        guid = parsedGuid;
-                        hasGuid = true;
-                    }
-                    else
-                    {
-                        nameQuery = str;
-                    }
-                }
-                else if (item is IGH_Goo goo)
-                {
-                    string value = goo.ToString();
-                    if (Guid.TryParse(value, out Guid gooGuid))
-                    {
-                        guid = gooGuid;
-                        hasGuid = true;
-                    }
-                    else if (!string.IsNullOrEmpty(value))
-                    {
-                        nameQuery = value;
-                    }
-                }
-
-                if (hasGuid && guid != Guid.Empty && allObjects != null)
                 {
                     foreach (IGH_DocumentObject obj in allObjects)
                     {
-                        if (obj is GH_SAMComponent samComp && samComp.InstanceGuid == guid)
+                        if (obj is GH_SAMComponent samComp && samComp.InstanceGuid == guidItem)
                         {
                             result.Add(samComp);
                             break;
                         }
                     }
+                    continue;
                 }
-                else if (!string.IsNullOrEmpty(nameQuery) && allObjects != null)
+
+                string search = item?.ToString();
+                if (string.IsNullOrEmpty(search))
+                {
+                    continue;
+                }
+
+                if (Guid.TryParse(search, out Guid parsedGuid))
                 {
                     foreach (IGH_DocumentObject obj in allObjects)
                     {
-                        if (obj is GH_SAMComponent samComp)
+                        if (obj is GH_SAMComponent samComp && samComp.InstanceGuid == parsedGuid)
                         {
-                            if (string.Equals(samComp.Name, nameQuery, StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(samComp.NickName, nameQuery, StringComparison.OrdinalIgnoreCase) ||
-                                samComp.Name.StartsWith(nameQuery, StringComparison.OrdinalIgnoreCase))
+                            result.Add(samComp);
+                            break;
+                        }
+                    }
+                    continue;
+                }
+
+                foreach (IGH_DocumentObject obj in allObjects)
+                {
+                    if (obj is GH_SAMComponent samComp)
+                    {
+                        if (string.Equals(samComp.Name, search, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(samComp.NickName, search, StringComparison.OrdinalIgnoreCase) ||
+                            samComp.Name.StartsWith(search, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!result.Contains(samComp))
                             {
                                 result.Add(samComp);
-                                break;
                             }
+                            break;
                         }
                     }
                 }
