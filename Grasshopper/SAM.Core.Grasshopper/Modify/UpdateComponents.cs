@@ -83,7 +83,9 @@ namespace SAM.Core.Grasshopper
 
             GH_SAMComponent[] components = gH_SAMComponents.ToArray();
 
-            log.Add(new LogRecord("Update started. Found {0} obsolete component(s).", LogRecordType.Message, components.Length));
+            int obsoleteCount = components.Count(c => c != null && c.Obsolete);
+            log.Add(new LogRecord("Update started. Targeting {0} component(s), {1} are obsolete.",
+                LogRecordType.Message, components.Length, obsoleteCount));
 
             int updated = 0;
             int failed = 0;
