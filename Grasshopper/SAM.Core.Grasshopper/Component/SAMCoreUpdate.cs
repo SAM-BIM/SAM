@@ -2,11 +2,9 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Types;
 using SAM.Core.Grasshopper.Properties;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows.Forms;
 
 namespace SAM.Core.Grasshopper
@@ -27,8 +25,8 @@ namespace SAM.Core.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                global::Grasshopper.Kernel.Parameters.Param_GenericObject param_Components;
-                param_Components = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_components", NickName = "_components", Description = "Specific components to update (optional). Wire component names, nicknames, or GUID strings. If empty, scans entire document.", Access = GH_ParamAccess.list, Optional = true };
+                global::Grasshopper.Kernel.Parameters.Param_String param_Components;
+                param_Components = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_components", NickName = "_components", Description = "Component names, nicknames, or GUID strings (optional). If empty, scans entire document.", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(param_Components, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_DryRun;
@@ -168,8 +166,8 @@ namespace SAM.Core.Grasshopper
                 return null;
             }
 
-            IGH_Param componentsParam = Params.Input[index];
-            if (componentsParam == null || componentsParam.VolatileData.IsEmpty)
+            List<string> names = new List<string>();
+            if (!dataAccess.GetDataList(index, names) || names.Count == 0)
             {
                 return null;
             }
@@ -182,47 +180,25 @@ namespace SAM.Core.Grasshopper
             List<GH_SAMComponent> result = new List<GH_SAMComponent>();
             IList<IGH_DocumentObject> allObjects = gH_Document.Objects;
 
-            foreach (object rawItem in componentsParam.VolatileData.AllData(true))
+            foreach (string search in names)
             {
-                if (rawItem == null)
+                if (string.IsNullOrWhiteSpace(search))
                 {
                     continue;
                 }
 
-                object item = rawItem is IGH_Goo gooWrapper ? gooWrapper.ScriptVariable() : rawItem;
+                string trimmed = search.Trim();
 
-                if (item is GH_SAMComponent component)
-                {
-                    result.Add(component);
-                    continue;
-                }
-
-                if (item is Guid guidItem)
+                if (Guid.TryParse(trimmed, out Guid guid))
                 {
                     foreach (IGH_DocumentObject obj in allObjects)
                     {
-                        if (obj is GH_SAMComponent samComp && samComp.InstanceGuid == guidItem)
+                        if (obj is GH_SAMComponent samComp && samComp.InstanceGuid == guid)
                         {
-                            result.Add(samComp);
-                            break;
-                        }
-                    }
-                    continue;
-                }
-
-                string search = item?.ToString();
-                if (string.IsNullOrEmpty(search))
-                {
-                    continue;
-                }
-
-                if (Guid.TryParse(search, out Guid parsedGuid))
-                {
-                    foreach (IGH_DocumentObject obj in allObjects)
-                    {
-                        if (obj is GH_SAMComponent samComp && samComp.InstanceGuid == parsedGuid)
-                        {
-                            result.Add(samComp);
+                            if (!result.Contains(samComp))
+                            {
+                                result.Add(samComp);
+                            }
                             break;
                         }
                     }
@@ -233,9 +209,9 @@ namespace SAM.Core.Grasshopper
                 {
                     if (obj is GH_SAMComponent samComp)
                     {
-                        if (string.Equals(samComp.Name, search, StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(samComp.NickName, search, StringComparison.OrdinalIgnoreCase) ||
-                            samComp.Name.StartsWith(search, StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(samComp.Name, trimmed, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(samComp.NickName, trimmed, StringComparison.OrdinalIgnoreCase) ||
+                            samComp.Name.StartsWith(trimmed, StringComparison.OrdinalIgnoreCase))
                         {
                             if (!result.Contains(samComp))
                             {
