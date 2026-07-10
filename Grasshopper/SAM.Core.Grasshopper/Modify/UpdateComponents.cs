@@ -108,6 +108,11 @@ namespace SAM.Core.Grasshopper
                     continue;
                 }
 
+                if (!gH_SAMComponent.Obsolete)
+                {
+                    continue;
+                }
+
                 try
                 {
                     GH_SAMComponent gH_SAMComponent_New = DuplicateComponent(gH_SAMComponent, out Log log_Temp);
@@ -234,7 +239,7 @@ namespace SAM.Core.Grasshopper
 
             foreach (GH_SAMComponent gH_SAMComponent in components)
             {
-                if (gH_SAMComponent == null)
+                if (gH_SAMComponent == null || !gH_SAMComponent.Obsolete)
                 {
                     continue;
                 }
@@ -334,6 +339,11 @@ namespace SAM.Core.Grasshopper
             foreach (GH_SAMComponent gH_SAMComponent in targets)
             {
                 if (gH_SAMComponent == null)
+                {
+                    continue;
+                }
+
+                if (!gH_SAMComponent.Obsolete)
                 {
                     continue;
                 }
