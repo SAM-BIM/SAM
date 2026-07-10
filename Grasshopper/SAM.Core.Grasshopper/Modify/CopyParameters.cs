@@ -180,56 +180,6 @@ namespace SAM.Core.Grasshopper
             return result;
         }
 
-        public static void DisconnectComponent(GH_SAMComponent gH_SAMComponent)
-        {
-            if (gH_SAMComponent == null)
-            {
-                return;
-            }
-
-            List<IGH_Param> outputParams = gH_SAMComponent.Params?.Output;
-            if (outputParams != null)
-            {
-                foreach (IGH_Param param in outputParams)
-                {
-                    if (param == null || param.Recipients == null)
-                    {
-                        continue;
-                    }
-
-                    IGH_Param[] recipients = param.Recipients.ToArray();
-                    foreach (IGH_Param recipient in recipients)
-                    {
-                        if (recipient != null)
-                        {
-                            recipient.RemoveSource(param);
-                        }
-                    }
-                }
-            }
-
-            List<IGH_Param> inputParams = gH_SAMComponent.Params?.Input;
-            if (inputParams != null)
-            {
-                foreach (IGH_Param param in inputParams)
-                {
-                    if (param == null || param.Sources == null)
-                    {
-                        continue;
-                    }
-
-                    IGH_Param[] sources = param.Sources.ToArray();
-                    foreach (IGH_Param source in sources)
-                    {
-                        if (source != null)
-                        {
-                            param.RemoveSource(source);
-                        }
-                    }
-                }
-            }
-        }
-
         public static void RestoreConnections(GH_SAMComponent gH_SAMComponent, List<ParamConnection> connections, out Log log)
         {
             log = new Log();
