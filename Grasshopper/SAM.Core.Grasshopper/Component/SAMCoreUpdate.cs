@@ -80,10 +80,22 @@ namespace SAM.Core.Grasshopper
             try
             {
                 int index = -1;
-                bool run = false;
 
+                bool dryRun = false;
+                index = Params.IndexOfInputParam("_dryRun");
+                if (index != -1)
+                {
+                    dataAccess.GetData(index, ref dryRun);
+                }
+
+                bool run = false;
                 index = Params.IndexOfInputParam("_run");
-                if (index == -1 || !dataAccess.GetData(index, ref run) || !run)
+                if (index != -1)
+                {
+                    dataAccess.GetData(index, ref run);
+                }
+
+                if (!dryRun && !run)
                 {
                     return;
                 }
@@ -97,13 +109,6 @@ namespace SAM.Core.Grasshopper
                 if (gH_Document == null)
                 {
                     return;
-                }
-
-                bool dryRun = false;
-                index = Params.IndexOfInputParam("_dryRun");
-                if (index != -1)
-                {
-                    dataAccess.GetData(index, ref dryRun);
                 }
 
                 if (dryRun)
@@ -124,6 +129,8 @@ namespace SAM.Core.Grasshopper
 
                     index = Params.IndexOfOutputParam("succeeded");
                     if (index != -1) dataAccess.SetData(index, false);
+
+                    ResetRunInput();
                     return;
                 }
 
