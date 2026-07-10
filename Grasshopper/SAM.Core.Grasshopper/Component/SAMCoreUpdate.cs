@@ -230,6 +230,20 @@ namespace SAM.Core.Grasshopper
                         guid = gooGuid;
                         hasGuid = true;
                     }
+                    else if (!string.IsNullOrEmpty(value) && allObjects != null)
+                    {
+                        foreach (IGH_DocumentObject obj in allObjects)
+                        {
+                            if (obj is GH_SAMComponent samComp)
+                            {
+                                if (samComp.Name == value || samComp.NickName == value || samComp.Name.StartsWith(value))
+                                {
+                                    result.Add(samComp);
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if (hasGuid && guid != Guid.Empty && allObjects != null)
