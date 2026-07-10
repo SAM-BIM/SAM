@@ -73,6 +73,7 @@ namespace SAM.Core.Grasshopper
 
         private GH_Document pendingDocument;
         private List<GH_SAMComponent> pendingTargets;
+        private bool updating;
 
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
@@ -83,6 +84,11 @@ namespace SAM.Core.Grasshopper
 
                 index = Params.IndexOfInputParam("_run");
                 if (index == -1 || !dataAccess.GetData(index, ref run) || !run)
+                {
+                    return;
+                }
+
+                if (updating)
                 {
                     return;
                 }
@@ -123,12 +129,11 @@ namespace SAM.Core.Grasshopper
 
                 pendingDocument = gH_Document;
                 pendingTargets = ResolveTargetComponents(dataAccess, gH_Document);
+                updating = true;
                 pendingDocument.SolutionEnd += GH_Document_SolutionEnd;
 
                 index = Params.IndexOfOutputParam("succeeded");
                 if (index != -1) dataAccess.SetData(index, true);
-
-                ResetRunInput();
             }
             catch (Exception ex)
             {
@@ -177,6 +182,9 @@ namespace SAM.Core.Grasshopper
 
             pendingDocument = null;
             pendingTargets = null;
+            updating = false;
+
+            ResetRunInput();
         }
 
         private List<GH_SAMComponent> ResolveTargetComponents(IGH_DataAccess dataAccess, GH_Document gH_Document)
