@@ -77,11 +77,21 @@ namespace SAM.Core.Grasshopper
 
             bool run = false;
             index = Params.IndexOfInputParam("_run");
-            if (index == -1 || !dataAccess.GetData(index, ref run))
+            if (index == -1)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "DEBUG: _run param not found");
                 return;
             }
+
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: _run index={0}", index));
+
+            if (!dataAccess.GetData(index, ref run))
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "DEBUG: GetData for _run failed");
+                return;
+            }
+
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: _run={0}", run));
 
             if (!run)
             {
@@ -96,8 +106,10 @@ namespace SAM.Core.Grasshopper
             }
 
             GH_Document gH_Document = OnPingDocument();
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: doc={0}", gH_Document != null ? "ok" : "null"));
 
             List<GH_SAMComponent> targetComponents = ResolveTargetComponents(dataAccess, gH_Document);
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: targets={0}", targetComponents != null ? targetComponents.Count.ToString() : "null"));
 
             List<GH_SAMComponent> result;
 
@@ -135,10 +147,12 @@ namespace SAM.Core.Grasshopper
 
                 if (targetComponents != null && targetComponents.Count > 0)
                 {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "DEBUG: updating specific targets");
                     result = Modify.UpdateComponents(targetComponents, out log);
                 }
                 else
                 {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "DEBUG: scanning whole document");
                     result = Modify.UpdateComponents(gH_Document, out log);
                 }
 
@@ -163,13 +177,27 @@ namespace SAM.Core.Grasshopper
             int index = Params.IndexOfInputParam("_components");
             if (index == -1)
             {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "DEBUG: _components param not found");
                 return null;
             }
 
             List<string> names = new List<string>();
-            if (!dataAccess.GetDataList(index, names) || names.Count == 0)
+            if (!dataAccess.GetDataList(index, names))
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "DEBUG: GetDataList for _components failed");
+                return null;
+            }
+
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: _components count={0}", names.Count));
+
+            if (names.Count == 0)
             {
                 return null;
+            }
+
+            foreach (string s in names)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: component query='{0}'", s ?? "(null)"));
             }
 
             if (gH_Document == null)
@@ -179,6 +207,8 @@ namespace SAM.Core.Grasshopper
 
             List<GH_SAMComponent> result = new List<GH_SAMComponent>();
             IList<IGH_DocumentObject> allObjects = gH_Document.Objects;
+
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: doc objects={0}", allObjects != null ? allObjects.Count.ToString() : "null"));
 
             foreach (string search in names)
             {
@@ -205,6 +235,7 @@ namespace SAM.Core.Grasshopper
                     continue;
                 }
 
+                bool found = false;
                 foreach (IGH_DocumentObject obj in allObjects)
                 {
                     if (obj is GH_SAMComponent samComp)
@@ -217,11 +248,19 @@ namespace SAM.Core.Grasshopper
                             {
                                 result.Add(samComp);
                             }
+                            found = true;
                             break;
                         }
                     }
                 }
+
+                if (!found)
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("DEBUG: '{0}' not found", trimmed));
+                }
             }
+
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: resolved {0} component(s)", result.Count));
 
             return result.Count > 0 ? result : null;
         }
