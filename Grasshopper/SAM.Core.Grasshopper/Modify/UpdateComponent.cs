@@ -149,7 +149,16 @@ namespace SAM.Core.Grasshopper
                         continue;
                     }
 
-                    IGH_Param newParam = variableOutput.CreateParameter(side, i);
+                    IGH_Param newParam = null;
+                    try
+                    {
+                        newParam = variableOutput.CreateParameter(side, i);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
                     if (newParam == null)
                     {
                         continue;
