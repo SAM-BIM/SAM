@@ -55,7 +55,7 @@ namespace SAM.Core.Grasshopper
 
             System.Drawing.PointF pivot = gH_SAMComponent.Attributes?.Pivot ?? System.Drawing.PointF.Empty;
 
-            bool add = gH_Document.AddObject(result, true);
+            bool add = gH_Document.AddObject(result, false);
             if (!add)
             {
                 log.Add(new LogRecord("Could not add component to document: {0}", LogRecordType.Error, gH_SAMComponent.Name));

@@ -225,8 +225,20 @@ namespace SAM.Core.Grasshopper
                 {
                     if (connection.ConnectedParams.Count > 0)
                     {
-                        log.Add(new LogRecord("  Warning: parameter '{0}' not found in new version — {1} connection(s) dropped on component {2}",
-                            LogRecordType.Warning, connection.ParamName, connection.ConnectedParams.Count, gH_SAMComponent.Name));
+                        string sideLabel = connection.Side == GH_ParameterSide.Output ? "output" : "input";
+                        log.Add(new LogRecord("  DROPPED: {0} {1} '{2}' not in new version ({3} {4} lost). Manual reconnect needed.",
+                            LogRecordType.Warning, gH_SAMComponent.Name, sideLabel, connection.ParamName,
+                            connection.ConnectedParams.Count, connection.ConnectedParams.Count == 1 ? "connection" : "connections"));
+
+                        foreach (IGH_Param cp in connection.ConnectedParams)
+                        {
+                            if (cp != null)
+                            {
+                                string dest = "?";
+                                try { dest = cp.Attributes?.ToString() ?? cp.Name; } catch { dest = cp.Name; }
+                                log.Add(new LogRecord("    was connected to: {0}", LogRecordType.Warning, dest));
+                            }
+                        }
                     }
                     continue;
                 }
