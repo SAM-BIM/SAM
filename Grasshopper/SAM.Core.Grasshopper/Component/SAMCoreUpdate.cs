@@ -71,6 +71,9 @@ namespace SAM.Core.Grasshopper
             Modify.UpdateComponents(OnPingDocument(), out Log log);
         }
 
+        private GH_Document pendingDocument;
+        private List<GH_SAMComponent> pendingTargets;
+
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
             try
@@ -84,6 +87,12 @@ namespace SAM.Core.Grasshopper
                     return;
                 }
 
+                GH_Document gH_Document = OnPingDocument();
+                if (gH_Document == null)
+                {
+                    return;
+                }
+
                 bool dryRun = false;
                 index = Params.IndexOfInputParam("_dryRun");
                 if (index != -1)
@@ -91,62 +100,33 @@ namespace SAM.Core.Grasshopper
                     dataAccess.GetData(index, ref dryRun);
                 }
 
-                GH_Document gH_Document = OnPingDocument();
-                if (gH_Document == null)
+                if (dryRun)
                 {
-                    Log errorLog = new Log();
-                    errorLog.Add(new LogRecord("Error: could not access Grasshopper document.", LogRecordType.Error));
+                    List<GH_SAMComponent> targetComponents = ResolveTargetComponents(dataAccess, gH_Document);
+                    Log log;
+                    if (targetComponents != null && targetComponents.Count > 0)
+                    {
+                        Modify.PreviewUpdateComponents(targetComponents, out log);
+                    }
+                    else
+                    {
+                        Modify.PreviewUpdateComponents(gH_Document, out log);
+                    }
+
                     index = Params.IndexOfOutputParam("log");
-                    if (index != -1) dataAccess.SetData(index, errorLog);
+                    if (index != -1) dataAccess.SetData(index, log);
+
+                    index = Params.IndexOfOutputParam("succeeded");
+                    if (index != -1) dataAccess.SetData(index, false);
                     return;
                 }
 
-                List<GH_SAMComponent> targetComponents = ResolveTargetComponents(dataAccess, gH_Document);
-
-                Log log;
-                List<GH_SAMComponent> result;
-
-                if (dryRun)
-                {
-                    if (targetComponents != null && targetComponents.Count > 0)
-                    {
-                        result = Modify.PreviewUpdateComponents(targetComponents, out log);
-                    }
-                    else
-                    {
-                        result = Modify.PreviewUpdateComponents(gH_Document, out log);
-                    }
-                }
-                else
-                {
-                    if (targetComponents != null && targetComponents.Count > 0)
-                    {
-                        result = Modify.UpdateComponents(targetComponents, out log);
-                    }
-                    else
-                    {
-                        result = Modify.UpdateComponents(gH_Document, out log);
-                    }
-                }
-
-                if (log == null)
-                {
-                    log = new Log();
-                }
-
-                log.Add(new LogRecord("Done. Nothing to update?", LogRecordType.Message));
-
-                index = Params.IndexOfOutputParam("log");
-                if (index != -1)
-                {
-                    dataAccess.SetData(index, log);
-                }
+                pendingDocument = gH_Document;
+                pendingTargets = ResolveTargetComponents(dataAccess, gH_Document);
+                pendingDocument.SolutionEnd += GH_Document_SolutionEnd;
 
                 index = Params.IndexOfOutputParam("succeeded");
-                if (index != -1)
-                {
-                    dataAccess.SetData(index, !dryRun && result != null && result.Count != 0);
-                }
+                if (index != -1) dataAccess.SetData(index, true);
 
                 ResetRunInput();
             }
@@ -154,6 +134,49 @@ namespace SAM.Core.Grasshopper
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Crash: " + ex.Message);
             }
+        }
+
+        private void GH_Document_SolutionEnd(object sender, GH_SolutionEventArgs e)
+        {
+            GH_Document doc = sender as GH_Document;
+            if (doc != null)
+            {
+                doc.SolutionEnd -= GH_Document_SolutionEnd;
+            }
+
+            if (pendingDocument == null)
+            {
+                return;
+            }
+
+            List<GH_SAMComponent> result;
+
+            Log log;
+            if (pendingTargets != null && pendingTargets.Count > 0)
+            {
+                result = Modify.UpdateComponents(pendingTargets, out log);
+            }
+            else
+            {
+                result = Modify.UpdateComponents(pendingDocument, out log);
+            }
+
+            int logIndex = Params.IndexOfOutputParam("log");
+            if (logIndex != -1)
+            {
+                Params.Output[logIndex].ClearData();
+                Params.Output[logIndex].AddVolatileData(new global::Grasshopper.Kernel.Data.GH_Path(0), 0, log);
+            }
+
+            int succeededIndex = Params.IndexOfOutputParam("succeeded");
+            if (succeededIndex != -1)
+            {
+                Params.Output[succeededIndex].ClearData();
+                Params.Output[succeededIndex].AddVolatileData(new global::Grasshopper.Kernel.Data.GH_Path(0), 0, result != null && result.Count != 0);
+            }
+
+            pendingDocument = null;
+            pendingTargets = null;
         }
 
         private List<GH_SAMComponent> ResolveTargetComponents(IGH_DataAccess dataAccess, GH_Document gH_Document)

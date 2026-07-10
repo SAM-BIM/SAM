@@ -54,8 +54,6 @@ namespace SAM.Core.Grasshopper
 
             System.Drawing.PointF pivot = gH_SAMComponent.Attributes?.Pivot ?? System.Drawing.PointF.Empty;
 
-            gH_Document.RemoveObject(gH_SAMComponent, false);
-
             bool add = gH_Document.AddObject(result, false);
             if (!add)
             {

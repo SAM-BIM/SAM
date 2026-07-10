@@ -89,6 +89,7 @@ namespace SAM.Core.Grasshopper
             int failed = 0;
             int warnings = 0;
             List<GH_SAMComponent> result = new List<GH_SAMComponent>();
+            List<GH_SAMComponent> oldComponents = new List<GH_SAMComponent>();
 
             try
             {
@@ -96,7 +97,6 @@ namespace SAM.Core.Grasshopper
             }
             catch
             {
-                // UndoUtil not available in all contexts; proceed without undo grouping
                 log.Add(new LogRecord("Undo grouping not available — updates will be individually undoable.", LogRecordType.Warning));
                 warnings++;
             }
@@ -122,6 +122,7 @@ namespace SAM.Core.Grasshopper
                     }
 
                     result.Add(gH_SAMComponent_New);
+                    oldComponents.Add(gH_SAMComponent);
                     updated++;
 
                     if (log_Temp != null)
@@ -134,6 +135,11 @@ namespace SAM.Core.Grasshopper
                     failed++;
                     log.Add(new LogRecord("  Failed to update {0}: {1}", LogRecordType.Error, gH_SAMComponent.Name, ex.Message));
                 }
+            }
+
+            foreach (GH_SAMComponent oldComponent in oldComponents)
+            {
+                gH_Document.RemoveObject(oldComponent, false);
             }
 
             log.Add(new LogRecord("Update completed: {0} updated, {1} failed, {2} warning(s).",
