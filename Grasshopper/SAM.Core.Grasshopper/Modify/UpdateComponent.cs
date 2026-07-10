@@ -52,9 +52,7 @@ namespace SAM.Core.Grasshopper
 
             List<ParamConnection> capturedConnections = CaptureConnections(gH_SAMComponent);
 
-            System.Drawing.PointF pivot = gH_SAMComponent.Attributes.Pivot;
-
-            DisconnectComponent(gH_SAMComponent);
+            System.Drawing.PointF pivot = gH_SAMComponent.Attributes?.Pivot ?? System.Drawing.PointF.Empty;
 
             gH_Document.RemoveObject(gH_SAMComponent, false);
 
