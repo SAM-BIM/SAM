@@ -238,13 +238,22 @@ namespace SAM.Core.Grasshopper
                         continue;
                     }
 
-                    if (connection.Side == GH_ParameterSide.Output)
+                    try
                     {
-                        connectedParam.AddSource(newParam);
+                        if (connection.Side == GH_ParameterSide.Output)
+                        {
+                            connectedParam.AddSource(newParam);
+                        }
+                        else
+                        {
+                            newParam.AddSource(connectedParam);
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        newParam.AddSource(connectedParam);
+                        log.Add(new LogRecord("  Warning: failed to reconnect '{0}' → '{1}': {2}",
+                            LogRecordType.Warning, connection.ParamName,
+                            connectedParam.Name ?? "(unnamed)", ex.Message));
                     }
                 }
             }
