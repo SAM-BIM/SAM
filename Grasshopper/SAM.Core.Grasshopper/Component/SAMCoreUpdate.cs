@@ -180,9 +180,10 @@ namespace SAM.Core.Grasshopper
                 }
                 catch
                 {
-                    // Best effort removal
                 }
             }
+
+            pendingDocument.NewSolution(false);
 
             pendingDocument = null;
             pendingOldComponents = null;

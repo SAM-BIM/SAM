@@ -67,13 +67,9 @@ namespace SAM.Core.Grasshopper
                 log.AddRange(log_Restore);
             }
 
-            // Skip variable param expansion for now to isolate red cross issue
-            // ExpandVariableParameters(gH_SAMComponent, result);
-
             CopyPersistentDataFromComponent(gH_SAMComponent, result);
 
             result.Attributes.Pivot = pivot;
-            try { result.Attributes.ExpireLayout(); } catch { }
 
             return result;
         }
