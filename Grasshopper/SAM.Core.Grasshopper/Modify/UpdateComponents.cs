@@ -284,5 +284,91 @@ namespace SAM.Core.Grasshopper
 
             return result;
         }
+
+        public static List<GH_SAMComponent> DuplicateComponents(
+            IEnumerable<GH_SAMComponent> gH_SAMComponents,
+            GH_Document gH_Document,
+            out Log log,
+            out List<GH_SAMComponent> oldComponents)
+        {
+            log = new Log();
+            oldComponents = new List<GH_SAMComponent>();
+
+            if (gH_Document == null)
+            {
+                log.Add(new LogRecord("Document is null.", LogRecordType.Error));
+                return null;
+            }
+
+            List<GH_SAMComponent> targets;
+            if (gH_SAMComponents != null && gH_SAMComponents.Any())
+            {
+                targets = gH_SAMComponents.ToList();
+            }
+            else
+            {
+                targets = new List<GH_SAMComponent>();
+                IList<IGH_DocumentObject> gH_DocumentObjects = gH_Document.Objects;
+                if (gH_DocumentObjects != null)
+                {
+                    foreach (IGH_DocumentObject gH_DocumentObject in gH_DocumentObjects)
+                    {
+                        if (gH_DocumentObject is GH_SAMComponent gH_SAMComponent && gH_SAMComponent.Obsolete)
+                        {
+                            targets.Add(gH_SAMComponent);
+                        }
+                    }
+                }
+            }
+
+            if (targets.Count == 0)
+            {
+                log.Add(new LogRecord("No obsolete components found.", LogRecordType.Message));
+                return new List<GH_SAMComponent>();
+            }
+
+            log.Add(new LogRecord("Update started. Found {0} obsolete component(s).", LogRecordType.Message, targets.Count));
+
+            List<GH_SAMComponent> result = new List<GH_SAMComponent>();
+
+            foreach (GH_SAMComponent gH_SAMComponent in targets)
+            {
+                if (gH_SAMComponent == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    GH_SAMComponent gH_SAMComponent_New = DuplicateComponent(gH_SAMComponent, out Log log_Temp);
+                    if (gH_SAMComponent_New == null)
+                    {
+                        log.Add(new LogRecord("  Failed to update {0}", LogRecordType.Error, gH_SAMComponent.Name));
+                        if (log_Temp != null)
+                        {
+                            log.AddRange(log_Temp);
+                        }
+                        continue;
+                    }
+
+                    result.Add(gH_SAMComponent_New);
+                    oldComponents.Add(gH_SAMComponent);
+
+                    if (log_Temp != null)
+                    {
+                        log.AddRange(log_Temp);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Add(new LogRecord("  Failed to update {0}: {1}", LogRecordType.Error, gH_SAMComponent.Name, ex.Message));
+                }
+            }
+
+            log.Add(new LogRecord("Components duplicated: {0} new created, {1} pending removal.",
+                LogRecordType.Message, result.Count, oldComponents.Count));
+
+            return result;
+        }
     }
 }

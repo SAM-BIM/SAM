@@ -72,7 +72,7 @@ namespace SAM.Core.Grasshopper
         }
 
         private GH_Document pendingDocument;
-        private List<GH_SAMComponent> pendingTargets;
+        private List<GH_SAMComponent> pendingOldComponents;
         private bool updating;
 
         protected override void SolveInstance(IGH_DataAccess dataAccess)
@@ -132,13 +132,26 @@ namespace SAM.Core.Grasshopper
                     return;
                 }
 
-                pendingDocument = gH_Document;
-                pendingTargets = ResolveTargetComponents(dataAccess, gH_Document);
-                updating = true;
-                pendingDocument.SolutionEnd += GH_Document_SolutionEnd;
+                List<GH_SAMComponent> runTargets = ResolveTargetComponents(dataAccess, gH_Document);
+
+                Log log_Run;
+                List<GH_SAMComponent> result = Modify.DuplicateComponents(
+                    runTargets, gH_Document, out log_Run,
+                    out List<GH_SAMComponent> oldComponents);
+
+                index = Params.IndexOfOutputParam("log");
+                if (index != -1) dataAccess.SetData(index, log_Run);
 
                 index = Params.IndexOfOutputParam("succeeded");
-                if (index != -1) dataAccess.SetData(index, true);
+                if (index != -1) dataAccess.SetData(index, result != null && result.Count != 0);
+
+                if (oldComponents != null && oldComponents.Count > 0)
+                {
+                    pendingDocument = gH_Document;
+                    pendingOldComponents = oldComponents;
+                    updating = true;
+                    pendingDocument.SolutionEnd += GH_Document_SolutionEnd;
+                }
             }
             catch (Exception ex)
             {
@@ -154,39 +167,25 @@ namespace SAM.Core.Grasshopper
                 doc.SolutionEnd -= GH_Document_SolutionEnd;
             }
 
-            if (pendingDocument == null)
+            if (pendingDocument == null || pendingOldComponents == null)
             {
                 return;
             }
 
-            List<GH_SAMComponent> result;
-
-            Log log;
-            if (pendingTargets != null && pendingTargets.Count > 0)
+            foreach (GH_SAMComponent oldComponent in pendingOldComponents)
             {
-                result = Modify.UpdateComponents(pendingTargets, out log);
-            }
-            else
-            {
-                result = Modify.UpdateComponents(pendingDocument, out log);
-            }
-
-            int logIndex = Params.IndexOfOutputParam("log");
-            if (logIndex != -1)
-            {
-                Params.Output[logIndex].ClearData();
-                Params.Output[logIndex].AddVolatileData(new global::Grasshopper.Kernel.Data.GH_Path(0), 0, log);
-            }
-
-            int succeededIndex = Params.IndexOfOutputParam("succeeded");
-            if (succeededIndex != -1)
-            {
-                Params.Output[succeededIndex].ClearData();
-                Params.Output[succeededIndex].AddVolatileData(new global::Grasshopper.Kernel.Data.GH_Path(0), 0, result != null && result.Count != 0);
+                try
+                {
+                    pendingDocument.RemoveObject(oldComponent, false);
+                }
+                catch
+                {
+                    // Best effort removal
+                }
             }
 
             pendingDocument = null;
-            pendingTargets = null;
+            pendingOldComponents = null;
             updating = false;
 
             ResetRunInput();
