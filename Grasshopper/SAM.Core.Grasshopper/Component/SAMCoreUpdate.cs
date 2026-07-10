@@ -73,57 +73,56 @@ namespace SAM.Core.Grasshopper
 
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
-            int index = -1;
-
-            bool run = false;
-            index = Params.IndexOfInputParam("_run");
-            if (index == -1)
+            try
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "DEBUG: _run param not found");
-                return;
-            }
+                int index = -1;
+                bool run = false;
 
-            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: _run index={0}", index));
-
-            if (!dataAccess.GetData(index, ref run))
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "DEBUG: GetData for _run failed");
-                return;
-            }
-
-            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: _run={0}", run));
-
-            if (!run)
-            {
-                return;
-            }
-
-            bool dryRun = false;
-            index = Params.IndexOfInputParam("_dryRun");
-            if (index != -1)
-            {
-                dataAccess.GetData(index, ref dryRun);
-            }
-
-            GH_Document gH_Document = OnPingDocument();
-            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: doc={0}", gH_Document != null ? "ok" : "null"));
-
-            List<GH_SAMComponent> targetComponents = ResolveTargetComponents(dataAccess, gH_Document);
-            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: targets={0}", targetComponents != null ? targetComponents.Count.ToString() : "null"));
-
-            List<GH_SAMComponent> result;
-
-            if (dryRun)
-            {
-                Log log;
-
-                if (targetComponents != null && targetComponents.Count > 0)
+                index = Params.IndexOfInputParam("_run");
+                if (index == -1 || !dataAccess.GetData(index, ref run) || !run)
                 {
-                    result = Modify.PreviewUpdateComponents(targetComponents, out log);
+                    return;
+                }
+
+                bool dryRun = false;
+                index = Params.IndexOfInputParam("_dryRun");
+                if (index != -1)
+                {
+                    dataAccess.GetData(index, ref dryRun);
+                }
+
+                GH_Document gH_Document = OnPingDocument();
+                if (gH_Document == null)
+                {
+                    return;
+                }
+
+                List<GH_SAMComponent> targetComponents = ResolveTargetComponents(dataAccess, gH_Document);
+
+                Log log = new Log();
+                List<GH_SAMComponent> result;
+
+                if (dryRun)
+                {
+                    if (targetComponents != null && targetComponents.Count > 0)
+                    {
+                        result = Modify.PreviewUpdateComponents(targetComponents, out log);
+                    }
+                    else
+                    {
+                        result = Modify.PreviewUpdateComponents(gH_Document, out log);
+                    }
                 }
                 else
                 {
-                    result = Modify.PreviewUpdateComponents(gH_Document, out log);
+                    if (targetComponents != null && targetComponents.Count > 0)
+                    {
+                        result = Modify.UpdateComponents(targetComponents, out log);
+                    }
+                    else
+                    {
+                        result = Modify.UpdateComponents(gH_Document, out log);
+                    }
                 }
 
                 index = Params.IndexOfOutputParam("log");
@@ -135,41 +134,15 @@ namespace SAM.Core.Grasshopper
                 index = Params.IndexOfOutputParam("succeeded");
                 if (index != -1)
                 {
-                    dataAccess.SetData(index, false);
+                    dataAccess.SetData(index, !dryRun && result != null && result.Count != 0);
                 }
 
                 ResetRunInput();
-                return;
             }
-
+            catch (Exception ex)
             {
-                Log log;
-
-                if (targetComponents != null && targetComponents.Count > 0)
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "DEBUG: updating specific targets");
-                    result = Modify.UpdateComponents(targetComponents, out log);
-                }
-                else
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "DEBUG: scanning whole document");
-                    result = Modify.UpdateComponents(gH_Document, out log);
-                }
-
-                index = Params.IndexOfOutputParam("log");
-                if (index != -1)
-                {
-                    dataAccess.SetData(index, log);
-                }
-
-                index = Params.IndexOfOutputParam("succeeded");
-                if (index != -1)
-                {
-                    dataAccess.SetData(index, result != null && result.Count != 0);
-                }
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Crash: " + ex.Message);
             }
-
-            ResetRunInput();
         }
 
         private List<GH_SAMComponent> ResolveTargetComponents(IGH_DataAccess dataAccess, GH_Document gH_Document)
@@ -177,27 +150,13 @@ namespace SAM.Core.Grasshopper
             int index = Params.IndexOfInputParam("_components");
             if (index == -1)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "DEBUG: _components param not found");
                 return null;
             }
 
             List<string> names = new List<string>();
-            if (!dataAccess.GetDataList(index, names))
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "DEBUG: GetDataList for _components failed");
-                return null;
-            }
-
-            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: _components count={0}", names.Count));
-
-            if (names.Count == 0)
+            if (!dataAccess.GetDataList(index, names) || names.Count == 0)
             {
                 return null;
-            }
-
-            foreach (string s in names)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: component query='{0}'", s ?? "(null)"));
             }
 
             if (gH_Document == null)
@@ -207,8 +166,10 @@ namespace SAM.Core.Grasshopper
 
             List<GH_SAMComponent> result = new List<GH_SAMComponent>();
             IList<IGH_DocumentObject> allObjects = gH_Document.Objects;
-
-            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: doc objects={0}", allObjects != null ? allObjects.Count.ToString() : "null"));
+            if (allObjects == null)
+            {
+                return null;
+            }
 
             foreach (string search in names)
             {
@@ -235,7 +196,6 @@ namespace SAM.Core.Grasshopper
                     continue;
                 }
 
-                bool found = false;
                 foreach (IGH_DocumentObject obj in allObjects)
                 {
                     if (obj is GH_SAMComponent samComp)
@@ -248,19 +208,11 @@ namespace SAM.Core.Grasshopper
                             {
                                 result.Add(samComp);
                             }
-                            found = true;
                             break;
                         }
                     }
                 }
-
-                if (!found)
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("DEBUG: '{0}' not found", trimmed));
-                }
             }
-
-            AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, string.Format("DEBUG: resolved {0} component(s)", result.Count));
 
             return result.Count > 0 ? result : null;
         }
