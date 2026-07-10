@@ -129,8 +129,6 @@ namespace SAM.Core.Grasshopper
 
                     index = Params.IndexOfOutputParam("succeeded");
                     if (index != -1) dataAccess.SetData(index, false);
-
-                    ResetRunInput();
                     return;
                 }
 
