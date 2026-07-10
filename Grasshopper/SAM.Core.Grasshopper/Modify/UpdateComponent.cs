@@ -71,8 +71,9 @@ namespace SAM.Core.Grasshopper
 
             CopyPersistentDataFromComponent(gH_SAMComponent, result);
 
+            result.Params.OnParametersChanged();
             result.Attributes.Pivot = pivot;
-            result.Attributes.ExpireLayout();
+            try { result.Attributes.ExpireLayout(); } catch { }
 
             return result;
         }
@@ -103,28 +104,55 @@ namespace SAM.Core.Grasshopper
                 return;
             }
 
-            int targetCount = fromParams.Count;
-            int currentCount = toParams.Count;
-
-            while (currentCount < targetCount)
+            HashSet<string> fromParamNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (IGH_Param param in fromParams)
             {
-                int insertIndex = currentCount;
-                if (variableOutput.CanInsertParameter(side, insertIndex))
+                if (param != null)
                 {
-                    IGH_Param newParam = variableOutput.CreateParameter(side, insertIndex);
+                    fromParamNames.Add(param.Name);
+                }
+            }
+
+            int initialCount = toParams.Count;
+            for (int i = initialCount - 1; i >= 0; i--)
+            {
+                if (variableOutput.CanInsertParameter(side, i))
+                {
+                    IGH_Param newParam = variableOutput.CreateParameter(side, i);
                     if (newParam != null)
                     {
                         toParams.Add(newParam);
-                        currentCount++;
-                    }
-                    else
-                    {
-                        break;
                     }
                 }
-                else
+            }
+
+            GH_ComponentParamServer paramServer = to.Params;
+            List<IGH_Param> currentParams = side == GH_ParameterSide.Output ? paramServer.Output : paramServer.Input;
+            if (currentParams != null)
+            {
+                for (int i = currentParams.Count - 1; i >= 0; i--)
                 {
-                    break;
+                    if (currentParams[i] == null)
+                    {
+                        continue;
+                    }
+
+                    if (fromParamNames.Contains(currentParams[i].Name))
+                    {
+                        continue;
+                    }
+
+                    if (variableOutput.CanRemoveParameter(side, i))
+                    {
+                        if (side == GH_ParameterSide.Output)
+                        {
+                            paramServer.UnregisterOutputParameter(currentParams[i]);
+                        }
+                        else
+                        {
+                            paramServer.UnregisterInputParameter(currentParams[i]);
+                        }
+                    }
                 }
             }
         }
