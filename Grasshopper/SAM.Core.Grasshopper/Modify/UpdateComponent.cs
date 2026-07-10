@@ -69,6 +69,8 @@ namespace SAM.Core.Grasshopper
                 log.AddRange(log_Restore);
             }
 
+            ExpandVariableParameters(gH_SAMComponent, result);
+
             CopyPersistentDataFromComponent(gH_SAMComponent, result);
 
             return result;
@@ -77,6 +79,53 @@ namespace SAM.Core.Grasshopper
         public static GH_SAMComponent DuplicateComponent(GH_SAMComponent gH_SAMComponent)
         {
             return DuplicateComponent(gH_SAMComponent, out Log log);
+        }
+
+        internal static void ExpandVariableParameters(GH_SAMComponent gH_SAMComponent_From, GH_SAMComponent gH_SAMComponent_To)
+        {
+            if (!(gH_SAMComponent_To is GH_SAMVariableOutputParameterComponent variableOutput))
+            {
+                return;
+            }
+
+            ExpandSide(GH_ParameterSide.Input, gH_SAMComponent_From, gH_SAMComponent_To, variableOutput);
+            ExpandSide(GH_ParameterSide.Output, gH_SAMComponent_From, gH_SAMComponent_To, variableOutput);
+        }
+
+        private static void ExpandSide(GH_ParameterSide side, GH_SAMComponent from, GH_SAMComponent to, GH_SAMVariableOutputParameterComponent variableOutput)
+        {
+            List<IGH_Param> fromParams = side == GH_ParameterSide.Output ? from.Params?.Output : from.Params?.Input;
+            List<IGH_Param> toParams = side == GH_ParameterSide.Output ? to.Params?.Output : to.Params?.Input;
+
+            if (fromParams == null || toParams == null)
+            {
+                return;
+            }
+
+            int targetCount = fromParams.Count;
+            int currentCount = toParams.Count;
+
+            while (currentCount < targetCount)
+            {
+                int insertIndex = currentCount;
+                if (variableOutput.CanInsertParameter(side, insertIndex))
+                {
+                    IGH_Param newParam = variableOutput.CreateParameter(side, insertIndex);
+                    if (newParam != null)
+                    {
+                        toParams.Add(newParam);
+                        currentCount++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
         }
 
         internal static void CopyPersistentDataFromComponent(GH_SAMComponent gH_SAMComponent_From, GH_SAMComponent gH_SAMComponent_To)
