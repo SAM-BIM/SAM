@@ -134,7 +134,6 @@ namespace SAM.Core.Grasshopper
                 {
                     failed++;
                     log.Add(new LogRecord("  Failed to update {0}: {1}", LogRecordType.Error, gH_SAMComponent.Name, ex.Message));
-                    log.Add(new LogRecord("    at {0}", LogRecordType.Error, ex.StackTrace?.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? ""));
                 }
             }
 
@@ -363,7 +362,6 @@ namespace SAM.Core.Grasshopper
                 catch (Exception ex)
                 {
                     log.Add(new LogRecord("  Failed to update {0}: {1}", LogRecordType.Error, gH_SAMComponent.Name, ex.Message));
-                    log.Add(new LogRecord("    at {0}", LogRecordType.Error, ex.StackTrace?.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? ""));
                 }
             }
 
