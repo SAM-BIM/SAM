@@ -71,134 +71,73 @@ namespace SAM.Core.Grasshopper
             Modify.UpdateComponents(OnPingDocument(), out Log log);
         }
 
-        private GH_Document pendingDocument;
-        private List<GH_SAMComponent> pendingOldComponents;
-        private bool updating;
-
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
-            try
+            int index = -1;
+
+            bool dryRun = false;
+            index = Params.IndexOfInputParam("_dryRun");
+            if (index != -1)
             {
-                int index = -1;
+                dataAccess.GetData(index, ref dryRun);
+            }
 
-                bool dryRun = false;
-                index = Params.IndexOfInputParam("_dryRun");
-                if (index != -1)
+            bool run = false;
+            index = Params.IndexOfInputParam("_run");
+            if (index != -1)
+            {
+                dataAccess.GetData(index, ref run);
+            }
+
+            if (!dryRun && !run)
+            {
+                return;
+            }
+
+            GH_Document gH_Document = OnPingDocument();
+            if (gH_Document == null)
+            {
+                return;
+            }
+
+            List<GH_SAMComponent> targetComponents = ResolveTargetComponents(dataAccess, gH_Document);
+
+            Log log;
+            List<GH_SAMComponent> result;
+
+            if (dryRun)
+            {
+                if (targetComponents != null && targetComponents.Count > 0)
                 {
-                    dataAccess.GetData(index, ref dryRun);
+                    result = Modify.PreviewUpdateComponents(targetComponents, out log);
                 }
-
-                bool run = false;
-                index = Params.IndexOfInputParam("_run");
-                if (index != -1)
+                else
                 {
-                    dataAccess.GetData(index, ref run);
-                }
-
-                if (!dryRun && !run)
-                {
-                    return;
-                }
-
-                if (updating)
-                {
-                    return;
-                }
-
-                GH_Document gH_Document = OnPingDocument();
-                if (gH_Document == null)
-                {
-                    return;
-                }
-
-                if (dryRun)
-                {
-                    List<GH_SAMComponent> targetComponents = ResolveTargetComponents(dataAccess, gH_Document);
-                    Log log;
-                    if (targetComponents != null && targetComponents.Count > 0)
-                    {
-                        Modify.PreviewUpdateComponents(targetComponents, out log);
-                    }
-                    else
-                    {
-                        Modify.PreviewUpdateComponents(gH_Document, out log);
-                    }
-
-                    index = Params.IndexOfOutputParam("log");
-                    if (index != -1) dataAccess.SetData(index, log);
-
-                    index = Params.IndexOfOutputParam("succeeded");
-                    if (index != -1) dataAccess.SetData(index, false);
-                    return;
-                }
-
-                List<GH_SAMComponent> runTargets = ResolveTargetComponents(dataAccess, gH_Document);
-
-                Log log_Run;
-                List<GH_SAMComponent> result = Modify.DuplicateComponents(
-                    runTargets, gH_Document, out log_Run,
-                    out List<GH_SAMComponent> oldComponents);
-
-                index = Params.IndexOfOutputParam("log");
-                if (index != -1) dataAccess.SetData(index, log_Run);
-
-                index = Params.IndexOfOutputParam("succeeded");
-                if (index != -1) dataAccess.SetData(index, result != null && result.Count != 0);
-
-                if (oldComponents != null && oldComponents.Count > 0)
-                {
-                    pendingDocument = gH_Document;
-                    pendingOldComponents = oldComponents;
-                    updating = true;
-                    pendingDocument.SolutionEnd += GH_Document_SolutionEnd;
+                    result = Modify.PreviewUpdateComponents(gH_Document, out log);
                 }
             }
-            catch (Exception ex)
+            else
             {
-                Log errorLog = new Log();
-                errorLog.Add(new LogRecord("ERROR: " + ex.Message, LogRecordType.Error));
-                errorLog.Add(new LogRecord(ex.StackTrace ?? "", LogRecordType.Error));
-                int logIdx = Params.IndexOfOutputParam("log");
-                if (logIdx != -1) dataAccess.SetData(logIdx, errorLog);
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Crash: " + ex.Message);
-            }
-        }
-
-        private void GH_Document_SolutionEnd(object sender, GH_SolutionEventArgs e)
-        {
-            try
-            {
-                GH_Document doc = sender as GH_Document;
-                if (doc != null)
+                if (targetComponents != null && targetComponents.Count > 0)
                 {
-                    doc.SolutionEnd -= GH_Document_SolutionEnd;
+                    result = Modify.UpdateComponents(targetComponents, out log);
                 }
-
-                if (pendingDocument == null || pendingOldComponents == null)
+                else
                 {
-                    return;
-                }
-
-                foreach (GH_SAMComponent oldComponent in pendingOldComponents)
-                {
-                    try
-                    {
-                        pendingDocument.RemoveObject(oldComponent, false);
-                    }
-                    catch
-                    {
-                    }
+                    result = Modify.UpdateComponents(gH_Document, out log);
                 }
             }
-            catch
+
+            index = Params.IndexOfOutputParam("log");
+            if (index != -1)
             {
+                dataAccess.SetData(index, log);
             }
-            finally
+
+            index = Params.IndexOfOutputParam("succeeded");
+            if (index != -1)
             {
-                pendingDocument = null;
-                pendingOldComponents = null;
-                updating = false;
-                ResetRunInput();
+                dataAccess.SetData(index, !dryRun && result != null && result.Count != 0);
             }
         }
 
@@ -272,20 +211,6 @@ namespace SAM.Core.Grasshopper
             }
 
             return result.Count > 0 ? result : null;
-        }
-
-        private void ResetRunInput()
-        {
-            int index = Params.IndexOfInputParam("_run");
-            if (index != -1)
-            {
-                IGH_Param runParam = Params.Input[index];
-                runParam.ClearData();
-                if (runParam is global::Grasshopper.Kernel.Parameters.Param_Boolean boolParam)
-                {
-                    boolParam.SetPersistentData(false);
-                }
-            }
         }
     }
 }
