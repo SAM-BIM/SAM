@@ -62,6 +62,8 @@ namespace SAM.Core.Grasshopper
                 return null;
             }
 
+            ExpandVariableParameters(gH_SAMComponent, result);
+
             RestoreConnections(result, capturedConnections, out Log log_Restore);
             if (log_Restore != null)
             {
@@ -110,46 +112,61 @@ namespace SAM.Core.Grasshopper
                 }
             }
 
-            int initialCount = toParams.Count;
-            for (int i = initialCount - 1; i >= 0; i--)
+            HashSet<string> toParamNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (IGH_Param param in toParams)
             {
-                if (variableOutput.CanInsertParameter(side, i))
+                if (param != null)
                 {
-                    IGH_Param newParam = variableOutput.CreateParameter(side, i);
-                    if (newParam != null)
-                    {
-                        toParams.Add(newParam);
-                    }
+                    toParamNames.Add(param.Name);
                 }
             }
 
-            GH_ComponentParamServer paramServer = to.Params;
-            List<IGH_Param> currentParams = side == GH_ParameterSide.Output ? paramServer.Output : paramServer.Input;
-            if (currentParams != null)
+            List<string> missingNames = new List<string>();
+            foreach (string name in fromParamNames)
             {
-                for (int i = currentParams.Count - 1; i >= 0; i--)
+                if (!toParamNames.Contains(name))
                 {
-                    if (currentParams[i] == null)
+                    missingNames.Add(name);
+                }
+            }
+
+            if (missingNames.Count == 0)
+            {
+                return;
+            }
+
+            int attempts = 0;
+            int maxAttempts = missingNames.Count * 3;
+            while (missingNames.Count > 0 && attempts < maxAttempts)
+            {
+                attempts++;
+                bool added = false;
+
+                for (int i = toParams.Count - 1; i >= 0; i--)
+                {
+                    if (!variableOutput.CanInsertParameter(side, i))
                     {
                         continue;
                     }
 
-                    if (fromParamNames.Contains(currentParams[i].Name))
+                    IGH_Param newParam = variableOutput.CreateParameter(side, i);
+                    if (newParam == null)
                     {
                         continue;
                     }
 
-                    if (variableOutput.CanRemoveParameter(side, i))
+                    if (missingNames.Contains(newParam.Name))
                     {
-                        if (side == GH_ParameterSide.Output)
-                        {
-                            paramServer.UnregisterOutputParameter(currentParams[i]);
-                        }
-                        else
-                        {
-                            paramServer.UnregisterInputParameter(currentParams[i]);
-                        }
+                        toParams.Add(newParam);
+                        missingNames.Remove(newParam.Name);
+                        added = true;
+                        break;
                     }
+                }
+
+                if (!added)
+                {
+                    break;
                 }
             }
         }
