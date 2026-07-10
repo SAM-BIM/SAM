@@ -94,12 +94,16 @@ namespace SAM.Core.Grasshopper
                 GH_Document gH_Document = OnPingDocument();
                 if (gH_Document == null)
                 {
+                    Log errorLog = new Log();
+                    errorLog.Add(new LogRecord("Error: could not access Grasshopper document.", LogRecordType.Error));
+                    index = Params.IndexOfOutputParam("log");
+                    if (index != -1) dataAccess.SetData(index, errorLog);
                     return;
                 }
 
                 List<GH_SAMComponent> targetComponents = ResolveTargetComponents(dataAccess, gH_Document);
 
-                Log log = new Log();
+                Log log;
                 List<GH_SAMComponent> result;
 
                 if (dryRun)
@@ -124,6 +128,13 @@ namespace SAM.Core.Grasshopper
                         result = Modify.UpdateComponents(gH_Document, out log);
                     }
                 }
+
+                if (log == null)
+                {
+                    log = new Log();
+                }
+
+                log.Add(new LogRecord("Done. Nothing to update?", LogRecordType.Message));
 
                 index = Params.IndexOfOutputParam("log");
                 if (index != -1)
