@@ -197,6 +197,7 @@ namespace SAM.Core.Grasshopper
 
                 Guid guid = Guid.Empty;
                 bool hasGuid = false;
+                string nameQuery = null;
 
                 if (item is Guid guidItem)
                 {
@@ -210,16 +211,9 @@ namespace SAM.Core.Grasshopper
                         guid = parsedGuid;
                         hasGuid = true;
                     }
-                    else if (allObjects != null)
+                    else
                     {
-                        foreach (IGH_DocumentObject obj in allObjects)
-                        {
-                            if (obj is GH_SAMComponent samComp && samComp.Name == str)
-                            {
-                                result.Add(samComp);
-                                break;
-                            }
-                        }
+                        nameQuery = str;
                     }
                 }
                 else if (item is IGH_Goo goo)
@@ -230,19 +224,9 @@ namespace SAM.Core.Grasshopper
                         guid = gooGuid;
                         hasGuid = true;
                     }
-                    else if (!string.IsNullOrEmpty(value) && allObjects != null)
+                    else if (!string.IsNullOrEmpty(value))
                     {
-                        foreach (IGH_DocumentObject obj in allObjects)
-                        {
-                            if (obj is GH_SAMComponent samComp)
-                            {
-                                if (samComp.Name == value || samComp.NickName == value || samComp.Name.StartsWith(value))
-                                {
-                                    result.Add(samComp);
-                                    break;
-                                }
-                            }
-                        }
+                        nameQuery = value;
                     }
                 }
 
@@ -254,6 +238,22 @@ namespace SAM.Core.Grasshopper
                         {
                             result.Add(samComp);
                             break;
+                        }
+                    }
+                }
+                else if (!string.IsNullOrEmpty(nameQuery) && allObjects != null)
+                {
+                    foreach (IGH_DocumentObject obj in allObjects)
+                    {
+                        if (obj is GH_SAMComponent samComp)
+                        {
+                            if (string.Equals(samComp.Name, nameQuery, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(samComp.NickName, nameQuery, StringComparison.OrdinalIgnoreCase) ||
+                                samComp.Name.StartsWith(nameQuery, StringComparison.OrdinalIgnoreCase))
+                            {
+                                result.Add(samComp);
+                                break;
+                            }
                         }
                     }
                 }
