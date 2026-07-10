@@ -27,19 +27,19 @@ namespace SAM.Core.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Run Update", Access = GH_ParamAccess.item, Optional = false };
-                param_Boolean.SetPersistentData(false);
-                result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
-
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject param_Components;
-                param_Components = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_components", NickName = "_components", Description = "Specific components to update (optional). Wire GH_SAMComponent objects, GUID strings, or component names. If empty, scans entire document.", Access = GH_ParamAccess.list, Optional = true };
+                param_Components = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_components", NickName = "_components", Description = "Specific components to update (optional). Wire component names, nicknames, or GUID strings. If empty, scans entire document.", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(param_Components, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_DryRun;
                 param_DryRun = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_dryRun", NickName = "_dryRun", Description = "Preview mode — reports changes without applying them", Access = GH_ParamAccess.item, Optional = true };
                 param_DryRun.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_DryRun, ParamVisibility.Binding));
+
+                global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Run Update", Access = GH_ParamAccess.item, Optional = false };
+                param_Boolean.SetPersistentData(false);
+                result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
