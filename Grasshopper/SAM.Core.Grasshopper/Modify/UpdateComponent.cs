@@ -62,7 +62,14 @@ namespace SAM.Core.Grasshopper
                 return null;
             }
 
-            ExpandVariableParameters(gH_SAMComponent, result);
+            try
+            {
+                ExpandVariableParameters(gH_SAMComponent, result);
+            }
+            catch
+            {
+                // Best-effort: expansion failure is non-critical
+            }
 
             RestoreConnections(result, capturedConnections, out Log log_Restore);
             if (log_Restore != null)
@@ -89,8 +96,15 @@ namespace SAM.Core.Grasshopper
                 return;
             }
 
-            ExpandSide(GH_ParameterSide.Input, gH_SAMComponent_From, gH_SAMComponent_To, variableOutput);
-            ExpandSide(GH_ParameterSide.Output, gH_SAMComponent_From, gH_SAMComponent_To, variableOutput);
+            try
+            {
+                ExpandSide(GH_ParameterSide.Input, gH_SAMComponent_From, gH_SAMComponent_To, variableOutput);
+                ExpandSide(GH_ParameterSide.Output, gH_SAMComponent_From, gH_SAMComponent_To, variableOutput);
+            }
+            catch
+            {
+                // Best-effort: expansion failure is non-critical
+            }
         }
 
         private static void ExpandSide(GH_ParameterSide side, GH_SAMComponent from, GH_SAMComponent to, GH_SAMVariableOutputParameterComponent variableOutput)
@@ -98,7 +112,7 @@ namespace SAM.Core.Grasshopper
             List<IGH_Param> fromParams = side == GH_ParameterSide.Output ? from.Params?.Output : from.Params?.Input;
             List<IGH_Param> toParams = side == GH_ParameterSide.Output ? to.Params?.Output : to.Params?.Input;
 
-            if (fromParams == null || toParams == null)
+            if (fromParams == null || toParams == null || fromParams.Count == 0)
             {
                 return;
             }
