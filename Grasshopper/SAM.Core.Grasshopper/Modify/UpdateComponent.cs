@@ -62,15 +62,6 @@ namespace SAM.Core.Grasshopper
                 return null;
             }
 
-            try
-            {
-                ExpandVariableParameters(gH_SAMComponent, result);
-            }
-            catch
-            {
-                // Best-effort: expansion failure is non-critical
-            }
-
             RestoreConnections(result, capturedConnections, out Log log_Restore);
             if (log_Restore != null)
             {
