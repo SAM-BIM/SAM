@@ -47,9 +47,12 @@ namespace SAM.Core.Grasshopper
             string severityLabel = severity == ObsoleteSeverity.Breaking ? "[breaking]" :
                                    severity == ObsoleteSeverity.Advisory ? "[patch]" : "";
             bool isVariable = result is IGH_VariableParameterComponent;
-            log.Add(new LogRecord("Component {0} updating. Old: {1} New: {2} {3} variable={4}",
-                LogRecordType.Message, gH_SAMComponent.Name, gH_SAMComponent.ComponentVersion,
-                gH_SAMComponent.LatestComponentVersion, severityLabel, isVariable));
+            string oldVer = gH_SAMComponent.ComponentVersion ?? "(null)";
+            string newVer = gH_SAMComponent.LatestComponentVersion ?? "(null)";
+            bool sameStr = string.Equals(oldVer, newVer, StringComparison.Ordinal);
+            log.Add(new LogRecord("Component {0} updating. Old: '{1}'({2}) New: '{3}'({4}) {5} variable={6} equal={7}",
+                LogRecordType.Message, gH_SAMComponent.Name, oldVer, oldVer.Length,
+                newVer, newVer.Length, severityLabel, isVariable, sameStr));
 
             List<ParamConnection> capturedConnections = CaptureConnections(gH_SAMComponent);
 
