@@ -155,41 +155,51 @@ namespace SAM.Core.Grasshopper
             }
             catch (Exception ex)
             {
+                Log errorLog = new Log();
+                errorLog.Add(new LogRecord("ERROR: " + ex.Message, LogRecordType.Error));
+                errorLog.Add(new LogRecord(ex.StackTrace ?? "", LogRecordType.Error));
+                int logIdx = Params.IndexOfOutputParam("log");
+                if (logIdx != -1) dataAccess.SetData(logIdx, errorLog);
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Crash: " + ex.Message);
             }
         }
 
         private void GH_Document_SolutionEnd(object sender, GH_SolutionEventArgs e)
         {
-            GH_Document doc = sender as GH_Document;
-            if (doc != null)
+            try
             {
-                doc.SolutionEnd -= GH_Document_SolutionEnd;
-            }
-
-            if (pendingDocument == null || pendingOldComponents == null)
-            {
-                return;
-            }
-
-            foreach (GH_SAMComponent oldComponent in pendingOldComponents)
-            {
-                try
+                GH_Document doc = sender as GH_Document;
+                if (doc != null)
                 {
-                    pendingDocument.RemoveObject(oldComponent, false);
+                    doc.SolutionEnd -= GH_Document_SolutionEnd;
                 }
-                catch
+
+                if (pendingDocument == null || pendingOldComponents == null)
                 {
+                    return;
+                }
+
+                foreach (GH_SAMComponent oldComponent in pendingOldComponents)
+                {
+                    try
+                    {
+                        pendingDocument.RemoveObject(oldComponent, false);
+                    }
+                    catch
+                    {
+                    }
                 }
             }
-
-            pendingDocument.NewSolution(false);
-
-            pendingDocument = null;
-            pendingOldComponents = null;
-            updating = false;
-
-            ResetRunInput();
+            catch
+            {
+            }
+            finally
+            {
+                pendingDocument = null;
+                pendingOldComponents = null;
+                updating = false;
+                ResetRunInput();
+            }
         }
 
         private List<GH_SAMComponent> ResolveTargetComponents(IGH_DataAccess dataAccess, GH_Document gH_Document)
