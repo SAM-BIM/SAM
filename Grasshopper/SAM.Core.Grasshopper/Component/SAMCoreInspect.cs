@@ -503,16 +503,6 @@ namespace SAM.Core.Grasshopper
             }
         }
 
-        public string MinCompatibleVersion => LatestComponentVersion;
-
-        public ObsoleteSeverity ObsoleteSeverity
-        {
-            get
-            {
-                return Query.GetObsoleteSeverity(this);
-            }
-        }
-
         public override void AddedToDocument(GH_Document document)
         {
             base.AddedToDocument(document);
