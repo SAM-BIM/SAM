@@ -51,7 +51,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster, AnalyticalModel or Panel", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "_analyticals", NickName = "_analyticals", Description = "SAM Analytical Object such as AdjacencyCluster, AnalyticalModel or Panel", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "_objects", NickName = "_objects", Description = "Objects such as Point, SAM Analytical Construction, Aperture etc.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_tolerance_", NickName = "_tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
@@ -85,7 +85,7 @@ namespace SAM.Analytical.Grasshopper
         {
             int index = -1;
 
-            index = Params.IndexOfInputParam("_analytical");
+            index = Params.IndexOfInputParam("_analyticals");
             if (index == -1)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
