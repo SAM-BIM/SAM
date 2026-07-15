@@ -151,6 +151,57 @@ namespace SAM.Tests
         }
 
         [Fact]
+        public void MultipleAperturesOnSamePanel_PreservesEarlierUpdates()
+        {
+            // Simulate two apertures on one panel — after processing the
+            // first, the snapshot must be updated so the second iteration
+            // sees apertures added in the first iteration.
+
+            var c = new AdjacencyCluster();
+            var f1 = new Face3D(new Polygon3D(new[]
+                { P(0, 0, 0), P(10, 0, 0), P(10, 10, 0), P(0, 10, 0) }));
+            Panel panel = AnalyticalCreate.Panel(wallCons, PanelType.Wall, f1);
+            Aperture ap1 = AnalyticalCreate.Aperture(windowCons,
+                new Face3D(new Polygon3D(new[]
+                    { P(1, 1, 0), P(3, 1, 0), P(3, 3, 0), P(1, 3, 0) })));
+            Aperture ap2 = AnalyticalCreate.Aperture(windowCons,
+                new Face3D(new Polygon3D(new[]
+                    { P(5, 5, 0), P(7, 5, 0), P(7, 7, 0), P(5, 7, 0) })));
+            panel.AddAperture(ap1);
+            panel.AddAperture(ap2);
+            c.AddObject(panel);
+
+            var map = BuildMap(c);
+
+            // Iteration 1: process ap1
+            Assert.True(map.TryGetValue(ap1.Guid, out Panel p1));
+
+            // Clone panel, remove ap1, add newAp1 (as production does)
+            Panel cloned = AnalyticalCreate.Panel(p1.Guid, p1, p1.GetFace3D(), null);
+            // Manually set up the apertures to match production behaviour
+            cloned.RemoveAperture(ap1.Guid);
+            cloned.RemoveAperture(ap2.Guid);  // temporarily remove
+            Aperture newAp1 = AnalyticalCreate.Aperture(windowCons,
+                new Face3D(new Polygon3D(new[]
+                    { P(1, 1, 0), P(3, 1, 0), P(3, 3, 0), P(1, 3, 0) })));
+            cloned.AddAperture(newAp1);
+            cloned.AddAperture(ap2);  // re-add ap2
+            c.AddObject(cloned);
+
+            // Update snapshot (as production now does)
+            List<Aperture> aps = cloned.Apertures;
+            if (aps != null)
+                foreach (Aperture a in aps)
+                    if (a != null) map[a.Guid] = cloned;
+
+            // Iteration 2: lookup ap2 — must see cloned panel with newAp1
+            Assert.True(map.TryGetValue(ap2.Guid, out Panel p2));
+            Assert.True(p2.HasAperture(newAp1.Guid));
+            Assert.True(p2.HasAperture(ap2.Guid));
+            Assert.False(p2.HasAperture(ap1.Guid));
+        }
+
+        [Fact]
         public void FullLoopEquivalence_AllConfigurations()
         {
             foreach (var (pc, apc) in new[] { (10, 0), (10, 1), (100, 2), (100, 4), (50, 1) })

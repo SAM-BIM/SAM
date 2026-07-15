@@ -612,6 +612,20 @@ namespace SAM.Analytical
                     //apertures_Result.Add(aperture_Temp);
                     //dischargeCoefficients_Result.Add(singleOpeningProperties.GetDischargeCoefficient());
                     //openingProperties_Result.Add(singleOpeningProperties);
+
+                    // Update snapshot so later apertures on this panel
+                    // do not re-read a stale pre-update panel reference.
+                    List<Aperture> updatedApertures = panel.Apertures;
+                    if (updatedApertures != null)
+                    {
+                        foreach (Aperture updatedAp in updatedApertures)
+                        {
+                            if (updatedAp != null)
+                            {
+                                aperturePanelMap[updatedAp.Guid] = panel;
+                            }
+                        }
+                    }
                 }
             }
 
