@@ -440,6 +440,48 @@ namespace SAM.Analytical
             return AnalyticalModel_ByApertureConstruction(analyticalModel, apertureConstructionCase.ApertureConstruction, apertureConstructionCase.CaseSelection?.IJSAMObjects<Aperture>(analyticalModel));
         }
 
+        private static Dictionary<Guid, Panel> CreateAperturePanelMap(AdjacencyCluster adjacencyCluster)
+        {
+            List<Panel> panels = adjacencyCluster?.GetPanels();
+
+            if (panels == null || panels.Count == 0)
+            {
+                return new Dictionary<Guid, Panel>();
+            }
+
+            Dictionary<Guid, Panel> result = new Dictionary<Guid, Panel>();
+
+            foreach (Panel panel in panels)
+            {
+                if (panel == null || !panel.HasApertures)
+                {
+                    continue;
+                }
+
+                List<Aperture> apertures = panel.Apertures;
+
+                if (apertures == null)
+                {
+                    continue;
+                }
+
+                foreach (Aperture aperture in apertures)
+                {
+                    if (aperture == null)
+                    {
+                        continue;
+                    }
+
+                    if (!result.ContainsKey(aperture.Guid))
+                    {
+                        result[aperture.Guid] = panel;
+                    }
+                }
+            }
+
+            return result;
+        }
+
         public static AnalyticalModel AnalyticalModel_ByOpening(this AnalyticalModel analyticalModel,
             IEnumerable<double> openingAngles,
             IEnumerable<string> descriptions = null,
@@ -481,6 +523,8 @@ namespace SAM.Analytical
 
             adjacencyCluster = new AdjacencyCluster(adjacencyCluster, true);
 
+            Dictionary<Guid, Panel> aperturePanelMap = CreateAperturePanelMap(adjacencyCluster);
+
             //List<Aperture> apertures_Result = [];
             //List<double> dischargeCoefficients_Result = [];
             //List<IOpeningProperties> openingProperties_Result = [];
@@ -489,7 +533,7 @@ namespace SAM.Analytical
             {
                 Aperture aperture = apertures_Temp[i];
 
-                Panel panel = adjacencyCluster.GetPanel(aperture);
+                aperturePanelMap.TryGetValue(aperture.Guid, out Panel panel);
                 if (panel == null)
                 {
                     continue;
