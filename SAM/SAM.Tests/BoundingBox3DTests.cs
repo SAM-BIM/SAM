@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using SAM.Geometry.Spatial;
 using SAM.Math;
 using Xunit;
+using SAM.Core;
 
 namespace SAM.Tests
 {
