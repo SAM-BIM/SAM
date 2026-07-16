@@ -13,6 +13,7 @@ using SAM.Core.Grasshopper;
 using SAM.Geometry.Grasshopper;
 using SAM.Geometry.Spatial;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -23,17 +24,15 @@ namespace SAM.Analytical.Grasshopper
         private sealed class PreviewSnapshot
         {
             public Aperture Source;
+            public long Fingerprint;
             public double UnitScale;
-            public BoundingBox ClippingBox;
             public List<FacePart> Faces;
         }
 
         private struct FacePart
         {
             public bool IsFrame;
-            public Face3D Face3D;
             public Brep Brep;
-            public List<Point3d[]> WireLoops;
         }
 
         private PreviewSnapshot previewSnapshot;
@@ -53,52 +52,20 @@ namespace SAM.Analytical.Grasshopper
             PreviewSnapshot result = new PreviewSnapshot()
             {
                 Source = aperture,
+                Fingerprint = ComputeFingerprint(aperture),
                 UnitScale = unitScale,
                 Faces = new List<FacePart>()
             };
-
-            result.ClippingBox = Geometry.Rhino.Convert.ToRhino(aperture.GetBoundingBox());
 
             void AddFace(Face3D face3D, bool isFrame)
             {
                 if (face3D == null) return;
 
-                FacePart fp = new FacePart()
+                result.Faces.Add(new FacePart()
                 {
                     IsFrame = isFrame,
-                    Face3D = face3D,
-                    Brep = Geometry.Rhino.Convert.ToRhino_Brep(face3D),
-                    WireLoops = new List<Point3d[]>()
-                };
-
-                PlanarBoundary3D pb = new PlanarBoundary3D(face3D);
-                BoundaryEdge3DLoop externalLoop = pb.GetExternalEdge3DLoop();
-                if (externalLoop != null)
-                {
-                    List<BoundaryEdge3D> edge3Ds = externalLoop.BoundaryEdge3Ds;
-                    if (edge3Ds != null && edge3Ds.Count != 0)
-                    {
-                        List<Point3d> pts = edge3Ds.ConvertAll(x => Geometry.Rhino.Convert.ToRhino(x.Curve3D.GetStart()));
-                        if (pts.Count != 0) { pts.Add(pts[0]); fp.WireLoops.Add(pts.ToArray()); }
-                    }
-                }
-
-                List<BoundaryEdge3DLoop> internalLoops = pb.GetInternalEdge3DLoops();
-                if (internalLoops != null)
-                {
-                    foreach (BoundaryEdge3DLoop internalLoop in internalLoops)
-                    {
-                        List<BoundaryEdge3D> edge3Ds = internalLoop?.BoundaryEdge3Ds;
-                        if (edge3Ds == null || edge3Ds.Count == 0) continue;
-
-                        List<Point3d> pts = edge3Ds.ConvertAll(x => Geometry.Rhino.Convert.ToRhino(x.Curve3D.GetStart()));
-                        if (pts.Count == 0) continue;
-                        pts.Add(pts[0]);
-                        fp.WireLoops.Add(pts.ToArray());
-                    }
-                }
-
-                result.Faces.Add(fp);
+                    Brep = Geometry.Rhino.Convert.ToRhino_Brep(face3D)
+                });
             }
 
             Face3D face3D_Frame = aperture.GetFrameFace3D();
@@ -119,6 +86,128 @@ namespace SAM.Analytical.Grasshopper
             return result;
         }
 
+        private static long Combine(long hash, long value)
+        {
+            unchecked
+            {
+                return hash * 31 + value;
+            }
+        }
+
+        private static long CombineDouble(long hash, double value)
+        {
+            return Combine(hash, BitConverter.DoubleToInt64Bits(value));
+        }
+
+        private static long CombinePoint3D(long hash, Point3D point3D)
+        {
+            if (point3D == null)
+                return Combine(hash, long.MinValue);
+
+            hash = CombineDouble(hash, point3D.X);
+            hash = CombineDouble(hash, point3D.Y);
+            hash = CombineDouble(hash, point3D.Z);
+            return hash;
+        }
+
+        private static long CombineVector3D(long hash, Vector3D vector3D)
+        {
+            if (vector3D == null)
+                return Combine(hash, long.MaxValue);
+
+            hash = CombineDouble(hash, vector3D.X);
+            hash = CombineDouble(hash, vector3D.Y);
+            hash = CombineDouble(hash, vector3D.Z);
+            return hash;
+        }
+
+        private static long CombineGuid(long hash, Guid guid)
+        {
+            Span<byte> bytes = stackalloc byte[16];
+            guid.TryWriteBytes(bytes);
+            hash = Combine(hash, BinaryPrimitives.ReadInt64LittleEndian(bytes));
+            hash = Combine(hash, BinaryPrimitives.ReadInt64LittleEndian(bytes.Slice(8)));
+            return hash;
+        }
+
+        private static long CombinePlane(long hash, SAM.Geometry.Spatial.Plane plane)
+        {
+            if (plane == null)
+                return Combine(hash, 0);
+
+            hash = CombinePoint3D(hash, plane.Origin);
+            hash = CombineVector3D(hash, plane.Normal);
+            hash = CombineVector3D(hash, plane.AxisY);
+            return hash;
+        }
+
+        private static long CombineClosedPlanar3D(long hash, IClosedPlanar3D closedPlanar3D)
+        {
+            if (closedPlanar3D is ISegmentable3D segmentable3D)
+            {
+                List<Point3D> point3Ds = segmentable3D.GetPoints();
+                if (point3Ds == null)
+                    return Combine(hash, -1);
+
+                hash = Combine(hash, point3Ds.Count);
+                for (int i = 0; i < point3Ds.Count; i++)
+                    hash = CombinePoint3D(hash, point3Ds[i]);
+
+                return hash;
+            }
+
+            return Combine(hash, -2);
+        }
+
+        private static long CombineFace3D(long hash, Face3D face3D)
+        {
+            if (face3D == null)
+                return Combine(hash, 0);
+
+            hash = CombinePlane(hash, face3D.GetPlane());
+            hash = CombineClosedPlanar3D(hash, face3D.GetExternalEdge3D());
+
+            List<IClosedPlanar3D> internalEdge3Ds = face3D.GetInternalEdge3Ds();
+            hash = Combine(hash, internalEdge3Ds == null ? 0 : internalEdge3Ds.Count);
+            if (internalEdge3Ds != null)
+            {
+                for (int i = 0; i < internalEdge3Ds.Count; i++)
+                    hash = CombineClosedPlanar3D(hash, internalEdge3Ds[i]);
+            }
+
+            return hash;
+        }
+
+        /// <summary>
+        /// Deterministic, ordered geometry fingerprint used to detect in-place
+        /// mutation of the same Aperture reference that a reference check alone
+        /// would miss. Uses the same Combine design as the GooPanel fingerprint.
+        /// </summary>
+        private static long ComputeFingerprint(Aperture aperture)
+        {
+            long hash = 17;
+            if (aperture == null)
+                return hash;
+
+            hash = CombineGuid(hash, aperture.Guid);
+            hash = CombineGuid(hash, aperture.TypeGuid);
+            hash = Combine(hash, aperture.ApertureType.GetHashCode());
+
+            Face3D frameFace = aperture.GetFrameFace3D();
+            if (frameFace != null)
+                hash = CombineFace3D(hash, frameFace);
+
+            List<Face3D> paneFaces = aperture.GetPaneFace3Ds();
+            hash = Combine(hash, paneFaces == null ? 0 : paneFaces.Count);
+            if (paneFaces != null)
+            {
+                for (int i = 0; i < paneFaces.Count; i++)
+                    hash = CombineFace3D(hash, paneFaces[i]);
+            }
+
+            return hash;
+        }
+
         private PreviewSnapshot EnsurePreviewSnapshot()
         {
             Aperture aperture = Value;
@@ -129,7 +218,10 @@ namespace SAM.Analytical.Grasshopper
 
             PreviewSnapshot result = previewSnapshot;
             if (result != null && ReferenceEquals(result.Source, aperture) && result.UnitScale.Equals(unitScale))
-                return result;
+            {
+                if (result.Fingerprint == ComputeFingerprint(aperture))
+                    return result;
+            }
 
             result = BuildPreviewSnapshot(aperture, unitScale);
             previewSnapshot = result;
@@ -140,7 +232,10 @@ namespace SAM.Analytical.Grasshopper
         {
             get
             {
-                return EnsurePreviewSnapshot()?.ClippingBox ?? BoundingBox.Empty;
+                if (Value == null)
+                    return BoundingBox.Empty;
+
+                return Geometry.Rhino.Convert.ToRhino(Value.GetBoundingBox());
             }
         }
 
@@ -152,10 +247,6 @@ namespace SAM.Analytical.Grasshopper
         public void DrawViewportWires(GH_PreviewWireArgs args)
         {
             if (Value == null)
-                return;
-
-            PreviewSnapshot snapshot = EnsurePreviewSnapshot();
-            if (snapshot == null || snapshot.Faces == null)
                 return;
 
             System.Drawing.Color color_ExternalEdge = System.Drawing.Color.Empty;
@@ -173,27 +264,38 @@ namespace SAM.Analytical.Grasshopper
             if (color_InternalEdges == System.Drawing.Color.Empty)
                 color_InternalEdges = System.Drawing.Color.BlueViolet;
 
-            foreach (FacePart facePart in snapshot.Faces)
-            {
-                if (facePart.WireLoops == null) continue;
-
-                foreach (Point3d[] loop in facePart.WireLoops)
-                    args.Pipeline.DrawPolyline(new List<Point3d>(loop), loop == facePart.WireLoops[0] ? color_ExternalEdge : color_InternalEdges);
-            }
+            DrawViewportWires(args, color_ExternalEdge, color_InternalEdges);
         }
 
         public void DrawViewportWires(GH_PreviewWireArgs args, System.Drawing.Color color_ExternalEdge, System.Drawing.Color color_InternalEdges)
         {
-            PreviewSnapshot snapshot = EnsurePreviewSnapshot();
-            if (snapshot == null || snapshot.Faces == null)
-                return;
+            List<Face3D> face3Ds = new List<Face3D>();
 
-            foreach (FacePart facePart in snapshot.Faces)
+            Face3D face3D = Value?.GetFrameFace3D();
+            if (face3D != null)
             {
-                if (facePart.WireLoops == null) continue;
+                face3Ds.Add(face3D);
+            }
+            else
+            {
+                List<Face3D> face3Ds_Pane = Value?.GetPaneFace3Ds();
+                if (face3Ds_Pane == null)
+                {
+                    return;
+                }
 
-                foreach (Point3d[] loop in facePart.WireLoops)
-                    args.Pipeline.DrawPolyline(new List<Point3d>(loop), loop == facePart.WireLoops[0] ? color_ExternalEdge : color_InternalEdges);
+                face3Ds.AddRange(face3Ds_Pane);
+            }
+
+            if (face3Ds == null || face3Ds.Count == 0)
+            {
+                return;
+            }
+
+            foreach (Face3D face3D_Temp in face3Ds)
+            {
+                GooPlanarBoundary3D gooPlanarBoundary3D = new GooPlanarBoundary3D(new PlanarBoundary3D(face3D_Temp));
+                gooPlanarBoundary3D.DrawViewportWires(args, color_ExternalEdge, color_InternalEdges);
             }
         }
 
