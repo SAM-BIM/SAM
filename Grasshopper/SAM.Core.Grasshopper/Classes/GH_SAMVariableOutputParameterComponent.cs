@@ -22,8 +22,8 @@ namespace SAM.Core.Grasshopper
         public override bool Read(GH_IReader reader)
         {
             bool result = base.Read(reader);
-            this.ReadLegacyParameterData(reader, Inputs, Outputs);
-            return result;
+            bool legacyParameterDataRead = this.ReadLegacyParameterData(reader, Inputs, Outputs);
+            return result || legacyParameterDataRead;
         }
 
         public bool CanInsertParameter(GH_ParameterSide side, int index)
