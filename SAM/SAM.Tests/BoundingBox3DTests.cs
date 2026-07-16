@@ -40,9 +40,9 @@ namespace SAM.Tests
             Assert.False(new Vector3D(0, 0, double.NaN).IsValid());
 
             // Point3D NaN checks
-            Assert.False(Query.IsValid(new Point3D(double.NaN, 0, 0)));
-            Assert.False(Query.IsValid(new Point3D(0, double.NaN, 0)));
-            Assert.False(Query.IsValid(new Point3D(0, 0, double.NaN)));
+            Assert.False(new Point3D(double.NaN, 0, 0).IsValid());
+            Assert.False(new Point3D(0, double.NaN, 0).IsValid());
+            Assert.False(new Point3D(0, 0, double.NaN).IsValid());
 
             // BoundingBox3D NaN checks
             BoundingBox3D validBox = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(1, 1, 1));
@@ -101,12 +101,13 @@ namespace SAM.Tests
             double sin = System.Math.Sin(angle);
 
             // Matrix4D setup for 45 deg Z rotation
-            Matrix4D rotation = new Matrix4D(
-                cos, -sin, 0, 0,
-                sin, cos, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 1
-            );
+            Matrix4D rotation = new Matrix4D();
+            rotation[0, 0] = cos;
+            rotation[0, 1] = -sin;
+            rotation[1, 0] = sin;
+            rotation[1, 1] = cos;
+            rotation[2, 2] = 1;
+            rotation[3, 3] = 1;
 
             BoundingBox3D transformedBox = bbox.Transform(rotation);
 

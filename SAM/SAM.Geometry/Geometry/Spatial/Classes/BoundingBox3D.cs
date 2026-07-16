@@ -171,7 +171,11 @@ namespace SAM.Geometry.Spatial
                     ISAMGeometry3D geometry3D = planarIntersectionResult.Geometry3D;
                     if (geometry3D is Point3D)
                     {
-                        if (On((Point3D)geometry3D, tolerance))
+                        // The intersection point lies on the (infinite) face plane; it is on the
+                        // box surface when it is also within the inclusive box bounds. On(...)
+                        // cannot be used here as it only tests the 12 box edges, missing
+                        // segments crossing through a face interior.
+                        if (Inside((Point3D)geometry3D, true, tolerance))
                         {
                             return true;
                         }
@@ -179,7 +183,7 @@ namespace SAM.Geometry.Spatial
                     else if (geometry3D is Segment3D)
                     {
                         Segment3D segment3D_Temp = (Segment3D)geometry3D;
-                        if (On(point3D_1, tolerance) || On(point3D_2, tolerance))
+                        if (Inside(segment3D_Temp[0], true, tolerance) || Inside(segment3D_Temp[1], true, tolerance))
                         {
                             return true;
                         }
