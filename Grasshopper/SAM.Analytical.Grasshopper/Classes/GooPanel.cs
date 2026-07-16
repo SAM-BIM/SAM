@@ -216,6 +216,25 @@ namespace SAM.Analytical.Grasshopper
                         hash = CombineGuid(hash, aperture.Guid);
                         hash = CombineGuid(hash, aperture.TypeGuid);
                         hash = CombineFace3D(hash, aperture.GetFace3D());
+
+                        // Wire geometry is drawn from GetFrameFace3D/GetPaneFace3Ds,
+                        // not the outer GetFace3D. Hash the drawn faces so construction
+                        // edits (frame width, layers) with the same TypeGuid invalidate.
+                        Face3D frame3D = aperture.GetFrameFace3D();
+                        if (frame3D != null)
+                        {
+                            hash = CombineFace3D(hash, frame3D);
+                        }
+                        else
+                        {
+                            List<Face3D> pane3Ds = aperture.GetPaneFace3Ds();
+                            hash = Combine(hash, pane3Ds == null ? 0 : pane3Ds.Count);
+                            if (pane3Ds != null)
+                            {
+                                for (int iPane = 0; iPane < pane3Ds.Count; iPane++)
+                                    hash = CombineFace3D(hash, pane3Ds[iPane]);
+                            }
+                        }
                     }
                 }
             }
