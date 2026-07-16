@@ -10,37 +10,43 @@ using SAM.Analytical.Grasshopper.Properties;
 using SAM.Core.Grasshopper;
 using SAM.Geometry.Spatial;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace SAM.Analytical.Grasshopper
 {
     public class GooAdjacencyCluster : GooJSAMObject<AdjacencyCluster>, IGH_PreviewData, IGH_BakeAwareData
     {
-        private sealed class PreviewSnapshot
+        /// <summary>
+        /// Mesh-only preview cache. Wires and clipping bounds stay live; only the
+        /// expensive SAM-to-Rhino Brep conversion is cached. The cache is validated
+        /// against a deterministic logical fingerprint of the cluster on every
+        /// DrawViewportMeshes call, so in-place mutation of shared (shallow-copied)
+        /// objects can never replay stale geometry. Never serialized.
+        /// </summary>
+        private sealed class MeshPreviewSnapshot
         {
-            public AdjacencyCluster Source;
+            public long Fingerprint;
             public double UnitScale;
-            public BoundingBox ClippingBox;
-            public List<Point3d> SpacePoints;
-            public List<PanelsWire> PanelWires;
-            public List<PanelMesh> PanelMeshes;
+            public List<MeshEntry> Entries;
         }
 
-        private struct PanelsWire
+        /// <summary>
+        /// One drawable panel. Keyed by stable identity (TypeName, Guid) instead of
+        /// list position so that insertion, removal, reordering or same-Guid
+        /// replacement can never associate a panel with another panel's geometry.
+        /// </summary>
+        private struct MeshEntry
         {
-            public List<Point3d[]> Loops;
-        }
-
-        private struct PanelMesh
-        {
-            public Face3D Face3D;
+            public string TypeName;
+            public Guid Guid;
             public Brep Brep;
+            public BoundingBox3D BoundingBox;
         }
 
-        private PreviewSnapshot previewSnapshot;
+        private MeshPreviewSnapshot meshPreviewSnapshot;
 
         public GooAdjacencyCluster()
             : base()
@@ -52,102 +58,238 @@ namespace SAM.Analytical.Grasshopper
         {
         }
 
-        private static PreviewSnapshot BuildPreviewSnapshot(AdjacencyCluster cluster, double unitScale)
+        private static long Combine(long hash, long value)
         {
-            PreviewSnapshot result = new PreviewSnapshot()
+            unchecked
             {
-                Source = cluster,
-                UnitScale = unitScale,
-                SpacePoints = new List<Point3d>(),
-                PanelWires = new List<PanelsWire>(),
-                PanelMeshes = new List<PanelMesh>()
-            };
+                return hash * 31 + value;
+            }
+        }
 
-            List<BoundingBox3D> boundingBox3Ds = new List<BoundingBox3D>();
+        private static long CombineDouble(long hash, double value)
+        {
+            return Combine(hash, BitConverter.DoubleToInt64Bits(value));
+        }
 
-            IEnumerable<IPanel> panels = cluster.GetObjects<IPanel>();
-            List<ISpace> spaces = cluster.GetObjects<ISpace>();
+        private static long CombineGuid(long hash, Guid guid)
+        {
+            Span<byte> bytes = stackalloc byte[16];
+            guid.TryWriteBytes(bytes);
+            hash = Combine(hash, BinaryPrimitives.ReadInt64LittleEndian(bytes));
+            hash = Combine(hash, BinaryPrimitives.ReadInt64LittleEndian(bytes.Slice(8)));
+            return hash;
+        }
 
-            if (spaces != null)
+        private static long CombineString(long hash, string value)
+        {
+            if (value == null)
+                return Combine(hash, long.MinValue);
+
+            hash = Combine(hash, value.Length);
+            for (int i = 0; i < value.Length; i++)
+                hash = Combine(hash, value[i]);
+
+            return hash;
+        }
+
+        private static long CombinePoint3D(long hash, Point3D point3D)
+        {
+            if (point3D == null)
+                return Combine(hash, long.MinValue);
+
+            hash = CombineDouble(hash, point3D.X);
+            hash = CombineDouble(hash, point3D.Y);
+            hash = CombineDouble(hash, point3D.Z);
+            return hash;
+        }
+
+        private static long CombineVector3D(long hash, Vector3D vector3D)
+        {
+            if (vector3D == null)
+                return Combine(hash, long.MaxValue);
+
+            hash = CombineDouble(hash, vector3D.X);
+            hash = CombineDouble(hash, vector3D.Y);
+            hash = CombineDouble(hash, vector3D.Z);
+            return hash;
+        }
+
+        private static long CombinePlane(long hash, SAM.Geometry.Spatial.Plane plane)
+        {
+            if (plane == null)
+                return Combine(hash, 0);
+
+            hash = CombinePoint3D(hash, plane.Origin);
+            hash = CombineVector3D(hash, plane.Normal);
+            hash = CombineVector3D(hash, plane.AxisY);
+            return hash;
+        }
+
+        private static long CombineClosedPlanar3D(long hash, IClosedPlanar3D closedPlanar3D)
+        {
+            if (closedPlanar3D is ISegmentable3D segmentable3D)
             {
-                foreach (ISpace space in spaces)
-                {
-                    Point3D location = space?.Location;
-                    if (location == null) continue;
+                List<Point3D> point3Ds = segmentable3D.GetPoints();
+                if (point3Ds == null)
+                    return Combine(hash, -1);
 
-                    boundingBox3Ds.Add(location.GetBoundingBox(1));
-                    Point3d? pt = Geometry.Rhino.Convert.ToRhino(location);
-                    if (pt.HasValue)
-                        result.SpacePoints.Add(pt.Value);
-                }
+                hash = Combine(hash, point3Ds.Count);
+                for (int i = 0; i < point3Ds.Count; i++)
+                    hash = CombinePoint3D(hash, point3Ds[i]);
+
+                return hash;
             }
 
+            return Combine(hash, -2);
+        }
+
+        private static long CombineFace3D(long hash, Face3D face3D)
+        {
+            if (face3D == null)
+                return Combine(hash, 0);
+
+            hash = CombinePlane(hash, face3D.GetPlane());
+            hash = CombineClosedPlanar3D(hash, face3D.GetExternalEdge3D());
+
+            List<IClosedPlanar3D> internalEdge3Ds = face3D.GetInternalEdge3Ds();
+            hash = Combine(hash, internalEdge3Ds == null ? 0 : internalEdge3Ds.Count);
+            if (internalEdge3Ds != null)
+            {
+                for (int i = 0; i < internalEdge3Ds.Count; i++)
+                    hash = CombineClosedPlanar3D(hash, internalEdge3Ds[i]);
+            }
+
+            return hash;
+        }
+
+        /// <summary>
+        /// Deterministic, ordered logical fingerprint of everything that can change
+        /// the cached mesh set or geometry: ordered panel identity (runtime type +
+        /// Guid), construction identity (TypeGuid), panel type, complete panel
+        /// geometry (plane orientation, external and internal edges), aperture
+        /// identity, construction and geometry (frame/pane faces derive
+        /// deterministically from the fingerprinted base face, ApertureType and
+        /// TypeGuid), panel-space relationships (drawability driver) and space
+        /// identity. Follows the GooPanel/GooAperture Combine design. Valid across
+        /// different shallow-copy wrappers containing the same logical objects.
+        /// </summary>
+        private static long ComputeFingerprint(AdjacencyCluster adjacencyCluster)
+        {
+            long hash = 17;
+            if (adjacencyCluster == null)
+                return hash;
+
+            List<IPanel> panels = adjacencyCluster.GetObjects<IPanel>();
+            hash = Combine(hash, panels == null ? 0 : panels.Count);
             if (panels != null)
             {
                 foreach (IPanel panel in panels)
                 {
-                    Face3D face3D = panel.Face3D;
-                    if (face3D == null) continue;
-
-                    BoundingBox3D bb = face3D.GetBoundingBox();
-                    if (bb != null) boundingBox3Ds.Add(bb);
-
-                    PanelsWire pw = new PanelsWire();
-                    pw.Loops = new List<Point3d[]>();
-
-                    IClosedPlanar3D externalEdge3D = face3D.GetExternalEdge3D();
-                    if (externalEdge3D is ISegmentable3D segExt)
+                    if (panel == null)
                     {
-                        List<Point3d> pts = segExt.GetPoints().ConvertAll(x => Geometry.Rhino.Convert.ToRhino(x));
-                        if (pts.Count != 0) { pts.Add(pts[0]); pw.Loops.Add(pts.ToArray()); }
+                        hash = Combine(hash, -3);
+                        continue;
                     }
 
-                    IEnumerable<IClosedPlanar3D> internalEdge3Ds = face3D.GetInternalEdge3Ds();
-                    if (internalEdge3Ds != null)
+                    hash = CombineString(hash, panel.GetType().FullName);
+                    hash = CombineGuid(hash, panel is Core.IGuidObject guidObject ? guidObject.Guid : Guid.Empty);
+                    hash = CombineFace3D(hash, panel.Face3D);
+
+                    if (panel is Panel panel_Cast)
                     {
-                        foreach (IClosedPlanar3D internalEdge3D in internalEdge3Ds)
+                        hash = CombineGuid(hash, panel_Cast.TypeGuid);
+                        hash = Combine(hash, (long)panel_Cast.PanelType);
+
+                        List<Aperture> apertures = panel_Cast.Apertures;
+                        hash = Combine(hash, apertures == null ? 0 : apertures.Count);
+                        if (apertures != null)
                         {
-                            if (internalEdge3D is ISegmentable3D segInt)
+                            foreach (Aperture aperture in apertures)
                             {
-                                List<Point3d> pts = segInt.GetPoints().ConvertAll(x => Geometry.Rhino.Convert.ToRhino(x));
-                                if (pts.Count != 0) { pts.Add(pts[0]); pw.Loops.Add(pts.ToArray()); }
+                                if (aperture == null)
+                                {
+                                    hash = Combine(hash, -4);
+                                    continue;
+                                }
+
+                                hash = CombineGuid(hash, aperture.Guid);
+                                hash = CombineGuid(hash, aperture.TypeGuid);
+                                hash = Combine(hash, (long)aperture.ApertureType);
+                                hash = CombineFace3D(hash, aperture.GetFace3D());
                             }
                         }
                     }
 
-                    result.PanelWires.Add(pw);
-
-                    result.PanelMeshes.Add(new PanelMesh()
+                    List<ISpace> spaces = adjacencyCluster.GetRelatedObjects<ISpace>(panel);
+                    hash = Combine(hash, spaces == null ? 0 : spaces.Count);
+                    if (spaces != null)
                     {
-                        Face3D = face3D,
-                        Brep = Geometry.Rhino.Convert.ToRhino_Brep(face3D)
-                    });
+                        foreach (ISpace space in spaces)
+                            hash = CombineGuid(hash, space is Core.IGuidObject guidObject_Space ? guidObject_Space.Guid : Guid.Empty);
+                    }
                 }
             }
 
-            boundingBox3Ds.RemoveAll(x => x == null);
-            if (boundingBox3Ds.Count != 0)
-                result.ClippingBox = Geometry.Rhino.Convert.ToRhino(new BoundingBox3D(boundingBox3Ds));
-            else
-                result.ClippingBox = BoundingBox.Empty;
+            List<ISpace> spaces_All = adjacencyCluster.GetObjects<ISpace>();
+            hash = Combine(hash, spaces_All == null ? 0 : spaces_All.Count);
+            if (spaces_All != null)
+            {
+                foreach (ISpace space in spaces_All)
+                    hash = CombineGuid(hash, space is Core.IGuidObject guidObject_Space ? guidObject_Space.Guid : Guid.Empty);
+            }
 
-            return result;
+            return hash;
         }
 
-        private PreviewSnapshot EnsurePreviewSnapshot()
+        private static MeshPreviewSnapshot BuildMeshPreviewSnapshot(AdjacencyCluster adjacencyCluster, long fingerprint, double unitScale)
         {
-            AdjacencyCluster cluster = Value;
-            if (cluster == null)
-                return null;
+            MeshPreviewSnapshot result = new MeshPreviewSnapshot()
+            {
+                Fingerprint = fingerprint,
+                UnitScale = unitScale,
+                Entries = new List<MeshEntry>()
+            };
 
-            double unitScale = Geometry.Rhino.Query.UnitScale();
-
-            PreviewSnapshot result = previewSnapshot;
-            if (result != null && ReferenceEquals(result.Source, cluster) && result.UnitScale.Equals(unitScale))
+            List<IPanel> panels = adjacencyCluster.GetObjects<IPanel>();
+            if (panels == null)
+            {
                 return result;
+            }
 
-            result = BuildPreviewSnapshot(cluster, unitScale);
-            previewSnapshot = result;
+            foreach (IPanel panel in panels)
+            {
+                if (panel == null)
+                {
+                    continue;
+                }
+
+                List<ISpace> spaces = adjacencyCluster.GetRelatedObjects<ISpace>(panel);
+                if (spaces != null && spaces.Count > 1)
+                {
+                    continue;
+                }
+
+                Face3D face3D = panel.Face3D;
+                if (face3D == null)
+                {
+                    continue;
+                }
+
+                Brep brep = Geometry.Rhino.Convert.ToRhino_Brep(face3D);
+                if (brep == null)
+                {
+                    continue;
+                }
+
+                result.Entries.Add(new MeshEntry()
+                {
+                    TypeName = panel.GetType().FullName,
+                    Guid = panel is Core.IGuidObject guidObject ? guidObject.Guid : Guid.Empty,
+                    Brep = brep,
+                    BoundingBox = face3D.GetBoundingBox()
+                });
+            }
+
             return result;
         }
 
@@ -155,7 +297,61 @@ namespace SAM.Analytical.Grasshopper
         {
             get
             {
-                return EnsurePreviewSnapshot()?.ClippingBox ?? BoundingBox.Empty;
+                if (Value == null)
+                {
+                    return BoundingBox.Empty;
+                }
+
+                List<BoundingBox3D> boundingBox3Ds = new List<BoundingBox3D>();
+
+                IEnumerable<IPanel> panels = Value.GetObjects<IPanel>();
+                if (panels != null)
+                {
+                    foreach (IPanel panel in panels)
+                    {
+                        BoundingBox3D boundingBox3D = panel?.Face3D?.GetBoundingBox();
+                        if (boundingBox3D == null)
+                        {
+                            continue;
+                        }
+
+                        boundingBox3Ds.Add(boundingBox3D);
+                    }
+                }
+
+                IEnumerable<ISpace> spaces = Value.GetObjects<ISpace>();
+                if (spaces != null)
+                {
+                    foreach (ISpace space in spaces)
+                    {
+                        if (space == null)
+                        {
+                            continue;
+                        }
+
+                        Point3D location = space.Location;
+                        if (location == null)
+                        {
+                            continue;
+                        }
+
+                        boundingBox3Ds.Add(location.GetBoundingBox(1));
+                    }
+                }
+
+                if (boundingBox3Ds == null)
+                {
+                    return BoundingBox.Empty;
+                }
+
+                boundingBox3Ds.RemoveAll(x => x == null);
+
+                if (boundingBox3Ds.Count == 0)
+                {
+                    return BoundingBox.Empty;
+                }
+
+                return Geometry.Rhino.Convert.ToRhino(new BoundingBox3D(boundingBox3Ds));
             }
         }
 
@@ -166,11 +362,26 @@ namespace SAM.Analytical.Grasshopper
 
         public void DrawViewportWires(GH_PreviewWireArgs args)
         {
-            PreviewSnapshot snapshot = EnsurePreviewSnapshot();
-            if (snapshot == null) return;
+            List<ISpace> spaces = Value?.GetObjects<ISpace>();
+            if (spaces != null)
+            {
+                foreach (ISpace space in spaces)
+                {
+                    Point3d? point3d = Geometry.Rhino.Convert.ToRhino(space?.Location);
+                    if (point3d == null || !point3d.HasValue)
+                    {
+                        continue;
+                    }
 
-            foreach (Point3d pt in snapshot.SpacePoints)
-                args.Pipeline.DrawPoint(pt);
+                    args.Pipeline.DrawPoint(point3d.Value);
+                }
+            }
+
+            List<IPanel> panels = Value?.GetObjects<IPanel>();
+            if (panels == null)
+            {
+                return;
+            }
 
             BoundingBox3D boundingBox3D = null;
             if (args.Viewport.IsValidFrustum)
@@ -179,23 +390,17 @@ namespace SAM.Analytical.Grasshopper
                 boundingBox3D = new BoundingBox3D(new Point3D[] { Geometry.Rhino.Convert.ToSAM(boundingBox.Min), Geometry.Rhino.Convert.ToSAM(boundingBox.Max) });
             }
 
-            List<IPanel> panels = Value.GetObjects<IPanel>();
-            if (panels == null || snapshot.PanelWires == null) return;
-
-            int wireIndex = 0;
             foreach (IPanel panel in panels)
             {
                 List<ISpace> spaces_Panel = Value.GetRelatedObjects<ISpace>(panel);
                 if (spaces_Panel != null && spaces_Panel.Count > 1)
                 {
-                    wireIndex++;
                     continue;
                 }
 
                 Face3D face3D = panel.Face3D;
                 if (face3D == null)
                 {
-                    wireIndex++;
                     continue;
                 }
 
@@ -206,30 +411,70 @@ namespace SAM.Analytical.Grasshopper
                     {
                         if (!boundingBox3D.Inside(boundingBox3D_Temp) && !boundingBox3D.Intersect(boundingBox3D_Temp))
                         {
-                            wireIndex++;
                             continue;
                         }
                     }
                 }
 
-                if (wireIndex < snapshot.PanelWires.Count)
+                Dictionary<IClosedPlanar3D, System.Drawing.Color> dictionary = new Dictionary<IClosedPlanar3D, System.Drawing.Color>();
+
+                //Assign Color for Edges
+                dictionary[face3D.GetExternalEdge3D()] = System.Drawing.Color.DarkRed;
+
+                IEnumerable<IClosedPlanar3D> internalEdge3Ds = face3D.GetInternalEdge3Ds();
+                if (internalEdge3Ds != null)
                 {
-                    PanelsWire pw = snapshot.PanelWires[wireIndex];
-                    if (pw.Loops != null)
+                    foreach (IClosedPlanar3D internalEdge3D in internalEdge3Ds)
                     {
-                        foreach (Point3d[] loop in pw.Loops)
-                            args.Pipeline.DrawPolyline(new List<Point3d>(loop), loop == pw.Loops[0] ? System.Drawing.Color.DarkRed : System.Drawing.Color.BlueViolet);
+                        dictionary[internalEdge3D] = System.Drawing.Color.BlueViolet;
                     }
                 }
 
-                wireIndex++;
+                foreach (KeyValuePair<IClosedPlanar3D, System.Drawing.Color> keyValuePair in dictionary)
+                {
+                    ISegmentable3D segmentable3D = keyValuePair.Key as ISegmentable3D;
+                    if (segmentable3D == null)
+                    {
+                        continue;
+                    }
+
+                    List<Point3d> point3ds = segmentable3D.GetPoints().ConvertAll(x => Geometry.Rhino.Convert.ToRhino(x));
+                    if (point3ds.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    point3ds.Add(point3ds[0]);
+
+                    args.Pipeline.DrawPolyline(point3ds, keyValuePair.Value);
+                }
             }
+        }
+
+        private MeshPreviewSnapshot EnsureMeshPreviewSnapshot(AdjacencyCluster adjacencyCluster)
+        {
+            long fingerprint = ComputeFingerprint(adjacencyCluster);
+            double unitScale = Geometry.Rhino.Query.UnitScale();
+
+            MeshPreviewSnapshot snapshot = meshPreviewSnapshot;
+            if (snapshot == null || snapshot.Fingerprint != fingerprint || !snapshot.UnitScale.Equals(unitScale))
+            {
+                snapshot = BuildMeshPreviewSnapshot(adjacencyCluster, fingerprint, unitScale);
+                meshPreviewSnapshot = snapshot;
+            }
+
+            return snapshot;
         }
 
         public void DrawViewportMeshes(GH_PreviewMeshArgs args)
         {
-            PreviewSnapshot snapshot = EnsurePreviewSnapshot();
-            if (snapshot == null) return;
+            AdjacencyCluster adjacencyCluster = Value;
+            if (adjacencyCluster == null)
+            {
+                return;
+            }
+
+            MeshPreviewSnapshot snapshot = EnsureMeshPreviewSnapshot(adjacencyCluster);
 
             BoundingBox3D boundingBox3D = null;
             if (args.Viewport.IsValidFrustum)
@@ -238,45 +483,22 @@ namespace SAM.Analytical.Grasshopper
                 boundingBox3D = new BoundingBox3D(new Point3D[] { Geometry.Rhino.Convert.ToSAM(boundingBox.Min), Geometry.Rhino.Convert.ToSAM(boundingBox.Max) });
             }
 
-            List<IPanel> panels = Value.GetObjects<IPanel>();
-            if (panels == null || snapshot.PanelMeshes == null) return;
-
-            int meshIndex = 0;
-            foreach (IPanel panel in panels)
+            foreach (MeshEntry meshEntry in snapshot.Entries)
             {
-                List<ISpace> spaces = Value.GetRelatedObjects<ISpace>(panel);
-                if (spaces != null && spaces.Count > 1)
+                if (meshEntry.Brep == null)
                 {
-                    meshIndex++;
                     continue;
                 }
 
-                if (meshIndex >= snapshot.PanelMeshes.Count) break;
-
-                PanelMesh pm = snapshot.PanelMeshes[meshIndex];
-                if (pm.Face3D == null)
+                if (boundingBox3D != null && meshEntry.BoundingBox != null)
                 {
-                    meshIndex++;
-                    continue;
-                }
-
-                if (boundingBox3D != null)
-                {
-                    BoundingBox3D boundingBox3D_Temp = pm.Face3D.GetBoundingBox();
-                    if (boundingBox3D_Temp != null)
+                    if (!boundingBox3D.Inside(meshEntry.BoundingBox) && !boundingBox3D.Intersect(meshEntry.BoundingBox))
                     {
-                        if (!boundingBox3D.Inside(boundingBox3D_Temp) && !boundingBox3D.Intersect(boundingBox3D_Temp))
-                        {
-                            meshIndex++;
-                            continue;
-                        }
+                        continue;
                     }
                 }
 
-                if (pm.Brep != null)
-                    args.Pipeline.DrawBrepShaded(pm.Brep, args.Material);
-
-                meshIndex++;
+                args.Pipeline.DrawBrepShaded(meshEntry.Brep, args.Material);
             }
         }
 
@@ -307,7 +529,7 @@ namespace SAM.Analytical.Grasshopper
                 return false;
             }
 
-            Brep result = Brep.MergeBreps(breps, Core.Tolerance.MacroDistance);
+            Brep result = Brep.MergeBreps(breps, Core.Tolerance.MacroDistance); //Tolerance has been changed from Core.Tolerance.Distance
             if (result == null)
             {
                 return false;
@@ -355,6 +577,20 @@ namespace SAM.Analytical.Grasshopper
                 target = (Y)(object)Value.ToGrasshopper_Mesh();
                 return true;
             }
+
+            //if (typeof(Y).IsAssignableFrom(typeof(GH_Brep)))
+            //{
+            //    List<Geometry.Spatial.Shell> shells = Value.GetShells();
+            //    if(shells != null)
+            //    {
+            //        Brep brep = Brep.MergeBreps(shells.ConvertAll(x => x.ToRhino()), Core.Tolerance.MacroDistance);
+            //        if(brep != null)
+            //        {
+            //            target = (Y)(object)new GH_Brep(brep);
+            //            return true;
+            //        }
+            //    }
+            //}
 
             return base.CastTo(ref target);
         }

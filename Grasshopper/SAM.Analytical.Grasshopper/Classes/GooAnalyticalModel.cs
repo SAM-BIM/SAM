@@ -29,6 +29,15 @@ namespace SAM.Analytical.Grasshopper
         {
         }
 
+        /// <summary>
+        /// Persistent preview delegate. AnalyticalModel.AdjacencyCluster returns a
+        /// new shallow-copy wrapper on every access, so reference equality can never
+        /// provide reuse; instead the delegate is kept for the lifetime of this goo
+        /// and its Value is refreshed with the latest wrapper before every preview
+        /// operation. Clipping bounds and wires are always live; the delegate's mesh
+        /// cache survives wrapper replacement because it is validated by logical
+        /// fingerprint, not by wrapper reference.
+        /// </summary>
         private GooAdjacencyCluster EnsureDelegate()
         {
             AdjacencyCluster adjacencyCluster = Value?.AdjacencyCluster;
@@ -36,11 +45,16 @@ namespace SAM.Analytical.Grasshopper
                 return null;
 
             GooAdjacencyCluster result = previewDelegate;
-            if (result != null && ReferenceEquals(result.Value, adjacencyCluster))
-                return result;
+            if (result == null)
+            {
+                result = new GooAdjacencyCluster(adjacencyCluster);
+                previewDelegate = result;
+            }
+            else
+            {
+                result.Value = adjacencyCluster;
+            }
 
-            result = new GooAdjacencyCluster(adjacencyCluster);
-            previewDelegate = result;
             return result;
         }
 
