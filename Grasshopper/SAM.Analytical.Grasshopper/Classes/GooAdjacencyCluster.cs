@@ -19,6 +19,29 @@ namespace SAM.Analytical.Grasshopper
 {
     public class GooAdjacencyCluster : GooJSAMObject<AdjacencyCluster>, IGH_PreviewData, IGH_BakeAwareData
     {
+        private sealed class PreviewSnapshot
+        {
+            public AdjacencyCluster Source;
+            public double UnitScale;
+            public BoundingBox ClippingBox;
+            public List<Point3d> SpacePoints;
+            public List<PanelsWire> PanelWires;
+            public List<PanelMesh> PanelMeshes;
+        }
+
+        private struct PanelsWire
+        {
+            public List<Point3d[]> Loops;
+        }
+
+        private struct PanelMesh
+        {
+            public Face3D Face3D;
+            public Brep Brep;
+        }
+
+        private PreviewSnapshot previewSnapshot;
+
         public GooAdjacencyCluster()
             : base()
         {
@@ -29,65 +52,110 @@ namespace SAM.Analytical.Grasshopper
         {
         }
 
+        private static PreviewSnapshot BuildPreviewSnapshot(AdjacencyCluster cluster, double unitScale)
+        {
+            PreviewSnapshot result = new PreviewSnapshot()
+            {
+                Source = cluster,
+                UnitScale = unitScale,
+                SpacePoints = new List<Point3d>(),
+                PanelWires = new List<PanelsWire>(),
+                PanelMeshes = new List<PanelMesh>()
+            };
+
+            List<BoundingBox3D> boundingBox3Ds = new List<BoundingBox3D>();
+
+            IEnumerable<IPanel> panels = cluster.GetObjects<IPanel>();
+            List<ISpace> spaces = cluster.GetObjects<ISpace>();
+
+            if (spaces != null)
+            {
+                foreach (ISpace space in spaces)
+                {
+                    Point3D location = space?.Location;
+                    if (location == null) continue;
+
+                    boundingBox3Ds.Add(location.GetBoundingBox(1));
+                    Point3d? pt = Geometry.Rhino.Convert.ToRhino(location);
+                    if (pt.HasValue)
+                        result.SpacePoints.Add(pt.Value);
+                }
+            }
+
+            if (panels != null)
+            {
+                foreach (IPanel panel in panels)
+                {
+                    Face3D face3D = panel.Face3D;
+                    if (face3D == null) continue;
+
+                    BoundingBox3D bb = face3D.GetBoundingBox();
+                    if (bb != null) boundingBox3Ds.Add(bb);
+
+                    PanelsWire pw = new PanelsWire();
+                    pw.Loops = new List<Point3d[]>();
+
+                    IClosedPlanar3D externalEdge3D = face3D.GetExternalEdge3D();
+                    if (externalEdge3D is ISegmentable3D segExt)
+                    {
+                        List<Point3d> pts = segExt.GetPoints().ConvertAll(x => Geometry.Rhino.Convert.ToRhino(x));
+                        if (pts.Count != 0) { pts.Add(pts[0]); pw.Loops.Add(pts.ToArray()); }
+                    }
+
+                    IEnumerable<IClosedPlanar3D> internalEdge3Ds = face3D.GetInternalEdge3Ds();
+                    if (internalEdge3Ds != null)
+                    {
+                        foreach (IClosedPlanar3D internalEdge3D in internalEdge3Ds)
+                        {
+                            if (internalEdge3D is ISegmentable3D segInt)
+                            {
+                                List<Point3d> pts = segInt.GetPoints().ConvertAll(x => Geometry.Rhino.Convert.ToRhino(x));
+                                if (pts.Count != 0) { pts.Add(pts[0]); pw.Loops.Add(pts.ToArray()); }
+                            }
+                        }
+                    }
+
+                    result.PanelWires.Add(pw);
+
+                    result.PanelMeshes.Add(new PanelMesh()
+                    {
+                        Face3D = face3D,
+                        Brep = Geometry.Rhino.Convert.ToRhino_Brep(face3D)
+                    });
+                }
+            }
+
+            boundingBox3Ds.RemoveAll(x => x == null);
+            if (boundingBox3Ds.Count != 0)
+                result.ClippingBox = Geometry.Rhino.Convert.ToRhino(new BoundingBox3D(boundingBox3Ds));
+            else
+                result.ClippingBox = BoundingBox.Empty;
+
+            return result;
+        }
+
+        private PreviewSnapshot EnsurePreviewSnapshot()
+        {
+            AdjacencyCluster cluster = Value;
+            if (cluster == null)
+                return null;
+
+            double unitScale = Geometry.Rhino.Query.UnitScale();
+
+            PreviewSnapshot result = previewSnapshot;
+            if (result != null && ReferenceEquals(result.Source, cluster) && result.UnitScale.Equals(unitScale))
+                return result;
+
+            result = BuildPreviewSnapshot(cluster, unitScale);
+            previewSnapshot = result;
+            return result;
+        }
+
         public BoundingBox ClippingBox
         {
             get
             {
-                if (Value == null)
-                {
-                    return BoundingBox.Empty;
-                }
-
-                List<BoundingBox3D> boundingBox3Ds = new List<BoundingBox3D>();
-
-                IEnumerable<IPanel> panels = Value.GetObjects<IPanel>();
-                if (panels != null)
-                {
-                    foreach (IPanel panel in panels)
-                    {
-                        BoundingBox3D boundingBox3D = panel?.Face3D?.GetBoundingBox();
-                        if (boundingBox3D == null)
-                        {
-                            continue;
-                        }
-
-                        boundingBox3Ds.Add(boundingBox3D);
-                    }
-                }
-
-                IEnumerable<ISpace> spaces = Value.GetObjects<ISpace>();
-                if (spaces != null)
-                {
-                    foreach (ISpace space in spaces)
-                    {
-                        if (space == null)
-                        {
-                            continue;
-                        }
-
-                        Point3D location = space.Location;
-                        if (location == null)
-                        {
-                            continue;
-                        }
-
-                        boundingBox3Ds.Add(location.GetBoundingBox(1));
-                    }
-                }
-
-                if (boundingBox3Ds == null)
-                {
-                    return BoundingBox.Empty;
-                }
-
-                boundingBox3Ds.RemoveAll(x => x == null);
-
-                if (boundingBox3Ds.Count == 0)
-                {
-                    return BoundingBox.Empty;
-                }
-
-                return Geometry.Rhino.Convert.ToRhino(new BoundingBox3D(boundingBox3Ds));
+                return EnsurePreviewSnapshot()?.ClippingBox ?? BoundingBox.Empty;
             }
         }
 
@@ -98,26 +166,11 @@ namespace SAM.Analytical.Grasshopper
 
         public void DrawViewportWires(GH_PreviewWireArgs args)
         {
-            List<ISpace> spaces = Value?.GetObjects<ISpace>();
-            if (spaces != null)
-            {
-                foreach (ISpace space in spaces)
-                {
-                    Point3d? point3d = Geometry.Rhino.Convert.ToRhino(space?.Location);
-                    if (point3d == null || !point3d.HasValue)
-                    {
-                        continue;
-                    }
+            PreviewSnapshot snapshot = EnsurePreviewSnapshot();
+            if (snapshot == null) return;
 
-                    args.Pipeline.DrawPoint(point3d.Value);
-                }
-            }
-
-            List<IPanel> panels = Value?.GetObjects<IPanel>();
-            if (panels == null)
-            {
-                return;
-            }
+            foreach (Point3d pt in snapshot.SpacePoints)
+                args.Pipeline.DrawPoint(pt);
 
             BoundingBox3D boundingBox3D = null;
             if (args.Viewport.IsValidFrustum)
@@ -126,17 +179,23 @@ namespace SAM.Analytical.Grasshopper
                 boundingBox3D = new BoundingBox3D(new Point3D[] { Geometry.Rhino.Convert.ToSAM(boundingBox.Min), Geometry.Rhino.Convert.ToSAM(boundingBox.Max) });
             }
 
+            List<IPanel> panels = Value.GetObjects<IPanel>();
+            if (panels == null || snapshot.PanelWires == null) return;
+
+            int wireIndex = 0;
             foreach (IPanel panel in panels)
             {
                 List<ISpace> spaces_Panel = Value.GetRelatedObjects<ISpace>(panel);
                 if (spaces_Panel != null && spaces_Panel.Count > 1)
                 {
+                    wireIndex++;
                     continue;
                 }
 
                 Face3D face3D = panel.Face3D;
                 if (face3D == null)
                 {
+                    wireIndex++;
                     continue;
                 }
 
@@ -147,53 +206,30 @@ namespace SAM.Analytical.Grasshopper
                     {
                         if (!boundingBox3D.Inside(boundingBox3D_Temp) && !boundingBox3D.Intersect(boundingBox3D_Temp))
                         {
+                            wireIndex++;
                             continue;
                         }
                     }
                 }
 
-                Dictionary<IClosedPlanar3D, System.Drawing.Color> dictionary = new Dictionary<IClosedPlanar3D, System.Drawing.Color>();
-
-                //Assign Color for Edges
-                dictionary[face3D.GetExternalEdge3D()] = System.Drawing.Color.DarkRed;
-
-                IEnumerable<IClosedPlanar3D> internalEdge3Ds = face3D.GetInternalEdge3Ds();
-                if (internalEdge3Ds != null)
+                if (wireIndex < snapshot.PanelWires.Count)
                 {
-                    foreach (IClosedPlanar3D internalEdge3D in internalEdge3Ds)
+                    PanelsWire pw = snapshot.PanelWires[wireIndex];
+                    if (pw.Loops != null)
                     {
-                        dictionary[internalEdge3D] = System.Drawing.Color.BlueViolet;
+                        foreach (Point3d[] loop in pw.Loops)
+                            args.Pipeline.DrawPolyline(new List<Point3d>(loop), loop == pw.Loops[0] ? System.Drawing.Color.DarkRed : System.Drawing.Color.BlueViolet);
                     }
                 }
 
-                foreach (KeyValuePair<IClosedPlanar3D, System.Drawing.Color> keyValuePair in dictionary)
-                {
-                    ISegmentable3D segmentable3D = keyValuePair.Key as ISegmentable3D;
-                    if (segmentable3D == null)
-                    {
-                        continue;
-                    }
-
-                    List<Point3d> point3ds = segmentable3D.GetPoints().ConvertAll(x => Geometry.Rhino.Convert.ToRhino(x));
-                    if (point3ds.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    point3ds.Add(point3ds[0]);
-
-                    args.Pipeline.DrawPolyline(point3ds, keyValuePair.Value);
-                }
+                wireIndex++;
             }
         }
 
         public void DrawViewportMeshes(GH_PreviewMeshArgs args)
         {
-            List<IPanel> panels = Value?.GetObjects<IPanel>();
-            if (panels == null)
-            {
-                return;
-            }
+            PreviewSnapshot snapshot = EnsurePreviewSnapshot();
+            if (snapshot == null) return;
 
             BoundingBox3D boundingBox3D = null;
             if (args.Viewport.IsValidFrustum)
@@ -202,57 +238,45 @@ namespace SAM.Analytical.Grasshopper
                 boundingBox3D = new BoundingBox3D(new Point3D[] { Geometry.Rhino.Convert.ToSAM(boundingBox.Min), Geometry.Rhino.Convert.ToSAM(boundingBox.Max) });
             }
 
-            List<Face3D> face3Ds = new List<Face3D>();
-            for (int i = 0; i < panels.Count; i++)
-            {
-                face3Ds.Add(null);
-            }
+            List<IPanel> panels = Value.GetObjects<IPanel>();
+            if (panels == null || snapshot.PanelMeshes == null) return;
 
-            Parallel.For(0, panels.Count, (int i) =>
+            int meshIndex = 0;
+            foreach (IPanel panel in panels)
             {
-                IPanel panel = panels[i];
-
                 List<ISpace> spaces = Value.GetRelatedObjects<ISpace>(panel);
                 if (spaces != null && spaces.Count > 1)
                 {
-                    return;
+                    meshIndex++;
+                    continue;
                 }
 
-                Face3D face3D = panel.Face3D;
-                if (face3D == null)
+                if (meshIndex >= snapshot.PanelMeshes.Count) break;
+
+                PanelMesh pm = snapshot.PanelMeshes[meshIndex];
+                if (pm.Face3D == null)
                 {
-                    return;
+                    meshIndex++;
+                    continue;
                 }
 
                 if (boundingBox3D != null)
                 {
-                    BoundingBox3D boundingBox3D_Temp = face3D.GetBoundingBox();
+                    BoundingBox3D boundingBox3D_Temp = pm.Face3D.GetBoundingBox();
                     if (boundingBox3D_Temp != null)
                     {
                         if (!boundingBox3D.Inside(boundingBox3D_Temp) && !boundingBox3D.Intersect(boundingBox3D_Temp))
                         {
-                            return;
+                            meshIndex++;
+                            continue;
                         }
                     }
                 }
 
-                face3Ds[i] = face3D;
-            });
+                if (pm.Brep != null)
+                    args.Pipeline.DrawBrepShaded(pm.Brep, args.Material);
 
-            foreach (Face3D face3D in face3Ds)
-            {
-                if (face3D == null)
-                {
-                    continue;
-                }
-
-                Brep brep = Geometry.Rhino.Convert.ToRhino_Brep(face3D);
-                if (brep == null)
-                {
-                    continue;
-                }
-
-                args.Pipeline.DrawBrepShaded(brep, args.Material);
+                meshIndex++;
             }
         }
 
@@ -283,7 +307,7 @@ namespace SAM.Analytical.Grasshopper
                 return false;
             }
 
-            Brep result = Brep.MergeBreps(breps, Core.Tolerance.MacroDistance); //Tolerance has been changed from Core.Tolerance.Distance
+            Brep result = Brep.MergeBreps(breps, Core.Tolerance.MacroDistance);
             if (result == null)
             {
                 return false;
@@ -331,20 +355,6 @@ namespace SAM.Analytical.Grasshopper
                 target = (Y)(object)Value.ToGrasshopper_Mesh();
                 return true;
             }
-
-            //if (typeof(Y).IsAssignableFrom(typeof(GH_Brep)))
-            //{
-            //    List<Geometry.Spatial.Shell> shells = Value.GetShells();
-            //    if(shells != null)
-            //    {
-            //        Brep brep = Brep.MergeBreps(shells.ConvertAll(x => x.ToRhino()), Core.Tolerance.MacroDistance);
-            //        if(brep != null)
-            //        {
-            //            target = (Y)(object)new GH_Brep(brep);
-            //            return true;
-            //        }
-            //    }
-            //}
 
             return base.CastTo(ref target);
         }

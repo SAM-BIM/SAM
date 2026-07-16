@@ -17,6 +17,8 @@ namespace SAM.Analytical.Grasshopper
 {
     public class GooAnalyticalModel : GooJSAMObject<AnalyticalModel>, IGH_PreviewData, IGH_BakeAwareData
     {
+        private GooAdjacencyCluster previewDelegate;
+
         public GooAnalyticalModel()
             : base()
         {
@@ -27,14 +29,27 @@ namespace SAM.Analytical.Grasshopper
         {
         }
 
+        private GooAdjacencyCluster EnsureDelegate()
+        {
+            AdjacencyCluster adjacencyCluster = Value?.AdjacencyCluster;
+            if (adjacencyCluster == null)
+                return null;
+
+            GooAdjacencyCluster result = previewDelegate;
+            if (result != null && ReferenceEquals(result.Value, adjacencyCluster))
+                return result;
+
+            result = new GooAdjacencyCluster(adjacencyCluster);
+            previewDelegate = result;
+            return result;
+        }
+
         public BoundingBox ClippingBox
         {
             get
             {
-                if (Value?.AdjacencyCluster == null)
-                    return BoundingBox.Unset;
-
-                return new GooAdjacencyCluster(Value.AdjacencyCluster).ClippingBox;
+                GooAdjacencyCluster goo = EnsureDelegate();
+                return goo?.ClippingBox ?? BoundingBox.Unset;
             }
         }
 
@@ -42,26 +57,23 @@ namespace SAM.Analytical.Grasshopper
         {
             obj_guid = Guid.Empty;
 
-            if (Value?.AdjacencyCluster == null)
+            GooAdjacencyCluster goo = EnsureDelegate();
+            if (goo == null)
                 return false;
 
-            return new GooAdjacencyCluster(Value.AdjacencyCluster).BakeGeometry(doc, att, out obj_guid);
+            return goo.BakeGeometry(doc, att, out obj_guid);
         }
 
         public void DrawViewportMeshes(GH_PreviewMeshArgs args)
         {
-            if (Value?.AdjacencyCluster == null)
-                return;
-
-            new GooAdjacencyCluster(Value.AdjacencyCluster).DrawViewportMeshes(args);
+            GooAdjacencyCluster goo = EnsureDelegate();
+            goo?.DrawViewportMeshes(args);
         }
 
         public void DrawViewportWires(GH_PreviewWireArgs args)
         {
-            if (Value?.AdjacencyCluster == null)
-                return;
-
-            new GooAdjacencyCluster(Value.AdjacencyCluster).DrawViewportWires(args);
+            GooAdjacencyCluster goo = EnsureDelegate();
+            goo?.DrawViewportWires(args);
         }
 
         public override IGH_Goo Duplicate()
