@@ -156,5 +156,51 @@ namespace SAM.Tests
 
             Assert.True(bbox.Intersect(segment));
         }
+
+        [Fact]
+        public void Intersect_SegmentBothEndpointsOutsideCrossingBox_ShouldReturnTrue()
+        {
+            BoundingBox3D bbox = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(10, 10, 10));
+
+            // Segment from (-5, 5, 5) to (15, 5, 5) completely crosses the box
+            Segment3D segment = new Segment3D(new Point3D(-5, 5, 5), new Point3D(15, 5, 5));
+
+            Assert.True(bbox.Intersect(segment));
+        }
+
+        [Fact]
+        public void Intersect_SegmentBboxOverlapsButSegmentMisses_ShouldReturnFalse()
+        {
+            BoundingBox3D bbox = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(10, 10, 10));
+
+            // Segment from (12, 9, 5) to (9, 12, 5) has bbox [9,12]x[9,12]x[5,5], which overlaps the box,
+            // but the segment itself misses it entirely (closest point is (10, 11, 5) which has Y > 10).
+            Segment3D segment = new Segment3D(new Point3D(12, 9, 5), new Point3D(9, 12, 5));
+
+            Assert.False(bbox.Intersect(segment));
+        }
+
+        [Fact]
+        public void Range_WithValidAndInvalidIndices_ShouldBehaveCorrectly()
+        {
+            BoundingBox3D bbox = new BoundingBox3D(new Point3D(1, 2, 3), new Point3D(10, 20, 30));
+
+            // Valid indices
+            Range<double> rangeX = bbox.Range(0);
+            Assert.Equal(1, rangeX.Min);
+            Assert.Equal(10, rangeX.Max);
+
+            Range<double> rangeY = bbox.Range(1);
+            Assert.Equal(2, rangeY.Min);
+            Assert.Equal(20, rangeY.Max);
+
+            Range<double> rangeZ = bbox.Range(2);
+            Assert.Equal(3, rangeZ.Min);
+            Assert.Equal(30, rangeZ.Max);
+
+            // Invalid indices
+            Assert.Throws<IndexOutOfRangeException>(() => bbox.Range(-1));
+            Assert.Throws<IndexOutOfRangeException>(() => bbox.Range(3));
+        }
     }
 }
