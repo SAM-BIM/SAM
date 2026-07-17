@@ -168,6 +168,88 @@ namespace SAM.Tests
             Assert.False(poly.On(new Point2D(0, 0)));
         }
 
+        [Fact]
+        public void On_NegativeTolerance_ReturnsFalse()
+        {
+            Assert.False(UnitSquare().On(new Point2D(0.5, 0), -1));
+        }
+
+        [Fact]
+        public void On_ZeroTolerance_UsesStrictLessThan()
+        {
+            Polygon2D square = UnitSquare();
+
+            Assert.False(square.On(new Point2D(0.5, 0), 0),
+                "tolerance=0 uses strict <, even exact distance=0 returns false");
+
+            Assert.False(square.On(new Point2D(0.5, 1e-9), 0));
+        }
+
+        [Fact]
+        public void On_NaNTolerance_ReturnsFalse()
+        {
+            Assert.False(UnitSquare().On(new Point2D(0.5, 0), double.NaN));
+        }
+
+        [Fact]
+        public void On_PositiveInfinityTolerance_ReturnsTrue()
+        {
+            Assert.True(UnitSquare().On(new Point2D(10, 10), double.PositiveInfinity));
+        }
+
+        [Fact]
+        public void On_DuplicateConsecutivePoints_HandledCorrectly()
+        {
+            Polygon2D poly = new Polygon2D(new List<Point2D>()
+            {
+                new Point2D(0, 0),
+                new Point2D(0, 0), // duplicate
+                new Point2D(1, 0),
+                new Point2D(1, 1),
+            });
+
+            Assert.True(poly.On(new Point2D(0, 0)));
+            Assert.True(poly.On(new Point2D(0.5, 0)));
+        }
+
+        [Fact]
+        public void On_ZeroLengthEdge_HandledCorrectly()
+        {
+            Polygon2D poly = new Polygon2D(new List<Point2D>()
+            {
+                new Point2D(2, 2),
+                new Point2D(2, 2),
+                new Point2D(5, 2),
+                new Point2D(5, 5),
+            });
+
+            Assert.True(poly.On(new Point2D(2, 2)));
+            Assert.True(poly.On(new Point2D(3.5, 2)));
+        }
+
+        [Fact]
+        public void On_NaNCoordinateInPolygon_ReturnsFalse()
+        {
+            Polygon2D poly = new Polygon2D(new List<Point2D>()
+            {
+                new Point2D(double.NaN, 0),
+                new Point2D(1, 0),
+                new Point2D(1, 1),
+            });
+
+            Assert.False(poly.On(new Point2D(0.5, 0)));
+        }
+
+        [Fact]
+        public void On_ExactBoundaryTolerance_Consistent()
+        {
+            Polygon2D square = UnitSquare();
+            double tol = Core.Tolerance.Distance;
+
+            Assert.True(square.On(new Point2D(0.5, tol * 0.999999), tol));
+            Assert.False(square.On(new Point2D(0.5, tol * 1.000001), tol));
+        }
+
         // ── Inside (Point2D) ────────────────────────────────────────
 
         [Fact]
@@ -516,6 +598,52 @@ namespace SAM.Tests
             Assert.NotNull(result);
             Assert.Single(result);
             Assert.True(System.Math.Abs(result[0].GetArea() - 1.0) < Core.Tolerance.Distance);
+        }
+
+        [Fact]
+        public void Polygon2Ds_DuplicateExternalPolygons_DedupedToSingle()
+        {
+            Polyline2D polyline = new Polyline2D(new List<Point2D>()
+            {
+                new Point2D(0, 0),
+                new Point2D(1, 0),
+                new Point2D(1, 1),
+                new Point2D(0, 1),
+                new Point2D(0, 0),
+            });
+
+            List<Polygon2D> result = new List<ISegmentable2D>() { polyline, polyline }.Polygon2Ds();
+
+            Assert.NotNull(result);
+            Assert.Single(result);
+            Assert.True(System.Math.Abs(result[0].GetArea() - 1.0) < Core.Tolerance.Distance);
+        }
+
+        [Fact]
+        public void Polygon2Ds_TwoDistinctSquares_ReturnsTwoPolygons()
+        {
+            Polyline2D polyline1 = new Polyline2D(new List<Point2D>()
+            {
+                new Point2D(0, 0),
+                new Point2D(1, 0),
+                new Point2D(1, 1),
+                new Point2D(0, 1),
+                new Point2D(0, 0),
+            });
+
+            Polyline2D polyline2 = new Polyline2D(new List<Point2D>()
+            {
+                new Point2D(10, 10),
+                new Point2D(11, 10),
+                new Point2D(11, 11),
+                new Point2D(10, 11),
+                new Point2D(10, 10),
+            });
+
+            List<Polygon2D> result = new List<ISegmentable2D>() { polyline1, polyline2 }.Polygon2Ds();
+
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
         }
 
         [Fact]

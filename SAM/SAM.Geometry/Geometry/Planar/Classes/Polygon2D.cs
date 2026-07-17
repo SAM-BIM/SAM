@@ -187,10 +187,14 @@ namespace SAM.Geometry.Planar
                 return 0;
 
             double length = 0;
-            for (int i = 0; i < points.Count - 1; i++)
-                length += points[i].Distance(points[i + 1]);
-
-            length += points[points.Count - 1].Distance(points[0]);
+            for (int i = 0; i < points.Count; i++)
+            {
+                Point2D p1 = points[i];
+                Point2D p2 = points[(i + 1) % points.Count];
+                double dx = p2.X - p1.X;
+                double dy = p2.Y - p1.Y;
+                length += System.Math.Sqrt(dx * dx + dy * dy);
+            }
 
             return length;
         }
@@ -315,7 +319,7 @@ namespace SAM.Geometry.Planar
 
         public bool On(Point2D point2D, double tolerance = Core.Tolerance.Distance)
         {
-            if (point2D == null || points == null || points.Count < 2)
+            if (point2D == null || points == null || points.Count < 2 || tolerance <= 0)
                 return false;
 
             double tolSq = tolerance * tolerance;
