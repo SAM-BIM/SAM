@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <ShouldRemoveRhinoReferences>False</ShouldRemoveRhinoReferences>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grasshopper" Version="8.21.25188.17001" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SAM.Core.Grasshopper\SAM.Core.Grasshopper.csproj" />
+  </ItemGroup>
+
+  <Target Name="CopyRhinoRuntimeAssemblies" AfterTargets="Build">
+    <ItemGroup>
+      <RhinoRuntimeAssembly Include="$(NuGetPackageRoot)rhinocommon\8.21.25188.17001\lib\net48\RhinoCommon.dll" />
+      <RhinoRuntimeAssembly Include="$(NuGetPackageRoot)rhinocommon\8.21.25188.17001\lib\net48\Rhino.UI.dll" />
+      <RhinoRuntimeAssembly Include="$(NuGetPackageRoot)rhinocommon\8.21.25188.17001\lib\net48\Eto.dll" />
+      <RhinoRuntimeAssembly Include="$(NuGetPackageRoot)rhinocommon\8.21.25188.17001\lib\net48\Ed.Eto.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RhinoRuntimeAssembly)" DestinationFolder="$(OutDir)" OverwriteReadOnlyFiles="true" />
+  </Target>
+
+</Project>

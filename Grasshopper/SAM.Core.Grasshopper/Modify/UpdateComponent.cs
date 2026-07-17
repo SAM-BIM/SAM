@@ -11,7 +11,13 @@ namespace SAM.Core.Grasshopper
     {
         public static GH_SAMComponent DuplicateComponent(GH_SAMComponent gH_SAMComponent, out Log log)
         {
+            return DuplicateComponent(gH_SAMComponent, out log, out List<ManualReconnectionWire> manualReconnectionWires);
+        }
+
+        public static GH_SAMComponent DuplicateComponent(GH_SAMComponent gH_SAMComponent, out Log log, out List<ManualReconnectionWire> manualReconnectionWires)
+        {
             log = new Log();
+            manualReconnectionWires = new List<ManualReconnectionWire>();
 
             if (gH_SAMComponent == null)
             {
@@ -52,6 +58,7 @@ namespace SAM.Core.Grasshopper
                 gH_SAMComponent.LatestComponentVersion, severityLabel, isVariable));
 
             List<ParamConnection> capturedConnections = CaptureConnections(gH_SAMComponent);
+            List<ConnectionSnapshot> connectionSnapshots = CaptureConnectionSnapshots(gH_SAMComponent);
 
             System.Drawing.PointF pivot = gH_SAMComponent.Attributes?.Pivot ?? System.Drawing.PointF.Empty;
 
@@ -71,6 +78,8 @@ namespace SAM.Core.Grasshopper
             CopyPersistentDataFromComponent(gH_SAMComponent, result);
 
             result.Attributes.Pivot = pivot;
+
+            manualReconnectionWires = Query.MissingConnections(result, connectionSnapshots);
 
             return result;
         }

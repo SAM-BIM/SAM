@@ -12,7 +12,13 @@ namespace SAM.Core.Grasshopper
     {
         public static List<GH_SAMComponent> UpdateComponents(GH_Document gH_Document, out Log log)
         {
+            return UpdateComponents(gH_Document, out log, out List<ManualReconnectionIssue> manualReconnectionIssues);
+        }
+
+        public static List<GH_SAMComponent> UpdateComponents(GH_Document gH_Document, out Log log, out List<ManualReconnectionIssue> manualReconnectionIssues)
+        {
             log = new Log();
+            manualReconnectionIssues = new List<ManualReconnectionIssue>();
 
             if (gH_Document == null)
             {
@@ -45,12 +51,19 @@ namespace SAM.Core.Grasshopper
                 return new List<GH_SAMComponent>();
             }
 
-            return UpdateComponents(gH_SAMComponents, gH_Document, out log);
+            return UpdateComponents(gH_SAMComponents, gH_Document, out log, out manualReconnectionIssues);
         }
 
         public static List<GH_SAMComponent> UpdateComponents(IEnumerable<GH_SAMComponent> gH_SAMComponents, out Log log)
         {
+            return UpdateComponents(gH_SAMComponents, out log, out List<ManualReconnectionIssue> manualReconnectionIssues);
+        }
+
+        public static List<GH_SAMComponent> UpdateComponents(IEnumerable<GH_SAMComponent> gH_SAMComponents, out Log log, out List<ManualReconnectionIssue> manualReconnectionIssues)
+        {
             log = new Log();
+            manualReconnectionIssues = new List<ManualReconnectionIssue>();
+
             if (gH_SAMComponents == null || !gH_SAMComponents.Any())
             {
                 return null;
@@ -63,12 +76,18 @@ namespace SAM.Core.Grasshopper
                 return null;
             }
 
-            return UpdateComponents(gH_SAMComponents, gH_Document, out log);
+            return UpdateComponents(gH_SAMComponents, gH_Document, out log, out manualReconnectionIssues);
         }
 
         private static List<GH_SAMComponent> UpdateComponents(IEnumerable<GH_SAMComponent> gH_SAMComponents, GH_Document gH_Document, out Log log)
         {
+            return UpdateComponents(gH_SAMComponents, gH_Document, out log, out List<ManualReconnectionIssue> manualReconnectionIssues);
+        }
+
+        private static List<GH_SAMComponent> UpdateComponents(IEnumerable<GH_SAMComponent> gH_SAMComponents, GH_Document gH_Document, out Log log, out List<ManualReconnectionIssue> manualReconnectionIssues)
+        {
             log = new Log();
+            manualReconnectionIssues = new List<ManualReconnectionIssue>();
 
             if (gH_SAMComponents == null || !gH_SAMComponents.Any())
             {
@@ -117,7 +136,7 @@ namespace SAM.Core.Grasshopper
 
                 try
                 {
-                    GH_SAMComponent gH_SAMComponent_New = DuplicateComponent(gH_SAMComponent, out Log log_Temp);
+                    GH_SAMComponent gH_SAMComponent_New = DuplicateComponent(gH_SAMComponent, out Log log_Temp, out List<ManualReconnectionWire> manualReconnectionWires);
                     if (gH_SAMComponent_New == null)
                     {
                         failed++;
@@ -125,6 +144,13 @@ namespace SAM.Core.Grasshopper
                         {
                             log.AddRange(log_Temp);
                         }
+
+                        ManualReconnectionIssue manualReconnectionIssue = CreateManualReconnectionIssue(gH_SAMComponent, null, true);
+                        if (manualReconnectionIssue != null)
+                        {
+                            manualReconnectionIssues.Add(manualReconnectionIssue);
+                        }
+
                         continue;
                     }
 
@@ -136,11 +162,26 @@ namespace SAM.Core.Grasshopper
                     {
                         log.AddRange(log_Temp);
                     }
+
+                    if (manualReconnectionWires != null && manualReconnectionWires.Count != 0)
+                    {
+                        ManualReconnectionIssue manualReconnectionIssue = CreateManualReconnectionIssue(gH_SAMComponent_New, manualReconnectionWires, false);
+                        if (manualReconnectionIssue != null)
+                        {
+                            manualReconnectionIssues.Add(manualReconnectionIssue);
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
                     failed++;
                     log.Add(new LogRecord("  Failed to update {0}: {1}", LogRecordType.Error, gH_SAMComponent.Name, ex.Message));
+
+                    ManualReconnectionIssue manualReconnectionIssue = CreateManualReconnectionIssue(gH_SAMComponent, null, true);
+                    if (manualReconnectionIssue != null)
+                    {
+                        manualReconnectionIssues.Add(manualReconnectionIssue);
+                    }
                 }
             }
 
@@ -149,8 +190,15 @@ namespace SAM.Core.Grasshopper
                 gH_Document.RemoveObject(oldComponent, false);
             }
 
+            SortManualReconnectionIssues(manualReconnectionIssues);
+
             log.Add(new LogRecord("Update completed: {0} updated, {1} failed, {2} warning(s).",
                 LogRecordType.Message, updated, failed, warnings));
+
+            if (manualReconnectionIssues.Count != 0)
+            {
+                log.Add(new LogRecord("{0} component(s) require manual wire reconnection.", LogRecordType.Warning, manualReconnectionIssues.Count));
+            }
 
             if (result.Count == 0)
             {
@@ -158,6 +206,69 @@ namespace SAM.Core.Grasshopper
             }
 
             return result;
+        }
+
+        private static ManualReconnectionIssue CreateManualReconnectionIssue(GH_SAMComponent gH_SAMComponent, List<ManualReconnectionWire> manualReconnectionWires, bool replacementFailed)
+        {
+            if (gH_SAMComponent == null)
+            {
+                return null;
+            }
+
+            System.Drawing.PointF pivot = gH_SAMComponent.Attributes?.Pivot ?? System.Drawing.PointF.Empty;
+
+            ManualReconnectionIssue result = new ManualReconnectionIssue
+            {
+                ComponentInstanceGuid = gH_SAMComponent.InstanceGuid,
+                ComponentName = gH_SAMComponent.Name,
+                ComponentNickName = gH_SAMComponent.NickName,
+                PivotX = pivot.X,
+                PivotY = pivot.Y,
+                ReplacementFailed = replacementFailed
+            };
+
+            if (manualReconnectionWires != null)
+            {
+                result.Wires.AddRange(manualReconnectionWires);
+            }
+
+            return result;
+        }
+
+        public static void SortManualReconnectionIssues(List<ManualReconnectionIssue> manualReconnectionIssues)
+        {
+            if (manualReconnectionIssues == null)
+            {
+                return;
+            }
+
+            manualReconnectionIssues.Sort((x, y) =>
+            {
+                if (x == null || y == null)
+                {
+                    return x == null ? (y == null ? 0 : 1) : -1;
+                }
+
+                int comparison = x.PivotY.CompareTo(y.PivotY);
+                if (comparison != 0)
+                {
+                    return comparison;
+                }
+
+                comparison = x.PivotX.CompareTo(y.PivotX);
+                if (comparison != 0)
+                {
+                    return comparison;
+                }
+
+                comparison = string.Compare(x.ComponentName, y.ComponentName, StringComparison.Ordinal);
+                if (comparison != 0)
+                {
+                    return comparison;
+                }
+
+                return x.ComponentInstanceGuid.CompareTo(y.ComponentInstanceGuid);
+            });
         }
 
         public static List<GH_SAMComponent> PreviewUpdateComponents(GH_Document gH_Document, out Log log)
