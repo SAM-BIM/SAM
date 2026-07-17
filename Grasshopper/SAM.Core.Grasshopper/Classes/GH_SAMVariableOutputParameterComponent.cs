@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
+using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using System.Linq;
 
@@ -16,6 +17,13 @@ namespace SAM.Core.Grasshopper
             : base(name, nickname, description, category, subCategory)
         {
 
+        }
+
+        public override bool Read(GH_IReader reader)
+        {
+            bool result = base.Read(reader);
+            bool legacyParameterDataRead = this.ReadLegacyParameterData(reader, Inputs, Outputs);
+            return result || legacyParameterDataRead;
         }
 
         public bool CanInsertParameter(GH_ParameterSide side, int index)
