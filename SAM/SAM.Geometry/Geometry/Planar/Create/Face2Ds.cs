@@ -204,7 +204,20 @@ namespace SAM.Geometry.Planar
             if (segmentable2Ds == null)
                 return null;
 
-            List<Segment2D> segment2Ds = new List<Segment2D>();
+            List<Segment2D> segment2Ds;
+            if (segmentable2Ds is IReadOnlyCollection<T> readOnlyCol)
+            {
+                segment2Ds = new List<Segment2D>(readOnlyCol.Count * 4);
+            }
+            else if (segmentable2Ds is ICollection<T> col)
+            {
+                segment2Ds = new List<Segment2D>(col.Count * 4);
+            }
+            else
+            {
+                segment2Ds = new List<Segment2D>();
+            }
+
             foreach (ISegmentable2D segmentable2D in segmentable2Ds)
             {
                 if (segmentable2D == null)

@@ -212,8 +212,7 @@ namespace SAM.Geometry.Planar
                 Vector2D vector2D = segment2D.Direction * maxDistance;
 
                 Point2D point2D_Start = segment2D.GetStart();
-                List<Segment2D> segment2Ds_Start = segment2Ds.FindAll(x => point2D_Start.AlmostEquals(x.GetStart(), tolerance) || point2D_Start.AlmostEquals(x.GetEnd(), tolerance));
-                if (segment2Ds_Start.Count == 1 || !unconnectedOnly)
+                if (!unconnectedOnly || IsEndpointUnconnected(segment2Ds, point2D_Start, tolerance))
                 {
                     segment2D_Temp = new Segment2D(point2D_Start, point2D_Start.GetMoved(vector2D.GetNegated()));
                     boundingBox_Temp = segment2D_Temp.GetBoundingBox(tolerance);
@@ -222,8 +221,7 @@ namespace SAM.Geometry.Planar
                 }
 
                 Point2D point2D_End = segment2D.GetEnd();
-                List<Segment2D> segment2Ds_End = segment2Ds.FindAll(x => point2D_End.AlmostEquals(x.GetStart(), tolerance) || point2D_End.AlmostEquals(x.GetEnd(), tolerance));
-                if (segment2Ds_End.Count == 1 || !unconnectedOnly)
+                if (!unconnectedOnly || IsEndpointUnconnected(segment2Ds, point2D_End, tolerance))
                 {
                     segment2D_Temp = new Segment2D(point2D_End, point2D_End.GetMoved(vector2D));
                     boundingBox_Temp = segment2D_Temp.GetBoundingBox(tolerance);
@@ -313,6 +311,21 @@ namespace SAM.Geometry.Planar
             //segment2Ds = segment2Ds.Snap(true, snapTolerance);
 
             return segment2Ds;
+        }
+
+        private static bool IsEndpointUnconnected(List<Segment2D> segment2Ds, Point2D p, double tolerance)
+        {
+            int matches = 0;
+            for (int i = 0; i < segment2Ds.Count; i++)
+            {
+                Segment2D seg = segment2Ds[i];
+                if (seg != null && (p.AlmostEquals(seg.GetStart(), tolerance) || p.AlmostEquals(seg.GetEnd(), tolerance)))
+                {
+                    matches++;
+                    if (matches > 1) return false;
+                }
+            }
+            return matches == 1;
         }
     }
 }

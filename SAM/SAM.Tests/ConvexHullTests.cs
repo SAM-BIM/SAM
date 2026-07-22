@@ -1,0 +1,198 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
+
+using System;
+using System.Collections.Generic;
+using SAM.Geometry.Planar;
+using Xunit;
+
+namespace SAM.Tests
+{
+    public class ConvexHullTests
+    {
+        [Fact]
+        public void ConvexHull_NullInput_ReturnsNull()
+        {
+            IEnumerable<Point2D> points = null;
+            Assert.Null(points.ConvexHull());
+        }
+
+        [Fact]
+        public void ConvexHull_EmptyInput_ReturnsEmpty()
+        {
+            List<Point2D> points = new List<Point2D>();
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Empty(hull);
+        }
+
+        [Fact]
+        public void ConvexHull_SinglePoint_ReturnsSinglePoint()
+        {
+            List<Point2D> points = new List<Point2D> { new Point2D(5, 5) };
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Single(hull);
+            Assert.Equal(5, hull[0].X);
+            Assert.Equal(5, hull[0].Y);
+        }
+
+        [Fact]
+        public void ConvexHull_TwoDistinctPoints_ReturnsTwoPoints()
+        {
+            List<Point2D> points = new List<Point2D> { new Point2D(0, 0), new Point2D(10, 5) };
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Equal(2, hull.Count);
+        }
+
+        [Fact]
+        public void ConvexHull_TwoIdenticalPoints_ReturnsSinglePoint()
+        {
+            List<Point2D> points = new List<Point2D> { new Point2D(3, 3), new Point2D(3, 3) };
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Single(hull);
+            Assert.Equal(3, hull[0].X);
+            Assert.Equal(3, hull[0].Y);
+        }
+
+        [Fact]
+        public void ConvexHull_ThreeCollinearPoints_ReturnsEndpointsOnly()
+        {
+            List<Point2D> points = new List<Point2D>
+            {
+                new Point2D(0, 0),
+                new Point2D(5, 5), // Middle point
+                new Point2D(10, 10)
+            };
+
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Equal(2, hull.Count);
+            Assert.Equal(0, hull[0].X);
+            Assert.Equal(0, hull[0].Y);
+            Assert.Equal(10, hull[1].X);
+            Assert.Equal(10, hull[1].Y);
+        }
+
+        [Fact]
+        public void ConvexHull_ThreeNonCollinearPoints_ReturnsThreePoints()
+        {
+            List<Point2D> points = new List<Point2D>
+            {
+                new Point2D(0, 0),
+                new Point2D(10, 0),
+                new Point2D(5, 10)
+            };
+
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Equal(3, hull.Count);
+        }
+
+        [Fact]
+        public void ConvexHull_SquareWithInteriorPoints_ReturnsFourCornerPoints()
+        {
+            List<Point2D> points = new List<Point2D>
+            {
+                // Corners
+                new Point2D(0, 0),
+                new Point2D(10, 0),
+                new Point2D(10, 10),
+                new Point2D(0, 10),
+                // Interior points
+                new Point2D(5, 5),
+                new Point2D(2, 3),
+                new Point2D(8, 2),
+                new Point2D(3, 7),
+                new Point2D(9, 9)
+            };
+
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Equal(4, hull.Count);
+
+            HashSet<(double, double)> expectedCorners = new HashSet<(double, double)>
+            {
+                (0, 0), (10, 0), (10, 10), (0, 10)
+            };
+
+            foreach (Point2D p in hull)
+            {
+                Assert.Contains((p.X, p.Y), expectedCorners);
+            }
+        }
+
+        [Fact]
+        public void ConvexHull_LargePointCloud_FiltersInteriorPointsCorrectly()
+        {
+            Random rng = new Random(42);
+            int n = 10000;
+            List<Point2D> points = new List<Point2D>(n + 4)
+            {
+                // Known extreme corners
+                new Point2D(0, 0),
+                new Point2D(1000, 0),
+                new Point2D(1000, 1000),
+                new Point2D(0, 1000)
+            };
+
+            for (int i = 0; i < n; i++)
+            {
+                double x = 1.0 + rng.NextDouble() * 998.0;
+                double y = 1.0 + rng.NextDouble() * 998.0;
+                points.Add(new Point2D(x, y));
+            }
+
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.True(hull.Count >= 4);
+
+            HashSet<(double, double)> cornerSet = new HashSet<(double, double)>
+            {
+                (0, 0), (1000, 0), (1000, 1000), (0, 1000)
+            };
+
+            int cornersFound = 0;
+            foreach (Point2D p in hull)
+            {
+                if (cornerSet.Contains((p.X, p.Y))) cornersFound++;
+            }
+            Assert.Equal(4, cornersFound);
+        }
+
+        [Fact]
+        public void ConvexHull_Segment2DOverload_ReturnsCorrectHull()
+        {
+            List<Segment2D> segments = new List<Segment2D>
+            {
+                new Segment2D(new Point2D(0, 0), new Point2D(10, 0)),
+                new Segment2D(new Point2D(10, 0), new Point2D(10, 10)),
+                new Segment2D(new Point2D(10, 10), new Point2D(0, 10)),
+                new Segment2D(new Point2D(0, 10), new Point2D(0, 0))
+            };
+
+            List<Point2D> hull = Query.ConvexHull(segments);
+            Assert.NotNull(hull);
+            Assert.Equal(4, hull.Count);
+        }
+
+        [Fact]
+        public void ConvexHull_ISegmentable2DOverload_ReturnsCorrectHull()
+        {
+            Polygon2D polygon = new Polygon2D(new List<Point2D>
+            {
+                new Point2D(0, 0),
+                new Point2D(10, 0),
+                new Point2D(10, 20),
+                new Point2D(0, 20)
+            });
+
+            ISegmentable2D segmentable = polygon;
+            List<Point2D> hull = Query.ConvexHull(segmentable);
+            Assert.NotNull(hull);
+            Assert.True(hull.Count >= 4);
+        }
+    }
+}
