@@ -210,38 +210,46 @@ namespace SAM.Geometry.Planar
                 quad.Reverse();
             }
 
+            // Precompute each quad edge's base point and direction once. These are
+            // constant across all N points, so hoisting them out of the per-point loop
+            // avoids recomputing the edge deltas (and the modulo indexing) N times.
+            double[] baseX = new double[qCount];
+            double[] baseY = new double[qCount];
+            double[] edgeX = new double[qCount];
+            double[] edgeY = new double[qCount];
+            for (int i = 0; i < qCount; i++)
+            {
+                Point2D a = quad[i];
+                Point2D b = quad[(i + 1) % qCount];
+                baseX[i] = a.X;
+                baseY[i] = a.Y;
+                edgeX[i] = b.X - a.X;
+                edgeY[i] = b.Y - a.Y;
+            }
+
             List<Point2D> filtered = new List<Point2D>(n / 4 + 8);
             for (int i = 0; i < n; i++)
             {
                 Point2D p = points[i];
 
-                if (IsExtremePoint(quad, p))
+                // A point is discarded only when it lies strictly left of every edge of
+                // the CCW extreme polygon (i.e. strictly interior). Extreme points and
+                // any point on an edge yield a cross product <= 0 and are kept, so no
+                // separate extreme-point check is needed.
+                bool strictlyInside = true;
+                for (int e = 0; e < qCount; e++)
+                {
+                    if (edgeX[e] * (p.Y - baseY[e]) - edgeY[e] * (p.X - baseX[e]) <= 0)
+                    {
+                        strictlyInside = false;
+                        break;
+                    }
+                }
+
+                if (!strictlyInside)
                 {
                     filtered.Add(p);
-                    continue;
                 }
-
-                if (qCount == 3)
-                {
-                    if (CrossProduct(quad[0], quad[1], p) > 0 &&
-                        CrossProduct(quad[1], quad[2], p) > 0 &&
-                        CrossProduct(quad[2], quad[0], p) > 0)
-                    {
-                        continue; // Strictly inside extreme triangle
-                    }
-                }
-                else if (qCount == 4)
-                {
-                    if (CrossProduct(quad[0], quad[1], p) > 0 &&
-                        CrossProduct(quad[1], quad[2], p) > 0 &&
-                        CrossProduct(quad[2], quad[3], p) > 0 &&
-                        CrossProduct(quad[3], quad[0], p) > 0)
-                    {
-                        continue; // Strictly inside extreme quad
-                    }
-                }
-
-                filtered.Add(p);
             }
 
             return filtered;
@@ -255,16 +263,6 @@ namespace SAM.Geometry.Planar
                 if (list[i].X == p.X && list[i].Y == p.Y) return;
             }
             list.Add(p);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsExtremePoint(List<Point2D> quad, Point2D p)
-        {
-            for (int i = 0; i < quad.Count; i++)
-            {
-                if (quad[i].X == p.X && quad[i].Y == p.Y) return true;
-            }
-            return false;
         }
     }
 }
