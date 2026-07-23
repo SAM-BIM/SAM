@@ -5,6 +5,7 @@ using NetTopologySuite.Geometries;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SAM.Core;
 
 namespace SAM.Geometry.Planar
 {
@@ -13,11 +14,9 @@ namespace SAM.Geometry.Planar
         public static List<Face2D> Face2Ds<T>(this IEnumerable<T> closed2Ds, double tolerance = Core.Tolerance.MicroDistance) where T : IClosed2D
         {
             if (closed2Ds == null)
-            {
                 return null;
-            }
 
-            List<ISegmentable2D> segmentable2Ds = new List<ISegmentable2D>();
+            List<ISegmentable2D> segmentable2Ds = new List<ISegmentable2D>(closed2Ds.CountOrDefault());
             foreach (T closed in closed2Ds)
             {
                 if (closed == null)
@@ -204,19 +203,7 @@ namespace SAM.Geometry.Planar
             if (segmentable2Ds == null)
                 return null;
 
-            List<Segment2D> segment2Ds;
-            if (segmentable2Ds is IReadOnlyCollection<T> readOnlyCol)
-            {
-                segment2Ds = new List<Segment2D>(readOnlyCol.Count * 4);
-            }
-            else if (segmentable2Ds is ICollection<T> col)
-            {
-                segment2Ds = new List<Segment2D>(col.Count * 4);
-            }
-            else
-            {
-                segment2Ds = new List<Segment2D>();
-            }
+            List<Segment2D> segment2Ds = new List<Segment2D>(segmentable2Ds.CountOrDefault() * 4);
 
             foreach (ISegmentable2D segmentable2D in segmentable2Ds)
             {

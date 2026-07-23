@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using SAM.Core;
 
 namespace SAM.Geometry.Planar
 {
@@ -24,25 +25,9 @@ namespace SAM.Geometry.Planar
                     if (p != null) points.Add(p);
                 }
             }
-            else if (point2Ds is IReadOnlyCollection<Point2D> readOnlyCol)
-            {
-                points = new List<Point2D>(readOnlyCol.Count);
-                foreach (Point2D p in readOnlyCol)
-                {
-                    if (p != null) points.Add(p);
-                }
-            }
-            else if (point2Ds is ICollection<Point2D> col)
-            {
-                points = new List<Point2D>(col.Count);
-                foreach (Point2D p in col)
-                {
-                    if (p != null) points.Add(p);
-                }
-            }
             else
             {
-                points = [];
+                points = new List<Point2D>(point2Ds.CountOrDefault());
                 foreach (Point2D p in point2Ds)
                 {
                     if (p != null) points.Add(p);
@@ -130,19 +115,7 @@ namespace SAM.Geometry.Planar
             if (segment2Ds == null)
                 return null;
 
-            List<Point2D> point2Ds;
-            if (segment2Ds is IReadOnlyCollection<Segment2D> readOnlyCol)
-            {
-                point2Ds = new List<Point2D>(readOnlyCol.Count * 2);
-            }
-            else if (segment2Ds is ICollection<Segment2D> col)
-            {
-                point2Ds = new List<Point2D>(col.Count * 2);
-            }
-            else
-            {
-                point2Ds = [];
-            }
+            List<Point2D> point2Ds = new List<Point2D>(segment2Ds.CountOrDefault() * 2);
 
             foreach (Segment2D segment2D in segment2Ds)
             {
@@ -210,9 +183,6 @@ namespace SAM.Geometry.Planar
                 quad.Reverse();
             }
 
-            // Precompute each quad edge's base point and direction once. These are
-            // constant across all N points, so hoisting them out of the per-point loop
-            // avoids recomputing the edge deltas (and the modulo indexing) N times.
             double[] baseX = new double[qCount];
             double[] baseY = new double[qCount];
             double[] edgeX = new double[qCount];
