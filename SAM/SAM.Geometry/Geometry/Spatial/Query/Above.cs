@@ -82,7 +82,30 @@ namespace SAM.Geometry.Spatial
                 return false;
             }
 
-            return boundingBox3D.GetPoints().TrueForAll(x => plane.Above(x, tolerance));
+            Vector3D normal = plane.Normal;
+            Point3D origin = plane.Origin;
+            if (normal == null || origin == null)
+            {
+                return false;
+            }
+
+            double minX = boundingBox3D.MinX;
+            double minY = boundingBox3D.MinY;
+            double minZ = boundingBox3D.MinZ;
+            double maxX = boundingBox3D.MaxX;
+            double maxY = boundingBox3D.MaxY;
+            double maxZ = boundingBox3D.MaxZ;
+
+            if (double.IsNaN(minX) || double.IsNaN(maxX) || double.IsNaN(minY) || double.IsNaN(maxY) || double.IsNaN(minZ) || double.IsNaN(maxZ))
+            {
+                return false;
+            }
+
+            double minProj = (((normal.X >= 0 ? minX : maxX) - origin.X) * normal.X)
+                           + (((normal.Y >= 0 ? minY : maxY) - origin.Y) * normal.Y)
+                           + (((normal.Z >= 0 ? minZ : maxZ) - origin.Z) * normal.Z);
+
+            return minProj > tolerance;
         }
     }
 }

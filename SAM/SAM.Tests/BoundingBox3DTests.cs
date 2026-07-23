@@ -204,5 +204,119 @@ namespace SAM.Tests
             Assert.Throws<IndexOutOfRangeException>(() => bbox.Range(-1));
             Assert.Throws<IndexOutOfRangeException>(() => bbox.Range(3));
         }
+
+        [Fact]
+        public void GetArea_ShouldReturnTotal3DSurfaceArea()
+        {
+            // Box of Width = 2 (X: 0->2), Depth = 3 (Y: 0->3), Height = 4 (Z: 0->4)
+            BoundingBox3D bbox = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(2, 3, 4));
+
+            // Surface Area = 2 * (W*D + W*H + D*H) = 2 * (6 + 8 + 12) = 52
+            Assert.Equal(52.0, bbox.GetArea());
+        }
+
+        [Fact]
+        public void Constructor_IEnumerableBoundingBox3D_ShouldHandleNullAndMultipleBoxes()
+        {
+            BoundingBox3D box1 = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(2, 2, 2));
+            BoundingBox3D box2 = new BoundingBox3D(new Point3D(5, 5, 5), new Point3D(10, 10, 10));
+
+            BoundingBox3D combined = new BoundingBox3D(new List<BoundingBox3D> { box1, box2 });
+
+            Assert.Equal(0, combined.MinX);
+            Assert.Equal(0, combined.MinY);
+            Assert.Equal(0, combined.MinZ);
+            Assert.Equal(10, combined.MaxX);
+            Assert.Equal(10, combined.MaxY);
+            Assert.Equal(10, combined.MaxZ);
+
+            BoundingBox3D nullListComb = new BoundingBox3D((IEnumerable<BoundingBox3D>)null);
+            Assert.True(double.IsNaN(nullListComb.MinX));
+        }
+
+        [Fact]
+        public void Constructor_IEnumerablePoint3D_ShouldHandleNullAndEmpty()
+        {
+            BoundingBox3D nullBox = new BoundingBox3D((IEnumerable<Point3D>)null);
+            Assert.True(double.IsNaN(nullBox.MinX));
+
+            BoundingBox3D emptyBox = new BoundingBox3D(new List<Point3D>());
+            Assert.True(double.IsNaN(emptyBox.MinX));
+        }
+
+        [Fact]
+        public void PlaneIntersect_ShouldDetectPlaneBoundingBoxIntersection()
+        {
+            BoundingBox3D bbox = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(10, 10, 10));
+
+            // Plane passing through (5, 5, 5) with normal (0, 0, 1) -> Z = 5
+            Plane planeZ5 = new Plane(new Point3D(5, 5, 5), Vector3D.WorldZ);
+            Assert.True(planeZ5.Intersect(bbox));
+
+            // Plane far away Z = 20
+            Plane planeZ20 = new Plane(new Point3D(0, 0, 20), Vector3D.WorldZ);
+            Assert.False(planeZ20.Intersect(bbox));
+        }
+
+        [Fact]
+        public void PlaneAbove_ShouldCheckIfAllBoxCornersAreAbovePlane()
+        {
+            BoundingBox3D bbox = new BoundingBox3D(new Point3D(10, 10, 10), new Point3D(20, 20, 20));
+
+            // Plane at Z = 0 with normal (0, 0, 1) -> bbox is completely above plane Z=0
+            Plane planeZ0 = new Plane(new Point3D(0, 0, 0), Vector3D.WorldZ);
+            Assert.True(planeZ0.Above(bbox, 0));
+
+            // Plane at Z = 15 -> bbox is bisected by plane, so not all corners are above
+            Plane planeZ15 = new Plane(new Point3D(0, 0, 15), Vector3D.WorldZ);
+            Assert.False(planeZ15.Above(bbox, 0));
+        }
+
+        [Fact]
+        public void QueryOn_PointOnEdge_ShouldReturnTrue()
+        {
+            BoundingBox3D bbox = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(10, 10, 10));
+
+            // Point (5, 0, 0) lies on the bottom-front edge (Y=0, Z=0)
+            Point3D ptOnEdge = new Point3D(5, 0, 0);
+            Assert.True(bbox.On(ptOnEdge));
+
+            // Point (5, 5, 5) lies inside box interior, not on edge
+            Point3D ptInterior = new Point3D(5, 5, 5);
+            Assert.False(bbox.On(ptInterior));
+        }
+
+        [Fact]
+        public void QueryExternal_ShouldFilterEnclosedBoxes()
+        {
+            BoundingBox3D innerBox = new BoundingBox3D(new Point3D(2, 2, 2), new Point3D(4, 4, 4));
+            BoundingBox3D outerBox = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(10, 10, 10));
+            BoundingBox3D separateBox = new BoundingBox3D(new Point3D(20, 20, 20), new Point3D(30, 30, 30));
+
+            List<BoundingBox3D> boxes = new List<BoundingBox3D> { innerBox, outerBox, separateBox };
+            List<BoundingBox3D> external = SAM.Geometry.Spatial.Query.External(boxes);
+
+            Assert.Equal(2, external.Count);
+            Assert.Contains(outerBox, external);
+            Assert.Contains(separateBox, external);
+            Assert.DoesNotContain(innerBox, external);
+        }
+
+        [Fact]
+        public void Include_SinglePass_ShouldExpandBounds()
+        {
+            BoundingBox3D bbox = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(1, 1, 1));
+            List<Point3D> points = new List<Point3D>
+            {
+                new Point3D(-5, 0, 0),
+                new Point3D(0, 15, 0),
+                new Point3D(0, 0, 25)
+            };
+
+            Assert.True(bbox.Include(points));
+            Assert.Equal(-5, bbox.MinX);
+            Assert.Equal(15, bbox.MaxY);
+            Assert.Equal(25, bbox.MaxZ);
+        }
     }
 }
