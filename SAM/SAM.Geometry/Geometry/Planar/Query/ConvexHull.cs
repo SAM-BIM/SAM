@@ -201,6 +201,11 @@ namespace SAM.Geometry.Planar
             for (int i = 0; i < n; i++)
             {
                 Point2D p = points[i];
+
+                // A point is discarded only when it lies strictly left of every edge of
+                // the CCW extreme polygon (i.e. strictly interior). Extreme points and
+                // any point on an edge yield a cross product <= 0 and are kept, so no
+                // separate extreme-point check is needed.
                 bool strictlyInside = true;
                 for (int e = 0; e < qCount; e++)
                 {
@@ -210,6 +215,7 @@ namespace SAM.Geometry.Planar
                         break;
                     }
                 }
+
                 if (!strictlyInside)
                 {
                     filtered.Add(p);

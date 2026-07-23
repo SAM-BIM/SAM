@@ -163,6 +163,121 @@ namespace SAM.Tests
         }
 
         [Fact]
+        public void ConvexHull_DenseGrid_ReturnsExactlyFourCorners()
+        {
+            // Filled square grid (well above the N >= 16 Akl-Toussaint threshold).
+            // Every edge is dense with collinear points, so the hull must reduce to
+            // exactly the four corners once interior and collinear points are removed.
+            List<Point2D> points = new List<Point2D>();
+            for (int x = 0; x <= 20; x++)
+            {
+                for (int y = 0; y <= 20; y++)
+                {
+                    points.Add(new Point2D(x, y));
+                }
+            }
+
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Equal(4, hull.Count);
+
+            HashSet<(double, double)> hullSet = new HashSet<(double, double)>();
+            foreach (Point2D p in hull)
+            {
+                hullSet.Add((p.X, p.Y));
+            }
+            Assert.Contains((0.0, 0.0), hullSet);
+            Assert.Contains((20.0, 0.0), hullSet);
+            Assert.Contains((20.0, 20.0), hullSet);
+            Assert.Contains((0.0, 20.0), hullSet);
+        }
+
+        [Fact]
+        public void ConvexHull_TriangularExtremeCloud_KeepsTriangleVertices()
+        {
+            // Extreme points collapse to a triangle (qCount == 3 filter branch). All
+            // added points are strictly inside the triangle and must be discarded,
+            // leaving exactly the three extreme vertices.
+            List<Point2D> points = new List<Point2D>
+            {
+                new Point2D(0, 0),
+                new Point2D(100, 0),
+                new Point2D(50, 100)
+            };
+
+            Random rng = new Random(7);
+            while (points.Count < 200)
+            {
+                double a = rng.NextDouble();
+                double b = rng.NextDouble();
+                if (a + b >= 1.0) continue; // reject points outside the triangle
+                double x = a * 100 + b * 50;
+                double y = b * 100;
+                points.Add(new Point2D(x, y));
+            }
+
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Equal(3, hull.Count);
+
+            HashSet<(double, double)> hullSet = new HashSet<(double, double)>();
+            foreach (Point2D p in hull)
+            {
+                hullSet.Add((p.X, p.Y));
+            }
+            Assert.Contains((0.0, 0.0), hullSet);
+            Assert.Contains((100.0, 0.0), hullSet);
+            Assert.Contains((50.0, 100.0), hullSet);
+        }
+
+        [Fact]
+        public void ConvexHull_CollinearEdgePoints_BelowFilterThreshold_ReturnsCornersOnly()
+        {
+            // 8 points (< 16, so the Akl-Toussaint pre-filter is skipped and the general
+            // Monotone Chain path runs): four square corners plus a collinear midpoint on
+            // each edge. The midpoints must be dropped, leaving exactly the four corners.
+            List<Point2D> points = new List<Point2D>
+            {
+                new Point2D(0, 0),
+                new Point2D(10, 0),
+                new Point2D(10, 10),
+                new Point2D(0, 10),
+                new Point2D(5, 0),
+                new Point2D(10, 5),
+                new Point2D(5, 10),
+                new Point2D(0, 5)
+            };
+
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Equal(4, hull.Count);
+
+            HashSet<(double, double)> hullSet = new HashSet<(double, double)>();
+            foreach (Point2D p in hull)
+            {
+                hullSet.Add((p.X, p.Y));
+            }
+            Assert.Contains((0.0, 0.0), hullSet);
+            Assert.Contains((10.0, 0.0), hullSet);
+            Assert.Contains((10.0, 10.0), hullSet);
+            Assert.Contains((0.0, 10.0), hullSet);
+        }
+
+        [Fact]
+        public void ConvexHull_Segment2DOverload_NullInput_ReturnsNull()
+        {
+            IEnumerable<Segment2D> segments = null;
+            Assert.Null(segments.ConvexHull());
+        }
+
+        [Fact]
+        public void ConvexHull_ISegmentable2DOverload_NullInput_ReturnsNull()
+        {
+            ISegmentable2D segmentable = null;
+            Assert.Null(segmentable.ConvexHull());
+        }
+
+        [Fact]
         public void ConvexHull_Segment2DOverload_ReturnsCorrectHull()
         {
             List<Segment2D> segments = new List<Segment2D>

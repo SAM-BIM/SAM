@@ -204,6 +204,11 @@ namespace SAM.Geometry.Planar
 
             List<Tuple<BoundingBox2D, Segment2D>> tuples_Extensions = new List<Tuple<BoundingBox2D, Segment2D>>();
 
+            // Endpoint connectivity is only queried when unconnectedOnly is set. A uniform
+            // spatial grid turns the per-endpoint "how many segments touch this point" scan
+            // from O(N) into ~O(1), so the enclosing pass drops from O(N^2) to ~O(N).
+            EndpointConnectivityGrid connectivityGrid = unconnectedOnly ? new EndpointConnectivityGrid(segment2Ds, tolerance) : null;
+
             foreach (Segment2D segment2D in segment2Ds)
             {
                 Segment2D segment2D_Temp = null;
@@ -212,7 +217,7 @@ namespace SAM.Geometry.Planar
                 Vector2D vector2D = segment2D.Direction * maxDistance;
 
                 Point2D point2D_Start = segment2D.GetStart();
-                if (!unconnectedOnly || IsEndpointUnconnected(segment2Ds, point2D_Start, tolerance))
+                if (!unconnectedOnly || connectivityGrid.IsUnconnected(point2D_Start))
                 {
                     segment2D_Temp = new Segment2D(point2D_Start, point2D_Start.GetMoved(vector2D.GetNegated()));
                     boundingBox_Temp = segment2D_Temp.GetBoundingBox(tolerance);
@@ -221,7 +226,7 @@ namespace SAM.Geometry.Planar
                 }
 
                 Point2D point2D_End = segment2D.GetEnd();
-                if (!unconnectedOnly || IsEndpointUnconnected(segment2Ds, point2D_End, tolerance))
+                if (!unconnectedOnly || connectivityGrid.IsUnconnected(point2D_End))
                 {
                     segment2D_Temp = new Segment2D(point2D_End, point2D_End.GetMoved(vector2D));
                     boundingBox_Temp = segment2D_Temp.GetBoundingBox(tolerance);
@@ -313,19 +318,97 @@ namespace SAM.Geometry.Planar
             return segment2Ds;
         }
 
-        private static bool IsEndpointUnconnected(List<Segment2D> segment2Ds, Point2D p, double tolerance)
+        // Uniform spatial grid over segment endpoints used to answer, for a query point,
+        // whether exactly one segment has an endpoint coincident (within tolerance) with it.
+        // Point2D.AlmostEquals is a strict per-coordinate test (|dx| < tol && |dy| < tol), so
+        // with a cell size of tolerance any coincident endpoint must fall in the query cell or
+        // one of its 8 neighbours; every candidate is still confirmed with AlmostEquals, so the
+        // result is identical to a full linear scan.
+        private sealed class EndpointConnectivityGrid
         {
-            int matches = 0;
-            for (int i = 0; i < segment2Ds.Count; i++)
+            private readonly List<Segment2D> segment2Ds;
+            private readonly double tolerance;
+            private readonly Dictionary<(long, long), List<int>> cells;
+            private readonly int[] visited;
+            private int query;
+
+            public EndpointConnectivityGrid(List<Segment2D> segment2Ds, double tolerance)
             {
-                Segment2D seg = segment2Ds[i];
-                if (seg != null && (p.AlmostEquals(seg.GetStart(), tolerance) || p.AlmostEquals(seg.GetEnd(), tolerance)))
+                this.segment2Ds = segment2Ds;
+                this.tolerance = tolerance;
+                cells = new Dictionary<(long, long), List<int>>(segment2Ds.Count * 2);
+                visited = new int[segment2Ds.Count];
+                for (int i = 0; i < visited.Length; i++)
+                    visited[i] = -1;
+
+                for (int i = 0; i < segment2Ds.Count; i++)
                 {
-                    matches++;
-                    if (matches > 1) return false;
+                    Segment2D segment2D = segment2Ds[i];
+                    if (segment2D == null)
+                        continue;
+
+                    Add(segment2D.GetStart(), i);
+                    Add(segment2D.GetEnd(), i);
                 }
             }
-            return matches == 1;
+
+            public bool IsUnconnected(Point2D point2D)
+            {
+                if (point2D == null)
+                    return false;
+
+                int q = ++query;
+                int matches = 0;
+
+                long cellX = CellIndex(point2D.X);
+                long cellY = CellIndex(point2D.Y);
+
+                for (long x = cellX - 1; x <= cellX + 1; x++)
+                {
+                    for (long y = cellY - 1; y <= cellY + 1; y++)
+                    {
+                        if (!cells.TryGetValue((x, y), out List<int> indices))
+                            continue;
+
+                        for (int k = 0; k < indices.Count; k++)
+                        {
+                            int index = indices[k];
+                            if (visited[index] == q)
+                                continue; // segment already counted for this query
+                            visited[index] = q;
+
+                            Segment2D segment2D = segment2Ds[index];
+                            if (point2D.AlmostEquals(segment2D.GetStart(), tolerance) || point2D.AlmostEquals(segment2D.GetEnd(), tolerance))
+                            {
+                                matches++;
+                                if (matches > 1)
+                                    return false;
+                            }
+                        }
+                    }
+                }
+
+                return matches == 1;
+            }
+
+            private void Add(Point2D point2D, int index)
+            {
+                if (point2D == null)
+                    return;
+
+                (long, long) key = (CellIndex(point2D.X), CellIndex(point2D.Y));
+                if (!cells.TryGetValue(key, out List<int> indices))
+                {
+                    indices = new List<int>(2);
+                    cells[key] = indices;
+                }
+                indices.Add(index);
+            }
+
+            private long CellIndex(double value)
+            {
+                return (long)System.Math.Floor(value / tolerance);
+            }
         }
     }
 }
