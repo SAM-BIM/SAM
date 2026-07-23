@@ -407,7 +407,7 @@ namespace SAM.Geometry.Planar
 
             private long CellIndex(double value)
             {
-                return (long)Math.Floor(value / tolerance);
+                return (long)System.Math.Floor(value / tolerance);
             }
         }
     }
