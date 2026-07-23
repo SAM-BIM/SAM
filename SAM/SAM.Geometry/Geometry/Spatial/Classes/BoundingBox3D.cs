@@ -380,10 +380,13 @@ namespace SAM.Geometry.Spatial
             double tMin = 0.0;
             double tMax = 1.0;
 
+            // Threshold below which a direction component is treated as parallel to the axis (segment does not cross that slab).
+            const double parallelEpsilon = 1e-15;
+
             double boxMinX = min.X - tolerance;
             double boxMaxX = max.X + tolerance;
             double dx = p1.X - p0.X;
-            if (System.Math.Abs(dx) < 1e-15)
+            if (System.Math.Abs(dx) < parallelEpsilon)
             {
                 if (p0.X < boxMinX || p0.X > boxMaxX)
                 {
@@ -408,7 +411,7 @@ namespace SAM.Geometry.Spatial
             double boxMinY = min.Y - tolerance;
             double boxMaxY = max.Y + tolerance;
             double dy = p1.Y - p0.Y;
-            if (System.Math.Abs(dy) < 1e-15)
+            if (System.Math.Abs(dy) < parallelEpsilon)
             {
                 if (p0.Y < boxMinY || p0.Y > boxMaxY)
                 {
@@ -433,7 +436,7 @@ namespace SAM.Geometry.Spatial
             double boxMinZ = min.Z - tolerance;
             double boxMaxZ = max.Z + tolerance;
             double dz = p1.Z - p0.Z;
-            if (System.Math.Abs(dz) < 1e-15)
+            if (System.Math.Abs(dz) < parallelEpsilon)
             {
                 if (p0.Z < boxMinZ || p0.Z > boxMaxZ)
                 {

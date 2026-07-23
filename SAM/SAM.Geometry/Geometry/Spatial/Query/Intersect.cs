@@ -22,21 +22,26 @@ namespace SAM.Geometry.Spatial
                 return false;
             }
 
-            Point3D center = boundingBox3D.GetCentroid();
-            if (center == null)
+            double minX = boundingBox3D.MinX;
+            double minY = boundingBox3D.MinY;
+            double minZ = boundingBox3D.MinZ;
+            double maxX = boundingBox3D.MaxX;
+            double maxY = boundingBox3D.MaxY;
+            double maxZ = boundingBox3D.MaxZ;
+
+            if (double.IsNaN(minX) || double.IsNaN(maxX) || double.IsNaN(minY) || double.IsNaN(maxY) || double.IsNaN(minZ) || double.IsNaN(maxZ))
             {
                 return false;
             }
 
-            double dist = (normal.X * (center.X - origin.X)) + (normal.Y * (center.Y - origin.Y)) + (normal.Z * (center.Z - origin.Z));
-            double hx = boundingBox3D.Width * 0.5;
-            double hy = boundingBox3D.Depth * 0.5;
-            double hz = boundingBox3D.Height * 0.5;
+            double centerX = (minX + maxX) * 0.5;
+            double centerY = (minY + maxY) * 0.5;
+            double centerZ = (minZ + maxZ) * 0.5;
 
-            if (double.IsNaN(hx) || double.IsNaN(hy) || double.IsNaN(hz))
-            {
-                return false;
-            }
+            double dist = (normal.X * (centerX - origin.X)) + (normal.Y * (centerY - origin.Y)) + (normal.Z * (centerZ - origin.Z));
+            double hx = (maxX - minX) * 0.5;
+            double hy = (maxY - minY) * 0.5;
+            double hz = (maxZ - minZ) * 0.5;
 
             double r = (System.Math.Abs(normal.X) * hx) + (System.Math.Abs(normal.Y) * hy) + (System.Math.Abs(normal.Z) * hz);
             return System.Math.Abs(dist) <= (r + tolerance);
