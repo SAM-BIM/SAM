@@ -192,7 +192,47 @@ namespace SAM.Tests
             ISegmentable2D segmentable = polygon;
             List<Point2D> hull = Query.ConvexHull(segmentable);
             Assert.NotNull(hull);
-            Assert.True(hull.Count >= 4);
+            Assert.Equal(4, hull.Count);
+
+            HashSet<(double, double)> expectedCorners = new HashSet<(double, double)>
+            {
+                (0, 0), (10, 0), (10, 20), (0, 20)
+            };
+
+            foreach (Point2D p in hull)
+            {
+                Assert.Contains((p.X, p.Y), expectedCorners);
+            }
+        }
+
+        [Fact]
+        public void ConvexHull_TriangleBoundingPointCloud_FiltersInteriorPointsCorrectly()
+        {
+            // Point set where minX and minY coincide at (0,0), creating a qCount == 3 extreme triangle
+            List<Point2D> points = new List<Point2D>(20)
+            {
+                new Point2D(0, 0),    // minX and minY
+                new Point2D(100, 0),  // maxX
+                new Point2D(0, 100),  // maxY
+            };
+
+            // Add interior points strictly inside the triangle
+            for (int i = 1; i <= 17; i++)
+            {
+                points.Add(new Point2D(i * 2, i * 2));
+            }
+
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Equal(3, hull.Count);
+            HashSet<(double, double)> expectedCorners = new HashSet<(double, double)>
+            {
+                (0, 0), (100, 0), (0, 100)
+            };
+            foreach (Point2D p in hull)
+            {
+                Assert.Contains((p.X, p.Y), expectedCorners);
+            }
         }
     }
 }

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using SAM.Core;
 
 namespace SAM.Geometry.Planar
 {
@@ -24,25 +25,9 @@ namespace SAM.Geometry.Planar
                     if (p != null) points.Add(p);
                 }
             }
-            else if (point2Ds is IReadOnlyCollection<Point2D> readOnlyCol)
-            {
-                points = new List<Point2D>(readOnlyCol.Count);
-                foreach (Point2D p in readOnlyCol)
-                {
-                    if (p != null) points.Add(p);
-                }
-            }
-            else if (point2Ds is ICollection<Point2D> col)
-            {
-                points = new List<Point2D>(col.Count);
-                foreach (Point2D p in col)
-                {
-                    if (p != null) points.Add(p);
-                }
-            }
             else
             {
-                points = [];
+                points = new List<Point2D>(point2Ds.CountOrDefault());
                 foreach (Point2D p in point2Ds)
                 {
                     if (p != null) points.Add(p);
@@ -130,19 +115,7 @@ namespace SAM.Geometry.Planar
             if (segment2Ds == null)
                 return null;
 
-            List<Point2D> point2Ds;
-            if (segment2Ds is IReadOnlyCollection<Segment2D> readOnlyCol)
-            {
-                point2Ds = new List<Point2D>(readOnlyCol.Count * 2);
-            }
-            else if (segment2Ds is ICollection<Segment2D> col)
-            {
-                point2Ds = new List<Point2D>(col.Count * 2);
-            }
-            else
-            {
-                point2Ds = [];
-            }
+            List<Point2D> point2Ds = new List<Point2D>(segment2Ds.CountOrDefault() * 2);
 
             foreach (Segment2D segment2D in segment2Ds)
             {
@@ -210,38 +183,37 @@ namespace SAM.Geometry.Planar
                 quad.Reverse();
             }
 
+            double[] baseX = new double[qCount];
+            double[] baseY = new double[qCount];
+            double[] edgeX = new double[qCount];
+            double[] edgeY = new double[qCount];
+            for (int i = 0; i < qCount; i++)
+            {
+                Point2D a = quad[i];
+                Point2D b = quad[(i + 1) % qCount];
+                baseX[i] = a.X;
+                baseY[i] = a.Y;
+                edgeX[i] = b.X - a.X;
+                edgeY[i] = b.Y - a.Y;
+            }
+
             List<Point2D> filtered = new List<Point2D>(n / 4 + 8);
             for (int i = 0; i < n; i++)
             {
                 Point2D p = points[i];
-
-                if (IsExtremePoint(quad, p))
+                bool strictlyInside = true;
+                for (int e = 0; e < qCount; e++)
+                {
+                    if (edgeX[e] * (p.Y - baseY[e]) - edgeY[e] * (p.X - baseX[e]) <= 0)
+                    {
+                        strictlyInside = false;
+                        break;
+                    }
+                }
+                if (!strictlyInside)
                 {
                     filtered.Add(p);
-                    continue;
                 }
-
-                if (qCount == 3)
-                {
-                    if (CrossProduct(quad[0], quad[1], p) > 0 &&
-                        CrossProduct(quad[1], quad[2], p) > 0 &&
-                        CrossProduct(quad[2], quad[0], p) > 0)
-                    {
-                        continue; // Strictly inside extreme triangle
-                    }
-                }
-                else if (qCount == 4)
-                {
-                    if (CrossProduct(quad[0], quad[1], p) > 0 &&
-                        CrossProduct(quad[1], quad[2], p) > 0 &&
-                        CrossProduct(quad[2], quad[3], p) > 0 &&
-                        CrossProduct(quad[3], quad[0], p) > 0)
-                    {
-                        continue; // Strictly inside extreme quad
-                    }
-                }
-
-                filtered.Add(p);
             }
 
             return filtered;
@@ -255,16 +227,6 @@ namespace SAM.Geometry.Planar
                 if (list[i].X == p.X && list[i].Y == p.Y) return;
             }
             list.Add(p);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsExtremePoint(List<Point2D> quad, Point2D p)
-        {
-            for (int i = 0; i < quad.Count; i++)
-            {
-                if (quad[i].X == p.X && quad[i].Y == p.Y) return true;
-            }
-            return false;
         }
     }
 }

@@ -745,5 +745,69 @@ namespace SAM.Tests
             Assert.False(System.Math.Abs(original.GetCentroid().X - clone.GetCentroid().X) < Core.Tolerance.Distance,
                 "Clone move should not affect original");
         }
+
+        // ── Similar & Dedup at Tolerance Boundary ───────────────────
+
+        [Fact]
+        public void Similar_ShapesWithinToleranceBoundary_ReturnsTrue()
+        {
+            double tol = Core.Tolerance.Distance;
+            Polygon2D poly1 = UnitSquare();
+            // Offset vertices by 0.5 * tol (strictly within tolerance)
+            Polygon2D poly2 = new Polygon2D(new List<Point2D>
+            {
+                new Point2D(0 + 0.5 * tol, 0),
+                new Point2D(1 + 0.5 * tol, 0),
+                new Point2D(1 + 0.5 * tol, 1),
+                new Point2D(0 + 0.5 * tol, 1)
+            });
+
+            Assert.True(SAM.Geometry.Planar.Query.Similar((IClosed2D)poly1, (IClosed2D)poly2, tol));
+        }
+
+        [Fact]
+        public void Similar_ShapesBeyondToleranceBoundary_ReturnsFalse()
+        {
+            double tol = Core.Tolerance.Distance;
+            Polygon2D poly1 = UnitSquare();
+            // Offset vertices by 2 * tol
+            Polygon2D poly2 = new Polygon2D(new List<Point2D>
+            {
+                new Point2D(0 + 2 * tol, 0),
+                new Point2D(1 + 2 * tol, 0),
+                new Point2D(1 + 2 * tol, 1),
+                new Point2D(0 + 2 * tol, 1)
+            });
+
+            Assert.False(SAM.Geometry.Planar.Query.Similar((IClosed2D)poly1, (IClosed2D)poly2, tol));
+        }
+
+        [Fact]
+        public void Polygon2Ds_PolygonsAtToleranceBoundary_DeduplicatesCorrectly()
+        {
+            double tol = Core.Tolerance.MicroDistance;
+            Polyline2D polyline1 = new Polyline2D(new List<Point2D>
+            {
+                new Point2D(0, 0),
+                new Point2D(1, 0),
+                new Point2D(1, 1),
+                new Point2D(0, 1),
+                new Point2D(0, 0)
+            });
+
+            Polyline2D polyline2 = new Polyline2D(new List<Point2D>
+            {
+                new Point2D(0 + tol * 0.5, 0),
+                new Point2D(1 + tol * 0.5, 0),
+                new Point2D(1 + tol * 0.5, 1),
+                new Point2D(0 + tol * 0.5, 1),
+                new Point2D(0 + tol * 0.5, 0)
+            });
+
+            List<Polygon2D> result = new List<ISegmentable2D> { polyline1, polyline2 }.Polygon2Ds(tolerance: tol);
+
+            Assert.NotNull(result);
+            Assert.Single(result);
+        }
     }
 }
