@@ -231,6 +231,53 @@ namespace SAM.Tests
         }
 
         [Fact]
+        public void ConvexHull_CollinearEdgePoints_BelowFilterThreshold_ReturnsCornersOnly()
+        {
+            // 8 points (< 16, so the Akl-Toussaint pre-filter is skipped and the general
+            // Monotone Chain path runs): four square corners plus a collinear midpoint on
+            // each edge. The midpoints must be dropped, leaving exactly the four corners.
+            List<Point2D> points = new List<Point2D>
+            {
+                new Point2D(0, 0),
+                new Point2D(10, 0),
+                new Point2D(10, 10),
+                new Point2D(0, 10),
+                new Point2D(5, 0),
+                new Point2D(10, 5),
+                new Point2D(5, 10),
+                new Point2D(0, 5)
+            };
+
+            List<Point2D> hull = points.ConvexHull();
+            Assert.NotNull(hull);
+            Assert.Equal(4, hull.Count);
+
+            HashSet<(double, double)> hullSet = new HashSet<(double, double)>();
+            foreach (Point2D p in hull)
+            {
+                hullSet.Add((p.X, p.Y));
+            }
+            Assert.Contains((0.0, 0.0), hullSet);
+            Assert.Contains((10.0, 0.0), hullSet);
+            Assert.Contains((10.0, 10.0), hullSet);
+            Assert.Contains((0.0, 10.0), hullSet);
+        }
+
+        [Fact]
+        public void ConvexHull_Segment2DOverload_NullInput_ReturnsNull()
+        {
+            IEnumerable<Segment2D> segments = null;
+            Assert.Null(segments.ConvexHull());
+        }
+
+        [Fact]
+        public void ConvexHull_ISegmentable2DOverload_NullInput_ReturnsNull()
+        {
+            ISegmentable2D segmentable = null;
+            Assert.Null(segmentable.ConvexHull());
+        }
+
+        [Fact]
         public void ConvexHull_Segment2DOverload_ReturnsCorrectHull()
         {
             List<Segment2D> segments = new List<Segment2D>
