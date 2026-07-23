@@ -10,28 +10,36 @@ namespace SAM.Geometry.Spatial
     {
         public static bool Intersect(this Plane plane, BoundingBox3D boundingBox3D, double tolerance = Core.Tolerance.Distance)
         {
-            if (plane == null)
+            if (plane == null || boundingBox3D == null)
             {
                 return false;
             }
 
-            List<Point3D> point3Ds = boundingBox3D?.GetPoints();
-            if (point3Ds == null || point3Ds.Count == 0)
+            Vector3D normal = plane.Normal;
+            Point3D origin = plane.Origin;
+            if (normal == null || origin == null)
             {
                 return false;
             }
 
-            bool above = plane.Above(point3Ds[0], tolerance);
-            for (int i = 1; i < point3Ds.Count; i++)
+            Point3D center = boundingBox3D.GetCentroid();
+            if (center == null)
             {
-                bool above_Temp = plane.Above(point3Ds[i], tolerance);
-                if (above != above_Temp)
-                {
-                    return true;
-                }
+                return false;
             }
 
-            return false;
+            double dist = (normal.X * (center.X - origin.X)) + (normal.Y * (center.Y - origin.Y)) + (normal.Z * (center.Z - origin.Z));
+            double hx = boundingBox3D.Width * 0.5;
+            double hy = boundingBox3D.Depth * 0.5;
+            double hz = boundingBox3D.Height * 0.5;
+
+            if (double.IsNaN(hx) || double.IsNaN(hy) || double.IsNaN(hz))
+            {
+                return false;
+            }
+
+            double r = (System.Math.Abs(normal.X) * hx) + (System.Math.Abs(normal.Y) * hy) + (System.Math.Abs(normal.Z) * hz);
+            return System.Math.Abs(dist) <= (r + tolerance);
         }
 
         public static bool Intersect(this Face3D face3D, Point3D point3D, Vector3D vector3D, double tolerance = Core.Tolerance.Distance)
