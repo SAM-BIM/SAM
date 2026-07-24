@@ -16,15 +16,12 @@ namespace SAM.Geometry.Spatial
         /// <returns></returns>
         public static bool Above(this Plane plane, Point3D point3D, double tolerance = 0)
         {
-            if (point3D == null)
+            if (point3D == null || plane == null)
                 return false;
 
-            Vector3D normal = plane?.Normal;
-            if (normal == null)
-                return false;
-
-            Point3D origin = plane.Origin;
-            if (origin == null)
+            Vector3D normal = plane.InternalNormal;
+            Point3D origin = plane.InternalOrigin;
+            if (normal == null || origin == null)
                 return false;
 
             return (normal.X * (point3D.X - origin.X)) + (normal.Y * (point3D.Y - origin.Y)) + (normal.Z * (point3D.Z - origin.Z)) > 0 + tolerance;
@@ -82,8 +79,8 @@ namespace SAM.Geometry.Spatial
                 return false;
             }
 
-            Vector3D normal = plane.Normal;
-            Point3D origin = plane.Origin;
+            Vector3D normal = plane.InternalNormal;
+            Point3D origin = plane.InternalOrigin;
             if (normal == null || origin == null)
             {
                 return false;
