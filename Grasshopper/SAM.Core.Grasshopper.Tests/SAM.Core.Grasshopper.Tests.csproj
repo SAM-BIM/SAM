@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SAM.Core.Grasshopper\SAM.Core.Grasshopper.csproj" />
+    <ProjectReference Include="..\SAM.Geometry.Grasshopper\SAM.Geometry.Grasshopper.csproj" />
   </ItemGroup>
 
   <Target Name="CopyRhinoRuntimeAssemblies" AfterTargets="Build">
