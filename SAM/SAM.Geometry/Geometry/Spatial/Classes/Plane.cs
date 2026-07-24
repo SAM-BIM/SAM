@@ -33,22 +33,22 @@ namespace SAM.Geometry.Spatial
 
         public Plane(Plane plane)
         {
-            if (plane != null)
-            {
-                normal = new Vector3D(plane.normal);
-                origin = new Point3D(plane.origin);
-                axisY = new Vector3D(plane.axisY);
-            }
+            if (plane == null)
+                throw new ArgumentNullException(nameof(plane));
+
+            normal = new Vector3D(plane.normal);
+            origin = new Point3D(plane.origin);
+            axisY = new Vector3D(plane.axisY);
         }
 
         public Plane(Plane plane, Point3D origin)
         {
-            if (plane != null)
-            {
-                normal = new Vector3D(plane.normal);
-                this.origin = origin != null ? new Point3D(origin) : Point3D.Zero;
-                axisY = new Vector3D(plane.axisY);
-            }
+            if (plane == null)
+                throw new ArgumentNullException(nameof(plane));
+
+            normal = new Vector3D(plane.normal);
+            this.origin = origin != null ? new Point3D(origin) : Point3D.Zero;
+            axisY = new Vector3D(plane.axisY);
         }
 
         public Plane(Point3D point3D_1, Point3D point3D_2, Point3D point3D_3)
