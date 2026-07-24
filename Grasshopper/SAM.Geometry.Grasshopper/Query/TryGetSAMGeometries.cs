@@ -117,6 +117,13 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
+            object rhinoConverted = ConvertRhinoGeometryToSAM(value);
+            if (rhinoConverted != null)
+            {
+                ProcessValue(rhinoConverted, result);
+                return;
+            }
+
             if (value is IEnumerable enumerable && !(value is string))
             {
                 foreach (object item in enumerable)
@@ -194,6 +201,70 @@ namespace SAM.Geometry.Grasshopper
             return geometricGoo.ToSAM(true);
         }
 
+        private static object ConvertRhinoGeometryToSAM(object value)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            if (value is global::Rhino.Geometry.Point3d pt)
+            {
+                return Rhino.Convert.ToSAM(pt);
+            }
+
+            if (value is global::Rhino.Geometry.Plane plane)
+            {
+                return Rhino.Convert.ToSAM(plane);
+            }
+
+            if (value is global::Rhino.Geometry.Vector3d vector)
+            {
+                return Rhino.Convert.ToSAM(vector);
+            }
+
+            if (value is global::Rhino.Geometry.Line line)
+            {
+                return Rhino.Convert.ToSAM(line);
+            }
+
+            if (value is global::Rhino.Geometry.Polyline polyline)
+            {
+                return Rhino.Convert.ToSAM(polyline);
+            }
+
+            if (value is global::Rhino.Geometry.Rectangle3d rect)
+            {
+                return Rhino.Convert.ToSAM(rect);
+            }
+
+            if (value is global::Rhino.Geometry.Curve curve)
+            {
+                return Rhino.Convert.ToSAM(curve);
+            }
+
+            if (value is global::Rhino.Geometry.Brep brep)
+            {
+                return Rhino.Convert.ToSAM(brep);
+            }
+
+            if (value is global::Rhino.Geometry.Mesh mesh)
+            {
+                return Rhino.Convert.ToSAM(mesh);
+            }
+
+            if (value is global::Rhino.Geometry.Extrusion extrusion)
+            {
+                global::Rhino.Geometry.Brep extBrep = extrusion.ToBrep(true);
+                if (extBrep != null)
+                {
+                    return Rhino.Convert.ToSAM(extBrep);
+                }
+            }
+
+            return null;
+        }
+
         private static void ProcessSAMGeometryConversion<T>(object value, List<T> result) where T : ISAMGeometry
         {
             if (value == null)
@@ -203,11 +274,12 @@ namespace SAM.Geometry.Grasshopper
 
             System.Type targetType = typeof(T);
 
+            // 1. Face3D
             if (targetType == typeof(Face3D) || typeof(Face3D).IsAssignableFrom(targetType))
             {
-                if (value is IFace3DObject face3DObject && face3DObject.Face3D != null)
+                if (value is IFace3DObject face3DObject && face3DObject.Face3D is T faceFromObj)
                 {
-                    result.Add((T)(object)face3DObject.Face3D);
+                    result.Add(faceFromObj);
                     return;
                 }
 
@@ -215,9 +287,9 @@ namespace SAM.Geometry.Grasshopper
                 {
                     foreach (Face3D face in shell.Face3Ds)
                     {
-                        if (face != null)
+                        if (face is T tFace)
                         {
-                            result.Add((T)(object)face);
+                            result.Add(tFace);
                         }
                     }
                     return;
@@ -230,7 +302,11 @@ namespace SAM.Geometry.Grasshopper
                     {
                         foreach (Triangle3D triangle in triangles)
                         {
-                            result.Add((T)(object)new Face3D(triangle));
+                            Face3D triFace = new Face3D(triangle);
+                            if (triFace is T tFace)
+                            {
+                                result.Add(tFace);
+                            }
                         }
                     }
                     return;
@@ -239,9 +315,9 @@ namespace SAM.Geometry.Grasshopper
                 if (value is IClosedPlanar3D closedPlanar3D)
                 {
                     Face3D face3D = Spatial.Create.Face3D(closedPlanar3D);
-                    if (face3D != null)
+                    if (face3D is T tFace)
                     {
-                        result.Add((T)(object)face3D);
+                        result.Add(tFace);
                     }
                     return;
                 }
@@ -251,109 +327,33 @@ namespace SAM.Geometry.Grasshopper
                     if (Polycurve3D.TryGetPolyline3D(polycurve3D, out Polyline3D polyline3D) && polyline3D != null && polyline3D.IsClosed())
                     {
                         Face3D face3D = Spatial.Create.Face3D(polyline3D.ToPolygon3D());
-                        if (face3D != null)
+                        if (face3D is T tFace)
                         {
-                            result.Add((T)(object)face3D);
+                            result.Add(tFace);
                         }
                     }
                     return;
                 }
 
-                if (value is Polyline3D polyline)
+                if (value is Polyline3D polyline && polyline.IsClosed())
                 {
-                    if (polyline.IsClosed())
+                    Face3D face3D = Spatial.Create.Face3D(polyline.ToPolygon3D());
+                    if (face3D is T tFace)
                     {
-                        Face3D face3D = Spatial.Create.Face3D(polyline.ToPolygon3D());
-                        if (face3D != null)
-                        {
-                            result.Add((T)(object)face3D);
-                        }
+                        result.Add(tFace);
                     }
                     return;
                 }
             }
 
-            if (targetType == typeof(ISegmentable3D) || typeof(ISegmentable3D).IsAssignableFrom(targetType))
-            {
-                if (value is Polycurve3D polycurve3D)
-                {
-                    if (Polycurve3D.TryGetPolyline3D(polycurve3D, out Polyline3D polyline3D) && polyline3D != null)
-                    {
-                        result.Add((T)(object)polyline3D);
-                        return;
-                    }
-                }
-
-                if (value is Face3D face3D)
-                {
-                    List<IClosedPlanar3D> edge3Ds = face3D.GetEdge3Ds();
-                    if (edge3Ds != null)
-                    {
-                        foreach (IClosedPlanar3D edge in edge3Ds)
-                        {
-                            if (edge is ISegmentable3D segmentable3D)
-                            {
-                                result.Add((T)(object)segmentable3D);
-                            }
-                        }
-                    }
-                    return;
-                }
-
-                if (value is IFace3DObject face3DObject && face3DObject.Face3D != null)
-                {
-                    List<IClosedPlanar3D> edge3Ds = face3DObject.Face3D.GetEdge3Ds();
-                    if (edge3Ds != null)
-                    {
-                        foreach (IClosedPlanar3D edge in edge3Ds)
-                        {
-                            if (edge is ISegmentable3D segmentable3D)
-                            {
-                                result.Add((T)(object)segmentable3D);
-                            }
-                        }
-                    }
-                    return;
-                }
-
-                if (value is Shell shell && shell.Face3Ds != null)
-                {
-                    foreach (Face3D face in shell.Face3Ds)
-                    {
-                        if (face == null)
-                        {
-                            continue;
-                        }
-
-                        List<IClosedPlanar3D> edge3Ds = face.GetEdge3Ds();
-                        if (edge3Ds != null)
-                        {
-                            foreach (IClosedPlanar3D edge in edge3Ds)
-                            {
-                                if (edge is ISegmentable3D segmentable3D)
-                                {
-                                    result.Add((T)(object)segmentable3D);
-                                }
-                            }
-                        }
-                    }
-                    return;
-                }
-
-                if (value is IClosedPlanar3D closedPlanar3D && closedPlanar3D is ISegmentable3D segmentable)
-                {
-                    result.Add((T)(object)segmentable);
-                    return;
-                }
-            }
-
+            // 2. Polyline3D
             if (targetType == typeof(Polyline3D) || typeof(Polyline3D).IsAssignableFrom(targetType))
             {
                 if (value is Polycurve3D polycurve3D)
                 {
-                    if (Polycurve3D.TryGetPolyline3D(polycurve3D, out Polyline3D polyline3D) && polyline3D != null)
+                    if (Polycurve3D.TryGetPolyline3D(polycurve3D, out Polyline3D polyline3D) && polyline3D is T tPolyline)
                     {
-                        result.Add((T)(object)polyline3D);
+                        result.Add(tPolyline);
                         return;
                     }
                 }
@@ -363,7 +363,11 @@ namespace SAM.Geometry.Grasshopper
                     List<Point3D> points = polygon3D.GetPoints();
                     if (points != null && points.Count > 0)
                     {
-                        result.Add((T)(object)new Polyline3D(points, true));
+                        Polyline3D polyline = new Polyline3D(points, true);
+                        if (polyline is T tPolyline)
+                        {
+                            result.Add(tPolyline);
+                        }
                     }
                     return;
                 }
@@ -380,12 +384,16 @@ namespace SAM.Geometry.Grasshopper
                                 List<Point3D> points = poly3D.GetPoints();
                                 if (points != null && points.Count > 0)
                                 {
-                                    result.Add((T)(object)new Polyline3D(points, true));
+                                    Polyline3D polyline = new Polyline3D(points, true);
+                                    if (polyline is T tPolyline)
+                                    {
+                                        result.Add(tPolyline);
+                                    }
                                 }
                             }
-                            else if (edge is Polyline3D polyline3D)
+                            else if (edge is Polyline3D polyline3D && polyline3D is T tPolyline)
                             {
-                                result.Add((T)(object)polyline3D);
+                                result.Add(tPolyline);
                             }
                         }
                     }
@@ -404,12 +412,16 @@ namespace SAM.Geometry.Grasshopper
                                 List<Point3D> points = poly3D.GetPoints();
                                 if (points != null && points.Count > 0)
                                 {
-                                    result.Add((T)(object)new Polyline3D(points, true));
+                                    Polyline3D polyline = new Polyline3D(points, true);
+                                    if (polyline is T tPolyline)
+                                    {
+                                        result.Add(tPolyline);
+                                    }
                                 }
                             }
-                            else if (edge is Polyline3D polyline3D)
+                            else if (edge is Polyline3D polyline3D && polyline3D is T tPolyline)
                             {
-                                result.Add((T)(object)polyline3D);
+                                result.Add(tPolyline);
                             }
                         }
                     }
@@ -417,42 +429,52 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
+            // 3. Polygon3D
             if (targetType == typeof(Polygon3D) || typeof(Polygon3D).IsAssignableFrom(targetType))
             {
                 if (value is Polyline3D polyline3D && polyline3D.IsClosed())
                 {
-                    result.Add((T)(object)polyline3D.ToPolygon3D());
-                    return;
+                    Polygon3D polygon3D = polyline3D.ToPolygon3D();
+                    if (polygon3D is T tPolygon)
+                    {
+                        result.Add(tPolygon);
+                        return;
+                    }
                 }
 
                 if (value is Polycurve3D polycurve3D)
                 {
                     if (Polycurve3D.TryGetPolyline3D(polycurve3D, out Polyline3D polyline) && polyline != null && polyline.IsClosed())
                     {
-                        result.Add((T)(object)polyline.ToPolygon3D());
-                        return;
+                        Polygon3D polygon3D = polyline.ToPolygon3D();
+                        if (polygon3D is T tPolygon)
+                        {
+                            result.Add(tPolygon);
+                            return;
+                        }
                     }
                 }
 
                 if (value is Face3D face3D)
                 {
-                    if (face3D.GetExternalEdge3D() is Polygon3D extPolygon)
+                    if (face3D.GetExternalEdge3D() is Polygon3D extPolygon && extPolygon is T tPolygon)
                     {
-                        result.Add((T)(object)extPolygon);
+                        result.Add(tPolygon);
                         return;
                     }
                 }
 
                 if (value is IFace3DObject face3DObject && face3DObject.Face3D != null)
                 {
-                    if (face3DObject.Face3D.GetExternalEdge3D() is Polygon3D extPolygon)
+                    if (face3DObject.Face3D.GetExternalEdge3D() is Polygon3D extPolygon && extPolygon is T tPolygon)
                     {
-                        result.Add((T)(object)extPolygon);
+                        result.Add(tPolygon);
                         return;
                     }
                 }
             }
 
+            // 4. Segment3D
             if (targetType == typeof(Segment3D) || typeof(Segment3D).IsAssignableFrom(targetType))
             {
                 if (value is ISegmentable3D segmentable3D)
@@ -462,9 +484,9 @@ namespace SAM.Geometry.Grasshopper
                     {
                         foreach (Segment3D segment in segments)
                         {
-                            if (segment != null)
+                            if (segment is T tSegment)
                             {
-                                result.Add((T)(object)segment);
+                                result.Add(tSegment);
                             }
                         }
                     }
@@ -485,9 +507,9 @@ namespace SAM.Geometry.Grasshopper
                                 {
                                     foreach (Segment3D segment in segments)
                                     {
-                                        if (segment != null)
+                                        if (segment is T tSegment)
                                         {
-                                            result.Add((T)(object)segment);
+                                            result.Add(tSegment);
                                         }
                                     }
                                 }
@@ -511,9 +533,9 @@ namespace SAM.Geometry.Grasshopper
                                 {
                                     foreach (Segment3D segment in segments)
                                     {
-                                        if (segment != null)
+                                        if (segment is T tSegment)
                                         {
-                                            result.Add((T)(object)segment);
+                                            result.Add(tSegment);
                                         }
                                     }
                                 }
@@ -544,9 +566,9 @@ namespace SAM.Geometry.Grasshopper
                                     {
                                         foreach (Segment3D segment in segments)
                                         {
-                                            if (segment != null)
+                                            if (segment is T tSegment)
                                             {
-                                                result.Add((T)(object)segment);
+                                                result.Add(tSegment);
                                             }
                                         }
                                     }
@@ -558,14 +580,39 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
+            // 5. Shell
+            if (targetType == typeof(Shell) || typeof(Shell).IsAssignableFrom(targetType))
+            {
+                if (value is Face3D face3D)
+                {
+                    Shell shell = new Shell(new List<Face3D> { face3D });
+                    if (shell is T tShell)
+                    {
+                        result.Add(tShell);
+                        return;
+                    }
+                }
+
+                if (value is IFace3DObject face3DObject && face3DObject.Face3D != null)
+                {
+                    Shell shell = new Shell(new List<Face3D> { face3DObject.Face3D });
+                    if (shell is T tShell)
+                    {
+                        result.Add(tShell);
+                        return;
+                    }
+                }
+            }
+
+            // 6. Plane
             if (targetType == typeof(Plane) || typeof(Plane).IsAssignableFrom(targetType))
             {
                 if (value is Face3D face3D)
                 {
                     Plane plane = face3D.GetPlane();
-                    if (plane != null)
+                    if (plane is T tPlane)
                     {
-                        result.Add((T)(object)plane);
+                        result.Add(tPlane);
                         return;
                     }
                 }
@@ -573,9 +620,9 @@ namespace SAM.Geometry.Grasshopper
                 if (value is IPlanar3D planar3D)
                 {
                     Plane plane = planar3D.GetPlane();
-                    if (plane != null)
+                    if (plane is T tPlane)
                     {
-                        result.Add((T)(object)plane);
+                        result.Add(tPlane);
                         return;
                     }
                 }
@@ -583,22 +630,120 @@ namespace SAM.Geometry.Grasshopper
                 if (value is IFace3DObject face3DObject && face3DObject.Face3D != null)
                 {
                     Plane plane = face3DObject.Face3D.GetPlane();
-                    if (plane != null)
+                    if (plane is T tPlane)
                     {
-                        result.Add((T)(object)plane);
+                        result.Add(tPlane);
                         return;
                     }
                 }
             }
 
+            // 7. Point3D
             if (targetType == typeof(Point3D) || typeof(Point3D).IsAssignableFrom(targetType))
             {
                 if (value is Spatial.Plane plane)
                 {
                     Point3D origin = plane.Origin;
-                    if (origin != null)
+                    if (origin is T tPoint)
                     {
-                        result.Add((T)(object)origin);
+                        result.Add(tPoint);
+                        return;
+                    }
+                }
+            }
+
+            // 8. ISegmentable3D (Interface target)
+            if (targetType == typeof(ISegmentable3D) || typeof(ISegmentable3D).IsAssignableFrom(targetType))
+            {
+                if (value is Polycurve3D polycurve3D)
+                {
+                    if (Polycurve3D.TryGetPolyline3D(polycurve3D, out Polyline3D polyline3D) && polyline3D is T tPolyline)
+                    {
+                        result.Add(tPolyline);
+                        return;
+                    }
+                }
+
+                if (value is Face3D face3D)
+                {
+                    List<IClosedPlanar3D> edge3Ds = face3D.GetEdge3Ds();
+                    if (edge3Ds != null)
+                    {
+                        foreach (IClosedPlanar3D edge in edge3Ds)
+                        {
+                            if (edge is ISegmentable3D segmentable3D && segmentable3D is T tSegEdge)
+                            {
+                                result.Add(tSegEdge);
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                if (value is IFace3DObject face3DObject && face3DObject.Face3D != null)
+                {
+                    List<IClosedPlanar3D> edge3Ds = face3DObject.Face3D.GetEdge3Ds();
+                    if (edge3Ds != null)
+                    {
+                        foreach (IClosedPlanar3D edge in edge3Ds)
+                        {
+                            if (edge is ISegmentable3D segmentable3D && segmentable3D is T tSegEdge)
+                            {
+                                result.Add(tSegEdge);
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                if (value is Shell shell && shell.Face3Ds != null)
+                {
+                    foreach (Face3D face in shell.Face3Ds)
+                    {
+                        if (face == null)
+                        {
+                            continue;
+                        }
+
+                        List<IClosedPlanar3D> edge3Ds = face.GetEdge3Ds();
+                        if (edge3Ds != null)
+                        {
+                            foreach (IClosedPlanar3D edge in edge3Ds)
+                            {
+                                if (edge is ISegmentable3D segmentable3D && segmentable3D is T tSegShell)
+                                {
+                                    result.Add(tSegShell);
+                                }
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                if (value is IClosedPlanar3D closedPlanar3D && closedPlanar3D is ISegmentable3D segmentable && segmentable is T tSegClosed)
+                {
+                    result.Add(tSegClosed);
+                    return;
+                }
+            }
+
+            // 9. IClosedPlanar3D (Interface target)
+            if (targetType == typeof(IClosedPlanar3D) || typeof(IClosedPlanar3D).IsAssignableFrom(targetType))
+            {
+                if (value is Face3D face3D)
+                {
+                    if (face3D.GetExternalEdge3D() is IClosedPlanar3D edge && edge is T tEdge)
+                    {
+                        result.Add(tEdge);
+                        return;
+                    }
+                }
+
+                if (value is IFace3DObject face3DObject && face3DObject.Face3D != null)
+                {
+                    if (face3DObject.Face3D.GetExternalEdge3D() is IClosedPlanar3D edge && edge is T tEdge)
+                    {
+                        result.Add(tEdge);
                         return;
                     }
                 }
