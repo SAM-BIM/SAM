@@ -53,17 +53,17 @@ namespace SAM.Geometry.Spatial
                 return false;
             }
 
-            if (!IsValid(plane.Origin))
+            if (!IsValid(plane.InternalOrigin))
             {
                 return false;
             }
 
-            if (!IsValid(plane.Normal))
+            if (!IsValid(plane.InternalNormal))
             {
                 return false;
             }
 
-            if (!IsValid(plane.AxisY))
+            if (!IsValid(plane.InternalAxisY))
             {
                 return false;
             }
