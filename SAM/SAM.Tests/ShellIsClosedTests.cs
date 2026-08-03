@@ -250,6 +250,48 @@ namespace SAM.Tests
         }
 
         [Fact]
+        public void IsClosed_PerpendicularOffsetExactlyTolerance_ReturnsTrue()
+        {
+            Shell shell = CreateCornerOffsetBoxShell(0, 1e-6);
+
+            Assert.True(shell.IsClosed(1e-6));
+        }
+
+        [Fact]
+        public void IsClosed_AxialOffsetExactlyTolerance_ReturnsTrue()
+        {
+            Shell shell = CreateCornerOffsetBoxShell(1e-6, 0);
+
+            Assert.True(shell.IsClosed(1e-6));
+        }
+
+        [Fact]
+        public void IsClosed_MidEdgeGapBeyondCombinedTolerance_ReturnsFalse()
+        {
+            // The two front-wall quads cover the long bottom edge of the single bottom
+            // face, but their bottom edges are separated by 2.1 x tolerance: after
+            // capsule expansion a ~0.1 x tolerance region stays farther than tolerance
+            // from every neighbouring edge and must report open.
+            Shell shell = CreateMidEdgeGapBoxShell(2.1e-3);
+
+            Assert.False(shell.IsClosed(1e-3));
+        }
+
+        [Fact]
+        public void NakedSegment3Ds_MidEdgeGapBeyondCombinedTolerance_ReportsSubTolerancePiece()
+        {
+            Shell shell = CreateMidEdgeGapBoxShell(2.1e-3);
+
+            List<Segment3D> segment3Ds = shell.NakedSegment3Ds(int.MaxValue, 1e-3);
+
+            Assert.NotNull(segment3Ds);
+
+            Segment3D piece = segment3Ds.FirstOrDefault(x => x.GetLength() < 1e-3 && System.Math.Abs(x.Mid().Y) < 1e-9 && System.Math.Abs(x.Mid().Z) < 1e-9);
+            Assert.NotNull(piece);
+            Assert.True(System.Math.Abs(piece.GetLength() - 0.1e-3) < 2e-5);
+        }
+
+        [Fact]
         public void IsClosed_LongDiagonalEdgesAmongShortEdges_ReturnsTrueWithinTimeBound()
         {
             // 200 x 5 x 5 box with its long axis along (1,1,1): the four ~200 long
@@ -279,6 +321,20 @@ namespace SAM.Tests
 
             face3Ds[index] = (Face3D)face3Ds[index].GetMoved(new Vector3D(axial, 0, -perpendicular));
             return new Shell(face3Ds);
+        }
+
+        private static Shell CreateMidEdgeGapBoxShell(double separation)
+        {
+            return new Shell(new List<Face3D>()
+            {
+                CreateQuad(new Point3D(0, 0, 0), new Point3D(10, 0, 0), new Point3D(10, 1, 0), new Point3D(0, 1, 0)),
+                CreateQuad(new Point3D(0, 0, 1), new Point3D(0, 1, 1), new Point3D(10, 1, 1), new Point3D(10, 0, 1)),
+                CreateQuad(new Point3D(0, 0, 0), new Point3D(0, 0, 1), new Point3D(5, 0, 1), new Point3D(5, 0, 0)),
+                CreateQuad(new Point3D(5 + separation, 0, 0), new Point3D(5 + separation, 0, 1), new Point3D(10, 0, 1), new Point3D(10, 0, 0)),
+                CreateQuad(new Point3D(10, 1, 0), new Point3D(10, 1, 1), new Point3D(0, 1, 1), new Point3D(0, 1, 0)),
+                CreateQuad(new Point3D(0, 1, 0), new Point3D(0, 1, 1), new Point3D(0, 0, 1), new Point3D(0, 0, 0)),
+                CreateQuad(new Point3D(10, 0, 0), new Point3D(10, 0, 1), new Point3D(10, 1, 1), new Point3D(10, 1, 0)),
+            });
         }
 
         private static Shell CreateLongDiagonalBoxShell(double length, double side)
