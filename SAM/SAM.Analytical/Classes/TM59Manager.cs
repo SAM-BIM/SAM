@@ -134,9 +134,41 @@ namespace SAM.Analytical
         }
 
         /// <summary>Occupancy (people) for a resolved TM59 InternalConditionResult, per the TM59 occupancy convention.</summary>
-        public int TM59Occupancy(TM59InternalConditionResult result)
+        public static int TM59Occupancy(TM59InternalConditionResult result)
         {
             return result?.Occupancy ?? 0;
+        }
+
+        private static readonly Dictionary<string, int> tm59OccupancyByConditionName = new Dictionary<string, int>
+        {
+            ["Studio"] = 2,
+            ["1 Bed Apt. Living Room/Kitchen"] = 2,
+            ["1 Bed Apt. Living Room"] = 2,
+            ["1 Bed Apt. Kitchen"] = 2,
+            ["2 Bed Apt. Living Room/Kitchen"] = 3,
+            ["2 Bed Apt. Living Room"] = 3,
+            ["2 Bed Apt. Kitchen"] = 3,
+            ["3 Bed Apt. Living Room/Kitchen"] = 4,
+            ["3 Bed Apt. Living Room"] = 4,
+            ["3 Bed Apt. Kitchen"] = 4,
+            ["Double Bedroom"] = 2,
+            ["Single Bedroom"] = 1,
+        };
+
+        /// <summary>
+        /// Occupancy (people) for a TM59 InternalCondition, looked up by its name against the
+        /// documented TM59 occupancy table - independent of any live resolver/flat context, for
+        /// callers (e.g. the UI, after the dialog has closed) that only have the final condition.
+        /// Returns 0 for non-habitable conditions or any name not in the table.
+        /// </summary>
+        public static int TM59Occupancy(InternalCondition internalCondition)
+        {
+            if (internalCondition?.Name == null)
+            {
+                return 0;
+            }
+
+            return tm59OccupancyByConditionName.TryGetValue(internalCondition.Name, out int occupancy) ? occupancy : 0;
         }
 
         public InternalCondition GetInternalCondition(AdjacencyCluster adjacencyCluster, InternalConditionLibrary internalConditionLibrary, Space space, string zoneType)
