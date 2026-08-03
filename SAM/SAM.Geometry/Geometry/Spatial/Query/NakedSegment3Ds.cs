@@ -118,15 +118,16 @@ namespace SAM.Geometry.Spatial
                 maxZs[i] = System.Math.Max(start.Z, end.Z);
             }
 
-            double length_Average = 0;
-            for (int i = 0; i < count; i++)
-            {
-                length_Average += lengths[i];
-            }
+            double[] lengths_Sorted = (double[])lengths.Clone();
+            Array.Sort(lengths_Sorted);
+            double cellSize = System.Math.Max(lengths_Sorted[count / 2], tolerance > 0 ? tolerance : Core.Tolerance.Distance);
 
-            double cellSize = System.Math.Max(length_Average / count, tolerance > 0 ? tolerance : Core.Tolerance.Distance);
+            const int maxCellsPerSegment = 4096;
 
             Dictionary<Tuple<long, long, long>, List<int>> dictionary = new Dictionary<Tuple<long, long, long>, List<int>>();
+            List<int> largeIndexes = new List<int>();
+            bool[] large = new bool[count];
+
             for (int i = 0; i < count; i++)
             {
                 long kx1 = (long)System.Math.Floor((minXs[i] - tolerance) / cellSize);
@@ -135,6 +136,13 @@ namespace SAM.Geometry.Spatial
                 long ky2 = (long)System.Math.Floor((maxYs[i] + tolerance) / cellSize);
                 long kz1 = (long)System.Math.Floor((minZs[i] - tolerance) / cellSize);
                 long kz2 = (long)System.Math.Floor((maxZs[i] + tolerance) / cellSize);
+
+                if ((double)(kx2 - kx1 + 1) * (ky2 - ky1 + 1) * (kz2 - kz1 + 1) > maxCellsPerSegment)
+                {
+                    large[i] = true;
+                    largeIndexes.Add(i);
+                    continue;
+                }
 
                 for (long kx = kx1; kx <= kx2; kx++)
                 {
@@ -161,6 +169,7 @@ namespace SAM.Geometry.Spatial
             for (int i = 0; i < count; i++)
             {
                 Point3D start = starts[i];
+                Point3D end = segment3Ds[i][1];
                 Vector3D unit = units[i];
                 double length = lengths[i];
                 int faceIndex = faceIndexes[i];
@@ -172,65 +181,108 @@ namespace SAM.Geometry.Spatial
                 double minZ = minZs[i] - tolerance;
                 double maxZ = maxZs[i] + tolerance;
 
-                long kx1 = (long)System.Math.Floor(minX / cellSize);
-                long kx2 = (long)System.Math.Floor(maxX / cellSize);
-                long ky1 = (long)System.Math.Floor(minY / cellSize);
-                long ky2 = (long)System.Math.Floor(maxY / cellSize);
-                long kz1 = (long)System.Math.Floor(minZ / cellSize);
-                long kz2 = (long)System.Math.Floor(maxZ / cellSize);
-
                 int stamp = i + 1;
                 intervals.Clear();
 
-                for (long kx = kx1; kx <= kx2; kx++)
+                double distance_Start = double.MaxValue;
+                double distance_End = double.MaxValue;
+
+                void ProcessCandidate(int j)
                 {
-                    for (long ky = ky1; ky <= ky2; ky++)
+                    if (j == i || stamps[j] == stamp || faceIndexes[j] == faceIndex)
                     {
-                        for (long kz = kz1; kz <= kz2; kz++)
+                        return;
+                    }
+
+                    stamps[j] = stamp;
+
+                    if (maxXs[j] < minX || minXs[j] > maxX || maxYs[j] < minY || minYs[j] > maxY || maxZs[j] < minZ || minZs[j] > maxZ)
+                    {
+                        return;
+                    }
+
+                    double distance_Temp = segment3Ds[j].Distance(start);
+                    if (distance_Temp < distance_Start)
+                    {
+                        distance_Start = distance_Temp;
+                    }
+
+                    distance_Temp = segment3Ds[j].Distance(end);
+                    if (distance_Temp < distance_End)
+                    {
+                        distance_End = distance_Temp;
+                    }
+
+                    Vector3D vector3D_1 = new Vector3D(start, starts[j]);
+                    double perpendicular_1 = vector3D_1.CrossProduct(unit).Length;
+                    if (perpendicular_1 > tolerance)
+                    {
+                        return;
+                    }
+
+                    Vector3D vector3D_2 = new Vector3D(start, segment3Ds[j][1]);
+                    double perpendicular_2 = vector3D_2.CrossProduct(unit).Length;
+                    if (perpendicular_2 > tolerance)
+                    {
+                        return;
+                    }
+
+                    double t1 = vector3D_1.DotProduct(unit);
+                    double t2 = vector3D_2.DotProduct(unit);
+
+                    double perpendicular_A = t1 <= t2 ? perpendicular_1 : perpendicular_2;
+                    double perpendicular_B = t1 <= t2 ? perpendicular_2 : perpendicular_1;
+
+                    double a = System.Math.Min(t1, t2) - System.Math.Sqrt(System.Math.Max(0, tolerance * tolerance - perpendicular_A * perpendicular_A));
+                    double b = System.Math.Max(t1, t2) + System.Math.Sqrt(System.Math.Max(0, tolerance * tolerance - perpendicular_B * perpendicular_B));
+
+                    a = System.Math.Max(a, 0);
+                    b = System.Math.Min(b, length);
+
+                    if (a < b)
+                    {
+                        intervals.Add(new Tuple<double, double>(a, b));
+                    }
+                }
+
+                if (large[i])
+                {
+                    for (int j = 0; j < count; j++)
+                    {
+                        ProcessCandidate(j);
+                    }
+                }
+                else
+                {
+                    long kx1 = (long)System.Math.Floor(minX / cellSize);
+                    long kx2 = (long)System.Math.Floor(maxX / cellSize);
+                    long ky1 = (long)System.Math.Floor(minY / cellSize);
+                    long ky2 = (long)System.Math.Floor(maxY / cellSize);
+                    long kz1 = (long)System.Math.Floor(minZ / cellSize);
+                    long kz2 = (long)System.Math.Floor(maxZ / cellSize);
+
+                    for (long kx = kx1; kx <= kx2; kx++)
+                    {
+                        for (long ky = ky1; ky <= ky2; ky++)
                         {
-                            if (!dictionary.TryGetValue(new Tuple<long, long, long>(kx, ky, kz), out List<int> list))
+                            for (long kz = kz1; kz <= kz2; kz++)
                             {
-                                continue;
-                            }
-
-                            foreach (int j in list)
-                            {
-                                if (j == i || stamps[j] == stamp || faceIndexes[j] == faceIndex)
+                                if (!dictionary.TryGetValue(new Tuple<long, long, long>(kx, ky, kz), out List<int> list))
                                 {
                                     continue;
                                 }
 
-                                stamps[j] = stamp;
-
-                                if (maxXs[j] < minX || minXs[j] > maxX || maxYs[j] < minY || minYs[j] > maxY || maxZs[j] < minZ || minZs[j] > maxZ)
+                                foreach (int j in list)
                                 {
-                                    continue;
-                                }
-
-                                Vector3D vector3D_1 = new Vector3D(start, starts[j]);
-                                if (vector3D_1.CrossProduct(unit).Length > tolerance)
-                                {
-                                    continue;
-                                }
-
-                                Vector3D vector3D_2 = new Vector3D(start, segment3Ds[j][1]);
-                                if (vector3D_2.CrossProduct(unit).Length > tolerance)
-                                {
-                                    continue;
-                                }
-
-                                double t1 = vector3D_1.DotProduct(unit);
-                                double t2 = vector3D_2.DotProduct(unit);
-
-                                double a = System.Math.Max(System.Math.Min(t1, t2), 0);
-                                double b = System.Math.Min(System.Math.Max(t1, t2), length);
-
-                                if (a < b)
-                                {
-                                    intervals.Add(new Tuple<double, double>(a, b));
+                                    ProcessCandidate(j);
                                 }
                             }
                         }
+                    }
+
+                    foreach (int j in largeIndexes)
+                    {
+                        ProcessCandidate(j);
                     }
                 }
 
@@ -240,7 +292,7 @@ namespace SAM.Geometry.Spatial
                     intervals.Sort((x, y) => x.Item1.CompareTo(y.Item1));
                     foreach (Tuple<double, double> interval in intervals)
                     {
-                        if (interval.Item1 > reach && interval.Item1 - reach >= tolerance)
+                        if (interval.Item1 > reach && (interval.Item1 - reach >= tolerance || (reach == 0 && distance_Start >= tolerance)))
                         {
                             result.Add(NakedSegment3D(segment3Ds[i], start, unit, reach, interval.Item1, length));
                             if (result.Count >= maxCount)
@@ -261,7 +313,7 @@ namespace SAM.Geometry.Spatial
                     }
                 }
 
-                if (length - reach >= tolerance)
+                if (reach < length && (length - reach >= tolerance || distance_End >= tolerance))
                 {
                     result.Add(NakedSegment3D(segment3Ds[i], start, unit, reach, length, length));
                     if (result.Count >= maxCount)
