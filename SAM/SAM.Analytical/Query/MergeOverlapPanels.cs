@@ -560,7 +560,6 @@ namespace SAM.Analytical
             public static Point2DGrid Create(List<Point2D> point2Ds_All, double tolerance)
             {
                 double cellSize_Distinct = tolerance > 0 ? tolerance : Core.Tolerance.Distance;
-
                 List<Point2D> point2Ds = new List<Point2D>();
                 Dictionary<Tuple<long, long>, List<Point2D>> dictionary = new Dictionary<Tuple<long, long>, List<Point2D>>();
 
@@ -614,7 +613,8 @@ namespace SAM.Analytical
 
             /// <summary>
             /// The de-duplicated snap points in acceptance order - the same list repeated
-            /// Geometry.Planar.Modify.Add calls would have produced.
+            /// Geometry.Planar.Modify.Add calls would have produced. The list is live: it must
+            /// not be mutated while the grid is in use.
             /// </summary>
             public List<Point2D> Points
             {
@@ -764,7 +764,7 @@ namespace SAM.Analytical
         /// Envelope index over the polygons of a coplanar group, keyed by their position in
         /// <paramref name="tuples_Polygon"/> so results can be restored to list order.
         /// </summary>
-        private static STRtree<int> Index(List<Tuple<Polygon, Panel>> tuples_Polygon)
+        private static STRtree<int> Index<T>(List<Tuple<Polygon, T>> tuples_Polygon)
         {
             STRtree<int> result = new STRtree<int>();
             for (int i = 0; i < tuples_Polygon.Count; i++)
@@ -787,9 +787,9 @@ namespace SAM.Analytical
         /// predicate still decides every candidate and the returned list is the same - same
         /// members, same list order - as the full scan it replaces.
         /// </summary>
-        private static List<Tuple<Polygon, Panel>> FindAll(STRtree<int> index, List<Tuple<Polygon, Panel>> tuples_Polygon, Envelope envelope, Func<Tuple<Polygon, Panel>, bool> predicate)
+        private static List<Tuple<Polygon, T>> FindAll<T>(STRtree<int> index, List<Tuple<Polygon, T>> tuples_Polygon, Envelope envelope, Func<Tuple<Polygon, T>, bool> predicate)
         {
-            List<Tuple<Polygon, Panel>> result = new List<Tuple<Polygon, Panel>>();
+            List<Tuple<Polygon, T>> result = new List<Tuple<Polygon, T>>();
 
             IList<int> indexes = index.Query(envelope);
             if (indexes == null || indexes.Count == 0)
@@ -800,7 +800,7 @@ namespace SAM.Analytical
 
             foreach (int i in indexes_Sorted)
             {
-                Tuple<Polygon, Panel> tuple = tuples_Polygon[i];
+                Tuple<Polygon, T> tuple = tuples_Polygon[i];
                 if (predicate(tuple))
                     result.Add(tuple);
             }
