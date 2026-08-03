@@ -274,6 +274,13 @@ namespace SAM.Geometry.Planar
                 bool similar = false;
                 foreach (int index in grid.Candidates(boundingBox2Ds[i]))
                 {
+                    // Cheap necessary condition first: bounds must agree within tolerance.
+                    // It only skips pairs the exact predicate would always reject.
+                    if (!BoundsInRange(boundingBox2Ds[i], grid[index], tolerance))
+                    {
+                        continue;
+                    }
+
                     if (Query.AlmostSimilar(result[index], segmentable2D, tolerance))
                     {
                         similar = true;
@@ -292,6 +299,23 @@ namespace SAM.Geometry.Planar
 
             segmentable2Ds.Clear();
             segmentable2Ds.AddRange(result);
+        }
+
+        private static bool BoundsInRange(BoundingBox2D boundingBox2D_1, BoundingBox2D boundingBox2D_2, double tolerance)
+        {
+            // Necessary condition for Query.AlmostSimilar(ISegmentable2D, ...): every point of
+            // each geometry lies on the other within tolerance, so all four bounding-box bounds
+            // must agree within tolerance. NaN tolerance passes everything through - the exact
+            // predicate keeps its historical NaN behaviour (reference equality still matches).
+            if (boundingBox2D_1 == null || boundingBox2D_2 == null || double.IsNaN(tolerance))
+            {
+                return true;
+            }
+
+            return System.Math.Abs(boundingBox2D_1.Min.X - boundingBox2D_2.Min.X) <= tolerance
+                && System.Math.Abs(boundingBox2D_1.Min.Y - boundingBox2D_2.Min.Y) <= tolerance
+                && System.Math.Abs(boundingBox2D_1.Max.X - boundingBox2D_2.Max.X) <= tolerance
+                && System.Math.Abs(boundingBox2D_1.Max.Y - boundingBox2D_2.Max.Y) <= tolerance;
         }
 
         private static BoundingBox2D BoundingBox(ISegmentable2D segmentable2D)

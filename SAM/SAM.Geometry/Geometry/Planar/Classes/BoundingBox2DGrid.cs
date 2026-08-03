@@ -30,27 +30,30 @@ namespace SAM.Geometry.Planar
         private const int MaxCellsPerItem = 4096;
 
         private readonly double tolerance;
-        private readonly double cellSize;
         private readonly List<BoundingBox2D> boundingBox2Ds;
+        private readonly List<double> extents;
+        private readonly List<bool> aside;
         private readonly Dictionary<Tuple<long, long>, List<int>> dictionary;
         private readonly List<int> unbounded;
+
+        private double cellSize;
 
         /// <param name="tolerance">Exact-predicate tolerance; boxes are inflated by it on insert.</param>
         /// <param name="cellSizeHint">
         /// Typical box extent, e.g. the median extent of the indexed set. The grid is correct
         /// for any cell size - containment, not the cell size, defines the candidate superset -
         /// but a cell size far below the box size would make every box span thousands of cells.
+        /// When the running median extent drifts away from the cell size (mixed-scale sets,
+        /// e.g. long segments later split into short pieces) the grid rehashes itself.
         /// </param>
         public BoundingBox2DGrid(double tolerance, double cellSizeHint = 0)
         {
             this.tolerance = tolerance;
-            cellSize = tolerance > 0 ? tolerance : Core.Tolerance.Distance;
-            if (cellSizeHint > cellSize)
-            {
-                cellSize = cellSizeHint;
-            }
+            cellSize = ClampCellSize(tolerance, cellSizeHint);
 
             boundingBox2Ds = new List<BoundingBox2D>();
+            extents = new List<double>();
+            aside = new List<bool>();
             dictionary = new Dictionary<Tuple<long, long>, List<int>>();
             unbounded = new List<int>();
         }
@@ -75,19 +78,37 @@ namespace SAM.Geometry.Planar
         {
             int index = boundingBox2Ds.Count;
             boundingBox2Ds.Add(boundingBox2D);
+            aside.Add(false);
 
             if (!IsFinite(boundingBox2D))
             {
+                extents.Add(-1);
+                aside[index] = true;
                 unbounded.Add(index);
                 return index;
             }
 
+            extents.Add(System.Math.Max(boundingBox2D.Max.X - boundingBox2D.Min.X, boundingBox2D.Max.Y - boundingBox2D.Min.Y));
+
+            Insert(index, boundingBox2D);
+
+            if (index + 1 >= 32 && ((index + 1) & index) == 0)
+            {
+                RehashIfSkewed();
+            }
+
+            return index;
+        }
+
+        private void Insert(int index, BoundingBox2D boundingBox2D)
+        {
             Cells(boundingBox2D, tolerance, out long kx1, out long kx2, out long ky1, out long ky2);
 
             if (!IsValid(kx1, kx2, ky1, ky2) || CellCount(kx1, kx2, ky1, ky2) > MaxCellsPerItem)
             {
+                aside[index] = true;
                 unbounded.Add(index);
-                return index;
+                return;
             }
 
             for (long kx = kx1 - 1; kx <= kx2 + 1; kx++)
@@ -104,8 +125,63 @@ namespace SAM.Geometry.Planar
                     list.Add(index);
                 }
             }
+        }
 
-            return index;
+        /// <summary>
+        /// Rehashes with a cell size matching the running median extent when the inserted
+        /// boxes have drifted away from the current cell size. Amortised: evaluated only at
+        /// power-of-two insert counts.
+        /// </summary>
+        private void RehashIfSkewed()
+        {
+            double median = Median(extents);
+            if (median <= 0)
+            {
+                return;
+            }
+
+            double target = ClampCellSize(tolerance, median);
+            if (target <= cellSize * 4 && target >= cellSize / 4)
+            {
+                return;
+            }
+
+            cellSize = target;
+
+            dictionary.Clear();
+            for (int i = 0; i < boundingBox2Ds.Count; i++)
+            {
+                if (!aside[i])
+                {
+                    Insert(i, boundingBox2Ds[i]);
+                }
+            }
+        }
+
+        private static double Median(List<double> values)
+        {
+            List<double> sorted = new List<double>();
+            foreach (double value in values)
+            {
+                if (value > 0 && IsFinite(value))
+                {
+                    sorted.Add(value);
+                }
+            }
+
+            if (sorted.Count == 0)
+            {
+                return 0;
+            }
+
+            sorted.Sort();
+            return sorted[sorted.Count / 2];
+        }
+
+        private static double ClampCellSize(double tolerance, double extent)
+        {
+            double cellSize = tolerance > 0 ? tolerance : Core.Tolerance.Distance;
+            return extent > cellSize ? extent : cellSize;
         }
 
         /// <summary>
