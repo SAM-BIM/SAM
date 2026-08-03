@@ -239,13 +239,71 @@ namespace SAM.Geometry.Planar
             if (segmentable2Ds == null)
                 return;
 
+            // AlmostSimilar demands that every point of each geometry lie on the other within
+            // tolerance, in both directions, so the two bounding boxes must agree to within
+            // tolerance on every bound - a necessary condition the kept set is indexed on.
+            // The old code scanned the whole result with Query.AlmostSimilar for every new
+            // geometry; the grid narrows that to the box-compatible kept geometries. The exact
+            // predicate still decides every candidate, and the first occurrence still wins.
+            BoundingBox2DGrid grid = new BoundingBox2DGrid(tolerance);
+
             List<T> result = new List<T>();
             foreach (T segmentable2D in segmentable2Ds)
-                if (result.Find(x => Query.AlmostSimilar(x, segmentable2D, tolerance)) == null)
-                    result.Add(segmentable2D);
+            {
+                BoundingBox2D boundingBox2D = BoundingBox(segmentable2D);
+
+                bool similar = false;
+                foreach (int index in grid.Candidates(boundingBox2D))
+                {
+                    if (Query.AlmostSimilar(result[index], segmentable2D, tolerance))
+                    {
+                        similar = true;
+                        break;
+                    }
+                }
+
+                if (similar)
+                {
+                    continue;
+                }
+
+                grid.Add(boundingBox2D);
+                result.Add(segmentable2D);
+            }
 
             segmentable2Ds.Clear();
             segmentable2Ds.AddRange(result);
+        }
+
+        private static BoundingBox2D BoundingBox(ISegmentable2D segmentable2D)
+        {
+            List<Point2D> point2Ds = segmentable2D?.GetPoints();
+            if (point2Ds == null || point2Ds.Count == 0)
+            {
+                return null;
+            }
+
+            double minX = double.MaxValue;
+            double minY = double.MaxValue;
+            double maxX = double.MinValue;
+            double maxY = double.MinValue;
+
+            bool found = false;
+            foreach (Point2D point2D in point2Ds)
+            {
+                if (point2D == null)
+                {
+                    continue;
+                }
+
+                minX = System.Math.Min(minX, point2D.X);
+                minY = System.Math.Min(minY, point2D.Y);
+                maxX = System.Math.Max(maxX, point2D.X);
+                maxY = System.Math.Max(maxY, point2D.Y);
+                found = true;
+            }
+
+            return found ? new BoundingBox2D(new Point2D(minX, minY), new Point2D(maxX, maxY)) : null;
         }
     }
 }
