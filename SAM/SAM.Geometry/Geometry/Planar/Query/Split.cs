@@ -22,7 +22,14 @@ namespace SAM.Geometry.Planar
                 return null;
 
             List<Tuple<BoundingBox2D, Segment2D>> tuples = new List<Tuple<BoundingBox2D, Segment2D>>();
-            List<Point2D> point2Ds = new List<Point2D>();
+            // Deduplicated intersection endpoints. Modify.Add over this list used to rescan
+            // every accepted point for each new endpoint and each intersection found by the
+            // pair loop below, and the Find at the intersection lookup did the same again -
+            // all three are proximity queries on the same set, so they share one grid. The
+            // exact Modify.Add / AlmostEquals rules are re-evaluated per candidate, and the
+            // grid returns points in insertion order, so identical duplicates resolve to the
+            // same stored instance as before.
+            Point2DGrid point2Ds = new Point2DGrid(tolerance);
             foreach (Segment2D segment2D in segment2Ds)
             {
                 if (segment2D == null || segment2D.GetLength() < tolerance)
@@ -31,8 +38,8 @@ namespace SAM.Geometry.Planar
                 }
 
                 tuples.Add(new Tuple<BoundingBox2D, Segment2D>(segment2D.GetBoundingBox(), segment2D));
-                Modify.Add(point2Ds, segment2D[0], tolerance);
-                Modify.Add(point2Ds, segment2D[1], tolerance);
+                AddIfAbsent(point2Ds, segment2D[0], tolerance);
+                AddIfAbsent(point2Ds, segment2D[1], tolerance);
             }
 
             int count = tuples.Count();
@@ -94,11 +101,11 @@ namespace SAM.Geometry.Planar
 
                     foreach (Point2D point2D_Intersection in point2Ds_Intersection)
                     {
-                        Point2D point2D_Intersection_Temp = point2Ds.Find(x => point2D_Intersection.AlmostEquals(x, tolerance));
+                        Point2D point2D_Intersection_Temp = FindAlmostEqual(point2Ds, point2D_Intersection, tolerance);
                         if (point2D_Intersection_Temp == null)
                         {
                             point2D_Intersection_Temp = point2D_Intersection;
-                            Modify.Add(point2Ds, point2D_Intersection_Temp, tolerance);
+                            AddIfAbsent(point2Ds, point2D_Intersection_Temp, tolerance);
                         }
 
                         if (point2D_Intersection_Temp.Distance(segment2D_1.Start) > tolerance && point2D_Intersection_Temp.Distance(segment2D_1.End) > tolerance)
@@ -125,15 +132,34 @@ namespace SAM.Geometry.Planar
             }
 
             List<Segment2D> result = new List<Segment2D>();
+            // Both result scans below - the AlmostSimilar dedup and the endpoint-pair dedup -
+            // can only match a kept segment whose bounding box agrees with the candidate's box
+            // to within tolerance, so the kept set is indexed on that box and only those
+            // candidates reach the exact predicates.
+            BoundingBox2DGrid grid_Result = new BoundingBox2DGrid(tolerance);
             for (int i = 0; i < count; i++)
             {
                 Segment2D segment2D_Temp = tuples[i].Item2;
-                if (result.Find(x => x.AlmostSimilar(segment2D_Temp, tolerance)) != null)
+
+                bool similar = false;
+                foreach (int index in grid_Result.Candidates(segment2D_Temp.GetBoundingBox()))
+                {
+                    if (result[index].AlmostSimilar(segment2D_Temp, tolerance))
+                    {
+                        similar = true;
+                        break;
+                    }
+                }
+
+                if (similar)
+                {
                     continue;
+                }
 
                 List<Point2D> point2Ds_Temp = point2DsList[i];
                 if (point2Ds_Temp == null || point2Ds_Temp.Count == 0)
                 {
+                    grid_Result.Add(segment2D_Temp.GetBoundingBox());
                     result.Add(segment2D_Temp);
                     continue;
                 }
@@ -148,15 +174,71 @@ namespace SAM.Geometry.Planar
                     Point2D point2D_1 = point2Ds_Temp[j];
                     Point2D point2D_2 = point2Ds_Temp[j + 1];
 
-                    Segment2D segment2D = result.Find(x => (x[0].AlmostEquals(point2D_1, tolerance) && x[1].AlmostEquals(point2D_2, tolerance)) || (x[1].AlmostEquals(point2D_1, tolerance) && x[0].AlmostEquals(point2D_2, tolerance)));
+                    Segment2D segment2D = null;
+                    BoundingBox2D boundingBox2D_Piece = null;
+                    foreach (int index in grid_Result.Candidates(boundingBox2D_Piece = new BoundingBox2D(point2D_1, point2D_2)))
+                    {
+                        Segment2D segment2D_Temp_2 = result[index];
+                        if ((segment2D_Temp_2[0].AlmostEquals(point2D_1, tolerance) && segment2D_Temp_2[1].AlmostEquals(point2D_2, tolerance)) || (segment2D_Temp_2[1].AlmostEquals(point2D_1, tolerance) && segment2D_Temp_2[0].AlmostEquals(point2D_2, tolerance)))
+                        {
+                            segment2D = segment2D_Temp_2;
+                            break;
+                        }
+                    }
+
                     if (segment2D != null)
                         continue;
 
                     result.Add(new Segment2D(point2D_1, point2D_2));
+                    grid_Result.Add(boundingBox2D_Piece);
                 }
             }
 
             return result;
+        }
+
+        private static bool AddIfAbsent(Point2DGrid point2DGrid, Point2D point2D, double tolerance)
+        {
+            // Same acceptance rule as Modify.Add: an existing point within Euclidean distance
+            // rejects the new one (the axis checks there are redundant prefilters). Candidates
+            // arrive in insertion order, so the decision matches the list scan exactly.
+            if (point2D == null)
+            {
+                return false;
+            }
+
+            foreach (int index in point2DGrid.Candidates(point2D))
+            {
+                Point2D point2D_Temp = point2DGrid[index];
+                if (point2D_Temp == null)
+                {
+                    continue;
+                }
+
+                if (point2D_Temp.Distance(point2D) <= tolerance)
+                {
+                    return false;
+                }
+            }
+
+            point2DGrid.Add(point2D);
+            return true;
+        }
+
+        private static Point2D FindAlmostEqual(Point2DGrid point2DGrid, Point2D point2D, double tolerance)
+        {
+            // First point in insertion order passing the strict axis AlmostEquals test - the
+            // same match List.Find(AlmostEquals) returned.
+            foreach (int index in point2DGrid.Candidates(point2D))
+            {
+                Point2D point2D_Temp = point2DGrid[index];
+                if (point2D_Temp != null && point2D.AlmostEquals(point2D_Temp, tolerance))
+                {
+                    return point2D_Temp;
+                }
+            }
+
+            return null;
         }
 
         public static List<Segment2D> Split(this IEnumerable<ISegmentable2D> segmentable2Ds, double tolerance = Core.Tolerance.Distance)
