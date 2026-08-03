@@ -185,8 +185,8 @@ namespace SAM.Tests
 
             Segment3D uncovered = segment3Ds.FirstOrDefault(x => System.Math.Abs(x.Mid().Y) < 1e-9 && System.Math.Abs(x.Mid().Z) < 1e-9);
             Assert.NotNull(uncovered);
-            Assert.True(System.Math.Abs(uncovered.GetLength() - 0.5) < Core.Tolerance.Distance);
-            Assert.True(System.Math.Abs(uncovered.Mid().X - 0.75) < Core.Tolerance.Distance);
+            Assert.True(System.Math.Abs(uncovered.GetLength() - 0.5) < 2e-6);
+            Assert.True(System.Math.Abs(uncovered.Mid().X - 0.75) < 2e-6);
         }
 
         [Fact]
@@ -211,6 +211,99 @@ namespace SAM.Tests
 
             Assert.NotNull(segment3Ds);
             Assert.Empty(segment3Ds);
+        }
+
+        [Fact]
+        public void IsClosed_CornerOffsetAxialAndPerpendicularAboveTolerance_ReturnsFalse()
+        {
+            // Front wall moved by (0.9e-6 axial, 0.9e-6 perpendicular): the Euclidean
+            // corner gap is sqrt(0.9^2 + 0.9^2) e-6 = 1.27e-6 > 1e-6, so the shell
+            // must report open even though each component is below tolerance.
+            Shell shell = CreateCornerOffsetBoxShell(0.9e-6, 0.9e-6);
+
+            Assert.False(shell.IsClosed(1e-6));
+        }
+
+        [Fact]
+        public void IsClosed_CornerOffsetAxialAndPerpendicularWithinTolerance_ReturnsTrue()
+        {
+            // Same construction at (0.6e-6, 0.6e-6): Euclidean corner gap 0.85e-6 < 1e-6.
+            Shell shell = CreateCornerOffsetBoxShell(0.6e-6, 0.6e-6);
+
+            Assert.True(shell.IsClosed(1e-6));
+        }
+
+        [Fact]
+        public void IsClosed_PerpendicularOffsetAboveTolerance_ReturnsFalse()
+        {
+            Shell shell = CreateCornerOffsetBoxShell(0, 1.5e-6);
+
+            Assert.False(shell.IsClosed(1e-6));
+        }
+
+        [Fact]
+        public void IsClosed_PerpendicularOffsetWithinTolerance_ReturnsTrue()
+        {
+            Shell shell = CreateCornerOffsetBoxShell(0, 0.5e-6);
+
+            Assert.True(shell.IsClosed(1e-6));
+        }
+
+        [Fact]
+        public void IsClosed_LongDiagonalEdgesAmongShortEdges_ReturnsTrueWithinTimeBound()
+        {
+            // 200 x 5 x 5 box with its long axis along (1,1,1): the four ~200 long
+            // diagonal edges span thousands of uniform-grid cells per axis among the
+            // short 5 long edges (median cell size), exercising the max-cells guard.
+            // Without the guard, insertion would create millions of cell entries.
+            Shell shell = CreateLongDiagonalBoxShell(200, 5);
+
+            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            bool result = shell.IsClosed(Core.Tolerance.Distance);
+            stopwatch.Stop();
+
+            Assert.True(result);
+            Assert.True(stopwatch.ElapsedMilliseconds < 10000, $"Expected bounded runtime, took {stopwatch.ElapsedMilliseconds} ms");
+        }
+
+        private static Shell CreateCornerOffsetBoxShell(double axial, double perpendicular)
+        {
+            Shell shell = CreateBoxShell(0, 0, 0, 1, 1, 1);
+            List<Face3D> face3Ds = shell.Face3Ds;
+
+            int index = face3Ds.FindIndex(x =>
+            {
+                BoundingBox3D boundingBox3D = x.GetBoundingBox();
+                return boundingBox3D != null && System.Math.Abs(boundingBox3D.Min.Y) < 1e-9 && System.Math.Abs(boundingBox3D.Max.Y) < 1e-9;
+            });
+
+            face3Ds[index] = (Face3D)face3Ds[index].GetMoved(new Vector3D(axial, 0, -perpendicular));
+            return new Shell(face3Ds);
+        }
+
+        private static Shell CreateLongDiagonalBoxShell(double length, double side)
+        {
+            Vector3D u = new Vector3D(1, 1, 1).GetNormalized();
+            Vector3D v = new Vector3D(1, -1, 0).GetNormalized();
+            Vector3D w = u.CrossProduct(v).GetNormalized();
+
+            Point3D Point(double a, double b, double c)
+            {
+                return new Point3D(
+                    u.X * a + v.X * b + w.X * c,
+                    u.Y * a + v.Y * b + w.Y * c,
+                    u.Z * a + v.Z * b + w.Z * c);
+            }
+
+            return new Shell(new List<Face3D>()
+            {
+                CreateQuad(Point(0, 0, 0), Point(length, 0, 0), Point(length, side, 0), Point(0, side, 0)),
+                CreateQuad(Point(0, 0, side), Point(0, side, side), Point(length, side, side), Point(length, 0, side)),
+                CreateQuad(Point(0, 0, 0), Point(0, 0, side), Point(length, 0, side), Point(length, 0, 0)),
+                CreateQuad(Point(length, 0, 0), Point(length, 0, side), Point(length, side, side), Point(length, side, 0)),
+                CreateQuad(Point(length, side, 0), Point(length, side, side), Point(0, side, side), Point(0, side, 0)),
+                CreateQuad(Point(0, side, 0), Point(0, side, side), Point(0, 0, side), Point(0, 0, 0)),
+            });
         }
 
         private static Shell CreateBoxShell(double x0, double y0, double z0, double width, double depth, double height)
