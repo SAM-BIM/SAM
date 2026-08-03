@@ -142,8 +142,15 @@ namespace SAM.Geometry.Planar
                 Segment2D segment2D_Temp = tuples[i].Item2;
 
                 bool similar = false;
-                foreach (int index in grid_Result.Candidates(segment2D_Temp.GetBoundingBox()))
+                BoundingBox2D boundingBox2D_Temp = segment2D_Temp.GetBoundingBox();
+                foreach (int index in grid_Result.Candidates(boundingBox2D_Temp))
                 {
+                    // Cheap necessary condition first: bounds must agree within tolerance.
+                    if (!BoundsInRange(boundingBox2D_Temp, grid_Result[index], tolerance))
+                    {
+                        continue;
+                    }
+
                     if (result[index].AlmostSimilar(segment2D_Temp, tolerance))
                     {
                         similar = true;
@@ -178,6 +185,12 @@ namespace SAM.Geometry.Planar
                     BoundingBox2D boundingBox2D_Piece = null;
                     foreach (int index in grid_Result.Candidates(boundingBox2D_Piece = new BoundingBox2D(point2D_1, point2D_2)))
                     {
+                        // Cheap necessary condition first: bounds must agree within tolerance.
+                        if (!BoundsInRange(boundingBox2D_Piece, grid_Result[index], tolerance))
+                        {
+                            continue;
+                        }
+
                         Segment2D segment2D_Temp_2 = result[index];
                         if ((segment2D_Temp_2[0].AlmostEquals(point2D_1, tolerance) && segment2D_Temp_2[1].AlmostEquals(point2D_2, tolerance)) || (segment2D_Temp_2[1].AlmostEquals(point2D_1, tolerance) && segment2D_Temp_2[0].AlmostEquals(point2D_2, tolerance)))
                         {
@@ -195,6 +208,23 @@ namespace SAM.Geometry.Planar
             }
 
             return result;
+        }
+
+        private static bool BoundsInRange(BoundingBox2D boundingBox2D_1, BoundingBox2D boundingBox2D_2, double tolerance)
+        {
+            // Necessary condition for both dedup predicates above: a match requires every
+            // bounding-box bound to agree within tolerance. It only skips pairs the exact
+            // predicates would always reject. NaN tolerance passes everything through, so the
+            // exact predicates keep their historical NaN behaviour.
+            if (boundingBox2D_1 == null || boundingBox2D_2 == null || double.IsNaN(tolerance))
+            {
+                return true;
+            }
+
+            return System.Math.Abs(boundingBox2D_1.Min.X - boundingBox2D_2.Min.X) <= tolerance
+                && System.Math.Abs(boundingBox2D_1.Min.Y - boundingBox2D_2.Min.Y) <= tolerance
+                && System.Math.Abs(boundingBox2D_1.Max.X - boundingBox2D_2.Max.X) <= tolerance
+                && System.Math.Abs(boundingBox2D_1.Max.Y - boundingBox2D_2.Max.Y) <= tolerance;
         }
 
         private static bool AddIfAbsent(Point2DGrid point2DGrid, Point2D point2D, double tolerance)
