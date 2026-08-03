@@ -16,6 +16,37 @@ namespace SAM.Geometry.Planar
 
             int count = geometries.Count;
 
+            if (double.IsNaN(tolerance))
+            {
+                // Historical behaviour: Query.AlmostSimilar rejects with `distance > tolerance`,
+                // which is false for every pair when tolerance is NaN, so the exhaustive scan
+                // marked every later geometry for removal. The bucket pass below would only
+                // reach neighbouring buckets and silently change that, so the original scan is
+                // kept for this input. NaN is not reinterpreted as a finite tolerance.
+                HashSet<int> indexes_HashSet_NaN = new HashSet<int>();
+                for (int i = 0; i < count - 1; i++)
+                {
+                    if (indexes_HashSet_NaN.Contains(i))
+                        continue;
+
+                    for (int j = i + 1; j < count; j++)
+                    {
+                        if (indexes_HashSet_NaN.Contains(j))
+                            continue;
+
+                        if (Query.AlmostSimilar(geometries[i], geometries[j], tolerance))
+                            indexes_HashSet_NaN.Add(j);
+                    }
+                }
+
+                List<int> indexes_List_NaN = indexes_HashSet_NaN.ToList();
+                indexes_List_NaN.Sort();
+                indexes_List_NaN.Reverse();
+
+                indexes_List_NaN.ForEach(x => geometries.RemoveAt(x));
+                return;
+            }
+
             // AlmostSimilar demands that every coordinate of one geometry lie within tolerance
             // of the other, in both directions. That forces each envelope bound of the two to
             // agree to within tolerance, so bucketing on the quantised envelope and probing the

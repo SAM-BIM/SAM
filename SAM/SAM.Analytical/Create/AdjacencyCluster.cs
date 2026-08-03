@@ -1226,7 +1226,7 @@ namespace SAM.Analytical
                 foreach (Shell shell in shells)
                 {
                     BoundingBox3D boundingBox3D = shell?.GetBoundingBox();
-                    if (boundingBox3D == null)
+                    if (!IsFinite(boundingBox3D))
                     {
                         continue;
                     }
@@ -1246,15 +1246,17 @@ namespace SAM.Analytical
 
             public void Add(int index, BoundingBox3D boundingBox3D)
             {
-                if (boundingBox3D == null)
+                if (!IsFinite(boundingBox3D))
                 {
+                    // Null, NaN or infinite bounds cannot be quantised into cells - hold the entry
+                    // aside so the exact predicate still sees it, exactly as an oversized entry.
                     oversized.Add(index);
                     return;
                 }
 
                 Cells(boundingBox3D.Min, boundingBox3D.Max, out long kx1, out long kx2, out long ky1, out long ky2, out long kz1, out long kz2);
 
-                if ((double)(kx2 - kx1 + 1) * (ky2 - ky1 + 1) * (kz2 - kz1 + 1) > MaxCellsPerItem)
+                if (!IsValid(kx1, kx2, ky1, ky2, kz1, kz2) || CellCount(kx1, kx2, ky1, ky2, kz1, kz2) > MaxCellsPerItem)
                 {
                     oversized.Add(index);
                     return;
@@ -1288,17 +1290,39 @@ namespace SAM.Analytical
 
                 List<int> candidates = new List<int>(oversized);
 
-                Cells(point3D, point3D, out long kx1, out long kx2, out long ky1, out long ky2, out long kz1, out long kz2);
-
-                for (long kx = kx1; kx <= kx2; kx++)
+                if (!IsFinite(point3D))
                 {
-                    for (long ky = ky1; ky <= ky2; ky++)
+                    // The probe point cannot be quantised - examine every entry.
+                    for (int i = 0; i < tuples.Count; i++)
                     {
-                        for (long kz = kz1; kz <= kz2; kz++)
+                        candidates.Add(i);
+                    }
+                }
+                else
+                {
+                    Cells(point3D, point3D, out long kx1, out long kx2, out long ky1, out long ky2, out long kz1, out long kz2);
+
+                    if (!IsValid(kx1, kx2, ky1, ky2, kz1, kz2))
+                    {
+                        // The probe point produced no usable cell range - examine every entry.
+                        for (int i = 0; i < tuples.Count; i++)
                         {
-                            if (dictionary.TryGetValue(new Tuple<long, long, long>(kx, ky, kz), out List<int> list))
+                            candidates.Add(i);
+                        }
+                    }
+                    else
+                    {
+                        for (long kx = kx1; kx <= kx2; kx++)
+                        {
+                            for (long ky = ky1; ky <= ky2; ky++)
                             {
-                                candidates.AddRange(list);
+                                for (long kz = kz1; kz <= kz2; kz++)
+                                {
+                                    if (dictionary.TryGetValue(new Tuple<long, long, long>(kx, ky, kz), out List<int> list))
+                                    {
+                                        candidates.AddRange(list);
+                                    }
+                                }
                             }
                         }
                     }
@@ -1334,6 +1358,45 @@ namespace SAM.Analytical
                 ky2 = (long)System.Math.Floor((max.Y + tolerance) / cellSize);
                 kz1 = (long)System.Math.Floor((min.Z - tolerance) / cellSize);
                 kz2 = (long)System.Math.Floor((max.Z + tolerance) / cellSize);
+            }
+
+            private static bool IsFinite(BoundingBox3D boundingBox3D)
+            {
+                Point3D min = boundingBox3D?.Min;
+                Point3D max = boundingBox3D?.Max;
+
+                if (min == null || max == null)
+                {
+                    return false;
+                }
+
+                return IsFinite(min.X) && IsFinite(min.Y) && IsFinite(min.Z) && IsFinite(max.X) && IsFinite(max.Y) && IsFinite(max.Z);
+            }
+
+            private static bool IsFinite(Point3D point3D)
+            {
+                if (point3D == null)
+                {
+                    return false;
+                }
+
+                return IsFinite(point3D.X) && IsFinite(point3D.Y) && IsFinite(point3D.Z);
+            }
+
+            private static bool IsFinite(double value)
+            {
+                return !double.IsNaN(value) && !double.IsInfinity(value);
+            }
+
+            private static bool IsValid(long kx1, long kx2, long ky1, long ky2, long kz1, long kz2)
+            {
+                return kx2 >= kx1 && ky2 >= ky1 && kz2 >= kz1;
+            }
+
+            private static double CellCount(long kx1, long kx2, long ky1, long ky2, long kz1, long kz2)
+            {
+                // Double arithmetic on purpose: the long product can overflow before the guard sees it.
+                return ((double)kx2 - kx1 + 1.0) * ((double)ky2 - ky1 + 1.0) * ((double)kz2 - kz1 + 1.0);
             }
         }
     }
