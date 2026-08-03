@@ -122,6 +122,9 @@ namespace SAM.Geometry.Spatial
             Array.Sort(lengths_Sorted);
             double cellSize = System.Math.Max(lengths_Sorted[count / 2], tolerance > 0 ? tolerance : Core.Tolerance.Distance);
 
+            double epsilon = tolerance > 0 ? tolerance * 1e-6 : 0;
+            double tolerance_Expanded = tolerance + epsilon;
+
             const int maxCellsPerSegment = 4096;
 
             Dictionary<Tuple<long, long, long>, List<int>> dictionary = new Dictionary<Tuple<long, long, long>, List<int>>();
@@ -130,12 +133,12 @@ namespace SAM.Geometry.Spatial
 
             for (int i = 0; i < count; i++)
             {
-                long kx1 = (long)System.Math.Floor((minXs[i] - tolerance) / cellSize);
-                long kx2 = (long)System.Math.Floor((maxXs[i] + tolerance) / cellSize);
-                long ky1 = (long)System.Math.Floor((minYs[i] - tolerance) / cellSize);
-                long ky2 = (long)System.Math.Floor((maxYs[i] + tolerance) / cellSize);
-                long kz1 = (long)System.Math.Floor((minZs[i] - tolerance) / cellSize);
-                long kz2 = (long)System.Math.Floor((maxZs[i] + tolerance) / cellSize);
+                long kx1 = (long)System.Math.Floor((minXs[i] - tolerance_Expanded) / cellSize);
+                long kx2 = (long)System.Math.Floor((maxXs[i] + tolerance_Expanded) / cellSize);
+                long ky1 = (long)System.Math.Floor((minYs[i] - tolerance_Expanded) / cellSize);
+                long ky2 = (long)System.Math.Floor((maxYs[i] + tolerance_Expanded) / cellSize);
+                long kz1 = (long)System.Math.Floor((minZs[i] - tolerance_Expanded) / cellSize);
+                long kz2 = (long)System.Math.Floor((maxZs[i] + tolerance_Expanded) / cellSize);
 
                 if ((double)(kx2 - kx1 + 1) * (ky2 - ky1 + 1) * (kz2 - kz1 + 1) > maxCellsPerSegment)
                 {
@@ -165,6 +168,7 @@ namespace SAM.Geometry.Spatial
 
             int[] stamps = new int[count];
             List<Tuple<double, double>> intervals = new List<Tuple<double, double>>();
+            List<int> candidates = new List<int>();
 
             for (int i = 0; i < count; i++)
             {
@@ -174,18 +178,34 @@ namespace SAM.Geometry.Spatial
                 double length = lengths[i];
                 int faceIndex = faceIndexes[i];
 
-                double minX = minXs[i] - tolerance;
-                double maxX = maxXs[i] + tolerance;
-                double minY = minYs[i] - tolerance;
-                double maxY = maxYs[i] + tolerance;
-                double minZ = minZs[i] - tolerance;
-                double maxZ = maxZs[i] + tolerance;
+                double minX = minXs[i] - tolerance_Expanded;
+                double maxX = maxXs[i] + tolerance_Expanded;
+                double minY = minYs[i] - tolerance_Expanded;
+                double maxY = maxYs[i] + tolerance_Expanded;
+                double minZ = minZs[i] - tolerance_Expanded;
+                double maxZ = maxZs[i] + tolerance_Expanded;
 
                 int stamp = i + 1;
                 intervals.Clear();
+                candidates.Clear();
 
                 double distance_Start = double.MaxValue;
                 double distance_End = double.MaxValue;
+
+                double MinDistance(Point3D point3D)
+                {
+                    double min = double.MaxValue;
+                    foreach (int j in candidates)
+                    {
+                        double distance_Temp = segment3Ds[j].Distance(point3D);
+                        if (distance_Temp < min)
+                        {
+                            min = distance_Temp;
+                        }
+                    }
+
+                    return min;
+                }
 
                 void ProcessCandidate(int j)
                 {
@@ -201,6 +221,8 @@ namespace SAM.Geometry.Spatial
                         return;
                     }
 
+                    candidates.Add(j);
+
                     double distance_Temp = segment3Ds[j].Distance(start);
                     if (distance_Temp < distance_Start)
                     {
@@ -215,14 +237,14 @@ namespace SAM.Geometry.Spatial
 
                     Vector3D vector3D_1 = new Vector3D(start, starts[j]);
                     double perpendicular_1 = vector3D_1.CrossProduct(unit).Length;
-                    if (perpendicular_1 > tolerance)
+                    if (perpendicular_1 > tolerance_Expanded)
                     {
                         return;
                     }
 
                     Vector3D vector3D_2 = new Vector3D(start, segment3Ds[j][1]);
                     double perpendicular_2 = vector3D_2.CrossProduct(unit).Length;
-                    if (perpendicular_2 > tolerance)
+                    if (perpendicular_2 > tolerance_Expanded)
                     {
                         return;
                     }
@@ -292,12 +314,27 @@ namespace SAM.Geometry.Spatial
                     intervals.Sort((x, y) => x.Item1.CompareTo(y.Item1));
                     foreach (Tuple<double, double> interval in intervals)
                     {
-                        if (interval.Item1 > reach && (interval.Item1 - reach >= tolerance || (reach == 0 && distance_Start >= tolerance)))
+                        if (interval.Item1 > reach)
                         {
-                            result.Add(NakedSegment3D(segment3Ds[i], start, unit, reach, interval.Item1, length));
-                            if (result.Count >= maxCount)
+                            double gap = interval.Item1 - reach;
+
+                            bool naked;
+                            if (reach == 0)
                             {
-                                return result;
+                                naked = gap >= tolerance || (gap > epsilon && distance_Start > tolerance_Expanded);
+                            }
+                            else
+                            {
+                                naked = gap > epsilon && (gap >= tolerance || MinDistance(new Point3D(start.X + unit.X * (reach + gap / 2), start.Y + unit.Y * (reach + gap / 2), start.Z + unit.Z * (reach + gap / 2))) > tolerance + epsilon);
+                            }
+
+                            if (naked)
+                            {
+                                result.Add(NakedSegment3D(segment3Ds[i], start, unit, reach, interval.Item1, length));
+                                if (result.Count >= maxCount)
+                                {
+                                    return result;
+                                }
                             }
                         }
 
@@ -313,7 +350,7 @@ namespace SAM.Geometry.Spatial
                     }
                 }
 
-                if (reach < length && (length - reach >= tolerance || distance_End >= tolerance))
+                if (reach < length && (length - reach >= tolerance || (length - reach > epsilon && distance_End > tolerance_Expanded)))
                 {
                     result.Add(NakedSegment3D(segment3Ds[i], start, unit, reach, length, length));
                     if (result.Count >= maxCount)
