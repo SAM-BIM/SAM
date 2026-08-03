@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using NetTopologySuite.Geometries;
+using NetTopologySuite.Index.Strtree;
 using SAM.Geometry.Object.Spatial;
 using SAM.Geometry.Planar;
 using SAM.Geometry.Spatial;
@@ -157,14 +158,19 @@ namespace SAM.Analytical
                     tuples_Offset.Add(tuple_Temp);
                 }
 
-                foreach (Tuple<double, Panel> tuple_Temp in tuples_Offset)
-                    tuples.Remove(tuple_Temp);
+                if (tuples_Offset.Count != 0)
+                {
+                    // One pass instead of a List.Remove per member of the group: the removal
+                    // set is identity-based and the surviving order is unchanged.
+                    HashSet<Tuple<double, Panel>> tuples_Remove = new HashSet<Tuple<double, Panel>>(tuples_Offset);
+                    tuples.RemoveAll(x => tuples_Remove.Contains(x));
+                }
 
                 tuples_Offset.Insert(0, tuple);
 
 
                 List<Tuple<Polygon, Panel>> tuples_Polygon = new List<Tuple<Polygon, Panel>>();
-                List<Point2D> point2Ds = new List<Point2D>(); //Snap Points
+                List<Point2D> point2Ds_All = new List<Point2D>(); //Snap Points, before de-duplication
                 foreach (Tuple<double, Panel> tuple_Temp in tuples_Offset)
                 {
                     Panel panel = tuple_Temp.Item2;
@@ -176,7 +182,7 @@ namespace SAM.Analytical
                         if (segmentable3D == null)
                             continue;
 
-                        segmentable3D.GetPoints()?.ForEach(x => Geometry.Planar.Modify.Add(point2Ds, plane.Convert(x), tolerance));
+                        segmentable3D.GetPoints()?.ForEach(x => point2Ds_All.Add(plane.Convert(x)));
                     }
 
                     face3D = plane.Project(face3D);
@@ -191,6 +197,11 @@ namespace SAM.Analytical
                     tuples_Polygon.Add(new Tuple<Polygon, Panel>(face2D.ToNTS(tolerance), panel));
                 }
 
+                // Same snap points as the repeated Geometry.Planar.Modify.Add calls produced -
+                // same acceptance rule, same order - but resolved through a grid rather than by
+                // rescanning the accumulated list on every point.
+                Point2DGrid grid_Snap = Point2DGrid.Create(point2Ds_All, tolerance);
+
                 List<Polygon> polygons_Temp = tuples_Polygon.ConvertAll(x => x.Item1);
                 Geometry.Planar.Modify.RemoveAlmostSimilar_NTS(polygons_Temp, tolerance);
 
@@ -199,13 +210,18 @@ namespace SAM.Analytical
                 {
                     Dictionary<Construction, List<Tuple<Panel, Polygon>>> dictionary = new Dictionary<Construction, List<Tuple<Panel, Polygon>>>();
 
+                    // Every noded polygon used to be tested against every source polygon, so a
+                    // single coplanar group of k panels cost k^2 NTS Contains calls. The tree
+                    // narrows that to the polygons whose envelope actually covers the point.
+                    STRtree<int> index = Index(tuples_Polygon);
+
                     foreach (Polygon polygon in polygons)
                     {
                         Point point = polygon.InteriorPoint;
 
                         List<Panel> redundantPanels_Temp = new List<Panel>();
 
-                        List<Tuple<Polygon, Panel>> tuples_Polygon_Contains = tuples_Polygon.FindAll(x => x.Item1.Contains(point));
+                        List<Tuple<Polygon, Panel>> tuples_Polygon_Contains = FindAll(index, tuples_Polygon, point.EnvelopeInternal, x => x.Item1.Contains(point));
                         if (tuples_Polygon_Contains.Count == 0)
                             continue;
 
@@ -264,7 +280,8 @@ namespace SAM.Analytical
                         if (polygon_Temp.IsEmpty || !polygon_Temp.IsValid)
                             continue;
 
-                        Face2D face2D = polygon_Temp.ToSAM(Core.Tolerance.MicroDistance)?.Snap(point2Ds, tolerance);
+                        Face2D face2D = polygon_Temp.ToSAM(Core.Tolerance.MicroDistance);
+                        face2D = face2D?.Snap(grid_Snap.Candidates(face2D.GetBoundingBox(), tolerance), tolerance);
                         if (face2D == null)
                             continue;
 
@@ -341,7 +358,7 @@ namespace SAM.Analytical
 
                 Face3D face3D = null;
 
-                List<Point2D> point2Ds = new List<Point2D>(); //Snap Points <- New Face3Ds will be snapped to these points
+                List<Point2D> point2Ds_All = new List<Point2D>(); //Snap Points <- New Face3Ds will be snapped to these points
                 List<Tuple<Polygon, Panel>> tuples_Polygon = new List<Tuple<Polygon, Panel>>();
                 foreach (Tuple<Face3D, Panel> tuple_Face3D in tuples_Face3D)
                 {
@@ -352,7 +369,7 @@ namespace SAM.Analytical
                         if (segmentable3D == null)
                             continue;
 
-                        segmentable3D.GetPoints()?.ForEach(x => Geometry.Planar.Modify.Add(point2Ds, plane.Convert(x), tolerance));
+                        segmentable3D.GetPoints()?.ForEach(x => point2Ds_All.Add(plane.Convert(x)));
                     }
 
                     tuples_Polygon.Add(new Tuple<Polygon, Panel>(plane.Convert(plane.Project(tuple_Face3D.Item1)).ToNTS(tolerance), tuple_Face3D.Item2));
@@ -365,17 +382,27 @@ namespace SAM.Analytical
                     if (segmentable3D == null)
                         continue;
 
-                    segmentable3D.GetPoints()?.ForEach(x => Geometry.Planar.Modify.Add(point2Ds, plane.Convert(x), tolerance));
+                    segmentable3D.GetPoints()?.ForEach(x => point2Ds_All.Add(plane.Convert(x)));
                 }
+
+                Point2DGrid grid_Snap = Point2DGrid.Create(point2Ds_All, tolerance);
 
                 Polygon polygon = plane.Convert(tuple.Item1).ToNTS(tolerance);
                 tuples_Polygon.Add(new Tuple<Polygon, Panel>(polygon, tuple.Item2));
 
                 List<Polygon> polygons = tuples_Polygon.ConvertAll(x => x.Item1).ToNTS_Polygons(tolerance);
 
+                STRtree<int> index = Index(tuples_Polygon);
+
                 foreach (Polygon polygon_Temp in polygons)
                 {
-                    List<Tuple<Polygon, Panel>> tuples_Polygon_Contains = tuples_Polygon.FindAll(x => x.Item1.Contains(polygon_Temp.InteriorPoint) || polygon_Temp.Contains(x.Item1.InteriorPoint));
+                    // InteriorPoint is not cached by NTS, so the old predicate recomputed both
+                    // of them once per candidate. Hoisting the outer one and indexing on
+                    // envelope intersection - a necessary condition for either containment -
+                    // leaves the accepted set identical.
+                    Point point_Temp = polygon_Temp.InteriorPoint;
+
+                    List<Tuple<Polygon, Panel>> tuples_Polygon_Contains = FindAll(index, tuples_Polygon, polygon_Temp.EnvelopeInternal, x => x.Item1.Contains(point_Temp) || polygon_Temp.Contains(x.Item1.InteriorPoint));
                     if (tuples_Polygon_Contains == null || tuples_Polygon_Contains.Count == 0)
                         continue;
 
@@ -404,7 +431,8 @@ namespace SAM.Analytical
                     if (polygon_Old.Shell.IsCCW != polygon_Simplify.Shell.IsCCW)
                         polygon_Simplify = (Polygon)polygon_Simplify.Reverse();
 
-                    Face2D face2D = polygon_Simplify.ToSAM(tolerance)?.Snap(point2Ds, tolerance);
+                    Face2D face2D = polygon_Simplify.ToSAM(tolerance);
+                    face2D = face2D?.Snap(grid_Snap.Candidates(face2D.GetBoundingBox(), tolerance), tolerance);
                     if (face2D == null)
                         continue;
 
@@ -441,6 +469,206 @@ namespace SAM.Analytical
             }
 
             redundantPanels.AddRange(redundantPanels_Temp);
+            return result;
+        }
+
+        /// <summary>
+        /// The snap points of one coplanar group, de-duplicated and indexed.
+        /// <para>
+        /// De-duplication reproduces repeated <c>Geometry.Planar.Modify.Add</c> exactly: points
+        /// are offered in order and one is accepted only when no already-accepted point lies
+        /// within tolerance of it. That check used to rescan the whole accumulated list, which
+        /// made building the snap set quadratic in the group's corner count.
+        /// </para>
+        /// <para>
+        /// <see cref="Candidates"/> then narrows the set handed to Snap to the points that could
+        /// possibly win. Snap moves a point only to a snap point within tolerance of it, so a
+        /// snap point outside the face bounding box grown by tolerance can never be chosen -
+        /// dropping it cannot change the snapped face. Candidates keep their insertion order so
+        /// the nearest-wins-first-on-ties behaviour of Snap is unchanged too.
+        /// </para>
+        /// </summary>
+        private sealed class Point2DGrid
+        {
+            private readonly List<Point2D> point2Ds;
+            private readonly double cellSize;
+            private readonly Dictionary<Tuple<long, long>, List<int>> dictionary;
+
+            private Point2DGrid(List<Point2D> point2Ds, double cellSize)
+            {
+                this.point2Ds = point2Ds;
+                this.cellSize = cellSize;
+
+                dictionary = new Dictionary<Tuple<long, long>, List<int>>();
+                for (int i = 0; i < point2Ds.Count; i++)
+                {
+                    Tuple<long, long> key = Key(point2Ds[i], cellSize);
+                    if (!dictionary.TryGetValue(key, out List<int> list))
+                    {
+                        list = new List<int>();
+                        dictionary[key] = list;
+                    }
+
+                    list.Add(i);
+                }
+            }
+
+            public static Point2DGrid Create(List<Point2D> point2Ds_All, double tolerance)
+            {
+                double cellSize_Distinct = tolerance > 0 ? tolerance : Core.Tolerance.Distance;
+
+                List<Point2D> point2Ds = new List<Point2D>();
+                Dictionary<Tuple<long, long>, List<Point2D>> dictionary = new Dictionary<Tuple<long, long>, List<Point2D>>();
+
+                foreach (Point2D point2D in point2Ds_All)
+                {
+                    if (point2D == null)
+                        continue;
+
+                    Tuple<long, long> key = Key(point2D, cellSize_Distinct);
+
+                    bool exists = false;
+                    for (long dx = -1; dx <= 1 && !exists; dx++)
+                    {
+                        for (long dy = -1; dy <= 1 && !exists; dy++)
+                        {
+                            if (!dictionary.TryGetValue(new Tuple<long, long>(key.Item1 + dx, key.Item2 + dy), out List<Point2D> list_Temp))
+                                continue;
+
+                            foreach (Point2D point2D_Temp in list_Temp)
+                            {
+                                if (point2D_Temp.Distance(point2D) <= tolerance)
+                                {
+                                    exists = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (exists)
+                        continue;
+
+                    if (!dictionary.TryGetValue(key, out List<Point2D> list))
+                    {
+                        list = new List<Point2D>();
+                        dictionary[key] = list;
+                    }
+
+                    list.Add(point2D);
+                    point2Ds.Add(point2D);
+                }
+
+                return new Point2DGrid(point2Ds, CellSize(point2Ds, cellSize_Distinct));
+            }
+
+            public List<Point2D> Candidates(Geometry.Planar.BoundingBox2D boundingBox2D, double tolerance)
+            {
+                if (boundingBox2D == null)
+                    return point2Ds;
+
+                long kx1 = (long)System.Math.Floor((boundingBox2D.Min.X - tolerance) / cellSize);
+                long kx2 = (long)System.Math.Floor((boundingBox2D.Max.X + tolerance) / cellSize);
+                long ky1 = (long)System.Math.Floor((boundingBox2D.Min.Y - tolerance) / cellSize);
+                long ky2 = (long)System.Math.Floor((boundingBox2D.Max.Y + tolerance) / cellSize);
+
+                List<int> indexes = new List<int>();
+                for (long kx = kx1; kx <= kx2; kx++)
+                {
+                    for (long ky = ky1; ky <= ky2; ky++)
+                    {
+                        if (dictionary.TryGetValue(new Tuple<long, long>(kx, ky), out List<int> list))
+                            indexes.AddRange(list);
+                    }
+                }
+
+                indexes.Sort();
+
+                List<Point2D> result = new List<Point2D>(indexes.Count);
+                foreach (int index in indexes)
+                    result.Add(point2Ds[index]);
+
+                return result;
+            }
+
+            private static Tuple<long, long> Key(Point2D point2D, double cellSize)
+            {
+                return new Tuple<long, long>(
+                    (long)System.Math.Floor(point2D.X / cellSize),
+                    (long)System.Math.Floor(point2D.Y / cellSize));
+            }
+
+            /// <summary>
+            /// Cell size for the lookup grid: roughly one cell per point over the occupied
+            /// extent, never below tolerance. Sizing by tolerance instead would make a
+            /// face-sized query walk an unbounded number of cells.
+            /// </summary>
+            private static double CellSize(List<Point2D> point2Ds, double minimum)
+            {
+                if (point2Ds.Count < 2)
+                    return System.Math.Max(minimum, Core.Tolerance.MacroDistance);
+
+                double minX = double.MaxValue, maxX = double.MinValue, minY = double.MaxValue, maxY = double.MinValue;
+                foreach (Point2D point2D in point2Ds)
+                {
+                    minX = System.Math.Min(minX, point2D.X);
+                    maxX = System.Math.Max(maxX, point2D.X);
+                    minY = System.Math.Min(minY, point2D.Y);
+                    maxY = System.Math.Max(maxY, point2D.Y);
+                }
+
+                double extent = System.Math.Max(maxX - minX, maxY - minY);
+                double cellSize = extent / System.Math.Sqrt(point2Ds.Count);
+
+                return cellSize > minimum ? cellSize : System.Math.Max(minimum, Core.Tolerance.MacroDistance);
+            }
+        }
+
+        /// <summary>
+        /// Envelope index over the polygons of a coplanar group, keyed by their position in
+        /// <paramref name="tuples_Polygon"/> so results can be restored to list order.
+        /// </summary>
+        private static STRtree<int> Index(List<Tuple<Polygon, Panel>> tuples_Polygon)
+        {
+            STRtree<int> result = new STRtree<int>();
+            for (int i = 0; i < tuples_Polygon.Count; i++)
+            {
+                Polygon polygon = tuples_Polygon[i]?.Item1;
+                if (polygon == null || polygon.IsEmpty)
+                    continue;
+
+                result.Insert(polygon.EnvelopeInternal, i);
+            }
+
+            result.Build();
+            return result;
+        }
+
+        /// <summary>
+        /// Drop-in replacement for tuples_Polygon.FindAll(predicate) where the predicate can
+        /// only hold when the candidate envelope meets <paramref name="envelope"/>. The
+        /// envelope test is a necessary condition, never a sufficient one, so the exact
+        /// predicate still decides every candidate and the returned list is the same - same
+        /// members, same list order - as the full scan it replaces.
+        /// </summary>
+        private static List<Tuple<Polygon, Panel>> FindAll(STRtree<int> index, List<Tuple<Polygon, Panel>> tuples_Polygon, Envelope envelope, Func<Tuple<Polygon, Panel>, bool> predicate)
+        {
+            List<Tuple<Polygon, Panel>> result = new List<Tuple<Polygon, Panel>>();
+
+            IList<int> indexes = index.Query(envelope);
+            if (indexes == null || indexes.Count == 0)
+                return result;
+
+            List<int> indexes_Sorted = new List<int>(indexes);
+            indexes_Sorted.Sort();
+
+            foreach (int i in indexes_Sorted)
+            {
+                Tuple<Polygon, Panel> tuple = tuples_Polygon[i];
+                if (predicate(tuple))
+                    result.Add(tuple);
+            }
+
             return result;
         }
     }
