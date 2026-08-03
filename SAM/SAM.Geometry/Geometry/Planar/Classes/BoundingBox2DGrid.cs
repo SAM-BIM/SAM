@@ -35,10 +35,20 @@ namespace SAM.Geometry.Planar
         private readonly Dictionary<Tuple<long, long>, List<int>> dictionary;
         private readonly List<int> unbounded;
 
-        public BoundingBox2DGrid(double tolerance)
+        /// <param name="tolerance">Exact-predicate tolerance; boxes are inflated by it on insert.</param>
+        /// <param name="cellSizeHint">
+        /// Typical box extent, e.g. the median extent of the indexed set. The grid is correct
+        /// for any cell size - containment, not the cell size, defines the candidate superset -
+        /// but a cell size far below the box size would make every box span thousands of cells.
+        /// </param>
+        public BoundingBox2DGrid(double tolerance, double cellSizeHint = 0)
         {
             this.tolerance = tolerance;
             cellSize = tolerance > 0 ? tolerance : Core.Tolerance.Distance;
+            if (cellSizeHint > cellSize)
+            {
+                cellSize = cellSizeHint;
+            }
 
             boundingBox2Ds = new List<BoundingBox2D>();
             dictionary = new Dictionary<Tuple<long, long>, List<int>>();
@@ -112,8 +122,10 @@ namespace SAM.Geometry.Planar
 
             Cells(boundingBox2D, 0, out long kx1, out long kx2, out long ky1, out long ky2);
 
-            if (!IsValid(kx1, kx2, ky1, ky2))
+            if (!IsValid(kx1, kx2, ky1, ky2) || CellCount(kx1, kx2, ky1, ky2) > MaxCellsPerItem)
             {
+                // The query box cannot be quantised or spans an unreasonable number of cells -
+                // fall back to the whole index rather than walking billions of cells.
                 return All();
             }
 
@@ -131,6 +143,31 @@ namespace SAM.Geometry.Planar
 
             result.Sort();
             return result;
+        }
+
+        /// <summary>
+        /// Median of the maximum extents of the finite boxes, for the cellSizeHint parameter.
+        /// </summary>
+        public static double CellSizeHint(IEnumerable<BoundingBox2D> boundingBox2Ds)
+        {
+            List<double> extents = new List<double>();
+            foreach (BoundingBox2D boundingBox2D in boundingBox2Ds)
+            {
+                if (!IsFinite(boundingBox2D))
+                {
+                    continue;
+                }
+
+                extents.Add(System.Math.Max(boundingBox2D.Max.X - boundingBox2D.Min.X, boundingBox2D.Max.Y - boundingBox2D.Min.Y));
+            }
+
+            if (extents.Count == 0)
+            {
+                return 0;
+            }
+
+            extents.Sort();
+            return extents[extents.Count / 2];
         }
 
         private List<int> All()
