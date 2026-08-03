@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
+using NetTopologySuite.Geometries;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,17 +14,69 @@ namespace SAM.Geometry.Planar
             if (geometries == null)
                 return;
 
+            int count = geometries.Count;
+
+            // AlmostSimilar demands that every coordinate of one geometry lie within tolerance
+            // of the other, in both directions. That forces each envelope bound of the two to
+            // agree to within tolerance, so bucketing on the quantised envelope and probing the
+            // neighbouring buckets finds every possible partner while skipping the pairs the
+            // exact test was always going to reject. Without it this was an O(n^2) sweep of NTS
+            // point-to-geometry distance calls.
+            Envelope[] envelopes = new Envelope[count];
+            for (int i = 0; i < count; i++)
+            {
+                NetTopologySuite.Geometries.Geometry geometry = geometries[i];
+                envelopes[i] = geometry == null || geometry.IsEmpty ? null : geometry.EnvelopeInternal;
+            }
+
+            double cellSize = tolerance > 0 ? tolerance : Core.Tolerance.Distance;
+
+            Dictionary<EnvelopeKey, List<int>> dictionary = new Dictionary<EnvelopeKey, List<int>>();
+            List<int> unbounded = new List<int>();
+            for (int i = 0; i < count; i++)
+            {
+                if (envelopes[i] == null)
+                {
+                    unbounded.Add(i);
+                    continue;
+                }
+
+                EnvelopeKey key = EnvelopeKey.Create(envelopes[i], cellSize);
+                if (!dictionary.TryGetValue(key, out List<int> list))
+                {
+                    list = new List<int>();
+                    dictionary[key] = list;
+                }
+
+                list.Add(i);
+            }
+
             HashSet<int> indexes_HashSet = new HashSet<int>();
-            for (int i = 0; i < geometries.Count - 1; i++)
+            List<int> candidates = new List<int>();
+            for (int i = 0; i < count - 1; i++)
             {
                 if (indexes_HashSet.Contains(i))
                     continue;
 
                 NetTopologySuite.Geometries.Geometry geometry_1 = geometries[i];
 
-                for (int j = i + 1; j < geometries.Count; j++)
+                candidates.Clear();
+                if (envelopes[i] == null)
                 {
-                    if (indexes_HashSet.Contains(j))
+                    // No usable envelope - keep the original exhaustive behaviour for this one.
+                    for (int j = i + 1; j < count; j++)
+                        candidates.Add(j);
+                }
+                else
+                {
+                    candidates.AddRange(unbounded);
+                    EnvelopeKey.Neighbours(envelopes[i], cellSize, dictionary, candidates);
+                    candidates.Sort();
+                }
+
+                foreach (int j in candidates)
+                {
+                    if (j <= i || indexes_HashSet.Contains(j))
                         continue;
 
                     NetTopologySuite.Geometries.Geometry geometry_2 = geometries[j];
@@ -38,6 +91,81 @@ namespace SAM.Geometry.Planar
             indexes_List.Reverse();
 
             indexes_List.ForEach(x => geometries.RemoveAt(x));
+        }
+
+        /// <summary>
+        /// An envelope quantised to a grid of <c>tolerance</c>-sized cells on each of its four
+        /// bounds. Two envelopes whose bounds all agree to within tolerance land either in the
+        /// same cell or in an adjacent one on each axis, so probing the 3^4 neighbourhood of a
+        /// key is enough to reach every geometry the exact test could accept.
+        /// </summary>
+        private readonly struct EnvelopeKey : System.IEquatable<EnvelopeKey>
+        {
+            private readonly long minX;
+            private readonly long minY;
+            private readonly long maxX;
+            private readonly long maxY;
+
+            private EnvelopeKey(long minX, long minY, long maxX, long maxY)
+            {
+                this.minX = minX;
+                this.minY = minY;
+                this.maxX = maxX;
+                this.maxY = maxY;
+            }
+
+            public static EnvelopeKey Create(Envelope envelope, double cellSize)
+            {
+                return new EnvelopeKey(
+                    (long)System.Math.Floor(envelope.MinX / cellSize),
+                    (long)System.Math.Floor(envelope.MinY / cellSize),
+                    (long)System.Math.Floor(envelope.MaxX / cellSize),
+                    (long)System.Math.Floor(envelope.MaxY / cellSize));
+            }
+
+            public static void Neighbours(Envelope envelope, double cellSize, Dictionary<EnvelopeKey, List<int>> dictionary, List<int> indexes)
+            {
+                EnvelopeKey key = Create(envelope, cellSize);
+
+                for (long dMinX = -1; dMinX <= 1; dMinX++)
+                {
+                    for (long dMinY = -1; dMinY <= 1; dMinY++)
+                    {
+                        for (long dMaxX = -1; dMaxX <= 1; dMaxX++)
+                        {
+                            for (long dMaxY = -1; dMaxY <= 1; dMaxY++)
+                            {
+                                EnvelopeKey key_Temp = new EnvelopeKey(key.minX + dMinX, key.minY + dMinY, key.maxX + dMaxX, key.maxY + dMaxY);
+                                if (dictionary.TryGetValue(key_Temp, out List<int> list))
+                                    indexes.AddRange(list);
+                            }
+                        }
+                    }
+                }
+            }
+
+            public bool Equals(EnvelopeKey other)
+            {
+                return minX == other.minX && minY == other.minY && maxX == other.maxX && maxY == other.maxY;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is EnvelopeKey other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    int hash = 17;
+                    hash = (hash * 31) ^ minX.GetHashCode();
+                    hash = (hash * 31) ^ minY.GetHashCode();
+                    hash = (hash * 31) ^ maxX.GetHashCode();
+                    hash = (hash * 31) ^ maxY.GetHashCode();
+                    return hash;
+                }
+            }
         }
 
         /// <summary>
