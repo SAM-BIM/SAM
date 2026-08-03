@@ -11,10 +11,12 @@ namespace SAM.Analytical
     public class TM59Manager : IJSAMObject
     {
         private TextMap textMap;
+        private TM59InternalConditionResolver resolver;
+        private InternalConditionLibrary resolverLibrary;
 
         public TM59Manager(TextMap textMap)
         {
-            this.textMap = textMap == null ? null : Core.Create.TextMap(textMap);
+            this.textMap = textMap == null ? Query.DefaultInternalConditionTextMap_TM59() : Core.Create.TextMap(textMap);
         }
 
         public TM59Manager()
@@ -106,77 +108,40 @@ namespace SAM.Analytical
             return Count(internalCondition?.Name, textMap);
         }
 
+        /// <summary>
+        /// Builds (and caches) a TM59InternalConditionResolver for the given library, sharing this
+        /// manager's TextMap. The resolver is deterministic and zone-independent for non-habitable
+        /// spaces (corridors, bathrooms, risers, ...) - see GetInternalConditionResult.
+        /// </summary>
+        public TM59InternalConditionResolver Resolver(InternalConditionLibrary internalConditionLibrary)
+        {
+            if (resolver == null || !ReferenceEquals(resolverLibrary, internalConditionLibrary))
+            {
+                resolver = new TM59InternalConditionResolver(textMap, internalConditionLibrary);
+                resolverLibrary = internalConditionLibrary;
+            }
+
+            return resolver;
+        }
+
+        /// <summary>
+        /// Resolves a Space to a TM59 InternalCondition and returns the full result, including
+        /// classification, occupancy and a Diagnostic explaining any manual-review outcome.
+        /// </summary>
+        public TM59InternalConditionResult GetInternalConditionResult(AdjacencyCluster adjacencyCluster, InternalConditionLibrary internalConditionLibrary, Space space, string zoneType)
+        {
+            return Resolver(internalConditionLibrary).Resolve(adjacencyCluster, space, zoneType);
+        }
+
+        /// <summary>Occupancy (people) for a resolved TM59 InternalConditionResult, per the TM59 occupancy convention.</summary>
+        public int TM59Occupancy(TM59InternalConditionResult result)
+        {
+            return result?.Occupancy ?? 0;
+        }
+
         public InternalCondition GetInternalCondition(AdjacencyCluster adjacencyCluster, InternalConditionLibrary internalConditionLibrary, Space space, string zoneType)
         {
-            Zone zone = adjacencyCluster?.GetZones(space, zoneType)?.FirstOrDefault();
-            if (zone == null)
-            {
-                return null;
-            }
-
-            List<Space> spaces = adjacencyCluster.GetSpaces(zone);
-            if (spaces == null || spaces.Count == 0)
-            {
-                return null;
-            }
-
-            List<TM59SpaceApplication> applications = TM59SpaceApplications(space, textMap);
-            if (applications == null || applications.Count == 0)
-            {
-                return null;
-            }
-
-            if (spaces.Count == 1 || (applications.Contains(TM59SpaceApplication.Sleeping) && applications.Contains(TM59SpaceApplication.Cooking) && applications.Contains(TM59SpaceApplication.Living)))
-            {
-                return internalConditionLibrary.GetInternalConditions("Studio").FirstOrDefault();
-            }
-
-            int count = 0;
-
-            if (applications.Contains(TM59SpaceApplication.Sleeping))
-            {
-                count = Count(space?.Name, textMap);
-                count = count == 0 ? 1 : count;
-
-                switch (count)
-                {
-                    case 1:
-                        return internalConditionLibrary.GetInternalConditions("Single Bedroom").FirstOrDefault();
-
-                    case 2:
-                        return internalConditionLibrary.GetInternalConditions("Double Bedroom").FirstOrDefault();
-                }
-
-                return null;
-            }
-
-            List<Space> spaces_Sleeping = spaces.FindAll(y => IsSleeping(y, textMap));
-
-            //count = spaces_Sleeping.ConvertAll(y => Count(y?.Name, textMap)).Sum();
-            count = spaces_Sleeping.Count();
-            count = count == 0 ? 1 : count;
-            count = count > 3 ? 3 : count;
-
-            string name = null;
-            if (applications.Contains(TM59SpaceApplication.Cooking) && applications.Contains(TM59SpaceApplication.Living))
-            {
-                name = "Bed Apt. Living Room/Kitchen";
-            }
-            else if (applications.Contains(TM59SpaceApplication.Cooking))
-            {
-                name = "Bed Apt. Kitchen";
-            }
-            else if (applications.Contains(TM59SpaceApplication.Living))
-            {
-                name = "Bed Apt. Living Room";
-            }
-            else
-            {
-                return null;
-            }
-
-            name = string.Format("{0} {1}", count, name);
-            return internalConditionLibrary.GetInternalConditions(name).FirstOrDefault();
+            return GetInternalConditionResult(adjacencyCluster, internalConditionLibrary, space, zoneType)?.InternalCondition;
         }
 
         public static bool IsSleeping(string name, TextMap textMap)
