@@ -127,9 +127,17 @@ namespace SAM.Geometry.Spatial
                         continue;
                     }
 
+                    if (!IsFinite(boundingBox3D))
+                    {
+                        // NaN or infinite bounds cannot be quantised into cells - hold the box
+                        // aside so the exact predicate still sees it, exactly as an oversized box.
+                        oversized.Add(i);
+                        continue;
+                    }
+
                     Cells(boundingBox3D, out long kx1, out long kx2, out long ky1, out long ky2, out long kz1, out long kz2);
 
-                    if ((double)(kx2 - kx1 + 1) * (ky2 - ky1 + 1) * (kz2 - kz1 + 1) > MaxCellsPerItem)
+                    if (!IsValid(kx1, kx2, ky1, ky2, kz1, kz2) || CellCount(kx1, kx2, ky1, ky2, kz1, kz2) > MaxCellsPerItem)
                     {
                         oversized.Add(i);
                         continue;
@@ -164,12 +172,9 @@ namespace SAM.Geometry.Spatial
 
                 HashSet<int> indexes = new HashSet<int>(oversized);
 
-                Cells(boundingBox3D, out long kx1, out long kx2, out long ky1, out long ky2, out long kz1, out long kz2);
-
-                if ((double)(kx2 - kx1 + 1) * (ky2 - ky1 + 1) * (kz2 - kz1 + 1) > MaxCellsPerItem)
+                if (!IsFinite(boundingBox3D))
                 {
-                    // The query box itself is an outlier - fall back to the full set rather than
-                    // walking millions of cells. Still correct, just not accelerated.
+                    // The query box itself cannot be quantised - fall back to the full set.
                     for (int i = 0; i < boundingBox3Ds.Length; i++)
                     {
                         indexes.Add(i);
@@ -177,17 +182,31 @@ namespace SAM.Geometry.Spatial
                 }
                 else
                 {
-                    for (long kx = kx1; kx <= kx2; kx++)
+                    Cells(boundingBox3D, out long kx1, out long kx2, out long ky1, out long ky2, out long kz1, out long kz2);
+
+                    if (!IsValid(kx1, kx2, ky1, ky2, kz1, kz2) || CellCount(kx1, kx2, ky1, ky2, kz1, kz2) > MaxCellsPerItem)
                     {
-                        for (long ky = ky1; ky <= ky2; ky++)
+                        // The query box itself is an outlier - fall back to the full set rather than
+                        // walking millions of cells. Still correct, just not accelerated.
+                        for (int i = 0; i < boundingBox3Ds.Length; i++)
                         {
-                            for (long kz = kz1; kz <= kz2; kz++)
+                            indexes.Add(i);
+                        }
+                    }
+                    else
+                    {
+                        for (long kx = kx1; kx <= kx2; kx++)
+                        {
+                            for (long ky = ky1; ky <= ky2; ky++)
                             {
-                                if (dictionary.TryGetValue(new Tuple<long, long, long>(kx, ky, kz), out List<int> list))
+                                for (long kz = kz1; kz <= kz2; kz++)
                                 {
-                                    foreach (int index in list)
+                                    if (dictionary.TryGetValue(new Tuple<long, long, long>(kx, ky, kz), out List<int> list))
                                     {
-                                        indexes.Add(index);
+                                        foreach (int index in list)
+                                        {
+                                            indexes.Add(index);
+                                        }
                                     }
                                 }
                             }
@@ -198,6 +217,35 @@ namespace SAM.Geometry.Spatial
                 List<int> result = new List<int>(indexes);
                 result.Sort();
                 return result;
+            }
+
+            private static bool IsFinite(BoundingBox3D boundingBox3D)
+            {
+                Point3D min = boundingBox3D?.Min;
+                Point3D max = boundingBox3D?.Max;
+
+                if (min == null || max == null)
+                {
+                    return false;
+                }
+
+                return IsFinite(min.X) && IsFinite(min.Y) && IsFinite(min.Z) && IsFinite(max.X) && IsFinite(max.Y) && IsFinite(max.Z);
+            }
+
+            private static bool IsFinite(double value)
+            {
+                return !double.IsNaN(value) && !double.IsInfinity(value);
+            }
+
+            private static bool IsValid(long kx1, long kx2, long ky1, long ky2, long kz1, long kz2)
+            {
+                return kx2 >= kx1 && ky2 >= ky1 && kz2 >= kz1;
+            }
+
+            private static double CellCount(long kx1, long kx2, long ky1, long ky2, long kz1, long kz2)
+            {
+                // Double arithmetic on purpose: the long product can overflow before the guard sees it.
+                return ((double)kx2 - kx1 + 1.0) * ((double)ky2 - ky1 + 1.0) * ((double)kz2 - kz1 + 1.0);
             }
 
             private void Cells(BoundingBox3D boundingBox3D, out long kx1, out long kx2, out long ky1, out long ky2, out long kz1, out long kz2)
@@ -218,7 +266,7 @@ namespace SAM.Geometry.Spatial
                 List<double> extents = new List<double>();
                 foreach (BoundingBox3D boundingBox3D in boundingBox3Ds)
                 {
-                    if (boundingBox3D == null)
+                    if (!IsFinite(boundingBox3D))
                     {
                         continue;
                     }

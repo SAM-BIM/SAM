@@ -6,6 +6,7 @@ using SAM.Geometry.Spatial;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Xunit;
 
 namespace SAM.Tests
@@ -332,6 +333,101 @@ namespace SAM.Tests
             Assert.NotNull(result);
             Assert.Single(result);
             Assert.Equal(225, result[0].GetArea(), 4);
+        }
+
+        // --- Modify.RemoveAlmostSimilar_NTS --------------------------------------------------
+
+        [Fact]
+        public void RemoveAlmostSimilar_NTS_NaNTolerance_KeepsOnlyFirstGeometry()
+        {
+            // Documented historical behaviour: Query.AlmostSimilar rejects a pair with
+            // `distance > tolerance`, which is false for every pair when tolerance is NaN,
+            // so the original exhaustive scan removed everything after the first geometry.
+            // The bucket optimisation must not reinterpret NaN as a finite cell size and
+            // quietly keep far-apart geometry.
+            List<NetTopologySuite.Geometries.Polygon> polygons = new List<NetTopologySuite.Geometries.Polygon>
+            {
+                Rectangle(0, 0, 1, 1),
+                Rectangle(100, 0, 1, 1),
+                Rectangle(0, 0, 1, 1),
+            };
+
+            Geometry.Planar.Modify.RemoveAlmostSimilar_NTS(polygons, double.NaN);
+
+            Assert.Single(polygons);
+            Assert.Equal(0, polygons[0].EnvelopeInternal.MinX);
+            Assert.Equal(1, polygons[0].EnvelopeInternal.MaxX);
+        }
+
+        // --- Non-finite bounds in the private grid helpers ------------------------------------
+
+        [Fact]
+        public void SplitFace3Ds_Grid_NonFiniteBounds_RemainDiscoverable()
+        {
+            // The grid helper is private, so it is exercised by reflection rather than by
+            // weakening production validation to construct invalid geometry. A box whose
+            // max is +infinity produces kx2 < kx1 when quantised; a NaN box cannot be
+            // quantised at all. Both must be held aside as fallback entries and offered to
+            // every query instead of silently disappearing.
+            BoundingBox3D finite = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(1, 1, 1));
+            BoundingBox3D infiniteMax = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(double.PositiveInfinity, 1, 1));
+            BoundingBox3D nan = new BoundingBox3D(new Point3D(double.NaN, 0, 0), new Point3D(double.NaN, 1, 1));
+
+            Type type = typeof(Geometry.Spatial.Modify).GetNestedType("BoundingBox3DGrid", BindingFlags.NonPublic);
+            Assert.NotNull(type);
+
+            object grid = Activator.CreateInstance(type, new object[] { new BoundingBox3D[] { finite, infiniteMax, nan }, Core.Tolerance.Distance });
+
+            List<int> candidates = (List<int>)type.GetMethod("Candidates").Invoke(grid, new object[] { finite });
+            Assert.Equal(new List<int> { 0, 1, 2 }, candidates);
+
+            // A non-finite query box falls back to the full candidate set.
+            List<int> candidates_NaN = (List<int>)type.GetMethod("Candidates").Invoke(grid, new object[] { nan });
+            Assert.Equal(new List<int> { 0, 1, 2 }, candidates_NaN);
+        }
+
+        [Fact]
+        public void AdjacencyCluster_FaceIndex_NonFiniteBounds_RemainDiscoverable()
+        {
+            // Same contract as SplitFace3Ds_Grid_NonFiniteBounds_RemainDiscoverable, for the
+            // face lookup used by Create.AdjacencyCluster: an entry whose bounding box cannot
+            // be quantised must still reach the exact predicate. Here the exact predicate
+            // accepts (the point is on the face and inside the infinite box), so the entry
+            // must be found; before the fix it was dropped from the index entirely.
+            Face3D face3D = QuadraticScanFixtures.Quad(
+                new Point3D(0, 0, 0),
+                new Point3D(1, 0, 0),
+                new Point3D(1, 1, 0),
+                new Point3D(0, 1, 0));
+
+            BoundingBox3D infiniteMax = new BoundingBox3D(new Point3D(0, 0, 0), new Point3D(double.PositiveInfinity, 1, 1));
+
+            Type type = typeof(SAM.Analytical.Create).GetNestedType("Face3DIndex", BindingFlags.NonPublic);
+            Assert.NotNull(type);
+
+            object index = Activator.CreateInstance(type, new object[] { new List<Shell>(), Core.Tolerance.Distance });
+
+            List<Tuple<BoundingBox3D, Face3D, Panel>> tuples = new List<Tuple<BoundingBox3D, Face3D, Panel>>
+            {
+                new Tuple<BoundingBox3D, Face3D, Panel>(infiniteMax, face3D, null),
+            };
+
+            type.GetMethod("Add").Invoke(index, new object[] { 0, infiniteMax });
+
+            int found = (int)type.GetMethod("Find").Invoke(index, new object[] { new Point3D(0.5, 0.5, 0), tuples, Core.Tolerance.Distance });
+            Assert.Equal(0, found);
+        }
+
+        private static NetTopologySuite.Geometries.Polygon Rectangle(double x, double y, double width, double height)
+        {
+            return new NetTopologySuite.Geometries.Polygon(new NetTopologySuite.Geometries.LinearRing(new[]
+            {
+                new NetTopologySuite.Geometries.Coordinate(x, y),
+                new NetTopologySuite.Geometries.Coordinate(x + width, y),
+                new NetTopologySuite.Geometries.Coordinate(x + width, y + height),
+                new NetTopologySuite.Geometries.Coordinate(x, y + height),
+                new NetTopologySuite.Geometries.Coordinate(x, y),
+            }));
         }
 
         private static double TotalArea(Shell shell)
