@@ -272,20 +272,37 @@ namespace SAM.Geometry.Planar
             // O(unique endpoints x segments); the grid narrows that to the endpoints that could
             // lie within tolerance. It is kept live with Replace as endpoints are averaged, the
             // exact distance comparison still decides every candidate, and candidates arrive in
-            // the same (segment, endpoint) order the full scan used.
-            Point2DGrid grid = new Point2DGrid(tolerance);
-            for (int j = 0; j < result.Count; j++)
-            {
-                Segment2D segment2D = result[j];
-                if (segment2D == null)
-                {
-                    grid.Add(null);
-                    grid.Add(null);
-                    continue;
-                }
+            // the same (segment, endpoint) order the full scan used. Small inputs skip the grid
+            // and offer every endpoint - identical order, identical exact tests.
+            bool useGrid = result.Count >= 32;
 
-                grid.Add(segment2D[0]);
-                grid.Add(segment2D[1]);
+            Point2DGrid grid = null;
+            if (useGrid)
+            {
+                grid = new Point2DGrid(tolerance);
+                for (int j = 0; j < result.Count; j++)
+                {
+                    Segment2D segment2D = result[j];
+                    if (segment2D == null)
+                    {
+                        grid.Add(null);
+                        grid.Add(null);
+                        continue;
+                    }
+
+                    grid.Add(segment2D[0]);
+                    grid.Add(segment2D[1]);
+                }
+            }
+
+            List<int> indexes_All = null;
+            if (!useGrid)
+            {
+                indexes_All = new List<int>(result.Count * 2);
+                for (int j = 0; j < result.Count * 2; j++)
+                {
+                    indexes_All.Add(j);
+                }
             }
 
             for (int i = 0; i < result.Count; i++)
@@ -300,7 +317,7 @@ namespace SAM.Geometry.Planar
 
                     Dictionary<int, List<int>> dictionary = new Dictionary<int, List<int>>();
                     List<Point2D> point2Ds = new List<Point2D>();
-                    foreach (int index in grid.Candidates(point2D_Segment2D))
+                    foreach (int index in useGrid ? grid.Candidates(point2D_Segment2D) : indexes_All)
                     {
                         int j = index / 2;
                         int endpoint = index - j * 2;
@@ -343,13 +360,13 @@ namespace SAM.Geometry.Planar
                         if (keyValuePair.Value.Contains(0))
                         {
                             result[keyValuePair.Key] = new Segment2D(point2D_New, result[keyValuePair.Key][1]);
-                            grid.Replace(keyValuePair.Key * 2, point2D_New);
+                            grid?.Replace(keyValuePair.Key * 2, point2D_New);
                         }
 
                         if (keyValuePair.Value.Contains(1))
                         {
                             result[keyValuePair.Key] = new Segment2D(result[keyValuePair.Key][0], point2D_New);
-                            grid.Replace(keyValuePair.Key * 2 + 1, point2D_New);
+                            grid?.Replace(keyValuePair.Key * 2 + 1, point2D_New);
                         }
                     }
                 }

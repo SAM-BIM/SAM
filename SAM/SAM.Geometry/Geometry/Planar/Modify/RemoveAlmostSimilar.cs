@@ -239,21 +239,40 @@ namespace SAM.Geometry.Planar
             if (segmentable2Ds == null)
                 return;
 
+            if (segmentable2Ds.Count < 32)
+            {
+                // Small inputs: the original exhaustive scan, without the index setup cost.
+                List<T> result_Small = new List<T>();
+                foreach (T segmentable2D in segmentable2Ds)
+                    if (result_Small.Find(x => Query.AlmostSimilar(x, segmentable2D, tolerance)) == null)
+                        result_Small.Add(segmentable2D);
+
+                segmentable2Ds.Clear();
+                segmentable2Ds.AddRange(result_Small);
+                return;
+            }
+
             // AlmostSimilar demands that every point of each geometry lie on the other within
             // tolerance, in both directions, so the two bounding boxes must agree to within
             // tolerance on every bound - a necessary condition the kept set is indexed on.
             // The old code scanned the whole result with Query.AlmostSimilar for every new
             // geometry; the grid narrows that to the box-compatible kept geometries. The exact
             // predicate still decides every candidate, and the first occurrence still wins.
-            BoundingBox2DGrid grid = new BoundingBox2DGrid(tolerance);
+            BoundingBox2D[] boundingBox2Ds = new BoundingBox2D[segmentable2Ds.Count];
+            for (int i = 0; i < segmentable2Ds.Count; i++)
+            {
+                boundingBox2Ds[i] = BoundingBox(segmentable2Ds[i]);
+            }
+
+            BoundingBox2DGrid grid = new BoundingBox2DGrid(tolerance, BoundingBox2DGrid.CellSizeHint(boundingBox2Ds));
 
             List<T> result = new List<T>();
-            foreach (T segmentable2D in segmentable2Ds)
+            for (int i = 0; i < segmentable2Ds.Count; i++)
             {
-                BoundingBox2D boundingBox2D = BoundingBox(segmentable2D);
+                T segmentable2D = segmentable2Ds[i];
 
                 bool similar = false;
-                foreach (int index in grid.Candidates(boundingBox2D))
+                foreach (int index in grid.Candidates(boundingBox2Ds[i]))
                 {
                     if (Query.AlmostSimilar(result[index], segmentable2D, tolerance))
                     {
@@ -267,7 +286,7 @@ namespace SAM.Geometry.Planar
                     continue;
                 }
 
-                grid.Add(boundingBox2D);
+                grid.Add(boundingBox2Ds[i]);
                 result.Add(segmentable2D);
             }
 

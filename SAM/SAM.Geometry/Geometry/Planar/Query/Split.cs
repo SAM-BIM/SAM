@@ -136,7 +136,7 @@ namespace SAM.Geometry.Planar
             // can only match a kept segment whose bounding box agrees with the candidate's box
             // to within tolerance, so the kept set is indexed on that box and only those
             // candidates reach the exact predicates.
-            BoundingBox2DGrid grid_Result = new BoundingBox2DGrid(tolerance);
+            BoundingBox2DGrid grid_Result = new BoundingBox2DGrid(tolerance, BoundingBox2DGrid.CellSizeHint(tuples.ConvertAll(x => x.Item1)));
             for (int i = 0; i < count; i++)
             {
                 Segment2D segment2D_Temp = tuples[i].Item2;
