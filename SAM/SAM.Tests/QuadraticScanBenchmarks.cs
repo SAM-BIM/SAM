@@ -83,6 +83,21 @@ namespace SAM.Tests
             });
         }
 
+        [Fact]
+        public void MergeCoplanarPanels_Scaling()
+        {
+            Report("Query.MergeCoplanarPanels(floors)", new int[] { 500, 1000, 2000 }, count =>
+            {
+                List<Panel> panels = QuadraticScanFixtures.CoplanarFloorPanels(count);
+                List<Panel> redundantPanels = new List<Panel>();
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                List<Panel> result = Analytical.Query.MergeCoplanarPanels(panels, 0.1, ref redundantPanels, false, Core.Tolerance.MacroDistance, Core.Tolerance.Distance);
+                stopwatch.Stop();
+                Assert.NotNull(result);
+                return stopwatch.Elapsed.TotalMilliseconds;
+            });
+        }
+
         private void Report(string name, int[] counts, System.Func<int, double> run)
         {
             // Warm up so JIT and first-touch allocation do not land in the smallest sample.

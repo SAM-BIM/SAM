@@ -266,6 +266,74 @@ namespace SAM.Tests
             Assert.Single(redundantPanels);
         }
 
+        // --- Query.MergeCoplanarPanels --------------------------------------------------------
+
+        [Fact]
+        public void MergeCoplanarPanels_TwoAbuttingFloors_MergeIntoOne()
+        {
+            List<Panel> panels = new List<Panel>
+            {
+                FloorPanel(0, 0, 0, 4),
+                FloorPanel(4, 0, 0, 4),
+            };
+
+            List<Panel> redundantPanels = new List<Panel>();
+            List<Panel> result = Analytical.Query.MergeCoplanarPanels(panels, 0.1, ref redundantPanels, false, Core.Tolerance.MacroDistance, Core.Tolerance.Distance);
+
+            Assert.NotNull(result);
+            Assert.Single(result);
+            Assert.Equal(32, result[0].GetArea(), 4);
+            Assert.Single(redundantPanels);
+        }
+
+        [Fact]
+        public void MergeCoplanarPanels_SeparatedFloors_StayApart()
+        {
+            List<Panel> panels = new List<Panel>
+            {
+                FloorPanel(0, 0, 0, 4),
+                FloorPanel(100, 0, 0, 4),
+            };
+
+            List<Panel> redundantPanels = new List<Panel>();
+            List<Panel> result = Analytical.Query.MergeCoplanarPanels(panels, 0.1, ref redundantPanels, false, Core.Tolerance.MacroDistance, Core.Tolerance.Distance);
+
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+            Assert.Equal(32, result.Sum(x => x.GetArea()), 4);
+            Assert.Empty(redundantPanels);
+        }
+
+        [Fact]
+        public void MergeCoplanarPanels_NonCoplanarFloors_StayApart()
+        {
+            List<Panel> panels = new List<Panel>
+            {
+                FloorPanel(0, 0, 0, 4),
+                FloorPanel(4, 0, 5, 4),
+            };
+
+            List<Panel> redundantPanels = new List<Panel>();
+            List<Panel> result = Analytical.Query.MergeCoplanarPanels(panels, 0.1, ref redundantPanels, false, Core.Tolerance.MacroDistance, Core.Tolerance.Distance);
+
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+            Assert.Equal(32, result.Sum(x => x.GetArea()), 4);
+        }
+
+        [Fact]
+        public void MergeCoplanarPanels_GridOfFloors_MergesToSingleSlab()
+        {
+            List<Panel> panels = QuadraticScanFixtures.CoplanarFloorPanels(9, 5, 5);
+
+            List<Panel> redundantPanels = new List<Panel>();
+            List<Panel> result = Analytical.Query.MergeCoplanarPanels(panels, 0.1, ref redundantPanels, false, Core.Tolerance.MacroDistance, Core.Tolerance.Distance);
+
+            Assert.NotNull(result);
+            Assert.Single(result);
+            Assert.Equal(225, result[0].GetArea(), 4);
+        }
+
         private static double TotalArea(Shell shell)
         {
             return shell.Face3Ds.Sum(x => x.GetArea());
