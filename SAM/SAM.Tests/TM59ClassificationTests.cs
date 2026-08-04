@@ -79,5 +79,40 @@ namespace SAM.Tests
             Assert.Equal(TM59SpaceClassification.LivingRoomKitchen, result.Classification);
             Assert.Equal("1 Bed Apt. Living Room/Kitchen", result.InternalCondition?.Name);
         }
+
+        [Fact]
+        public void CombinedLivingKitchen_Space_Alongside_An_Unrecognized_Room_Is_Not_Auto_Promoted_To_Studio()
+        {
+            // "Study" matches no TM59 keyword at all, so it classifies Undefined rather than Bedroom -
+            // but an unrecognized name might genuinely be a bedroom the matcher failed to recognize, so
+            // this must NOT be silently treated as "no other habitable space, therefore Studio". Only a
+            // POSITIVELY confirmed non-habitable other space (bathroom, corridor, ...) should still
+            // allow the zero-bedroom Studio shortcut - see CombinedLivingKitchen_Space_Alongside_A_
+            // ConfirmedNonHabitable_Space_Is_Still_Studio for that case.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Space livingKitchen = NewSpace("Kitchen Living Room");
+            Space study = NewSpace("Study");
+            List<Space> flat = new List<Space> { livingKitchen, study };
+
+            TM59InternalConditionResult result = resolver.Resolve(livingKitchen, flat);
+
+            Assert.Equal(TM59SpaceClassification.LivingRoomKitchen, result.Classification);
+            Assert.Null(result.InternalCondition);
+            Assert.Contains("no identifiable bedroom", result.Diagnostic);
+        }
+
+        [Fact]
+        public void CombinedLivingKitchen_Space_Alongside_A_ConfirmedNonHabitable_Space_Is_Still_Studio()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Space livingKitchen = NewSpace("Kitchen Living Room");
+            Space bathroom = NewSpace("Bathroom");
+            List<Space> flat = new List<Space> { livingKitchen, bathroom };
+
+            TM59InternalConditionResult result = resolver.Resolve(livingKitchen, flat);
+
+            Assert.Equal(TM59SpaceClassification.Studio, result.Classification);
+            Assert.Equal("Studio", result.InternalCondition?.Name);
+        }
     }
 }

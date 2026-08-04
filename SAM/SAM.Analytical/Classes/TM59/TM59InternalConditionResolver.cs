@@ -350,7 +350,19 @@ namespace SAM.Analytical
                 List<Space> habitableSpaces = flatSpaces_Temp.Where(x => IsHabitable(Classify(x))).ToList();
                 bool soleHabitableSpace = habitableSpaces.Count == 1 && habitableSpaces[0].Guid == space.Guid;
 
-                if (soleHabitableSpace)
+                // "No other HABITABLE space" is not the same guarantee as "every other space is
+                // confirmed non-habitable" - an unrecognized room name (e.g. "Study", which classifies
+                // as Undefined because it matches no TM59 keyword) would otherwise be silently excluded
+                // from habitableSpaces and this space auto-promoted to Studio, even though that
+                // unresolved room might actually be a separate bedroom the matcher just failed to
+                // recognize. Require every other space to be POSITIVELY classified NonHabitable - an
+                // Undefined one falls through to the generic "no identifiable bedroom" manual-review
+                // diagnostic below instead.
+                bool everyOtherSpaceConfirmedNonHabitable = flatSpaces_Temp
+                    .Where(x => x.Guid != space.Guid)
+                    .All(x => Classify(x) == TM59SpaceClassification.NonHabitable);
+
+                if (soleHabitableSpace && everyOtherSpaceConfirmedNonHabitable)
                     return ResolveNamedCondition(StudioConditionName, TM59SpaceClassification.Studio, 2, 0,
                         "Classified as Studio: sole combined living/kitchen space with no separate bedroom in the flat.");
             }
