@@ -79,7 +79,7 @@
         "internal corridor",
         "hall",
         "hallway",
-        "landing",
+        "internal landing",
         "entrance hall"
       ],
       [
@@ -89,7 +89,9 @@
         "common corridor",
         "circulation",
         "lift lobby",
-        "lobby"
+        "lobby",
+        "communal lobby",
+        "common lobby"
       ],
       [
         "TM59_Stairs",
@@ -97,7 +99,8 @@
         "stairs",
         "staircase",
         "stairwell",
-        "escape stair"
+        "escape stair",
+        "stair landing"
       ],
       [
         "TM59_Cupboard/riser/lift/void",
@@ -114,6 +117,7 @@
         "TM59_Cupboard with HIU",
         "hiu",
         "cupboard hiu",
+        "hiu cupboard",
         "heat interface unit"
       ],
       [
@@ -125,12 +129,18 @@
       [
         "Single Bedroom",
         "single",
+        "single bedroom",
         "sgl",
-        "single bed"
+        "single bed",
+        "twin",
+        "twin bedroom",
+        "twin bed"
       ],
       [
         "Double Bedroom",
         "double",
+        "double bedroom",
+        "double bed",
         "dbl",
         "master",
         "master bedroom",
