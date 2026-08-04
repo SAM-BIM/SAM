@@ -54,7 +54,7 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AnalyticalModel or AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Number number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_maxTiltDifference_", NickName = "_maxTiltDifference_", Description = "Maximal Allowed Tilt Difference", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Number number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_maxTiltDifference_", NickName = "_maxTiltDifference_", Description = "Maximal Allowed Tilt Difference in degrees from horizontal. A downward facing panel counts as floor when its tilt is within this many degrees of straight down, so the default 20 accepts floors ramped up to 20 degrees. Ramped floors contribute their actual sloped surface area, not their horizontal projection.", Access = GH_ParamAccess.item };
                 number.SetPersistentData(20);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
@@ -146,6 +146,7 @@ namespace SAM.Analytical.Grasshopper
                 int count = spaces_Temp.Count;
                 List<Panel>[] panelLists = new List<Panel>[count];
                 double[] areas = Enumerable.Repeat(double.NaN, count).ToArray();
+                FloorAreaCalculationMethod[] methods = Enumerable.Repeat(FloorAreaCalculationMethod.Undefined, count).ToArray();
 
                 Parallel.For(0, count, (int i) =>
                 {
@@ -153,12 +154,11 @@ namespace SAM.Analytical.Grasshopper
                     if (space_Temp == null)
                         return;
 
-                    List<Panel> panels = Analytical.Query.GeomericalFloorPanels(adjacencyCluster, space_Temp, maxTiltDifference);
-                    if (panels == null || panels.Count == 0)
-                        return;
-
+                    // Same shared calculation the creation paths use, so an explicit recalculation here can
+                    // never disagree with the area the model was built with.
+                    areas[i] = adjacencyCluster.FloorArea(space_Temp, out FloorAreaCalculationMethod method, out List<Panel> panels, maxTiltDifference);
+                    methods[i] = method;
                     panelLists[i] = panels;
-                    areas[i] = panels.ConvertAll(x => x.GetArea()).Sum();
                 });
 
                 DataTree<GooPanel> dataTree_Panel = new DataTree<GooPanel>();
@@ -188,6 +188,12 @@ namespace SAM.Analytical.Grasshopper
                     adjacencyCluster = new AdjacencyCluster(adjacencyCluster);
                     for (int i = 0; i < count; i++)
                     {
+                        // Only a genuine recalculation is stored. Undefined/Existing mean neither the floor
+                        // panels nor the shell section produced a valid area, so any existing value is left
+                        // alone rather than being overwritten with NaN.
+                        if (methods[i] != FloorAreaCalculationMethod.GeometricalFloorPanels && methods[i] != FloorAreaCalculationMethod.HorizontalSection)
+                            continue;
+
                         Space space = new Space(spaces_Temp[i]);
                         space.SetValue(SpaceParameter.Area, areas[i]);
                         adjacencyCluster.AddObject(space);
