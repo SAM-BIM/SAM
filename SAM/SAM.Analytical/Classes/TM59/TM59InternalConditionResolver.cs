@@ -13,7 +13,10 @@ namespace SAM.Analytical
     /// for non-habitable spaces (corridors, bathrooms, risers, ...). Primary entry point is
     /// Resolve(Space, IEnumerable&lt;Space&gt;) - a pure function of the space and the other spaces in
     /// its flat/unit, so it is unit-testable without an AdjacencyCluster. The AdjacencyCluster overload
-    /// wraps it and memoizes per Zone.
+    /// wraps it and reads zone membership fresh on every call. Per-Space classification is cached, but
+    /// self-invalidates if a Space with the same Guid is later seen with a different Name - see
+    /// classificationCacheName - since TM59Manager deliberately reuses one resolver instance across
+    /// many Resolve calls over a live, mutable model.
     /// </summary>
     public class TM59InternalConditionResolver
     {
@@ -44,7 +47,13 @@ namespace SAM.Analytical
         private readonly Dictionary<Guid, TM59SpaceClassification> classificationCache = new Dictionary<Guid, TM59SpaceClassification>();
         private readonly Dictionary<Guid, string> matchedConditionNameCache = new Dictionary<Guid, string>();
         private readonly Dictionary<Guid, BedroomKeyword> explicitBedroomKeywordCache = new Dictionary<Guid, BedroomKeyword>();
-        private readonly Dictionary<Guid, List<Space>> flatSpacesCache = new Dictionary<Guid, List<Space>>();
+
+        // The Name each Guid's cache entries above were computed from - Classify's only input besides
+        // the Guid itself. TM59Manager deliberately reuses one resolver instance across many Resolve
+        // calls, so a caller that constructs a new Space with the same Guid but a different Name (the
+        // only way to "rename" a Space, since Name has no setter) must invalidate the stale entry
+        // rather than have it silently returned forever.
+        private readonly Dictionary<Guid, string> classificationCacheName = new Dictionary<Guid, string>();
 
         public TM59InternalConditionResolver(TextMap textMap, InternalConditionLibrary internalConditionLibrary)
         {
@@ -58,14 +67,19 @@ namespace SAM.Analytical
             if (space == null)
                 return TM59SpaceClassification.Undefined;
 
-            if (classificationCache.TryGetValue(space.Guid, out TM59SpaceClassification cached))
+            if (classificationCache.TryGetValue(space.Guid, out TM59SpaceClassification cached)
+                && classificationCacheName.TryGetValue(space.Guid, out string cachedName)
+                && string.Equals(cachedName, space.Name, StringComparison.Ordinal))
+            {
                 return cached;
+            }
 
             TM59SpaceClassification classification = ClassifyCore(space, out string matchedConditionName, out BedroomKeyword explicitBedroomKeyword);
 
             classificationCache[space.Guid] = classification;
             matchedConditionNameCache[space.Guid] = matchedConditionName;
             explicitBedroomKeywordCache[space.Guid] = explicitBedroomKeyword;
+            classificationCacheName[space.Guid] = space.Name;
 
             return classification;
         }
@@ -98,12 +112,26 @@ namespace SAM.Analytical
             if (living) bestRoleTokenCount = System.Math.Max(bestRoleTokenCount, livingMatches[0].TokenCount);
             if (cooking) bestRoleTokenCount = System.Math.Max(bestRoleTokenCount, cookingMatches[0].TokenCount);
 
+            List<TM59TextMapMatch> bedroomTypeMatches = textMap.TM59TextMapMatches(name, BedroomTypeKeys);
+            int bedroomTypeTokenCount = bedroomTypeMatches.Count > 0 ? bedroomTypeMatches[0].TokenCount : 0;
+
+            List<TM59TextMapMatch> nonHabitableMatches = textMap.TM59TextMapMatches(name, NonHabitableConditionNames);
+            int nonHabitableTokenCount = nonHabitableMatches.Count > 0 ? nonHabitableMatches[0].TokenCount : 0;
+
+            // A bare bedroom-size modifier (single/double/twin/master/...) is weak, standalone evidence -
+            // it only means "bedroom" when there is no more specific competing noun. So it must not beat a
+            // non-habitable noun of equal or greater specificity (e.g. "Master Bathroom", "Double Bathroom",
+            // "Twin Ensuite" must read as the bathroom condition, not Bedroom, even though "master"/"double"/
+            // "twin" are also bedroom-size keywords) - hence the strict ">" below, mirroring tier 2's own
+            // "generic keyword must be strictly more specific to win" rule but in the opposite direction.
+            bool bedroomTypeBeatsNonHabitable = nonHabitableTokenCount == 0 || bedroomTypeTokenCount > nonHabitableTokenCount;
+
             // Tier 1: explicit bedroom-size keywords (Single/Double Bedroom). These are a REFINEMENT of the
             // Sleeping role, not a competing generic category, so a tie against the role's own best phrase
             // (e.g. bare "Twin" is simultaneously a Sleeping alias and a Single Bedroom alias, both 1 token)
-            // is resolved in favour of the more specific bedroom-size reading - hence ">=", not ">".
-            List<TM59TextMapMatch> bedroomTypeMatches = textMap.TM59TextMapMatches(name, BedroomTypeKeys);
-            if (bedroomTypeMatches.Count > 0 && (!roleExists || bedroomTypeMatches[0].TokenCount >= bestRoleTokenCount))
+            // is resolved in favour of the more specific bedroom-size reading - hence ">=", not ">" - but
+            // only once it has already cleared the non-habitable check above.
+            if (bedroomTypeMatches.Count > 0 && bedroomTypeBeatsNonHabitable && (!roleExists || bedroomTypeMatches[0].TokenCount >= bestRoleTokenCount))
             {
                 string bedroomTypeKey = textMap.TM59BestTextMapKey(name, BedroomTypeKeys);
                 if (bedroomTypeKey == SingleBedroomConditionName)
@@ -127,8 +155,26 @@ namespace SAM.Analytical
             // "generic keywords must not override Studio/Bedroom/Living Room/Kitchen/.../Bathroom/Ensuite"
             // they may only win when STRICTLY more specific (more tokens) than the best habitable role
             // match - a tie (e.g. "Kitchen"=Cooking vs "Store"=Cupboard, both 1 token) favours the role.
-            List<TM59TextMapMatch> nonHabitableMatches = textMap.TM59TextMapMatches(name, NonHabitableConditionNames);
-            if (nonHabitableMatches.Count > 0 && (!roleExists || nonHabitableMatches[0].TokenCount > bestRoleTokenCount))
+            //
+            // A legacy Sleeping alias that is ALSO one of the bare bedroom-size modifiers (twin/double/dbl -
+            // kept in that row only for SAM_Tas's own IsSleeping compatibility, see TM59ResourceTests) must
+            // not be double-counted as independent role evidence once tier 1 has already tried and lost
+            // that exact word against this same non-habitable match (e.g. "Twin Ensuite"/"Double Bathroom":
+            // "twin"/"double" is simultaneously the Sleeping alias AND the losing bedroom-size candidate) -
+            // otherwise the non-habitable noun could never win a case tier 1 already conceded.
+            bool sleepingIsSpentBedroomTypeAlias = sleeping && !bedroomTypeBeatsNonHabitable
+                && bedroomTypeMatches.Count > 0
+                && string.Equals(sleepingMatches[0].Alias, bedroomTypeMatches[0].Alias, StringComparison.OrdinalIgnoreCase);
+
+            int nonHabitableRoleComparisonTokenCount = bestRoleTokenCount;
+            bool nonHabitableRoleExists = roleExists;
+            if (sleepingIsSpentBedroomTypeAlias && !living && !cooking)
+            {
+                nonHabitableRoleComparisonTokenCount = 0;
+                nonHabitableRoleExists = false;
+            }
+
+            if (nonHabitableMatches.Count > 0 && (!nonHabitableRoleExists || nonHabitableMatches[0].TokenCount > nonHabitableRoleComparisonTokenCount))
             {
                 string nonHabitableKey = textMap.TM59BestTextMapKey(name, NonHabitableConditionNames);
                 if (nonHabitableKey != null)
@@ -400,7 +446,7 @@ namespace SAM.Analytical
             return explicitBedroomKeywordCache.TryGetValue(space.Guid, out BedroomKeyword keyword) ? keyword : BedroomKeyword.None;
         }
 
-        /// <summary>Convenience wrapper: resolves the flat from the zone of the given category and memoizes per Zone.Guid.</summary>
+        /// <summary>Convenience wrapper: resolves the flat from the zone of the given category.</summary>
         public TM59InternalConditionResult Resolve(AdjacencyCluster adjacencyCluster, Space space, string zoneCategory)
         {
             if (space == null)
@@ -423,11 +469,11 @@ namespace SAM.Analytical
                         : $"Space is not assigned to a zone of category '{zoneCategory}'.");
             }
 
-            if (!flatSpacesCache.TryGetValue(zone.Guid, out List<Space> flatSpaces))
-            {
-                flatSpaces = adjacencyCluster.GetSpaces(zone) ?? new List<Space>();
-                flatSpacesCache[zone.Guid] = flatSpaces;
-            }
+            // Read zone membership fresh every call, deliberately not memoized: TM59Manager reuses one
+            // resolver instance across many Resolve calls, and a caller that adds/removes a Space from
+            // this zone between two of those calls must see that change reflected immediately, not a
+            // stale snapshot from the first call.
+            List<Space> flatSpaces = adjacencyCluster.GetSpaces(zone) ?? new List<Space>();
 
             return Resolve(space, flatSpaces);
         }
