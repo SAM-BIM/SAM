@@ -710,7 +710,7 @@
             "Parameters": [
               {
                 "Name": "Heating Profile Name",
-                "Value": "TM59_HTG_1to24_16"
+                "Value": "HTG_1to24_16"
               },
               {
                 "Name": "Cooling Profile Name",
@@ -726,7 +726,7 @@
               },
               {
                 "Name": "Equipment Sensible Profile Name",
-                "Value": "TM59_No Gains"
+                "Value": "OFF"
               },
               {
                 "Name": "Equipment Sensible Gain",
@@ -734,7 +734,7 @@
               },
               {
                 "Name": "Occupancy Profile Name",
-                "Value": "TM59_No Occupancy"
+                "Value": "OFF"
               },
               {
                 "Name": "Occupancy Sensible Gain Per Person",
@@ -776,7 +776,7 @@
               },
               {
                 "Name": "Lighting Profile Name",
-                "Value": "TM59_CommCorridor_lighting"
+                "Value": "Constant"
               },
               {
                 "Name": "Lighting Gain Per Area",
@@ -784,7 +784,7 @@
               },
               {
                 "Name": "Equipment Sensible Profile Name",
-                "Value": "TM59_CommCorridor_heatgain"
+                "Value": "Constant"
               },
               {
                 "Name": "Equipment Sensible Gain Per Area",
@@ -792,7 +792,7 @@
               },
               {
                 "Name": "Occupancy Profile Name",
-                "Value": "TM59_No Occupancy"
+                "Value": "OFF"
               },
               {
                 "Name": "Occupancy Sensible Gain Per Person",
@@ -834,7 +834,7 @@
               },
               {
                 "Name": "Lighting Profile Name",
-                "Value": "TM59_CommCorridor_lighting"
+                "Value": "Constant"
               },
               {
                 "Name": "Lighting Gain Per Area",
@@ -842,7 +842,7 @@
               },
               {
                 "Name": "Equipment Sensible Profile Name",
-                "Value": "TM59_No Gains"
+                "Value": "OFF"
               },
               {
                 "Name": "Equipment Sensible Gain",
@@ -850,7 +850,7 @@
               },
               {
                 "Name": "Occupancy Profile Name",
-                "Value": "TM59_No Occupancy"
+                "Value": "OFF"
               },
               {
                 "Name": "Occupancy Sensible Gain Per Person",
@@ -892,7 +892,7 @@
               },
               {
                 "Name": "Lighting Profile Name",
-                "Value": "TM59_No Lighting"
+                "Value": "OFF"
               },
               {
                 "Name": "Lighting Gain Per Area",
@@ -900,7 +900,7 @@
               },
               {
                 "Name": "Equipment Sensible Profile Name",
-                "Value": "TM59_No Gains"
+                "Value": "OFF"
               },
               {
                 "Name": "Equipment Sensible Gain",
@@ -908,7 +908,7 @@
               },
               {
                 "Name": "Occupancy Profile Name",
-                "Value": "TM59_No Occupancy"
+                "Value": "OFF"
               },
               {
                 "Name": "Occupancy Sensible Gain Per Person",
@@ -950,7 +950,7 @@
               },
               {
                 "Name": "Lighting Profile Name",
-                "Value": "TM59_No Lighting"
+                "Value": "OFF"
               },
               {
                 "Name": "Lighting Gain Per Area",
@@ -958,7 +958,7 @@
               },
               {
                 "Name": "Equipment Sensible Profile Name",
-                "Value": "TM59_HIU_pipework_heatgain"
+                "Value": "Constant"
               },
               {
                 "Name": "Equipment Sensible Gain",
@@ -966,7 +966,7 @@
               },
               {
                 "Name": "Occupancy Profile Name",
-                "Value": "TM59_No Occupancy"
+                "Value": "OFF"
               },
               {
                 "Name": "Occupancy Sensible Gain Per Person",
@@ -1008,7 +1008,7 @@
               },
               {
                 "Name": "Lighting Profile Name",
-                "Value": "TM59_No Lighting"
+                "Value": "OFF"
               },
               {
                 "Name": "Lighting Gain Per Area",
@@ -1016,7 +1016,7 @@
               },
               {
                 "Name": "Equipment Sensible Profile Name",
-                "Value": "TM59_CommCorridor_heatgain"
+                "Value": "Constant"
               },
               {
                 "Name": "Equipment Sensible Gain Per Area",
@@ -1024,7 +1024,7 @@
               },
               {
                 "Name": "Occupancy Profile Name",
-                "Value": "TM59_No Occupancy"
+                "Value": "OFF"
               },
               {
                 "Name": "Occupancy Sensible Gain Per Person",

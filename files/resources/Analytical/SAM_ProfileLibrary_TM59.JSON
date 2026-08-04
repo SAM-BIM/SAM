@@ -454,7 +454,7 @@
       },
       {
         "_type": "SAM.Analytical.Profile,SAM.Analytical",
-        "Name": "TM59_HTG_1to24_16",
+        "Name": "HTG_1to24_16",
         "Guid": "6a24b6f1-35b2-4c72-8d0b-99d15895a301",
         "Category": "Heating",
         "Values": [
@@ -467,9 +467,9 @@
       },
       {
         "_type": "SAM.Analytical.Profile,SAM.Analytical",
-        "Name": "TM59_CommCorridor_lighting",
-        "Guid": "6e7bc1ee-f00e-401b-89da-32e639d07439",
-        "Category": "Lighting",
+        "Name": "Constant",
+        "Guid": "72e154d7-6d4d-4ca0-8c7e-51769aeb31b0",
+        "Category": "Gain",
         "Values": [
           [
             0,
@@ -480,61 +480,9 @@
       },
       {
         "_type": "SAM.Analytical.Profile,SAM.Analytical",
-        "Name": "TM59_CommCorridor_heatgain",
-        "Guid": "68e577bb-96a5-45b4-b23b-837c1b5115f1",
-        "Category": "Equipment Sensible",
-        "Values": [
-          [
-            0,
-            23,
-            1.0
-          ]
-        ]
-      },
-      {
-        "_type": "SAM.Analytical.Profile,SAM.Analytical",
-        "Name": "TM59_HIU_pipework_heatgain",
-        "Guid": "ff5e7168-6db4-4b9f-8f5c-1a8c49a4dbc2",
-        "Category": "Equipment Sensible",
-        "Values": [
-          [
-            0,
-            23,
-            1.0
-          ]
-        ]
-      },
-      {
-        "_type": "SAM.Analytical.Profile,SAM.Analytical",
-        "Name": "TM59_No Occupancy",
-        "Guid": "3809bccd-4ac1-45c9-99b4-16fd6965dabe",
-        "Category": "Occupancy",
-        "Values": [
-          [
-            0,
-            23,
-            0.0
-          ]
-        ]
-      },
-      {
-        "_type": "SAM.Analytical.Profile,SAM.Analytical",
-        "Name": "TM59_No Lighting",
-        "Guid": "74213ab9-ba5b-46f7-9f4d-72dd3c74d636",
-        "Category": "Lighting",
-        "Values": [
-          [
-            0,
-            23,
-            0.0
-          ]
-        ]
-      },
-      {
-        "_type": "SAM.Analytical.Profile,SAM.Analytical",
-        "Name": "TM59_No Gains",
-        "Guid": "be699d51-28ef-4887-9311-42ab7dc5df1c",
-        "Category": "Equipment Sensible",
+        "Name": "OFF",
+        "Guid": "5a6bcf27-6daa-42d1-a4e4-746992cb915d",
+        "Category": "Gain",
         "Values": [
           [
             0,
