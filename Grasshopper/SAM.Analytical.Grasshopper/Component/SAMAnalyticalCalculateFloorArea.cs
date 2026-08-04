@@ -161,17 +161,21 @@ namespace SAM.Analytical.Grasshopper
                     panelLists[i] = panels;
                 });
 
+                // One branch per space, at the SAME index the space has in Areas/Spaces - never compacted.
+                // A space can now have a real (non-NaN) area from the HorizontalSection or Existing fallback
+                // while panels is null (no geometrical floor panels were found), so a compacted path index would
+                // silently pair a later space's panels with an earlier space's area/name.
                 DataTree<GooPanel> dataTree_Panel = new DataTree<GooPanel>();
-                int pathIndex = 0;
                 for (int i = 0; i < count; i++)
                 {
+                    GH_Path path = new GH_Path(i);
+                    dataTree_Panel.EnsurePath(path);
+
                     List<Panel> panelList = panelLists[i];
                     if (panelList == null || panelList.Count == 0)
                         continue;
 
-                    GH_Path path = new GH_Path(pathIndex);
                     panelList.ForEach(x => dataTree_Panel.Add(new GooPanel(x), path));
-                    pathIndex++;
                 }
 
                 index = Params.IndexOfOutputParam("Panels");
