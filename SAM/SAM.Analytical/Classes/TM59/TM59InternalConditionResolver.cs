@@ -105,12 +105,10 @@ namespace SAM.Analytical
             bool sleeping = sleepingMatches.Count > 0;
             bool living = livingMatches.Count > 0;
             bool cooking = cookingMatches.Count > 0;
-            bool roleExists = sleeping || living || cooking;
 
-            int bestRoleTokenCount = 0;
-            if (sleeping) bestRoleTokenCount = System.Math.Max(bestRoleTokenCount, sleepingMatches[0].TokenCount);
-            if (living) bestRoleTokenCount = System.Math.Max(bestRoleTokenCount, livingMatches[0].TokenCount);
-            if (cooking) bestRoleTokenCount = System.Math.Max(bestRoleTokenCount, cookingMatches[0].TokenCount);
+            int sleepingTokenCount = sleeping ? sleepingMatches[0].TokenCount : 0;
+            int livingTokenCount = living ? livingMatches[0].TokenCount : 0;
+            int cookingTokenCount = cooking ? cookingMatches[0].TokenCount : 0;
 
             List<TM59TextMapMatch> bedroomTypeMatches = textMap.TM59TextMapMatches(name, BedroomTypeKeys);
             int bedroomTypeTokenCount = bedroomTypeMatches.Count > 0 ? bedroomTypeMatches[0].TokenCount : 0;
@@ -118,20 +116,39 @@ namespace SAM.Analytical
             List<TM59TextMapMatch> nonHabitableMatches = textMap.TM59TextMapMatches(name, NonHabitableConditionNames);
             int nonHabitableTokenCount = nonHabitableMatches.Count > 0 ? nonHabitableMatches[0].TokenCount : 0;
 
-            // A bare bedroom-size modifier (single/double/twin/master/...) is weak, standalone evidence -
-            // it only means "bedroom" when there is no more specific competing noun. So it must not beat a
-            // non-habitable noun of equal or greater specificity (e.g. "Master Bathroom", "Double Bathroom",
-            // "Twin Ensuite" must read as the bathroom condition, not Bedroom, even though "master"/"double"/
-            // "twin" are also bedroom-size keywords) - hence the strict ">" below, mirroring tier 2's own
-            // "generic keyword must be strictly more specific to win" rule but in the opposite direction.
-            bool bedroomTypeBeatsNonHabitable = nonHabitableTokenCount == 0 || bedroomTypeTokenCount > nonHabitableTokenCount;
+            // A legacy Sleeping alias that is ALSO literally the bedroom-size modifier this name matched
+            // (twin/double/dbl - kept in that row only for SAM_Tas's own IsSleeping compatibility, see
+            // TM59ResourceTests) is weak, overloaded evidence: on its own it means nothing until paired
+            // with an actual bedroom noun. It only counts as genuine, independent Sleeping-role evidence
+            // when nothing more specific (a real Living/Cooking noun, or a non-habitable noun) competes
+            // for the same tokens - a tie goes against it, not just a loss.
+            bool sleepingIsSpentBedroomTypeAlias = sleeping && bedroomTypeMatches.Count > 0
+                && string.Equals(sleepingMatches[0].Alias, bedroomTypeMatches[0].Alias, StringComparison.OrdinalIgnoreCase);
 
-            // Tier 1: explicit bedroom-size keywords (Single/Double Bedroom). These are a REFINEMENT of the
-            // Sleeping role, not a competing generic category, so a tie against the role's own best phrase
-            // (e.g. bare "Twin" is simultaneously a Sleeping alias and a Single Bedroom alias, both 1 token)
-            // is resolved in favour of the more specific bedroom-size reading - hence ">=", not ">" - but
-            // only once it has already cleared the non-habitable check above.
-            if (bedroomTypeMatches.Count > 0 && bedroomTypeBeatsNonHabitable && (!roleExists || bedroomTypeMatches[0].TokenCount >= bestRoleTokenCount))
+            int bestCompetingNonSleepingTokenCount = System.Math.Max(nonHabitableTokenCount, System.Math.Max(livingTokenCount, cookingTokenCount));
+
+            bool sleepingIsGenuine = sleeping && (!sleepingIsSpentBedroomTypeAlias || sleepingTokenCount > bestCompetingNonSleepingTokenCount);
+
+            bool roleExists = sleepingIsGenuine || living || cooking;
+            int bestRoleTokenCount = 0;
+            if (sleepingIsGenuine) bestRoleTokenCount = System.Math.Max(bestRoleTokenCount, sleepingTokenCount);
+            if (living) bestRoleTokenCount = System.Math.Max(bestRoleTokenCount, livingTokenCount);
+            if (cooking) bestRoleTokenCount = System.Math.Max(bestRoleTokenCount, cookingTokenCount);
+
+            // Tier 1: explicit bedroom-size keywords (Single/Double Bedroom). These are a REFINEMENT of
+            // the Sleeping role specifically, not a competing generic category, so a tie against the RAW
+            // Sleeping match it refines (not sleepingIsGenuine - e.g. bare "Twin" is simultaneously a
+            // Sleeping alias and a Single Bedroom alias, both 1 token) is resolved in favour of the more
+            // specific bedroom-size reading. But it must be STRICTLY more specific than any competing
+            // Living/Cooking evidence ("Double Kitchen"/"Master Living Room" must fall through to the
+            // Cooking/Living role, not Bedroom) and STRICTLY more specific than any competing non-habitable
+            // noun ("Master Bathroom"/"Twin Ensuite" must read as the bathroom condition).
+            bool bedroomTypeBeatsNonHabitable = nonHabitableTokenCount == 0 || bedroomTypeTokenCount > nonHabitableTokenCount;
+            bool bedroomTypeBeatsLiving = livingTokenCount == 0 || bedroomTypeTokenCount > livingTokenCount;
+            bool bedroomTypeBeatsCooking = cookingTokenCount == 0 || bedroomTypeTokenCount > cookingTokenCount;
+            bool bedroomTypeBeatsRawSleeping = !sleeping || bedroomTypeTokenCount >= sleepingTokenCount;
+
+            if (bedroomTypeMatches.Count > 0 && bedroomTypeBeatsNonHabitable && bedroomTypeBeatsLiving && bedroomTypeBeatsCooking && bedroomTypeBeatsRawSleeping)
             {
                 string bedroomTypeKey = textMap.TM59BestTextMapKey(name, BedroomTypeKeys);
                 if (bedroomTypeKey == SingleBedroomConditionName)
@@ -153,28 +170,12 @@ namespace SAM.Analytical
 
             // Tier 2: the 6 non-habitable conditions. These ARE a competing, generic category, so per
             // "generic keywords must not override Studio/Bedroom/Living Room/Kitchen/.../Bathroom/Ensuite"
-            // they may only win when STRICTLY more specific (more tokens) than the best habitable role
-            // match - a tie (e.g. "Kitchen"=Cooking vs "Store"=Cupboard, both 1 token) favours the role.
-            //
-            // A legacy Sleeping alias that is ALSO one of the bare bedroom-size modifiers (twin/double/dbl -
-            // kept in that row only for SAM_Tas's own IsSleeping compatibility, see TM59ResourceTests) must
-            // not be double-counted as independent role evidence once tier 1 has already tried and lost
-            // that exact word against this same non-habitable match (e.g. "Twin Ensuite"/"Double Bathroom":
-            // "twin"/"double" is simultaneously the Sleeping alias AND the losing bedroom-size candidate) -
-            // otherwise the non-habitable noun could never win a case tier 1 already conceded.
-            bool sleepingIsSpentBedroomTypeAlias = sleeping && !bedroomTypeBeatsNonHabitable
-                && bedroomTypeMatches.Count > 0
-                && string.Equals(sleepingMatches[0].Alias, bedroomTypeMatches[0].Alias, StringComparison.OrdinalIgnoreCase);
-
-            int nonHabitableRoleComparisonTokenCount = bestRoleTokenCount;
-            bool nonHabitableRoleExists = roleExists;
-            if (sleepingIsSpentBedroomTypeAlias && !living && !cooking)
-            {
-                nonHabitableRoleComparisonTokenCount = 0;
-                nonHabitableRoleExists = false;
-            }
-
-            if (nonHabitableMatches.Count > 0 && (!nonHabitableRoleExists || nonHabitableMatches[0].TokenCount > nonHabitableRoleComparisonTokenCount))
+            // they may only win when STRICTLY more specific (more tokens) than the best GENUINE habitable
+            // role match - a tie (e.g. "Kitchen"=Cooking vs "Store"=Cupboard, both 1 token) favours the
+            // role. Using roleExists/bestRoleTokenCount here (built from sleepingIsGenuine, not raw
+            // sleeping) means a spent bedroom-size alias that already lost tier 1 above cannot resurrect
+            // itself here just to block the non-habitable noun it already conceded to.
+            if (nonHabitableMatches.Count > 0 && (!roleExists || nonHabitableMatches[0].TokenCount > bestRoleTokenCount))
             {
                 string nonHabitableKey = textMap.TM59BestTextMapKey(name, NonHabitableConditionNames);
                 if (nonHabitableKey != null)
@@ -189,11 +190,13 @@ namespace SAM.Analytical
                 return TM59SpaceClassification.Undefined;
             }
 
-            // Tier 3: habitable role combination (unchanged priority order).
-            if (sleeping && living && cooking)
+            // Tier 3: habitable role combination (unchanged priority order), using only GENUINE Sleeping
+            // evidence - a spent bedroom-size alias that lost tiers 1 and 2 above must not resurrect
+            // itself here either, just because this cascade checks Sleeping before Living/Cooking.
+            if (sleepingIsGenuine && living && cooking)
                 return TM59SpaceClassification.Studio;
 
-            if (sleeping)
+            if (sleepingIsGenuine)
                 return TM59SpaceClassification.Bedroom;
 
             if (living && cooking)
@@ -245,26 +248,60 @@ namespace SAM.Analytical
                 && area > 0;
         }
 
+        // Every per-area gain parameter TM59 conditions carry - not just Equipment Sensible Gain Per
+        // Area. Almost every condition in the library, habitable and non-habitable alike (including
+        // every apartment/bedroom size and e.g. TM59_Stairs), also carries a non-zero Lighting Gain Per
+        // Area, so a Space with no valid Area needs the same NaN-safety guard for that too.
+        private static readonly (InternalConditionParameter Parameter, string Label)[] PerAreaGainParameters =
+        {
+            (InternalConditionParameter.EquipmentSensibleGainPerArea, "Equipment Sensible Gain Per Area"),
+            (InternalConditionParameter.LightingGainPerArea, "Lighting Gain Per Area"),
+        };
+
         /// <summary>
         /// TM59 must never calculate, infer or write Area - it only validates what the model already has.
-        /// A condition with a non-zero per-area equipment gain applied to a Space with no valid Area would
+        /// Any non-zero per-area gain (equipment or lighting) applied to a Space with no valid Area would
         /// otherwise silently produce a NaN (or a fabricated) gain downstream; this surfaces a diagnostic
         /// instead, directing the modeller to the existing SAM commands that actually establish Area.
+        /// Checked against every resolved condition, habitable or not.
         /// </summary>
-        private static string ValidateAreaForPerAreaGain(Space space, InternalCondition condition)
+        private static string ValidateAreaForPerAreaGains(Space space, InternalCondition condition)
         {
-            if (condition == null)
+            if (condition == null || TryGetArea(space, out _))
                 return null;
 
-            if (!condition.TryGetValue(InternalConditionParameter.EquipmentSensibleGainPerArea, out double gainPerArea)
-                || double.IsNaN(gainPerArea) || gainPerArea == 0)
+            List<string> nonZeroGainLabels = null;
+            foreach ((InternalConditionParameter parameter, string label) in PerAreaGainParameters)
+            {
+                if (!condition.TryGetValue(parameter, out double gainPerArea) || double.IsNaN(gainPerArea) || gainPerArea == 0)
+                    continue;
+
+                (nonZeroGainLabels ??= new List<string>()).Add($"{label} ({gainPerArea:0.##} W/m²)");
+            }
+
+            if (nonZeroGainLabels == null)
                 return null;
 
-            if (TryGetArea(space, out _))
-                return null;
-
-            return $"'{condition.Name}' has a per-area equipment gain ({gainPerArea:0.##} W/m²) but this Space has no valid Area - " +
+            return $"'{condition.Name}' has a non-zero {string.Join(" and ", nonZeroGainLabels)} but this Space has no valid Area - " +
                    "TM59 does not calculate or write Area. Run SAMAnalytical.Check then SAMAnalytical.CalculateFloorArea before exporting.";
+        }
+
+        /// <summary>
+        /// Appends the per-area-gain diagnostic (if any) to whatever Resolve already decided, without
+        /// disturbing a null InternalCondition (manual-review results are never validated - there is no
+        /// condition to check a gain against) or an existing diagnostic (both are shown, space-separated).
+        /// </summary>
+        private static TM59InternalConditionResult ApplyAreaGainValidation(Space space, TM59InternalConditionResult result)
+        {
+            if (result?.InternalCondition == null)
+                return result;
+
+            string gainDiagnostic = ValidateAreaForPerAreaGains(space, result.InternalCondition);
+            if (gainDiagnostic == null)
+                return result;
+
+            string diagnostic = string.IsNullOrWhiteSpace(result.Diagnostic) ? gainDiagnostic : result.Diagnostic + " " + gainDiagnostic;
+            return new TM59InternalConditionResult(result.InternalCondition, result.Classification, result.Occupancy, result.BedroomCount, diagnostic);
         }
 
         /// <summary>
@@ -273,6 +310,11 @@ namespace SAM.Analytical
         /// zone-less non-habitable spaces.
         /// </summary>
         public TM59InternalConditionResult Resolve(Space space, IEnumerable<Space> flatSpaces)
+        {
+            return ApplyAreaGainValidation(space, ResolveCore(space, flatSpaces));
+        }
+
+        private TM59InternalConditionResult ResolveCore(Space space, IEnumerable<Space> flatSpaces)
         {
             if (space == null)
                 return new TM59InternalConditionResult(null, TM59SpaceClassification.Undefined, 0, 0, "Space is null.");
@@ -285,7 +327,7 @@ namespace SAM.Analytical
                 InternalCondition nonHabitableCondition = internalConditionLibrary?.GetInternalConditions(conditionName)?.FirstOrDefault();
                 string diagnostic = nonHabitableCondition == null
                     ? $"Matched non-habitable condition '{conditionName}' not found in the selected InternalConditionLibrary."
-                    : ValidateAreaForPerAreaGain(space, nonHabitableCondition);
+                    : null;
 
                 return new TM59InternalConditionResult(nonHabitableCondition, classification, 0, 0, diagnostic);
             }
@@ -452,10 +494,12 @@ namespace SAM.Analytical
             if (space == null)
                 return new TM59InternalConditionResult(null, TM59SpaceClassification.Undefined, 0, 0, "Space is null.");
 
-            if (adjacencyCluster == null)
-                return Resolve(space, null);
-
-            Zone zone = adjacencyCluster.GetZones(space, zoneCategory)?.FirstOrDefault();
+            // A missing AdjacencyCluster is treated exactly like "no zone found" below (null-conditional
+            // GetZones), NOT as license to resolve the space alone as if it were a one-space flat -
+            // otherwise a lone bedroom/living-kitchen would be silently promoted to Double Bedroom/Studio
+            // with no zone at all to justify that "sole space in the flat" assumption. Only NonHabitable
+            // spaces get the zone-less shortcut, since they need no zone/flat context either way.
+            Zone zone = adjacencyCluster?.GetZones(space, zoneCategory)?.FirstOrDefault();
             if (zone == null)
             {
                 // Non-habitable spaces need no zone at all (defect: corridors/bathrooms were previously
