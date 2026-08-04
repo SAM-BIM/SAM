@@ -219,6 +219,49 @@ namespace SAM.Tests
 
         // --- Explicit "twin" bedroom-size keyword (requirement 4). ---
 
+        // --- A bare bedroom-size modifier (single/double/twin/master/...) must not beat a genuine
+        // non-habitable noun of equal or greater specificity - Codex review finding on the PR that
+        // introduced the 3-tier precedence above. ---
+
+        [Fact]
+        public void Master_Bathroom_Resolves_As_Bathroom_Not_Bedroom()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            TM59InternalConditionResult result = resolver.Resolve(NewSpace("Master Bathroom"), null);
+            Assert.Equal("TM59_Bathroom/internal corridors", result.InternalCondition?.Name);
+        }
+
+        [Fact]
+        public void Double_Bathroom_Resolves_As_Bathroom_Not_Bedroom()
+        {
+            // "double" is simultaneously a bedroom-size keyword AND a legacy Sleeping-role alias (kept
+            // for SAM_Tas's own IsSleeping compatibility) - that overlap must not let it win a tie
+            // against the distinct, genuine "bathroom" noun via either path.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            TM59InternalConditionResult result = resolver.Resolve(NewSpace("Double Bathroom"), null);
+            Assert.Equal("TM59_Bathroom/internal corridors", result.InternalCondition?.Name);
+        }
+
+        [Fact]
+        public void Twin_Ensuite_Resolves_As_Bathroom_Not_Bedroom()
+        {
+            // Same overlap as Double Bathroom: "twin" is also a legacy Sleeping alias.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            TM59InternalConditionResult result = resolver.Resolve(NewSpace("Twin Ensuite"), null);
+            Assert.Equal("TM59_Bathroom/internal corridors", result.InternalCondition?.Name);
+        }
+
+        [Fact]
+        public void Master_Bedroom_Still_Resolves_As_Bedroom_Not_Bathroom()
+        {
+            // Regression guard: the fix above must not affect names with no competing non-habitable
+            // noun at all - "master bedroom" is a 2-token bedroom-size phrase with nothing to lose to.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Space space = NewSpace("Master Bedroom");
+            TM59InternalConditionResult result = resolver.Resolve(space, new System.Collections.Generic.List<Space> { space });
+            Assert.Equal("Double Bedroom", result.InternalCondition?.Name);
+        }
+
         [Theory]
         [InlineData("Twin Bedroom")]
         [InlineData("Twin Bed")]
