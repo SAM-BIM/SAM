@@ -252,6 +252,25 @@ namespace SAM.Tests
         }
 
         [Fact]
+        public void Double_Kitchen_Resolves_As_Kitchen_Not_Bedroom()
+        {
+            // "double" is simultaneously a bedroom-size keyword AND a legacy Sleeping-role alias - it
+            // must not beat the genuine Cooking noun "kitchen" either directly (tier 1) or by falling
+            // through to tier 3's Sleeping-first priority cascade.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Assert.Equal(TM59SpaceClassification.Kitchen, resolver.Classify(NewSpace("Double Kitchen")));
+        }
+
+        [Fact]
+        public void Master_Living_Room_Resolves_As_LivingRoom_Not_Bedroom()
+        {
+            // "master" is a bedroom-size keyword but NOT a legacy Sleeping-role alias on its own, so
+            // this exercises the tier-1-vs-Living comparison directly rather than the spent-alias path.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Assert.Equal(TM59SpaceClassification.LivingRoom, resolver.Classify(NewSpace("Master Living Room")));
+        }
+
+        [Fact]
         public void Master_Bedroom_Still_Resolves_As_Bedroom_Not_Bathroom()
         {
             // Regression guard: the fix above must not affect names with no competing non-habitable

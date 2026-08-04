@@ -138,6 +138,35 @@ namespace SAM.Tests
         }
 
         [Fact]
+        public void Null_AdjacencyCluster_Does_Not_Resolve_A_Habitable_Space_As_A_SoleSpace_Flat()
+        {
+            // A null AdjacencyCluster must be treated exactly like "no zone found" for habitable
+            // classifications - never as license to resolve the space alone as if it were a one-space
+            // flat, which would otherwise silently promote a lone bedroom to Double Bedroom and a lone
+            // combined living/kitchen to Studio with no zone at all to justify either assumption.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+
+            Space bedroom = NewSpace("Bedroom 1");
+            TM59InternalConditionResult bedroomResult = resolver.Resolve(null, bedroom, "Flats");
+            Assert.Null(bedroomResult.InternalCondition);
+            Assert.False(string.IsNullOrWhiteSpace(bedroomResult.Diagnostic));
+
+            Space livingKitchen = NewSpace("Living Kitchen");
+            TM59InternalConditionResult livingKitchenResult = resolver.Resolve(null, livingKitchen, "Flats");
+            Assert.Null(livingKitchenResult.InternalCondition);
+            Assert.False(string.IsNullOrWhiteSpace(livingKitchenResult.Diagnostic));
+        }
+
+        [Fact]
+        public void Null_AdjacencyCluster_Still_Resolves_NonHabitable_Spaces()
+        {
+            // Non-habitable spaces need no zone/flat context at all - unaffected by the fix above.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            TM59InternalConditionResult result = resolver.Resolve(null, NewSpace("Corridor1"), "Flats");
+            Assert.Equal("TM59_Communal Corridor (including pipework gains)", result.InternalCondition?.Name);
+        }
+
+        [Fact]
         public void Bathroom_Ensuite_Corridor_Do_Not_Increase_Bedroom_Count()
         {
             TM59InternalConditionResolver resolver = TM59TestData.NewResolver();

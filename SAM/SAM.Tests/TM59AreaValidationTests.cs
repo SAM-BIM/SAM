@@ -96,13 +96,59 @@ namespace SAM.Tests
             TM59InternalConditionResult noAreaResult = resolver.Resolve(hiuNoArea, null);
             TM59InternalConditionResult withAreaResult = resolver.Resolve(hiuWithArea, null);
 
-            // The validation only fires for a non-zero EquipmentSensibleGainPerArea; HIU's is 0/absent
-            // (its gain is the absolute EquipmentSensibleGain instead), so no Area is ever required.
+            // The validation only fires for a non-zero per-area gain (equipment or lighting); the HIU
+            // condition's Equipment gain is absolute (not per-area) and its Lighting Gain Per Area is
+            // also 0/absent, so no Area is ever required for this specific condition.
             Assert.Null(noAreaResult.Diagnostic);
             Assert.Null(withAreaResult.Diagnostic);
 
             Assert.True(noAreaResult.InternalCondition.TryGetValue(InternalConditionParameter.EquipmentSensibleGain, out double gain));
             Assert.Equal(78.0, gain);
+        }
+
+        // --- The per-area validation is not limited to the non-habitable conditions above - almost
+        // every TM59 condition, habitable included, carries a non-zero Lighting Gain Per Area. ---
+
+        [Fact]
+        public void Bedroom_Without_Area_Gets_A_Diagnostic_For_Its_Lighting_Gain_Per_Area()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Space bedroom = NewSpace("Bedroom 1"); // no Area
+
+            TM59InternalConditionResult result = resolver.Resolve(bedroom, new[] { bedroom });
+
+            Assert.Equal("Double Bedroom", result.InternalCondition?.Name);
+            Assert.NotNull(result.Diagnostic);
+            Assert.Contains("Lighting Gain Per Area", result.Diagnostic);
+            Assert.Contains("SAMAnalytical.Check", result.Diagnostic);
+            Assert.Contains("SAMAnalytical.CalculateFloorArea", result.Diagnostic);
+        }
+
+        [Fact]
+        public void Bedroom_With_Valid_Area_Has_No_Diagnostic()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Space bedroom = NewSpace("Bedroom 1", area: 12.0);
+
+            TM59InternalConditionResult result = resolver.Resolve(bedroom, new[] { bedroom });
+
+            Assert.Equal("Double Bedroom", result.InternalCondition?.Name);
+            Assert.Null(result.Diagnostic);
+        }
+
+        [Fact]
+        public void Studio_Without_Area_Gets_A_Diagnostic_Without_Losing_Its_Existing_Diagnostic()
+        {
+            // FourBed_Flat... proves an existing "assign manually" diagnostic path stays null-condition
+            // (nothing to validate a gain against); this proves the opposite case - a RESOLVED condition
+            // that already carries no other diagnostic still gets the area-gain one appended cleanly.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Space studio = NewSpace("Studio 10"); // no Area
+
+            TM59InternalConditionResult result = resolver.Resolve(studio, new[] { studio });
+
+            Assert.Equal("Studio", result.InternalCondition?.Name);
+            Assert.Contains("Lighting Gain Per Area", result.Diagnostic);
         }
 
         [Fact]
