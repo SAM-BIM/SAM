@@ -270,5 +270,121 @@ namespace SAM.Tests
             Assert.Equal("2 Bed Apt. Living Room", resolver.Resolve(adjacencyCluster, living, "Flats").InternalCondition?.Name);
             Assert.Equal("2 Bed Apt. Kitchen", resolver.Resolve(adjacencyCluster, kitchen, "Flats").InternalCondition?.Name);
         }
+
+        // --- Partial bedroom-area data (requirement 2): some, but not all, bedrooms in the flat have
+        // a valid Area. A missing Area must never be treated as zero, so this must fall back to the
+        // same stable name/Guid ordering as the no-area case, not silently favour the one with data. ---
+
+        [Fact]
+        public void Partial_Bedroom_Area_Data_Falls_Back_To_Stable_Ordering_And_Diagnostic()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Space bedroomA = NewSpace("Bedroom A", area: 12.0);
+            Space bedroomB = NewSpace("Bedroom B"); // no area at all
+            List<Space> flat = new List<Space> { bedroomA, bedroomB };
+
+            TM59InternalConditionResult resultA = resolver.Resolve(bedroomA, flat);
+            TM59InternalConditionResult resultB = resolver.Resolve(bedroomB, flat);
+
+            // Stable name ordering picks "Bedroom A", regardless of it being the one WITH area data.
+            Assert.Equal("Double Bedroom", resultA.InternalCondition?.Name);
+            Assert.Equal("Single Bedroom", resultB.InternalCondition?.Name);
+            Assert.Contains("Partial bedroom area data", resultA.Diagnostic);
+            Assert.Contains("Partial bedroom area data", resultB.Diagnostic);
+        }
+
+        [Fact]
+        public void Exact_Tie_Bedroom_Area_Resolves_By_Name_Guid_TieBreak_Without_Throwing()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Space bedroomA = NewSpace("Bedroom A", area: 12.0);
+            Space bedroomB = NewSpace("Bedroom B", area: 12.0);
+            List<Space> flat = new List<Space> { bedroomA, bedroomB };
+
+            TM59InternalConditionResult resultA = resolver.Resolve(bedroomA, flat);
+            TM59InternalConditionResult resultB = resolver.Resolve(bedroomB, flat);
+
+            // Both bedrooms have valid (equal) Area, so this is the area-based branch - no diagnostic -
+            // and the tie is broken deterministically by name ordering, not by throwing or flip-flopping.
+            Assert.Equal("Double Bedroom", resultA.InternalCondition?.Name);
+            Assert.Equal("Single Bedroom", resultB.InternalCondition?.Name);
+            Assert.Null(resultA.Diagnostic);
+            Assert.Null(resultB.Diagnostic);
+        }
+
+        [Fact]
+        public void Explicit_Bedroom_Keyword_Wins_Over_Inferred_Bedrooms_Which_Both_Default_To_Single()
+        {
+            // One explicit "Master Bedroom" (Double) alongside two plain, area-only "Bedroom N" spaces:
+            // the explicit keyword wins regardless of area, and since only one Double is possible per
+            // flat, the other two are both Single - their relative area does not change that outcome.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Space master = NewSpace("Master Bedroom", area: 8.0);
+            Space bedroom2 = NewSpace("Bedroom 2", area: 20.0);
+            Space bedroom3 = NewSpace("Bedroom 3", area: 10.0);
+            List<Space> flat = new List<Space> { master, bedroom2, bedroom3 };
+
+            Assert.Equal("Double Bedroom", ResolveName(resolver, master, flat));
+            Assert.Equal("Single Bedroom", ResolveName(resolver, bedroom2, flat));
+            Assert.Equal("Single Bedroom", ResolveName(resolver, bedroom3, flat));
+        }
+
+        // --- TM59Manager.TM59Occupancy(InternalCondition): stateless, name-based table lookup used by
+        // SAM_UI post-dialog callers (and to clear stale Occupancy when remapping to non-habitable). ---
+
+        [Fact]
+        public void TM59Occupancy_InternalCondition_Matches_Documented_Table_For_Every_Library_Condition()
+        {
+            Dictionary<string, int> expected = new Dictionary<string, int>
+            {
+                ["Studio"] = 2,
+                ["1 Bed Apt. Living Room/Kitchen"] = 2,
+                ["1 Bed Apt. Living Room"] = 2,
+                ["1 Bed Apt. Kitchen"] = 2,
+                ["2 Bed Apt. Living Room/Kitchen"] = 3,
+                ["2 Bed Apt. Living Room"] = 3,
+                ["2 Bed Apt. Kitchen"] = 3,
+                ["3 Bed Apt. Living Room/Kitchen"] = 4,
+                ["3 Bed Apt. Living Room"] = 4,
+                ["3 Bed Apt. Kitchen"] = 4,
+                ["Double Bedroom"] = 2,
+                ["Single Bedroom"] = 1,
+                ["TM59_Bathroom/internal corridors"] = 0,
+                ["TM59_Communal Corridor (including pipework gains)"] = 0,
+                ["TM59_Stairs"] = 0,
+                ["TM59_Cupboard/riser/lift/void"] = 0,
+                ["TM59_Cupboard with HIU"] = 0,
+                ["TM59_Riser Communal pipework"] = 0,
+            };
+
+            List<InternalCondition> conditions = TM59TestData.InternalConditionLibrary.GetInternalConditions();
+            Assert.Equal(18, conditions.Count);
+
+            foreach (InternalCondition condition in conditions)
+            {
+                Assert.True(expected.TryGetValue(condition.Name, out int expectedOccupancy),
+                    $"Unexpected condition '{condition.Name}' not in the documented occupancy table.");
+                Assert.Equal(expectedOccupancy, TM59Manager.TM59Occupancy(condition));
+            }
+        }
+
+        [Fact]
+        public void TM59Occupancy_InternalCondition_Null_Or_Unknown_Name_Returns_Zero()
+        {
+            Assert.Equal(0, TM59Manager.TM59Occupancy((InternalCondition)null));
+            Assert.Equal(0, TM59Manager.TM59Occupancy(new InternalCondition("Unknown")));
+        }
+
+        [Fact]
+        public void TM59Occupancy_InternalCondition_Lookup_Is_Purely_Name_Based_Not_Space_State()
+        {
+            // Proves the table SAM_UI relies on to zero out stale Occupancy/AreaPerPerson when
+            // remapping a former bedroom to a non-habitable condition is stateless: it depends only
+            // on the resolved condition's Name, never on whatever the Space previously held.
+            InternalCondition corridor = TM59TestData.InternalConditionLibrary
+                .GetInternalConditions("TM59_Communal Corridor (including pipework gains)").First();
+
+            Assert.Equal(0, TM59Manager.TM59Occupancy(corridor));
+        }
     }
 }

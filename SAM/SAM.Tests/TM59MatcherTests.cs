@@ -116,5 +116,127 @@ namespace SAM.Tests
             TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
             Assert.Equal(TM59SpaceClassification.Bedroom, resolver.Classify(NewSpace("Bedroom Space")));
         }
+
+        // --- Keyword precedence: a generic single-token non-habitable term (cupboard/store) must not
+        // override a habitable role match of equal or greater specificity. ---
+
+        [Fact]
+        public void Living_Room_Cupboard_Remains_Habitable_Living_Room()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Assert.Equal(TM59SpaceClassification.LivingRoom, resolver.Classify(NewSpace("Living Room Cupboard")));
+        }
+
+        [Fact]
+        public void Kitchen_Store_Remains_Kitchen()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Assert.Equal(TM59SpaceClassification.Kitchen, resolver.Classify(NewSpace("Kitchen Store")));
+        }
+
+        [Fact]
+        public void Bedroom_Cupboard_Remains_Bedroom()
+        {
+            // Same principle as Living Room Cupboard / Kitchen Store, for the Bedroom role specifically.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Assert.Equal(TM59SpaceClassification.Bedroom, resolver.Classify(NewSpace("Bedroom Cupboard")));
+        }
+
+        [Fact]
+        public void HIU_Cupboard_Maps_To_The_HIU_Condition()
+        {
+            // "HIU Cupboard" and "Cupboard HIU" are the same two words in the opposite order - the
+            // matcher must recognise both, not just the order the alias happens to be written in.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+
+            TM59InternalConditionResult hiuCupboard = resolver.Resolve(NewSpace("HIU Cupboard"), null);
+            TM59InternalConditionResult cupboardHiu = resolver.Resolve(NewSpace("Cupboard HIU"), null);
+
+            Assert.Equal("TM59_Cupboard with HIU", hiuCupboard.InternalCondition?.Name);
+            Assert.Equal("TM59_Cupboard with HIU", cupboardHiu.InternalCondition?.Name);
+        }
+
+        [Fact]
+        public void Communal_Riser_Maps_To_Riser_Communal_Pipework()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            TM59InternalConditionResult result = resolver.Resolve(NewSpace("Communal Riser"), null);
+            Assert.Equal("TM59_Riser Communal pipework", result.InternalCondition?.Name);
+        }
+
+        // --- Circulation semantics: internal vs communal vs stairs, and the deliberately-ambiguous case. ---
+
+        [Fact]
+        public void Stair_Landing_Maps_To_Stairs_Not_Bathroom_Internal_Corridors()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            TM59InternalConditionResult result = resolver.Resolve(NewSpace("Stair Landing"), null);
+            Assert.Equal("TM59_Stairs", result.InternalCondition?.Name);
+        }
+
+        [Theory]
+        [InlineData("Lift Lobby")]
+        [InlineData("Communal Lobby")]
+        [InlineData("Common Lobby")]
+        public void Communal_Lobby_Variants_Map_To_Communal_Corridor(string name)
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            TM59InternalConditionResult result = resolver.Resolve(NewSpace(name), null);
+            Assert.Equal("TM59_Communal Corridor (including pipework gains)", result.InternalCondition?.Name);
+        }
+
+        [Fact]
+        public void Internal_Landing_Maps_To_Bathroom_Internal_Corridors()
+        {
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            TM59InternalConditionResult result = resolver.Resolve(NewSpace("Internal Landing"), null);
+            Assert.Equal("TM59_Bathroom/internal corridors", result.InternalCondition?.Name);
+        }
+
+        [Fact]
+        public void Stair_Lobby_Is_Manual_Review_Not_Resolved_By_Character_Count()
+        {
+            // "stair" (TM59_Stairs) and "lobby" (TM59_Communal Corridor) are both a single, equally
+            // specific token - a genuine conflict the matcher must not silently guess at.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            TM59InternalConditionResult result = resolver.Resolve(NewSpace("Stair Lobby"), null);
+
+            Assert.Null(result.InternalCondition);
+            Assert.False(string.IsNullOrWhiteSpace(result.Diagnostic));
+        }
+
+        [Fact]
+        public void Plant_Room_Remains_Unresolved_Manual_Review()
+        {
+            // "plant"/"plant room" is deliberately not a keyword anywhere - plant rooms can have very
+            // different gains and must not be silently folded into the generic unconditioned condition.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            TM59InternalConditionResult result = resolver.Resolve(NewSpace("Plant Room"), null);
+
+            Assert.Null(result.InternalCondition);
+            Assert.Equal(TM59SpaceClassification.Undefined, result.Classification);
+        }
+
+        // --- Explicit "twin" bedroom-size keyword (requirement 4). ---
+
+        [Theory]
+        [InlineData("Twin Bedroom")]
+        [InlineData("Twin Bed")]
+        [InlineData("Twin")]
+        public void Twin_Names_Resolve_As_Explicit_Single_Bedroom_Even_As_The_Sole_Bedroom(string name)
+        {
+            // The TM59 "sole bedroom in the flat is always Double" convention only applies when there
+            // is no explicit size keyword - an explicitly-named Twin/Single bedroom must override it
+            // even when it is the only bedroom in the flat. "Twin" bare is also simultaneously a
+            // legacy Sleeping-role alias at the same (1-token) specificity as the Single Bedroom
+            // keyword - the explicit bedroom-size reading must win that tie too.
+            TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
+            Space space = NewSpace(name);
+
+            TM59InternalConditionResult result = resolver.Resolve(space, new System.Collections.Generic.List<Space> { space });
+
+            Assert.Equal("Single Bedroom", result.InternalCondition?.Name);
+            Assert.Equal(1, result.Occupancy);
+        }
     }
 }
