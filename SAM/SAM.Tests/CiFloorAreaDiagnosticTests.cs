@@ -12,10 +12,10 @@ using Xunit;
 namespace SAM.Tests
 {
     /// <summary>
-    /// TEMPORARY diagnostic for SAM-BIM/SAM#65. Three <see cref="SpaceFloorAreaTests"/> box tests fail on the
-    /// CI runner and on no development machine tried so far, with the adjacency cluster coming back with zero
-    /// spaces. This test deliberately always fails so that its dump of the reconstruction state reaches the CI
-    /// log, letting the divergence be located from evidence instead of guessed at.
+    /// TEMPORARY diagnostic for SAM-BIM/SAM#65, second pass. The first pass established that on the CI runner
+    /// the shell/panel creation overload returns a completely empty cluster - no spaces and no panels - which
+    /// rules out the closure gate, since that removes spaces only. This pass walks the reconstruction stages
+    /// that run before any space is created, so the stage that empties the model can be named.
     /// </summary>
     /// <remarks>
     /// Test-only: it touches no production code, and the whole file is reverted once the CI output is read.
@@ -29,179 +29,181 @@ namespace SAM.Tests
         [Fact]
         public void Diagnostic_DumpBoxReconstruction()
         {
+            double silverSpacing = Core.Tolerance.MacroDistance;
+            double tolerance_Distance = Core.Tolerance.Distance;
+            double tolerance_Angle = Core.Tolerance.Angle;
+            double maxDistance = 0.1;
+            double maxAngle = 0.0872664626;
+            double minArea = 0.1;
+            double thinnessRatio = 0.001;
+
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.AppendLine();
-            stringBuilder.AppendLine("===== SAM#65 CI diagnostic =====");
+            stringBuilder.AppendLine("===== SAM#65 CI diagnostic, pass 2 =====");
             stringBuilder.AppendLine("ProcessorCount = " + Environment.ProcessorCount);
-            stringBuilder.AppendLine("OS             = " + System.Runtime.InteropServices.RuntimeInformation.OSDescription);
             stringBuilder.AppendLine("Framework      = " + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
-            stringBuilder.AppendLine("Architecture   = " + System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture);
-            stringBuilder.AppendLine("Tolerance.Distance      = " + Core.Tolerance.Distance.ToString("R"));
-            stringBuilder.AppendLine("Tolerance.MacroDistance = " + Core.Tolerance.MacroDistance.ToString("R"));
-            stringBuilder.AppendLine("Tolerance.Angle         = " + Core.Tolerance.Angle.ToString("R"));
 
-            // The raw shell, before any reconstruction runs. If this already differs the problem is in shell
-            // construction rather than in Create.AdjacencyCluster.
-            Shell shell_Raw = BoxShell();
+            // Stage 0 - the shells the ShellsOnly overload actually reconstructs from.
+            List<Shell> shells = new List<Shell> { BoxShell() };
+            List<Shell> shells_Split = shells.Split(silverSpacing, tolerance_Angle, tolerance_Distance);
             stringBuilder.AppendLine();
-            stringBuilder.AppendLine("-- input shell --");
-            Describe(stringBuilder, shell_Raw);
+            stringBuilder.AppendLine("Stage 0  Split -> " + Count(shells_Split));
+            DescribeShells(stringBuilder, shells_Split);
 
-            List<Panel> panels_Raw = Analytical.Create.Panels(BoxShell());
-            stringBuilder.AppendLine("Create.Panels count = " + (panels_Raw == null ? "null" : panels_Raw.Count.ToString()));
-            if (panels_Raw != null)
+            if (shells_Split == null || shells_Split.Count == 0)
             {
-                foreach (Panel panel in panels_Raw)
+                stringBuilder.AppendLine("Split emptied the input; nothing further can run.");
+                Assert.True(false, stringBuilder.ToString());
+            }
+
+            // Stage 1 - the panels the overload derives from those shells.
+            List<Panel> panels = new List<Panel>();
+            foreach (Shell shell_Split in shells_Split)
+            {
+                List<Panel> panels_Shell = Analytical.Create.Panels(shell_Split, silverSpacing, tolerance_Distance);
+                if (panels_Shell != null)
                 {
-                    DescribePanel(stringBuilder, panel);
+                    panels.AddRange(panels_Shell);
+                }
+            }
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine("Stage 1  Create.Panels -> " + panels.Count);
+
+            // Stage 2 - the panel filter, and the union bounding box every shell is then range-checked against.
+            // A shell failing that check is dropped, which is one way the model can end up empty.
+            List<BoundingBox3D> boundingBox3Ds = new List<BoundingBox3D>();
+            int rejected = 0;
+            foreach (Panel panel in panels)
+            {
+                Face3D face3D = panel?.GetFace3D();
+                if (face3D == null)
+                {
+                    rejected++;
+                    continue;
+                }
+
+                if (face3D.GetPlane() == null)
+                {
+                    rejected++;
+                    continue;
+                }
+
+                double area = face3D.GetArea();
+                double thinness = face3D.ThinnessRatio();
+                stringBuilder.AppendLine("  panel " + panel.PanelType + " area = " + area.ToString("R") + ", thinnessRatio = " + thinness.ToString("R") + (area < minArea || thinness < thinnessRatio ? "  <-- REJECTED" : string.Empty));
+                if (area < minArea || thinness < thinnessRatio)
+                {
+                    rejected++;
+                    continue;
+                }
+
+                boundingBox3Ds.Add(face3D.GetBoundingBox(tolerance_Distance));
+            }
+            stringBuilder.AppendLine("Stage 2  accepted = " + boundingBox3Ds.Count + ", rejected = " + rejected);
+
+            if (boundingBox3Ds.Count != 0)
+            {
+                BoundingBox3D boundingBox3D_All = new BoundingBox3D(boundingBox3Ds);
+                stringBuilder.AppendLine("  union bbox min = " + boundingBox3D_All.Min + ", max = " + boundingBox3D_All.Max);
+                foreach (Shell shell_Split in shells_Split)
+                {
+                    BoundingBox3D boundingBox3D = shell_Split?.GetBoundingBox();
+                    stringBuilder.AppendLine("  shell bbox min = " + boundingBox3D?.Min + ", max = " + boundingBox3D?.Max + ", InRange = " + (boundingBox3D == null ? "n/a" : boundingBox3D_All.InRange(boundingBox3D).ToString()));
                 }
             }
 
-            // The control: this overload passes on CI, so anything it reports is known-good behaviour.
-            Report(stringBuilder, "CONTROL AdjacencyCluster(shells, spaces)", () =>
-                Analytical.Create.AdjacencyCluster(
-                    new List<Shell> { BoxShell() },
-                    new List<Space> { new Space("Test Space", new Point3D(2, 1.5, 1)) }));
-
-            // The three that fail on CI.
-            Report(stringBuilder, "FAILING AdjacencyCluster(shells)", () =>
-                Analytical.Create.AdjacencyCluster(new List<Shell> { BoxShell() }));
-
-            Report(stringBuilder, "FAILING AdjacencyCluster(shells, spaces, panels)", () =>
+            // Stage 3 - per-shell cleanup, mirroring the overload's parallel loop body.
+            List<Shell> shells_Temp = new List<Shell>();
+            foreach (Shell shell_Split in shells_Split)
             {
-                Shell shell = BoxShell();
-                return Analytical.Create.AdjacencyCluster(
-                    new List<Shell> { shell },
-                    new List<Space> { new Space("Test Space", new Point3D(2, 1.5, 1)) },
-                    Analytical.Create.Panels(shell),
-                    true,
-                    true);
-            });
+                Shell shell_Valid = shell_Split.RemoveInvalidFace3Ds(silverSpacing);
+                stringBuilder.AppendLine();
+                stringBuilder.AppendLine("Stage 3  RemoveInvalidFace3Ds -> " + (shell_Valid == null ? "null" : shell_Valid.Face3Ds.Count + " faces"));
+                if (shell_Valid == null)
+                {
+                    continue;
+                }
 
-            Report(stringBuilder, "FAILING AdjacencyCluster(spaces, panels)", () =>
+                Shell shell_Merge = shell_Valid.Merge(tolerance_Distance);
+                stringBuilder.AppendLine("Stage 3  Merge -> " + (shell_Merge == null ? "null (falls back to a copy)" : shell_Merge.Face3Ds.Count + " faces"));
+                shells_Temp.Add(shell_Merge ?? new Shell(shell_Valid));
+            }
+            stringBuilder.AppendLine("Stage 3  shells_Temp = " + shells_Temp.Count);
+
+            // Stage 4 - coplanar panel merge.
+            List<Panel> panels_Merged = Analytical.Query.MergeCoplanarPanels(panels, maxDistance, true, true, minArea, tolerance_Distance);
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine("Stage 4  MergeCoplanarPanels -> " + Count(panels_Merged));
+            if (panels_Merged != null)
             {
-                Shell shell = BoxShell();
-                return Analytical.Create.AdjacencyCluster(
-                    new List<Space> { new Space("Test Space", new Point3D(2, 1.5, 1)) },
-                    Analytical.Create.Panels(shell),
-                    0.1,
-                    true,
-                    true);
-            });
+                foreach (Panel panel in panels_Merged)
+                {
+                    Face3D face3D = panel?.GetFace3D();
+                    stringBuilder.AppendLine("  merged panel " + panel?.PanelType + ", area = " + (face3D == null ? "no face" : face3D.GetArea().ToString("R")));
+                }
+            }
+
+            // Stage 5 - the three shell rewrites, each reported immediately after it runs.
+            List<Face3D> face3Ds_Merged = panels_Merged == null ? new List<Face3D>() : panels_Merged.ConvertAll(x => x.GetFace3D());
+            bool filled = shells_Temp.FillFace3Ds(face3Ds_Merged, 0.1, maxDistance, maxAngle, silverSpacing, tolerance_Distance);
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine("Stage 5  FillFace3Ds returned " + filled);
+            DescribeShells(stringBuilder, shells_Temp);
+
+            bool split = shells_Temp.SplitCoplanarFace3Ds(tolerance_Angle, tolerance_Distance);
+            stringBuilder.AppendLine("Stage 6  SplitCoplanarFace3Ds returned " + split);
+            DescribeShells(stringBuilder, shells_Temp);
+
+            shells_Temp = shells_Temp.Snap(shells_Split, silverSpacing, tolerance_Distance);
+            stringBuilder.AppendLine("Stage 7  Snap -> " + Count(shells_Temp));
+            DescribeShells(stringBuilder, shells_Temp);
+
+            // Stage 8 - the space-to-shell match the overload performs next.
+            if (shells_Temp != null)
+            {
+                Point3D point3D = new Point3D(2, 1.5, 1);
+                List<Shell> shells_Space = Analytical.Query.SpaceShells(shells_Temp, point3D, silverSpacing, tolerance_Distance);
+                stringBuilder.AppendLine("Stage 8  SpaceShells(2, 1.5, 1) -> " + Count(shells_Space));
+
+                foreach (Shell shell_Temp in shells_Temp)
+                {
+                    stringBuilder.AppendLine("Stage 8  CalculatedInternalPoint3D = " + shell_Temp?.CalculatedInternalPoint3D(silverSpacing, tolerance_Distance));
+                }
+            }
 
             stringBuilder.AppendLine("===== end diagnostic =====");
 
             Assert.True(false, stringBuilder.ToString());
         }
 
-        /// <summary>
-        /// Runs one creation path and reports what came back. When no space survived, the panels the cluster
-        /// still holds are reassembled into a shell and measured against the same three conditions the
-        /// creation path's closure gate applies, so the gate that fired can be identified.
-        /// </summary>
-        private static void Report(StringBuilder stringBuilder, string title, Func<AdjacencyCluster> func)
+        private static string Count<T>(List<T> values)
         {
-            stringBuilder.AppendLine();
-            stringBuilder.AppendLine("-- " + title + " --");
+            return values == null ? "null" : values.Count.ToString();
+        }
 
-            AdjacencyCluster adjacencyCluster;
-            try
+        private static void DescribeShells(StringBuilder stringBuilder, List<Shell> shells)
+        {
+            if (shells == null)
             {
-                adjacencyCluster = func();
-            }
-            catch (Exception exception)
-            {
-                stringBuilder.AppendLine("THREW " + exception.GetType().Name + ": " + exception.Message);
+                stringBuilder.AppendLine("  shells = null");
                 return;
             }
 
-            if (adjacencyCluster == null)
+            for (int i = 0; i < shells.Count; i++)
             {
-                stringBuilder.AppendLine("cluster = null");
-                return;
-            }
-
-            List<Space> spaces = adjacencyCluster.GetSpaces();
-            stringBuilder.AppendLine("spaces = " + (spaces == null ? "null" : spaces.Count.ToString()));
-
-            if (spaces != null)
-            {
-                foreach (Space space in spaces)
+                Shell shell = shells[i];
+                if (shell == null)
                 {
-                    space.TryGetValue(SpaceParameter.Area, out double area);
-                    stringBuilder.AppendLine("  space '" + space.Name + "' Area = " + area.ToString("R"));
-                    Describe(stringBuilder, adjacencyCluster.Shell(space), "  space shell: ");
+                    stringBuilder.AppendLine("  [" + i + "] null");
+                    continue;
                 }
-            }
 
-            List<Panel> panels = adjacencyCluster.GetPanels();
-            stringBuilder.AppendLine("panels = " + (panels == null ? "null" : panels.Count.ToString()));
-            if (panels == null || panels.Count == 0)
-            {
-                return;
+                BoundingBox3D boundingBox3D = shell.GetBoundingBox();
+                stringBuilder.AppendLine("  [" + i + "] faces = " + (shell.Face3Ds == null ? "null" : shell.Face3Ds.Count.ToString())
+                    + ", bbox = " + (boundingBox3D == null ? "null" : boundingBox3D.Min + " .. " + boundingBox3D.Max)
+                    + ", IsClosed(10x) = " + shell.IsClosed(Core.Tolerance.MacroDistance * 10)
+                    + ", Volume = " + shell.Volume(Core.Tolerance.MacroDistance, Core.Tolerance.Distance).ToString("R"));
             }
-
-            foreach (Panel panel in panels)
-            {
-                DescribePanel(stringBuilder, panel);
-            }
-
-            List<Face3D> face3Ds = panels.ConvertAll(x => x.GetFace3D()).FindAll(x => x != null);
-            if (face3Ds.Count != 0)
-            {
-                stringBuilder.AppendLine("shell rebuilt from the cluster's panels:");
-                Describe(stringBuilder, new Shell(face3Ds), "  ");
-            }
-        }
-
-        /// <summary>
-        /// Reports the three quantities the closure gate tests: a valid bounding box with usable volume, more
-        /// than two faces, and closure at ten times the sliver spacing.
-        /// </summary>
-        private static void Describe(StringBuilder stringBuilder, Shell shell, string prefix = "")
-        {
-            if (shell == null)
-            {
-                stringBuilder.AppendLine(prefix + "shell = null");
-                return;
-            }
-
-            List<Face3D> face3Ds = shell.Face3Ds;
-            stringBuilder.AppendLine(prefix + "face3Ds = " + (face3Ds == null ? "null" : face3Ds.Count.ToString()));
-
-            BoundingBox3D boundingBox3D = shell.GetBoundingBox();
-            if (boundingBox3D == null)
-            {
-                stringBuilder.AppendLine(prefix + "boundingBox3D = null");
-            }
-            else
-            {
-                stringBuilder.AppendLine(prefix + "boundingBox3D IsValid = " + boundingBox3D.IsValid() + ", volume = " + boundingBox3D.GetVolume().ToString("R") + ", min = " + boundingBox3D.Min + ", max = " + boundingBox3D.Max);
-            }
-
-            try
-            {
-                stringBuilder.AppendLine(prefix + "IsClosed(MacroDistance * 10) = " + shell.IsClosed(Core.Tolerance.MacroDistance * 10));
-                stringBuilder.AppendLine(prefix + "IsClosed(MacroDistance)      = " + shell.IsClosed(Core.Tolerance.MacroDistance));
-                stringBuilder.AppendLine(prefix + "Volume = " + shell.Volume(Core.Tolerance.MacroDistance, Core.Tolerance.Distance).ToString("R"));
-            }
-            catch (Exception exception)
-            {
-                stringBuilder.AppendLine(prefix + "closure/volume THREW " + exception.GetType().Name + ": " + exception.Message);
-            }
-        }
-
-        private static void DescribePanel(StringBuilder stringBuilder, Panel panel)
-        {
-            Face3D face3D = panel?.GetFace3D();
-            if (face3D == null)
-            {
-                stringBuilder.AppendLine("  panel with no Face3D, type = " + panel?.PanelType);
-                return;
-            }
-
-            Vector3D normal = face3D.GetPlane()?.Normal;
-            stringBuilder.AppendLine("  panel type = " + panel.PanelType + ", area = " + face3D.GetArea().ToString("R") + ", normal = " + (normal == null ? "null" : normal.ToString()));
         }
 
         private static Shell BoxShell()
