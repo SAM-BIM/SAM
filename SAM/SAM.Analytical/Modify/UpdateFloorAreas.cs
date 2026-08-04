@@ -16,7 +16,8 @@ namespace SAM.Analytical
         /// SAM_OCCT's OCCT paths all call it once their panels, relations, normals and panel types are final,
         /// so no path carries its own definition of floor area. The value comes from
         /// <see cref="Query.FloorArea(AdjacencyCluster, Space, out FloorAreaCalculationMethod, double, double, double, double)"/>,
-        /// which follows a ramped floor's actual surface rather than its projection.
+        /// which follows a ramped floor's actual surface rather than its projection, and which accepts a
+        /// geometrically valid <see cref="PanelType.Air"/> lower boundary as a virtual floor without retyping it.
         ///
         /// A space is written only when a calculation succeeded. When neither the geometrical panels nor the
         /// shell section produced a finite positive value, any existing valid area is left exactly as it was

@@ -16,7 +16,8 @@ namespace SAM.Analytical
         /// Classification is space-relative (via
         /// <see cref="NormalDictionary(AdjacencyCluster, ISpace, out Shell, bool, double, double)"/>), not based
         /// on the panel's own stored face orientation or <see cref="Panel.PanelType"/>, so it still works on
-        /// imported geometry with incomplete metadata. Callers that need a floor AREA should use
+        /// imported geometry with incomplete metadata and on virtual <see cref="PanelType.Air"/> boundaries.
+        /// Callers that need a floor AREA should use
         /// <see cref="FloorArea(AdjacencyCluster, Space, out FloorAreaCalculationMethod, double, double, double, double)"/>,
         /// which adds panel-type protection on top of this geometric test.
         /// </remarks>

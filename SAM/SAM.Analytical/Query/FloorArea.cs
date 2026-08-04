@@ -15,30 +15,56 @@ namespace SAM.Analytical
         /// stored <see cref="SpaceParameter.Area"/> means the same thing whichever route built the model.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// The GEOMETRICAL FLOOR SURFACE AREA IS CANONICAL. The returned value is the panels' actual surface
+        /// area, so a ramped or tilted floor contributes its real sloped walking surface, never its horizontal
+        /// projection and never a horizontal section. A horizontal section is only ever a fallback.
+        /// </para>
+        /// <para>
         /// Calculation hierarchy, first valid result wins:
+        /// </para>
         /// <list type="number">
         /// <item><b>Geometrical floor panels</b> - the sum of <see cref="Panel.GetArea"/> over the space's
         /// downward-facing panels (<see cref="GeomericalFloorPanels"/>), deduplicated by
-        /// <see cref="Core.SAMObject.Guid"/> and filtered by panel type. This is the actual surface area, so a
-        /// ramped or tilted floor contributes its sloped walking surface, NOT its horizontal projection.</item>
+        /// <see cref="Core.SAMObject.Guid"/> and then filtered by panel type.</item>
         /// <item><b>Horizontal section</b> - a section through the middle of the space shell. A fallback only,
-        /// for incomplete adjacency data or spaces whose panels are virtual/untyped. For a ramp this returns a
-        /// plan area, which is why it is never preferred over step 1.</item>
+        /// for incomplete adjacency data or spaces whose boundaries carry an incompatible type. For a ramp this
+        /// returns a plan area, which is why it is never preferred over step 1.</item>
         /// <item><b>Existing value</b> - a valid stored <see cref="SpaceParameter.Area"/> is preserved rather
         /// than replaced by a failure.</item>
         /// </list>
+        /// <para>
+        /// Accepted panel types are the physical floor types (<see cref="PanelType.Floor"/>,
+        /// <see cref="PanelType.FloorInternal"/>, <see cref="PanelType.FloorExposed"/>,
+        /// <see cref="PanelType.FloorRaised"/>, <see cref="PanelType.SlabOnGrade"/>,
+        /// <see cref="PanelType.UndergroundSlab"/>), <see cref="PanelType.Undefined"/>, and
+        /// <see cref="PanelType.Air"/>.
+        /// </para>
+        /// <para>
+        /// <b>Air is accepted as a virtual floor boundary, and is NOT retyped.</b> A space whose lower boundary
+        /// is a virtual Air panel has that panel as its occupied floor surface, including when it is ramped, so
+        /// its actual sloped area is used. Type acceptance is a semantic permission applied only AFTER the
+        /// geometric test, so an Air panel counts only when it already belongs to this space, its space-relative
+        /// normal faces downwards, its tilt is within <paramref name="maxTiltDifference"/> and its area is
+        /// finite and strictly positive. Vertical Air partitions, upward-facing Air panels and Air panels
+        /// outside the floor-tilt range therefore never contribute.
+        /// </para>
+        /// <para>
         /// A zero, negative, NaN or infinite result is never returned as a value; the method falls through to
         /// the next step instead, and <see cref="FloorAreaCalculationMethod.Undefined"/> with
         /// <see cref="double.NaN"/> is the honest answer when nothing is knowable.
+        /// </para>
         /// </remarks>
         /// <param name="adjacencyCluster">Adjacency cluster the space belongs to. Null restricts the result to the space's existing stored value.</param>
         /// <param name="space">Space to calculate.</param>
         /// <param name="floorAreaCalculationMethod">Which step of the hierarchy produced the returned value.</param>
         /// <param name="maxTiltDifference">
-        /// Maximum deviation, in degrees, from straight down that still counts as floor. A panel qualifies when
-        /// its space-outward normal tilt lies in [180 - maxTiltDifference, 180 + maxTiltDifference], i.e. the
-        /// default 20 accepts floors ramped up to 20 degrees from horizontal and rejects anything steeper as a
-        /// wall rather than an occupied surface.
+        /// Maximum slope from horizontal, in degrees, that still counts as floor. Expressed through the current
+        /// tilt convention (<see cref="Geometry.Spatial.Query.Tilt(Geometry.Spatial.Vector3D)"/> measures the
+        /// angle from world Z, so a horizontal floor's space-outward normal has tilt 180), a panel qualifies
+        /// when that tilt lies in [180 - maxTiltDifference, 180 + maxTiltDifference]. The default 20 therefore
+        /// accepts a floor ramped up to 20 degrees from horizontal and rejects anything steeper as a sloped wall
+        /// rather than an occupied surface.
         /// </param>
         /// <param name="silverSpacing">Snap/sliver tolerance.</param>
         /// <param name="tolerance_Angle">Angle tolerance.</param>
@@ -64,10 +90,12 @@ namespace SAM.Analytical
         /// diagnostic caller can show exactly which surfaces the area came from.
         /// </param>
         /// <param name="maxTiltDifference">
-        /// Maximum deviation, in degrees, from straight down that still counts as floor. A panel qualifies when
-        /// its space-outward normal tilt lies in [180 - maxTiltDifference, 180 + maxTiltDifference], i.e. the
-        /// default 20 accepts floors ramped up to 20 degrees from horizontal and rejects anything steeper as a
-        /// wall rather than an occupied surface.
+        /// Maximum slope from horizontal, in degrees, that still counts as floor. Expressed through the current
+        /// tilt convention (<see cref="Geometry.Spatial.Query.Tilt(Geometry.Spatial.Vector3D)"/> measures the
+        /// angle from world Z, so a horizontal floor's space-outward normal has tilt 180), a panel qualifies
+        /// when that tilt lies in [180 - maxTiltDifference, 180 + maxTiltDifference]. The default 20 therefore
+        /// accepts a floor ramped up to 20 degrees from horizontal and rejects anything steeper as a sloped wall
+        /// rather than an occupied surface.
         /// </param>
         /// <param name="silverSpacing">Snap/sliver tolerance.</param>
         /// <param name="tolerance_Angle">Angle tolerance.</param>
@@ -198,13 +226,24 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// Panel-type protection for the geometrical calculation. Geometry stays the primary classification
-        /// because imported or generated panels routinely arrive with incomplete metadata - which is why
-        /// <see cref="PanelType.Undefined"/> is accepted when the geometry already identifies the panel as
-        /// floor - but an explicitly incompatible type (a wall, roof, ceiling, shade, air or glazing panel)
-        /// overrides the normal test. <see cref="PanelType(Geometry.Spatial.Vector3D, double)"/> alone is not
-        /// enough here: it calls any downward-facing surface a floor, including steep ones.
+        /// Panel-type protection for the geometrical calculation: a SEMANTIC PERMISSION applied only after the
+        /// geometric floor test has already passed, never a classification of its own.
         /// </summary>
+        /// <remarks>
+        /// Geometry stays the primary classification because imported or generated panels routinely arrive with
+        /// incomplete metadata - which is why <see cref="PanelType.Undefined"/> is accepted - and
+        /// <see cref="PanelType(Geometry.Spatial.Vector3D, double)"/> alone is not enough, because it calls any
+        /// downward-facing surface a floor including steep ones. An explicitly incompatible type (a wall, roof,
+        /// ceiling, shade or glazing panel) therefore overrides the normal test.
+        ///
+        /// <see cref="PanelType.Air"/> is accepted because a space's lower boundary is legitimately a virtual
+        /// Air panel, and such a space's occupied floor surface is exactly that panel - including when it is
+        /// ramped. Acceptance is permission only: the panel is NOT retyped, and it still has to have passed
+        /// every geometric gate first (related to this space, space-relative normal facing downwards, tilt
+        /// within maxTiltDifference, finite positive area). A vertical Air partition, an upward-facing Air
+        /// panel and an Air panel outside the floor-tilt range are all rejected by those gates before reaching
+        /// here.
+        /// </remarks>
         private static bool IsFloorAreaPanelType(PanelType panelType)
         {
             // Deliberately an accept list, not a reject list: an unrecognised or newly added type must not be
@@ -219,6 +258,7 @@ namespace SAM.Analytical
                 case Analytical.PanelType.SlabOnGrade:
                 case Analytical.PanelType.UndergroundSlab:
                 case Analytical.PanelType.Undefined:
+                case Analytical.PanelType.Air:
                     return true;
 
                 default:
