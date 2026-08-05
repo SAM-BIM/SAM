@@ -53,7 +53,7 @@ namespace SAM.Tests
         {
             Shell shell = BoxShell(0, 0, 0, Length, Width, Height);
             List<Shell> shells = new List<Shell> { shell };
-            List<Panel> panels = ConstructedPanels(shell);
+            List<Panel> panels = Analytical.Create.Panels(shell);
             List<Space> spaces = new List<Space> { new Space("Test Space", new Point3D(2, 1.5, 1)) };
 
             AdjacencyCluster adjacencyCluster = Analytical.Create.AdjacencyCluster(shells, spaces, panels, true, true);
@@ -65,7 +65,7 @@ namespace SAM.Tests
         public void CreateAdjacencyCluster_SpacesAndPanels_HorizontalBox_SetsFloorArea()
         {
             Shell shell = BoxShell(0, 0, 0, Length, Width, Height);
-            List<Panel> panels = ConstructedPanels(shell);
+            List<Panel> panels = Analytical.Create.Panels(shell);
             List<Space> spaces = new List<Space> { new Space("Test Space", new Point3D(2, 1.5, 1)) };
 
             AdjacencyCluster adjacencyCluster = Analytical.Create.AdjacencyCluster(spaces, panels, 0.1, true, true);
@@ -491,38 +491,6 @@ namespace SAM.Tests
         // ---------------------------------------------------------------------------------------------
         // Helpers
         // ---------------------------------------------------------------------------------------------
-
-        /// <summary>
-        /// Builds the shell's panels with a construction attached, so the result does not depend on the
-        /// machine having SAM installed.
-        /// </summary>
-        /// <remarks>
-        /// <see cref="Analytical.Create.Panels(Shell, double, double)"/> takes each panel's construction from
-        /// the default construction library, which is read from the installed SAM resources directory rather
-        /// than from anything the build produces. Where that library is absent - any clean machine, and every
-        /// CI runner - every panel is created with a null construction, and
-        /// <see cref="Analytical.Modify.RemoveInvalidAirPanels(AdjacencyCluster)"/> then deletes every panel
-        /// that has no construction and bounds a single space, which is all of them. The space loses its
-        /// boundaries and is dropped in turn, leaving an empty cluster.
-        /// <para>
-        /// Attaching a construction here keeps these tests about the floor area rather than about the host
-        /// machine's installation state. The underlying fragility is in production code this branch does not
-        /// own and is reported separately.
-        /// </para>
-        /// </remarks>
-        private static List<Panel> ConstructedPanels(Shell shell)
-        {
-            Construction construction = new Construction("Test Construction");
-
-            List<Panel> result = new List<Panel>();
-            foreach (Face3D face3D in shell.Face3Ds)
-            {
-                PanelType panelType = Analytical.Query.PanelType(face3D.GetPlane().Normal);
-                result.Add(Analytical.Create.Panel(construction, panelType, face3D));
-            }
-
-            return result;
-        }
 
         private static double StoredArea(AdjacencyCluster adjacencyCluster)
         {
