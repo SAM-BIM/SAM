@@ -180,8 +180,8 @@ namespace SAM.Analytical
                     tuples_Polygon.Add(new Tuple<Polygon, Panel>(face2D.ToNTS(tolerance), panel_Temp));
                 }
 
-                // Same three broad-phase filters as MergeOverlapPanels - see Point2DGrid and
-                // FindAll there for why neither can change a result.
+                // The snap-point dedup grid and the STRtree envelope index are exact - see
+                // Point2DGrid and FindAll in MergeOverlapPanels.
                 Point2DGrid grid_Snap = Point2DGrid.Create(point2Ds_All, tolerance);
 
                 List<Polygon> polygons_Temp = tuples_Polygon.ConvertAll(x => x.Item1);
@@ -218,7 +218,12 @@ namespace SAM.Analytical
                     polygon_Temp = Geometry.Planar.Query.SimplifyByTopologyPreservingSimplifier(polygon_Temp, tolerance);
 
                     Face2D face2D = polygon_Temp.ToSAM(minArea, Core.Tolerance.MicroDistance);
-                    face2D = face2D?.Snap(grid_Snap.Candidates(face2D.GetBoundingBox(), tolerance), tolerance);
+                    // The snap set was deduplicated using the same tolerance. Retained
+                    // points are pairwise farther apart than tolerance, so greedy Snap can
+                    // make at most one hop. Any effective candidate must therefore lie
+                    // within tolerance of the original face and is contained by
+                    // bbox + tolerance.
+                    face2D = face2D?.Snap(grid_Snap.Candidates(face2D.GetBoundingBox()), tolerance);
                     if (face2D == null)
                         continue;
 
