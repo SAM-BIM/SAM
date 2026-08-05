@@ -46,28 +46,9 @@ namespace SAM.Analytical
                     space = new Space(string.Format("{0} {1}", "Space", index), shell.InternalPoint3D(silverSpacing, tolerance_Distance));
                 }
 
-                List<Face3D> face3Ds = shell.Section();
-                if (face3Ds != null && face3Ds.Count != 0)
-                {
-                    double area = 0;
-                    foreach (Face3D face3D in face3Ds)
-                    {
-                        if (face3D == null)
-                        {
-                            continue;
-                        }
-
-                        double area_Temp = face3D.GetArea();
-                        if (!double.IsNaN(area_Temp) && area_Temp > 0)
-                        {
-                            area += area_Temp;
-                        }
-
-                    }
-
-                    space.SetValue(SpaceParameter.Area, area);
-                }
-
+                // SpaceParameter.Area is deliberately NOT set from a shell section here: the canonical floor
+                // area is the actual floor surface area and is applied by Modify.UpdateFloorAreas below, once
+                // the panels, relations and panel types this cluster's floors are identified from are final.
                 double volume = shell.Volume(silverSpacing, tolerance_Distance);
                 if (!double.IsNaN(volume))
                 {
@@ -105,6 +86,8 @@ namespace SAM.Analytical
             result.Normalize(false);
             result.UpdatePanelTypes(elevation_Ground);
             result.SetDefaultConstructionByPanelType();
+
+            result.UpdateFloorAreas(silverSpacing: silverSpacing, tolerance_Angle: tolerance_Angle, tolerance_Distance: tolerance_Distance);
 
             return result;
         }
@@ -209,6 +192,10 @@ namespace SAM.Analytical
             adjacencyCluster.Normalize(false);
             adjacencyCluster.UpdatePanelTypes(elevation_Ground);
             adjacencyCluster.SetDefaultConstructionByPanelType();
+
+            // The plan area seeded per cell above is correct for these prismatic extrusions, but it is still
+            // reconciled through the shared calculation so this path cannot drift from the others.
+            adjacencyCluster.UpdateFloorAreas(tolerance_Distance: tolerance);
 
             return adjacencyCluster;
         }
@@ -319,6 +306,8 @@ namespace SAM.Analytical
 
             result = result.UpdateNormals(false, true, false, Tolerance.MacroDistance, tolerance);
             result.Normalize(false);
+
+            result.UpdateFloorAreas(tolerance_Distance: tolerance);
 
             return result;
         }
@@ -533,18 +522,17 @@ namespace SAM.Analytical
 
                 BoundingBox3D boundingBox3D = shell_Temp.GetBoundingBox();
 
-                double min = boundingBox3D.Min.Z;
-                double max = boundingBox3D.Max.Z;
-
-                double elevation = min;
+                double elevation = boundingBox3D.Min.Z;
 
                 List<Tuple<double, Architectural.Level>> tuples_Level = levels.ConvertAll(x => new Tuple<double, Architectural.Level>(System.Math.Abs(x.Elevation - elevation), x));
                 tuples_Level.Sort((x, y) => x.Item1.CompareTo(y.Item1));
                 Architectural.Level level = tuples_Level.FirstOrDefault()?.Item2;
 
                 double volume_Shell = shell_Temp.Volume(silverSpacing, tolerance_Distance);
-                double area_Shell = shell_Temp.Area((max - min) / 2, tolerance_Angle, tolerance_Distance, silverSpacing);
 
+                // SpaceParameter.Area is deliberately NOT set from a mid-height shell section here: that is a
+                // plan area, which is wrong for a ramped or tilted floor. Modify.UpdateFloorAreas applies the
+                // canonical floor surface area at the end of this method, after invalid spaces are dropped.
                 foreach (Space space in spaces_Shell)
                 {
                     if (result.GetObject<Space>(space.Guid) != null)
@@ -554,11 +542,6 @@ namespace SAM.Analytical
                     if (!double.IsNaN(volume_Shell))
                     {
                         space_Temp.SetValue(SpaceParameter.Volume, volume_Shell);
-                    }
-
-                    if (!double.IsNaN(area_Shell))
-                    {
-                        space_Temp.SetValue(SpaceParameter.Area, area_Shell);
                     }
 
                     if (level != null)
@@ -906,6 +889,8 @@ namespace SAM.Analytical
 
             result.Normalize(false);
 
+            result.UpdateFloorAreas(silverSpacing: silverSpacing, tolerance_Angle: tolerance_Angle, tolerance_Distance: tolerance_Distance);
+
             return result;
         }
 
@@ -934,6 +919,11 @@ namespace SAM.Analytical
                 result.Cut(elevationGround, null, tolerance_Distance);
                 result.UpdatePanelTypes(elevationGround);
                 result.SetDefaultConstructionByPanelType();
+
+                // The delegated call already applied floor areas, but Cut and UpdatePanelTypes have since
+                // changed the very geometry and panel types those areas are derived from, so they are
+                // recalculated here rather than left stale.
+                result.UpdateFloorAreas(silverSpacing: silverSpacing, tolerance_Angle: tolerance_Angle, tolerance_Distance: tolerance_Distance);
             }
 
             return result;
