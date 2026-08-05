@@ -281,7 +281,12 @@ namespace SAM.Analytical
                             continue;
 
                         Face2D face2D = polygon_Temp.ToSAM(Core.Tolerance.MicroDistance);
-                        face2D = face2D?.Snap(grid_Snap.Candidates(face2D.GetBoundingBox(), tolerance), tolerance);
+                        // The snap set was deduplicated using the same tolerance. Retained
+                        // points are pairwise farther apart than tolerance, so greedy Snap can
+                        // make at most one hop. Any effective candidate must therefore lie
+                        // within tolerance of the original face and is contained by
+                        // bbox + tolerance.
+                        face2D = face2D?.Snap(grid_Snap.Candidates(face2D.GetBoundingBox()), tolerance);
                         if (face2D == null)
                             continue;
 
@@ -385,6 +390,8 @@ namespace SAM.Analytical
                     segmentable3D.GetPoints()?.ForEach(x => point2Ds_All.Add(plane.Convert(x)));
                 }
 
+                // Full de-duplicated snap set - same acceptance rule and order as repeated
+                // Geometry.Planar.Modify.Add, resolved through a grid.
                 Point2DGrid grid_Snap = Point2DGrid.Create(point2Ds_All, tolerance);
 
                 Polygon polygon = plane.Convert(tuple.Item1).ToNTS(tolerance);
@@ -432,7 +439,12 @@ namespace SAM.Analytical
                         polygon_Simplify = (Polygon)polygon_Simplify.Reverse();
 
                     Face2D face2D = polygon_Simplify.ToSAM(tolerance);
-                    face2D = face2D?.Snap(grid_Snap.Candidates(face2D.GetBoundingBox(), tolerance), tolerance);
+                    // The snap set was deduplicated using the same tolerance. Retained
+                    // points are pairwise farther apart than tolerance, so greedy Snap can
+                    // make at most one hop. Any effective candidate must therefore lie
+                    // within tolerance of the original face and is contained by
+                    // bbox + tolerance.
+                    face2D = face2D?.Snap(grid_Snap.Candidates(face2D.GetBoundingBox()), tolerance);
                     if (face2D == null)
                         continue;
 
@@ -473,7 +485,8 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// The snap points of one coplanar group, de-duplicated and indexed.
+        /// The snap points of one coplanar group, de-duplicated with the same tolerance later
+        /// used by Snap, and indexed for candidate queries.
         /// <para>
         /// De-duplication reproduces repeated <c>Geometry.Planar.Modify.Add</c> exactly: points
         /// are offered in order and one is accepted only when no already-accepted point lies
@@ -481,28 +494,59 @@ namespace SAM.Analytical
         /// made building the snap set quadratic in the group's corner count.
         /// </para>
         /// <para>
-        /// <see cref="Candidates"/> then narrows the set handed to Snap to the points that could
-        /// possibly win. Snap moves a point only to a snap point within tolerance of it, so a
-        /// snap point outside the face bounding box grown by tolerance can never be chosen -
-        /// dropping it cannot change the snapped face. Candidates keep their insertion order so
-        /// the nearest-wins-first-on-ties behaviour of Snap is unchanged too.
+        /// Separated-set contract: because the set is de-duplicated with the Snap tolerance,
+        /// retained points are pairwise farther apart than tolerance. Under this invariant the
+        /// greedy point Snap can make at most one hop per source point - a second hop would
+        /// need two retained points closer than tolerance to each other - so every effective
+        /// snap point lies within tolerance of the original face, and the face bounding box
+        /// grown by tolerance is a complete candidate superset for these specific workflows.
+        /// <see cref="Candidates"/> relies on that invariant and falls back to the complete
+        /// retained set whenever it cannot be established (NaN tolerance), the query cannot be
+        /// quantised (null, NaN or infinite bounds, non-finite tolerance, cell indexes outside
+        /// long range), or scanning the quantised range would cost more than returning
+        /// everything.
+        /// </para>
+        /// <para>
+        /// The contract does NOT hold for arbitrary snap collections: a non-separated set lets
+        /// Snap walk greedily through intermediate points beyond any static candidate region.
         /// </para>
         /// </summary>
         private sealed class Point2DGrid
         {
-            private readonly List<Point2D> point2Ds;
+            /// <summary>
+            /// Cells a single query may probe, per retained point. A small snap set combined
+            /// with a large query box spans a cell range that is perfectly representable and
+            /// still absurd to walk - one dictionary probe per cell, to find at most a handful
+            /// of points. Past this ratio the complete retained set is the cheaper answer, and
+            /// it is always a valid one.
+            /// </summary>
+            private const double MaximumCellsPerPoint = 16.0;
+
+            /// <summary>
+            /// Largest cell index magnitude that still converts to <see cref="long"/> with a
+            /// defined result. Out-of-range double-to-integer conversion is unspecified in C#
+            /// and differs by runtime and architecture, so the indexes are range-checked as
+            /// doubles before any cast happens rather than after.
+            /// </summary>
+            private const double MaximumCellIndex = 9.0e18;
+
+            private readonly double tolerance;
             private readonly double cellSize;
+            private readonly bool separated;
+            private readonly List<Point2D> point2Ds;
             private readonly Dictionary<Tuple<long, long>, List<int>> dictionary;
 
-            private Point2DGrid(List<Point2D> point2Ds, double cellSize)
+            private Point2DGrid(List<Point2D> point2Ds, double tolerance, double cellSize, bool separated)
             {
                 this.point2Ds = point2Ds;
+                this.tolerance = tolerance;
                 this.cellSize = cellSize;
+                this.separated = separated;
 
                 dictionary = new Dictionary<Tuple<long, long>, List<int>>();
                 for (int i = 0; i < point2Ds.Count; i++)
                 {
-                    Tuple<long, long> key = Key(point2Ds[i], cellSize);
+                    Tuple<long, long> key = Key(point2Ds[i], this.cellSize);
                     if (!dictionary.TryGetValue(key, out List<int> list))
                     {
                         list = new List<int>();
@@ -559,18 +603,84 @@ namespace SAM.Analytical
                     point2Ds.Add(point2D);
                 }
 
-                return new Point2DGrid(point2Ds, CellSize(point2Ds, cellSize_Distinct));
+                // With NaN tolerance the acceptance rule rejects nothing, so the retained set
+                // is not pairwise separated and candidate filtering must fall back to the full
+                // set. Zero, negative and infinite tolerances keep the invariant (only exact
+                // duplicates, or everything but the first point, are removed).
+                bool separated = !double.IsNaN(tolerance);
+
+                return new Point2DGrid(point2Ds, tolerance, CellSize(point2Ds, cellSize_Distinct), separated);
             }
 
-            public List<Point2D> Candidates(Geometry.Planar.BoundingBox2D boundingBox2D, double tolerance)
+            /// <summary>
+            /// The de-duplicated snap points in acceptance order - the same list repeated
+            /// Geometry.Planar.Modify.Add calls would have produced.
+            /// </summary>
+            public List<Point2D> Points
             {
-                if (boundingBox2D == null)
+                get
+                {
                     return point2Ds;
+                }
+            }
 
-                long kx1 = (long)System.Math.Floor((boundingBox2D.Min.X - tolerance) / cellSize);
-                long kx2 = (long)System.Math.Floor((boundingBox2D.Max.X + tolerance) / cellSize);
-                long ky1 = (long)System.Math.Floor((boundingBox2D.Min.Y - tolerance) / cellSize);
-                long ky2 = (long)System.Math.Floor((boundingBox2D.Max.Y + tolerance) / cellSize);
+            /// <summary>
+            /// Retained points intersecting the face bounding box grown by the grid tolerance,
+            /// in original insertion order. Under the separated-set contract (see the class
+            /// remarks) this is a complete superset of the points Snap could effectively use.
+            /// <para>
+            /// Every path that cannot produce that superset cheaply and safely returns the
+            /// complete retained set instead - NaN tolerance at de-duplication, non-finite
+            /// tolerance, null or non-finite query bounds, an invalid cell range, a scan
+            /// disproportionate to the number of points it could find, or cell indexes outside
+            /// the range that converts to <see cref="long"/> with a defined result. The
+            /// complete set is what the callers passed to Snap before any filtering existed, so
+            /// every fallback keeps behaviour identical to handing Snap the full list; only the
+            /// work done to reach it differs.
+            /// </para>
+            /// </summary>
+            public List<Point2D> Candidates(Geometry.Planar.BoundingBox2D boundingBox2D)
+            {
+                if (!separated || double.IsInfinity(tolerance) || !IsFinite(boundingBox2D))
+                {
+                    return new List<Point2D>(point2Ds);
+                }
+
+                double index_MinX = System.Math.Floor((boundingBox2D.Min.X - tolerance) / cellSize);
+                double index_MaxX = System.Math.Floor((boundingBox2D.Max.X + tolerance) / cellSize);
+                double index_MinY = System.Math.Floor((boundingBox2D.Min.Y - tolerance) / cellSize);
+                double index_MaxY = System.Math.Floor((boundingBox2D.Max.Y + tolerance) / cellSize);
+
+                // The loops below widen the range by one cell on each side, so a span covers
+                // (max - min) + 3 cells. Counted in double arithmetic, which spans the whole
+                // quantised range without wrapping - a long subtraction here could overflow
+                // silently and turn a huge scan into a small-looking one.
+                double cells_X = index_MaxX - index_MinX + 3.0;
+                double cells_Y = index_MaxY - index_MinY + 3.0;
+                double cells_Maximum = MaximumCellsPerPoint * (point2Ds.Count + 1.0);
+
+                // cells_X < 1 is the old kx2 < kx1 check - an inverted or otherwise invalid
+                // range - restated on the span. The finiteness checks cover the NaN a
+                // (+infinity - +infinity) span would produce, which no ordered comparison
+                // would have rejected. The product may saturate to +infinity, which fails the
+                // budget comparison exactly as an enormous finite count would.
+                if (!IsFinite(cells_X) || !IsFinite(cells_Y) || cells_X < 1 || cells_Y < 1 || cells_X * cells_Y > cells_Maximum)
+                {
+                    return new List<Point2D>(point2Ds);
+                }
+
+                // A tiny span can still sit at an enormous offset - a bounding box out at 1e300
+                // spans three cells whose indexes are nowhere near long range - so the budget
+                // check alone does not make the casts safe.
+                if (!IsCellIndex(index_MinX) || !IsCellIndex(index_MaxX) || !IsCellIndex(index_MinY) || !IsCellIndex(index_MaxY))
+                {
+                    return new List<Point2D>(point2Ds);
+                }
+
+                long kx1 = (long)index_MinX - 1;
+                long kx2 = (long)index_MaxX + 1;
+                long ky1 = (long)index_MinY - 1;
+                long ky2 = (long)index_MaxY + 1;
 
                 List<int> indexes = new List<int>();
                 for (long kx = kx1; kx <= kx2; kx++)
@@ -598,6 +708,33 @@ namespace SAM.Analytical
                     (long)System.Math.Floor(point2D.Y / cellSize));
             }
 
+            private static bool IsFinite(Geometry.Planar.BoundingBox2D boundingBox2D)
+            {
+                Geometry.Planar.Point2D min = boundingBox2D?.Min;
+                Geometry.Planar.Point2D max = boundingBox2D?.Max;
+
+                if (min == null || max == null)
+                {
+                    return false;
+                }
+
+                return IsFinite(min.X) && IsFinite(min.Y) && IsFinite(max.X) && IsFinite(max.Y);
+            }
+
+            private static bool IsFinite(double value)
+            {
+                return !double.IsNaN(value) && !double.IsInfinity(value);
+            }
+
+            /// <summary>
+            /// Whether a cell index can be cast to <see cref="long"/> with a defined result.
+            /// Written so NaN fails it.
+            /// </summary>
+            private static bool IsCellIndex(double value)
+            {
+                return System.Math.Abs(value) <= MaximumCellIndex;
+            }
+
             /// <summary>
             /// Cell size for the lookup grid: roughly one cell per point over the occupied
             /// extent, never below tolerance. Sizing by tolerance instead would make a
@@ -623,7 +760,6 @@ namespace SAM.Analytical
                 return cellSize > minimum ? cellSize : System.Math.Max(minimum, Core.Tolerance.MacroDistance);
             }
         }
-
         /// <summary>
         /// Envelope index over the polygons of a coplanar group, keyed by their position in
         /// <paramref name="tuples_Polygon"/> so results can be restored to list order.
