@@ -266,10 +266,22 @@ namespace SAM.Geometry.Planar
 
             BoundingBox2DGrid grid = new BoundingBox2DGrid(tolerance, BoundingBox2DGrid.CellSizeHint(boundingBox2Ds));
 
+            // Query.AlmostSimilar answers true for the same instance before it looks at the
+            // tolerance, so an instance repeated in the input is similar to itself whatever the
+            // tolerance is - including a negative one, where BoundsInRange rejects every pair,
+            // identical bounds included. The spatial index cannot carry that; identity is
+            // tracked beside it so the exhaustive scan's result is preserved exactly.
+            HashSet<object> instances = new HashSet<object>(ReferenceComparer.Instance);
+
             List<T> result = new List<T>();
             for (int i = 0; i < segmentable2Ds.Count; i++)
             {
                 T segmentable2D = segmentable2Ds[i];
+
+                if (instances.Contains(segmentable2D))
+                {
+                    continue;
+                }
 
                 bool similar = false;
                 foreach (int index in grid.Candidates(boundingBox2Ds[i]))
@@ -294,6 +306,7 @@ namespace SAM.Geometry.Planar
                 }
 
                 grid.Add(boundingBox2Ds[i]);
+                instances.Add(segmentable2D);
                 result.Add(segmentable2D);
             }
 

@@ -137,9 +137,21 @@ namespace SAM.Geometry.Planar
             // to within tolerance, so the kept set is indexed on that box and only those
             // candidates reach the exact predicates.
             BoundingBox2DGrid grid_Result = new BoundingBox2DGrid(tolerance, BoundingBox2DGrid.CellSizeHint(tuples.ConvertAll(x => x.Item1)));
+
+            // AlmostSimilar answers true for the same instance before it looks at the tolerance,
+            // so an input segment repeated by reference is similar to itself whatever the
+            // tolerance is - including a negative one, where BoundsInRange rejects every pair.
+            // The spatial index cannot carry that, so identity is tracked beside it.
+            HashSet<object> instances = new HashSet<object>(ReferenceComparer.Instance);
+
             for (int i = 0; i < count; i++)
             {
                 Segment2D segment2D_Temp = tuples[i].Item2;
+
+                if (instances.Contains(segment2D_Temp))
+                {
+                    continue;
+                }
 
                 bool similar = false;
                 BoundingBox2D boundingBox2D_Temp = segment2D_Temp.GetBoundingBox();
@@ -166,7 +178,8 @@ namespace SAM.Geometry.Planar
                 List<Point2D> point2Ds_Temp = point2DsList[i];
                 if (point2Ds_Temp == null || point2Ds_Temp.Count == 0)
                 {
-                    grid_Result.Add(segment2D_Temp.GetBoundingBox());
+                    grid_Result.Add(boundingBox2D_Temp);
+                    instances.Add(segment2D_Temp);
                     result.Add(segment2D_Temp);
                     continue;
                 }
@@ -202,8 +215,10 @@ namespace SAM.Geometry.Planar
                     if (segment2D != null)
                         continue;
 
-                    result.Add(new Segment2D(point2D_1, point2D_2));
+                    Segment2D segment2D_Piece = new Segment2D(point2D_1, point2D_2);
+                    result.Add(segment2D_Piece);
                     grid_Result.Add(boundingBox2D_Piece);
+                    instances.Add(segment2D_Piece);
                 }
             }
 
