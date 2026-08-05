@@ -3,6 +3,7 @@
 
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
+using Grasshopper.Kernel.Types;
 using SAM.Analytical.Grasshopper.Properties;
 using SAM.Core.Grasshopper;
 using System;
@@ -35,8 +36,8 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFilterPanelsByZone()
           : base("SAMAnalytical.FilterPanelsByZone", "SAMAnalytical.FilterPanelsByZone",
-              "SUMMARY\nFilters Panels associated with Zones selected by their Zone Category Name.\nThe component separates Panels into external Panels, internal Panels between Spaces in the same Zone, and internal Panels leading to Spaces outside that Zone.\nThis can be used to identify external elements, partitions within Flats, party walls between Flats, and Panels between Flats and Corridors.\n\n" +
-              "INPUTS\n_analyticalModel: SAM AnalyticalModel containing the Zones, Spaces and Panels to query.\nzoneCategoryName_: One or more Zone Category Names used to select Zones. Zones sharing the same category name remain separate Zones.\n\n" +
+              "SUMMARY\nFilters Panels associated with Zones selected either by their Zone Category Name or by connecting specific Zones directly.\nThe component separates Panels into external Panels, internal Panels between Spaces in the same Zone, and internal Panels leading to Spaces outside that Zone.\nThis can be used to identify external elements, partitions within Flats, party walls between Flats, and Panels between Flats and Corridors.\n\n" +
+              "INPUTS\n_analyticalModel: SAM AnalyticalModel containing the Zones, Spaces and Panels to query.\nzoneCategoryName_: One or more Zone Category Names used to select Zones, specific SAM Zones connected directly, or a mixture of both. Zones sharing the same category name remain separate Zones.\n\n" +
               "OUTPUTS\nexternalPanels: External Panels associated with Spaces in the selected Zones.\ninternalPanelsWithinZone: Internal Panels between Spaces belonging to the same selected Zone.\ninternalPanelsToSpacesOutsideZone: Internal Panels between a Space in a selected Zone and a Space outside that same Zone. The other Space may belong to another Zone or may not be assigned to a Zone.\n\n" +
               "NOTES\nThe component uses individual Zone identity when classifying Panels.\nTwo different Zones may share the same Zone Category Name - a Panel between those Zones is returned in internalPanelsToSpacesOutsideZone.\nPanels are returned only once in each output.\nThe supplied AnalyticalModel remains unchanged.\n\n" +
               "EXAMPLE\nAnalyticalModel -> Filter Panels By Zone, with zoneCategoryName_ = \"Flat\", gives externalPanels as the external walls, roofs or exposed Panels associated with Flats, internalPanelsWithinZone as the partitions between Spaces inside the same Flat, and internalPanelsToSpacesOutsideZone as the party walls between Flats and the Panels between Flats and Corridors.",
@@ -53,7 +54,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel containing the Zones, Spaces and Panels to query.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_String() { Name = "zoneCategoryName_", NickName = "zoneCategoryName_", Description = "Zone Category Names used to select Zones. Different Zones sharing the same category name remain separate.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "zoneCategoryName_", NickName = "zoneCategoryName_", Description = "Zone Category Names used to select Zones, specific SAM Zones connected directly, or a mixture of both. Different Zones sharing the same category name remain separate.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -90,10 +91,30 @@ namespace SAM.Analytical.Grasshopper
             }
 
             index = Params.IndexOfInputParam("zoneCategoryName_");
-            List<string> zoneCategoryNames_Raw = new List<string>();
+            List<GH_ObjectWrapper> zoneCategoryName_ObjectWrappers = new List<GH_ObjectWrapper>();
             if (index != -1)
             {
-                dataAccess.GetDataList(index, zoneCategoryNames_Raw);
+                dataAccess.GetDataList(index, zoneCategoryName_ObjectWrappers);
+            }
+
+            List<Zone> zones_Explicit = new List<Zone>();
+            List<string> zoneCategoryNames_Raw = new List<string>();
+            foreach (GH_ObjectWrapper zoneCategoryName_ObjectWrapper in zoneCategoryName_ObjectWrappers)
+            {
+                object value = zoneCategoryName_ObjectWrapper?.Value;
+                if (value is IGH_Goo)
+                {
+                    value = (value as dynamic).Value;
+                }
+
+                if (value is Zone zone)
+                {
+                    zones_Explicit.Add(zone);
+                }
+                else if (value is string zoneCategoryName_Raw)
+                {
+                    zoneCategoryNames_Raw.Add(zoneCategoryName_Raw);
+                }
             }
 
             List<string> zoneCategoryNames = new List<string>();
@@ -116,9 +137,9 @@ namespace SAM.Analytical.Grasshopper
                 }
             }
 
-            if (zoneCategoryNames.Count == 0)
+            if (zones_Explicit.Count == 0 && zoneCategoryNames.Count == 0)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Please supply at least one Zone Category Name.");
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Please supply at least one Zone Category Name or Zone.");
                 return;
             }
 
@@ -129,7 +150,14 @@ namespace SAM.Analytical.Grasshopper
             AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
             if (adjacencyCluster != null)
             {
-                List<Zone> zones = adjacencyCluster.ZonesByCategoryName(zoneCategoryNames) ?? new List<Zone>();
+                List<Zone> zones = new List<Zone>(zones_Explicit);
+
+                List<Zone> zones_ByCategoryName = zoneCategoryNames.Count == 0 ? null : adjacencyCluster.ZonesByCategoryName(zoneCategoryNames);
+                if (zones_ByCategoryName != null)
+                {
+                    zones.AddRange(zones_ByCategoryName);
+                }
+
                 if (zones.Count == 0)
                 {
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No Zones were found for the supplied Zone Category Name.");
