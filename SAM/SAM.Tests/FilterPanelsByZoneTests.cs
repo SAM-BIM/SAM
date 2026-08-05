@@ -299,5 +299,69 @@ namespace SAM.Tests
             Assert.NotNull(zones);
             Assert.Empty(zones);
         }
+
+        [Fact]
+        public void FilterPanelsByZone_InternalPanelTypeWithOneAdjacentSpace_NotReturnedAsWithinZone()
+        {
+            Construction construction = CreateTestConstruction("Internal Wall");
+
+            AdjacencyCluster adjacencyCluster = new AdjacencyCluster();
+
+            Zone flat = CreateTestZone("Flat 01", "Flat");
+            Space space = CreateTestSpace("Flat Space");
+            Relate(adjacencyCluster, flat, space);
+
+            // PanelType is "internal" by name, but the Panel is only related to a single Space - genuinely one-sided.
+            Panel panel = CreateTestPanel(construction, PanelType.WallInternal, 0, 0);
+            Relate(adjacencyCluster, panel, space);
+
+            List<Panel> externalPanels = adjacencyCluster.FilterPanelsByZone(new[] { flat }, out List<Panel> internalPanelsWithinZone, out List<Panel> internalPanelsToSpacesOutsideZone);
+
+            Assert.DoesNotContain(internalPanelsWithinZone, x => x.Guid == panel.Guid);
+            Assert.DoesNotContain(internalPanelsToSpacesOutsideZone, x => x.Guid == panel.Guid);
+            Assert.Contains(externalPanels, x => x.Guid == panel.Guid);
+        }
+
+        [Fact]
+        public void ZonesByCategoryName_StoredCategoryHasWhitespace_TrimmedBeforeComparison()
+        {
+            AdjacencyCluster adjacencyCluster = new AdjacencyCluster();
+
+            Zone flat = CreateTestZone("Flat 01", " Flat ");
+            adjacencyCluster.AddObject(flat);
+
+            List<Zone> zones = adjacencyCluster.ZonesByCategoryName(new[] { "Flat" });
+
+            Assert.Single(zones);
+            Assert.Equal(flat.Guid, zones[0].Guid);
+        }
+
+        [Fact]
+        public void FilterPanelsByZone_MultipleCategoryNames_FlatCorridorPanelIsOutsideZoneOnce()
+        {
+            Construction construction = CreateTestConstruction("Corridor Wall");
+
+            AdjacencyCluster adjacencyCluster = new AdjacencyCluster();
+
+            Zone flat = CreateTestZone("Flat 01", "Flat");
+            Zone corridor = CreateTestZone("Corridor", "Corridor");
+            Space flatSpace = CreateTestSpace("Flat Space");
+            Space corridorSpace = CreateTestSpace("Corridor Space");
+            Relate(adjacencyCluster, flat, flatSpace);
+            Relate(adjacencyCluster, corridor, corridorSpace);
+
+            Panel panel = CreateTestPanel(construction, PanelType.WallInternal, 0, 0);
+            Relate(adjacencyCluster, panel, flatSpace, corridorSpace);
+
+            List<Zone> zones = adjacencyCluster.ZonesByCategoryName(new[] { "Flat", "Corridor" });
+            Assert.Equal(2, zones.Count);
+
+            List<Panel> externalPanels = adjacencyCluster.FilterPanelsByZone(zones, out List<Panel> internalPanelsWithinZone, out List<Panel> internalPanelsToSpacesOutsideZone);
+
+            Assert.Empty(externalPanels);
+            Assert.DoesNotContain(internalPanelsWithinZone, x => x.Guid == panel.Guid);
+            Assert.Single(internalPanelsToSpacesOutsideZone);
+            Assert.Equal(panel.Guid, internalPanelsToSpacesOutsideZone[0].Guid);
+        }
     }
 }

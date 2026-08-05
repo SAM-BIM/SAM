@@ -35,12 +35,14 @@ namespace SAM.Analytical
             List<Zone> result = new List<Zone>();
             foreach (Zone zone in zones)
             {
-                if (zone == null || !zone.TryGetValue(ZoneParameter.ZoneCategory, out string zoneCategory) || zoneCategory == null)
+                if (zone == null || !zone.TryGetValue(ZoneParameter.ZoneCategory, out string zoneCategory) || string.IsNullOrWhiteSpace(zoneCategory))
                 {
                     continue;
                 }
 
-                if (zoneCategoryNames_Trimmed.Any(x => x.Equals(zoneCategory, StringComparison.OrdinalIgnoreCase)))
+                string zoneCategory_Trimmed = zoneCategory.Trim();
+
+                if (zoneCategoryNames_Trimmed.Any(x => x.Equals(zoneCategory_Trimmed, StringComparison.OrdinalIgnoreCase)))
                 {
                     result.Add(zone);
                 }
@@ -55,7 +57,7 @@ namespace SAM.Analytical
         /// </summary>
         /// <param name="adjacencyCluster">AdjacencyCluster containing the Zones, Spaces and Panels to query</param>
         /// <param name="zones">Zones to evaluate. Distinct Zones (by Guid) are treated individually even if they share a Zone Category Name</param>
-        /// <param name="internalPanelsWithinZone">Internal Panels whose adjacent Spaces all belong to the same one of the given Zones</param>
+        /// <param name="internalPanelsWithinZone">Internal Panels with at least two distinct adjacent Spaces, all belonging to the same one of the given Zones</param>
         /// <param name="internalPanelsToSpacesOutsideZone">Internal Panels where at least one adjacent Space belongs to a given Zone and at least one other adjacent Space does not belong to that same Zone</param>
         /// <returns>External Panels associated with at least one Space belonging to a given Zone</returns>
         public static List<Panel> FilterPanelsByZone(this AdjacencyCluster adjacencyCluster, IEnumerable<Zone> zones, out List<Panel> internalPanelsWithinZone, out List<Panel> internalPanelsToSpacesOutsideZone)
@@ -144,6 +146,11 @@ namespace SAM.Analytical
                     }
 
                     List<Guid> panelSpaceGuids = panelSpaces.Where(x => x != null).Select(x => x.Guid).Distinct().ToList();
+                    if (panelSpaceGuids.Count < 2)
+                    {
+                        // Not enough distinct adjacent Spaces (e.g. a duplicate Space relation) to establish a within/outside-Zone relationship - omit.
+                        continue;
+                    }
 
                     bool touchesGivenZone = false;
                     bool withinAGivenZone = false;
