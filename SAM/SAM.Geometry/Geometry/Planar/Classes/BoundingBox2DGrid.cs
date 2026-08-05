@@ -19,15 +19,26 @@ namespace SAM.Geometry.Planar
     /// insertion order, so first-match behaviour against the kept set is unchanged.
     /// </para>
     /// <para>
-    /// Boxes that are null, non-finite or would span an unreasonable number of cells are
-    /// held aside and offered to every query, so no entry can silently disappear. A
-    /// degenerate query falls back to the whole index. The grid never decides geometric
-    /// equivalence; the exact predicate always has the final word.
+    /// Boxes that are null, non-finite, far enough from the origin that their cell indexes
+    /// leave <see cref="long"/> range, or that would span an unreasonable number of cells are
+    /// held aside and offered to every query, so no entry can silently disappear. A degenerate
+    /// query - including one whose own indexes leave that range - falls back to the whole
+    /// index. The grid never decides geometric equivalence; the exact predicate always has the
+    /// final word.
     /// </para>
     /// </summary>
     internal sealed class BoundingBox2DGrid
     {
         private const int MaxCellsPerItem = 4096;
+
+        /// <summary>
+        /// Largest cell index magnitude that converts to <see cref="long"/> with a defined
+        /// result, and still leaves room for the one-cell neighbour expansion on both sides.
+        /// Out-of-range double-to-integer conversion is unspecified in C# - runtimes variously
+        /// wrap or saturate - so indexes are range-checked as doubles before any cast, never
+        /// inspected afterwards.
+        /// </summary>
+        private const double MaximumCellIndex = 9.0e18;
 
         private readonly double tolerance;
         private readonly List<BoundingBox2D> boundingBox2Ds;
@@ -102,9 +113,13 @@ namespace SAM.Geometry.Planar
 
         private void Insert(int index, BoundingBox2D boundingBox2D)
         {
-            Cells(boundingBox2D, tolerance, out long kx1, out long kx2, out long ky1, out long ky2);
-
-            if (!IsValid(kx1, kx2, ky1, ky2) || CellCount(kx1, kx2, ky1, ky2) > MaxCellsPerItem)
+            // A box that cannot be quantised - non-finite once inflated, or so far from the
+            // origin that its cell indexes leave long range - is held aside rather than pushed
+            // through a cast whose result is unspecified. Aside entries are offered to every
+            // query, so the exact predicate still sees them and nothing disappears.
+            if (!TryCells(boundingBox2D, tolerance, out long kx1, out long kx2, out long ky1, out long ky2)
+                || !IsValid(kx1, kx2, ky1, ky2)
+                || CellCount(kx1, kx2, ky1, ky2) > MaxCellsPerItem)
             {
                 aside[index] = true;
                 unbounded.Add(index);
@@ -196,12 +211,13 @@ namespace SAM.Geometry.Planar
                 return All();
             }
 
-            Cells(boundingBox2D, 0, out long kx1, out long kx2, out long ky1, out long ky2);
-
-            if (!IsValid(kx1, kx2, ky1, ky2) || CellCount(kx1, kx2, ky1, ky2) > MaxCellsPerItem)
+            if (!TryCells(boundingBox2D, 0, out long kx1, out long kx2, out long ky1, out long ky2)
+                || !IsValid(kx1, kx2, ky1, ky2)
+                || CellCount(kx1, kx2, ky1, ky2) > MaxCellsPerItem)
             {
-                // The query box cannot be quantised or spans an unreasonable number of cells -
-                // fall back to the whole index rather than walking billions of cells.
+                // The query box cannot be quantised - non-finite, out of long range, or an
+                // invalid span - or it spans an unreasonable number of cells. Fall back to the
+                // whole index rather than walking billions of cells or casting blind.
                 return All();
             }
 
@@ -257,12 +273,43 @@ namespace SAM.Geometry.Planar
             return result;
         }
 
-        private void Cells(BoundingBox2D boundingBox2D, double inflation, out long kx1, out long kx2, out long ky1, out long ky2)
+        /// <summary>
+        /// Quantises a box to cell indexes, or reports that it cannot be quantised. False means
+        /// the caller must take its fallback: aside on insert, whole index on query. Never
+        /// returns indexes the neighbour expansion could overflow.
+        /// </summary>
+        private bool TryCells(BoundingBox2D boundingBox2D, double inflation, out long kx1, out long kx2, out long ky1, out long ky2)
         {
-            kx1 = (long)System.Math.Floor((boundingBox2D.Min.X - inflation) / cellSize);
-            kx2 = (long)System.Math.Floor((boundingBox2D.Max.X + inflation) / cellSize);
-            ky1 = (long)System.Math.Floor((boundingBox2D.Min.Y - inflation) / cellSize);
-            ky2 = (long)System.Math.Floor((boundingBox2D.Max.Y + inflation) / cellSize);
+            kx1 = 0;
+            kx2 = 0;
+            ky1 = 0;
+            ky2 = 0;
+
+            double index_MinX = System.Math.Floor((boundingBox2D.Min.X - inflation) / cellSize);
+            double index_MaxX = System.Math.Floor((boundingBox2D.Max.X + inflation) / cellSize);
+            double index_MinY = System.Math.Floor((boundingBox2D.Min.Y - inflation) / cellSize);
+            double index_MaxY = System.Math.Floor((boundingBox2D.Max.Y + inflation) / cellSize);
+
+            if (!IsCellIndex(index_MinX) || !IsCellIndex(index_MaxX) || !IsCellIndex(index_MinY) || !IsCellIndex(index_MaxY))
+            {
+                return false;
+            }
+
+            kx1 = (long)index_MinX;
+            kx2 = (long)index_MaxX;
+            ky1 = (long)index_MinY;
+            ky2 = (long)index_MaxY;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Whether a cell index is finite and small enough to cast, and to survive the +/-1
+        /// neighbour expansion, without leaving <see cref="long"/> range. Written so NaN fails.
+        /// </summary>
+        private static bool IsCellIndex(double value)
+        {
+            return System.Math.Abs(value) <= MaximumCellIndex;
         }
 
         private static bool IsFinite(BoundingBox2D boundingBox2D)

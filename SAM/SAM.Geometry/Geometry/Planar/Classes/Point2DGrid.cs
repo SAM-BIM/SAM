@@ -18,14 +18,27 @@ namespace SAM.Geometry.Planar
     /// full scan of the same points.
     /// </para>
     /// <para>
-    /// Null and non-finite points cannot be quantised into cells; they are held aside and
-    /// offered to every query. A null, non-finite or otherwise degenerate query falls back
-    /// to the full index. The index is mutable: <see cref="Replace"/> keeps it synchronised
-    /// when a caller moves a point, which workflows that average endpoints in place require.
+    /// Points that cannot be quantised into cells - null, non-finite, or far enough from the
+    /// origin that their cell indexes leave <see cref="long"/> range - are held aside and
+    /// offered to every query. A null, non-finite, out-of-range or otherwise degenerate query
+    /// falls back to the full index. Between the two, no point can become unreachable from a
+    /// query that should find it, whatever its coordinates. The index is mutable:
+    /// <see cref="Replace"/> keeps it synchronised when a caller moves a point, which
+    /// workflows that average endpoints in place require - including moving a point into or
+    /// out of the unplaceable set.
     /// </para>
     /// </summary>
     internal sealed class Point2DGrid
     {
+        /// <summary>
+        /// Largest cell index magnitude that converts to <see cref="long"/> with a defined
+        /// result, and still leaves room for the one-cell query padding. Out-of-range
+        /// double-to-integer conversion is unspecified in C# - runtimes variously wrap or
+        /// saturate - so indexes are range-checked as doubles before any cast. Checking after
+        /// the cast cannot work: a saturated value is indistinguishable from a real one.
+        /// </summary>
+        private const double MaximumCellIndex = 9.0e18;
+
         private readonly double tolerance;
         private readonly double cellSize;
         private readonly List<Point2D> point2Ds;
@@ -134,13 +147,26 @@ namespace SAM.Geometry.Planar
                 return All();
             }
 
+            double index_MinX = System.Math.Floor(minX / cellSize);
+            double index_MaxX = System.Math.Floor(maxX / cellSize);
+            double index_MinY = System.Math.Floor(minY / cellSize);
+            double index_MaxY = System.Math.Floor(maxY / cellSize);
+
+            // A query whose own cell indexes leave long range cannot be walked, and the points
+            // it is looking for could not be placed either. Offer the whole index and let the
+            // exact predicate decide, exactly as the list scan this replaced did.
+            if (!IsCellIndex(index_MinX) || !IsCellIndex(index_MaxX) || !IsCellIndex(index_MinY) || !IsCellIndex(index_MaxY))
+            {
+                return All();
+            }
+
             // One cell of padding around the tolerance box: cell assignment involves a
             // floating-point division, so a point legitimately within tolerance can land one
             // cell outside the mathematically exact range at a cell boundary.
-            long kx1 = (long)System.Math.Floor(minX / cellSize) - 1;
-            long kx2 = (long)System.Math.Floor(maxX / cellSize) + 1;
-            long ky1 = (long)System.Math.Floor(minY / cellSize) - 1;
-            long ky2 = (long)System.Math.Floor(maxY / cellSize) + 1;
+            long kx1 = (long)index_MinX - 1;
+            long kx2 = (long)index_MaxX + 1;
+            long ky1 = (long)index_MinY - 1;
+            long ky2 = (long)index_MaxY + 1;
 
             List<int> result = new List<int>(unbounded);
             for (long kx = kx1; kx <= kx2; kx++)
@@ -169,6 +195,12 @@ namespace SAM.Geometry.Planar
             return result;
         }
 
+        /// <summary>
+        /// Cell key for a point, or null when the point cannot be quantised - it is null, has
+        /// non-finite coordinates, or sits so far from the origin that its cell indexes leave
+        /// long range. Null sends the point to the unbounded set, which every query is offered,
+        /// so a point that cannot be placed is still always found.
+        /// </summary>
         private static Tuple<long, long> Key(Point2D point2D, double cellSize)
         {
             if (!IsFinite(point2D))
@@ -176,9 +208,24 @@ namespace SAM.Geometry.Planar
                 return null;
             }
 
-            return new Tuple<long, long>(
-                (long)System.Math.Floor(point2D.X / cellSize),
-                (long)System.Math.Floor(point2D.Y / cellSize));
+            double index_X = System.Math.Floor(point2D.X / cellSize);
+            double index_Y = System.Math.Floor(point2D.Y / cellSize);
+
+            if (!IsCellIndex(index_X) || !IsCellIndex(index_Y))
+            {
+                return null;
+            }
+
+            return new Tuple<long, long>((long)index_X, (long)index_Y);
+        }
+
+        /// <summary>
+        /// Whether a cell index is finite and small enough to cast, and to survive the +/-1
+        /// query padding, without leaving <see cref="long"/> range. Written so NaN fails.
+        /// </summary>
+        private static bool IsCellIndex(double value)
+        {
+            return System.Math.Abs(value) <= MaximumCellIndex;
         }
 
         private static bool IsFinite(Point2D point2D)
