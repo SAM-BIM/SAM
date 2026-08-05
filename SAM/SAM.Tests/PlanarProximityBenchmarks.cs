@@ -52,12 +52,60 @@ namespace SAM.Tests
             });
         }
 
+        /// <summary>
+        /// Dense case: every horizontal segment crosses every vertical one, so the number of
+        /// intersections is itself quadratic in n. No broad phase can beat that - the pairs it
+        /// would discard are exactly the pairs that do not exist here. Kept as the control: it
+        /// shows the broad phase does not make the output-bound case worse.
+        /// </summary>
         [Fact]
-        public void Split_Segments_Scaling()
+        public void Split_Segments_Dense_Scaling()
         {
-            Report("Query.Split(segments)", new int[] { 300, 600, 1200 }, count =>
+            Report("Query.Split(segments, dense crossing grid)", new int[] { 300, 600, 1200 }, count =>
             {
-                List<Segment2D> segments = CrossingGrid(count);
+                List<Segment2D> segments = PlanarSplitFixtures.CrossingGrid(count);
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                List<Segment2D> result = Geometry.Planar.Query.Split(segments, Core.Tolerance.Distance);
+                stopwatch.Stop();
+                Assert.NotNull(result);
+                return stopwatch.Elapsed.TotalMilliseconds;
+            });
+        }
+
+        /// <summary>
+        /// Sparse case: n/2 isolated crossing pairs, so n/2 intersections - linear output from
+        /// a quadratic number of pairs. The pair sweep is the only quadratic term left, so this
+        /// is where a broad phase shows, and it is the shape real floor-plan input takes: many
+        /// short walls, each meeting a handful of neighbours. The sizes are large enough for the
+        /// quadratic term to dominate; below about a thousand segments the linear result-building
+        /// work hides it and every column reads ~2x whether or not the sweep is indexed.
+        /// </summary>
+        [Fact]
+        public void Split_Segments_Sparse_Scaling()
+        {
+            Report("Query.Split(segments, sparse crossings)", new int[] { 2000, 4000, 8000 }, count =>
+            {
+                List<Segment2D> segments = PlanarSplitFixtures.SparseCrossings(count);
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                List<Segment2D> result = Geometry.Planar.Query.Split(segments, Core.Tolerance.Distance);
+                stopwatch.Stop();
+                Assert.NotNull(result);
+                return stopwatch.Elapsed.TotalMilliseconds;
+            });
+        }
+
+        /// <summary>
+        /// Clustered case: locally dense bundles that never reach each other. Output is still
+        /// linear in n (a fixed intersection count per bundle), but unlike the sparse fixture
+        /// each accepted pair does real geometric work, so the broad phase has to shed the
+        /// cross-bundle pairs without disturbing the within-bundle ones.
+        /// </summary>
+        [Fact]
+        public void Split_Segments_Clustered_Scaling()
+        {
+            Report("Query.Split(segments, clustered crossings)", new int[] { 1000, 2000, 4000 }, count =>
+            {
+                List<Segment2D> segments = PlanarSplitFixtures.ClusteredCrossings(count);
                 Stopwatch stopwatch = Stopwatch.StartNew();
                 List<Segment2D> result = Geometry.Planar.Query.Split(segments, Core.Tolerance.Distance);
                 stopwatch.Stop();
@@ -96,20 +144,6 @@ namespace SAM.Tests
                 double y = (i / columns) * 5;
                 double offset = (i % 3 == 0) ? 0.0004 : 0;
                 result.Add(new Segment2D(new Point2D(x + offset, y + offset), new Point2D(x + 4 + offset, y + offset)));
-            }
-
-            return result;
-        }
-
-        /// <summary>Half horizontal, half vertical segments on a grid: every crossing splits.</summary>
-        private static List<Segment2D> CrossingGrid(int count)
-        {
-            int half = count / 2;
-            List<Segment2D> result = new List<Segment2D>();
-            for (int i = 0; i < half; i++)
-            {
-                result.Add(new Segment2D(new Point2D(0, i * 1.0), new Point2D(half, i * 1.0)));
-                result.Add(new Segment2D(new Point2D(i * 1.0, 0), new Point2D(i * 1.0, half)));
             }
 
             return result;
