@@ -12,11 +12,14 @@ namespace SAM.Geometry.Planar
     /// <para>
     /// Insertion inflates each box by the grid tolerance and registers it in every cell it
     /// covers. A query probes the cells covering the uninflated query box, so an inserted
-    /// box B is offered to a query box A whenever A is contained in B inflated by tolerance
-    /// - the necessary condition for two geometries whose exact predicates require every
-    /// bounding-box bound to agree within tolerance. One cell of padding on both operations
-    /// covers floating-point cell-boundary rounding. Candidates arrive in ascending
-    /// insertion order, so first-match behaviour against the kept set is unchanged.
+    /// box B is offered to a query box A whenever B inflated by tolerance meets A anywhere -
+    /// that is, whenever <c>B.InRange(A, tolerance)</c> could hold. Two families of exact
+    /// predicate sit inside that superset: those requiring every bounding-box bound to agree
+    /// within tolerance (bound agreement implies overlap), and those requiring only that the
+    /// boxes come within tolerance of each other, which is the same condition verbatim. One
+    /// cell of padding on both operations covers floating-point cell-boundary rounding.
+    /// Candidates arrive in ascending insertion order, so first-match behaviour against the
+    /// kept set - and j-ascending visit order in a pair sweep - is unchanged.
     /// </para>
     /// <para>
     /// Boxes that are null, non-finite, far enough from the origin that their cell indexes

@@ -44,13 +44,50 @@ namespace SAM.Geometry.Planar
 
             int count = tuples.Count();
 
+            // Broad phase for the pair sweep below. The sweep only ever accepts a pair whose
+            // boxes satisfy boundingBox2D_1.InRange(boundingBox2D_2, tolerance), and the grid
+            // returns a superset of the boxes that can satisfy it: each box is registered in
+            // the cells it covers once inflated by the tolerance, and a query walks the cells
+            // its own box covers, so two boxes within tolerance of each other always share a
+            // cell. Boxes that cannot be quantised are held aside by the grid and offered to
+            // every query. InRange is still evaluated on every candidate, and the exact
+            // predicates (On, Intersection, AlmostSimilar) still decide every pair, so the
+            // accepted set is unchanged - only pairs InRange would have rejected disappear.
+            //
+            // The sweep additionally requires, for each i, that every candidate j is processed
+            // exactly once and in ascending original j order; SweepCandidates is where that is
+            // established and why.
+            //
+            // Below 32 segments the index costs more than the pairs it removes, so the sweep
+            // runs over the whole tail, which is the pre-existing code path exactly.
+            BoundingBox2DGrid grid_Sweep = null;
+            int[] stamps = null;
+            if (count >= 32)
+            {
+                grid_Sweep = new BoundingBox2DGrid(tolerance, BoundingBox2DGrid.CellSizeHint(tuples.ConvertAll(x => x.Item1)));
+                foreach (Tuple<BoundingBox2D, Segment2D> tuple in tuples)
+                {
+                    grid_Sweep.Add(tuple.Item1);
+                }
+
+                stamps = new int[count];
+                for (int i = 0; i < count; i++)
+                {
+                    stamps[i] = -1;
+                }
+            }
+
+            List<int> indexes = new List<int>();
+
             List<List<Point2D>> point2DsList = Enumerable.Repeat<List<Point2D>>(null, count).ToList();
             for (int i = 0; i < count - 1; i++)
             {
                 BoundingBox2D boundingBox2D_1 = tuples[i].Item1;
                 Segment2D segment2D_1 = tuples[i].Item2;
 
-                for (int j = i + 1; j < count; j++)
+                SweepCandidates(grid_Sweep, boundingBox2D_1, i, count, stamps, indexes);
+
+                foreach (int j in indexes)
                 {
                     BoundingBox2D boundingBox2D_2 = tuples[j].Item1;
                     if (!boundingBox2D_1.InRange(boundingBox2D_2, tolerance))
@@ -223,6 +260,59 @@ namespace SAM.Geometry.Planar
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Fills <paramref name="indexes"/> with the tuple indices after <paramref name="index"/>
+        /// whose bounding box could be InRange of <paramref name="boundingBox2D"/>. With no grid
+        /// it is the whole tail - the original inner loop.
+        /// </summary>
+        /// <remarks>
+        /// The invariant this method exists to hold, and the one the whole broad phase rests on:
+        /// <para>
+        /// <em>for each i, every candidate j appears exactly once, and in ascending original j
+        /// order.</em>
+        /// </para>
+        /// Both halves are load bearing, and neither is free.
+        /// <para>
+        /// Exactly once: a box is registered in every cell it covers, so the raw candidate stream
+        /// repeats a box once per cell it shares with the query. Visiting one pair twice would run
+        /// Modify.Add twice over point2DsList, and at a negative tolerance Modify.Add accepts a
+        /// point it has already stored - so the repeats have to be collapsed, not merely tolerated.
+        /// The stamp array does it in one pass without allocating.
+        /// </para>
+        /// <para>
+        /// Ascending: point2DsList[i] accumulates intersections in the order the pairs are
+        /// visited, and Modify.SortByDistance later orders the pieces by distance rather than by
+        /// arrival - but which Point2D instance ends up stored, and so which instances the output
+        /// pieces share, still depends on arrival order. BoundingBox2DGrid.Candidates sorts before
+        /// returning, so the stream is already ascending and the filtering below preserves it.
+        /// </para>
+        /// </remarks>
+        private static void SweepCandidates(BoundingBox2DGrid boundingBox2DGrid, BoundingBox2D boundingBox2D, int index, int count, int[] stamps, List<int> indexes)
+        {
+            indexes.Clear();
+
+            if (boundingBox2DGrid == null)
+            {
+                for (int i = index + 1; i < count; i++)
+                {
+                    indexes.Add(i);
+                }
+
+                return;
+            }
+
+            foreach (int index_Candidate in boundingBox2DGrid.Candidates(boundingBox2D))
+            {
+                if (index_Candidate <= index || stamps[index_Candidate] == index)
+                {
+                    continue;
+                }
+
+                stamps[index_Candidate] = index;
+                indexes.Add(index_Candidate);
+            }
         }
 
         private static bool BoundsInRange(BoundingBox2D boundingBox2D_1, BoundingBox2D boundingBox2D_2, double tolerance)
