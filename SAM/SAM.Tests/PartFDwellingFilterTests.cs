@@ -280,15 +280,37 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// The spaces of an excluded corridor zone are reported among those outside every dwelling zone,
-        /// not silently forgotten.
+        /// The spaces of an explicitly excluded corridor zone are not silently forgotten, but their
+        /// exclusion is expected - SelectDwellingZones already reported it as a zone-level Remark - so
+        /// they must not also raise the generic "outside every dwelling zone" Warning, which would report
+        /// the same, expected exclusion a second time as if something needed fixing.
         /// </summary>
         [Fact]
-        public void SpacesOfAnExcludedZone_AreReportedAsOutsideEveryDwellingZone()
+        public void SpacesOfAnExcludedZone_AreReportedAsARemarkNotAWarning()
         {
             PartFCalculator partFCalculator = Calculate(Marked());
 
-            Assert.Contains(partFCalculator.Warnings, x => x.Contains("do not belong to any dwelling zone") && x.Contains("Corridor_1"));
+            Assert.DoesNotContain(partFCalculator.Warnings, x => x.Contains("Corridor_1"));
+            Assert.Contains(partFCalculator.Remarks, x => x.Contains("Corridor") && x.Contains("Corridor_1") && x.Contains("Is Dwelling is set to No"));
+        }
+
+        /// <summary>
+        /// Minimal, single-zone-pair reproduction of the same rule: Is Dwelling = false is an expected
+        /// exclusion, not a problem to warn about.
+        /// </summary>
+        [Fact]
+        public void ExplicitlyExcludedZone_RaisesNoUnzonedSpaceWarning()
+        {
+            AdjacencyCluster adjacencyCluster = new();
+            AddZone(adjacencyCluster, "Flat 1", true,
+                AddSpace(adjacencyCluster, "Bedroom 1", 14, 35, 0),
+                AddSpace(adjacencyCluster, "Bathroom", 6, 15, 1));
+            AddZone(adjacencyCluster, "Corridor", false, AddSpace(adjacencyCluster, "Corridor_1", 30, 90, 2));
+
+            PartFCalculator partFCalculator = Calculate(adjacencyCluster);
+
+            Assert.DoesNotContain(partFCalculator.Warnings, x => x.Contains("Corridor_1"));
+            Assert.Contains(partFCalculator.Remarks, x => x.Contains("Corridor") && x.Contains("Is Dwelling is set to No"));
         }
 
         // ------------------------------------------------------------------

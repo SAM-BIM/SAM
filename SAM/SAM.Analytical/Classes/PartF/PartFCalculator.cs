@@ -214,7 +214,7 @@ namespace SAM.Analytical
                 return true;
             }
 
-            List<Zone> zones_Selected = SelectDwellingZones(zones_Category, zoneCategoryName);
+            List<Zone> zones_Selected = SelectDwellingZones(zones_Category, zoneCategoryName, out List<Zone> zones_ExplicitlyExcluded);
             if (zones_Selected.Count == 0)
             {
                 AdjacencyCluster = adjacencyCluster;
@@ -255,7 +255,31 @@ namespace SAM.Analytical
                 Warnings.Add(string.Format("Space '{0}' belongs to more than one dwelling zone ({1}). It has been sized once for each, and only the last result is kept. Each space should belong to exactly one dwelling zone.", space?.Name, string.Join(", ", keyValuePair.Value)));
             }
 
-            List<string> names_Unzoned = [.. adjacencyCluster.GetSpaces().FindAll(x => !dictionary_Zones.ContainsKey(x.Guid)).ConvertAll(x => x.Name)];
+            List<Space> spaces_Unzoned = adjacencyCluster.GetSpaces().FindAll(x => !dictionary_Zones.ContainsKey(x.Guid));
+
+            //A space in a zone explicitly marked Is Dwelling = false (e.g. a shared corridor) is
+            //excluded on purpose: SelectDwellingZones already reported the zone-level exclusion as a
+            //Remark, so folding its spaces into the generic "unzoned" Warning below would report the
+            //same, expected exclusion twice - once correctly as a Remark, once misleadingly as a
+            //Warning. Only genuinely unzoned or ambiguous (unmarked-zone) spaces remain a Warning.
+            HashSet<Guid> guids_ExplicitlyExcludedSpace = [];
+            foreach (Zone zone in zones_ExplicitlyExcluded)
+            {
+                List<Space> spaces_Zone_Unzoned = Resolve(adjacencyCluster, adjacencyCluster.GetRelatedObjects<Space>(zone)).FindAll(x => !dictionary_Zones.ContainsKey(x.Guid));
+                if (spaces_Zone_Unzoned.Count == 0)
+                {
+                    continue;
+                }
+
+                foreach (Space space in spaces_Zone_Unzoned)
+                {
+                    guids_ExplicitlyExcludedSpace.Add(space.Guid);
+                }
+
+                Remarks.Add(string.Format("'{0}' excluded from the Part F calculation because Is Dwelling is set to No: {1} space(s) were given no ventilation properties ({2}).", zone.Name, spaces_Zone_Unzoned.Count, string.Join(", ", spaces_Zone_Unzoned.ConvertAll(x => x.Name))));
+            }
+
+            List<string> names_Unzoned = [.. spaces_Unzoned.FindAll(x => !guids_ExplicitlyExcludedSpace.Contains(x.Guid)).ConvertAll(x => x.Name)];
             if (names_Unzoned.Count != 0)
             {
                 Warnings.Add(string.Format("{0} space(s) do not belong to any dwelling zone of category '{1}' and were given no ventilation properties: {2}. Shared and landlord areas are expected here; any dwelling space in this list is missing from its flat.", names_Unzoned.Count, zoneCategoryName, string.Join(", ", names_Unzoned)));
@@ -280,8 +304,11 @@ namespace SAM.Analytical
         /// <summary>
         /// Applies the explicit dwelling filter to the zones of the selected category. See
         /// <see cref="Calculate(string)"/> for the rules; this reports what it excluded and why.
+        /// <paramref name="zones_ExplicitlyExcluded"/> carries the zones marked Is Dwelling = false back
+        /// to the caller, so their spaces can be reported as an expected exclusion (a Remark) rather than
+        /// folded into the generic "space does not belong to any dwelling zone" Warning.
         /// </summary>
-        private List<Zone> SelectDwellingZones(List<Zone> zones_Category, string zoneCategoryName)
+        private List<Zone> SelectDwellingZones(List<Zone> zones_Category, string zoneCategoryName, out List<Zone> zones_ExplicitlyExcluded)
         {
             List<Zone> zones_True = [];
             List<Zone> zones_False = [];
@@ -300,6 +327,8 @@ namespace SAM.Analytical
                     zones_Unmarked.Add(zone);
                 }
             }
+
+            zones_ExplicitlyExcluded = zones_False;
 
             //No zone carries the parameter: preserve the previous category-based behaviour so existing
             //models keep working, but recommend marking the dwellings explicitly.
