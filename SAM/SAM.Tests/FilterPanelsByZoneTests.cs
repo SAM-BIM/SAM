@@ -301,7 +301,7 @@ namespace SAM.Tests
         }
 
         [Fact]
-        public void FilterPanelsByZone_InternalPanelTypeWithOneAdjacentSpace_NotReturnedAsWithinZone()
+        public void FilterPanelsByZone_OneAdjacentSpace_IsExternalOnly()
         {
             Construction construction = CreateTestConstruction("Internal Wall");
 
