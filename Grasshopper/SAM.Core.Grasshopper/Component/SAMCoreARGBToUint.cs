@@ -30,7 +30,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreARGBToUint()
           : base("ARGBToUint", "ARGBToUint",
-              "Converts Uint to ARGB",
+              "Convert ARGB colour channel values (alpha, red, green, blue) into a single unsigned integer",
               "SAM", "Core")
         {
         }
@@ -46,15 +46,15 @@ namespace SAM.Core.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_Integer param_Integer;
 
-                param_Integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "a_", NickName = "a_", Description = "Alpha", Access = GH_ParamAccess.item, Optional = true };
+                param_Integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "a_", NickName = "a_", Description = "Alpha channel [0-255], default 255 (fully opaque)", Access = GH_ParamAccess.item, Optional = true };
                 param_Integer.SetPersistentData(255);
                 result.Add(new GH_SAMParam(param_Integer, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_r", NickName = "_r", Description = "Red", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_r", NickName = "_r", Description = "Red channel [0-255]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_g", NickName = "_g", Description = "Green", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_g", NickName = "_g", Description = "Green channel [0-255]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_b", NickName = "_b", Description = "Blue", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_b", NickName = "_b", Description = "Blue channel [0-255]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -68,7 +68,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "Uint", NickName = "Uint", Description = "Uint", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "Uint", NickName = "Uint", Description = "Unsigned integer encoding the ARGB colour value", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

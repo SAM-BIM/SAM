@@ -35,7 +35,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreDelimitedFileTableSort()
           : base("DelimitedFileTable.Sort", "DelimitedFileTable.Sort",
-              "Sorts DelimitedFileTable by values in given column",
+              "Sort rows of a DelimitedFileTable by the values in a specified column, in ascending order.",
               "SAM", "Core")
         {
         }
@@ -47,8 +47,8 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooDelimitedFileTableParam() { Name = "_delimitedFileTable", NickName = "_delimitedFileTable", Description = "SAM DelimitedFileTable", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_column", NickName = "_column", Description = "Column name or index", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooDelimitedFileTableParam() { Name = "_delimitedFileTable", NickName = "_delimitedFileTable", Description = "Input DelimitedFileTable to sort", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_column", NickName = "_column", Description = "Column identifier to sort by: a zero-based index [int] or column header name [string]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -58,7 +58,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "DelimitedFileTable", NickName = "DelimitedFileTable", Description = "SAM Core DelimitedFileTable", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "DelimitedFileTable", NickName = "DelimitedFileTable", Description = "Sorted DelimitedFileTable", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

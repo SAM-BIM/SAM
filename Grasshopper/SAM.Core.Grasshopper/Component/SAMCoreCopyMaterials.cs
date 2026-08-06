@@ -30,7 +30,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreCopyMaterials()
           : base("SAMCore.CopyMaterials", "SAMCore.CopyMaterials",
-              "Compy Materials from MaterialLibraries to desired MaterialLibrary",
+              "Copy materials from one or more source Material Libraries into a destination Material Library",
               "SAM", "Core")
         {
         }
@@ -44,12 +44,12 @@ namespace SAM.Core.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooMaterialLibraryParam() { Name = "materialLibrary_", NickName = "materialLibrary_", Description = "Destination SAM MaterialLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMaterialLibraryParam() { Name = "materialLibrary_", NickName = "materialLibrary_", Description = "Destination SAM Material Library to copy materials into", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooMaterialLibraryParam() { Name = "materialLibraries_", NickName = "materialLibraries_", Description = "Source SAM MaterialLibraries", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMaterialLibraryParam() { Name = "materialLibraries_", NickName = "materialLibraries_", Description = "Source SAM Material Libraries to copy materials from", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_overwrite_", NickName = "_overwrite_", Description = "Overwrite existing materials in destination SAM MaterialLibrary", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_overwrite_", NickName = "_overwrite_", Description = "If true, overwrite materials with matching names already in the destination library", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
@@ -65,7 +65,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooMaterialLibraryParam() { Name = "MaterialLibrary", NickName = "MaterialLibrary", Description = "SAM MaterialLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMaterialLibraryParam() { Name = "MaterialLibrary", NickName = "MaterialLibrary", Description = "SAM Material Library with all materials copied in", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -31,7 +31,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreRemoveValue()
           : base("RemoveValue", "RemoveValue",
-              "Remove Value of object property, use 'GetNames' component to find out what can be connected here",
+              "Removes a named property value from a SAM object. Use the GetNames component to discover available property names",
               "SAM", "Core")
         {
         }
@@ -44,8 +44,8 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "_sAMObject", NickName = "_sAMObject", Description = "SAM Core SAMObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_String() { Name = "_name", NickName = "_name", Description = "Parameter name", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "_sAMObject", NickName = "_sAMObject", Description = "SAM object from which to remove a property value", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_String() { Name = "_name", NickName = "_name", Description = "Name of the property to remove from the object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -58,8 +58,8 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "SAMObject", NickName = "SAMObject", Description = "SAM Core SAMObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Boolean() { Name = "Succeeded", NickName = "_name", Description = "Parameter name", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "SAMObject", NickName = "SAMObject", Description = "SAM object with the property value removed", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Boolean() { Name = "Succeeded", NickName = "_name", Description = "True if the property was successfully removed from the object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

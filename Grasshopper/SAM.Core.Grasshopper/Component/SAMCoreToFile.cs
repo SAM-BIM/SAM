@@ -33,7 +33,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreToFile()
           : base("ToFile", "ToFile",
-              "Writes SAM objects to File ",
+              "Serialise SAM objects and write them to a file on disk.",
               "SAM", "Core")
         {
         }
@@ -48,14 +48,14 @@ namespace SAM.Core.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject param_GenericObject;
-                param_GenericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_SAMObjects", NickName = "_SAMObjects", Description = "any SAM Objects", Access = GH_ParamAccess.list };
+                param_GenericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_SAMObjects", NickName = "_SAMObjects", Description = "SAM objects to serialise and write to file", Access = GH_ParamAccess.list };
                 param_GenericObject.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(param_GenericObject, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "path_", NickName = "path_", Description = "File path including extension", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "path_", NickName = "path_", Description = "Optional output file path; if omitted objects are serialised without writing to disk", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Run, set to True to export to given path", Access = GH_ParamAccess.item };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Set to True to perform the export", Access = GH_ParamAccess.item };
                 param_Boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
@@ -71,7 +71,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Successful", NickName = "Successful", Description = "Correctly imported?", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Successful", NickName = "Successful", Description = "True if the file was written successfully", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

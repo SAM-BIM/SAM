@@ -30,7 +30,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreCreateLocation()
           : base("SAMCore.CreateLocation", "SAMCore.CreateLocation",
-              "Create Location, , default London Heathrow",
+              "Create a SAM Location object representing a geographical site. Defaults to London Heathrow (lat 51.4700\u00b0, lon \u22120.4543\u00b0, elev 25 m).",
               "SAM", "Core")
         {
         }
@@ -47,20 +47,20 @@ namespace SAM.Core.Grasshopper
                 Location location = Core.Query.DefaultLocation();
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name", NickName = "_name", Description = "Name", Access = GH_ParamAccess.item };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name", NickName = "_name", Description = "Descriptive name for the location", Access = GH_ParamAccess.item };
                 param_String.SetPersistentData(location.Name);
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_elevation", NickName = "_elevation", Description = "Elevation", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_elevation", NickName = "_elevation", Description = "Site elevation above sea level [m]", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(location.Elevation);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_latitude", NickName = "_latitude", Description = "Latitude", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_latitude", NickName = "_latitude", Description = "Geographical latitude [\u00b0], positive for north", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(location.Latitude);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_longitude", NickName = "_longitude", Description = "Longitude", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_longitude", NickName = "_longitude", Description = "Geographical longitude [\u00b0], positive for east", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(location.Longitude);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -76,7 +76,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooLocationParam() { Name = "Location", NickName = "Location", Description = "SAM Location", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooLocationParam() { Name = "Location", NickName = "Location", Description = "Resulting SAM Location object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

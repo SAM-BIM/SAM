@@ -39,7 +39,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreSelectByName()
           : base("SelectByName", "SelectByName",
-              "Select SAMObject By Name from List",
+              "Partitions a list of SAM objects into matching and non-matching groups based on the Name selected from the right-click context menu",
               "SAM", "Core")
         {
         }
@@ -99,7 +99,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         protected override void RegisterInputParams(GH_InputParamManager inputParamManager)
         {
-            inputParamManager.AddParameter(new GooJSAMObjectParam<SAMObject>(), "_objects", "_objects", "Objects", GH_ParamAccess.list);
+            inputParamManager.AddParameter(new GooJSAMObjectParam<SAMObject>(), "_objects", "_objects", "List of SAM objects to partition by name", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -107,8 +107,8 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         protected override void RegisterOutputParams(GH_OutputParamManager outputParamManager)
         {
-            outputParamManager.AddParameter(new GooJSAMObjectParam<SAMObject>(), "In", "In", "In", GH_ParamAccess.list);
-            outputParamManager.AddParameter(new GooJSAMObjectParam<SAMObject>(), "Out", "Out", "Out", GH_ParamAccess.list);
+            outputParamManager.AddParameter(new GooJSAMObjectParam<SAMObject>(), "In", "In", "Objects whose name matches the selected value", GH_ParamAccess.list);
+            outputParamManager.AddParameter(new GooJSAMObjectParam<SAMObject>(), "Out", "Out", "Objects whose name does not match the selected value", GH_ParamAccess.list);
         }
 
         /// <summary>

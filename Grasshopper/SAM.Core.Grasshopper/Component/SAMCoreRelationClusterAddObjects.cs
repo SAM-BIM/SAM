@@ -33,7 +33,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreRelationClusterAddObjects()
           : base("RelationCluster.AddObjects", "RelationCluster.AddObjects",
-              "Add Objects to RelationCluster",
+              "Add SAM Objects to a Relation Cluster (Obsolete)",
               "SAM", "Core")
         {
         }

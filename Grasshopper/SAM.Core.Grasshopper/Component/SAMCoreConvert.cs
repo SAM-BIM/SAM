@@ -36,7 +36,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreConvert()
           : base("SAMCore.Convert", "SAMCore.Convert",
-              "Converts Rhino Geometry to SAM",
+              "Extract SAM metadata embedded in Rhino geometry user strings, converting it into a SAM object.",
               "SAM", "Core")
         {
         }
@@ -48,7 +48,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Geometry() { Name = "_geometry", NickName = "_geometry", Description = "Geometry", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Geometry() { Name = "_geometry", NickName = "_geometry", Description = "Input Rhino geometry that may contain embedded SAM JSON in its user strings", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -59,7 +59,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "SAMObject", NickName = "SAMObject", Description = "SAM Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "SAMObject", NickName = "SAMObject", Description = "Resulting SAM object, or null if no SAM metadata was found on the geometry", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

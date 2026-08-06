@@ -34,7 +34,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreCombineResults()
           : base("SAMCore.CombineResults", "SAMCore.CombineResults",
-              "Combine Results \nInspect output to get values",
+              "Combines indexed simulation results over a time period using a specified aggregation method",
               "SAM", "Core")
         {
         }
@@ -46,9 +46,9 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooIndexedObjectsParam() { Name = "_results", NickName = "_results", Description = "Results (IndexedDoubles) \nuse SAMAnalytical.SystemResultValues", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_period", NickName = "_period", Description = "Period", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_combineType", NickName = "_combineType", Description = "CombineType", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooIndexedObjectsParam() { Name = "_results", NickName = "_results", Description = "Indexed simulation results (IndexedDoubles) to combine over the chosen period", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_period", NickName = "_period", Description = "Time period over which to aggregate results (e.g. Hourly, Daily, Monthly, Annual)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_combineType", NickName = "_combineType", Description = "Aggregation method (e.g. Sum, Average, Min, Max)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -59,7 +59,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooIndexedObjectsParam() { Name = "results", NickName = "results", Description = "Results (IndexedDoubles) \nInspec to get values", Access = GH_ParamAccess.item }, ParamVisibility.Binding)); ;
+                result.Add(new GH_SAMParam(new GooIndexedObjectsParam() { Name = "results", NickName = "results", Description = "Combined indexed results (IndexedDoubles). Inspect output to view values", Access = GH_ParamAccess.item }, ParamVisibility.Binding)); ;
                 return result.ToArray();
             }
         }

@@ -28,7 +28,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreNumberComparisonType()
           : base("SAMCore.NumberComparisonType", "SAMCore.NumberComparisonType",
-              "Select Number Comparison Type",
+              "Select a Number Comparison Type for filtering by numeric conditions (e.g. GreaterThan, LessThan)",
               "SAM", "Core")
         {
         }

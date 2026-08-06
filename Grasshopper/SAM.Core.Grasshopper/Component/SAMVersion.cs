@@ -30,7 +30,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMVersion()
           : base("SAM.Version", "SAM.Version",
-              "Check SAM version",
+              "Retrieve the installed SAM version number and check whether a newer version is available.",
               "SAM", "About")
         {
         }
@@ -54,9 +54,9 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "CurrentVersion", NickName = "CurrentVersion", Description = "Current Version", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "LatestVersion", NickName = "LatesttVersion", Description = "The Latest Version", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "IsUpdateAvaliable", NickName = "IsUpdateAvaliable", Description = "Is new version avaliable?", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "CurrentVersion", NickName = "CurrentVersion", Description = "The currently installed SAM version string", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "LatestVersion", NickName = "LatesttVersion", Description = "The latest available SAM version string", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "IsUpdateAvaliable", NickName = "IsUpdateAvaliable", Description = "True if a newer version is available for download", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

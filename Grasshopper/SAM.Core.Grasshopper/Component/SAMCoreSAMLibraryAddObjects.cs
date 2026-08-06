@@ -30,7 +30,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreSAMLibraryAddObjects()
           : base("SAMLibrary.AddObjects", "SAMLibrary.AddObjects",
-              "Add Objects to SAMLibrary",
+              "Add SAM Objects to a SAM Library, returning the updated library",
               "SAM", "Core")
         {
         }
@@ -44,9 +44,9 @@ namespace SAM.Core.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<ISAMLibrary>() { Name = "_sAMLibrary", NickName = "_sAMLibrary", Description = "SAM Core Library", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<ISAMLibrary>() { Name = "_sAMLibrary", NickName = "_sAMLibrary", Description = "Target SAM Library to add objects to", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_objects", NickName = "_objects", Description = "SAM Objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_objects", NickName = "_objects", Description = "SAM Objects to add to the library", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -60,7 +60,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<ISAMLibrary>() { Name = "SAMLibrary", NickName = "SAMLibrary", Description = "SAM Core Library", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<ISAMLibrary>() { Name = "SAMLibrary", NickName = "SAMLibrary", Description = "Updated SAM Library with the added objects", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

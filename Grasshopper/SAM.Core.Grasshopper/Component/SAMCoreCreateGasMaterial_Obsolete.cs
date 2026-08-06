@@ -33,7 +33,7 @@ namespace SAM.Core.Grasshopper.Obsolete
         /// </summary>
         public SAMCoreCreateGasMaterial()
           : base("SAMCore.CreateGasMaterial", "SAMCore.CreateGasMaterial",
-              "Create Gas Material",
+              "Create a SAM Gas Material by name (Obsolete)",
               "SAM", "Core")
         {
         }

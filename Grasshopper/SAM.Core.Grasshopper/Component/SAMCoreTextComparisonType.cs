@@ -28,7 +28,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreTextComparisonType()
           : base("SAMCore.TextComparisonType", "SAMCore.TextComparisonType",
-              "Select Text Comparison Type",
+              "Select a Text Comparison Type for filtering by text conditions (e.g. StartsWith, Contains)",
               "SAM", "Core")
         {
         }

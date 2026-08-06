@@ -30,7 +30,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMCorePeriod()
           : base("SAMCore.Period", "SAMCore.Period",
-              "Select Period",
+              "Select a Period for specifying time intervals in simulations (e.g. Hourly, Daily, Monthly)",
               "SAM", "Core")
         {
         }

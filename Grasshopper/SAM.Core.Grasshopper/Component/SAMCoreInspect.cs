@@ -56,7 +56,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreInspect()
           : base("Inspect", "Inspect",
-              "Inspect Object",
+              "Dynamically exposes readable properties of a SAM object as individual outputs. Right-click to auto-populate output parameters",
               "SAM", "Core")
         {
             SetValue("SAM_SAMVersion", Core.Query.CurrentVersion());
@@ -215,7 +215,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         protected override void RegisterInputParams(GH_InputParamManager inputParamManager)
         {
-            inputParamManager.AddGenericParameter("_object", "_object", "Object", GH_ParamAccess.item);
+            inputParamManager.AddGenericParameter("_object", "_object", "SAM object whose properties will be exposed as outputs", GH_ParamAccess.item);
         }
 
         /// <summary>

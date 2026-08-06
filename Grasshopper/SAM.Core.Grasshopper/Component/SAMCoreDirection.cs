@@ -30,7 +30,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMCoreDirection()
           : base("SAMCore.Direction", "SAMCore.Direction",
-              "Select Direction",
+              "Select a Direction for specifying orientation of building elements or conditions",
               "SAM", "Core")
         {
         }

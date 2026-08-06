@@ -54,7 +54,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreFilterByType()
           : base("SAMCore.FilterByType", "SAMCore.FilterByType",
-              "Filter By Type",
+              "Partitions objects by their .NET type into separate dynamic output parameters. Right-click to auto-populate outputs",
               "SAM", "Core")
         {
             SetValue("SAM_SAMVersion", Core.Query.CurrentVersion());
@@ -179,7 +179,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         protected override void RegisterInputParams(GH_InputParamManager inputParamManager)
         {
-            inputParamManager.AddGenericParameter("_objects", "_objects", "Objects", GH_ParamAccess.list);
+            inputParamManager.AddGenericParameter("_objects", "_objects", "SAM objects to partition by type", GH_ParamAccess.list);
         }
 
         /// <summary>

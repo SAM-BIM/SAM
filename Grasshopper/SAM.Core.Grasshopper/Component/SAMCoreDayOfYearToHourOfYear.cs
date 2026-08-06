@@ -34,7 +34,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreDayOfYearToHourOfYear()
           : base("SAMCore.DayOfYearToHourOfYear", "SAMCore.DayOfYearToHourOfYear",
-              "Convert day of year to hour of year",
+              "Convert day-of-year and hour-of-day inputs into a DateTime and its hour-of-year index [0–8759]. Defaults to year 2018 for non-leap-year convention.",
               "SAM", "Core")
         {
         }
@@ -46,10 +46,10 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_dayOfYear", NickName = "_dayOfYear", Description = "Day of the year", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_hour", NickName = "_hour", Description = "Hour of the day", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_dayOfYear", NickName = "_dayOfYear", Description = "Day index within the year (1 = 1st January) [1–365]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_hour", NickName = "_hour", Description = "Hour index within the day [0–23]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Integer integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_year_", NickName = "_year_", Description = "Year", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Integer integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_year_", NickName = "_year_", Description = "Calendar year used to construct the DateTime [default 2018]", Access = GH_ParamAccess.item };
                 integer.SetPersistentData(2018);
                 result.Add(new GH_SAMParam(integer, ParamVisibility.Binding));
                 return result.ToArray();
@@ -61,8 +61,8 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Time() { Name = "dateTime", NickName = "dateTime", Description = "DateTime", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "hourOfYear", NickName = "hourOfYear", Description = "Hour of year", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Time() { Name = "dateTime", NickName = "dateTime", Description = "Resulting DateTime value", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "hourOfYear", NickName = "hourOfYear", Description = "Zero-based hour index within the year [0–8759]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

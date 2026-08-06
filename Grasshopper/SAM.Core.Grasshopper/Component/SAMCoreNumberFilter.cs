@@ -35,7 +35,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreNumberFilter()
           : base("SAMCore.NumberFilter", "SAMCore.NumberFilter",
-              "Get Number Filter",
+              "Compares numeric values against reference values using a specified comparison operator and returns Booleans, matching indices, and mapped replacement values",
               "SAM", "Core")
         {
         }
@@ -47,11 +47,11 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_values", NickName = "_values", Description = "Input values", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_comparisonValues", NickName = "_comparisonValues", Description = "Comparison Values", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_numberComparisonType", NickName = "_numberComparisonType", Description = "NumberComparisonType", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "valueTrue_", NickName = "valueTrue_", Description = "Value true", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "valueFalse_", NickName = "valueFalse_", Description = "Value false", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_values", NickName = "_values", Description = "Numeric values to test against the comparison values", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_comparisonValues", NickName = "_comparisonValues", Description = "Threshold values to compare against. Shorter lists repeat their last value", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_numberComparisonType", NickName = "_numberComparisonType", Description = "Comparison operator (e.g. Equals, GreaterThan, LessThan, NotEquals)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "valueTrue_", NickName = "valueTrue_", Description = "Replacement value when comparison is true [optional]", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "valueFalse_", NickName = "valueFalse_", Description = "Replacement value when comparison is false [optional]", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }
@@ -61,10 +61,10 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "bools", NickName = "bools", Description = "Bool list", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "trueIndeces", NickName = "trueIndeces", Description = "True indeces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "falseIndeces", NickName = "falseIndeces", Description = "False indeces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "values", NickName = "values", Description = "Values list", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "bools", NickName = "bools", Description = "Boolean result for each input value (true = comparison passed)", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "trueIndeces", NickName = "trueIndeces", Description = "Zero-based indices of values that passed the comparison", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "falseIndeces", NickName = "falseIndeces", Description = "Zero-based indices of values that failed the comparison", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "values", NickName = "values", Description = "Mapped replacement values (valueTrue_ where passed, valueFalse_ where failed)", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

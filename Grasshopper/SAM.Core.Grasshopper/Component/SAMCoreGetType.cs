@@ -34,7 +34,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreGetType()
           : base("SAMCore.GetType", "SAMCore.GetType",
-              "Get Type form objects to find out all Parameter, \n *to be used with Node: SAMCore.ParameterByType",
+              "Provides a .NET Type object selected from the right-click context menu, for use with type-dependent components",
               "SAM", "Core")
         {
         }
@@ -87,7 +87,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         protected override void RegisterOutputParams(GH_OutputParamManager outputParamManager)
         {
-            outputParamManager.AddParameter(new GooObjectParam(), "Type", "Type", "Type", GH_ParamAccess.item);
+            outputParamManager.AddParameter(new GooObjectParam(), "Type", "Type", ".NET Type object selected via right-click menu", GH_ParamAccess.item);
         }
 
         /// <summary>
