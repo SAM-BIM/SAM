@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateZoneByName()
           : base("SAMAnalytical.UpdateZone", "SAMAnalytical.UpdateZone",
-              "Update or Create Zone (Group) in Analytical Object\n*Zone Category Name. ZoneType parameter will be ignored when zoneCategory name applied",
+              "Update or create a Zone (group) in an AnalyticalObject by assigning Spaces to a named Zone. Supports ZoneType and ZoneCategoryName (category name overrides ZoneType). The original is not modified; a copy is returned.",
               "SAM", "Analytical04")
         {
         }
@@ -48,7 +48,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam { Name = "_spaces", NickName = "_spaces", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam { Name = "_spaces", NickName = "_spaces", Description = "SAM Analytical Space list", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "_name", NickName = "_name", Description = "Zone Name", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String = null;

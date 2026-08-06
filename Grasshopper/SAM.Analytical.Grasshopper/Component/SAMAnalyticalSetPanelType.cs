@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetPanelType()
           : base("SAMAnalytical.SetPanelType", "SAMAnalytical.SetPanelType",
-              "Sets Panel Type for Analytical Panel",
+              "Assigns a PanelType (Wall, Roof, Floor, etc.) to an Analytical Panel, with optional automatic assignment of default constructions",
               "SAM", "Analytical03")
         {
         }
@@ -46,16 +46,16 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panel", NickName = "_panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panel", NickName = "_panel", Description = "SAM Analytical Panel to set the PanelType on", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_panelType", NickName = "_panelType", Description = "SAM Analytical Panel Type", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_panelType", NickName = "_panelType", Description = "SAM Analytical PanelType to assign (e.g. Wall, Roof, Floor)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_setDefaultConstruction_", NickName = "_setDefaultConstruction_", Description = "Set Default Construction", Access = GH_ParamAccess.item };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_setDefaultConstruction_", NickName = "_setDefaultConstruction_", Description = "If true, automatically assign the default construction for the selected PanelType", Access = GH_ParamAccess.item };
                 param_Boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_setDefaultApertureConstruction_", NickName = "_setDefaultApertureConstruction_", Description = "Set Default Aperture Construction", Access = GH_ParamAccess.item };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_setDefaultApertureConstruction_", NickName = "_setDefaultApertureConstruction_", Description = "If true, automatically assign default aperture constructions based on PanelType and ApertureType", Access = GH_ParamAccess.item };
                 param_Boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
@@ -71,7 +71,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panel", NickName = "Panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panel", NickName = "Panel", Description = "SAM Analytical Panel with updated PanelType and optional default constructions", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalModifyObject()
           : base("SAMAnalytical.ModifyObject", "SAMAnalytical.ModifyObject",
-              "Modify Object to AdjacencyCluster or AnalyticalModel \n If new Space is connected will be added to Model even if not used \n * Consider using UpdateSpace node \n  adds an object to a list, if it already exists, will replace with the new object with data",
+              "Modify an AdjacencyCluster or AnalyticalModel by adding or replacing analytical objects. A copy of the original is created; the input object remains unchanged. If the object already exists by GUID it is replaced with the new data.",
               "SAM", "Analytical02")
         {
         }
@@ -47,8 +47,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "objects_", NickName = "objects_", Description = "Object to be added", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical AdjacencyCluster or AnalyticalModel to modify", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "objects_", NickName = "objects_", Description = "Analytical objects (Panel, Space, Construction, etc.) to add or update in the model", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -61,7 +61,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "Modified SAM AnalyticalObject (AdjacencyCluster or AnalyticalModel)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

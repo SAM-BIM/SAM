@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateLibraries()
           : base("SAMAnalytical.UpdateLibraries", "SAMAnalytical.UpdateLibraries",
-              "Update Libraries in analyticalModel",
+              "Add MaterialLibraries, ProfileLibraries or InternalConditionLibraries to an AnalyticalModel. Optionally add only objects missing from the model. The original model is not modified; a copy is returned.",
               "SAM", "Analytical04")
         {
         }

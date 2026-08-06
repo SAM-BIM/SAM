@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateSpaceNames()
           : base("SAMAnalytical.UpdateSpaceNames", "SAMAnalytical.UpdateSpaceNames",
-              "Update Space Names \n*In case of duplicate names second duplicated space will be rename with suffix = space + number ",
+              "Ensure unique Space names in an AdjacencyCluster or AnalyticalModel. Duplicate names receive a numeric suffix. The original is not modified; a copy is returned.",
               "SAM", "Analytical04")
         {
         }

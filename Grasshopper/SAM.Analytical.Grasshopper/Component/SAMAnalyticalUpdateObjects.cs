@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateObjects()
           : base("AdjacencyCluster.UpdateObjects", "AdjacencyCluster.UpdateObjects",
-              "Update Objects in AdjacencyCluster such as Panel or Space",
+              "Add or update analytical objects (Panels, Spaces, etc.) in an AdjacencyCluster. Returns a boolean list indicating whether each object was successfully added. The original cluster is not modified.",
               "SAM", "Analytical04")
         {
         }
@@ -48,7 +48,7 @@ namespace SAM.Analytical.Grasshopper
 
                 result.Add(new GH_SAMParam(new GooAdjacencyClusterParam() { Name = "_adjacencyCluster", NickName = "_adjacencyCluster", Description = "SAM Analytical AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_objects", NickName = "_objects", Description = "SAM Objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_objects", NickName = "_objects", Description = "Analytical objects (Panels, Spaces, etc.) to add or update in the AdjacencyCluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -65,7 +65,7 @@ namespace SAM.Analytical.Grasshopper
 
                 result.Add(new GH_SAMParam(new GooAdjacencyClusterParam() { Name = "AdjacencyCluster", NickName = "AdjacencyCluster", Description = "SAM Analytical AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Successful", NickName = "Successful", Description = "Successgully Added?", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Successful", NickName = "Successful", Description = "True if the object was successfully added", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

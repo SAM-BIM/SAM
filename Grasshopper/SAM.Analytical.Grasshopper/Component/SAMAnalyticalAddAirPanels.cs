@@ -36,7 +36,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAddAirPanels()
           : base("SAMAnalytical.AddAirPanels", "SAMAnalytical.AddAirPanels",
-              "Add Air Panels to Analytical Model or AdjacencyCluster \nThis will split a model/cluster by plane and divide spaces and air Panel will be added into location of split",
+              "Split an AnalyticalModel or AdjacencyCluster by one or more planes and insert Air Panels (openings representing rooms linked for convective airflow) at the split locations. Spaces on either side of the cut are divided and reconnected via the new air panel.",
               "SAM", "Analytical")
         {
         }
@@ -50,8 +50,8 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "_planes", NickName = "_planes", Description = "SAM Geometry Planes", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "_planes", NickName = "_planes", Description = "Cutting planes (SAM Geometry Planes, Rhino Planes, or elevation values) that define the split locations [m]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "Spaces to split. If omitted, all spaces intersecting the cutting planes are split.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Voluntary));
 
                 return result.ToArray();
             }
@@ -65,8 +65,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "analytical", NickName = "analytical", Description = "SAM Analytical", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "airPanels", NickName = "airPanels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object with air panels inserted", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "airPanels", NickName = "airPanels", Description = "Air panels created at the cutting-plane locations", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

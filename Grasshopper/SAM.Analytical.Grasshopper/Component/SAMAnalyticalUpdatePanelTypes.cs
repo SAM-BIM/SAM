@@ -46,7 +46,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 GH_SAMParam[] result = new GH_SAMParam[2];
-                result[0] = new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding);
+                result[0] = new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding);
                 result[1] = new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "modified SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary);
                 return result;
             }

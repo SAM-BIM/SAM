@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAddAperturesByAperture()
           : base("SAMAnalytical.AddAperturesByAperture", "SAMAnalytical.AddAperturesByAperture",
-              "Add Apertures to SAM Analytical Object: ie Panel, AdjacencyCluster or Analytical Model. Component does not copy instance parameters of Aperture!",
+              "Assign existing SAM Analytical Apertures (e.g. windows, doors) to a Panel, AdjacencyCluster or AnalyticalModel. Aperture coordinates are matched to host panels by proximity. Does not copy Aperture instance parameters.",
               "SAM", "Analytical")
         {
         }
@@ -48,15 +48,15 @@ namespace SAM.Analytical.Grasshopper
 
                 result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM Analytical Object such as AdjacencyCluster, Panel or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "_apertures_", NickName = "_apertures_", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.list, Optional = true, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "_apertures_", NickName = "_apertures_", Description = "SAM Analytical Apertures (e.g. doors, windows, rooflights) to place", Access = GH_ParamAccess.list, Optional = true, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_maxDistance_", NickName = "_maxDistance_", Description = "Max Distance", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_maxDistance_", NickName = "_maxDistance_", Description = "Maximum snapping tolerance for matching apertures to panel faces [m]", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(0.1);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "trimGeometry_", NickName = "trimGeometry_", Description = "trimGeometry (bool, default = true)\r\n\r\nDetermines how apertures are handled when their geometry extends beyond the boundaries of panels in the AdjacencyCluster.\r\n\r\ntrue (default)\r\n\r\nIf an aperture overlaps multiple panels, the geometry will be split so that each portion is placed as a separate aperture on the corresponding panels.\r\n\r\nIf an aperture extends beyond a single panel and no other adjacent panel exists, the aperture will be trimmed to fit within that panel.\r\n\r\nfalse\r\n\r\nApertures will be added without splitting or trimming, even if they extend beyond panel boundaries. ", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "trimGeometry_", NickName = "trimGeometry_", Description = "Trim and/or split aperture geometry that extends beyond host panel boundaries. When true (default), apertures overlapping multiple panels are split per panel and overhanging geometry is trimmed. When false, apertures are placed as-is.", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
@@ -72,9 +72,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "SAM Analytical Object", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures", NickName = "Apertures", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Successful", NickName = "Successful", Description = "Successful", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "SAM Analytical Object with apertures applied", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures", NickName = "Apertures", Description = "Apertures accepted and placed on host panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Successful", NickName = "Successful", Description = "True if at least one aperture was successfully added", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

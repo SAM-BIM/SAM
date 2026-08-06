@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM Analytical AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 GooSpaceParam gooSpaceParam = new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "SAM Analytical Spaces. If not provided all Spaces from Analytical Model will be used and modified", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(gooSpaceParam, ParamVisibility.Binding));
@@ -67,7 +67,7 @@ namespace SAM.Analytical.Grasshopper
                 number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "exhaustAirChangesPerHour_", NickName = "exhaustAirChangesPerHour_", Description = "Exhaust Air Changes Per Hour [ACH]", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "functions_", NickName = "functions_", Description = "Functions", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "functions_", NickName = "functions_", Description = "Ventilation control function string (e.g. tcmvc, tmmvn) for TAS simulation", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
 
                 return result.ToArray();
             }
@@ -78,8 +78,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "AnalyticalModel", Description = "SAM Analytical Model with ", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "AnalyticalModel", Description = "Modified SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "Updated SAM Analytical Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "internalConditions", NickName = "internalConditions", Description = "SAM Analytical InternalConditions", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "calculatedSupplyAirFlow", NickName = "calculatedSupplyAirFlow", Description = "CalculatedSupplyAirFlow [l/s]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "calculatedExhaustAirFlow", NickName = "calculatedExhaustAirFlow", Description = "CalculatedExhaustAirFlow [l/s]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
@@ -98,7 +98,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateVentilationProfile()
           : base("SAMAnalytical.UpdateVentilationProfile", "SAMAnalytical.UpdateVentilationProfile",
-              "Updates InternalCondition(IC) Ventilation Properties for Spaces",
+              "Update ventilation properties (supply/exhaust air flow [l/s], ACH, per-person, per-area flows, and control functions) in InternalConditions for selected Spaces. Outputs calculated derived flow rates. The original model is not modified.",
               "SAM", "SAM_IC")
         {
         }

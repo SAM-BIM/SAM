@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateSpaces()
           : base("SAMAnalytical.UpdateSpaces", "SAMAnalytical.UpdateSpaces",
-              "Update Spaces in SAM Adjacency Cluster or Analytical Model \n*If Space with new location is connected \n exisitng space will be replace by new one",
+              "Add or update Spaces in an AdjacencyCluster or AnalyticalModel. Spaces matching by GUID are replaced with the new Space data. The original is not modified; a copy is returned.",
               "SAM", "Analytical04")
         {
         }
@@ -46,9 +46,9 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Model ot Adjacency Cluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Model or AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces", NickName = "_spaces", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces", NickName = "_spaces", Description = "SAM Analytical Space list", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

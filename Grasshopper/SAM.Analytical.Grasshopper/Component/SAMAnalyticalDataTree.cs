@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalDataTree()
           : base("SAMAnalytical.DataTree", "SAMAnalytical.DataTree",
-              "Add Apertures to SAM Analytical Object: ie Panel, AdjacencyCluster or Analytical Model",
+              "Decompose an analytical object into a data tree of spaces, panels and apertures",
               "SAM", "Analytical01")
         {
         }
@@ -46,7 +46,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM Analytical Object such as AdjacencyCluster, Panel or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel to decompose", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -59,8 +59,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "tree", NickName = "tree", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "tree", NickName = "tree", Description = "Data tree: branch {i} = panels of space i, sub-branch {i;j} = apertures of panel j", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "List of spaces matching the tree branches", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -66,7 +66,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalBake()
           : base("SAMAnalytical.Bake", "SAMAnalytical.Bake",
-              "Bake Analytical Object",
+              "Bake (persist) SAM Analytical Panels into the active Rhino document as native geometry. Panels are baked by Construction or PanelType as selected from the component context menu. Aperture cut-outs are included by default.",
               "SAM", "Analytical")
         {
         }
@@ -79,7 +79,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object (Panel, AdjacencyCluster or AnalyticalModel) whose panels are baked to Rhino", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalDailyIndoorComfortTemperatures()
           : base("SAMAnalytical.DailyIndoorComfortTemperatures", "SAMAnalytical.DailyIndoorComfortTemperatures",
-              "Daily Indoor Comfort Temperatures",
+              "Calculate daily indoor comfort temperature limits per BS EN 15251 / CIBSE TM52",
               "SAM", "Analytical01")
         {
         }
@@ -48,8 +48,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooWeatherDataParam() { Name = "_weatherData", NickName = "_weatherData", Description = "SAM WeatherData", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer { Name = "dayOfYears_", NickName = "dayOfYears_", Description = "Day of the years.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooWeatherDataParam() { Name = "_weatherData", NickName = "_weatherData", Description = "SAM WeatherData object containing outdoor dry-bulb temperature time series", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer { Name = "dayOfYears_", NickName = "dayOfYears_", Description = "Day-of-year indices to filter output; leave empty for full year", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_String @string = new global::Grasshopper.Kernel.Parameters.Param_String { Name = "_tM52BuildingCategory", NickName = "_tM52BuildingCategory", Description = "Category of Buildings I, II, III or IV", Access = GH_ParamAccess.item, Optional = true };
                 @string.SetPersistentData(TM52BuildingCategory.CategoryII.ToString());
@@ -67,10 +67,10 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "dailyAverageTemperatures", NickName = "dailyAverageTemperatures", Description = "The average external drybulb temperature for the day Ted", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "runningMeanTemperatures", NickName = "runningMeanTemperatures", Description = "External running mean temperature\n *Trm exponentially weighted running mean of the daily mean outdoor air temperature", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "indoorComfortUpperLimitTemperatures", NickName = "indoorComfortUpperLimitTemperatures", Description = "Indoor Comfort Upper Limit Temperatures, for Cat II is Tmax= 0.33xTrm+18.8+3", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "indoorComfortLowerLimitTemperatures", NickName = "indoorComfortLowerLimitTemperatures", Description = "Indoor Comfort Lower Limit Temperatures, for Cat II is Tmax= 0.33xTrm+18.8-4", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "dailyAverageTemperatures", NickName = "dailyAverageTemperatures", Description = "Daily mean outdoor dry-bulb temperature Ted [°C]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "runningMeanTemperatures", NickName = "runningMeanTemperatures", Description = "Exponentially weighted running mean outdoor air temperature Trm [°C]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "indoorComfortUpperLimitTemperatures", NickName = "indoorComfortUpperLimitTemperatures", Description = "Upper indoor operative comfort temperature limit Tmax [°C]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "indoorComfortLowerLimitTemperatures", NickName = "indoorComfortLowerLimitTemperatures", Description = "Lower indoor operative comfort temperature limit Tmin [°C]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

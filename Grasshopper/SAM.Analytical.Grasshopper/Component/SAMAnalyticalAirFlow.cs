@@ -31,8 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAirflow()
           : base("SAMAnalytical.Airflow", "SAMAnalytical.Airflow",
-              "Calculates Exhaust and Supply Airflow from Internal Condition ONLY" +
-              "Calculated Exhaust/Supply Air Flow [m3/s] for IC inside Space.as Sum of ExhaustAirFlowPerPerson, ExhaustAirFlowPerArea, ExhaustAirFlow and ExhaustAirChangesPerHour",
+              "Calculates exhaust and supply airflow rates [m\u00b3/s and l/s] from the InternalCondition assigned to a Space",
               "SAM", "Analytical")
         {
         }
@@ -45,7 +44,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_space", NickName = "_space", Description = "SAM Analytical Space", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_space", NickName = "_space", Description = "SAM Analytical Space whose InternalCondition provides the airflow rates", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -58,10 +57,10 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Supply", NickName = "Supply", Description = "Supply Airflow [m3/s]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Exhaust", NickName = "Exhasut", Description = "Exhaust Airflow [m3/s]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Supply_LpS", NickName = "Supply_LpS", Description = "Supply Airflow [l/s]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Exhaust_LpS", NickName = "Exhasut_LpS", Description = "Exhaust Airflow [l/s]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Supply", NickName = "Supply", Description = "Calculated supply airflow [m\u00b3/s]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Exhaust", NickName = "Exhasut", Description = "Calculated exhaust airflow [m\u00b3/s]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Supply_LpS", NickName = "Supply_LpS", Description = "Calculated supply airflow [l/s]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Exhaust_LpS", NickName = "Exhasut_LpS", Description = "Calculated exhaust airflow [l/s]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

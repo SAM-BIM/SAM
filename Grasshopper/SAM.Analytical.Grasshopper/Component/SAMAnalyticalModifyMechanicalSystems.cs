@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalModifyMechanicalSystems()
           : base("SAMAnalytical.ModifyMechanicalSystems", "SAMAnalytical.ModifyMechanicalSystems",
-              "Modify MechanicalSystems to SAM Analytical Model",
+              "Modify or assign mechanical systems (ventilation, heating, cooling) to Spaces in an AdjacencyCluster or AnalyticalModel. A copy of the original is created; the original remains unchanged.",
               "SAM", "Analytical02")
         {
         }
@@ -47,11 +47,11 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM AnalyticalObject (AdjacencyCluster or AnalyticalModel)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new GooSystemTypeLibraryParam() { Name = "_systemTypeLibrary_", NickName = "_systemTypeLibrary_", Description = "SAM SystemTypeLibrary", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "SAM Analytical Space list", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "supplyUnitName_", NickName = "_upplyUnitName", Description = "Supply Unit Name", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
@@ -75,8 +75,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "SAM Analytical", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSystemParam() { Name = "mechanicalSystems", NickName = "mechanicalSystems", Description = "mechanicalSystems", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "SAM AnalyticalObject (AdjacencyCluster or AnalyticalModel)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSystemParam() { Name = "mechanicalSystems", NickName = "mechanicalSystems", Description = "SAM Analytical MechanicalSystems", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

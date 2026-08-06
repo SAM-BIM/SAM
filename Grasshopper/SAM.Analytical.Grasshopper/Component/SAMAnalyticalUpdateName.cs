@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateName()
           : base("SAMAnalytical.UpdateName", "SAMAnalytical.UpdateName",
-              "Update Name of SAMObject",
+              "Change the Name property of a SAM AnalyticalObject (Space or InternalCondition). The original object is not modified; a copy with the new name is returned.",
               "SAM", "Analytical04")
         {
         }
@@ -46,7 +46,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name", NickName = "_name", Description = "Name", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
@@ -62,7 +62,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "Analytical", NickName = "Analytical", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "Analytical", NickName = "Analytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -46,7 +46,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 GooSystemTypeLibraryParam gooSystemTypeLibraryParam = new GooSystemTypeLibraryParam() { Name = "_systemTypeLibrary_", NickName = "_systemTypeLibrary_", Description = "SAM SystemTypeLibrary", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(gooSystemTypeLibraryParam, ParamVisibility.Binding));

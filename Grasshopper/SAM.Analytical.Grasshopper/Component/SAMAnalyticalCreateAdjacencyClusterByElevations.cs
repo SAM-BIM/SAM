@@ -51,7 +51,7 @@ namespace SAM.Analytical.Grasshopper
                 panelParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(panelParam, ParamVisibility.Binding));
 
-                GooSpaceParam spaceParam = new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, Optional = true };
+                GooSpaceParam spaceParam = new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "SAM Analytical Space list", Access = GH_ParamAccess.list, Optional = true };
                 spaceParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(spaceParam, ParamVisibility.Voluntary));
 

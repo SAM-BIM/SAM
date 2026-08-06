@@ -36,7 +36,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalMergeSpacesByZones()
           : base("SAMAnalytical.MergeSpacesByZones", "SAMAnalytical.MergeSpacesByZones",
-              "Merge Analytical Spaces By Zones.\nZone input can be Name or SAM Zone Object\nBy default removes air panels and combines spaces alternatively removed all internal Panels between spaces.\nIf no Zone Connected all Zones will be selected and merged \nIf boolean set to false input Analytical Object will be return",
+              "Merge analytical spaces within each zone by removing internal panels between them. Zone input can be a name string or a SAM Zone object. By default only Air panels are removed; set _airPanelOnly_ to False to remove all internal partition panels. When no zone is connected, all zones are processed.",
               "SAM", "Analytical02")
         {
         }
@@ -49,16 +49,16 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_zones_", NickName = "_zones_", Description = "SAM Analytical Zone Object or Name", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM AdjacencyCluster or AnalyticalModel containing spaces to merge", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_zones_", NickName = "_zones_", Description = "Zones (objects or name strings) to merge spaces within; if none, all zones are processed", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean paramBoolean;
 
-                paramBoolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_airPanelOnly_", NickName = "airPanelOnly", Description = "If TRUE only AirPanels between spaces will be removes\nIf FALSE all internal Panles between spaces will be removed", Access = GH_ParamAccess.item };
+                paramBoolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_airPanelOnly_", NickName = "airPanelOnly", Description = "When True, only Air panels between spaces are removed. When False, all internal partition panels are removed.", Access = GH_ParamAccess.item };
                 paramBoolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(paramBoolean, ParamVisibility.Binding));
 
-                paramBoolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "run_", NickName = "run_", Description = "Run \nIf boolean set to false input Analytical Object will be return", Access = GH_ParamAccess.item, Optional = true };
+                paramBoolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "run_", NickName = "run_", Description = "Connect a Boolean toggle to execute the merge; when False the input is passed through unchanged", Access = GH_ParamAccess.item, Optional = true };
                 paramBoolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(paramBoolean, ParamVisibility.Binding));
 
@@ -74,9 +74,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analytical", NickName = "analytical", Description = "SAM Analytical", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "SAM Analytical Spaces that are removed", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "SAM Analytical Panels that are removed", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analytical", NickName = "analytical", Description = "Resultant analytical object with merged spaces", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "Spaces removed during the merge", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "Panels removed during the merge", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

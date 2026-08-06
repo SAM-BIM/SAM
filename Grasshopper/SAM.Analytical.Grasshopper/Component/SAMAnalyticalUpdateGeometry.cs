@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateGeometry()
           : base("SAMAnalytical.UpdateGeometry", "SAMAnalytical.UpdateGeometry",
-              "Update Geometry",
+              "Replace the geometry of a Panel with new geometry, optionally copying existing Apertures and including internal edges. The original Panel is not modified; new Panels are returned.",
               "SAM", "Analytical04")
         {
         }
@@ -86,7 +86,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panel", NickName = "Panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panel", NickName = "Panel", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

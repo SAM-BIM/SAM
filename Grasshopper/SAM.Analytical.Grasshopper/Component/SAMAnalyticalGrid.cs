@@ -47,7 +47,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_SAManalytical", NickName = "_SAManalytical", Description = "SAM Analytical Object", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_SAManalytical", NickName = "_SAManalytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Plane param_Plane;
                 param_Plane = new global::Grasshopper.Kernel.Parameters.Param_Plane() { Name = "plane_", NickName = "plane_", Description = "GH Plane", Access = GH_ParamAccess.item, Optional = true };

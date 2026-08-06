@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetOccupancyGains()
           : base("SAMAnalytical.SetOccupancyGains", "SAMAnalytical.SetOccupancyGains",
-              "Set Occupancy Gains",
+              "Assigns occupancy-related sensible and latent heat gains (DegreeOfActivity) to a Space or InternalCondition",
               "SAM", "Analytical03")
         {
         }
@@ -46,9 +46,9 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analyticals", NickName = "_analyticals", Description = "SAM Analytical Space or InternalCondition", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analyticals", NickName = "_analyticals", Description = "SAM Analytical Space or InternalCondition to assign occupancy gains to", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooDegreeOfActivityParam() { Name = "_degreeOfActivity", NickName = "_degreeOfActivity", Description = "SAM Analytical DegreeOfActivity", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooDegreeOfActivityParam() { Name = "_degreeOfActivity", NickName = "_degreeOfActivity", Description = "SAM Analytical DegreeOfActivity defining sensible and latent heat gains per person [W/person]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -62,7 +62,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "Analyticals", NickName = "Analyticals", Description = "SAM Analytical Model, Panels or Adjacency Cluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "Analyticals", NickName = "Analyticals", Description = "SAM Analytical Objects with updated occupancy gains", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

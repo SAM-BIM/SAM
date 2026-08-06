@@ -63,7 +63,7 @@ namespace SAM.Analytical.Grasshopper
                 param_Boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces", NickName = "_spaces", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces", NickName = "_spaces", Description = "SAM Analytical Space list", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new GooProfileLibraryParam() { Name = "profileLibrary_", NickName = "profileLibrary_", Description = "Optional SAM ProfileLibrary; defaults to the system-wide library if omitted", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 

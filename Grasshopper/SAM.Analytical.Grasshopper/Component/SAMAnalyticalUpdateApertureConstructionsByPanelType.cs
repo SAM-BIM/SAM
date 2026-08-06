@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateApertureConstructionsByPanelType()
           : base("SAMAnalytical.UpdateApertureConstructionsByPanelType", "SAMAnalytical.UpdateApertureConstructionsByPanelType",
-              "Update Aperture Constructions in SAM Adjacency Cluster or List of Panels",
+              "Automatically assign ApertureConstructions to Panels by matching ApertureType to PanelType from a library. The original is not modified; a copy is returned.",
               "SAM", "Analytical04")
         {
         }
@@ -46,9 +46,9 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Model ot Adjacency Cluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Model or AdjacencyCluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooApertureConstructionLibraryParam() { Name = "apertureConstructionLibrary_", NickName = "apertureConstructionLibrary_", Description = "SAM Analytical Aperture ConstructionLibrary", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureConstructionLibraryParam() { Name = "apertureConstructionLibrary_", NickName = "apertureConstructionLibrary_", Description = "SAM Analytical ApertureConstructionLibrary", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

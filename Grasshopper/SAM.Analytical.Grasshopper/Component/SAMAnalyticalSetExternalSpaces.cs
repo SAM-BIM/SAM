@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetExternalSpaces()
           : base("SAMAnalytical.SetExternalSpaces", "SAMAnalytical.SetExternalSpaces \n*you need to select in T3D surfaces that connect to External Space and - Reverse Building Element",
-              "Sets ExternalSpaces for SAM AnalyticalModel",
+              "Converts internal spaces located at given points to ExternalSpaces, optionally assigning constructions to the exposed panels",
               "SAM", "Analytical03")
         {
         }
@@ -49,10 +49,10 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "_point3Ds", NickName = "_point3Ds", Description = "Space locations to be changed to ExternalSpaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction_Wall", NickName = "construction_Wall", Description = "Wall Construction", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction_Floor", NickName = "construction_Floor", Description = "Floor Construction", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction_Roof", NickName = "construction_Roof", Description = "Roof Construction", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "_point3Ds", NickName = "_point3Ds", Description = "Point locations of spaces to be converted to ExternalSpaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction_Wall", NickName = "construction_Wall", Description = "Wall Construction to assign to exposed wall panels", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction_Floor", NickName = "construction_Floor", Description = "Floor Construction to assign to exposed floor panels", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction_Roof", NickName = "construction_Roof", Description = "Roof Construction to assign to exposed roof panels", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -65,8 +65,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooExternalSpaceParam() { Name = "externalSpaces", NickName = "externalSpaces", Description = "SAM Analytical ExternalSpaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM Analytical Model with updated ExternalSpaces", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooExternalSpaceParam() { Name = "externalSpaces", NickName = "externalSpaces", Description = "SAM Analytical ExternalSpaces created by the conversion", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

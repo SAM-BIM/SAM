@@ -60,7 +60,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject> { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject> { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooApertureParam { Name = "Apertures", NickName = "Apertures", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooApertureConstructionParam { Name = "ApertureConstructions", NickName = "ApertureConstructions", Description = "SAM Analytical ApertureConstructions", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();

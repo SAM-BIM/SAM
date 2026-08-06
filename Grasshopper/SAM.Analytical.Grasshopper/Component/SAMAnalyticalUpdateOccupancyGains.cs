@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM Analytical AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "SAM Analytical Spaces , if nothing connected all spaces from AnalyticalModel will be used", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooProfileParam() { Name = "profile_", NickName = "profile_", Description = "SAM Analytical Profile", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooDegreeOfActivityParam() { Name = "degreeOfActivity_", NickName = "degreeOfActivity_", Description = "SAM Analytical DegreeOfActivity \nuse GetDefaultLibrary component with DegreeOfActivityLibrary ", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
@@ -50,7 +50,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "AnalyticalModel", NickName = "AnalyticalModel", Description = "SAM Analytical AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "AnalyticalModel", NickName = "AnalyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "InternalConditions", NickName = "InternalConditions", Description = "SAM Analytical InternalConditions", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
@@ -61,7 +61,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateOccupancyGains()
           : base("SAMAnalytical.UpdateOccupancyGains", "SAMAnalytical.UpdateOccupancyGains",
-              "Updates Occupancy Gains Properties for Spaces\nIf nothing connect orignal Analytical Model will be outputed \nIf incoming occupancy for the space is zero, value will not be overriden by areaPerPerson ",
+              "Update occupancy gain properties (sensible/latent per person [W], area per person [m2/p], number of persons) in InternalConditions for selected Spaces. Uses DegreeOfActivity to set default gains. If nothing is connected the original model is output unchanged. The original model is not modified.",
               "SAM", "SAM_IC")
         {
         }

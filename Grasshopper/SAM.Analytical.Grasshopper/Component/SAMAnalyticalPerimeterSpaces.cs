@@ -58,7 +58,7 @@ namespace SAM.Analytical.Grasshopper
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "SAM Analytical Space list", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Voluntary));
 
                 return result.ToArray();
             }

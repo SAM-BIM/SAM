@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetLocation()
           : base("SAMAnalytical.SetLocation", "SAMAnalytical.SetLocation",
-              "Sets Location for SAM AnalyticalModel",
+              "Assigns a geographic Location to an AnalyticalModel, optionally extracted from WeatherData",
               "SAM", "Analytical03")
         {
         }
@@ -49,7 +49,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_location", NickName = "_location", Description = "SAM Location \n *or WeatherData it will extract location", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_location", NickName = "_location", Description = "SAM Location object or WeatherData from which the location will be extracted", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -62,7 +62,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM Analytical Model with the assigned location", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

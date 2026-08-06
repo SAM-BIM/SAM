@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAddSpacesByBrep()
           : base("SAMAnalytical.AddSpacesByBrep", "SAMAnalytical.AddSpacesByBrep",
-              "Add Spaces By Brep",
+              "Create and merge analytical Spaces from closed Brep or Shell geometry into an AdjacencyCluster or AnalyticalModel. Each closed volume is interpreted as a Space; adjacent Spaces share co-planar panels.",
               "SAM", "Analytical")
         {
         }
@@ -56,18 +56,18 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "_breps",
                     NickName = "_breps",
-                    Description = "Breps or shells",
+                    Description = "Closed Brep or Shell geometry representing building volumes to convert into analytical Spaces",
                     Access = GH_ParamAccess.list,
                 };
                 result.Add(new GH_SAMParam(genericObject, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number paramNumber;
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "silverSpacing_", NickName = "silverSpacing_", Description = "Silver Spacing for computation of Spaces", Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "silverSpacing_", NickName = "silverSpacing_", Description = "Minimum gap tolerance for detecting adjacent volumes when computing spaces [m]", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Core.Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Voluntary));
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Geometric tolerance for face-to-face matching when merging adjacent shells [m]", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Core.Tolerance.Distance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
@@ -85,7 +85,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result =
                 [
-                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding)
+                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "SAM Analytical Object with spaces created from Brep geometry", Access = GH_ParamAccess.item }, ParamVisibility.Binding)
                 ];
                 return [.. result];
             }

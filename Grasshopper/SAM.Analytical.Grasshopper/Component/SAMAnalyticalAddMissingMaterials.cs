@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAddMissingMaterials()
           : base("SAMAnalytical.AddMissingMaterials", "SAMAnalytical.AddMissingMaterials",
-              "Add Missing Materials",
+              "Scan an AnalyticalModel for ApertureConstructions and ConstructionConstructions that reference materials not yet present in the model's MaterialLibrary, and import those materials from a supplied MaterialLibrary. Returns the updated model, the added materials, and any material names that still remain unresolved.",
               "SAM", "Analytical")
         {
         }
@@ -47,9 +47,9 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel to scan for missing materials", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                GooMaterialLibraryParam gooMaterialLibraryParam = new GooMaterialLibraryParam { Name = "_materialLibrary_", NickName = "_materialLibrary_", Description = "SAM Core Material Library", Access = GH_ParamAccess.item };
+                GooMaterialLibraryParam gooMaterialLibraryParam = new GooMaterialLibraryParam { Name = "_materialLibrary_", NickName = "_materialLibrary_", Description = "SAM MaterialLibrary providing the materials to fill gaps. Defaults to the SAM default MaterialLibrary.", Access = GH_ParamAccess.item };
                 gooMaterialLibraryParam.PersistentData.Append(new GooMaterialLibrary(Analytical.Query.DefaultMaterialLibrary()));
                 result.Add(new GH_SAMParam(gooMaterialLibraryParam, ParamVisibility.Binding));
 
@@ -65,9 +65,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "materials", NickName = "materials", Description = "SAM Core Materials", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "missingMaterialNames", NickName = "missingMaterialNames", Description = "Missing Material Names. This Materials could not be found in MaterialLibrary and are still missing", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "Updated AnalyticalModel with missing materials added", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "materials", NickName = "materials", Description = "Materials that were successfully imported from the library", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "missingMaterialNames", NickName = "missingMaterialNames", Description = "Material names that could not be resolved from the supplied library", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

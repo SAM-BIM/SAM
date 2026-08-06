@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateApertureConstruction()
           : base("SAMAnalytical.UpdateApertureConstruction", "SAMAnalytical.UpdateApertureConstruction",
-              "Update Aperture Construction for given Panel",
+              "Assign ApertureConstructions to specific Apertures within Panels or an AdjacencyCluster. The original object is not modified; a copy is returned.",
               "SAM", "Analytical04")
         {
         }
@@ -47,7 +47,7 @@ namespace SAM.Analytical.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analyticals", NickName = "_analyticals", Description = "SAM Analytical Objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooApertureParam { Name = "_apertures", NickName = "_apertures", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureConstructionParam { Name = "_apertureConstructions", NickName = "_apertureConstructions", Description = "SAM Analytical Aperture Construction", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureConstructionParam { Name = "_apertureConstructions", NickName = "_apertureConstructions", Description = "SAM Analytical ApertureConstructions", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

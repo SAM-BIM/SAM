@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateTypesByMap()
           : base("SAMAnalytical.UpdateTypesByMap", "SAMAnalytical.UpdateTypesByMap",
-              "Update Constructions and ApertureConstructions in SAM Adjacency Cluster or List of Panels",
+              "Assign Constructions and ApertureConstructions by matching names via a CSV mapping file. Processes Panels, Apertures, AdjacencyClusters and AnalyticalModels. The original is not modified; a copy is returned.",
               "SAM", "Analytical04")
         {
         }
@@ -46,7 +46,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Model ot Adjacency Cluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Model or AdjacencyCluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_csvOrPath", NickName = "_csvOrPath", Description = "Map File Path or csv text", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 

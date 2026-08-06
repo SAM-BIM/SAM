@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalMergeAdjacencyCluster()
           : base("SAMAnalytical.MergeAdjacencyCluster", "SAMAnalytical.MergeAdjacencyCluster",
-              "Merge AdjacencyCluster",
+              "Merge one or more AdjacencyClusters into a base analytical object",
               "SAM", "Analytical")
         {
         }
@@ -47,19 +47,19 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                GooAnalyticalObjectParam gooAnalyticalObjectParam = new() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item };
+                GooAnalyticalObjectParam gooAnalyticalObjectParam = new() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel to merge into", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(gooAnalyticalObjectParam, ParamVisibility.Binding));
 
-                GooAnalyticalObjectParam gooAdjacencyClusterParam = new() { Name = "_adjacencyClusters", NickName = "_adjacencyClusters", Description = "SAM AdjacencyClusters", Access = GH_ParamAccess.list };
+                GooAnalyticalObjectParam gooAdjacencyClusterParam = new() { Name = "_adjacencyClusters", NickName = "_adjacencyClusters", Description = "AdjacencyClusters to merge into the base object", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(gooAdjacencyClusterParam, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number paramNumber;
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "silverSpacing_", NickName = "silverSpacing_", Description = "Silver Spacing for computation of Spaces", Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "silverSpacing_", NickName = "silverSpacing_", Description = "Silver spacing for space computation [m]", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Core.Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Voluntary));
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Geometric tolerance for merging operations [m]", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Core.Tolerance.Distance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
@@ -77,7 +77,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result =
                 [
-                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding)
+                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "Merged adjacency cluster or analytical model", Access = GH_ParamAccess.item }, ParamVisibility.Binding)
                 ];
                 return [.. result];
             }

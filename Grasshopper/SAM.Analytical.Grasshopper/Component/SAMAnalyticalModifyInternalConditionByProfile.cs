@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalModifyInternalConditionByProfile()
           : base("SAMAnalytical.ModifyInternalConditionByProfile", "SAMAnalytical.ModifyInternalConditionByProfile",
-              "Modify InternalCondition By Profile",
+              "Assign profiles to InternalConditions for selected Spaces in an AnalyticalModel. A copy of the model is created; the original remains unchanged.",
               "SAM", "Analytical02")
         {
         }
@@ -51,7 +51,7 @@ namespace SAM.Analytical.Grasshopper
                 GooProfileParam gooProfileParam = new() { Name = "_profiles", NickName = "_profiles", Description = "SAM Analytical Profile", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(gooProfileParam, ParamVisibility.Binding));
 
-                GooSpaceParam gooSpaceParam = new() { Name = "_spaces", NickName = "_spaces", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list };
+                GooSpaceParam gooSpaceParam = new() { Name = "_spaces", NickName = "_spaces", Description = "SAM Analytical Space list", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(gooSpaceParam, ParamVisibility.Binding));
 
                 return [.. result];

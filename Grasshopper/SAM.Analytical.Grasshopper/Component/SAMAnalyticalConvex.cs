@@ -57,7 +57,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "_tolerance_",
                     NickName = "_tolerance_",
-                    Description = "Geometry tolerance used when triangulating concave panels",
+                    Description = "Geometric tolerance [m] for triangulating concave panels",
                     Access = GH_ParamAccess.item,
                     Optional = true
                 };

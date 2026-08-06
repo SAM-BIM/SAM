@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateSpaceByLocationAndName()
           : base("SAMAnalytical.UpdateSpaceByLocationAndName", "SAMAnalytical.UpdateSpaceByLocationAndName",
-              "Update SAM Analytical Space By given Location Point or Name",
+              "Create a copy of a Space with a new location point and/or name. The original Space is not modified.",
               "SAM", "Analytical04")
         {
         }
@@ -49,7 +49,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_space", NickName = "_space", Description = "SAM Analytcial Space", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_space", NickName = "_space", Description = "SAM Analytical Space", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject param_GenericObject;
 

@@ -36,7 +36,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "_apertures_", NickName = "_apertures_", Description = "SAM Analytical Apertures to be modified", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "_apertures_", NickName = "_apertures_", Description = "SAM Analytical Apertures to update; if omitted, all apertures are considered", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -46,7 +46,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object with default aperture constructions applied", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooApertureParam() { Name = "apertures", NickName = "apertures", Description = "Modified SAM Analytical Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
@@ -57,7 +57,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetDefaultApertureConstruction()
           : base("SAMAdjacencyCluster.SetDefaultApertureConstruction", "SAMAdjacencyCluster.SetDefaultApertureConstruction",
-              "Sets Default ApertureConstruction By PanelType and ApertureType for Adjacency Cluster only if currect ApertureConstruction does not follow naming convenction ",
+              "Sets default ApertureConstruction on apertures based on PanelType and ApertureType, applying only where the current construction does not follow the naming convention",
               "SAM", "Analytical03")
         {
         }

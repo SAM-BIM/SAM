@@ -38,7 +38,7 @@ namespace SAM.Analytical.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_angles_", NickName = "_angles_", Description = "Rounding Angles", Access = GH_ParamAccess.list, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_angles_", NickName = "_angles_", Description = "Target rounding angles [\u00b0] (default: 0, 90, 180, 270, 360)", Access = GH_ParamAccess.list, Optional = true };
                 param_Number.PersistentData.Append(new global::Grasshopper.Kernel.Types.GH_Number(0));
                 param_Number.PersistentData.Append(new global::Grasshopper.Kernel.Types.GH_Number(90));
                 param_Number.PersistentData.Append(new global::Grasshopper.Kernel.Types.GH_Number(180));
@@ -46,7 +46,7 @@ namespace SAM.Analytical.Grasshopper
                 param_Number.PersistentData.Append(new global::Grasshopper.Kernel.Types.GH_Number(360));
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Voluntary));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_range_", NickName = "_range_", Description = "Range +-", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_range_", NickName = "_range_", Description = "Tolerance range \u00b1 [\u00b0] within which to snap to the nearest target angle (default: 5)", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.PersistentData.Append(new global::Grasshopper.Kernel.Types.GH_Number(5));
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Voluntary));
 
@@ -59,7 +59,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panel", NickName = "panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panel", NickName = "panel", Description = "SAM Analytical Panel with azimuth rounded to the nearest target angle", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -69,7 +69,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalRoundAzimuth()
           : base("SAMAnalytical.RoundAzimuth", "SAMAnalytical.RoundAzimuth",
-              "Updates Azimuth",
+              "Rounds the azimuth angle of a panel's face normal to the nearest target angle within a given tolerance range [\u00b0]",
               "SAM", "SAM")
         {
         }

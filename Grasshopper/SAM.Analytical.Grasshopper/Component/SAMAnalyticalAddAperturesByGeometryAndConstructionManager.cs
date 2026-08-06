@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAddAperturesByGeometryAndConstructionManager()
           : base("SAMAnalytical.AddAperturesByGeometryAndConstructionManager", "SAMAnalytical.AddAperturesByGeometryAndConstructionManager",
-              "Add Apertures to SAM Analytical Object: ie Panel, AdjacencyCluster or Analytical Model",
+              "Create and assign Apertures from geometry to a Panel, AdjacencyCluster or AnalyticalModel. Uses an ApertureConstruction and optionally resolves materials from a ConstructionManager. Supports frame width or frame percentage offsets.",
               "SAM", "Analytical")
         {
         }
@@ -49,31 +49,31 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(param_GenericObject, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM Analytical Object such as AdjacencyCluster, Panel or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "_apertureConstruction_", NickName = "_apertureConstruction_", Description = "SAM Analytical Aperture Construction", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "_apertureConstruction_", NickName = "_apertureConstruction_", Description = "SAM Analytical ApertureConstructions", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "maxDistance_", NickName = "maxDistance_", Description = "Max Distance", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "maxDistance_", NickName = "maxDistance_", Description = "Maximum snapping tolerance for matching geometry to host panel faces [m]", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(0.1);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
 
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "trimGeometry_", NickName = "trimGeometry_", Description = "Max Distance", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "trimGeometry_", NickName = "trimGeometry_", Description = "Trim and/or split aperture geometry that extends beyond host panel boundaries", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "minArea_", NickName = "minArea_", Description = "Minimal Acceptable area of Aperture", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "minArea_", NickName = "minArea_", Description = "Minimum acceptable area for a created aperture; smaller apertures are discarded [m\u00B2]", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "frameWidth_", NickName = "frameWidth_", Description = "Frame Width [m] \n*Min value is sum of frame layer thicknesses Default 0.05m so unable to dopt below this value unless. \nIf you want zero remove frame layer in aperture construction", Access = GH_ParamAccess.list, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "frameWidth_", NickName = "frameWidth_", Description = "Frame width offset subtracted from the aperture geometry edge on each side [m]. Minimum is the sum of frame layer thicknesses (default 0.05 m). Use either this or framePercentage_, not both.", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "framePercentage_", NickName = "framePercentage_", Description = "Frame Percentage [%] \nsee frameWidth_ description \nuse only one input frameWidth_ or framePercentage_", Access = GH_ParamAccess.list, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "framePercentage_", NickName = "framePercentage_", Description = "Frame inset as a percentage of the aperture pane dimension [0\u2013100%]. Use either this or frameWidth_, not both.", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager_", NickName = "constructionManager_", Description = "SAM Analytical Construction Manager", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager_", NickName = "constructionManager_", Description = "SAM ConstructionManager used to resolve materials for ApertureConstructions. If omitted, the default ConstructionManager is used.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -87,9 +87,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analyticalObject", NickName = "analyticalObject", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "apertures", NickName = "apertures", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "materials", NickName = "materials", Description = "SAM Materials", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analyticalObject", NickName = "analyticalObject", Description = "SAM Analytical Object with apertures applied", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "apertures", NickName = "apertures", Description = "Apertures created from the supplied geometry", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "materials", NickName = "materials", Description = "Materials resolved from the ConstructionManager for all created aperture constructions", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

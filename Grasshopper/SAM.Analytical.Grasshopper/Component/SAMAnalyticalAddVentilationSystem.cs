@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAddVentilationSystem()
           : base("SAMAnalytical.AddVentilationSystem", "SAMAnalytical.AddVentilationSystem",
-              "Add VentilationSystem to SAM Analytical Model",
+              "Create and assign a single VentilationSystem with an AirHandlingUnit to an AnalyticalModel or AdjacencyCluster. Optionally remove existing ventilation assignments before applying new ones.",
               "SAM", "Analytical")
         {
         }
@@ -47,14 +47,14 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooAirHandlingUnitParam() { Name = "_aHU", NickName = "_aHU", Description = "SAM Analytical Air Handling Unit", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "Spaces to assign to the ventilation system. If omitted, all spaces in the AdjacencyCluster are used.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAirHandlingUnitParam() { Name = "_aHU", NickName = "_aHU", Description = "SAM AirHandlingUnit defining the supply/extract plant for the ventilation system", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooSystemTypeParam() { Name = "_ventilationSystemType_", NickName = "_ventilationSystemType_", Description = "SAM VentilationSystemType", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSystemTypeParam() { Name = "_ventilationSystemType_", NickName = "_ventilationSystemType_", Description = "SAM VentilationSystemType. If omitted, the first VentilationSystemType from the SystemTypeLibrary is used.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooSystemTypeLibraryParam() { Name = "_systemTypeLibrary_", NickName = "_systemTypeLibrary_", Description = "SAM SystemTypeLibrary", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooSystemTypeLibraryParam() { Name = "_systemTypeLibrary_", NickName = "_systemTypeLibrary_", Description = "SAM SystemTypeLibrary to resolve VentilationSystemTypes. If omitted, the default from ActiveSettings is used.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
 
-                global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_removeAssignments_", NickName = "_removeAssignments_", Description = "All existing spaces' ventilation system type assignments will be removed, and new assignments will be adopted.", Access = GH_ParamAccess.item, Optional = true };
+                global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_removeAssignments_", NickName = "_removeAssignments_", Description = "When true, all existing ventilation system type assignments on the selected spaces are removed before new assignments are applied. Default: true.", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Voluntary));
 
@@ -70,9 +70,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analytical", NickName = "analytical", Description = "SAM Analytical", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSystemParam() { Name = "ventilationSystem", NickName = "ventilationSystem", Description = "SAM Ventilation System", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooAirHandlingUnitParam() { Name = "aHU", NickName = "aHU", Description = "SAM Air HAndling Unit", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object with ventilation system applied", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSystemParam() { Name = "ventilationSystem", NickName = "ventilationSystem", Description = "VentilationSystem created and assigned", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAirHandlingUnitParam() { Name = "aHU", NickName = "aHU", Description = "AirHandlingUnit used by the ventilation system", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
