@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGetDefaultProfileLibrary()
           : base("SAMAnalytical.GetDefaultProfileLibrary", "SAMAnalytical.GetDefaultProfileLibrary",
-              "Get Default SAM ProfileLibrary",
+              "Retrieve the default ProfileLibrary from the active analytical settings.",
               "SAM", "Analytical02")
         {
         }
@@ -57,8 +57,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooProfileLibraryParam() { Name = "ProfileLibrary", NickName = "ProfileLibrary", Description = "SAM Analytical ProfileLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "Profiles", NickName = "Profiles", Description = "SAM Analytical Profiles", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooProfileLibraryParam() { Name = "ProfileLibrary", NickName = "ProfileLibrary", Description = "The default ProfileLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "Profiles", NickName = "Profiles", Description = "All Profile objects contained in the library", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

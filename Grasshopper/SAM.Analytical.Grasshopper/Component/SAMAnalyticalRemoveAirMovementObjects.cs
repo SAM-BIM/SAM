@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalRemoveAirMovementObjects()
           : base("SAMAnalytical.RemoveIZAMs", "SAMAnalytical.RemoveIZAMs",
-              "Remove IZAMs",
+              "Remove all air-movement objects (IZAMs) from an AdjacencyCluster or AnalyticalModel, and optionally also remove AirHandlingUnits. Toggle 'run_' to True to execute.",
               "SAM", "Analytical03")
         {
         }
@@ -47,15 +47,15 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM AdjacencyCluster or AnalyticalModel to clean", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 Param_Boolean paramBoolean;
 
-                paramBoolean = new Param_Boolean() { Name = "removeAHU_", NickName = "removeAHU_", Description = "Remove AHU", Access = GH_ParamAccess.item, Optional = true };
+                paramBoolean = new Param_Boolean() { Name = "removeAHU_", NickName = "removeAHU_", Description = "If True, also remove AirHandlingUnits associated with the air-movement objects", Access = GH_ParamAccess.item, Optional = true };
                 paramBoolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(paramBoolean, ParamVisibility.Binding));
 
-                paramBoolean = new Param_Boolean() { Name = "run_", NickName = "run_", Description = "Run", Access = GH_ParamAccess.item, Optional = true };
+                paramBoolean = new Param_Boolean() { Name = "run_", NickName = "run_", Description = "Set to True to execute the removal", Access = GH_ParamAccess.item, Optional = true };
                 paramBoolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(paramBoolean, ParamVisibility.Binding));
 
@@ -71,9 +71,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analytical", NickName = "analytical", Description = "SAM Analytical", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Guid { Name = "guids", NickName = "guids", Description = "Guids of removed objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Boolean() { Name = "successful", NickName = "successful", Description = "Successful", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analytical", NickName = "analytical", Description = "Cleaned AdjacencyCluster or AnalyticalModel with air-movement objects removed", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Guid { Name = "guids", NickName = "guids", Description = "GUIDs of the removed objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Boolean() { Name = "successful", NickName = "successful", Description = "True if at least one object was removed", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

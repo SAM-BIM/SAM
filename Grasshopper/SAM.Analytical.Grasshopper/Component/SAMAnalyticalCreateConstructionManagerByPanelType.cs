@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateConstructionManagerByPanelType()
           : base("SAMAnalytical.CreateConstructionManagerByPanelType", "SAMAnalytical.CreateConstructionManagerByPanelType",
-              "Create ConstructionManager By PanelType \nPlease note in single constrctuctio is connected to muliple inputs/panelType \n will be ducplicated with different DefaultPanelType",
+              "Allows an engineer to build a ConstructionManager by assigning a Construction or ApertureConstruction to each PanelType/ApertureType slot. If the same Construction is connected to multiple PanelTypes, it will be duplicated with the appropriate DefaultPanelType set.",
               "SAM", "Analytical")
         {
         }
@@ -48,7 +48,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                GooConstructionManagerParam gooConstructionManagerParam = new GooConstructionManagerParam() { Name = "constructionManager_", NickName = "constructionManager_", Description = "SAM Analytical Constructions", Access = GH_ParamAccess.item, Optional = true };
+                GooConstructionManagerParam gooConstructionManagerParam = new GooConstructionManagerParam() { Name = "constructionManager_", NickName = "constructionManager_", Description = "Optional source SAM ConstructionManager to clone and extend", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(gooConstructionManagerParam, ParamVisibility.Binding));
 
                 GooConstructionParam gooConstructionParam;

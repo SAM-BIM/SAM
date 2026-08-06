@@ -38,7 +38,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFixNames()
           : base("SAMAnalytical.FixNames", "SAMAnalytical.FixNames",  //SAMAnalytical.ModifyToISOBasicLatinAlphabet
-              "Fix/Modidy SAM Analytical Object Names (Spaces, Panel, Aperture, Construction) by removing special characters. \nreplace special character with ISO basic Latin alphabet https://en.wikipedia.org/wiki/ISO_basic_Latin_alphabet \n *Right click and select language.",
+              "Replace or remove special characters in the names of analytical objects (Spaces, Panels, Apertures, Constructions) using a language-specific ISO Basic Latin alphabet mapping. Right-click the component to select the language.",
               "SAM", "Analytical01")
         {
         }
@@ -87,7 +87,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM AdjacencyCluster, AnalyticalModel, Panel, Space, Aperture, Construction or ApertureConstruction to sanitise", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -100,7 +100,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Analytical", NickName = "Analytical", Description = "SAM Analytical AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Analytical", NickName = "Analytical", Description = "Object with sanitised names applied", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

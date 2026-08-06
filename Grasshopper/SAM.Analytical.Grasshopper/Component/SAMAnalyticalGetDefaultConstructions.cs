@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGetDefaultConstructions()
           : base("SAMAnalytical.GetDefaultConstructions", "SAMAnalytical.GetDefaultConstructions",
-              "Get Default SAM Constructions",
+              "Retrieve default Construction objects for specified PanelType values from the active analytical settings.",
               "SAM", "Analytical01")
         {
         }
@@ -47,7 +47,7 @@ namespace SAM.Analytical.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_panelTypes_", NickName = "_panelTypes_", Description = "SAM PanelTypes", Access = GH_ParamAccess.list, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_panelTypes_", NickName = "_panelTypes_", Description = "Optional list of PanelType names to filter; returns constructions for all panel types if not supplied", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
                 return result.ToArray();
@@ -62,7 +62,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "Constructions", NickName = "Construction", Description = "SAM Geometry Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "Constructions", NickName = "Construction", Description = "Default Construction objects for the requested PanelType values", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

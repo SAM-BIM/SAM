@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateOpaqueMaterial()
           : base("SAMAnalytical.CreateOpaqueMaterial", "SAMAnalytical.CreateOpaqueMaterial",
-              "Create Opaque Material",
+              "Allows an engineer to create a SAM OpaqueMaterial for use in Construction layers of walls, floors, roofs, and other solid building elements.",
               "SAM", "Analytical01")
         {
         }
@@ -72,7 +72,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "material", NickName = "material", Description = "SAM Analytical Material", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "material", NickName = "material", Description = "Output SAM OpaqueMaterial for solid construction layers", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

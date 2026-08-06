@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGetDefaultGasMaterials()
           : base("SAMAnalytical.GetDefaultGasMaterials", "SAMAnalytical.GetDefaultGasMaterials",
-              "Get Default Gas Materials",
+              "Retrieve default gas-filled IMaterial objects for specified DefaultGasType values from the active analytical settings.",
               "SAM", "Analytical01")
         {
         }
@@ -47,7 +47,7 @@ namespace SAM.Analytical.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_defaultGasType_", NickName = "_defaultGasType_", Description = "SAM Analytical DefaultGasType", Access = GH_ParamAccess.list, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_defaultGasType_", NickName = "_defaultGasType_", Description = "Optional list of DefaultGasType names to filter; returns materials for all gas types if not supplied", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
                 return result.ToArray();
@@ -62,7 +62,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "GasMaterials", NickName = "GasMaterials", Description = "SAM GasMaterials", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "GasMaterials", NickName = "GasMaterials", Description = "Default gas IMaterial objects for the requested DefaultGasType values", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

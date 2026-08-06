@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analyticals", NickName = "_analyticals", Description = "SAM Analytical Objects such as Panels, AnalyticalModels or AdjacencyClusters", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analyticals", NickName = "_analyticals", Description = "SAM Panels, AnalyticalModel or AdjacencyCluster to classify by PanelType", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -47,7 +47,7 @@ namespace SAM.Analytical.Grasshopper
 
                 foreach (PanelType panelType in Enum.GetValues(typeof(PanelType)))
                 {
-                    result.Add(new GH_SAMParam(new GooPanelParam() { Name = panelType.ToString(), NickName = panelType.ToString(), Description = string.Format("SAM Analytical {0} Panels", Core.Query.Description(panelType)), Access = GH_ParamAccess.list }, panelType == PanelType.Wall ? ParamVisibility.Binding : ParamVisibility.Voluntary));
+                    result.Add(new GH_SAMParam(new GooPanelParam() { Name = panelType.ToString(), NickName = panelType.ToString(), Description = string.Format("Panels of type {0}", Core.Query.Description(panelType)), Access = GH_ParamAccess.list }, panelType == PanelType.Wall ? ParamVisibility.Binding : ParamVisibility.Voluntary));
                 }
 
                 return result.ToArray();
@@ -59,7 +59,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFilterByPanelType()
           : base("SAMAnalytical.FilterByPanelType", "SAMAnalytical.FilterByPanelType",
-              "Filters Panels By PanelType",
+              "Classify Panels by their PanelType (Wall, Floor, Roof, CurtainWall, etc.) from an AdjacencyCluster or AnalyticalModel, outputting each type to a separate output.",
               "SAM", "Analytical01")
         {
         }

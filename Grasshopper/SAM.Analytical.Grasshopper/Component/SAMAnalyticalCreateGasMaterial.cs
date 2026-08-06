@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateGasMaterial()
           : base("SAMAnalytical.CreateGasMaterial", "SAMAnalytical.CreateGasMaterial",
-              "Create Gas Material",
+              "Allows an engineer to create a SAM GasMaterial for use in cavity layers (e.g. air gaps) within ApertureConstructions.",
               "SAM", "Analytical")
         {
         }
@@ -68,7 +68,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "material", NickName = "material", Description = "SAM Analytical Material", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "material", NickName = "material", Description = "Output SAM GasMaterial for cavity layers", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

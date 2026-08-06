@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateDesignExplorer()
           : base("SAMAnalytical.CreateDesignExplorer", "SAMAnalytical.CreateDesignExplorer",
-              "CreateDesignExplorer",
+              "Export multiple SAM AnalyticalModels as a Design Explorer CSV file for parametric comparison and analysis.",
               "SAM", "Analytical")
         {
         }
@@ -48,14 +48,14 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                GooAnalyticalModelParam analyticalModelParam = new() { Name = "_analyticalModels", NickName = "_analyticalModels", Description = "Analytical Models", Access = GH_ParamAccess.list };
+                GooAnalyticalModelParam analyticalModelParam = new() { Name = "_analyticalModels", NickName = "_analyticalModels", Description = "SAM AnalyticalModels to export", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(analyticalModelParam, ParamVisibility.Binding));
 
                 Param_FilePath param_FilePath = new Param_FilePath
                 {
                     Name = "_path",
                     NickName = "_path",
-                    Description = "Design Explorer file path",
+                    Description = "Output file path for the Design Explorer CSV. If omitted, only the data lines are output.",
                     Access = GH_ParamAccess.item,
                     Optional = true
                 };
@@ -75,7 +75,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                Param_String param_String = new() { Name = "lines", NickName = "lines", Description = "Lines", Access = GH_ParamAccess.list };
+                Param_String param_String = new() { Name = "lines", NickName = "lines", Description = "Design Explorer CSV data lines", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
                 return [.. result];

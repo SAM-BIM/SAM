@@ -38,7 +38,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFilterByPoints()
           : base("SAMAnalytical.FilterByPoints", "SAMAnalytical.FilterByPoints",
-              "Filter Analytical Objects By Points",
+              "Select Panels and Apertures whose face contains at least one of the supplied test points. Outputs are split into matched ('In') and non-matched ('Out') groups for both Panels and Apertures.",
               "SAM", "Analytical01")
         {
         }
@@ -53,13 +53,13 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                GooAnalyticalObjectParam gooAnalyticalObjectParam = new() { Name = "_analyticals", NickName = "_analyticals", Description = "SAM Analytical Object \nAnalytical Model, Adjacency Cluster, Panels or Apertures", Access = GH_ParamAccess.list };
+                GooAnalyticalObjectParam gooAnalyticalObjectParam = new() { Name = "_analyticals", NickName = "_analyticals", Description = "SAM AnalyticalModel, AdjacencyCluster, Panels or Apertures to filter", Access = GH_ParamAccess.list };
                 gooAnalyticalObjectParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gooAnalyticalObjectParam, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "_points", NickName = "_points", Description = "Points", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "_points", NickName = "_points", Description = "Test points used to select Panels and Apertures", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Number paramNumber = new() { Name = "_tolerance_", NickName = "_tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Number paramNumber = new() { Name = "_tolerance_", NickName = "_tolerance_", Description = "Point proximity tolerance [m]", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Tolerance.Distance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
@@ -77,11 +77,11 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Panels_In", NickName = "Panels_In", Description = "SAM Analytical Panels In", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Panels_Out", NickName = "Panels_Out", Description = "SAM Analytical Panels Out", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Panels_In", NickName = "Panels_In", Description = "Panels that contain at least one test point on their face", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Panels_Out", NickName = "Panels_Out", Description = "Panels that do not contain any test point", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Apertures_In", NickName = "Apertures_In", Description = "SAM Analytical Apertures In", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Apertures_Out", NickName = "Apertures_Out", Description = "SAM Analytical Apertures Out", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Apertures_In", NickName = "Apertures_In", Description = "Apertures that contain at least one test point on their face", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Apertures_Out", NickName = "Apertures_Out", Description = "Apertures that do not contain any test point", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 return [.. result];
             }

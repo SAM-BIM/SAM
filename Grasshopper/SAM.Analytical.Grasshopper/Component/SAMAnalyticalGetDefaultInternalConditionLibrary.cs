@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGetDefaultInternalConditionLibrary()
           : base("SAMAnalytical.GetDefaultInternalConditionLibrary", "SAMAnalytical.GetDefaultInternalConditionLibrary",
-              "Get Default SAM InternalCondition",
+              "Retrieve the default InternalConditionLibrary from the active analytical settings.",
               "SAM", "Analytical01")
         {
         }
@@ -57,8 +57,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooInternalConditionLibraryParam() { Name = "InternalConditionLibrary", NickName = "InternalConditionLibrary", Description = "SAM Analytical InternalConditionLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "InternalConditions", NickName = "InternalConditions", Description = "SAM Analytical InternalConditions", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooInternalConditionLibraryParam() { Name = "InternalConditionLibrary", NickName = "InternalConditionLibrary", Description = "The default InternalConditionLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "InternalConditions", NickName = "InternalConditions", Description = "All InternalCondition objects contained in the library", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

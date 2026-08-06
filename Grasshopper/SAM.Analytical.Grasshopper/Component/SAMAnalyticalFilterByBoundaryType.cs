@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Objects such, AnalyticalModel or AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM AnalyticalModel or AdjacencyCluster containing Panels to classify", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -47,7 +47,7 @@ namespace SAM.Analytical.Grasshopper
 
                 foreach (BoundaryType boundaryType in Enum.GetValues(typeof(BoundaryType)))
                 {
-                    result.Add(new GH_SAMParam(new GooPanelParam() { Name = boundaryType.ToString(), NickName = boundaryType.ToString(), Description = string.Format("SAM Analytical {0} Panels", Core.Query.Description(boundaryType)), Access = GH_ParamAccess.list }, ParamVisibility.Default));
+                    result.Add(new GH_SAMParam(new GooPanelParam() { Name = boundaryType.ToString(), NickName = boundaryType.ToString(), Description = string.Format("Panels with {0} boundary condition", Core.Query.Description(boundaryType)), Access = GH_ParamAccess.list }, ParamVisibility.Default));
                 }
 
                 return result.ToArray();
@@ -59,7 +59,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFilterByBoundaryType()
           : base("SAMAnalytical.FilterByBoundaryType", "SAMAnalytical.FilterByBoundaryType",
-              "Filters Panels By BoundaryType",
+              "Classify Panels by their boundary condition (External, Internal, Adiabatic, etc.) from an AdjacencyCluster or AnalyticalModel, outputting each group to a separate output.",
               "SAM", "Analytical01")
         {
         }

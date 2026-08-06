@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateApertureConstructionByAperture()
           : base("SAMAnalytical.CreateApertureConstructionByAperture", "SAMAnalytical.CreateApertureConstructionByAperture",
-              "Creates ApertureConstruction By Apertures",
+              "Allows an engineer to generate unique ApertureConstructions for each Aperture in an AdjacencyCluster or AnalyticalModel, embedding the Aperture's GUID into the construction name.",
               "SAM", "Analytical04")
         {
         }

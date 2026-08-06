@@ -54,7 +54,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGetDefaultLibrary()
           : base("SAMAnalytical.GetDefaultLibrary", "SAMAnalytical.GetDefaultLibrary",
-              "Get Default SAM Library",
+              "Retrieve a default SAM library of the type selected via the component menu, along with its contents.",
               "SAM", "Analytical01")
         {
         }
@@ -119,8 +119,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Library", NickName = "Library", Description = "SAM Analytical Library", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Objects", NickName = "Objects", Description = "SAM Objects", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Library", NickName = "Library", Description = "The selected default ISAMLibrary (MaterialLibrary, ConstructionLibrary, ProfileLibrary, etc.)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Objects", NickName = "Objects", Description = "All IJSAMObject entries contained in the library", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

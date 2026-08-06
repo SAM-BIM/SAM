@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateApertureConstruction()
           : base("SAMAnalytical.CreateApertureConstruction", "SAMAnalytical.CreateApertureConstruction",
-              "Create Aperture Construction \n*The layers should be ordered from inside to outside",
+              "Allows an engineer to create a SAM ApertureConstruction defining the pane and frame build-up of a window, door, or skylight. Layers should be ordered from inside to outside.",
               "SAM", "Analytical")
         {
         }
@@ -46,12 +46,12 @@ namespace SAM.Analytical.Grasshopper
                 List<GH_SAMParam> result =
                 [
                     new GH_SAMParam(new GooApertureConstructionParam { Name = "apertureConstruction_", NickName = "apertureConstruction_", Description = "Source SAM Analytical ApertureConstruction", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding),
-                    new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "name_", NickName = "name_", Description = "Space Name, Default = Space_Default", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding),
-                    new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "apertureType_", NickName = "apertureType_", Description = "ApertureType", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding),
-                    new GH_SAMParam(new GooConstructionLayerParam { Name = "paneConstructionLayers_", NickName = "paneConstructionLayers_", Description = "SAM Pane Contruction Layers \n* order from Inside to Outside", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding),
-                    new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "paneAdditionalHeatTransfer_", NickName = "paneAdditionalHeatTransfer_", Description = "Pane Additional Heat Transfer", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary),
-                    new GH_SAMParam(new GooConstructionLayerParam { Name = "frameConstructionLayers_", NickName = "frameConstructionLayers_", Description = "SAM Frame Contruction Layers", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding),
-                    new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "frameAdditionalHeatTransfer_", NickName = "frameAdditionalHeatTransfer_", Description = "Frame Additional Heat Transfer", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary),
+                    new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "name_", NickName = "name_", Description = "Name of the ApertureConstruction", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding),
+                    new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "apertureType_", NickName = "apertureType_", Description = "ApertureType (Window, Door); defaults to Window if omitted", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding),
+                    new GH_SAMParam(new GooConstructionLayerParam { Name = "paneConstructionLayers_", NickName = "paneConstructionLayers_", Description = "SAM Construction Layers for the glazed pane, ordered from inside to outside", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding),
+                    new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "paneAdditionalHeatTransfer_", NickName = "paneAdditionalHeatTransfer_", Description = "Additional heat transfer bridging for the pane [W/m²K]", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary),
+                    new GH_SAMParam(new GooConstructionLayerParam { Name = "frameConstructionLayers_", NickName = "frameConstructionLayers_", Description = "SAM Construction Layers for the frame, ordered from inside to outside", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding),
+                    new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "frameAdditionalHeatTransfer_", NickName = "frameAdditionalHeatTransfer_", Description = "Additional heat transfer bridging for the frame [W/m²K]", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary),
                 ];
                 return result.ToArray();
             }
@@ -65,7 +65,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "apertureConstruction", NickName = "apertureConstruction", Description = "SAM Analytical ApertureConstruction", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "apertureConstruction", NickName = "apertureConstruction", Description = "Output SAM Analytical ApertureConstruction", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

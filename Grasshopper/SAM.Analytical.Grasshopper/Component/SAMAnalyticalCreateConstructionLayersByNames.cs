@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateConstructionLayersByNames()
           : base("SAMAnalytical.CreateConstructionLayersByNames", "SAMAnalyticalCreate.ConstructionLayersByNames",
-              "Create Construction Layers By Material Names",
+              "Allows an engineer to create SAM ConstructionLayers from material names, paired with thicknesses, ordered from inside to outside. Thicknesses default to each material's DefaultThickness when omitted.",
               "SAM", "Analytical")
         {
         }
@@ -47,9 +47,9 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_names", NickName = "_names", Description = "Contruction Layer Name", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_names", NickName = "_names", Description = "Material names to look up in the MaterialLibrary", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_thicknesses_", NickName = "_thicknesses_", Description = "Contruction Layer Thicknesses [m]", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_thicknesses_", NickName = "_thicknesses_", Description = "Construction Layer thicknesses, in the same order as _names [m]", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new GooMaterialLibraryParam() { Name = "_materialLibrary_", NickName = "_materialLibrary_", Description = "SAM Material Library", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 

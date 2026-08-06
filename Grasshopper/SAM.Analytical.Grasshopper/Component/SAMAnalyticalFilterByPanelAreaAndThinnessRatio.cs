@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFilterByPanelAreaAndThinnessRatio()
           : base("SAMAnalytical.FilterByPanelAreaAndThinnessRatio", "SAMAnalytical.FilterByPanelAreaAndThinnessRatio",
-              "Filters Analytcial Model/AdjacencyCluster by Panel Area And ThinnessRatio. To filter only by Areau use ThinnessRatio = 1",
+              "Remove Panels from an AdjacencyCluster or AnalyticalModel whose area is below a minimum [m²] and whose thinness ratio is below a threshold. To filter by area alone, set _minThinnessRatio_ to 1.",
               "SAM", "Analytical01")
         {
         }
@@ -45,14 +45,14 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM AdjacencyCluster or AnalyticalModel to filter", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_minArea_", NickName = "_minArea_", Description = "Minimal Area", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_minArea_", NickName = "_minArea_", Description = "Minimum Panel area [m²]", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.003);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_minThinnessRatio_", NickName = "_minThinnessRatio_", Description = "Minimal Thinness Ratio", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_minThinnessRatio_", NickName = "_minThinnessRatio_", Description = "Minimum thinness ratio (0-1). Panels narrower than this are removed. Set to 1 to disable thinness filtering.", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.003);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -68,9 +68,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Analytical", NickName = "Analytical", Description = "SAM Analytical AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "In", NickName = "In", Description = "SAM Analytical Panels left in SAMAnlayticalCluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Out", NickName = "Out", Description = "SAM Analytical Panels removed from SAMAnlayticalCluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Analytical", NickName = "Analytical", Description = "Filtered AdjacencyCluster or AnalyticalModel with undersized Panels removed", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "In", NickName = "In", Description = "Panels retained after filtering", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Out", NickName = "Out", Description = "Panels removed due to insufficient area or thinness", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
