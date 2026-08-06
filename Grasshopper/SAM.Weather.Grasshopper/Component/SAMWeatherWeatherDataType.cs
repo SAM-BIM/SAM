@@ -29,7 +29,7 @@ namespace SAM.Weather.Grasshopper
         /// </summary>
         public SAMAnalyticalWeatherDataType()
           : base("SAMWeather.WeatherDataType", "SAMWeather.WeatherDataType",
-              "Select Weather Data Type",
+              "Select a weather data variable such as Dry Bulb Temperature, Relative Humidity, Wind Speed or Solar Radiation for use with other Weather components.",
               "SAM", "Weather")
         {
         }

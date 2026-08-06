@@ -38,7 +38,7 @@ namespace SAM.Analytical.Grasshopper
         /// Initializes a new instance of the SAM_point3D class.
         /// </summary>
         public SAMWeatherHourlyModifyWeatherData()
-          : base("SAMWeather.ModifyWeatherData", "SAMWeather.ModifyWeatherData", "Modify SAM WeatherData", "SAM", "Weather")
+          : base("SAMWeather.ModifyWeatherData", "SAMWeather.ModifyWeatherData", "Update metadata or replace hourly values within SAM WeatherData objects. Makes a copy of the supplied weather data; the original is unchanged. Can also create new WeatherData when none is supplied.", "SAM", "Weather")
         {
         }
 
@@ -50,19 +50,19 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooWeatherDataParam() { Name = "weatherDatas_", NickName = "weatherDatas_", Description = "SAM WeatherDatas.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "description_", NickName = "description_", Description = "Description", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "elevation_", NickName = "elevation_", Description = "Elevation", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "latitude_", NickName = "latitude_", Description = "Latitude", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooLocationParam { Name = "location_", NickName = "location_", Description = "Location", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "longitude_", NickName = "longitude_", Description = "Longitude", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "name_", NickName = "name_", Description = "Name", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "timeZone_", NickName = "timeZone_", Description = "TimeZone", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer { Name = "year_", NickName = "year_", Description = "Year", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooWeatherDataParam() { Name = "weatherDatas_", NickName = "weatherDatas_", Description = "SAM WeatherData objects to modify. When omitted, a new WeatherData is created using the supplied metadata and a default location.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "description_", NickName = "description_", Description = "Description text for the weather data. When omitted, the existing description is kept.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "elevation_", NickName = "elevation_", Description = "Site elevation [m]. When omitted, the existing value is kept.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "latitude_", NickName = "latitude_", Description = "Site latitude [°]. When omitted, the existing value is kept.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooLocationParam { Name = "location_", NickName = "location_", Description = "SAM Location object. When supplied, overrides individual latitude, longitude and elevation values.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "longitude_", NickName = "longitude_", Description = "Site longitude [°]. When omitted, the existing value is kept.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "name_", NickName = "name_", Description = "Name for the weather data. When omitted, the existing name is kept.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "timeZone_", NickName = "timeZone_", Description = "Time zone identifier string. When omitted, the existing value is kept.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer { Name = "year_", NickName = "year_", Description = "Year to assign or update. When omitted, the first available year is used.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "weatherDataTypes_", NickName = "weatherDataTypes_", Description = "WeatherDataTypes", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer { Name = "hoursOfYear_", NickName = "hoursOfYear_", Description = "Hours of year [0-8759]", Access = GH_ParamAccess.tree, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "values_", NickName = "values_", Description = "Values", Access = GH_ParamAccess.tree, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "weatherDataTypes_", NickName = "weatherDataTypes_", Description = "Weather variable names to set (e.g. 'DryBulbTemperature', 'RelativeHumidity'). Must match the first branch count of hoursOfYear_ and values_.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer { Name = "hoursOfYear_", NickName = "hoursOfYear_", Description = "Tree of hour-of-year indices [0–8759]. Each branch corresponds to one weather data type.", Access = GH_ParamAccess.tree, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "values_", NickName = "values_", Description = "Tree of values to assign. Each branch corresponds to one weather data type. Paired 1:1 with hoursOfYear_ by index within each branch.", Access = GH_ParamAccess.tree, Optional = true }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -75,7 +75,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooWeatherDataParam() { Name = "weatherDatas", NickName = "weatherDatas", Description = "WeatherDatas", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooWeatherDataParam() { Name = "weatherDatas", NickName = "weatherDatas", Description = "Copy of the WeatherData with the applied modifications. The original is unchanged.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

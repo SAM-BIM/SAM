@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// Initializes a new instance of the SAM_point3D class.
         /// </summary>
         public SAMWeatherHourlyValues()
-          : base("SAMWeather.HourlyValues", "SAMWeather.HourlyValues", "Gets hourly values by WeatherDataType from  Weather Data, Weahter Year or WeatherDay", "SAM", "Weather")
+          : base("SAMWeather.HourlyValues", "SAMWeather.HourlyValues", "Extract hourly values for a selected weather variable from WeatherData, WeatherYear or WeatherDay. Returns indexed values with optional filtering by specific hours of year.", "SAM", "Weather")
         {
         }
 
@@ -47,9 +47,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "_weatherObject", NickName = "_weatherObject", Description = "SAM Weather Object such as Weather Data, Weahter Year or WeatherDay.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "_weatherDataType", NickName = "lower", Description = "_weatherDataType", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer { Name = "hoursOfYear_", NickName = "hoursOfYear_", Description = "Hours of year [0-8759]", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "_weatherObject", NickName = "_weatherObject", Description = "SAM WeatherData, WeatherYear or WeatherDay containing the weather time series.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "_weatherDataType", NickName = "_weatherDataType", Description = "Name of the weather variable to retrieve, e.g. 'DryBulbTemperature'. Use SAMWeather.WeatherDataType to select one.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer { Name = "hoursOfYear_", NickName = "hoursOfYear_", Description = "Optional list of hour-of-year indices [0–8759] to filter the results. When omitted, all hours are returned.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
 
                 return result.ToArray();
@@ -64,7 +64,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooIndexedObjectsParam() { Name = "values", NickName = "values", Description = "Values", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooIndexedObjectsParam() { Name = "values", NickName = "values", Description = "Indexed hourly values for the selected weather variable. Each value is paired with its hour-of-year index.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -34,7 +34,7 @@ namespace SAM.Weather.Grasshopper
         /// </summary>
         public SAMWeatherWeatherHoursByPercentage()
           : base("SAMWeather.WeatherHoursByPercentage", "SAMWeather.WeatherHoursByPercentage",
-              "Gets WeatherHours By Percentage",
+              "Identify weather hours that meet a percentile threshold for a chosen weather variable. Useful for finding design-day conditions such as the 98.5th-percentile dry bulb temperature.",
               "SAM", "Weather")
         {
         }
@@ -45,39 +45,39 @@ namespace SAM.Weather.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                GooWeatherObjectParam weatherObjectParam = new GooWeatherObjectParam() { Name = "weatherObject", NickName = "weatherObject", Description = "SAM Weather Object\n *means WeatherData or WeatherYear or WeatherDay", Access = GH_ParamAccess.item, Optional = false };
+                GooWeatherObjectParam weatherObjectParam = new GooWeatherObjectParam() { Name = "weatherObject", NickName = "weatherObject", Description = "SAM WeatherData, WeatherYear or WeatherDay to analyse.", Access = GH_ParamAccess.item, Optional = false };
                 result.Add(new GH_SAMParam(weatherObjectParam, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_String @string = null;
 
-                @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_weatherDataType_", NickName = "_weatherDataType_", Description = "WeatherDataType Enum", Access = GH_ParamAccess.item, Optional = true };
+                @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_weatherDataType_", NickName = "_weatherDataType_", Description = "Weather variable to evaluate, e.g. 'DryBulbTemperature'. Default: DryBulbTemperature.", Access = GH_ParamAccess.item, Optional = true };
                 @string.SetPersistentData(WeatherDataType.DryBulbTemperature.ToString());
                 result.Add(new GH_SAMParam(@string, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number @number;
 
-                @number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_percentage_", NickName = "_percentage_", Description = "Percentage [0 - 100]", Access = GH_ParamAccess.item, Optional = true };
+                @number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_percentage_", NickName = "_percentage_", Description = "Percentile threshold [0–100]. Default: 98.5 (typical for CIBSE design conditions).", Access = GH_ParamAccess.item, Optional = true };
                 @number.SetPersistentData(98.5);
                 result.Add(new GH_SAMParam(@number, ParamVisibility.Binding));
 
-                @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_numberComparisonType_", NickName = "_numberComparisonType_", Description = "NumberComparisonType Enum", Access = GH_ParamAccess.item, Optional = true };
+                @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_numberComparisonType_", NickName = "_numberComparisonType_", Description = "Comparison operator for filtering. Default: GreaterOrEquals selects hours at or above the threshold value.", Access = GH_ParamAccess.item, Optional = true };
                 @string.SetPersistentData(NumberComparisonType.GreaterOrEquals.ToString());
                 result.Add(new GH_SAMParam(@string, ParamVisibility.Voluntary));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean boolean;
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_average_", NickName = "_average_", Description = "Average", Access = GH_ParamAccess.item, Optional = true };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_average_", NickName = "_average_", Description = "When True, calculates the threshold as the average of min and max weighted by the percentage. When False (default), uses the sorted-value percentile.", Access = GH_ParamAccess.item, Optional = true };
                 boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Voluntary));
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_unique_", NickName = "_unique_", Description = "Unique", Access = GH_ParamAccess.item, Optional = true };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_unique_", NickName = "_unique_", Description = "When True, removes duplicate values before calculating the percentile. Default: False.", Access = GH_ParamAccess.item, Optional = true };
                 boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Voluntary));
 
-                @number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "minValue_", NickName = "minValue_", Description = "Minimal Value", Access = GH_ParamAccess.item, Optional = true };
+                @number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "minValue_", NickName = "minValue_", Description = "Minimum value filter. Hours with values below this are excluded before the percentile is calculated. Omitted by default.", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(@number, ParamVisibility.Binding));
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Run", Access = GH_ParamAccess.item, Optional = true };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Set to True to execute. Connect a boolean toggle.", Access = GH_ParamAccess.item, Optional = true };
                 boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
@@ -93,11 +93,11 @@ namespace SAM.Weather.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "value", NickName = "value", Description = "value", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "weatherHours_In", NickName = "weatherHours_In", Description = "SAM Weather Hours", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "indexes_In", NickName = "indexes_In", Description = "SAM Weather Hours indexes", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "weatherHours_Out", NickName = "weatherHours_Out", Description = "SAM Weather Hours", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "indexes_Out", NickName = "indexes_Out", Description = "SAM Weather Hours indexes", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "value", NickName = "value", Description = "Percentile threshold value for the selected weather variable.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "weatherHours_In", NickName = "weatherHours_In", Description = "WeatherHour objects that pass the percentage filter (meet the comparison criterion).", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "indexes_In", NickName = "indexes_In", Description = "Hour-of-year indices of the weather hours that passed the filter.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "weatherHours_Out", NickName = "weatherHours_Out", Description = "WeatherHour objects that did not pass the percentage filter.", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "indexes_Out", NickName = "indexes_Out", Description = "Hour-of-year indices of the weather hours that did not pass the filter.", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

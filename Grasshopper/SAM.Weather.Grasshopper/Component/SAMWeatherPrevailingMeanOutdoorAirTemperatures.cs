@@ -31,7 +31,7 @@ namespace SAM.Weather.Grasshopper
         /// </summary>
         public SAMWeatherPrevailingMeanOutdoorAirTemperatures()
           : base("SAMWeather.PrevailingMeanOutdoorAirTemperatures", "SAMWeather.PrevailingMeanOutdoorAirTemperatures",
-              "Gets Prevailing Mean Outdoor Air Temperatures",
+              "Calculate the prevailing mean outdoor air temperature for each day of the weather year, as required by CIBSE TM52 for adaptive thermal comfort assessments.",
               "SAM", "Weather")
         {
         }
@@ -42,23 +42,23 @@ namespace SAM.Weather.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                GooWeatherObjectParam weatherObjectParam = new GooWeatherObjectParam() { Name = "weatherObject", NickName = "weatherObject", Description = "SAM Weather Object\n *means WeatherData or WeatherYear or WeatherDay", Access = GH_ParamAccess.item, Optional = false };
+                GooWeatherObjectParam weatherObjectParam = new GooWeatherObjectParam() { Name = "weatherObject", NickName = "weatherObject", Description = "SAM WeatherData or WeatherYear containing the outdoor dry bulb temperature time series.", Access = GH_ParamAccess.item, Optional = false };
                 result.Add(new GH_SAMParam(weatherObjectParam, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Integer @integer;
 
-                @integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_sequentialDays_", NickName = "_sequentialDays_", Description = "Number of Sequential days", Access = GH_ParamAccess.item, Optional = true };
+                @integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_sequentialDays_", NickName = "_sequentialDays_", Description = "Number of preceding days used in the running mean calculation. Default: 7, as specified by CIBSE TM52.", Access = GH_ParamAccess.item, Optional = true };
                 @integer.SetPersistentData(7);
                 result.Add(new GH_SAMParam(@integer, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number @number;
 
-                @number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "alpha_", NickName = "alpha_", Description = "Alpha", Access = GH_ParamAccess.item, Optional = true };
+                @number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "alpha_", NickName = "alpha_", Description = "Weighting factor for the exponentially-weighted running mean. When omitted, a simple arithmetic mean is used. When supplied, the weighting method is used with the specified alpha value.", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(@number, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean boolean;
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Run", Access = GH_ParamAccess.item, Optional = true };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Set to True to execute the calculation. Connect a boolean toggle.", Access = GH_ParamAccess.item, Optional = true };
                 boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
@@ -74,7 +74,7 @@ namespace SAM.Weather.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tempartures", NickName = "tempartures", Description = "tempartures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tempartures", NickName = "tempartures", Description = "Hourly prevailing mean outdoor air temperatures [°C]. Each daily value is repeated 24 times to produce 8760 hourly values.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
