@@ -34,7 +34,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometryShellsSplitByFace3Ds()
           : base("SAMGeometry.ShellsSplitByFace3Ds", "SAMGeometry.ShellsSplitByFace3Ds",
-              "Shells Split By Face3Ds",
+              "Split Shells using a set of cutting Face3D objects",
               "SAM", "Geometry")
         {
         }
@@ -50,17 +50,17 @@ namespace SAM.Geometry.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject gerenricObject;
 
-                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_shells", NickName = "_shells", Description = "SAM Geometry Shells", Access = GH_ParamAccess.list };
+                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_shells", NickName = "_shells", Description = "Shell objects to be split", Access = GH_ParamAccess.list };
                 gerenricObject.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gerenricObject, ParamVisibility.Binding));
 
-                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_face3Ds", NickName = "_face3Ds", Description = "SAM Geometry Face3Ds", Access = GH_ParamAccess.list };
+                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_face3Ds", NickName = "_face3Ds", Description = "Cutting Face3D objects used to split the Shells", Access = GH_ParamAccess.list };
                 gerenricObject.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gerenricObject, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Geometric tolerance [m] for intersection and split calculation", Access = GH_ParamAccess.item };
                 number.SetPersistentData(Core.Tolerance.Distance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
@@ -76,7 +76,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "shells", NickName = "shells", Description = "SAM Geometry Shells", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "shells", NickName = "shells", Description = "Resulting Shell fragments after splitting", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

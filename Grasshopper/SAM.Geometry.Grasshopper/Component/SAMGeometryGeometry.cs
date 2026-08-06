@@ -32,7 +32,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometryGeometry()
           : base("SAMGeometry.Geometry", "SAMGeometry.Geometry",
-              "Convert SAM geometry to Rhino geometry",
+              "Converts SAM geometry objects back to native Rhino/Grasshopper geometry for visualisation and interoperability.",
               "SAM", "Geometry")
         {
         }
@@ -45,7 +45,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "_SAMGeometry", NickName = "_SAMGeometry", Description = "SAM Geometry", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "_SAMGeometry", NickName = "_SAMGeometry", Description = "SAM geometry to convert to Rhino format", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -58,7 +58,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Geometry() { Name = "Geometry", NickName = "Geo", Description = "Rhino geometry", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Geometry() { Name = "Geometry", NickName = "Geo", Description = "Converted Rhino/Grasshopper geometry", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

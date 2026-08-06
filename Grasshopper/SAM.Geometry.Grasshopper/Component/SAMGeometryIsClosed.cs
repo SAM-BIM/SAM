@@ -34,7 +34,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometryIsClosed()
           : base("SAMGeometry.IsClosed", "SAMGeometry.IsClosed",
-              "Shell Is Closed",
+              "Test whether a Shell forms a fully enclosed watertight volume",
               "SAM", "Geometry")
         {
         }
@@ -50,12 +50,12 @@ namespace SAM.Geometry.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject gerenricObject;
 
-                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_shell", NickName = "_shell", Description = "SAM Geometry Shell", Access = GH_ParamAccess.item };
+                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_shell", NickName = "_shell", Description = "Shell object to test for closure", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(gerenricObject, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Geometric tolerance [m] for edge connectivity check", Access = GH_ParamAccess.item };
                 number.SetPersistentData(Core.Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
@@ -71,7 +71,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "isClosed", NickName = "isClosed", Description = "Is Shell Colsed", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "isClosed", NickName = "isClosed", Description = "True if the Shell is fully closed (watertight)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

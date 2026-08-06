@@ -36,7 +36,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public GeometryPolycurveLoop2D()
           : base("Geometry.PolycurveLoop2D", "Geometry.PolycurveLoop2D",
-              "Find PolycurveLoop2Ds in geometry",
+              "Extracts closed 2D polygonal loops from input geometry segments, identifying internal regions, external boundaries and shared edges.",
               "SAM", "Geometry")
         {
         }
@@ -49,9 +49,9 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "_geometries", NickName = "_geometries", Description = "Geometries", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "_geometries", NickName = "_geometries", Description = "List of 2D line segments or curve geometries to analyse for closed loops", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
-                Param_Boolean param_Boolean = new Param_Boolean() { Name = "_run_", NickName = "_run_", Description = "Run", Access = GH_ParamAccess.item };
+                Param_Boolean param_Boolean = new Param_Boolean() { Name = "_run_", NickName = "_run_", Description = "Boolean toggle to execute the component", Access = GH_ParamAccess.item };
                 param_Boolean.PersistentData.Append(new GH_Boolean(false));
 
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
@@ -68,11 +68,11 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "Loops", NickName = "Lps", Description = "SAM Geometry Polygon2Ds", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "InternalPoint", NickName = "IntrPt", Description = "Internal SAM Geometry Point2D", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "ExternalLoops", NickName = "ExtLps", Description = "External SAM Geometry Polygon2Ds", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "InternalEdges", NickName = "IntEdgs", Description = "Internal/Adjacent Edges as SAM Geometry Segment2Ds", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new Param_Boolean() { Name = "Successful", NickName = "Successful", Description = "Correctly imported?", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "Loops", NickName = "Lps", Description = "All closed polygon loops found in the geometry", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "InternalPoint", NickName = "IntrPt", Description = "One interior point per detected polygon, useful for labelling regions", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "ExternalLoops", NickName = "ExtLps", Description = "Merged external boundary polygons (union of all loops)", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "InternalEdges", NickName = "IntEdgs", Description = "Shared edges between adjacent loops", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new Param_Boolean() { Name = "Successful", NickName = "Successful", Description = "True if loop detection completed without errors", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

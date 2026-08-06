@@ -32,7 +32,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public NTSSAMGeometry2D()
           : base("NTS.SAMGeometry2D", "NTS.SAMGeometry2D",
-              "NetTopologySuite To SAM Geometry",
+              "Converts NetTopologySuite (NTS) WKT text strings into SAM 2D geometry objects, enabling import from GIS or spatial databases.",
               "SAM", "Geometry")
         {
         }
@@ -45,7 +45,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_NTS", NickName = "NTS", Description = "NTS Text", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_NTS", NickName = "NTS", Description = "Well-Known Text (WKT) string representations from NetTopologySuite", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -58,7 +58,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "Geometry2Ds", NickName = "Geometry2Ds", Description = "SAM Geometry 2D", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "Geometry2Ds", NickName = "Geometry2Ds", Description = "Converted SAM 2D geometry objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

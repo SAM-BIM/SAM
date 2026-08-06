@@ -36,7 +36,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometryCreateShellsByTopAndBottom()
           : base("Geometry.CreateShellsByTopAndBottom", "Geometry.CreateShellsByTopAndBottom",
-              "Create Shells ",
+              "Create Shells by matching top and bottom Face3Ds at corresponding elevations",
               "SAM", "Geometry")
         {
         }
@@ -50,11 +50,11 @@ namespace SAM.Geometry.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                global::Grasshopper.Kernel.Parameters.Param_GenericObject gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_geometries", NickName = "_geometries", Description = "Geometries", Access = GH_ParamAccess.list };
+                global::Grasshopper.Kernel.Parameters.Param_GenericObject gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_geometries", NickName = "_geometries", Description = "SAM Geometry objects (Face3Ds, Segmentables) defining top and bottom boundaries", Access = GH_ParamAccess.list };
                 gerenricObject.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gerenricObject, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Number number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Number number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Geometric tolerance [m] for planarisation and polygon creation", Access = GH_ParamAccess.item };
                 number.SetPersistentData(Core.Tolerance.Distance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
@@ -70,7 +70,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "shells", NickName = "shells", Description = "SAM Geometry Shells", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "shells", NickName = "shells", Description = "Resulting Shell objects constructed from top and bottom faces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

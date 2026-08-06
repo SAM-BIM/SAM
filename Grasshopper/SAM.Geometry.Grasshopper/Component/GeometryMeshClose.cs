@@ -32,7 +32,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public GeometryMeshClose()
           : base("Geometry.MeshClose", "Geometry.MeshClose",
-              "Close Rhino Mesh",
+              "Close an open Rhino mesh by filling any open edge loops",
               "SAM", "Geometry")
         {
         }
@@ -46,7 +46,7 @@ namespace SAM.Geometry.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Mesh() { Name = "_mesh", NickName = "_mesh", Description = "Rhino Mesh", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Mesh() { Name = "_mesh", NickName = "_mesh", Description = "Open Rhino mesh to close", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -60,8 +60,8 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Mesh() { Name = "Mesh", NickName = "Mesh", Description = "Mesh", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Closed", NickName = "Closed", Description = "Closed", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Mesh() { Name = "Mesh", NickName = "Mesh", Description = "Resulting mesh (closed if operation succeeded)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Closed", NickName = "Closed", Description = "True if the mesh was successfully closed", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -33,7 +33,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public GeometryFilterShells()
           : base("Geometry.FilterShells", "Geometry.FilterShells",
-              "Filter Shells",
+              "Partition shells into those containing or touching any test point and the remainder",
               "SAM", "Geometry")
         {
         }
@@ -49,21 +49,21 @@ namespace SAM.Geometry.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject gerenricObject;
 
-                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_shells", NickName = "_shells", Description = "SAM Geometry Shells", Access = GH_ParamAccess.list };
+                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_shells", NickName = "_shells", Description = "Shells to filter by point containment", Access = GH_ParamAccess.list };
                 gerenricObject.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gerenricObject, ParamVisibility.Binding));
 
-                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_points", NickName = "_points", Description = "SAM Geometry Point3Ds", Access = GH_ParamAccess.list };
+                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_points", NickName = "_points", Description = "Test points for containment check", Access = GH_ParamAccess.list };
                 gerenricObject.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gerenricObject, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "silverSpacing_", NickName = "silverSpacing_", Description = "Silver Spacing", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "silverSpacing_", NickName = "silverSpacing_", Description = "Offset distance for interior containment test [m]", Access = GH_ParamAccess.item };
                 number.SetPersistentData(Core.Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Distance tolerance for on-surface test [m]", Access = GH_ParamAccess.item };
                 number.SetPersistentData(Core.Tolerance.Distance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
@@ -79,8 +79,8 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "In", NickName = "In", Description = "SAM Geometry Shells", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Out", NickName = "Out", Description = "SAM Geometry Shells", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "In", NickName = "In", Description = "Shells that contain at least one test point", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Out", NickName = "Out", Description = "Shells that contain none of the test points", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

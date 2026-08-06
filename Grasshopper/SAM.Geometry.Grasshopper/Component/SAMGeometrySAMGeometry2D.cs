@@ -30,7 +30,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometrySAMGeometry2D()
           : base("SAMGeometry.SAMGeometry2D", "SAMGeometry.SAMGeometry2D",
-              "Convert SAM geometry 3D to SAM geometry 2D",
+              "Converts 3D SAM geometry to planar 2D geometry by projecting onto a specified plane, e.g. for generating floor plans from 3D building models.",
               "SAM", "Geometry")
         {
         }
@@ -45,14 +45,14 @@ namespace SAM.Geometry.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject genericObjectParameter;
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_SAMGeometry3D", NickName = "_SAMGeometry3D", Description = "SAM Geometry 3D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_SAMGeometry3D", NickName = "_SAMGeometry3D", Description = "3D SAM geometry to convert (Face3D, Shell, Extrusion, and other ISAMGeometry3D)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_ownPlane", NickName = "_ownPlane", Description = "Projection on own plane if possible", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_ownPlane", NickName = "_ownPlane", Description = "If true, uses each face's own plane for planar conversion. If false, uses the specified Plane input.", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
-                genericObjectParameter = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Plane", NickName = "Plane", Description = "SAM Plane", Access = GH_ParamAccess.item, Optional = true };
+                genericObjectParameter = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Plane", NickName = "Plane", Description = "Target projection plane when ownPlane is false [m]. Defaults to world XY.", Access = GH_ParamAccess.item, Optional = true };
                 genericObjectParameter.SetPersistentData(new GH_Plane(new global::Rhino.Geometry.Plane(new global::Rhino.Geometry.Point3d(0, 0, 0), new global::Rhino.Geometry.Vector3d(0, 0, 1))));
                 result.Add(new GH_SAMParam(genericObjectParameter, ParamVisibility.Binding));
 
@@ -68,7 +68,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "sAMGeometry2D", NickName = "sAMgeo2D", Description = "SAM Geometry 2D", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "sAMGeometry2D", NickName = "sAMgeo2D", Description = "Resulting 2D SAM geometry projected onto the specified plane [m]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

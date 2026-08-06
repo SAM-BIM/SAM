@@ -38,7 +38,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometry2DToNTS()
           : base("SAMGeometry2D.ToNTS", "SAMGeometry2D.ToNTS",
-              "SAMGeometry To NetTopologySuite",
+              "Converts SAM 2D geometry to NetTopologySuite (NTS) geometry objects and WKT text, enabling export to GIS or spatial databases.",
               "SAM", "Geometry")
         {
         }
@@ -51,7 +51,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_geometry", NickName = "Geo", Description = "Geometry", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_geometry", NickName = "Geo", Description = "SAM 2D or 3D geometry to convert. 3D geometry is projected to the XY plane.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -64,9 +64,9 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "nTSGeometries", NickName = "nTSGeometries", Description = "NTS Geometries", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "nTS Text", NickName = "nTS Text", Description = "Text", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "successful", NickName = "successful", Description = "Correctly imported?", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "nTSGeometries", NickName = "nTSGeometries", Description = "Converted NTS geometry objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "nTS Text", NickName = "nTS Text", Description = "Well-Known Text (WKT) string representations of the NTS geometries", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "successful", NickName = "successful", Description = "True if conversion completed without errors", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

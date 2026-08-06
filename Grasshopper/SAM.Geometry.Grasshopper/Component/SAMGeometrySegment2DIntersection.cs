@@ -32,7 +32,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometrySegment2DIntersection()
           : base("SAMGeometry.Segment2DIntersection", "GHgeo",
-              "Segment2D Intersection",
+              "Compute the intersection point and closest points between two 2D line segments",
               "SAM", "Geometry")
         {
         }
@@ -45,8 +45,8 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_1stSegment2D", NickName = "_1stSegment2D", Description = "SAM Geometry segment2D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_2ndSegment2D", NickName = "_2ndSegment2D", Description = "SAM Geometry segment2D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_1stSegment2D", NickName = "_1stSegment2D", Description = "First Segment2D for intersection test", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_2ndSegment2D", NickName = "_2ndSegment2D", Description = "Second Segment2D for intersection test", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -59,9 +59,9 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Point2D", NickName = "Pt2D", Description = "Intersection between segment2Ds SAM Point2D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "1stClosestPoint2D", NickName = "1stCPt2D", Description = "First closest SAM Point2D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "2ndClosestPoint2D", NickName = "2ndCPt2D", Description = "Second closest SAM Point2D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Point2D", NickName = "Pt2D", Description = "Intersection Point2D if segments cross, or midpoint of closest approach", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "1stClosestPoint2D", NickName = "1stCPt2D", Description = "Closest point on the first segment to the second", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "2ndClosestPoint2D", NickName = "2ndCPt2D", Description = "Closest point on the second segment to the first", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

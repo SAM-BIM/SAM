@@ -32,7 +32,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public GeometryModifyUnion()
           : base("Geometry.ModifyUnion", "Geometry.ModifyUnion",
-              "Modify Union from Polygons",
+              "Computes the Boolean union (merge) of two 2D polygons into a single combined polygon.",
               "SAM", "Geometry")
         {
         }
@@ -46,11 +46,11 @@ namespace SAM.Geometry.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_polygon1", NickName = "_polygon1", Description = "Polygon 1", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_polygon2", NickName = "_polygon2", Description = "Polygon 2", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_polygon1", NickName = "_polygon1", Description = "First polygon for the union operation [m]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_polygon2", NickName = "_polygon2", Description = "Second polygon for the union operation [m]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_tolerance_", NickName = "_tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_tolerance_", NickName = "_tolerance_", Description = "Snapping tolerance for vertex and edge matching [m]", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(Core.Tolerance.Distance);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -66,7 +66,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "Polygon", NickName = "Polygon", Description = "Polygon", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "Polygon", NickName = "Polygon", Description = "Resulting polygon(s) after the Boolean union operation [m]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

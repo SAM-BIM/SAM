@@ -34,7 +34,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometryShellContains()
           : base("SAMGeometry.ShellContains", "SAMGeometry.ShellContains",
-              "Checks if Shell Contains given Point3D",
+              "Test whether a Point3D lies inside a closed Shell, with optional boundary exclusion",
               "SAM", "Geometry")
         {
         }
@@ -50,24 +50,24 @@ namespace SAM.Geometry.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject gerenricObject;
 
-                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_shell", NickName = "_shell", Description = "SAM Geometry Shell", Access = GH_ParamAccess.item };
+                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_shell", NickName = "_shell", Description = "Closed Shell to test against", Access = GH_ParamAccess.item };
                 gerenricObject.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gerenricObject, ParamVisibility.Binding));
 
-                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_point", NickName = "_point", Description = "SAM Geometry Point3D", Access = GH_ParamAccess.item };
+                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_point", NickName = "_point", Description = "Point3D [m] to test for containment", Access = GH_ParamAccess.item };
                 gerenricObject.DataMapping = GH_DataMapping.Graft;
                 result.Add(new GH_SAMParam(gerenricObject, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Boolean booleanParam = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "allowOnBoundary_", NickName = "allowOnBoundary_", Description = "Allow On Boundary", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Boolean booleanParam = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "allowOnBoundary_", NickName = "allowOnBoundary_", Description = "If true, points on the Shell boundary are considered inside", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(booleanParam, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "silverSpacing_", NickName = "silverSpacing_", Description = "Silver Spacing", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "silverSpacing_", NickName = "silverSpacing_", Description = "Minimum feature size [m] for silver detection during containment test", Access = GH_ParamAccess.item };
                 number.SetPersistentData(Core.Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Geometric tolerance [m] for point-in-shell calculation", Access = GH_ParamAccess.item };
                 number.SetPersistentData(Core.Tolerance.Distance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
@@ -83,7 +83,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Contains", NickName = "Contains", Description = "Contains", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Contains", NickName = "Contains", Description = "True if the Point3D is inside (or on boundary of) the Shell", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
