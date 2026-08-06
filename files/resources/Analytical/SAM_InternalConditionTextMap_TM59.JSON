@@ -64,7 +64,7 @@
         "3 bed"
       ],
       [
-        "TM59_Bathroom/internal corridors",
+        "TM59_Bathroom",
         "bathroom",
         "bath",
         "ensuite",
@@ -75,7 +75,10 @@
         "toilet",
         "wc",
         "w.c.",
-        "cloakroom",
+        "cloakroom"
+      ],
+      [
+        "TM59_Internal Corridor",
         "internal corridor",
         "hall",
         "hallway",

@@ -364,6 +364,60 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// An ensuite is a bathroom accessed from a bedroom - the same room said more precisely - so a
+        /// space named Ensuite carrying the TM59_Bathroom condition is not a disagreement.
+        /// <para>
+        /// This is the pairing the TM59 condition split produces: those spaces previously carried one
+        /// combined "TM59_Bathroom/internal corridors" condition, whose name resolved to Circulation and
+        /// so conflicted with every bathroom and ensuite that held it.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void BathroomAndEnsuite_AreCompatibleNotConflicting()
+        {
+            Space space = Space("Ensuite5");
+            space.InternalCondition = new InternalCondition("TM59_Bathroom");
+
+            SpaceSemantics spaceSemantics = Resolver().Resolve(space);
+
+            Assert.Equal(SpaceUse.Ensuite, spaceSemantics.SpaceUse);
+            Assert.False(spaceSemantics.HasSourceConflict);
+        }
+
+        /// <summary>
+        /// A space named Bathroom carrying the split TM59_Bathroom condition agrees outright - the
+        /// straightforward case the split exists to produce.
+        /// </summary>
+        [Fact]
+        public void BathroomSpace_WithTheSplitBathroomCondition_HasNoConflict()
+        {
+            Space space = Space("Bathroom_2");
+            space.InternalCondition = new InternalCondition("TM59_Bathroom");
+
+            SpaceSemantics spaceSemantics = Resolver().Resolve(space);
+
+            Assert.Equal(SpaceUse.Bathroom, spaceSemantics.SpaceUse);
+            Assert.False(spaceSemantics.HasSourceConflict);
+        }
+
+        /// <summary>
+        /// Sanitary accommodation is NOT a refinement of Bathroom: Approved Document F Table 1.2 gives
+        /// them different extract rates, so silently treating one as the other would change a
+        /// calculated rate. It must stay a reported conflict.
+        /// </summary>
+        [Fact]
+        public void BathroomAndSanitaryAccommodation_RemainAGenuineConflict()
+        {
+            Space space = Space("WC");
+            space.InternalCondition = new InternalCondition("TM59_Bathroom");
+
+            SpaceSemantics spaceSemantics = Resolver().Resolve(space);
+
+            Assert.Equal(SpaceUse.SanitaryAccommodation, spaceSemantics.SpaceUse);
+            Assert.True(spaceSemantics.HasSourceConflict);
+        }
+
+        /// <summary>
         /// Bathroom versus Studio is a genuinely incompatible pair - neither is a refinement of the
         /// other - so it must remain a reported conflict.
         /// </summary>

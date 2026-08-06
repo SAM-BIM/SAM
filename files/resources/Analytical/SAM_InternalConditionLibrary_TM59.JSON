@@ -755,8 +755,66 @@
             ]
           }
         ],
-        "Name": "TM59_Bathroom/internal corridors",
+        "Name": "TM59_Bathroom",
         "Guid": "58d254b0-4022-4439-ba22-0150712bd651"
+      },
+      {
+        "_type": "SAM.Analytical.InternalCondition,SAM.Analytical",
+        "ParameterSets": [
+          {
+            "_type": "SAM.Core.ParameterSet",
+            "Name": "SAM.Analytical",
+            "Guid": "fbbd5ce9-757a-428f-bdde-a709200fe79a",
+            "Parameters": [
+              {
+                "Name": "Heating Profile Name",
+                "Value": "HTG_1to24_16"
+              },
+              {
+                "Name": "Cooling Profile Name",
+                "Value": "No Cooling"
+              },
+              {
+                "Name": "Lighting Profile Name",
+                "Value": "TM59 Default Lighting Schedule"
+              },
+              {
+                "Name": "Lighting Gain Per Area",
+                "Value": 2.0
+              },
+              {
+                "Name": "Equipment Sensible Profile Name",
+                "Value": "OFF"
+              },
+              {
+                "Name": "Equipment Sensible Gain",
+                "Value": 0.0
+              },
+              {
+                "Name": "Occupancy Profile Name",
+                "Value": "OFF"
+              },
+              {
+                "Name": "Occupancy Sensible Gain Per Person",
+                "Value": 0.0
+              },
+              {
+                "Name": "Occupancy Latent Gain Per Person",
+                "Value": 0.0
+              },
+              {
+                "Name": "Infiltration Profile Name",
+                "Value": "Infiltration"
+              },
+              {
+                "Name": "Infiltration Air Changes Per Hour",
+                "Value": 0.15
+              }
+            ]
+          }
+        ],
+        "Name": "TM59_Internal Corridor",
+        "Guid": "7359934f-4328-4774-8ed8-598920af712d"
       },
       {
         "_type": "SAM.Analytical.InternalCondition,SAM.Analytical",

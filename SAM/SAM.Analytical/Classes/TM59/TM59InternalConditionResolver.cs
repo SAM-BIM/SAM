@@ -22,9 +22,16 @@ namespace SAM.Analytical
     {
         private enum BedroomKeyword { None, Single, Double }
 
+        //"TM59_Bathroom" and "TM59_Internal Corridor" were previously one combined condition,
+        //"TM59_Bathroom/internal corridors". They carry identical profiles and gains, so TM59 results are
+        //unchanged, but a single condition whose NAME meant two different room uses could not be read
+        //back as either one: the shared classification layer resolved that name to Circulation (the
+        //longer phrase), so every bathroom and ensuite carrying it was reported as disagreeing with its
+        //own space name. Two separately named conditions each mean exactly one thing.
         private static readonly string[] NonHabitableConditionNames = new[]
         {
-            "TM59_Bathroom/internal corridors",
+            "TM59_Bathroom",
+            "TM59_Internal Corridor",
             "TM59_Communal Corridor (including pipework gains)",
             "TM59_Stairs",
             "TM59_Cupboard/riser/lift/void",

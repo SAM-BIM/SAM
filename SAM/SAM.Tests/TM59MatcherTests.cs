@@ -61,7 +61,7 @@ namespace SAM.Tests
             TM59InternalConditionResult internalCorridor = resolver.Resolve(NewSpace("Internal Corridor 2"), null);
             TM59InternalConditionResult corridor = resolver.Resolve(NewSpace("Corridor 2"), null);
 
-            Assert.Equal("TM59_Bathroom/internal corridors", internalCorridor.InternalCondition?.Name);
+            Assert.Equal("TM59_Internal Corridor", internalCorridor.InternalCondition?.Name);
             Assert.Equal("TM59_Communal Corridor (including pipework gains)", corridor.InternalCondition?.Name);
         }
 
@@ -78,14 +78,14 @@ namespace SAM.Tests
         }
 
         [Fact]
-        public void Bathroom_And_Corridor_And_Ensuite_Resolve_To_The_Combined_Condition()
+        public void Bathroom_And_Ensuite_Resolve_To_The_Bathroom_Condition()
         {
             TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
 
             foreach (string name in new[] { "Bathroom2", "Ensuite5", "En-suite 5" })
             {
                 TM59InternalConditionResult result = resolver.Resolve(NewSpace(name), null);
-                Assert.Equal("TM59_Bathroom/internal corridors", result.InternalCondition?.Name);
+                Assert.Equal("TM59_Bathroom", result.InternalCondition?.Name);
             }
         }
 
@@ -186,11 +186,11 @@ namespace SAM.Tests
         }
 
         [Fact]
-        public void Internal_Landing_Maps_To_Bathroom_Internal_Corridors()
+        public void Internal_Landing_Maps_To_Internal_Corridor()
         {
             TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
             TM59InternalConditionResult result = resolver.Resolve(NewSpace("Internal Landing"), null);
-            Assert.Equal("TM59_Bathroom/internal corridors", result.InternalCondition?.Name);
+            Assert.Equal("TM59_Internal Corridor", result.InternalCondition?.Name);
         }
 
         [Fact]
@@ -228,7 +228,7 @@ namespace SAM.Tests
         {
             TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
             TM59InternalConditionResult result = resolver.Resolve(NewSpace("Master Bathroom"), null);
-            Assert.Equal("TM59_Bathroom/internal corridors", result.InternalCondition?.Name);
+            Assert.Equal("TM59_Bathroom", result.InternalCondition?.Name);
         }
 
         [Fact]
@@ -239,7 +239,7 @@ namespace SAM.Tests
             // against the distinct, genuine "bathroom" noun via either path.
             TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
             TM59InternalConditionResult result = resolver.Resolve(NewSpace("Double Bathroom"), null);
-            Assert.Equal("TM59_Bathroom/internal corridors", result.InternalCondition?.Name);
+            Assert.Equal("TM59_Bathroom", result.InternalCondition?.Name);
         }
 
         [Fact]
@@ -248,7 +248,7 @@ namespace SAM.Tests
             // Same overlap as Double Bathroom: "twin" is also a legacy Sleeping alias.
             TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
             TM59InternalConditionResult result = resolver.Resolve(NewSpace("Twin Ensuite"), null);
-            Assert.Equal("TM59_Bathroom/internal corridors", result.InternalCondition?.Name);
+            Assert.Equal("TM59_Bathroom", result.InternalCondition?.Name);
         }
 
         [Fact]
