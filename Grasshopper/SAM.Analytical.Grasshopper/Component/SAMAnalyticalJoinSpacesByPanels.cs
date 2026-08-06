@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalJoinSpacesByPanels()
           : base("SAMAnalytical.JoinSpacesByPanels", "SAMAnalytical.JoinSpacesByPanels",
-              "Join Spaces By Panels",
+              "Merge adjacent analytical spaces by removing internal separating panels (typically Air-type), thereby consolidating thermal zones.",
               "SAM", "Analytical02")
         {
         }
@@ -48,10 +48,10 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                global::Grasshopper.Kernel.Parameters.Param_GenericObject genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_GenericObject genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM AnalyticalObject containing the spaces to join (AdjacencyCluster or AnalyticalModel)", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(genericObject, ParamVisibility.Binding));
 
-                GooPanelParam panelParam = new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list };
+                GooPanelParam panelParam = new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "Internal SAM Analytical Panels across which spaces should be joined", Access = GH_ParamAccess.list };
                 panelParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(panelParam, ParamVisibility.Binding));
 
@@ -67,9 +67,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "analytical", NickName = "analytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "SAM Analytical Space list", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "analytical", NickName = "analytical", Description = "Modified SAM AnalyticalObject with merged spaces", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "Panels that were used or removed during the join", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "Former spaces organised in a data tree per joined panel", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

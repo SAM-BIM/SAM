@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSnapByPoints()
           : base("SAMAnalytical.SnapByPoints", "SAMAnalytical.SnapByPoints",
-              "Snap Panels to Points",
+              "Snap a single panel's vertices to a set of reference points, useful for aligning panels to a predefined grid.",
               "SAM", "Analytical03")
         {
         }
@@ -46,12 +46,12 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_Panel", NickName = "_Panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_Panel", NickName = "_Panel", Description = "SAM Analytical Panel to snap", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new Geometry.Grasshopper.GooSAMGeometryParam() { Name = "_points", NickName = "_points", Description = "List of Points", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Geometry.Grasshopper.GooSAMGeometryParam() { Name = "_points", NickName = "_points", Description = "Reference points to which panel vertices are snapped", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_maxDistance_", NickName = "_maxDistance_", Description = "Max Distance to snap points default 1m", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_maxDistance_", NickName = "_maxDistance_", Description = "Maximum snapping distance for a vertex to be pulled to a point [m]", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(1);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -67,7 +67,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_Panel", NickName = "_Panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_Panel", NickName = "_Panel", Description = "SAM Analytical Panel with snapped vertices", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

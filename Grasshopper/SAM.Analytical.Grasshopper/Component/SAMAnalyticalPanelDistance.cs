@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalPanelDistance()
           : base("SAMAnalytical.PanelDistance", "SAMAnalytical.PanelDistance",
-              "Calculates Distance to Panel",
+              "Allows the engineer to compute the shortest distance from a point to a panel surface and to its edges",
               "SAM", "Analytical02")
         {
         }
@@ -46,9 +46,9 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panel", NickName = "_SAMPanel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panel", NickName = "_SAMPanel", Description = "SAM Analytical Panel to measure distance to", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "_point", NickName = "_point", Description = "Point", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "_point", NickName = "_point", Description = "Reference point [m]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -62,8 +62,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Distance", NickName = "Distance", Description = "Distance", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "DistanceToEdges", NickName = "DistanceToEdges", Description = "DistanceToEdges", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Distance", NickName = "Distance", Description = "Shortest perpendicular distance from the point to the panel surface [m]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "DistanceToEdges", NickName = "DistanceToEdges", Description = "Shortest distance from the point to any edge of the panel [m]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

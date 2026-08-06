@@ -53,7 +53,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM AdjacencyCluster or AnalyticalModel whose constructions will be duplicated by panel type", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -63,8 +63,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "constructions", NickName = "constructions", Description = "modified SAM Analytical Constructions", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "analytical", NickName = "analytical", Description = "Updated SAM object (AdjacencyCluster or AnalyticalModel) with duplicated constructions", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "constructions", NickName = "constructions", Description = "List of SAM constructions that were created or modified by the duplication", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }
@@ -76,7 +76,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalDuplicateConstructionByPanelType()
           : base("SAMAdjacencyCluster.DuplicateConstructionByPanelType", "SAMAdjacencyCluster.DuplicateConstructionByPanelType",
-              "Duplicate Constructions using Name and  By PanelType for Analytical Model or Adjacency Cluster \n*Split Construction in model by panel type.",
+              "Allows an engineer to duplicate constructions by PanelType, ensuring a single construction name is not shared across different panel type contexts (e.g. separating an 'Internal' construction from an 'External' one).\n\n* Split construction in model by panel type.",
               "SAM", "Analytical01")
         {
         }

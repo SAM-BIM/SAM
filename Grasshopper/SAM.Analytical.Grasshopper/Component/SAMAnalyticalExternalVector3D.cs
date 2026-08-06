@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalExternalVector3D()
           : base("SAMAnalytical.ExternalVector3D", "SAMAnalytical.ExternalVector3D",
-              "Gets External Vector3D for Panel",
+              "Allows the engineer to determine the external (outward-facing) vector of a panel relative to a specified space, useful for solar and heat-flow direction analysis",
               "SAM", "Analytical01")
         {
         }

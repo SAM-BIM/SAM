@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalMapAdjacencyCluster()
           : base("SAMAnalytical.MapAdjacencyCluster", "SAMAnalytical.MapAdjacencyCluster",
-              "Map AdjacencyCLuster",
+              "Allows the engineer to map properties (panels, spaces, internal conditions) from a source AdjacencyCluster onto a destination AdjacencyCluster",
               "SAM", "Analytical02")
         {
         }
@@ -59,7 +59,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "_adjacencyCluster_Destination",
                     NickName = "_adjacencyCluster_Destination",
-                    Description = "Source SAM Analytical AdjacencyCluster",
+                    Description = "Destination SAM Analytical AdjacencyCluster to receive mapped properties",
                     Access = GH_ParamAccess.item
                 }, ParamVisibility.Binding));
 

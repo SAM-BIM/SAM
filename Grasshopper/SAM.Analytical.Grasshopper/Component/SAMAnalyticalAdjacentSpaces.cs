@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAdjacentSpaces()
           : base("SAMAnalytical.AdjacentSpaces", "SAMAnalytical.AdjacentSpaces",
-              "Get Adjacent Spaces",
+              "Allows the engineer to find all spaces directly adjacent to a given space, grouped by panel and aperture type",
               "SAM", "Analytical")
         {
         }
@@ -47,9 +47,9 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_space", NickName = "_space", Description = "Space", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_space", NickName = "_space", Description = "SAM Analytical Space to evaluate for adjacency", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_panelGroups_", NickName = "_panelGroups_", Description = "PanelGroups", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_panelGroups_", NickName = "_panelGroups_", Description = "Optional panel group type names to filter adjacency by (e.g. Wall, Roof, Floor)", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }
@@ -62,14 +62,14 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "SAM Analytical Spaces adjacent to space", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "SAM Analytical Panels adjacent to space", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "All spaces directly adjacent via shared panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "Panels shared between the input space and adjacent spaces", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
 
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spacesWithDoors", NickName = "spacesWithDoors", Description = "SAM Analytical Space list", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panelsWithDoors", NickName = "panelsWithDoors", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spacesWithDoors", NickName = "spacesWithDoors", Description = "Adjacent spaces connected via door apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panelsWithDoors", NickName = "panelsWithDoors", Description = "Panels containing door apertures linking to adjacent spaces", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
 
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spacesWithWindows", NickName = "spacesWithWindows", Description = "SAM Analytical Space list", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panelsWithWindows", NickName = "panelsWithWindows", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spacesWithWindows", NickName = "spacesWithWindows", Description = "Adjacent spaces connected via window apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panelsWithWindows", NickName = "panelsWithWindows", Description = "Panels containing window apertures linking to adjacent spaces", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

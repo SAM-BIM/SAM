@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFixAdjacencyCluster()
           : base("SAMAnalytical.FixAdjacencyCluster", "SAMAnalytical.FixAdjacencyCluster",
-              "Fix AdjacencyCluster - this component will check each panel and nr of adjacency and will fix PanelType and also duplicate construction and assign correct prefix, so if you have SIM_EXT_SLD WA10 and this after split will become internal wall. Panel tyope will be changed to InternalWall and construction to SIM_INT_SLD WA10",
+              "Allows the engineer to validate and fix an AdjacencyCluster by checking each panel's adjacency count, correcting PanelType (e.g. external to internal), duplicating constructions, and assigning the correct prefix (SIM_EXT_SLD/SIM_INT_SLD), as well as fixing aperture assignments",
               "SAM", "Analytical01")
         {
         }
@@ -64,10 +64,10 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooAdjacencyClusterParam() { Name = "adjacencyCluster", NickName = "adjacencyCluster", Description = "SAM Analytical AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "panelPrefixes", NickName = "panelPrefixes", Description = "Prefixes that referes to revit family ie. SIM_EXT_SLD", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "Modified SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "aperturePrefixes", NickName = "aperturePrefixes", Description = "Prefixes that referes to revit family ie. SIM_EXT_SLD", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "apertures", NickName = "apertures", Description = "Modified SAM Analytical Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "panelPrefixes", NickName = "panelPrefixes", Description = "Construction prefixes that were reassigned to panels (e.g. SIM_EXT_SLD, SIM_INT_SLD)", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "Panels that were updated with corrected PanelType and construction", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "aperturePrefixes", NickName = "aperturePrefixes", Description = "Construction prefixes that were reassigned to apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "apertures", NickName = "apertures", Description = "Apertures that were updated", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

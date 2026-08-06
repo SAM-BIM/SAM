@@ -36,7 +36,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalPanelSpacing()
           : base("SAMAnalytical.PanelSpacing", "SAMAnalytical.PanelSpacing",
-              "Calculates Spacing between Panels",
+              "Allows the engineer to compute the spacing gaps between panel edges and identify panels within a given distance range of each other",
               "SAM", "Analytical03")
         {
         }
@@ -55,11 +55,11 @@ namespace SAM.Analytical.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_max_", NickName = "_max_", Description = "Maximal distance to be checked", Access = GH_ParamAccess.item, Optional = true };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_max_", NickName = "_max_", Description = "Maximum distance to check for gaps between panel edges [m]", Access = GH_ParamAccess.item, Optional = true };
                 number.SetPersistentData(Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_min_", NickName = "_min_", Description = "Minimal distance to be checked", Access = GH_ParamAccess.item, Optional = true };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_min_", NickName = "_min_", Description = "Minimum distance threshold for spacing detection [m]", Access = GH_ParamAccess.item, Optional = true };
                 number.SetPersistentData(Tolerance.Distance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
@@ -75,8 +75,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "points", NickName = "points", Description = "Points", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "points", NickName = "points", Description = "Midpoint locations of detected spacing gaps [m]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "Panels within the spacing range, grouped by gap location in a data tree", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

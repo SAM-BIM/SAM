@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalProfileType()
           : base("SAMAnalytical.ProfileType", "SAMAnalytical.ProfileType",
-              "Select ProfileType",
+              "Allows an engineer to select a ProfileType (Heating, Cooling, Occupancy, etc.) for schedule/profile assignment.",
               "SAM", "Analytical03")
         {
         }

@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalTypeMergeSettings()
           : base("SAMAnalytical.TypeMergeSettings", "SAMAnalytical.TypeMergeSettings",
-              "Creates TypeMergeSettings",
+              "Allows an engineer to create TypeMergeSettings to control how objects are merged when importing data, specifying which parameters to exclude from the merge comparison.",
               "SAM", "Analytical")
         {
         }
@@ -46,8 +46,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "type", NickName = "type", Description = "Type", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "excludedParameterNames_", NickName = "excludedParameterNames_", Description = "Excuded Parameter Names", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "type", NickName = "type", Description = "Full type name string (e.g. SAM.Analytical.Space) for the merge target", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "excludedParameterNames_", NickName = "excludedParameterNames_", Description = "Optional list of parameter names to exclude from the merge comparison", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -61,7 +61,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooTypeMergeSettingsParam() { Name = "typeMergeSettings", NickName = "typeMergeSettings", Description = "Type Merge Settings", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooTypeMergeSettingsParam() { Name = "typeMergeSettings", NickName = "typeMergeSettings", Description = "SAM TypeMergeSettings object for import merge control", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

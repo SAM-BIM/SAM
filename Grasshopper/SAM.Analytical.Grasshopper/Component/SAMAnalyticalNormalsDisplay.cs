@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalNormalsDisplay()
           : base("SAMAnalytical.NormalsDisplay", "SAMAnalytical.NormalsDisplay",
-              "Gets Internal Point and Normal Vector for SAM Analytical Object please connect to GH 'Vector Display' component",
+              "Allows the engineer to extract internal point and normal vector pairs from SAM Analytical objects for visualisation with the Grasshopper 'Vector Display' component",
               "SAM", "Analytical02")
         {
         }
@@ -47,7 +47,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical object (Panel, Aperture, AdjacencyCluster, or AnalyticalModel) to extract normals from", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

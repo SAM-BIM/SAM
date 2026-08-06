@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalMapInternalConditions()
           : base("SAMAnalytical.MapInternalConditions", "SAMAnalytical.MapInternalConditions",
-              "Map InternalConditions",
+              "Allows the engineer to assign internal conditions (occupancy, loads, setpoints) to spaces in an analytical model by matching space names or properties via a TextMap",
               "SAM", "Analytical02")
         {
         }
@@ -53,7 +53,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "_analytical",
                     NickName = "_analytical",
-                    Description = "Modified SAM AnalyticalObject",
+Description = "SAM Analytical object (Space, AdjacencyCluster, AnalyticalModel, or BuildingModel) to map internal conditions onto",
                     Access = GH_ParamAccess.item
                 }, ParamVisibility.Binding));
 
@@ -86,10 +86,10 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "analytical", NickName = "analytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "internalConditions", NickName = "internalConditions", Description = "SAM Analytical InternalConditions", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "unassignedSpaces", NickName = "unassignedSpaces", Description = "SAM Analytical Spaces has not been assigneds", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "profiles", NickName = "profiles", Description = "SAM Analytical Profiles", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "analytical", NickName = "analytical", Description = "Updated SAM Analytical object with internal conditions and profiles assigned", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "internalConditions", NickName = "internalConditions", Description = "Mapped internal conditions that were assigned to spaces", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "unassignedSpaces", NickName = "unassignedSpaces", Description = "Spaces for which no matching internal condition could be found", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "profiles", NickName = "profiles", Description = "Derived operational profiles from the mapped internal conditions", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

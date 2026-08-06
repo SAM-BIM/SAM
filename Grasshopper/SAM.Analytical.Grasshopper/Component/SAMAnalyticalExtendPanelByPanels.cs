@@ -28,7 +28,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalExtendPanelByPanels()
           : base("SAMAnalytical.ExtendPanelByPanels", "SAMAnalytical.ExtendPanelByPanels",
-              "Extend SAM Analytical Panel By Given Panels",
+              "Extend a set of panels so they touch a second set of reference panels, ensuring geometric continuity between adjacent analytical surfaces.",
               "SAM", "Analytical01")
         {
         }
@@ -42,12 +42,12 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panelsToBeExtended", NickName = "_panelsToBeExtended", Description = "SAM Analytical Panels To Be Extended", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panelsToBeExtended", NickName = "_panelsToBeExtended", Description = "SAM Analytical Panels to be extended", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "Reference SAM Analytical Panels that define the extension targets", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_tolerance_", NickName = "_tolerance", Description = "Tolerance", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_tolerance_", NickName = "_tolerance", Description = "Geometric tolerance [m]", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(Core.Tolerance.Distance);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -63,7 +63,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "Resulting SAM Analytical Panels after extension", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

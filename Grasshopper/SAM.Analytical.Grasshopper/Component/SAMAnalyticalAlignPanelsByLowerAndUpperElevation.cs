@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAlignPanelsByLowerAndUpperElevation()
           : base("SAMAnalytical.AlignPanelsByLowerAndUpperElevation", "SAMAnalytical.AlignPanelsByLowerAndUpperElevation",
-              "Align Panels By Upper and Lower Elevation",
+              "Align vertical panels by extending them to specified upper and lower elevations, sorting panels into three groups: between, above, and below.",
               "SAM", "Analytical")
         {
         }
@@ -48,19 +48,19 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                GooPanelParam panelParam = new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list };
+                GooPanelParam panelParam = new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels to align", Access = GH_ParamAccess.list };
                 panelParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(panelParam, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number paramNumber;
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_upperElevation", NickName = "_upperElevation", Description = "Upper Elevation", Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_upperElevation", NickName = "_upperElevation", Description = "Upper elevation to which panels are extended [m]", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_lowerElevation", NickName = "_lowerElevation", Description = "Lower Elevation", Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_lowerElevation", NickName = "_lowerElevation", Description = "Lower elevation to which panels are extended [m]", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Geometric tolerance [m]", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Tolerance.Distance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
@@ -76,9 +76,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "UpperPanels", NickName = "UpperPanels", Description = "SAM Analytical Upper Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "LowerPanels", NickName = "LowerPanels", Description = "SAM Analytical Lower Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "Panels falling between the lower and upper elevations", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "UpperPanels", NickName = "UpperPanels", Description = "Panels whose internal point lies above the upper elevation", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "LowerPanels", NickName = "LowerPanels", Description = "Panels whose internal point lies below the lower elevation", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSnapByOffset()
           : base("SAMAnalytical.SnapByOffset", "SAMAnalytical.SnapByOffset",
-              "Snap Panels by Offset from Panels default = 0.2m",
+              "Snap panel vertices to a regular grid of points derived from an offset spacing, regularising panel geometry.",
               "SAM", "Analytical03")
         {
         }
@@ -45,10 +45,10 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels to snap", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_offset_", NickName = "Offs", Description = "Snap offset", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_offset_", NickName = "Offs", Description = "Snap grid spacing [m]", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.2);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -64,8 +64,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Geometry.Grasshopper.GooSAMGeometryParam() { Name = "Point3Ds", NickName = "Point3Ds", Description = "Snap Point3Ds", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Analytical Panels with vertices snapped to the offset grid", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Geometry.Grasshopper.GooSAMGeometryParam() { Name = "Point3Ds", NickName = "Point3Ds", Description = "Grid points used for snapping", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

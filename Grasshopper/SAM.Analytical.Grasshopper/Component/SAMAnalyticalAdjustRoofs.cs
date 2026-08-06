@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAdjustRoofs()
           : base("SAMAnalytical.AdjustRoofs", "SAMAnalytical.AdjustRoofs",
-              "Adjusts Roofs",
+              "Allows the engineer to align roof panel geometries to a set of reference shell surfaces",
               "SAM", "Analytical")
         {
         }

@@ -40,7 +40,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalLabelPanel()
           : base("SAMAnalytical.LabelPanel", "SAMAnalytical.LabelPanel",
-              "Label SAM Analytical Panel",
+              "Allows an engineer to extract and display a parameter value from a SAM Panel as a 3D text label in the Rhino viewport.",
               "SAM", "Analytical02")
         {
         }
@@ -54,15 +54,15 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panel", NickName = "_panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panel", NickName = "_panel", Description = "SAM Panel to label", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name_", NickName = "_name_", Description = "Parameter Name", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name_", NickName = "_name_", Description = "Parameter name to display [default: Name]", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData("Name");
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_height_", NickName = "_height_", Description = "Text Height", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_height_", NickName = "_height_", Description = "Text height in Rhino model units; auto-calculated if omitted", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
                 return result.ToArray();
@@ -77,7 +77,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "Value", NickName = "Value", Description = "Value", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "Value", NickName = "Value", Description = "Resolved parameter value from the panel as a text string", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

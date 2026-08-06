@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalPanelsIntersection()
           : base("SAMAnalytical.PanelsIntersection", "SAMAnalytical.PanelsIntersection",
-              "Panels Intersection",
+              "Allows the engineer to compute the Boolean intersection between two sets of panels and derive the difference panels for each set",
               "SAM", "Analytical")
         {
         }
@@ -48,16 +48,16 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels_1", NickName = "_panels_1", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list, Optional = false }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels_2", NickName = "_panels_2", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list, Optional = false }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels_1", NickName = "_panels_1", Description = "First set of SAM Analytical Panels for intersection", Access = GH_ParamAccess.list, Optional = false }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels_2", NickName = "_panels_2", Description = "Second set of SAM Analytical Panels for intersection", Access = GH_ParamAccess.list, Optional = false }, ParamVisibility.Binding));
 
                 Param_Number paramNumber;
 
-                paramNumber = new Param_Number() { Name = "minArea_", NickName = "minArea_", Description = "Minimal Area", Access = GH_ParamAccess.item };
+                paramNumber = new Param_Number() { Name = "minArea_", NickName = "minArea_", Description = "Minimum area for resulting panels; fragments below this are discarded [m²]", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(0.1);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Voluntary));
 
-                paramNumber = new Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
+                paramNumber = new Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Distance tolerance for intersection computation [m]", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Tolerance.Distance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Voluntary));
 
@@ -73,11 +73,11 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = [];
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels_1", NickName = "panels_1", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels_2", NickName = "panels_2", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels_1_Difference", NickName = "panels_1_Difference", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels_2_Difference", NickName = "panels_2_Difference", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "All input panels from both sets combined", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels_1", NickName = "panels_1", Description = "First set of panels passed through unchanged", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels_2", NickName = "panels_2", Description = "Second set of panels passed through unchanged", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels_1_Difference", NickName = "panels_1_Difference", Description = "Portions of set 1 panels not overlapping with set 2", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels_2_Difference", NickName = "panels_2_Difference", Description = "Portions of set 2 panels not overlapping with set 1", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return [.. result];
             }
         }

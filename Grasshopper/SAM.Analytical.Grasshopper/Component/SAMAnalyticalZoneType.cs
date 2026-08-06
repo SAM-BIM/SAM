@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalZoneType()
           : base("SAMAnalytical.ZoneType", "SAMAnalytical.ZoneType",
-              "Select Zone Type",
+              "Allows an engineer to select a ZoneType for thermal zone classification.",
               "SAM", "Analytical04")
         {
         }

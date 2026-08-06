@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalPanelGroup()
           : base("SAMAnalytical.PanelGroup", "SAMAnalytical.PanelGroup",
-              "Select PanelGroup",
+              "Allows an engineer to select a PanelGroup (Wall, Floor, Roof) to filter panels by group category.",
               "SAM", "Analytical02")
         {
         }

@@ -30,23 +30,23 @@ namespace SAM.Analytical.Grasshopper
         protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
 
         private const string ReportRoomsDescription = @"
-Reports space-level façade and opening KPIs (PartO_BB101 mode):
+Allows an engineer to report per-space facade and opening KPIs compliant with Part O / BB101.
 
 • Per space, outputs a single aggregated value even if multiple apertures exist.
-• Geometry is taken from the APERTURE (width × height).
-• Opening calculation follows BB101/DfE:
-   - OpeningGeometricArea  = Σ (pane width × pane height × Factor)
-     (This is the BB101 'free area' reference; NO sin(α) here.)
-   - DischargeCoefficient  = Cd(α, w/h) per aperture.
-   - OpeningEffectiveArea  = Σ (Cd_i × openinggeometric_i area × Factor_i)
-   - OpeningEffectiveEfficiency [%] = 100 × OpeningEffectiveArea / OpeningGeometricArea
-   - OpeningEffectiveAreaToFloorAreaRatio [%] = 100 × OpeningEffectiveArea / SpaceFloorArea
+• Geometry is taken from the Aperture (width x height).
+• Opening calculation follows BB101 / DfE:
+   - OpeningGeometricArea  = sum(pane width x pane height x Factor)
+     (this is the BB101 'free area' reference; NO sin(alpha) here)
+   - DischargeCoefficient  = Cd(angle, w/h) per aperture
+   - OpeningEffectiveArea  = sum(Cd_i x openingGeometric_i area x Factor_i)
+   - OpeningEffectiveEfficiency [%] = 100 x OpeningEffectiveArea / OpeningGeometricArea
+   - OpeningEffectiveAreaToFloorAreaRatio [%] = 100 x OpeningEffectiveArea / SpaceFloorArea
 
 Notes:
 • If multiple apertures share the same Opening Profile Function, the text is listed once (deduplicated).
-• WindowToWallRatio uses external walls only (BoundryType = exposed).
-•  ExternalPanelsArea uses BoundryType = external only. 
-• Where a required value is missing (e.g., Space Area), the component warns and returns NaN for ratios.
+• WindowToWallRatio uses external walls only (BoundaryType = Exposed).
+• ExternalPanelsArea uses BoundaryType = Exposed only.
+• Where a required value is missing (e.g. Space Area), the component warns and returns NaN for ratios.
 ";
 
         public SAMAnalyticalReportRooms()
@@ -68,8 +68,8 @@ Notes:
             {
                 List<GH_SAMParam> result = [];
 
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "Source SAM AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "SAM Spaces", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM Analytical Model containing spaces, panels and apertures to report", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "Optional list of SAM Spaces to report; if omitted, all spaces in the model are used", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 return [.. result];
             }
@@ -83,22 +83,22 @@ Notes:
             get
             {
                 List<GH_SAMParam> result = [];
-                result.Add(new GH_SAMParam(new Param_String() { Name = "Name", NickName = "Name", Description = "Space Name", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Number() { Name = "Area", NickName = "Area", Description = "Space Area [m2]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Number() { Name = "Volume", NickName = "Volume", Description = "Space Volume [m3]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_String() { Name = "LevelName", NickName = "LevelName", Description = "Space Level Name", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Number() { Name = "ExternalPanelsArea", NickName = "ExternalPanelsArea", Description = "External Panels Area [m2]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Number() { Name = "ExternalWallArea", NickName = "ExternalWallArea", Description = "External Wall Area [m2]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Number() { Name = "WindowArea", NickName = "WindowArea", Description = "Window Area [m2]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Number() { Name = "WindowToWallRatio", NickName = "WindowToWallRatio", Description = "Window To Wall Ratio [%]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Number() { Name = "Window-gValue", NickName = "Window-gValue", Description = "Window gValue [0 - 1 max]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Number() { Name = "FrameArea", NickName = "FrameArea", Description = "Frame Area [m2]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Number() { Name = "FrameToWindowRatio", NickName = "FrameToWindowRatio", Description = "Frame To Window Ratio [%]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_String() { Name = "Name", NickName = "Name", Description = "Space name", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Number() { Name = "Area", NickName = "Area", Description = "Space floor area [m\u00B2]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Number() { Name = "Volume", NickName = "Volume", Description = "Space volume [m\u00B3]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_String() { Name = "LevelName", NickName = "LevelName", Description = "Space level name", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Number() { Name = "ExternalPanelsArea", NickName = "ExternalPanelsArea", Description = "Total area of all external panels [m\u00B2]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Number() { Name = "ExternalWallArea", NickName = "ExternalWallArea", Description = "Total area of external walls only [m\u00B2]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Number() { Name = "WindowArea", NickName = "WindowArea", Description = "Total window/glazing area [m\u00B2]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Number() { Name = "WindowToWallRatio", NickName = "WindowToWallRatio", Description = "Window-to-wall ratio using external walls [%]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Number() { Name = "Window-gValue", NickName = "Window-gValue", Description = "Window total solar energy transmittance (g-value) [0\u20131]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Number() { Name = "FrameArea", NickName = "FrameArea", Description = "Total frame area of windows [m\u00B2]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Number() { Name = "FrameToWindowRatio", NickName = "FrameToWindowRatio", Description = "Frame-to-window area ratio [%]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new Param_Number()
                 {
                     Name = "OpeningGeometricArea",
                     NickName = "OpeningGeometricArea",
-                    Description = "BB101 reference opening area [m2] = Σ(width × height × Factor) over operable apertures. no sin(α).",
+                    Description = "BB101 reference opening area [m\u00B2] = sum(width x height x Factor) over operable apertures; no sin(alpha) applied.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -106,7 +106,7 @@ Notes:
                 {
                     Name = "OpeningEffectiveArea",
                     NickName = "OpeningEffectiveArea",
-                    Description = "Aerodynamic effective area [m2] = Σ(Cd_i × opening_i area × Factor_i). Cd_i from BB101/DfE (angle + aspect ratio).",
+                    Description = "Aerodynamic effective opening area [m\u00B2] = sum(Cd_i x openingGeometric_i area x Factor_i); Cd_i per BB101/DfE.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -114,7 +114,7 @@ Notes:
                 {
                     Name = "OpeningEffectiveEfficiency",
                     NickName = "OpeningEffectiveEfficiency",
-                    Description = "OpeningEfficiency [%] = 100 × OpeningEffectiveArea / OpeningGeometricArea.",
+                    Description = "Opening effective efficiency [%] = 100 x OpeningEffectiveArea / OpeningGeometricArea.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -122,7 +122,7 @@ Notes:
                 {
                     Name = "OpeningEffectiveAreaToFloorAreaRatio",
                     NickName = "OpeningEffectiveAreaToFloorAreaRatio",
-                    Description = "100 × OpeningEffectiveArea / SpaceFloorArea [%].",
+                    Description = "Opening effective area to floor area ratio [%] = 100 x OpeningEffectiveArea / SpaceFloorArea.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -130,7 +130,7 @@ Notes:
                 {
                     Name = "OpeningProfileName",
                     NickName = "OpeningProfile",
-                    Description = "Opening Profile Function name(s). Duplicate names across apertures are removed; shown as a unique list per space.",
+                    Description = "Opening Profile Function name(s); duplicates across apertures are removed, shown as unique names per space.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 

@@ -39,11 +39,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSeasonProfileBySetPoint()
           : base("SAMAnalytical.SeasonProfileBySetPoint", "SAMAnalytical.SeasonProfileBySetPoint",
-              "Gets Analytical Season Profile By Set Point" +
-               "\nSeasonType.Heating] = temperature <= heatingTemperature" +
-               "\nSeasonType.FreeCooling] = temperature > heatingTemperature && temperature <= coolingTemperature" +
-               "\nSeasonType.Cooling] = temperature > coolingTemperature" +
-               "\nWe calculate average temperature for each day and operate on days data",
+              "Allows an engineer to generate heating, cooling and free-cooling season profiles from weather data using set-point temperatures and a minimum day count.\n\nSeasonType.Heating] = temperature <= heatingSetPoint\nSeasonType.FreeCooling] = temperature > heatingSetPoint && temperature <= coolingSetPoint\nSeasonType.Cooling] = temperature > coolingSetPoint\n\nDaily mean temperatures are used, and a season is only identified when the condition persists for the specified minimum number of days.",
               "SAM", "Analytical03")
         {
         }
@@ -56,21 +52,21 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooWeatherObjectParam { Name = "_weatherObject", NickName = "_weatherObject", Description = "SAM WeatherObject such as WeatherData", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooWeatherObjectParam { Name = "_weatherObject", NickName = "_weatherObject", Description = "SAM WeatherObject such as WeatherData containing annual climate data", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 Param_Number number = null;
 
-                number = new Param_Number { Name = "_heatingSeasonSetPoint", NickName = "_heatingSeasonSetPoint", Description = "Heating Set Point", Access = GH_ParamAccess.item, Optional = true };
+                number = new Param_Number { Name = "_heatingSeasonSetPoint", NickName = "_heatingSeasonSetPoint", Description = "Heating season set-point temperature [\u00B0C, default: 16]", Access = GH_ParamAccess.item, Optional = true };
                 number.SetPersistentData(16);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
                 Param_Integer integer = null;
 
-                integer = new Param_Integer { Name = "_numberOfDaysBelowSetPoint", NickName = "_numberOfDaysBelowSetPoint", Description = "Number Of Days Below Set Point", Access = GH_ParamAccess.item, Optional = true };
+                integer = new Param_Integer { Name = "_numberOfDaysBelowSetPoint", NickName = "_numberOfDaysBelowSetPoint", Description = "Minimum consecutive days to trigger a season change [default: 3]", Access = GH_ParamAccess.item, Optional = true };
                 integer.SetPersistentData(3);
                 result.Add(new GH_SAMParam(integer, ParamVisibility.Binding));
 
-                number = new Param_Number { Name = "_coolingSeasonSetPoint", NickName = "_coolingSeasonSetPoint", Description = "Cooling Set Point", Access = GH_ParamAccess.item, Optional = true };
+                number = new Param_Number { Name = "_coolingSeasonSetPoint", NickName = "_coolingSeasonSetPoint", Description = "Optional cooling season set-point temperature [\u00B0C]", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
                 return result.ToArray();
@@ -85,16 +81,16 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new Param_String { Name = "stringProfile", NickName = "stringProfile", Description = "String Profile", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_String { Name = "stringProfile", NickName = "stringProfile", Description = "List of season type strings (Heating, Cooling, FreeCooling) for each hour", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "heatingProfile", NickName = "heatingProfile", Description = "SAM Analytical Heating Profile", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Integer() { Name = "heatingHourIndex", NickName = "heatingHourIndex", Description = "Heating Hour Index", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "heatingProfile", NickName = "heatingProfile", Description = "SAM Profile for the heating season [1 = heating hours]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Integer() { Name = "heatingHourIndex", NickName = "heatingHourIndex", Description = "Hour index data tree for heating season hours", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "coolingProfile", NickName = "coolingProfile", Description = "SAM Analytical Cooling Profile", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Integer() { Name = "coolingHourIndex", NickName = "coolingHourIndex", Description = "Cooling Hour Index", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "coolingProfile", NickName = "coolingProfile", Description = "SAM Profile for the cooling season [1 = cooling hours]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Integer() { Name = "coolingHourIndex", NickName = "coolingHourIndex", Description = "Hour index data tree for cooling season hours", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "freeCoolingProfile", NickName = "freeCoolingProfile", Description = "SAM Analytical Free Cooling Profile", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_Integer() { Name = "freeCoolingHourIndex", NickName = "freeCoolingHourIndex", Description = "Free Cooling Hour Index", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "freeCoolingProfile", NickName = "freeCoolingProfile", Description = "SAM Profile for the free-cooling season [1 = free-cooling hours]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_Integer() { Name = "freeCoolingHourIndex", NickName = "freeCoolingHourIndex", Description = "Hour index data tree for free-cooling season hours", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

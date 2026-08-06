@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalLightingOccupancyControls()
           : base("SAMAnalytical.LightingOccupancyControls", "SAMAnalytical.LightingOccupancyControls",
-              "Select LightingOccupancyControls",
+              "Allows an engineer to select a LightingOccupancyControls type for NCM lighting calculations.",
               "SAM", "Analytical02")
         {
         }

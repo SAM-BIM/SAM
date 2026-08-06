@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalLightingPhotoelectricControls()
           : base("SAMAnalytical.LightingPhotoelectricControls", "SAMAnalytical.LightingPhotoelectricControls",
-              "Select LightingPhotoelectricControls",
+              "Allows an engineer to select a LightingPhotoelectricControls type for NCM daylight-responsive lighting calculations.",
               "SAM", "Analytical02")
         {
         }

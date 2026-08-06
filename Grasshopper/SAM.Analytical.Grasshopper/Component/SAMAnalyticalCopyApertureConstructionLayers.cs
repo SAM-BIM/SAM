@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCopyApertureConstructionLayers()
           : base("SAMAnalytical.CopyApertureConstructionLayers", "SAMAnalytical.CopyApertureConstructionLayers",
-              "Copy ApertureConstruction ConstructionLayes between SAM Analytical ApertureConstructions",
+              "Copy frame and/or pane construction layers from a source aperture construction to a destination aperture construction.",
               "SAM", "Analytical")
         {
         }
@@ -46,16 +46,16 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "apertureConstructionSource", NickName = "apertureConstructionSource", Description = "Source SAM Analytical ApertureConstruction", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "apertureConstructionSource", NickName = "apertureConstructionSource", Description = "Source SAM Analytical ApertureConstruction from which layers are copied", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "apertureConstructionDestination", NickName = "apertureConstructionDestination", Description = "Destination SAM Analytical ApertureConstruction", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "apertureConstructionDestination", NickName = "apertureConstructionDestination", Description = "Destination SAM Analytical ApertureConstruction that receives the layers", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_frame_", NickName = "_frame_", Description = "Copy Frame ConstructionLayers", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_frame_", NickName = "_frame_", Description = "If true, copy the frame construction layers", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_pane_", NickName = "_pane_", Description = "Copy Pane ConstructionLayers", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_pane_", NickName = "_pane_", Description = "If true, copy the pane construction layers", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
@@ -71,7 +71,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "apertureConstruction", NickName = "apertureConstruction", Description = "SAM Analytical Construction", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "apertureConstruction", NickName = "apertureConstruction", Description = "Resulting SAM Analytical ApertureConstruction with copied layers", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalRelatedObjects()
           : base("Analytical.RelatedObjects", "Analytical.RelatedObjects",
-              "Gets Related Objects from AnalyticalModel or AdjacencyCluster",
+              "Allows an engineer to query related objects (e.g. Panels of a Space, Systems connected to a Space) from an AdjacencyCluster or AnalyticalModel, optionally filtered by type and a second reference object.",
               "SAM", "Analytical03")
         {
         }
@@ -47,10 +47,10 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSAMObjectParam() { Name = "_object", NickName = "_object", Description = "SAM Object such as Space, Panel etc.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSAMObjectParam() { Name = "_secondObject", NickName = "_secondObject", Description = "SAM Object such as Space, Panel etc.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "type_", NickName = "type_", Description = "Type", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM AdjacencyCluster or AnalyticalModel to query", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMObjectParam() { Name = "_object", NickName = "_object", Description = "Primary SAM object (e.g. Space, Panel) to find relations for", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMObjectParam() { Name = "_secondObject", NickName = "_secondObject", Description = "Optional second SAM object to intersect the results with", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "type_", NickName = "type_", Description = "Optional full type name string to filter related objects by type", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }
@@ -63,7 +63,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMObjectParam() { Name = "objects", NickName = "objects", Description = "Objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMObjectParam() { Name = "objects", NickName = "objects", Description = "List of related SAM objects found in the adjacency cluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

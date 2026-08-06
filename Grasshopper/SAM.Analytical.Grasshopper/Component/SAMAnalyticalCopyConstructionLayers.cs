@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCopyConstructionLayers()
           : base("SAMAnalytical.CopyConstructionLayers", "SAMAnalytical.CopyConstructionLayers",
-              "Copy ConstructionLayes between SAM Analytical Constructions",
+              "Copy the construction layers from a source construction to a destination construction, retaining the destination's name and type.",
               "SAM", "Analytical")
         {
         }
@@ -46,9 +46,9 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "constructionSource", NickName = "constructionSource", Description = "Source SAM Analytical Construction", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "constructionSource", NickName = "constructionSource", Description = "Source SAM Analytical Construction from which layers are copied", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "constructionDestination", NickName = "constructionDestination", Description = "Destination SAM Analytical Construction", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "constructionDestination", NickName = "constructionDestination", Description = "Destination SAM Analytical Construction that receives the layers", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -62,7 +62,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction", NickName = "construction", Description = "SAM Analytical Construction", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction", NickName = "construction", Description = "Resulting SAM Analytical Construction with copied layers", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

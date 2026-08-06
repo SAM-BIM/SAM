@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalPlanarBoundary3D()
           : base("SAMAnalytical.PlanarBoundary3D", "SAMAnalytical.PlanarBoundary3D",
-              "Gets SAM Analytical PlanarBoundary3D",
+              "Allows the engineer to extract the PlanarBoundary3D geometry object from a SAM Analytical panel for further geometric processing",
               "SAM", "Analytical03")
         {
         }
@@ -44,7 +44,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<Core.SAMObject>() { Name = "_SAMAnalytical", NickName = "_SAMAnalytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<Core.SAMObject>() { Name = "_SAMAnalytical", NickName = "_SAMAnalytical", Description = "SAM Analytical Panel to extract the PlanarBoundary3D from", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

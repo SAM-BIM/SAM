@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalObjects()
           : base("SAMAnalytical.Objects", "SAMAnalytical.Objects",
-              "Gets Objects form AdjacencyCluster or AnalyticalModel",
+              "Allows an engineer to extract all objects of a given type from an AdjacencyCluster or AnalyticalModel (e.g. all Spaces or all Panels).",
               "SAM", "Core")
         {
         }
@@ -47,8 +47,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_type_", NickName = "_type_", Description = "SAM Type Full Name \nie. SAM.Analytical.Space or SAM.Analytical.Panel", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM AdjacencyCluster or AnalyticalModel to extract objects from", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_type_", NickName = "_type_", Description = "Optional full type name filter (e.g. SAM.Analytical.Space or SAM.Analytical.Panel)", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }
@@ -61,7 +61,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Objects", NickName = "Objects", Description = "Objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Objects", NickName = "Objects", Description = "List of SAM objects extracted from the adjacency cluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGeometry()
           : base("SAMAnalytical.Geometry", "SAMAnalytical.Geometry",
-              "Convert SAM Analitical to GH Geometry ie. Panel to Surface",
+              "Allows the engineer to convert SAM Analytical objects (panels, apertures, spaces, adjacency clusters) into Rhino/Grasshopper geometry such as surfaces and BREPs",
               "SAM", "Analytical01")
         {
         }
@@ -47,15 +47,15 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_SAMAnalytical", NickName = "_SAMAnalytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_SAMAnalytical", NickName = "_SAMAnalytical", Description = "SAM Analytical object to convert (Panel, Aperture, Space, AdjacencyCluster, or AnalyticalModel)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
 
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_cutApertures", NickName = "_cutApertures", Description = "Cut Apertures If Applicable", Access = GH_ParamAccess.item };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_cutApertures", NickName = "_cutApertures", Description = "If True, aperture openings are cut out of the panel surface geometry", Access = GH_ParamAccess.item };
                 param_Boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_includeFrame", NickName = "_includeFrame", Description = "Include Frame", Access = GH_ParamAccess.item };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_includeFrame", NickName = "_includeFrame", Description = "If True, includes the frame geometry when converting apertures", Access = GH_ParamAccess.item };
                 param_Boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
@@ -76,7 +76,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Geometry() { Name = "Geometry", NickName = "Geometry", Description = "Geometry in GH ie.Surface", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Geometry() { Name = "Geometry", NickName = "Geometry", Description = "Resulting Rhino geometry (surfaces, BREPs, etc.)", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

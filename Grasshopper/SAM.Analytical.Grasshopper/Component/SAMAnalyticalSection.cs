@@ -37,7 +37,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSection()
           : base("SAMAnalytical.Section", "SAMAnalytical.Section",
-              "Section through list of Panels, AdjacencyClusters, AnalyticalModels",
+              "Allows the engineer to slice through panels, adjacency clusters, or analytical models at specified elevations and extract the intersecting geometry",
               "SAM", "Analytical03")
         {
         }
@@ -57,10 +57,10 @@ namespace SAM.Analytical.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_Number paramNumber;
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_elevations", NickName = "_elevations", Description = "Section Elevations", Access = GH_ParamAccess.list };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_elevations", NickName = "_elevations", Description = "List of elevations at which to cut the sections [m]", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Optional = true, Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Distance tolerance for section plane intersection [m]", Optional = true, Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Tolerance.Distance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
@@ -76,9 +76,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "elevations", NickName = "elevations", Description = "Elevations", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "geometries", NickName = "geometries", Description = "geometries", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "Panels intersected at the given elevations", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "elevations", NickName = "elevations", Description = "Elevations at which each panel was sectioned, structured in a data tree [m]", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "geometries", NickName = "geometries", Description = "Section geometry (SAM ISAMGeometry3D) at each elevation, structured in a data tree", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

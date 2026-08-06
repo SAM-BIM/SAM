@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalMechanicalSystemTypes()
           : base("SAMAnalytical.SystemTypes", "SAMAnalytical.SystemTypes",
-              "Gets Analytical System Types",
+              "Allows an engineer to resolve Ventilation, Heating and Cooling system types from a Space or InternalCondition using a SystemTypeLibrary.",
               "SAM", "Analytical02")
         {
         }
@@ -46,9 +46,9 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_analytical", NickName = "_analytical", Description = "SAM Space or InternalCondition to resolve system types from", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                GooSystemTypeLibraryParam gooSystemTypeLibraryParam = new GooSystemTypeLibraryParam() { Name = "_systemTypeLibrary_", NickName = "_systemTypeLibrary_", Description = "SAM SystemTypeLibrary", Access = GH_ParamAccess.item, Optional = true };
+                GooSystemTypeLibraryParam gooSystemTypeLibraryParam = new GooSystemTypeLibraryParam() { Name = "_systemTypeLibrary_", NickName = "_systemTypeLibrary_", Description = "Optional SAM SystemTypeLibrary; uses default from settings if omitted", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(gooSystemTypeLibraryParam, ParamVisibility.Binding));
 
                 return result.ToArray();
@@ -63,9 +63,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSystemTypeParam() { Name = "Ventilation", NickName = "Ventilation", Description = "SAM Analytical Ventilation System Type", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSystemTypeParam() { Name = "Heating", NickName = "Heating", Description = "SAM Analytical Heating System Type", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSystemTypeParam() { Name = "Cooling", NickName = "Cooling", Description = "SAM Analytical Cooling System Type", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSystemTypeParam() { Name = "Ventilation", NickName = "Ventilation", Description = "Resolved VentilationSystemType for the input space/condition", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSystemTypeParam() { Name = "Heating", NickName = "Heating", Description = "Resolved HeatingSystemType for the input space/condition", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSystemTypeParam() { Name = "Cooling", NickName = "Cooling", Description = "Resolved CoolingSystemType for the input space/condition", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

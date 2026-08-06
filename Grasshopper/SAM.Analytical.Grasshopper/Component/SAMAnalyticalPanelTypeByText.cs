@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalPanelTypeByText()
           : base("SAMAnalytical.PanelTypeByText", "SAMAnalytical.PanelTypeByText",
-              "Get PanelType By Text",
+              "Allows the engineer to match a text string to a SAM Analytical PanelType using keyword heuristics (e.g. 'roof', 'floor ext', 'wall int')",
               "SAM", "Analytical03")
         {
         }
@@ -44,7 +44,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_text", NickName = "_text", Description = "Text", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_text", NickName = "_text", Description = "Text keyword to resolve into a PanelType (e.g. 'roof', 'floor ext', 'wall int', 'shd', 'sol')", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

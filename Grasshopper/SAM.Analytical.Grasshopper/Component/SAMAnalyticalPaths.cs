@@ -36,7 +36,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalPaths()
           : base("SAMAnalytical.Paths", "SAMAnalytical.Paths",
-              "Gets all project and filepath generated \nUse to name your project \n*Right click to access extra option \n ie. open project folder",
+              "Allows an engineer to generate all project file paths (SAM, JSON, TBD, gbXML, GEM, IFC, etc.) from a directory, project name and model name. Right-click for options to open the project folder or reset directories.",
               "SAM", "Analytical03")
         {
         }
@@ -63,15 +63,15 @@ namespace SAM.Analytical.Grasshopper
 
                 string directory = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "SAMSimulation");
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_directory_", NickName = "_directory_", Description = "Directory", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_directory_", NickName = "_directory_", Description = "Base directory path for the project [default: user/SAMSimulation]", Access = GH_ParamAccess.item };
                 number.SetPersistentData(directory);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_projectName_", NickName = "_projectName_", Description = "Project Name", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_projectName_", NickName = "_projectName_", Description = "Project name used as a subdirectory under the base directory", Access = GH_ParamAccess.item };
                 number.SetPersistentData("000000");
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_modelName_", NickName = "_modelName_", Description = "Model Name", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_modelName_", NickName = "_modelName_", Description = "Model file name prefix for all generated file paths", Access = GH_ParamAccess.item };
                 number.SetPersistentData("000000_SAM_AnalyticalModel");
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
@@ -87,17 +87,17 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "modelName", NickName = "modelName", Description = "Model Name used for Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "directory", NickName = "directory", Description = "SAM Analytical Model Directory", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "sam", NickName = "sam", Description = "SAM Analytical Model Path", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "json", NickName = "json", Description = "SAM Analytical Model Path as json", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "tbd", NickName = "tbd", Description = "TasTPD File Path", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "gbXML", NickName = "gbXML", Description = "gbXML File Path", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "gem", NickName = "gem", Description = "IES GEM File Path", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "t3d", NickName = "t3d", Description = "Tas T3D File Path", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "tsd", NickName = "tsd", Description = "TasTSD File Path", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "tpd", NickName = "tpd", Description = "TasTPD File Path", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "ifc", NickName = "ifc", Description = "IFC File Path", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "modelName", NickName = "modelName", Description = "Model file name prefix", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "directory", NickName = "directory", Description = "Combined project directory path", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "sam", NickName = "sam", Description = "Full path for the .sam analytical model file", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "json", NickName = "json", Description = "Full path for the .json analytical model file", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "tbd", NickName = "tbd", Description = "Full path for the .tbd (Tas Building Data) file", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "gbXML", NickName = "gbXML", Description = "Full path for the .xml (gbXML) export file", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "gem", NickName = "gem", Description = "Full path for the .gem (IES GEM) export file", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "t3d", NickName = "t3d", Description = "Full path for the .t3d (Tas 3D) export file", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "tsd", NickName = "tsd", Description = "Full path for the .tsd (Tas Simulation Data) file", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "tpd", NickName = "tpd", Description = "Full path for the .tpd (Tas Plant Data) file", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_FilePath() { Name = "ifc", NickName = "ifc", Description = "Full path for the .ifc export file", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
 
                 return result.ToArray();
             }

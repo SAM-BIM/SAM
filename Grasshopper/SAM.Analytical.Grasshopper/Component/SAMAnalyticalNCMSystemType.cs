@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalNCMSystemType()
           : base("SAMAnalytical.NCMSystemType", "SAMAnalytical.NCMSystemType",
-              "Select NCMSystemType",
+              "Allows an engineer to select an NCM System Type for UK National Calculation Methodology compliance modelling.",
               "SAM", "Analytical02")
         {
         }

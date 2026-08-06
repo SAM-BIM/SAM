@@ -36,7 +36,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalReportSpaces()
           : base("SAMAnalytical.ReportSpaces", "SAMAnalytical.ReportSpaces",
-              "Reports space data from the Space, its InternalCondition, calculated values, and related system objects.\n\nThis component returns:\n- direct Space properties such as Name, Guid, Area, Volume and LevelName,\n- direct InternalCondition values such as AreaPerPerson, Infiltration, profile names and system type names,\n- calculated values such as Occupancy, gains, design temperatures and airflow rates,\n- related system data such as system type GUIDs and supply or exhaust unit names.\n\nOccupancy is resolved as follows:\n- first use Space Occupancy when available,\n- otherwise calculate it from Space Area and InternalCondition AreaPerPerson.\n\nConnect an AnalyticalModel to resolve profile-based results such as design temperatures, humidity values, profile GUIDs and related system data.",
+              "Allows an engineer to report space data from Spaces, InternalConditions, calculated values and related system objects.\n\nThis component returns:\n- direct Space properties such as Name, Guid, Area, Volume and LevelName,\n- direct InternalCondition values such as AreaPerPerson, Infiltration, profile names and system type names,\n- calculated values such as Occupancy, gains, design temperatures and airflow rates,\n- related system data such as system type GUIDs and supply or exhaust unit names.\n\nOccupancy is resolved as follows:\n- first use Space Occupancy when available,\n- otherwise calculate it from Space Area and InternalCondition AreaPerPerson.\n\nConnect an AnalyticalModel to resolve profile-based results such as design temperatures, humidity values, profile GUIDs and related system data.",
               "SAM", "Analytical03")
         {
         }
@@ -89,7 +89,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "Area",
                     NickName = "Area",
-                    Description = "Space area.\nSource: Space.",
+                    Description = "Space floor area [m\u00B2].\nSource: Space.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -97,7 +97,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "Volume",
                     NickName = "Volume",
-                    Description = "Space volume.\nSource: Space.",
+                    Description = "Space volume [m\u00B3].\nSource: Space.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -105,7 +105,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "Occupancy",
                     NickName = "Occupancy",
-                    Description = "Calculated occupancy.\nUses Space Occupancy when available.\nOtherwise calculated from Space Area and InternalCondition AreaPerPerson.",
+                    Description = "Calculated occupancy (number of people).\nUses Space Occupancy when available.\nOtherwise calculated from Space Area and InternalCondition AreaPerPerson.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -113,7 +113,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "AreaPerPerson",
                     NickName = "AreaPerPerson",
-                    Description = "Area per person.\nSource: InternalCondition.",
+                    Description = "Area per person [m\u00B2/person].\nSource: InternalCondition.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -129,7 +129,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "Infiltration",
                     NickName = "Infiltration",
-                    Description = "Infiltration air changes per hour.\nSource: InternalCondition.",
+                    Description = "Infiltration air changes per hour [ac/h].\nSource: InternalCondition.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -153,7 +153,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "OccupancySensibleGainPerPerson",
                     NickName = "OccupancySensibleGainPerPerson",
-                    Description = "Occupancy sensible gain per person, W/person.\nCalculated from OccupancySensibleGain divided by Occupancy.",
+                    Description = "Occupancy sensible gain per person [W/person].\nCalculated from OccupancySensibleGain divided by Occupancy.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Voluntary));
 
@@ -161,7 +161,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "OccupancySensibleGainPerArea",
                     NickName = "OccupancySensibleGainPerArea",
-                    Description = "Occupancy sensible gain per area, W/m2.\nCalculated from OccupancySensibleGain divided by Area.",
+                    Description = "Occupancy sensible gain per area [W/m\u00B2].\nCalculated from OccupancySensibleGain divided by Area.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -169,7 +169,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "OccupancyLatentGainPerPerson",
                     NickName = "OccupancyLatentGainPerPerson",
-                    Description = "Occupancy latent gain per person, W/person.\nCalculated from OccupancyLatentGain divided by Occupancy.",
+                    Description = "Occupancy latent gain per person [W/person].\nCalculated from OccupancyLatentGain divided by Occupancy.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Voluntary));
 
@@ -177,7 +177,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "OccupancyLatentGainPerArea",
                     NickName = "OccupancyLatentGainPerArea",
-                    Description = "Occupancy latent gain per area, W/m2.\nCalculated from OccupancyLatentGain divided by Area.",
+                    Description = "Occupancy latent gain per area [W/m\u00B2].\nCalculated from OccupancyLatentGain divided by Area.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -185,7 +185,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "OccupancySensibleGain",
                     NickName = "OccupancySensibleGain",
-                    Description = "Occupancy sensible gain, W.\nCalculated from Space and InternalCondition data.",
+                    Description = "Occupancy sensible gain [W].\nCalculated from Space and InternalCondition data.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Voluntary));
 
@@ -193,7 +193,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "OccupancyLatentGain",
                     NickName = "OccupancyLatentGain",
-                    Description = "Occupancy latent gain, W.\nCalculated from Space and InternalCondition data.",
+                    Description = "Occupancy latent gain [W].\nCalculated from Space and InternalCondition data.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Voluntary));
 
@@ -217,7 +217,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "EquipmentSensibleGainPerArea",
                     NickName = "EquipmentSensibleGainPerArea",
-                    Description = "Equipment sensible gain per area, W/m2.\nCalculated from EquipmentSensibleGain divided by Area.",
+                    Description = "Equipment sensible gain per area [W/m\u00B2].\nCalculated from EquipmentSensibleGain divided by Area.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -225,7 +225,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "EquipmentLatentGainPerArea",
                     NickName = "EquipmentLatentGainPerArea",
-                    Description = "Equipment latent gain per area, W/m2.\nCalculated from EquipmentLatentGain divided by Area.",
+                    Description = "Equipment latent gain per area [W/m\u00B2].\nCalculated from EquipmentLatentGain divided by Area.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -233,7 +233,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "EquipmentSensibleGain",
                     NickName = "EquipmentSensibleGain",
-                    Description = "Equipment sensible gain, W.\nCalculated from Space and InternalCondition data.",
+                    Description = "Equipment sensible gain [W].\nCalculated from Space and InternalCondition data.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Voluntary));
 
@@ -241,7 +241,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "EquipmentLatentGain",
                     NickName = "EquipmentLatentGain",
-                    Description = "Equipment latent gain, W.\nCalculated from Space and InternalCondition data.",
+                    Description = "Equipment latent gain [W].\nCalculated from Space and InternalCondition data.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Voluntary));
 
@@ -281,7 +281,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "LightingGainPerArea",
                     NickName = "LightingGainPerArea",
-                    Description = "Lighting gain per area, W/m2.\nCalculated from LightingGain divided by Area.",
+                    Description = "Lighting gain per area [W/m\u00B2].\nCalculated from LightingGain divided by Area.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -289,7 +289,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "LightingLevel",
                     NickName = "LightingLevel",
-                    Description = "Lighting level, lx.\nSource: InternalCondition.",
+                    Description = "Lighting level [lux].\nSource: InternalCondition.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -297,7 +297,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "LightingGain",
                     NickName = "LightingGain",
-                    Description = "Lighting gain, W.\nCalculated from Space and InternalCondition data.",
+                    Description = "Lighting gain [W].\nCalculated from Space and InternalCondition data.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Voluntary));
 
@@ -321,7 +321,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "HeatingDesignTemperature",
                     NickName = "HeatingDesignTemperature",
-                    Description = "Heating design temperature, degC.\nCalculated from the space and ProfileLibrary.",
+                    Description = "Heating design temperature [\u00B0C].\nCalculated from the space and ProfileLibrary.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -345,7 +345,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "CoolingDesignTemperature",
                     NickName = "CoolingDesignTemperature",
-                    Description = "Cooling design temperature, degC.\nCalculated from the space and ProfileLibrary.",
+                    Description = "Cooling design temperature [\u00B0C].\nCalculated from the space and ProfileLibrary.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -369,7 +369,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "Humidity",
                     NickName = "Humidity",
-                    Description = "Cooling design relative humidity.\nCalculated from the space and ProfileLibrary.",
+                    Description = "Cooling design relative humidity [%].\nCalculated from the space and ProfileLibrary.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -393,7 +393,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "Dehumidity",
                     NickName = "Dehumidity",
-                    Description = "Heating design relative humidity.\nCalculated from the space and ProfileLibrary.",
+                    Description = "Heating design relative humidity [%].\nCalculated from the space and ProfileLibrary.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Binding));
 
@@ -489,7 +489,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "SupplyAirFlow",
                     NickName = "SupplyAirFlow",
-                    Description = "Supply air flow, m3/s.\nCalculated from the space and related systems.",
+                    Description = "Supply air flow [m\u00B3/s].\nCalculated from the space and related systems.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Voluntary));
 
@@ -505,7 +505,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "ExhaustAirFlow",
                     NickName = "ExhaustAirFlow",
-                    Description = "Exhaust air flow, m3/s.\nCalculated from the space and related systems.",
+                    Description = "Exhaust air flow [m\u00B3/s].\nCalculated from the space and related systems.",
                     Access = GH_ParamAccess.list
                 }, ParamVisibility.Voluntary));
 

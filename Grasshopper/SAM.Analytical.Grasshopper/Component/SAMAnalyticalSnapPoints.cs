@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSnapPoints()
           : base("SAMAnalytical.SnapPoints", "SAMAnalytical.SnapPoints",
-              "Generate Snap Points for SAM Analytical Panel",
+              "Generate a set of snap-grid points offset from a specified origin, for use with panel snapping components.",
               "SAM", "Analytical03")
         {
         }
@@ -47,15 +47,15 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_Panel", NickName = "_Panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_Panel", NickName = "_Panel", Description = "SAM Analytical Panel from which bounding geometry is derived", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Point param_Point;
-                param_Point = new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "_origin_", NickName = "_origin_", Description = "Origin Point", Access = GH_ParamAccess.item };
+                param_Point = new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "_origin_", NickName = "_origin_", Description = "Origin point for the snap grid", Access = GH_ParamAccess.item };
                 param_Point.SetPersistentData(new Point3d(0, 0, 0));
                 result.Add(new GH_SAMParam(param_Point, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_offset_", NickName = "_offset_", Description = "offset", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_offset_", NickName = "_offset_", Description = "Grid spacing for snap-point generation [m]", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(1);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -71,7 +71,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "_Points", NickName = "_Points", Description = "Points", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "_Points", NickName = "_Points", Description = "Snap grid points generated from the panel", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

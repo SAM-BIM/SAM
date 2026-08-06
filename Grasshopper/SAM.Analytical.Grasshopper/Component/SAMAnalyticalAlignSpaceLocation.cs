@@ -53,10 +53,10 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                GooAnalyticalObjectParam analyticalObjectParam = new GooAnalyticalObjectParam() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM Analytical Object such as AdjacencyCluster, AnalyticalModel", Access = GH_ParamAccess.item };
+                GooAnalyticalObjectParam analyticalObjectParam = new GooAnalyticalObjectParam() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM Analytical Object (AdjacencyCluster or AnalyticalModel) containing spaces and panels", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(analyticalObjectParam, ParamVisibility.Binding));
 
-                GooSpaceParam gooSpaceParam = new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "Spaces", Access = GH_ParamAccess.list, Optional = true };
+                GooSpaceParam gooSpaceParam = new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "Optional list of Spaces to align; if omitted, all spaces in the model are processed", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(gooSpaceParam, ParamVisibility.Binding));
 
                 return result.ToArray();
@@ -71,8 +71,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analyticalObject", NickName = "analyticalObject", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "successful", NickName = "successful", Description = "Successful", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analyticalObject", NickName = "analyticalObject", Description = "Modified SAM AnalyticalObject with adjusted space locations", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "successful", NickName = "successful", Description = "True if at least one space location was successfully adjusted", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

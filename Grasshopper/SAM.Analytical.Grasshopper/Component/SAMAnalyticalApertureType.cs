@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalApertureType()
           : base("SAMAnalytical.ApertureType", "SAMAnalytical.ApertureType",
-              "Select Aperture Type",
+              "Allows an engineer to select an ApertureType (Window, Door, etc.) for use with other analytical components.",
               "SAM", "Analytical")
         {
         }

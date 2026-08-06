@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAlignHorizontalPanelByElevations()
           : base("SAMAnalytical.AlignHorizontalPanelByElevations", "SAMAnalytical.AlignHorizontalPanelByElevations",
-              "Align Horizontal Panel to given Elevations",
+              "Align a single horizontal analytical panel to the nearest specified elevation. Non-horizontal panels are projected onto the elevation plane when projection is enabled.",
               "SAM", "Analytical")
         {
         }
@@ -49,24 +49,24 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                GooPanelParam panelParam = new GooPanelParam() { Name = "_panel", NickName = "_panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item };
+                GooPanelParam panelParam = new GooPanelParam() { Name = "_panel", NickName = "_panel", Description = "SAM Analytical Panel to align", Access = GH_ParamAccess.item };
                 panelParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(panelParam, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_GenericObject genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_elevations", NickName = "_elevations", Description = "Elevations", Access = GH_ParamAccess.list };
+                global::Grasshopper.Kernel.Parameters.Param_GenericObject genericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_elevations", NickName = "_elevations", Description = "Target elevations as numbers, Level objects or numeric strings [m]", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(genericObject, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number paramNumber = null;
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "maxDistance_", NickName = "maxDistance_", Description = "Max Distance", Optional = true, Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "maxDistance_", NickName = "maxDistance_", Description = "Maximum vertical distance within which alignment is applied [m]", Optional = true, Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(2);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Voluntary));
 
-                global::Grasshopper.Kernel.Parameters.Param_Boolean paramBoolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "projectOnElevation_", NickName = "projectOnElevation_", Description = "Project non horizontal Panel on Elevation", Optional = true, Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Boolean paramBoolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "projectOnElevation_", NickName = "projectOnElevation_", Description = "If true, non-horizontal panels are projected onto the nearest elevation plane before alignment", Optional = true, Access = GH_ParamAccess.item };
                 paramBoolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(paramBoolean, ParamVisibility.Voluntary));
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Optional = true, Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Geometric tolerance for planarity and proximity checks [m]", Optional = true, Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Tolerance.Distance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Voluntary));
 
@@ -82,7 +82,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panel", NickName = "panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panel", NickName = "panel", Description = "SAM Analytical Panel aligned to the closest elevation", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalInternalConditionParameter()
           : base("SAMAnalytical.InternalConditionParameter", "SAMAnalytical.InternalConditionParameter",
-              "Select InternalConditionParameter",
+              "Allows an engineer to select an InternalConditionParameter to query a specific internal condition value from a space.",
               "SAM", "Analytical02")
         {
         }
