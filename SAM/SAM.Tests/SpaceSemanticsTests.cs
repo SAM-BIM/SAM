@@ -324,6 +324,79 @@ namespace SAM.Tests
             Assert.Equal(SpaceUse.Bedroom, spaceSemantics.SpaceUse_InternalCondition);
         }
 
+        // ------------------------------------------------------------------
+        // Compatible refinements are not conflicts
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Circulation (in-dwelling) and Communal Circulation are not a disagreement: Communal
+        /// Circulation is Circulation, just outside the dwelling boundary rather than inside it. The
+        /// more specific value wins and no conflict is reported.
+        /// </summary>
+        [Fact]
+        public void CirculationAndCommunalCirculation_AreCompatibleNotConflicting()
+        {
+            Space space = Space("Corridor_1");
+            space.InternalCondition = new InternalCondition("Communal Corridor");
+
+            SpaceSemantics spaceSemantics = Resolver().Resolve(space);
+
+            Assert.Equal(SpaceUse.CommunalCirculation, spaceSemantics.SpaceUse);
+            Assert.False(spaceSemantics.HasSourceConflict);
+            Assert.Equal(SpaceUse.Circulation, spaceSemantics.SpaceUse_Name);
+            Assert.Equal(SpaceUse.CommunalCirculation, spaceSemantics.SpaceUse_InternalCondition);
+        }
+
+        /// <summary>
+        /// The pairing resolves the same way whichever source produced the more specific value - it is
+        /// the specificity that matters, not which source (name vs internal condition) said it.
+        /// </summary>
+        [Fact]
+        public void CirculationAndCommunalCirculation_ResolveToTheMoreSpecificValue_RegardlessOfSource()
+        {
+            Space space = Space("Communal Corridor");
+            space.InternalCondition = new InternalCondition("Hall");
+
+            SpaceSemantics spaceSemantics = Resolver().Resolve(space);
+
+            Assert.Equal(SpaceUse.CommunalCirculation, spaceSemantics.SpaceUse);
+            Assert.False(spaceSemantics.HasSourceConflict);
+        }
+
+        /// <summary>
+        /// Bathroom versus Studio is a genuinely incompatible pair - neither is a refinement of the
+        /// other - so it must remain a reported conflict.
+        /// </summary>
+        [Fact]
+        public void BathroomAndStudio_RemainAGenuineConflict()
+        {
+            Space space = Space("Bathroom_2");
+            space.InternalCondition = new InternalCondition("Studio");
+
+            SpaceSemantics spaceSemantics = Resolver().Resolve(space);
+
+            Assert.True(spaceSemantics.HasSourceConflict);
+            Assert.Equal(SpaceUse.Bathroom, spaceSemantics.SpaceUse);
+        }
+
+        /// <summary>
+        /// An explicit override still wins outright even where the name and internal condition would
+        /// otherwise resolve as a compatible refinement rather than a conflict - the override check runs
+        /// first and returns immediately, before either source is even matched.
+        /// </summary>
+        [Fact]
+        public void UserOverride_WinsEvenOverACompatibleRefinementPair()
+        {
+            Space space = Space("Corridor_1");
+            space.InternalCondition = new InternalCondition("Communal Corridor");
+            space.SetValue(SpaceParameter.SpaceUseOverride, SpaceUse.PlantRoom.ToString());
+
+            SpaceSemantics spaceSemantics = Resolver().Resolve(space);
+
+            Assert.Equal(SpaceUse.PlantRoom, spaceSemantics.SpaceUse);
+            Assert.Equal(SpaceSemanticsSource.UserOverride, spaceSemantics.Source);
+        }
+
         /// <summary>
         /// Where only the InternalCondition resolved, the name source is recorded as Undefined rather than
         /// being conflated with the winning value.

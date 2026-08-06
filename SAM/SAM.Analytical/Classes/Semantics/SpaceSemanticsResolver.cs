@@ -177,7 +177,28 @@ namespace SAM.Analytical
             SpaceUse spaceUse_Name = resolved_Name ? fromName.SpaceUse : SpaceUse.Undefined;
             SpaceUse spaceUse_InternalCondition = resolved_InternalCondition ? fromInternalCondition.SpaceUse : SpaceUse.Undefined;
 
-            bool conflict = resolved_Name && resolved_InternalCondition && spaceUse_Name != spaceUse_InternalCondition;
+            bool sourcesDiffer = resolved_Name && resolved_InternalCondition && spaceUse_Name != spaceUse_InternalCondition;
+
+            //Not every disagreement is a genuine conflict: one source can be a more specific refinement
+            //of the other (e.g. Circulation / Communal Circulation say the same thing at different
+            //specificity, not two different things). That resolves to the more specific value, whichever
+            //source produced it, with no conflict reported.
+            if (sourcesDiffer)
+            {
+                if (Query.IsCompatibleSpaceUseRefinement(spaceUse_InternalCondition, spaceUse_Name))
+                {
+                    fromName.SetSources(spaceUse_Name, spaceUse_InternalCondition, false);
+                    return fromName;
+                }
+
+                if (Query.IsCompatibleSpaceUseRefinement(spaceUse_Name, spaceUse_InternalCondition))
+                {
+                    fromInternalCondition.SetSources(spaceUse_Name, spaceUse_InternalCondition, false);
+                    return fromInternalCondition;
+                }
+            }
+
+            bool conflict = sourcesDiffer;
 
             if (conflict)
             {
