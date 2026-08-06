@@ -151,6 +151,14 @@ namespace SAM.Tests
             Assert.Equal(1, flat2.HabitableRoomCount);
             Assert.True(flat2.OneHabitableRoomRuleApplied);
             Assert.Equal(13, flat2.BedroomOrHabitableRate_Lps, tolerance);
+
+            //BedroomBasedRate_Lps is the plain Table 1.3 one-bedroom figure (19 l/s), NOT the note 1
+            //rate it happens to have been overridden by. The two must read differently here, or a
+            //regression collapsing them back into one number (as BedroomOrHabitableRate_Lps did before
+            //this fix) would report this dwelling's bedroom-table rate as 13, not the real 19.
+            Assert.Equal(19, flat2.BedroomBasedRate_Lps, tolerance);
+            Assert.NotEqual(flat2.BedroomBasedRate_Lps, flat2.BedroomOrHabitableRate_Lps);
+
             Assert.Equal(63, flat2.AreaBasedRate_Lps, tolerance);
             Assert.Equal(63, flat2.FinalSystemRate_Lps, tolerance);
         }

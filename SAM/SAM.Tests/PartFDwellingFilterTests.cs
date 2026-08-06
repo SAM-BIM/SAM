@@ -57,6 +57,35 @@ namespace SAM.Tests
             Assert.Null(SpaceData(partFCalculator, "Corridor_1"));
         }
 
+        /// <summary>
+        /// A flow rate from an EARLIER calculation must not survive into a later one that no longer
+        /// sizes that space. The corridor's space never having PartFSpaceData in a fresh model (the test
+        /// above) does not exercise this, because circulation takes no Part F terminal at all and so is
+        /// never populated regardless of inclusion - it exercises the exact regression this guards: size
+        /// Flat 1 as a dwelling, giving Studio 1_0 a real, non-null flow rate, then decide Flat 1 is
+        /// actually not a dwelling (e.g. a landlord unit) and recalculate on that same, now-populated
+        /// cluster; Studio 1_0's stale rate from when it WAS sized must be gone, not just absent from
+        /// this run's own writes.
+        /// </summary>
+        [Fact]
+        public void ZoneExcludedAfterAnEarlierRunSizedIt_LosesItsStaleFlowRate()
+        {
+            PartFCalculator partFCalculator = Calculate(Marked());
+
+            PartFSpaceData spaceData_BeforeExclusion = SpaceData(partFCalculator, "Studio 1_0");
+            Assert.NotNull(spaceData_BeforeExclusion);
+            Assert.True(spaceData_BeforeExclusion.ContinuousDesignFlowRate_Lps > 0);
+
+            AdjacencyCluster adjacencyCluster = partFCalculator.AdjacencyCluster;
+            Zone flat1 = adjacencyCluster.GetZones().Find(x => x.Name == "Flat 1");
+            flat1.SetValue(ZoneParameter.IsDwelling, false);
+            adjacencyCluster.AddObject(flat1);
+
+            PartFCalculator partFCalculator_Reexcluded = Calculate(adjacencyCluster);
+
+            Assert.Null(SpaceData(partFCalculator_Reexcluded, "Studio 1_0"));
+        }
+
         /// <summary>The excluded corridor is reported, so its exclusion is visible rather than silent.</summary>
         [Fact]
         public void ExplicitlyExcludedCorridor_IsReported()

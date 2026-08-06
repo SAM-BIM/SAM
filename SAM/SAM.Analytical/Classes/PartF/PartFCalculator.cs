@@ -156,6 +156,8 @@ namespace SAM.Analytical
 
             AdjacencyCluster adjacencyCluster = new(AdjacencyCluster, deepClone: true);
 
+            ClearStalePartFSpaceData(adjacencyCluster);
+
             List<Space> spaces_Selected = Resolve(adjacencyCluster, spaces is null ? adjacencyCluster.GetSpaces() : [.. spaces]);
 
             CalculateDwelling(adjacencyCluster, null, spaces_Selected);
@@ -197,6 +199,8 @@ namespace SAM.Analytical
             }
 
             AdjacencyCluster adjacencyCluster = new(AdjacencyCluster, deepClone: true);
+
+            ClearStalePartFSpaceData(adjacencyCluster);
 
             List<Zone> zones = adjacencyCluster.GetZones();
             if (zones is null || zones.Count == 0)
@@ -392,6 +396,32 @@ namespace SAM.Analytical
             SetbackSystemRate_Lps = null;
         }
 
+        /// <summary>
+        /// Clears any <see cref="SpaceParameter.PartFSpaceData"/> already sitting on the cloned
+        /// cluster's spaces, so this calculation starts from a clean slate.
+        /// <para>
+        /// A space only has its PartFSpaceData written to during a run that actually sizes it. A space
+        /// sized by an earlier run - e.g. under the legacy category-only fallback, before its zone was
+        /// marked Is Dwelling = false - but excluded from THIS run keeps its old, now-meaningless
+        /// flow rate forever unless something clears it: nothing downstream overwrites a space it never
+        /// visits. Clearing every space up front means "not sized this run" and "carries no Part F data"
+        /// are the same state, which is what every caller (SAM_UI, Grasshopper) actually reads.
+        /// </para>
+        /// </summary>
+        private static void ClearStalePartFSpaceData(AdjacencyCluster adjacencyCluster)
+        {
+            foreach (Space space in adjacencyCluster?.GetSpaces() ?? [])
+            {
+                if (space is null || space.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData) is null)
+                {
+                    continue;
+                }
+
+                space.RemoveValue(SpaceParameter.PartFSpaceData);
+                adjacencyCluster.AddObject(space);
+            }
+        }
+
         private static List<Space> Resolve(AdjacencyCluster adjacencyCluster, List<Space> spaces)
         {
             List<Space> result = [];
@@ -501,14 +531,21 @@ namespace SAM.Analytical
             //habitable room (a separate living room, a study) takes the dwelling back onto Table 1.3.
             dwellingResult.OneHabitableRoomRuleApplied = dwellingResult.HabitableRoomCount == 1;
 
+            //BedroomBasedRate_Lps and BedroomOrHabitableRate_Lps are deliberately two different numbers:
+            //the former is always the plain Table 1.3 bedroom-count rate, the latter is whichever of
+            //note 1 or Table 1.3 was actually selected. Assigning the selected rate to both would report
+            //a one-habitable-room studio's bedroom-table rate as 13 l/s (the note 1 rate) instead of the
+            //real Table 1.3 one-bedroom figure of 19 l/s, corrupting any comparison between the two.
+            double bedroomBasedRate = partFData.GetWholeDwellingRates_Lps(dwellingResult.BedroomCount);
             double bedroomBaseRate = partFData.GetBedroomOrHabitableRate_Lps(dwellingResult.HabitableRoomCount, dwellingResult.BedroomCount);
-            if (double.IsNaN(bedroomBaseRate))
+            if (double.IsNaN(bedroomBaseRate) || double.IsNaN(bedroomBasedRate))
             {
                 dwellingResult.Warnings.Add("No whole dwelling ventilation rate table (Approved Document F Table 1.3) is loaded. The bedroom based minimum rate has been ignored and only the floor area based rate applied.");
                 bedroomBaseRate = 0;
+                bedroomBasedRate = 0;
             }
 
-            dwellingResult.BedroomBasedRate_Lps = bedroomBaseRate;
+            dwellingResult.BedroomBasedRate_Lps = bedroomBasedRate;
             dwellingResult.BedroomOrHabitableRate_Lps = bedroomBaseRate;
 
             if (dwellingResult.OneHabitableRoomRuleApplied)
