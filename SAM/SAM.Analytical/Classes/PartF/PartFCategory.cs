@@ -33,6 +33,25 @@ namespace SAM.Analytical
 
         public List<string> Synonyms { get; private set; }
 
+        /// <summary>
+        /// True where the room contains the cooking function, so Approved Document F, Volume 1
+        /// (2021 edition) paragraph 1.17 and Table 1.2 require kitchen extract from it. A studio and
+        /// an open plan living kitchen are both cooking spaces.
+        /// </summary>
+        public bool IsCookingSpace { get; private set; }
+
+        /// <summary>
+        /// The shared semantic classification this Approved Document F category applies to. This is
+        /// what links the Part F rule set to the vocabulary that Approved Document O, CIBSE TM59 and
+        /// the SAM_UI internal condition mapping also use, so a space is recognised once and every
+        /// standard agrees what it is.
+        /// <para>
+        /// <see cref="Analytical.SpaceUse.Undefined"/> where a rule set predates the shared vocabulary;
+        /// such a category is matched by its <see cref="Synonyms"/> alone.
+        /// </para>
+        /// </summary>
+        public SpaceUse SpaceUse { get; private set; }
+
         public PartFCategory(
             string name,
             PartFType partFType,
@@ -44,8 +63,12 @@ namespace SAM.Analytical
             bool scaleSupplyWithVolume,
             bool scaleExtractAboveMinimum,
             string defaultFlowWeightBasis,
-            List<string> synonyms)
+            List<string> synonyms,
+            bool isCookingSpace = false,
+            SpaceUse spaceUse = SpaceUse.Undefined)
         {
+            IsCookingSpace = isCookingSpace;
+            SpaceUse = spaceUse;
             Name = name;
             PartFType = partFType;
             PartFVentilationType = partFVentilationType;

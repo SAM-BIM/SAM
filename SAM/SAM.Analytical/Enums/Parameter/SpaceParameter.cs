@@ -37,5 +37,19 @@ namespace SAM.Analytical
         [ParameterProperties("Daylight Factor", "Daylight Factor [-]"), DoubleParameterValue(0)] DaylightFactor,
 
         [ParameterProperties("PartF Space Data", "PartF Space Data"), SAMObjectParameterValue(typeof(PartFSpaceData))] PartFSpaceData,
+
+        /// <summary>
+        /// Shared semantic classification of the space - what the space is, and the independent
+        /// semantic roles that follow from it. Written by the space use mapping and read by Approved
+        /// Document F, Approved Document O and CIBSE TM59, so a space is classified once and reused.
+        /// </summary>
+        [ParameterProperties("Space Semantics", "Space Semantics"), SAMObjectParameterValue(typeof(SpaceSemantics))] SpaceSemantics,
+
+        /// <summary>
+        /// Explicit user override of the semantic classification, holding a <see cref="SpaceUse"/>
+        /// name. Highest authority: when set, no name matching is attempted. An unrecognised value is
+        /// reported rather than ignored.
+        /// </summary>
+        [ParameterProperties("Space Use Override", "Space Use Override"), ParameterValue(Core.ParameterType.String)] SpaceUseOverride,
     }
 }

@@ -38,6 +38,23 @@ namespace SAM.Analytical
                             result.AreaRate_LpsPerM2 = value_Temp;
                             continue;
                         }
+                        else if (name == "SetbackFlowRateFactor" || name == "BackgroundFlowRateFactor")
+                        {
+                            //Assigned through the property, which rejects zero, a negative factor, a
+                            //factor above 1, NaN and infinity and substitutes the documented default
+                            //rather than letting a bad data file produce a setback rate above the
+                            //continuous design rate or a rate that is not a number.
+                            //
+                            //BackgroundFlowRateFactor is still accepted so a rule set written by the
+                            //interim build that used that name keeps working.
+                            result.SetbackFlowRateFactor = value_Temp;
+                            continue;
+                        }
+                        else if (name == "OneHabitableRoomRate_Lps" && !double.IsNaN(value_Temp))
+                        {
+                            result.OneHabitableRoomRate_Lps = value_Temp;
+                            continue;
+                        }
                         else if(Core.Query.TryConvert<int>(name, out int @int) && !double.IsNaN(value_Temp))
                         {
                             result.WholeDwellingRates_Lps[@int] = value_Temp;
@@ -110,6 +127,22 @@ namespace SAM.Analytical
                                 scaleExtractAboveMinimum = jsonObject_Category["ScaleExtractAboveMinimum"].GetValue<bool>();
                             }
 
+                            bool isCookingSpace = false;
+                            if (jsonObject_Category["IsCookingSpace"] != null)
+                            {
+                                isCookingSpace = jsonObject_Category["IsCookingSpace"].GetValue<bool>();
+                            }
+
+                            //Links the category to the shared semantic vocabulary. Absent in a rule set
+                            //written before that vocabulary existed, in which case the category is
+                            //matched by its Synonyms alone.
+                            SpaceUse spaceUse = SpaceUse.Undefined;
+                            string spaceUseName = jsonObject_Category["SpaceUse"]?.GetValue<string>();
+                            if (!string.IsNullOrWhiteSpace(spaceUseName))
+                            {
+                                spaceUse = Core.Query.Enum<SpaceUse>(spaceUseName);
+                            }
+
                             string defaultFlowWeightBasis = jsonObject_Category["DefaultFlowWeightBasis"]?.GetValue<string>();
 
                             List<string> synonyms = [];
@@ -136,7 +169,9 @@ namespace SAM.Analytical
                                 scaleSupplyWithVolume,
                                 scaleExtractAboveMinimum,
                                 defaultFlowWeightBasis,
-                                synonyms);
+                                synonyms,
+                                isCookingSpace,
+                                spaceUse);
 
                             result.PartFCategories[partFCategory.Name] = partFCategory;
                         }

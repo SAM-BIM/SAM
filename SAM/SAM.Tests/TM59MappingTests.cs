@@ -43,7 +43,7 @@ namespace SAM.Tests
             Space bathroom2 = NewSpace("Bathroom2");
             Space studio10 = NewSpace("Studio 10");
             List<Space> flat1 = new List<Space> { bathroom2, studio10 };
-            Assert.Equal("TM59_Bathroom/internal corridors", ResolveName(resolver, bathroom2, flat1));
+            Assert.Equal("TM59_Bathroom", ResolveName(resolver, bathroom2, flat1));
             Assert.Equal("Studio", ResolveName(resolver, studio10, flat1));
 
             // Flat 2: one bedroom -> Double, one ensuite, one kitchen -> 1 Bed Apt. Kitchen
@@ -52,7 +52,7 @@ namespace SAM.Tests
             Space kitchen4 = NewSpace("Kitchen4");
             List<Space> flat2 = new List<Space> { bedroom23, ensuite5, kitchen4 };
             Assert.Equal("Double Bedroom", ResolveName(resolver, bedroom23, flat2));
-            Assert.Equal("TM59_Bathroom/internal corridors", ResolveName(resolver, ensuite5, flat2));
+            Assert.Equal("TM59_Bathroom", ResolveName(resolver, ensuite5, flat2));
             Assert.Equal("1 Bed Apt. Kitchen", ResolveName(resolver, kitchen4, flat2));
 
             // Flat 3: same shape as Flat 2
@@ -61,7 +61,7 @@ namespace SAM.Tests
             Space kitchen7 = NewSpace("Kitchen7");
             List<Space> flat3 = new List<Space> { bedroom26, ensuite8, kitchen7 };
             Assert.Equal("Double Bedroom", ResolveName(resolver, bedroom26, flat3));
-            Assert.Equal("TM59_Bathroom/internal corridors", ResolveName(resolver, ensuite8, flat3));
+            Assert.Equal("TM59_Bathroom", ResolveName(resolver, ensuite8, flat3));
             Assert.Equal("1 Bed Apt. Kitchen", ResolveName(resolver, kitchen7, flat3));
         }
 
@@ -262,7 +262,7 @@ namespace SAM.Tests
             TM59InternalConditionResolver resolver = TM59TestData.NewResolver();
 
             Assert.Equal("Double Bedroom", resolver.Resolve(adjacencyCluster, bedroom, "Flats").InternalCondition?.Name);
-            Assert.Equal("TM59_Bathroom/internal corridors", resolver.Resolve(adjacencyCluster, ensuite, "Flats").InternalCondition?.Name);
+            Assert.Equal("TM59_Bathroom", resolver.Resolve(adjacencyCluster, ensuite, "Flats").InternalCondition?.Name);
             Assert.Equal("1 Bed Apt. Kitchen", resolver.Resolve(adjacencyCluster, kitchen, "Flats").InternalCondition?.Name);
         }
 
@@ -378,7 +378,8 @@ namespace SAM.Tests
                 ["3 Bed Apt. Kitchen"] = 4,
                 ["Double Bedroom"] = 2,
                 ["Single Bedroom"] = 1,
-                ["TM59_Bathroom/internal corridors"] = 0,
+                ["TM59_Bathroom"] = 0,
+                ["TM59_Internal Corridor"] = 0,
                 ["TM59_Communal Corridor (including pipework gains)"] = 0,
                 ["TM59_Stairs"] = 0,
                 ["TM59_Cupboard/riser/lift/void"] = 0,
@@ -387,7 +388,7 @@ namespace SAM.Tests
             };
 
             List<InternalCondition> conditions = TM59TestData.InternalConditionLibrary.GetInternalConditions();
-            Assert.Equal(18, conditions.Count);
+            Assert.Equal(19, conditions.Count);
 
             foreach (InternalCondition condition in conditions)
             {

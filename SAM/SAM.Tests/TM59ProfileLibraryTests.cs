@@ -90,7 +90,7 @@ namespace SAM.Tests
 
             // The unique continuous 16C heating profile (kept, renamed from TM59_HTG_1to24_16 to the
             // canonical unprefixed HTG_1to24_16 naming convention already used by e.g. HTG_1to24_21).
-            InternalCondition bathroom = TM59TestData.InternalConditionLibrary.GetInternalConditions("TM59_Bathroom/internal corridors").First();
+            InternalCondition bathroom = TM59TestData.InternalConditionLibrary.GetInternalConditions("TM59_Bathroom").First();
             Profile heating = bathroom.GetProfile(ProfileType.Heating, profileLibrary);
             Assert.Equal("HTG_1to24_16", heating?.Name);
         }

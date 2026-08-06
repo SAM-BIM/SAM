@@ -31,7 +31,8 @@ namespace SAM.Tests
 
         private static readonly string[] NewNonHabitableConditionNames = new[]
         {
-            "TM59_Bathroom/internal corridors",
+            "TM59_Bathroom",
+            "TM59_Internal Corridor",
             "TM59_Communal Corridor (including pipework gains)",
             "TM59_Stairs",
             "TM59_Cupboard/riser/lift/void",
@@ -78,7 +79,7 @@ namespace SAM.Tests
         }
 
         [Fact]
-        public void Library_Contains_All_Eighteen_Expected_Condition_Names()
+        public void Library_Contains_All_Nineteen_Expected_Condition_Names()
         {
             List<string> expected = new List<string>
             {
@@ -95,7 +96,7 @@ namespace SAM.Tests
             foreach (string name in expected)
                 Assert.Contains(name, actual);
 
-            Assert.Equal(18, actual.Count);
+            Assert.Equal(19, actual.Count);
         }
 
         [Fact]
