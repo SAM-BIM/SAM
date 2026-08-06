@@ -31,12 +31,44 @@ namespace SAM.Analytical.Grasshopper
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
+        // Long, multi-line description for tooltips and docs (SAM style guide).
+        private const string DescriptionLong =
+@"Calculate adaptive comfort upper and lower temperature limits from the dry bulb temperatures in a SAM weather object.
+
+SUMMARY
+Calculates an upper and lower adaptive comfort temperature limit for each available time step, using the ASHRAE 55 adaptive comfort model.
+
+Accepts WeatherData, WeatherYear, WeatherDay or WeatherHour. The supplied weather object is returned unchanged.
+
+METHOD
+For outdoor dry bulb temperatures between 10°C and 33.5°C:
+
+  upper = (dry bulb temperature × 0.31) + 17.8 + 3.5
+  lower = (dry bulb temperature × 0.31) + 17.8 − 3.5
+
+Temperatures below 10°C are calculated using 10°C.
+Temperatures above 33.5°C are calculated using 33.5°C.
+
+INPUTS
+_weatherObject
+  SAM WeatherData, WeatherYear, WeatherDay or WeatherHour containing dry bulb temperature data.
+
+OUTPUTS
+weatherObject
+  The supplied weather object, returned unchanged.
+
+upper
+  Upper adaptive comfort temperature limit [°C] for each available time step.
+
+lower
+  Lower adaptive comfort temperature limit [°C] for each available time step.";
+
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
         /// </summary>
         public SAMWeatherAdaptiveSetpointACCI()
           : base("SAMWeather.AdaptiveSetpointACCI", "SAMWeather.AdaptiveSetpointACCI",
-        "Calculate adaptive thermal comfort setpoints using the ASHRAE 55 adaptive comfort standard (ACCI method). Provides upper and lower dry bulb temperature limits from a weather object.",
+        DescriptionLong,
         "SAM", "Weather")
         {
         }
@@ -64,8 +96,8 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "weatherObject", NickName = "weatherObject", Description = "The supplied weather object passed through unchanged.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "upper", NickName = "upper", Description = "Upper adaptive comfort temperature limit [°C], calculated as (T × 0.31) + 17.8 + 3.5 where T is the dry bulb temperature clamped to 10–33.5°C.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "lower", NickName = "lower", Description = "Lower adaptive comfort temperature limit [°C], calculated as (T × 0.31) + 17.8 − 3.5 where T is the dry bulb temperature clamped to 10–33.5°C.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "upper", NickName = "upper", Description = "Upper adaptive comfort temperature limit [°C] for each available time step. See component description for the ASHRAE 55 equation and 10–33.5°C clamping.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "lower", NickName = "lower", Description = "Lower adaptive comfort temperature limit [°C] for each available time step. See component description for the ASHRAE 55 equation and 10–33.5°C clamping.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
