@@ -64,8 +64,8 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "weatherObject", NickName = "weatherObject", Description = "The supplied weather object passed through unchanged.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "upper", NickName = "upper", Description = "Upper adaptive comfort temperature limit [°C] for each time step. Based on ASHRAE 55 90% acceptability.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "lower", NickName = "lower", Description = "Lower adaptive comfort temperature limit [°C] for each time step. Based on ASHRAE 55 90% acceptability.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "upper", NickName = "upper", Description = "Upper adaptive comfort temperature limit [°C], calculated using the ±3.5°C comfort band. Dry bulb temperature is clamped to 10–33.5°C before the equation is applied.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "lower", NickName = "lower", Description = "Lower adaptive comfort temperature limit [°C], calculated using the ±3.5°C comfort band. Dry bulb temperature is clamped to 10–33.5°C before the equation is applied.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

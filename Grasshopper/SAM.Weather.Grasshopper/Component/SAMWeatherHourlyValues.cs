@@ -64,7 +64,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooIndexedObjectsParam() { Name = "values", NickName = "values", Description = "Indexed hourly values for the selected weather variable. Each value is paired with its hour-of-year index.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooIndexedObjectsParam() { Name = "values", NickName = "values", Description = "Indexed hourly values for the selected weather variable. Each value is paired with its hour-of-year index for WeatherData/WeatherYear input, or its hour-of-day index [0–23] for WeatherDay input.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -31,7 +31,7 @@ namespace SAM.Weather.Grasshopper
         /// </summary>
         public SAMWeatherWeatherHoursByHourOfYear()
           : base("SAMWeather.WeatherHoursByHourOfYear", "SAMWeather.WeatherHoursByHourOfYear",
-              "Retrieve specific WeatherHour objects by their hour-of-year indices [0–8759] from WeatherData, WeatherYear or WeatherDay.",
+              "Retrieve specific WeatherHour objects by index from WeatherData, WeatherYear or WeatherDay: hour-of-year [0–8759] for WeatherData/WeatherYear, hour-of-day [0–23] for WeatherDay.",
               "SAM", "Weather")
         {
         }
@@ -45,7 +45,7 @@ namespace SAM.Weather.Grasshopper
                 GooWeatherObjectParam weatherObjectParam = new GooWeatherObjectParam() { Name = "weatherObject", NickName = "weatherObject", Description = "SAM WeatherData, WeatherYear or WeatherDay containing the weather hours.", Access = GH_ParamAccess.item, Optional = false };
                 result.Add(new GH_SAMParam(weatherObjectParam, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Integer @integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_hourOfYear", NickName = "_hourOfYear", Description = "Hour-of-year indices [0–8759] to retrieve. Each index returns the corresponding WeatherHour.", Access = GH_ParamAccess.list, Optional = false };
+                global::Grasshopper.Kernel.Parameters.Param_Integer @integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_hourOfYear", NickName = "_hourOfYear", Description = "Indices to retrieve: hour-of-year [0–8759] for WeatherData/WeatherYear input, hour-of-day [0–23] for WeatherDay input. Out-of-range indices return null.", Access = GH_ParamAccess.list, Optional = false };
                 result.Add(new GH_SAMParam(@integer, ParamVisibility.Binding));
 
                 return result.ToArray();

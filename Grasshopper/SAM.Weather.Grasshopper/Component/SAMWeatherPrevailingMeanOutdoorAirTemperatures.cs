@@ -31,7 +31,7 @@ namespace SAM.Weather.Grasshopper
         /// </summary>
         public SAMWeatherPrevailingMeanOutdoorAirTemperatures()
           : base("SAMWeather.PrevailingMeanOutdoorAirTemperatures", "SAMWeather.PrevailingMeanOutdoorAirTemperatures",
-              "Calculate the prevailing mean outdoor air temperature for each day of the weather year, as required by CIBSE TM52 for adaptive thermal comfort assessments.",
+              "Calculate the prevailing mean outdoor air temperature (Tpma(out)) for each day of the weather year, using the ASHRAE 55 adaptive comfort method.",
               "SAM", "Weather")
         {
         }
@@ -47,7 +47,7 @@ namespace SAM.Weather.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_Integer @integer;
 
-                @integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_sequentialDays_", NickName = "_sequentialDays_", Description = "Number of preceding days used in the running mean calculation. Default: 7, as specified by CIBSE TM52.", Access = GH_ParamAccess.item, Optional = true };
+                @integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_sequentialDays_", NickName = "_sequentialDays_", Description = "Number of preceding days used in the running mean calculation. Default: 7.", Access = GH_ParamAccess.item, Optional = true };
                 @integer.SetPersistentData(7);
                 result.Add(new GH_SAMParam(@integer, ParamVisibility.Binding));
 
@@ -74,7 +74,7 @@ namespace SAM.Weather.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tempartures", NickName = "tempartures", Description = "Hourly prevailing mean outdoor air temperatures [°C]. Each daily value is repeated 24 times to produce 8760 hourly values.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tempartures", NickName = "tempartures", Description = "Hourly prevailing mean outdoor air temperatures [°C]. Each daily value is repeated 24 times. Returns one value for each hourly record across the supplied weather years.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -56,7 +56,7 @@ namespace SAM.Weather.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_Number @number;
 
-                @number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_percentage_", NickName = "_percentage_", Description = "Percentile threshold [0–100]. Default: 98.5 (typical for CIBSE design conditions).", Access = GH_ParamAccess.item, Optional = true };
+                @number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_percentage_", NickName = "_percentage_", Description = "Percentile threshold [0–100]. Default: 98.5.", Access = GH_ParamAccess.item, Optional = true };
                 @number.SetPersistentData(98.5);
                 result.Add(new GH_SAMParam(@number, ParamVisibility.Binding));
 
@@ -95,9 +95,9 @@ namespace SAM.Weather.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "value", NickName = "value", Description = "Percentile threshold value for the selected weather variable.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "weatherHours_In", NickName = "weatherHours_In", Description = "WeatherHour objects that pass the percentage filter (meet the comparison criterion).", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "indexes_In", NickName = "indexes_In", Description = "Hour-of-year indices of the weather hours that passed the filter.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "indexes_In", NickName = "indexes_In", Description = "Index of each weather hour that passed the filter: hour-of-year for WeatherData/WeatherYear input, hour-of-day [0–23] for WeatherDay input.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "weatherHours_Out", NickName = "weatherHours_Out", Description = "WeatherHour objects that did not pass the percentage filter.", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "indexes_Out", NickName = "indexes_Out", Description = "Hour-of-year indices of the weather hours that did not pass the filter.", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "indexes_Out", NickName = "indexes_Out", Description = "Index of each weather hour that did not pass the filter: hour-of-year for WeatherData/WeatherYear input, hour-of-day [0–23] for WeatherDay input.", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }
