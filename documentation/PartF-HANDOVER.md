@@ -10,9 +10,13 @@ block refers to.
 
 ## 1. Where the work is
 
-**COMMITTED AND PUSHED. Not merged, no PR opened** — Michal wants an independent code review of this
-checkpoint before any more Part F functionality is added. Both working trees are clean and level with their
-remotes. Do not merge, squash, force-push, or open a PR unless he asks.
+**COMMITTED. Not merged, no PR opened** — Michal wants an independent code review of this checkpoint before
+any more Part F functionality is added. Do not merge, squash, force-push, or open a PR unless he asks.
+
+This is the **Iteration 0 baseline**: Part F analytical implementation + saved-view integration + scope
+correctness + cache proof, committed on its own so the simulation-integration work that follows is never
+mixed into it. Everything up to and including `31d96cc` / `cdd36e36` is pushed; the two dwelling-scope
+commits below are **local only — ask before pushing**.
 
 - **SAM**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `34dea440`.
   - `cd54a62b` shared `Solver2D` hardening + `Solver2DTests`
@@ -20,7 +24,8 @@ remotes. Do not merge, squash, force-push, or open a PR unless he asks.
   - `92c685e0`, `6cefcc08`, `0959b256`, `6148b554` handover
   - `b0e72a21` `AdjacencyCluster.PartFDwellingZoneCategories()`
   - `c5ca006e` the dwelling-selection policy given a single home (see 6b)
-  - **HEAD = `6148b554`**
+  - `cdd36e36` record the pushed checkpoint SHAs in this handover
+  - **HEAD = `cdd36e36`**, pushed
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -29,15 +34,18 @@ remotes. Do not merge, squash, force-push, or open a PR unless he asks.
     placement adapter are mutually dependent and the window is a single new file containing all three.
   - `efaed83` Part F airflow on the normal saved 2D views (the one renderer)
   - `150ea63` the new-view preset
-  - `31d96cc` test-doc follow-up
-  - **HEAD = `31d96cc`**
+  - `31d96cc` test-doc follow-up — last pushed commit
+  - `ffd8e38` **dwelling scope + cache safety** (sections 6b, 6c) — `PartFDwellingScope`,
+    `PartFAssessmentCache`, `PartFAssessmentCacheTests` new; the preset, the view settings, the dialog, the
+    scope-gate in `AnalyticalWindow.PartF.cs` and the button text changed. **LOCAL ONLY**
+  - **HEAD = `ffd8e38`**
 
 ## 2. Validation state (all green at handover)
 
 | Suite | Result |
 |---|---|
 | `SAM/SAM.Tests` | **1046 passed, 0 failed** (1031 + 15 `Solver2DTests`) |
-| `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **169 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor + 12 preset) |
+| `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **180 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor + 17 preset/scope + 6 assessment cache) |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
 | `SAM_Mollier/SAM.Core.Mollier.Tests` | **22 passed, 0 failed** |
 | `SAM.Core.Mollier.UI.WPF` | 0 `error CS` — builds unchanged against the hardened engine |
@@ -321,9 +329,11 @@ SAM_UI `efaed83`, on the remote.
 - `ViewportControl.FloorPlan2D` exposes the 2D plan (null in 3D or on the legacy orthographic path).
 - `AnalyticalWindow.PartF.cs` attaches a renderer per view tab from the view's `PartFAirflow` parameter, and
   re-reads the assessment through the same `PartFCalculator` the command uses, cached per model instance +
-  scope. A view with no parameter is left without one — never given a disabled setting.
+  scope. A view with no parameter is left without one — never given a disabled setting. ~~The window holds
+  the cache~~ — **superseded by 6b**: the cache and the scope gate are `PartFAssessmentCache`.
 - `PartFAirflowViewSettings.ZoneCategoryName` scopes which dwellings a drawing reports on, so reopening
-  reproduces the assessment instead of asking again.
+  reproduces the assessment instead of asking again. ~~Empty means the whole model is one dwelling~~ —
+  **superseded by 6b**: empty is UNDECIDED, and whole-model is `PartFDwellingScope.WholeModel`.
 - **Part F Airflow dialog** on the 2D view settings (`PartFAirflowViewSettingsWindow`) — how it is turned on.
 - **Whole-floor isolation is now tested** (`PartFWholeFloorTests`, 6 tests) on two flats separated by a
   communal corridor with every partition real and shared: every dwelling assessed, no TRA between dwellings,
@@ -349,12 +359,53 @@ behind another dialog.
   unchanged. **There is no duplicated rule and no technical debt here** - an earlier revision restated the
   policy in the categories query, and Michal was right to object.
   `DwellingCategories_AgreeWithTheCalculator` is kept as the end-to-end integration lock.
+- **The four scope cases are now distinguished (review correction, 2026-08-07).** A null `ZoneCategoryName`
+  used to mean three different things, and `PartFCalculator.Calculate(string)` reads null as whole-model
+  single-house mode - so a new view of a block with several possible categories was enabled, unscoped, and
+  drew the whole building as ONE dwelling while waiting to be told which flats it was about. Fixed at the
+  **view/preset scope only; the calculator is untouched.**
+  - New `PartFDwellingScope { Undefined, WholeModel, ZoneCategory }` on `PartFAirflowViewSettings`, and the
+    single predicate `HasDwellingScope`. **A blank category is no longer a decision.**
+  - **`Enabled` is intent; `HasDwellingScope` is the safety mechanism.** `Enabled` says this view wants Part
+    F annotation; `HasDwellingScope` says whether SAM knows enough to calculate any. The preset therefore
+    leaves the annotation **ON in every case** and only the scope undecided, so selecting the dwellings is
+    the single remaining action and the drawing appears without a second trip back to re-enable anything.
+    An earlier revision switched it off instead; Michal was right that the presentation toggle is the wrong
+    place for a correctness gate. `ScopeSelection_IsTheOnlyRemainingAction` pins the behaviour.
+  - Preset scope: one category ⇒ that category; no zones at all ⇒ `WholeModel`; several categories ⇒
+    `Undefined`; zones but no dwelling among them ⇒ `Undefined` (**never** a silent fall back to
+    whole-house - that would report a block as one dwelling because `IsDwelling` was never set).
+  - **`PartFAssessmentCache`** (new, in `SAM.Analytical.UI`) is the extracted saved-view assessment AND the
+    gate: an undecided scope is not calculated at all, and `null` reaches the calculator only from an
+    explicit `WholeModel`. `AnalyticalWindow.PartF.cs` now holds one of these instead of three fields.
+  - Dialog: the editable category combo became an explicit list - "Not chosen", "Whole model as one
+    dwelling", then each **dwelling** category the model actually holds - with a message saying why nothing
+    is drawn. The button reads `Part F Airflow: choose the dwellings...`.
+  - A view saved before the scope existed is read from its category: named ⇒ `ZoneCategory`, blank ⇒
+    `Undefined`. The safe direction.
 - **`IsNewViewSettings`** on `AnalyticalTwoDimensionalViewSettingsControl` is the only gate. Set by the two
   creation paths only — `AnalyticalWindow`'s New Section View and `BatchCreateViewsControl`.
 - Never applied to an existing view, never re-applied where settings exist, never on duplicate, never resets a
   manual position. Four tests, one per promise. The preset does NOT switch the annotation off again if the
   colour scheme is later changed — the two are independent by design.
-- 12 tests in `PartFAirflowPresetTests`, plus `PartFPlanModel.ZoneWithoutIsDwelling` for the legacy case.
+- 17 tests in `PartFAirflowPresetTests` (one per scope case, both round trips, and
+  `TwoCategories_NeverProduceAWholeModelAssessment` driving the real cache), plus
+  `PartFPlanModel.ZoneWithoutIsDwelling` for the legacy case.
+
+### 6c. The saved-view cache invariant, proved (review correction, 2026-08-07)
+
+`PartFAssessmentCache` is the one place an engineering value is held between draws, so the claim "an edit
+cannot be answered from a stale assessment" is now a test rather than a comment. **No revision framework was
+added** — the invariant was already there and only needed asserting:
+
+- `UIAnalyticalModel_HandsOutANewModelOnEveryRead` — `UIJSAMObject.JSAMObject` deep-clones on every read, so
+  an instance key cannot survive an edit. One line, and it is the whole argument.
+- `ModelEdit_CannotReuseTheCachedAssessment` — end to end through the real `UIAnalyticalModel`, cache and
+  calculator: two dwellings assessed and the cache proved WARM, a dwelling zone removed, one dwelling after.
+- `SameModelAndScope_IsAnsweredFromTheCache` first, so none of the above passes vacuously.
+- Verified by mutation: reverting the gate and re-keying the cache on `AnalyticalModel.Guid` (which the clone
+  preserves) fails 5 of these tests. Keying on the guid is the tempting wrong answer — it is now covered.
+- 6 tests in `PartFAssessmentCacheTests`.
 
 ### 6a. Backlog, explicitly NOT to be started yet
 
@@ -436,14 +487,20 @@ and confirm the branch is `feature/partf-terminal-transfer-compliance` and which
 ### State
 
 Everything through to **Part F airflow on the normal saved 2D views** is done and green: SAM **1046** tests,
-SAM_UI **169**, SAM_Systems **123**, SAM_Mollier **22**, Grasshopper and Mollier UI 0 `error CS`, SPDX clean.
-**Everything is pushed. Not merged. No PR.** Do not merge, squash, force-push or open one unless Michal asks -
-he is reviewing this checkpoint before more Part F functionality is added, so check with him before starting
-section 7.
+SAM_UI **180**, SAM_Systems **123**, SAM_Mollier **22**, Grasshopper and Mollier UI 0 `error CS`, SPDX clean.
+Everything up to the preset is pushed; **the dwelling-scope correction of 2026-08-07 (sections 6b and 6c) is
+UNCOMMITTED in the SAM_UI working tree** — Michal asked for it after reviewing the pushed code and has not
+yet been asked about committing it. **Not merged. No PR.** Do not commit, merge, squash, force-push or open
+one unless Michal asks — he is reviewing this checkpoint before more Part F functionality is added, so check
+with him before starting section 7.
 
 An engineer can now create a normal saved 2D view, pick `Color Scheme → Element → PartF Data`, and get a
 working Part F drawing immediately: white `SUP / EX / KEX / TRA` tags placed clear of the room names, with the
-`PartF Data` fills underneath.
+`PartF Data` fills underneath — **where the model says unambiguously which zones are the dwellings**. Where it
+does not (several dwelling categories, or zones with no dwelling among them) the view is created with the
+annotation on but **unscoped**: the button reads `Part F Airflow: choose the dwellings...`, nothing is assessed
+or drawn until somebody chooses, and choosing is then the only action needed. `Enabled` is intent;
+`HasDwellingScope` is the gate. See sections 6b and 6c, and rules 11 and 12.
 
 ### Your next task: section 7 — the remaining saved-view work
 
@@ -490,6 +547,17 @@ command. Read 6a before touching anything near it — creating an aperture must 
 9. **Never hard-code a dwelling category.** `AdjacencyCluster.PartFDwellingZoneCategories()`.
 10. **`view owns presentation only`** — no flow rate, status or terminal in view settings. There is a
     reflection test asserting it.
+11. **An undecided scope is not whole-house mode.** `PartFDwellingScope` + the single predicate
+    `PartFAirflowViewSettings.HasDwellingScope`, gated in `PartFAssessmentCache.Results` — the one place a
+    view's settings become an engineering result. `null` reaches `PartFCalculator.Calculate(string)` only
+    from an explicit `WholeModel`. Never re-introduce "blank category means the whole model":
+    `TwoCategories_NeverProduceAWholeModelAssessment` and `CategoryScopeWithNoCategory_IsNotAssessed`.
+    **`Enabled` is NOT the gate** — it is the user's intent, stays true on an unscoped preset, and must
+    never be pressed into service as a correctness mechanism.
+12. **The assessment cache is keyed on the `AnalyticalModel` INSTANCE**, and on nothing else that survives a
+    clone. `UIAnalyticalModel` hands out a fresh clone on every read, which is why that key is sound;
+    `PartFAssessmentCacheTests` asserts both halves. **Do not "optimise" it to the model's guid** — the clone
+    preserves it, and a stale assessment would then be drawn as an engineering tag.
 
 ### Owed to Michal
 
