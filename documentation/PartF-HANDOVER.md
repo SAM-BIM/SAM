@@ -78,8 +78,9 @@ installed). **Check for `error CS` only.** Same for MSB4803 on SAM_Tas_Grasshopp
 - `PartFFloorPlanOverlay` + `PartFOverlayMark` (WPF-free, tested): real coordinates, space marks at
   the section outline's **internal point** (not centroid — that falls outside an L-shaped room),
   transfer marks on the modelled door or the longest cut segment of the shared partition.
-- Terminal marks are a **point + direction** drawn as a short screen-space stub; only TRA marks span
-  real distance.
+- Terminal marks are a **point + direction** in the model. ~~drawn as a short screen-space stub~~ —
+  **superseded by 5e**: a terminal is now drawn as a white tag and nothing else. The `Direction` is still on
+  the mark and unused by the renderer; only TRA marks span real distance.
 - `PartFTransferOpeningStatus` (derived, separate from `PartFTransferRouteStatus`): a
   `MissingTransferOpening` route gets no span — a dashed cross on the partition, a `?` in the label
   text, caption "No modelled transfer opening identified".
@@ -334,10 +335,16 @@ to ask for a Part F drawing produced coloured fills and no airflow, with no hint
 behind another dialog.
 
 - **The dwelling category is resolved, never hard-coded.** `AdjacencyCluster.PartFDwellingZoneCategories()`
-  (SAM) applies `PartFCalculator`'s own `IsDwelling` rule: unmarked category ⇒ legacy all-dwellings ⇒ counts;
-  otherwise ≥1 explicit `true` ⇒ counts. One category ⇒ auto-selected. Several ⇒ **left unset for the user**.
-  None ⇒ whole-house mode. `DwellingCategories_AgreeWithTheCalculator` runs the query AND the real calculator
-  over one model so the duplicated rule cannot drift.
+  (SAM). One category ⇒ auto-selected. Several ⇒ **left unset for the user** (which flats a drawing reports on
+  is an engineering decision). None ⇒ whole-house mode.
+- **The dwelling-selection policy exists exactly ONCE**, in `Query.PartFDwellingZones(IEnumerable<Zone>)`:
+  where no zone carries `IsDwelling` every zone counts (the legacy behaviour, because the parameter postdates
+  the models); otherwise only an explicit `true` does. `PartFCalculator.SelectDwellingZones` now **decides**
+  through that rule and keeps only its own reporting, taking its warning/remark lists from
+  `Query.PartFClassifyDwellingZones`. Its warning texts are byte-identical and all 1046 SAM tests pass
+  unchanged. **There is no duplicated rule and no technical debt here** - an earlier revision restated the
+  policy in the categories query, and Michal was right to object.
+  `DwellingCategories_AgreeWithTheCalculator` is kept as the end-to-end integration lock.
 - **`IsNewViewSettings`** on `AnalyticalTwoDimensionalViewSettingsControl` is the only gate. Set by the two
   creation paths only — `AnalyticalWindow`'s New Section View and `BatchCreateViewsControl`.
 - Never applied to an existing view, never re-applied where settings exist, never on duplicate, never resets a
@@ -410,34 +417,90 @@ close/reopen proving persistence.
 
 Continue the Approved Document F work in the SAM-BIM workspace.
 
-**First: read `SAM/documentation/PartF-HANDOVER.md` in full.** It holds the state, the decisions and
-the gotchas. Then run `git status` in both SAM and SAM_UI and confirm the uncommitted changes on
-`feature/partf-terminal-transfer-compliance` are still present in both.
+**First: read `SAM/documentation/PartF-HANDOVER.md` in full.** It holds the state, the decisions that must not
+be silently revisited, and the gotchas. Then in **both** SAM and SAM_UI run:
 
-The regulatory correction pass, the floor-plan overlay that replaced the old node diagram, the saved-view
-persistence spike, **the `Solver2D` adoption and the Revit-style tag language (section 5)** are all DONE and
-green: SAM 1046 tests, SAM_UI 169, SAM_Systems 123, SAM_Mollier 22, Grasshopper 0 `error CS`, SPDX clean.
-Four commits are pushed on `feature/partf-terminal-transfer-compliance` in SAM and SAM_UI (section 1) as a
-review checkpoint — **not merged, no PR open**. Do not merge or open one unless Michal asks.
+```
+git status
+git log --oneline -6
+git log --oneline -3 origin/feature/partf-terminal-transfer-compliance
+```
 
-**Sections 6 and 6b are DONE.** Everything up to `efaed83`/`6cefcc08` is on the remotes; the newest two
-commits (`b0e72a21`, `150ea63` — the new-view preset) are **local only, do not push without asking**.
-**Your next task is section 7: the remaining saved-view work** — drag-to-move labels with
-reset/auto-arrange, the Part F Airflow section in the main View Settings panel rather than only its dialog,
-door properties in the normal property workflow. Read sections 5 and 6 first: they record the one renderer, the
-annotation-scale rule and the annotation-identity rule you must build on. **Section 6a is backlog and must not
-be started yet.** A screenshot of the revised tags on a saved 2D view is owed to Michal.
+and confirm the branch is `feature/partf-terminal-transfer-compliance` and which commits are local only
+(section 1 lists what should be where). **The working trees should be clean.**
 
-The things section 6 has to respect, which are already built and tested:
+### State
 
-- `PartFTagPlacement.Solve(items, overrides, obstacles)` is the ONLY placement path. Do not add a second
-  one, and do not place anything in the renderer.
-- A manual position is a `PartFAnnotationOverride` keyed on `PartFOverlayMark.AnnotationGuid` +
-  `AnnotationType`, holding the label's **centre** as a world-plane `Point2D`. The adapter already turns
-  those into solver obstacles; the window's `Overrides()` just needs to return the real list instead of an
-  empty one, from the view settings.
-- Placement must keep running on input change only. `FloorPlan_ViewChanged` re-solves on a scale change
-  and never on a pan; a drag must re-solve once on release, not per mouse move.
-- Whole-floor rendering as N independent overlays still needs its explicit regression test (see section 6).
+Everything through to **Part F airflow on the normal saved 2D views** is done and green: SAM **1046** tests,
+SAM_UI **169**, SAM_Systems **123**, SAM_Mollier **22**, Grasshopper and Mollier UI 0 `error CS`, SPDX clean.
+**Not merged. No PR. Do not merge or open one unless Michal asks.** Some commits are pushed for independent
+review; the newest are local only — **do not push without asking** (section 1).
 
-Do not commit or push.
+An engineer can now create a normal saved 2D view, pick `Color Scheme → Element → PartF Data`, and get a
+working Part F drawing immediately: white `SUP / EX / KEX / TRA` tags placed clear of the room names, with the
+`PartF Data` fills underneath.
+
+### Your next task: section 7 — the remaining saved-view work
+
+1. **Drag-to-move labels**, with reset and auto-arrange. The whole architecture is already there and tested:
+   write a `PartFAnnotationOverride` and the tags stay put. See the rules below.
+2. **A Part F Airflow section in the main View Settings panel**, rather than only the `Part F Airflow…`
+   dialog. The dialog was the low-risk way to ship the switch; the panel uses fixed-margin layout with no
+   free space, so this needs a small amount of layout work.
+3. **Door properties in the normal property workflow** (task 18 of the original list).
+4. **Plan selection resolving to the underlying object** on the saved view, as it already does in the
+   assessment window via `PartFSelectionResolver`.
+
+**Section 6a is BACKLOG and must NOT be started**: the user-invoked `Create proposed Part F transfer door…`
+command. Read 6a before touching anything near it — creating an aperture must never by itself make paragraph
+1.25 pass.
+
+### Rules established under review. Do not undo any of these; each has a test
+
+1. **ONE renderer.** `PartFAirflowRenderer` (`SAM.Analytical.UI.WPF/Controls/`) draws for BOTH the assessment
+   window and the saved 2D view, driven entirely by `PartFAirflowViewSettings`. The assessment window has NO
+   placement and NO drawing code — `PartFAssessmentWindow_HasNoPlacementOfItsOwn` asserts it. The window's
+   Airflow tab is for CHECKING; the saved 2D view is the drawing an engineer issues, and Michal has said so
+   twice.
+2. **ONE placement path.** `PartFTagPlacement.Solve(items, overrides, obstacles)` over the shared
+   `SAM.Geometry.Planar.Solver2D`. Never write a second placement algorithm; never place in a renderer.
+3. **Annotation scale, never the camera.** The layout is a function of the model plus
+   `PartFAirflowViewSettings.AnnotationScale` (a real drawing-scale denominator, 1:50 default). Pan AND zoom
+   only transform and redraw. `Place_NeverReadsTheViewTransform` reads the compiled IL and proves
+   `WorldToScreen` is unreachable from `PartFAirflowRenderer.Place`; `Place_IsCalledOnlyByTheAgreedInputChanges`
+   pins the callers to `{Load, Refresh, set_ViewSettings}`. **A drag must re-solve once on release, never per
+   mouse move.**
+4. **Annotation keys are DERIVED.** `PartFAnnotationKey`, from persistent model identities — terminal =
+   space + role; transfer = aperture, else the two space guids canonically ordered. A terminal's and a route's
+   own guid are regenerated by every calculation, so keying on them loses every tidied label on the next
+   recalculation. Overrides are keyed on `PartFOverlayMark.AnnotationGuid` + `AnnotationType` and hold the
+   label's **centre** as a world-plane `Point2D`.
+5. **Manual tags are obstacles, not omissions**, so an automatic tag is never dropped on one somebody placed.
+6. **No leader for a terminal tag**, automatic or manual: there is no real coordinate to lead to.
+   `HasPhysicalAnchor(mark)` is the single predicate suppressing it — keep the capability.
+7. **The number and the symbol say different things.** `KEX 55.0 l/s ?` = calculated design rate, and a
+   provision status that stays a question until the design records the arrangement. Never merge them.
+8. **The preset only ever applies to a NEW view** (section 6b), via `IsNewViewSettings`. Never to an existing
+   view, never where settings exist, never on duplicate, and it never resets a manual position.
+9. **Never hard-code a dwelling category.** `AdjacencyCluster.PartFDwellingZoneCategories()`.
+10. **`view owns presentation only`** — no flow rate, status or terminal in view settings. There is a
+    reflection test asserting it.
+
+### Owed to Michal
+
+- **A screenshot** of a newly created Part F saved 2D view, showing the white tags over the `PartF Data`
+  fills. Blocked on him running the app: `SAM_UI/build/SAM Analytical.exe` is built and current. Ask.
+- The **push decision** on the local-only commits (section 1).
+
+### Working practice
+
+- Do not commit or push until the change is complete and green, then ask before pushing.
+- Attribution line `Generated by Michal Dengusiak and CodeClaude` on every commit and PR body, plus the
+  `Co-Authored-By` trailer.
+- SPDX header on every changed `.cs`.
+- Build SAM before SAM_UI (SAM_UI references `..\..\..\SAMuild\*.dll`), and after changing
+  `SAM.Analytical` refresh `SAM_UI/build/SAM.Analytical.dll` before running the app.
+- Section 9 has the environment gotchas. The two that cost the most time: `dotnet test` will run a **stale**
+  test assembly after a compile error (`dotnet build --no-incremental` then `dotnet test --no-build`), and
+  heredocs through the Bash tool mangle backslashes, so C# string literals need the Edit tool.
+- Use the SAM implementation-summary style for the final response.
