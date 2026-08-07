@@ -28,7 +28,7 @@ independent code review of the pushed branches first.
 | Suite | Result |
 |---|---|
 | `SAM/SAM.Tests` | **1046 passed, 0 failed** (1031 + 15 `Solver2DTests`) |
-| `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **151 passed, 0 failed** (123 + 21 placement + 7 identity) |
+| `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **157 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor) |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
 | `SAM_Mollier/SAM.Core.Mollier.Tests` | **22 passed, 0 failed** |
 | `SAM.Core.Mollier.UI.WPF` | 0 `error CS` — builds unchanged against the hardened engine |
@@ -248,7 +248,7 @@ Michal asked for Revit-style tags rather than airflow markers, and the screensho
 - `Overrides()` in the window returns an empty list until the drag-to-move UI (section 6) exists. The
   obstacle path is built and tested, so it works the day the UI writes an override.
 
-## 5d. Superseded — original brief for task B
+## 5g. Superseded — original brief for task B
 
 **There is nothing to extract.** The shared engine already exists at
 `SAM/SAM/SAM.Geometry/Geometry/Planar/Classes/Solver2D/`. SAM_Mollier is a **consumer**
@@ -298,7 +298,41 @@ attributable:
 Caching: `Solver2D` must NOT run on every pan/zoom `ViewChanged`. Solve on model/mode/filter/toggle/
 scale/manual-position change and on auto-arrange; pan and zoom only re-transform and redraw.
 
-## 6. NEXT: Part F in the NORMAL saved 2D View (tasks 15–20, not started)
+## 6. DONE (uncommitted-to-remote): Part F in the NORMAL saved 2D View
+
+SAM_UI `efaed83`, committed locally and **not pushed** — the previous four commits are under independent
+review and adding to the branch mid-review would disrupt it. Ask Michal before pushing.
+
+- **One renderer.** Everything the drawing consists of is now `PartFAirflowRenderer`
+  (`WPF/SAM.Analytical.UI.WPF/Controls/`), used by the assessment window AND the saved view, driven entirely
+  by `PartFAirflowViewSettings`. `PartFAssessmentWindow` has **no placement and no drawing code at all** — a
+  test asserts it declares neither `Place` nor `DrawMarks`.
+- The structural zoom tests now target the renderer, so they cover both consumers: callers of
+  `PartFAirflowRenderer.Place` are pinned to `{Load, Refresh, set_ViewSettings}`.
+- `ViewportControl.FloorPlan2D` exposes the 2D plan (null in 3D or on the legacy orthographic path).
+- `AnalyticalWindow.PartF.cs` attaches a renderer per view tab from the view's `PartFAirflow` parameter, and
+  re-reads the assessment through the same `PartFCalculator` the command uses, cached per model instance +
+  scope. A view with no parameter is left without one — never given a disabled setting.
+- `PartFAirflowViewSettings.ZoneCategoryName` scopes which dwellings a drawing reports on, so reopening
+  reproduces the assessment instead of asking again.
+- **Part F Airflow dialog** on the 2D view settings (`PartFAirflowViewSettingsWindow`) — how it is turned on.
+- **Whole-floor isolation is now tested** (`PartFWholeFloorTests`, 6 tests) on two flats separated by a
+  communal corridor with every partition real and shared: every dwelling assessed, no TRA between dwellings,
+  every mark inside its own dwelling, the corridor annotated with nothing, the floor exactly the sum of its
+  dwellings with distinct annotation keys, and no tag overlap ACROSS dwellings (one solve, separate
+  assessments).
+
+### 6a. Backlog, explicitly NOT to be started yet
+
+Michal's optional productivity command, after the 2D view work settles:
+`Create proposed Part F transfer door...` — a **user-invoked** model edit, never something the assessment
+creates silently. For a simple unique shared partition it would propose a 760 × 2100 mm internal door,
+`SIM_INT_SLD`, a 10 mm finished-floor undercut and 7 600 mm² transfer free area, with a preview and
+confirmation before the model changes. **Creating the aperture must not by itself make paragraph 1.25 pass**:
+transfer compliance comes from the recorded undercut/free area, so accepting the proposal has to record the
+design provision explicitly.
+
+## 7. NEXT: the remaining saved-view work (tasks 15–20)
 
 **This is the real target, and Michal has said so twice.** The assessment window's Airflow tab is for checking
 and debugging Part F and must not become the final drawing interface. The goal is:
@@ -319,13 +353,13 @@ per-dwelling architecture as an inference: all dwellings render, no TRA between 
 communal corridor gets nothing, filtering one dwelling removes the others' marks, and per-dwelling
 rendering matches the combined render.
 
-## 7. Screenshots still owed (blocked on Michal running the app)
+## 8. Screenshots still owed (blocked on Michal running the app)
 
 Whole Level 0 with all flats; Flat 1 only; Flat 2 only; Continuous; Setback; colour scheme + overlay
 together; before/after auto placement; one manually moved KEX tag with leader; view after
 close/reopen proving persistence.
 
-## 8. Environment gotchas
+## 9. Environment gotchas
 
 - `Panel.Apertures` returns **clones**; go through `AdjacencyCluster.SetPartFDoorTransferData(...)`.
 - Inside `SAM.Analytical.UI.WPF`, unqualified `Window` binds to `SAM.Analytical.Window` — WPF windows
@@ -339,7 +373,7 @@ close/reopen proving persistence.
   containing `\r\n` or `\n`.
 - The ADF PDF is read with `pdftotext -layout` (Git for Windows).
 
-## 9. Standing instructions
+## 10. Standing instructions
 
 - Do not commit, push or open PRs until Michal has reviewed. Then: SAM first (SAM_UI CI dep-clones
   it), PRs against `sow/2026-Q3` in both repos, CI green **and** the Codex inline comments read.
@@ -359,13 +393,16 @@ the gotchas. Then run `git status` in both SAM and SAM_UI and confirm the uncomm
 
 The regulatory correction pass, the floor-plan overlay that replaced the old node diagram, the saved-view
 persistence spike, **the `Solver2D` adoption and the Revit-style tag language (section 5)** are all DONE and
-green: SAM 1046 tests, SAM_UI 151, SAM_Systems 123, SAM_Mollier 22, Grasshopper 0 `error CS`, SPDX clean.
+green: SAM 1046 tests, SAM_UI 157, SAM_Systems 123, SAM_Mollier 22, Grasshopper 0 `error CS`, SPDX clean.
 Four commits are pushed on `feature/partf-terminal-transfer-compliance` in SAM and SAM_UI (section 1) as a
 review checkpoint — **not merged, no PR open**. Do not merge or open one unless Michal asks.
 
-**Your next task is section 6: Part F in the NORMAL saved 2D View.** Read section 5 first — it records the
-placement engine, the annotation-scale rule and the annotation-identity rule you must build on, and 5e records
-the agreed tag language. Note that a screenshot of the revised tags is owed to Michal before this starts.
+**Section 6 is DONE** (SAM_UI `efaed83`, local only — do not push without asking; the four pushed commits are
+under review). **Your next task is section 7: the remaining saved-view work** — drag-to-move labels with
+reset/auto-arrange, the Part F Airflow section in the main View Settings panel rather than only its dialog,
+door properties in the normal property workflow. Read sections 5 and 6 first: they record the one renderer, the
+annotation-scale rule and the annotation-identity rule you must build on. **Section 6a is backlog and must not
+be started yet.** A screenshot of the revised tags on a saved 2D view is owed to Michal.
 
 The things section 6 has to respect, which are already built and tested:
 
