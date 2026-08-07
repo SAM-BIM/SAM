@@ -10,25 +10,30 @@ block refers to.
 
 ## 1. Where the work is
 
-**COMMITTED AND PUSHED as a review checkpoint** (2026-08-07). Not merged, no PR opened — Michal wants an
-independent code review of the pushed branches first.
+**COMMITTED. Not merged, no PR opened** — Michal wants an independent code review first. Everything up to and
+including the saved 2D View integration is **on the remotes**; the two newest commits (the new-view preset) are
+**local only** — ask before pushing.
 
 - **SAM**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `34dea440`.
   - `cd54a62b` shared `Solver2D` hardening + `Solver2DTests`
   - `ae921be4` the Part F analytical body (correction pass, new classes/enums/tests, 2 GH components, rule set, docs)
+  - `92c685e0` + `6cefcc08` handover
+  - `b0e72a21` **LOCAL ONLY** — `AdjacencyCluster.PartFDwellingZoneCategories()`
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
   - `8782c40` Part F presentation checkpoint (window, overlay, view settings, placement adapter, annotation
     identity, all tests). One commit on purpose: the correction-pass fixes, the persistence types and the
     placement adapter are mutually dependent and the window is a single new file containing all three.
+  - `efaed83` Part F airflow on the normal saved 2D views (the one renderer)
+  - `150ea63` **LOCAL ONLY** — the new-view preset
 
 ## 2. Validation state (all green at handover)
 
 | Suite | Result |
 |---|---|
 | `SAM/SAM.Tests` | **1046 passed, 0 failed** (1031 + 15 `Solver2DTests`) |
-| `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **157 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor) |
+| `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **169 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor + 12 preset) |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
 | `SAM_Mollier/SAM.Core.Mollier.Tests` | **22 passed, 0 failed** |
 | `SAM.Core.Mollier.UI.WPF` | 0 `error CS` — builds unchanged against the hardened engine |
@@ -298,10 +303,9 @@ attributable:
 Caching: `Solver2D` must NOT run on every pan/zoom `ViewChanged`. Solve on model/mode/filter/toggle/
 scale/manual-position change and on auto-arrange; pan and zoom only re-transform and redraw.
 
-## 6. DONE (uncommitted-to-remote): Part F in the NORMAL saved 2D View
+## 6. DONE: Part F in the NORMAL saved 2D View
 
-SAM_UI `efaed83`, committed locally and **not pushed** — the previous four commits are under independent
-review and adding to the branch mid-review would disrupt it. Ask Michal before pushing.
+SAM_UI `efaed83`, on the remote.
 
 - **One renderer.** Everything the drawing consists of is now `PartFAirflowRenderer`
   (`WPF/SAM.Analytical.UI.WPF/Controls/`), used by the assessment window AND the saved view, driven entirely
@@ -321,6 +325,25 @@ review and adding to the branch mid-review would disrupt it. Ask Michal before p
   every mark inside its own dwelling, the corridor annotated with nothing, the floor exactly the sum of its
   dwellings with distinct annotation keys, and no tag overlap ACROSS dwellings (one solve, separate
   assessments).
+
+### 6b. New-view preset (SAM `b0e72a21` + SAM_UI `150ea63`, LOCAL ONLY)
+
+Choosing `Color Scheme → Element → PartF Data` on a **new** view now initialises a usable Part F drawing:
+annotation on, all layers, 1:50, continuous design, all dwellings on the level. Before this, the obvious way
+to ask for a Part F drawing produced coloured fills and no airflow, with no hint that nine more options sat
+behind another dialog.
+
+- **The dwelling category is resolved, never hard-coded.** `AdjacencyCluster.PartFDwellingZoneCategories()`
+  (SAM) applies `PartFCalculator`'s own `IsDwelling` rule: unmarked category ⇒ legacy all-dwellings ⇒ counts;
+  otherwise ≥1 explicit `true` ⇒ counts. One category ⇒ auto-selected. Several ⇒ **left unset for the user**.
+  None ⇒ whole-house mode. `DwellingCategories_AgreeWithTheCalculator` runs the query AND the real calculator
+  over one model so the duplicated rule cannot drift.
+- **`IsNewViewSettings`** on `AnalyticalTwoDimensionalViewSettingsControl` is the only gate. Set by the two
+  creation paths only — `AnalyticalWindow`'s New Section View and `BatchCreateViewsControl`.
+- Never applied to an existing view, never re-applied where settings exist, never on duplicate, never resets a
+  manual position. Four tests, one per promise. The preset does NOT switch the annotation off again if the
+  colour scheme is later changed — the two are independent by design.
+- 12 tests in `PartFAirflowPresetTests`, plus `PartFPlanModel.ZoneWithoutIsDwelling` for the legacy case.
 
 ### 6a. Backlog, explicitly NOT to be started yet
 
@@ -393,12 +416,13 @@ the gotchas. Then run `git status` in both SAM and SAM_UI and confirm the uncomm
 
 The regulatory correction pass, the floor-plan overlay that replaced the old node diagram, the saved-view
 persistence spike, **the `Solver2D` adoption and the Revit-style tag language (section 5)** are all DONE and
-green: SAM 1046 tests, SAM_UI 157, SAM_Systems 123, SAM_Mollier 22, Grasshopper 0 `error CS`, SPDX clean.
+green: SAM 1046 tests, SAM_UI 169, SAM_Systems 123, SAM_Mollier 22, Grasshopper 0 `error CS`, SPDX clean.
 Four commits are pushed on `feature/partf-terminal-transfer-compliance` in SAM and SAM_UI (section 1) as a
 review checkpoint — **not merged, no PR open**. Do not merge or open one unless Michal asks.
 
-**Section 6 is DONE** (SAM_UI `efaed83`, local only — do not push without asking; the four pushed commits are
-under review). **Your next task is section 7: the remaining saved-view work** — drag-to-move labels with
+**Sections 6 and 6b are DONE.** Everything up to `efaed83`/`6cefcc08` is on the remotes; the newest two
+commits (`b0e72a21`, `150ea63` — the new-view preset) are **local only, do not push without asking**.
+**Your next task is section 7: the remaining saved-view work** — drag-to-move labels with
 reset/auto-arrange, the Part F Airflow section in the main View Settings panel rather than only its dialog,
 door properties in the normal property workflow. Read sections 5 and 6 first: they record the one renderer, the
 annotation-scale rule and the annotation-identity rule you must build on. **Section 6a is backlog and must not
