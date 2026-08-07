@@ -10,15 +10,17 @@ block refers to.
 
 ## 1. Where the work is
 
-**COMMITTED. Not merged, no PR opened** — Michal wants an independent code review first. Everything up to and
-including the saved 2D View integration is **on the remotes**; the two newest commits (the new-view preset) are
-**local only** — ask before pushing.
+**COMMITTED AND PUSHED. Not merged, no PR opened** — Michal wants an independent code review of this
+checkpoint before any more Part F functionality is added. Both working trees are clean and level with their
+remotes. Do not merge, squash, force-push, or open a PR unless he asks.
 
 - **SAM**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `34dea440`.
   - `cd54a62b` shared `Solver2D` hardening + `Solver2DTests`
   - `ae921be4` the Part F analytical body (correction pass, new classes/enums/tests, 2 GH components, rule set, docs)
-  - `92c685e0` + `6cefcc08` handover
-  - `b0e72a21` **LOCAL ONLY** — `AdjacencyCluster.PartFDwellingZoneCategories()`
+  - `92c685e0`, `6cefcc08`, `0959b256`, `6148b554` handover
+  - `b0e72a21` `AdjacencyCluster.PartFDwellingZoneCategories()`
+  - `c5ca006e` the dwelling-selection policy given a single home (see 6b)
+  - **HEAD = `6148b554`**
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -26,7 +28,9 @@ including the saved 2D View integration is **on the remotes**; the two newest co
     identity, all tests). One commit on purpose: the correction-pass fixes, the persistence types and the
     placement adapter are mutually dependent and the window is a single new file containing all three.
   - `efaed83` Part F airflow on the normal saved 2D views (the one renderer)
-  - `150ea63` **LOCAL ONLY** — the new-view preset
+  - `150ea63` the new-view preset
+  - `31d96cc` test-doc follow-up
+  - **HEAD = `31d96cc`**
 
 ## 2. Validation state (all green at handover)
 
@@ -327,7 +331,7 @@ SAM_UI `efaed83`, on the remote.
   dwellings with distinct annotation keys, and no tag overlap ACROSS dwellings (one solve, separate
   assessments).
 
-### 6b. New-view preset (SAM `b0e72a21` + SAM_UI `150ea63`, LOCAL ONLY)
+### 6b. New-view preset (SAM `b0e72a21` + `c5ca006e`, SAM_UI `150ea63`)
 
 Choosing `Color Scheme → Element → PartF Data` on a **new** view now initialises a usable Part F drawing:
 annotation on, all layers, 1:50, continuous design, all dwellings on the level. Before this, the obvious way
@@ -433,8 +437,9 @@ and confirm the branch is `feature/partf-terminal-transfer-compliance` and which
 
 Everything through to **Part F airflow on the normal saved 2D views** is done and green: SAM **1046** tests,
 SAM_UI **169**, SAM_Systems **123**, SAM_Mollier **22**, Grasshopper and Mollier UI 0 `error CS`, SPDX clean.
-**Not merged. No PR. Do not merge or open one unless Michal asks.** Some commits are pushed for independent
-review; the newest are local only — **do not push without asking** (section 1).
+**Everything is pushed. Not merged. No PR.** Do not merge, squash, force-push or open one unless Michal asks -
+he is reviewing this checkpoint before more Part F functionality is added, so check with him before starting
+section 7.
 
 An engineer can now create a normal saved 2D view, pick `Color Scheme → Element → PartF Data`, and get a
 working Part F drawing immediately: white `SUP / EX / KEX / TRA` tags placed clear of the room names, with the
@@ -490,7 +495,7 @@ command. Read 6a before touching anything near it — creating an aperture must 
 
 - **A screenshot** of a newly created Part F saved 2D view, showing the white tags over the `PartF Data`
   fills. Blocked on him running the app: `SAM_UI/build/SAM Analytical.exe` is built and current. Ask.
-- The **push decision** on the local-only commits (section 1).
+- Nothing else. The push is done and the review is his next step.
 
 ### Working practice
 
