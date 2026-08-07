@@ -10,13 +10,17 @@ block refers to.
 
 ## 1. Where the work is
 
-**COMMITTED. Not merged, no PR opened** — Michal wants an independent code review of this checkpoint before
-any more Part F functionality is added. Do not merge, squash, force-push, or open a PR unless he asks.
+**COMMITTED AND PUSHED in all three repos. Not merged, no PR opened.** All working trees are clean and
+level with their remotes. Do not merge, squash, force-push, or open a PR unless Michal asks.
 
-This is the **Iteration 0 baseline**: Part F analytical implementation + saved-view integration + scope
-correctness + cache proof, committed on its own so the simulation-integration work that follows is never
-mixed into it. Everything up to and including `31d96cc` / `cdd36e36` is pushed; the two dwelling-scope
-commits below are **local only — ask before pushing**.
+All three repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's branch was created this
+session and needs a PR like the other two.** `sow/2026-Q3` was never committed to directly and is
+untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
+
+**Current heads — SAM `2e2362f7`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`. All pushed and verified.**
+
+Note for review: `ffd8e38` (SAM_UI) is the Part F dwelling-scope/cache work and is a *different review
+topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at separately.
 
 - **SAM**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `34dea440`.
   - `cd54a62b` shared `Solver2D` hardening + `Solver2DTests`
@@ -25,7 +29,11 @@ commits below are **local only — ask before pushing**.
   - `b0e72a21` `AdjacencyCluster.PartFDwellingZoneCategories()`
   - `c5ca006e` the dwelling-selection policy given a single home (see 6b)
   - `cdd36e36` record the pushed checkpoint SHAs in this handover
-  - **HEAD = `cdd36e36`**, pushed
+  - `17a881e8` handover after the saved-view correctness fixes
+  - `060feeda` **Part O scope + `SimulationSpaceMap`** (see 11c)
+  - `9cbf308a` **`TMOverheatingCalculator` extraction** (see 11c)
+  - `2e2362f7` doc terminology
+  - **HEAD = `2e2362f7`**, pushed
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -37,19 +45,24 @@ commits below are **local only — ask before pushing**.
   - `31d96cc` test-doc follow-up — last pushed commit
   - `ffd8e38` **dwelling scope + cache safety** (sections 6b, 6c) — `PartFDwellingScope`,
     `PartFAssessmentCache`, `PartFAssessmentCacheTests` new; the preset, the view settings, the dialog, the
-    scope-gate in `AnalyticalWindow.PartF.cs` and the button text changed. **LOCAL ONLY**
-  - **HEAD = `ffd8e38`**
+    scope-gate in `AnalyticalWindow.PartF.cs` and the button text changed
+  - **HEAD = `ffd8e38`**, pushed
+- **SAM_Tas**: `feature/partf-terminal-transfer-compliance` (**new this session**), off `sow/2026-Q3` @ `3d58bfe`.
+  - `5e38c94` `OverheatingCalculator` reduced to a compatibility wrapper + 3 equivalence tests (see 11c)
+  - `d56f679` doc terminology
+  - **HEAD = `d56f679`**, pushed
 
 ## 2. Validation state (all green at handover)
 
 | Suite | Result |
 |---|---|
-| `SAM/SAM.Tests` | **1046 passed, 0 failed** (1031 + 15 `Solver2DTests`) |
+| `SAM/SAM.Tests` | **1067 passed, 0 failed** (1046 + 16 Part O scope/identity + 5 TM extraction) |
 | `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **180 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor + 17 preset/scope + 6 assessment cache) |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
 | `SAM_Mollier/SAM.Core.Mollier.Tests` | **22 passed, 0 failed** |
 | `SAM.Core.Mollier.UI.WPF` | 0 `error CS` — builds unchanged against the hardened engine |
 | `SAM.Analytical.Grasshopper` | 0 `error CS` under VS MSBuild |
+| `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **25 passed, 0 failed** (22 + 3 wrapper equivalence) |
 | SPDX | present on every changed `.cs` |
 
 `dotnet build` on the Grasshopper project exits non-zero on a post-build `%APPDATA%` copy (no Rhino
@@ -458,10 +471,152 @@ close/reopen proving persistence.
   containing `\r\n` or `\n`.
 - The ADF PDF is read with `pdftotext -layout` (Git for Windows).
 
+## 11. Part O / Iteration programme — Iteration 0 IN PROGRESS
+
+The work has been reframed as iterations. **Only Iteration 0 is being built.**
+
+| | |
+|---|---|
+| **Iteration 0** | Foundation: dwelling scope → Part F → system selection → scenario → TM59 → result association. **CURRENT** |
+| Iteration 1 | Base passive / unrestricted openings, MVRE at Part F continuous. TSD route. NOT STARTED |
+| Iteration 2 | Acoustic restriction + boost + summer bypass. TSD route. NOT STARTED |
+| Iteration 3 | CoolBreeze-class active trim cooling. Full `SystemEnergyCentre` → TAS HVAC → **TPD** route. NOT STARTED |
+
+Iteration 0 must not make that routing impossible; it must not implement any of it.
+
+### 11a. Architecture reconnaissance — what already exists (REUSE, do not rebuild)
+
+The real TAS run proved execution and result association already work. **Do not build a new simulation
+pipeline.**
+
+- **Execution**: `WorkflowCalculator` / `WorkflowSettings` (SAM_Tas), driven from `Modify.Simulate`
+  (SAM_UI) — the "Convert to Tas TBD" dialog. Works today.
+- **Overheating engine**: `SAM.Analytical.TMOverheatingCalculator` (extracted this session — see 11c).
+- **The TSD → TM59 recipe already exists**, in the Grasshopper component
+  `TasTSDQueryTM59Results`: TSD → `Convert.ToSAM(path, TSDConversionSettings{ResultantTemperature,
+  OccupantSensibleGain, ConvertZones})` → restore design `InternalCondition`s → **select spaces from a
+  dwelling Zone via `GetRelatedObjects<Space>(zone)`** → `Calculate_TM59` → split Mechanical / Natural /
+  Corridor. **Lift this, do not rewrite it.**
+- **Results**: `Result` base + `Space/Zone/AdjacencyCluster/AnalyticalModelSimulationResult`, associated
+  through `AdjacencyCluster` relations. The real run wrote 18 space + 8 zone + 440 surface results.
+- **System templates**: `SAM_Systems/files/resources/Analytical/Systems/SystemEnergyCentre/*.json`
+  (1–1.8 MB each: plant rooms, energy sources, ~100 `SystemType`s, 2D schematic), loaded by
+  `Analytical.Systems.Query.SystemEnergyCentre(path)` / `DefaultSystemEnergyCentreDirectory()`.
+- **`PartOOpeningProperties`** already exists, and the real model's 20 apertures already carry it.
+
+### 11b. The vocabulary — settled, do not re-litigate
+
+`SAM_SystemTypeLibrary.JSON`'s `VentilationSystemType` ids are **the same identifiers as the
+SystemEnergyCentre template filenames**, and `SystemTemplate` (Ventilation/Heating/Cooling/PlantRoom/
+Controls/Version) is the existing engine-neutral identity matching names like `NV 1:RAD 1:UC 1`.
+
+```
+NV    Natural ventilation
+MV    Mechanical ventilation, NO heat recovery   (Air Supply Method = Outside)
+MVRE  Mechanical ventilation WITH heat recovery  ← SAM's MVHR
+UV    Unconditioned  → routes to TM59CorridorExtendedResult
+```
+
+**`MVRE` is MVHR — verified, not assumed.** Its template holds one air-side exchanger:
+`SensibleEfficiency 0.7`, `LatentEfficiency 0`, and **no mixing or recirculation component anywhere**.
+`MV.json` has no exchanger at all. So the difference between them is exactly heat recovery, and `RE`
+behaves as REcovery despite the library description saying "Recirculation".
+**Do NOT add an `MVHR` identity** — it would split an established concept. Summer bypass and boost are
+**operating states of MVRE**, not new system types.
+
+### 11c. DONE this session (all pushed)
+
+| Repo | SHA | What |
+|---|---|---|
+| SAM | `060feeda` | `Query.PartOClassifyAssessmentZones` + `SimulationSpaceMap` + 16 tests |
+| SAM | `9cbf308a` | `TMOverheatingCalculator` extraction + 5 tests |
+| SAM | `2e2362f7` | doc terminology |
+| SAM_Tas | `5e38c94` | `OverheatingCalculator` → compatibility wrapper + 3 equivalence tests |
+| SAM_Tas | `d56f679` | doc terminology |
+
+- **Part O scope** (`PartOClassifyAssessmentZones`): dwellings vs common space, dwelling half
+  **delegated to `Query.PartFDwellingZones`** (single source of truth). The corridor is *returned* as
+  common space, never dropped, never attributed to a dwelling.
+- **`SimulationSpaceMap`**: resolves a simulation-derived space back to the design space. Stable
+  engine key first, unique name as fallback, **refuses on ambiguity**. The key is a
+  `Func<Space,string>` so `SAM.Analytical` stays engine-free. Verified on the real run: **9 spaces → 9
+  distinct TAS zone guids**, matching the DomOv XML — unique per SPACE, not per zone.
+- **TM overheating extraction**: `SAM.Analytical.TMOverheatingCalculator` owns TM52 + TM59 + comfort
+  helpers; `SAM.Analytical.Tas.OverheatingCalculator` is a delegating wrapper with its public API
+  intact (no Grasshopper/UI migration). The two series keys are **instance** properties
+  (`ResultantTemperatureSeriesKey`, `OccupancySensibleGainSeriesKey`) defaulted to the analytical
+  vocabulary; the wrapper supplies TAS's. Equivalence tests run under `dotnet test` **without TAS COM**.
+
+### 11d. THE OPEN DEFECT — ventilation strategy has THREE conflicting derivations
+
+The real run exposed `Nat Vent` / `Mech Vent` mixed across three flats of one building. Root cause:
+
+| # | Where | Decides by | Feeds |
+|---|---|---|---|
+| 1 | `Convert/ToTM59/Zone.cs:27` | space's `InternalCondition.VentilationSystemTypeName` | TM59 XML |
+| 2 | `Convert/ToTM59/Building.cs:26` | any related `VentilationSystem` that `IsMechanicalVentilation()`; overrides #1 | TM59 XML |
+| 3 | `TMOverheatingCalculator.SystemTypeName` | internal condition → **else the zone's NAME looked up in `DefaultSystemTypeLibrary()`** → else `"NV"` | **the engineering result** |
+
+**#3 picks the TM59 criterion**, and its middle step is a string match of a zone name (`"Flat 1"`)
+against a library — which misses, defaulting an MVHR dwelling to the natural-ventilation criterion.
+`Space.ToTM59` already accepts a `systemType` override, so the seam exists. **The scenario must become
+authoritative.** All three were ported verbatim and commented; fixing them is Step 7.
+
+Also found: **`Zone Category` does nothing for Domestic Overheating.** In `Modify.Simulate` it is
+consumed only by the `createSAP` branch, so the TM59 export covers the whole model — which is why the
+communal corridor appeared in the run's DomOv XML as an ordinary room.
+
+### 11e. Real TAS validation assets (on this machine)
+
+- TAS **9.5.7.0** at `C:\Program Files\Environmental Design Solutions Ltd\Tas`.
+- Michal's run output: `…\OneDrive - Tetra Tech, Inc\Documents\SAM_daily\2027-08-03-HVAC\` —
+  `000000_SAM_AnalyticalModel.{tbd,tsd,json}`, `.timing.csv` (78 s total), and
+  `Report XMLs\…DomOv.xml`.
+- Model: `SAM_zoningAM_v2zonesisDomestic.sam` — **Zone Category `Flats` → Flat 1 / Flat 2 / Flat 3
+  (`IsDwelling` true) + Corridor (false)**, 9 spaces. The canonical Iteration 0 fixture shape.
+- Weather: DSY from `C:\Users\Public\Documents\Tas Data\Databases\CIBSE Weather 2021.twd`, readable via
+  `SAM.Weather.Tas.Convert.ToSAM_WeatherDatas(path)`.
+- **The post-run model carries NO `TM59*Result`** — the overheating output is only the DomOv XML, which
+  is *configuration for the external TAS TM59 tool*, not an assessment. That gap is Iteration 0's job.
+
+### 11f. Follow-ups deliberately NOT fixed (each needs its own change + regression)
+
+1. **`"Occupant Sensible Gain"` (TAS) vs `"Occupancy Sensible Gain"` (analytical)** — same quantity,
+   two spellings. Reading the wrong one is silent. Do not add a second enum member; do not migrate data.
+2. **`MVRE` description** says "with Recirculation" but the template is heat recovery. Descriptions
+   participate in lookups, so this is behavioural.
+3. **`MVRE` `Air Supply Method = Total`** vs `MV`'s `Outside` — verify before Iteration 2 relies on it.
+4. **No weather data + valid series → `NullReferenceException`**, thrown inside
+   `SAM.Weather.Query.RunningMeanDryBulbTemperatures`. Characterized by
+   `NoWeatherData_ThrowsToday_PreExistingBehaviourNotAContract`. The fragility is in the weather layer.
+5. **Missing series → silent no-assessment**, pinned not endorsed. Needs a diagnostic.
+6. **`Core.Query.ComputeHash` uses `Encoding.ASCII`** — non-ASCII names collide. Fine as a checksum,
+   **unsafe for derived identity**. Use UTF-8 for the scenario key.
+
+### 11g. NEXT — Iteration 0 remaining steps, in this order
+
+4. **`OverheatingScenario`** in `SAM.Analytical`: dwelling identity, iteration, ventilation strategy,
+   selected `SystemTemplate` identity, operating assumptions, **derived deterministic key** (UTF-8,
+   version-8 name-based guid, mirroring `PartFAnnotationKey`). **No TPD objects in the scenario** — it
+   describes engineering intent; the TAS adapter decides TSD vs TPD.
+5. Part F requirement → **minimum suitable `SystemEnergyCentre` template** selection. Capability
+   (continuous / boost / summer bypass) must be readable **without deserialising a 1.8 MB template**.
+6. Lift the `TasTSDQueryTM59Results` recipe into a testable service.
+7. **Make the scenario authoritative** over ventilation strategy (11d).
+8. **Result association** to design dwelling / common space **by identity, not name** — use
+   `SimulationSpaceMap`. Three-flat isolation regression is mandatory.
+9. Preserve the TSD-simple vs TPD-full routing boundary.
+10. Thin headless TAS runner, **last**.
+
 ## 10. Standing instructions
 
-- Do not commit, push or open PRs until Michal has reviewed. Then: SAM first (SAM_UI CI dep-clones
-  it), PRs against `sow/2026-Q3` in both repos, CI green **and** the Codex inline comments read.
+- **Standing practice: test → commit → push → independent review → continue**, at each architectural
+  checkpoint. Do not leave a completed, green checkpoint as a local commit only. Never force-push;
+  never squash or rebase published commits; do not open a PR unless asked.
+- Work on `feature/partf-terminal-transfer-compliance` in **all three** repos — SAM_Tas's was created
+  this session and needs a PR like the others. **Never commit to `sow/2026-Q3` directly.**
+- SAM first (SAM_UI and SAM_Tas CI dep-clone it), PRs against `sow/2026-Q3`, CI green **and** the Codex
+  inline comments read.
 - Attribution line `Generated by Michal Dengusiak and CodeClaude` on every commit and PR body.
 - SPDX header on every changed `.cs`.
 - Use the SAM implementation-summary style for the final response.
@@ -470,110 +625,79 @@ close/reopen proving persistence.
 
 ## Paste this into the new session
 
-Continue the Approved Document F work in the SAM-BIM workspace.
+Continue the Approved Document F / Part O work in the SAM-BIM workspace. We are building **Iteration 0**
+only.
 
-**First: read `SAM/documentation/PartF-HANDOVER.md` in full.** It holds the state, the decisions that must not
-be silently revisited, and the gotchas. Then in **both** SAM and SAM_UI run:
+**First: read `SAM/documentation/PartF-HANDOVER.md` in full** - especially **section 11**, which is the
+Iteration 0 state, the architecture reconnaissance, the open defect and the follow-ups deliberately not
+fixed. It also holds the decisions that must not be silently revisited and the environment gotchas.
+
+Then in **all three** repos - SAM, SAM_UI and **SAM_Tas** - run:
 
 ```
 git status
-git log --oneline -6
-git log --oneline -3 origin/feature/partf-terminal-transfer-compliance
+git log --oneline -4
+git log --oneline -1 origin/feature/partf-terminal-transfer-compliance
 ```
 
-and confirm the branch is `feature/partf-terminal-transfer-compliance` and which commits are local only
-(section 1 lists what should be where). **The working trees should be clean.**
+Confirm each is on `feature/partf-terminal-transfer-compliance`, the tree is **clean**, and local matches
+remote at: **SAM `2e2362f7`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`**. Nothing should be outstanding.
 
-### State
+### State - all pushed, all green
 
-Everything through to **Part F airflow on the normal saved 2D views** is done and green: SAM **1046** tests,
-SAM_UI **180**, SAM_Systems **123**, SAM_Mollier **22**, Grasshopper and Mollier UI 0 `error CS`, SPDX clean.
-Everything up to the preset is pushed; **the dwelling-scope correction of 2026-08-07 (sections 6b and 6c) is
-UNCOMMITTED in the SAM_UI working tree** — Michal asked for it after reviewing the pushed code and has not
-yet been asked about committing it. **Not merged. No PR.** Do not commit, merge, squash, force-push or open
-one unless Michal asks — he is reviewing this checkpoint before more Part F functionality is added, so check
-with him before starting section 7.
+SAM **1067**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123**, SAM_Mollier **22**;
+Grasshopper and Mollier UI 0 `error CS`; SPDX clean. Not merged, no PRs open.
 
-An engineer can now create a normal saved 2D view, pick `Color Scheme → Element → PartF Data`, and get a
-working Part F drawing immediately: white `SUP / EX / KEX / TRA` tags placed clear of the room names, with the
-`PartF Data` fills underneath — **where the model says unambiguously which zones are the dwellings**. Where it
-does not (several dwelling categories, or zones with no dwelling among them) the view is created with the
-annotation on but **unscoped**: the button reads `Part F Airflow: choose the dwellings...`, nothing is assessed
-or drawn until somebody chooses, and choosing is then the only action needed. `Enabled` is intent;
-`HasDwellingScope` is the gate. See sections 6b and 6c, and rules 11 and 12.
+Done and reviewed: the Part F regulatory correction pass, the floor-plan overlay, saved-view persistence,
+the dwelling-scope correctness fix and cache proof, and - this session - the first three Iteration 0
+pieces: **Part O assessment scope**, **`SimulationSpaceMap`**, and the **engine-neutral
+`TMOverheatingCalculator` extraction** with its TAS compatibility wrapper.
 
-### Your next task: section 7 — the remaining saved-view work
+### Your next task: Iteration 0, step 4 onward (section 11g)
 
-1. **Drag-to-move labels**, with reset and auto-arrange. The whole architecture is already there and tested:
-   write a `PartFAnnotationOverride` and the tags stay put. See the rules below.
-2. **A Part F Airflow section in the main View Settings panel**, rather than only the `Part F Airflow…`
-   dialog. The dialog was the low-risk way to ship the switch; the panel uses fixed-margin layout with no
-   free space, so this needs a small amount of layout work.
-3. **Door properties in the normal property workflow** (task 18 of the original list).
-4. **Plan selection resolving to the underlying object** on the saved view, as it already does in the
-   assessment window via `PartFSelectionResolver`.
+4. **`OverheatingScenario`** in `SAM.Analytical` - dwelling identity, iteration, ventilation strategy,
+   selected `SystemTemplate` identity, operating assumptions, and a **derived deterministic key**
+   (UTF-8, version-8 name-based guid, mirroring `PartFAnnotationKey`; do NOT use
+   `Core.Query.ComputeHash`, it is ASCII and collides). **No TPD objects in the scenario.**
+5. Part F requirement -> minimum suitable **`SystemEnergyCentre` template** selection. Capability must be
+   readable without deserialising a 1.8 MB template.
+6. Lift the `TasTSDQueryTM59Results` recipe into a testable service. Reuse, do not rewrite.
+7. **Make the scenario authoritative** over ventilation strategy - see 11d, three conflicting derivations.
+8. **Result association** to design dwelling / common space **by identity, not name**, via
+   `SimulationSpaceMap`. Three-flat isolation regression is mandatory.
+9. Preserve the TSD-simple vs TPD-full-HVAC routing boundary.
+10. Thin headless TAS runner, **last**.
 
-**Section 6a is BACKLOG and must NOT be started**: the user-invoked `Create proposed Part F transfer door…`
-command. Read 6a before touching anything near it — creating an aperture must never by itself make paragraph
-1.25 pass.
+**Do not implement Iteration 1, 2 or 3 behaviour.** Do not start CoolBreeze.
 
-### Rules established under review. Do not undo any of these; each has a test
+### Rules established under review. Each has a test; do not undo any
 
-1. **ONE renderer.** `PartFAirflowRenderer` (`SAM.Analytical.UI.WPF/Controls/`) draws for BOTH the assessment
-   window and the saved 2D view, driven entirely by `PartFAirflowViewSettings`. The assessment window has NO
-   placement and NO drawing code — `PartFAssessmentWindow_HasNoPlacementOfItsOwn` asserts it. The window's
-   Airflow tab is for CHECKING; the saved 2D view is the drawing an engineer issues, and Michal has said so
-   twice.
-2. **ONE placement path.** `PartFTagPlacement.Solve(items, overrides, obstacles)` over the shared
-   `SAM.Geometry.Planar.Solver2D`. Never write a second placement algorithm; never place in a renderer.
-3. **Annotation scale, never the camera.** The layout is a function of the model plus
-   `PartFAirflowViewSettings.AnnotationScale` (a real drawing-scale denominator, 1:50 default). Pan AND zoom
-   only transform and redraw. `Place_NeverReadsTheViewTransform` reads the compiled IL and proves
-   `WorldToScreen` is unreachable from `PartFAirflowRenderer.Place`; `Place_IsCalledOnlyByTheAgreedInputChanges`
-   pins the callers to `{Load, Refresh, set_ViewSettings}`. **A drag must re-solve once on release, never per
-   mouse move.**
-4. **Annotation keys are DERIVED.** `PartFAnnotationKey`, from persistent model identities — terminal =
-   space + role; transfer = aperture, else the two space guids canonically ordered. A terminal's and a route's
-   own guid are regenerated by every calculation, so keying on them loses every tidied label on the next
-   recalculation. Overrides are keyed on `PartFOverlayMark.AnnotationGuid` + `AnnotationType` and hold the
-   label's **centre** as a world-plane `Point2D`.
-5. **Manual tags are obstacles, not omissions**, so an automatic tag is never dropped on one somebody placed.
-6. **No leader for a terminal tag**, automatic or manual: there is no real coordinate to lead to.
-   `HasPhysicalAnchor(mark)` is the single predicate suppressing it — keep the capability.
-7. **The number and the symbol say different things.** `KEX 55.0 l/s ?` = calculated design rate, and a
-   provision status that stays a question until the design records the arrangement. Never merge them.
-8. **The preset only ever applies to a NEW view** (section 6b), via `IsNewViewSettings`. Never to an existing
-   view, never where settings exist, never on duplicate, and it never resets a manual position.
-9. **Never hard-code a dwelling category.** `AdjacencyCluster.PartFDwellingZoneCategories()`.
-10. **`view owns presentation only`** — no flow rate, status or terminal in view settings. There is a
-    reflection test asserting it.
-11. **An undecided scope is not whole-house mode.** `PartFDwellingScope` + the single predicate
-    `PartFAirflowViewSettings.HasDwellingScope`, gated in `PartFAssessmentCache.Results` — the one place a
-    view's settings become an engineering result. `null` reaches `PartFCalculator.Calculate(string)` only
-    from an explicit `WholeModel`. Never re-introduce "blank category means the whole model":
-    `TwoCategories_NeverProduceAWholeModelAssessment` and `CategoryScopeWithNoCategory_IsNotAssessed`.
-    **`Enabled` is NOT the gate** — it is the user's intent, stays true on an unscoped preset, and must
-    never be pressed into service as a correctness mechanism.
-12. **The assessment cache is keyed on the `AnalyticalModel` INSTANCE**, and on nothing else that survives a
-    clone. `UIAnalyticalModel` hands out a fresh clone on every read, which is why that key is sound;
-    `PartFAssessmentCacheTests` asserts both halves. **Do not "optimise" it to the model's guid** — the clone
-    preserves it, and a stale assessment would then be drawn as an engineering tag.
-
-### Owed to Michal
-
-- **A screenshot** of a newly created Part F saved 2D view, showing the white tags over the `PartF Data`
-  fills. Blocked on him running the app: `SAM_UI/build/SAM Analytical.exe` is built and current. Ask.
-- Nothing else. The push is done and the review is his next step.
+1. **`Query.PartFDwellingZones` is the single source of truth for what a dwelling is.** Part O scope
+   delegates to it and only names the remainder as common space.
+2. **The corridor is assessed, never attributed to a dwelling.** `UV` -> `TM59CorridorExtendedResult`.
+3. **Never attribute a result by NAME.** `SimulationSpaceMap`: stable key, unique name, then refuse.
+   Every flat has a "Bedroom 2".
+4. **`MVRE` is SAM's MVHR** - verified from the template (0.7 sensible / 0 latent exchanger, no
+   recirculation component). Never add an `MVHR` identity. Boost and summer bypass are **operating
+   states**, not system types.
+5. **`SAM.Analytical` never references `SAM.Analytical.Tas`.** The engineering calculation is
+   engine-free; TAS owns conversion, series keys and provenance.
+6. **`Source` is provenance only** - no part in scenario, equipment, dwelling or result identity.
+7. **Series keys are instance state**, defaulted to the analytical vocabulary. Do not reconcile
+   `Occupant`/`Occupancy` here.
+8. **Behaviour preserved, not improved** in the extraction: the `"NV"` default, the zone-name lookup, the
+   silent no-assessment and the no-weather throw are all pinned, not endorsed. Fixing them is later work.
+9. **ONE renderer, ONE placement path** for Part F presentation (sections 5-6).
+10. **Model owns engineering data; view owns presentation only.** Reflection test asserts it.
 
 ### Working practice
 
-- Do not commit or push until the change is complete and green, then ask before pushing.
-- Attribution line `Generated by Michal Dengusiak and CodeClaude` on every commit and PR body, plus the
-  `Co-Authored-By` trailer.
+- **test -> commit -> push -> independent review -> continue**, at every architectural checkpoint. Do not
+  leave a completed green checkpoint local-only. Never force-push, never squash/rebase published commits,
+  never commit to `sow/2026-Q3`, no PRs unless asked.
+- Attribution line `Generated by Michal Dengusiak and CodeClaude` plus the `Co-Authored-By` trailer.
 - SPDX header on every changed `.cs`.
-- Build SAM before SAM_UI (SAM_UI references `..\..\..\SAMuild\*.dll`), and after changing
-  `SAM.Analytical` refresh `SAM_UI/build/SAM.Analytical.dll` before running the app.
-- Section 9 has the environment gotchas. The two that cost the most time: `dotnet test` will run a **stale**
-  test assembly after a compile error (`dotnet build --no-incremental` then `dotnet test --no-build`), and
-  heredocs through the Bash tool mangle backslashes, so C# string literals need the Edit tool.
-- Use the SAM implementation-summary style for the final response.
+- **TAS-facing projects need VS Framework MSBuild**, not the dotnet CLI (MSB4803 / `ResolveComReference`):
+  `C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe`.
+  Build SAM before SAM_UI/SAM_Tas - they reference its built DLLs.
+- Section 9 has the rest of the gotchas. Use the SAM implementation-summary style for the final response.
