@@ -178,8 +178,13 @@ namespace SAM.Tests
             PartFDwellingResult flat2 = Dwelling(partFCalculator, "Flat 2");
 
             Assert.Equal(63, rates["Bedroom 2_3"], tolerance);
-            Assert.Equal(43, rates["Kitchen_4"], tolerance);   // 13 + 42 x 300/420
-            Assert.Equal(20, rates["Ensuite_5"], tolerance);   // 8  + 42 x 120/420
+
+            //Minimum-first, cooking-priority: kitchen 13 + ensuite 8 = 21 l/s of Table 1.2 minimums, and
+            //the remaining 42 l/s all goes to the kitchen, which holds the cooking function. The previous
+            //volume-weighted split gave the kitchen 43 and the ensuite 20.
+            Assert.Equal(55, rates["Kitchen_4"], tolerance);   // 13 + 42
+            Assert.Equal(8, rates["Ensuite_5"], tolerance);    // its Table 1.2 minimum
+
             Assert.Equal(63, flat2.TotalSupply_Lps, tolerance);
             Assert.Equal(63, flat2.TotalExtract_Lps, tolerance);
         }
@@ -346,34 +351,44 @@ namespace SAM.Tests
             Assert.Equal(1, flat1.BedroomCount);
             Assert.Equal(100, flat1.InternalFloorArea_M2, tolerance);   // 75 studio + 25 bathroom
             Assert.Equal(30, flat1.FinalSystemRate_Lps, tolerance);     // 0.3 x 100 beats 19 l/s
+
+            //The scalar rate is the PRIMARY terminal's, unchanged in meaning: supply for the studio, which
+            //is a habitable room, and extract for the bathroom, which is a wet room.
             Assert.Equal(30, rates["Studio 1_0"], tolerance);
-            Assert.Equal(30, rates["Bathroom_2"], tolerance);
+            Assert.Equal(8, rates["Bathroom_2"], tolerance);
+
             Assert.Equal(30, flat1.TotalSupply_Lps, tolerance);
             Assert.Equal(30, flat1.TotalExtract_Lps, tolerance);
         }
 
         /// <summary>
-        /// A studio holds the cooking function but is sized as a supply space, and SAM cannot represent a
-        /// local kitchen or cooker extract. ADF F Vol 1 (2021) paragraph 1.17a (page 8) and Table 1.2
-        /// (page 10) still require 13 l/s of extract from the cooking room, and that gap must be reported
-        /// even though Flat 1's bathroom provides the dwelling's general extract.
+        /// The studio's local kitchen extract is now modelled as a terminal of its own, so Flat 1 carries
+        /// the ADF F Vol 1 (2021) paragraph 1.17a and Table 1.2 kitchen requirement explicitly instead of
+        /// reporting it as an unrepresentable gap. The bathroom's extract is still general extract, held
+        /// separately, and still does not satisfy paragraph 1.17a.
         /// </summary>
         [Fact]
-        public void Flats_StudioFlat_WarnsLocalKitchenExtractIsNotRepresented()
+        public void Flats_StudioFlat_TakesItsOwnLocalKitchenExtractTerminal()
         {
             PartFCalculator partFCalculator = Flats();
             Assert.True(partFCalculator.Calculate(zoneCategoryName));
 
             PartFDwellingResult flat1 = Dwelling(partFCalculator, "Flat 1");
 
-            Assert.Contains(flat1.Warnings, x =>
-                x.Contains("ENGINEERING CHECK REQUIRED") &&
-                x.Contains("no explicit local kitchen or cooker extract is represented") &&
-                x.Contains("Studio 1_0"));
+            PartFVentilationTerminalRequirement terminal = Assert.Single(flat1.ComplianceResult.LocalKitchenExtractTerminals);
 
-            //Flat 1 does have extract, so the warning must not claim otherwise.
+            Assert.Equal("Studio 1_0", terminal.SpaceName);
+            Assert.Equal(13, terminal.MinimumRequiredFlowRate_Lps.Value, tolerance);
+
+            //Minimum-first, cooking-priority: kitchen 13 + bathroom 8 = 21 l/s of minimums, and the
+            //remaining 9 l/s goes to the cooking space.
+            Assert.Equal(22, terminal.ContinuousDesignFlowRate_Lps.Value, tolerance);
+
+            Assert.Contains(flat1.ComplianceResult.SupplyTerminals, x => x.SpaceName == "Studio 1_0");
+            Assert.Contains(flat1.ComplianceResult.GeneralExtractTerminals, x => x.SpaceName == "Bathroom_2");
+
             Assert.True(flat1.TotalExtract_Lps > 0);
-            Assert.DoesNotContain(flat1.Warnings, x => x.Contains("no space that takes an extract terminal"));
+            Assert.DoesNotContain(flat1.Warnings, x => x.Contains("ENGINEERING CHECK REQUIRED"));
         }
 
         /// <summary>The supplied model is never modified, in either grouping mode.</summary>

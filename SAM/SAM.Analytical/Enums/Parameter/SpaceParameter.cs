@@ -51,5 +51,24 @@ namespace SAM.Analytical
         /// reported rather than ignored.
         /// </summary>
         [ParameterProperties("Space Use Override", "Space Use Override"), ParameterValue(Core.ParameterType.String)] SpaceUseOverride,
+
+        /// <summary>
+        /// How the local kitchen or cooker extract required by Approved Document F, Volume 1 (2021
+        /// edition) paragraph 1.17a is actually provided in this cooking space, holding a
+        /// <see cref="Enums.PartFExtractMethod"/> name.
+        /// <para>
+        /// An engineering input, because it cannot be derived from the room: a studio with a mechanical
+        /// ventilation with heat recovery extract terminal over the hob, a studio with a cooker hood
+        /// ducted outside, and a studio with a recirculating hood are three different designs with three
+        /// different requirements, and the analytical model looks identical in all three.
+        /// </para>
+        /// <para>
+        /// Absent means the design has not said, in which case the mechanical ventilation with heat
+        /// recovery terminal of paragraph 1.70 is assumed, since that is the arrangement the rest of the
+        /// system implies, and the assumption is reported as needing confirmation rather than passed
+        /// silently.
+        /// </para>
+        /// </summary>
+        [ParameterProperties("PartF Local Extract Method", "PartF Local Extract Method"), ParameterValue(Core.ParameterType.String)] PartFLocalExtractMethod,
     }
 }

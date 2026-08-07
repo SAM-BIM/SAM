@@ -132,14 +132,22 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// ADF F Vol 1 (2021) paragraph 1.69, page 16: where the sum of the Table 1.2 wet room
-        /// minimums exceeds the whole dwelling rate, the system rate rises to that sum and every
-        /// wet room sits at exactly its minimum.
+        /// ADF F Vol 1 (2021) Table 1.2, page 10: where the sum of the per-room minimum HIGH rates
+        /// exceeds the whole dwelling rate, the continuous system rate does NOT rise to that sum. The
+        /// continuous total stays at the whole dwelling rate and is shared out; each room reaches its own
+        /// Table 1.2 figure by boosting to its high rate.
+        /// <para>
+        /// Table 1.2's continuous requirement is on the TOTAL of continuous extract, not on each room,
+        /// and note 1 says only that a room already continuously at or above its own minimum needs no
+        /// further increase. Sizing continuous operation at 35 l/s here would be almost twice what the
+        /// Approved Document asks of this dwelling.
+        /// </para>
         /// </summary>
         [Fact]
-        public void Paragraph1_69_WetRoomMinimumsGovern_WhenTheyExceedTheWholeDwellingRate()
+        public void Table1_2_HighRateMinimums_DoNotRaiseTheContinuousSystemRate()
         {
-            // One bedroom (19 l/s) and 20 m2 (6 l/s), against wet room minimums of 13 + 8 + 8 + 6 = 35 l/s.
+            // The bedroom is the only habitable room, so Table 1.3 note 1 gives 13 l/s, above the 20 m2
+            // floor area rate of 6 l/s - against per-room high-rate minimums of 13 + 8 + 8 + 6 = 35 l/s.
             Dictionary<string, double> rates = Calculate(DataFile(), out PartFCalculator partFCalculator,
                 ("Bedroom", 10, 25),
                 ("Kitchen", 4, 10),
@@ -147,12 +155,23 @@ namespace SAM.Tests
                 ("Utility", 2, 5),
                 ("WC", 1, 2.5));
 
-            Assert.Equal(35, partFCalculator.FinalSystemRate_Lps!.Value, tolerance);
-            Assert.Equal(13, rates["Kitchen"], tolerance);
-            Assert.Equal(8, rates["Bathroom"], tolerance);
-            Assert.Equal(8, rates["Utility"], tolerance);
-            Assert.Equal(6, rates["WC"], tolerance);
-            Assert.Equal(35, rates["Bedroom"], tolerance);
+            PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
+
+            Assert.Equal(13, partFCalculator.FinalSystemRate_Lps!.Value, tolerance);
+            Assert.Equal(35, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+
+            //The whole dwelling rate is shared in proportion to each room's Table 1.2 minimum.
+            Assert.Equal(13 * 13 / 35.0, rates["Kitchen"], tolerance);
+            Assert.Equal(13 * 8 / 35.0, rates["Bathroom"], tolerance);
+            Assert.Equal(13 * 8 / 35.0, rates["Utility"], tolerance);
+            Assert.Equal(13 * 6 / 35.0, rates["WC"], tolerance);
+            Assert.Equal(13, rates["Bedroom"], tolerance);
+
+            //And every room still reaches its own Table 1.2 minimum at the high rate.
+            Assert.Equal(35, dwellingResult.TotalHighExtract_Lps, tolerance);
+            Assert.All(
+                dwellingResult.ComplianceResult.Terminals.Where(x => x.IsExtract),
+                x => Assert.Equal(x.MinimumRequiredFlowRate_Lps!.Value, x.HighFlowRate_Lps!.Value, tolerance));
         }
 
         // ------------------------------------------------------------------
@@ -315,9 +334,10 @@ namespace SAM.Tests
 
         /// <summary>
         /// Regression: an extract terminal that does not take a share of the balance
-        /// (ScaleExtractAboveMinimum = false) must still be given its Table 1.2 minimum. It
-        /// previously received no flow rate at all while its minimum was still deducted from the
-        /// balance shared out to the other wet rooms.
+        /// (ScaleExtractAboveMinimum = false) must still be given its Table 1.2 minimum on the continuous
+        /// rate wherever the whole dwelling rate can carry every room's minimum. It previously received
+        /// no flow rate at all while its minimum was still deducted from the balance shared out to the
+        /// other wet rooms.
         /// </summary>
         [Fact]
         public void Table1_2_NonScalingExtractTerminal_StillReceivesItsMinimum()
@@ -326,13 +346,59 @@ namespace SAM.Tests
             partFData.PartFCategories["Fixed"] = new PartFCategory("Fixed", PartFType.WetRoom, PartFVentilationType.extract,
                 false, 6, true, true, false, false, "RoomVolume", ["fixed"]);
 
+            //90 m2 gives a floor area rate of 27 l/s, comfortably above the 6 l/s minimum of the fixed
+            //terminal, so this exercises the minimum-first path rather than the deficit path.
             Dictionary<string, double> rates = Calculate(partFData, out PartFCalculator partFCalculator,
-                ("Sleeping", 20, 50),
-                ("Extract", 10, 25),
-                ("Fixed", 5, 12.5));
+                ("Sleeping", 60, 150),
+                ("Extract", 20, 50),
+                ("Fixed", 10, 25));
 
             Assert.Equal(6, rates["Fixed"], tolerance);
             Assert.Equal(partFCalculator.FinalSystemRate_Lps!.Value - 6, rates["Extract"], tolerance);
+        }
+
+        /// <summary>
+        /// The mirror of the test above: where the whole dwelling rate is BELOW the total of the Table 1.2
+        /// per-room minimums, no room can be held at its minimum on the continuous rate, and none is. The
+        /// continuous total is the whole dwelling rate, shared in proportion to each room's minimum, and
+        /// every room reaches its own figure by boosting to its high rate.
+        /// </summary>
+        [Fact]
+        public void Table1_2_BelowTheMinimumTotal_SharesTheWholeDwellingRateAndBoosts()
+        {
+            PartFData partFData = CustomData();
+            partFData.PartFCategories["Fixed"] = new PartFCategory("Fixed", PartFType.WetRoom, PartFVentilationType.extract,
+                false, 6, true, true, false, false, "RoomVolume", ["fixed"]);
+
+            //A 20 m2 dwelling with one habitable room: the floor area rate is 6 l/s and Table 1.3 note 1
+            //gives 13 l/s, so the whole dwelling rate is 13 l/s - against per-room minimums totalling
+            //8 + 8 + 6 = 22 l/s.
+            Dictionary<string, double> rates = Calculate(partFData, out PartFCalculator partFCalculator,
+                ("Sleeping", 10, 25),
+                ("Extract 1", 4, 10),
+                ("Extract 2", 3, 7.5),
+                ("Fixed", 3, 7.5));
+
+            PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
+
+            Assert.Equal(22, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+            Assert.Equal(13, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+
+            //The whole dwelling rate is shared in proportion to each room's Table 1.2 minimum. A terminal
+            //that does not scale above its minimum is still included here: there is no surplus to withhold
+            //from it, and leaving it out would put the shortfall on the other rooms.
+            Assert.Equal(13 * 6 / 22.0, rates["Fixed"], tolerance);
+            Assert.Equal(13 * 8 / 22.0, rates["Extract 1"], tolerance);
+            Assert.Equal(13 * 8 / 22.0, rates["Extract 2"], tolerance);
+            Assert.Equal(13, dwellingResult.TotalExtract_Lps, tolerance);
+
+            //Every room reaches its own Table 1.2 minimum at the high rate instead.
+            Assert.Equal(22, dwellingResult.TotalHighExtract_Lps, tolerance);
+            Assert.All(
+                dwellingResult.ComplianceResult.Terminals.Where(x => x.IsExtract),
+                x => Assert.True(x.HighRateIncreaseRequired));
+
+            Assert.Contains(dwellingResult.Remarks, x => x.Contains("is above the whole dwelling ventilation rate"));
         }
 
         /// <summary>
@@ -397,28 +463,134 @@ namespace SAM.Tests
             Assert.Equal(1, dwellingResult.HabitableRoomCount);
             Assert.True(dwellingResult.OneHabitableRoomRuleApplied);
             Assert.Equal(13, dwellingResult.BedroomOrHabitableRate_Lps, tolerance);
-            Assert.Equal(13, dwellingResult.FinalSystemRate_Lps, tolerance);   // 35 m2 x 0.3 = 10.5 l/s, bathroom minimum 8 l/s
+
+            //The note 1 rate is 13 l/s and the floor-area rate is 35 x 0.3 = 10.5 l/s, so the dwelling is
+            //sized at 13 l/s. The two rooms' Table 1.2 minimum HIGH rates total 21 l/s - the studio's own
+            //local kitchen extract carries the 13 l/s kitchen figure and the shower room 8 l/s - and that
+            //total is reported without raising the continuous rate, because Table 1.2's per-room figures
+            //apply room by room at the high condition and not to the continuous dwelling total.
+            Assert.Equal(21, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+            Assert.Equal(13, dwellingResult.FinalSystemRate_Lps, tolerance);
+            Assert.Equal(21, dwellingResult.TotalHighExtract_Lps, tolerance);
+
             Assert.DoesNotContain(dwellingResult.Warnings, x => x.Contains("sized at the one bedroom rate"));
         }
 
         /// <summary>
         /// ADF F Vol 1 (2021) paragraph 1.17a (page 8) and Table 1.2 (page 10): a studio holds the cooking
-        /// function but is sized as a supply space, and SAM cannot represent a local kitchen or cooker
-        /// extract, so that gap is reported rather than quietly omitted. The shower room here provides the
-        /// dwelling's general extract, which does not satisfy the local kitchen extract requirement.
+        /// function, so it takes a LOCAL KITCHEN EXTRACT terminal of its own carrying the Table 1.2 kitchen
+        /// rate, in addition to the supply terminal paragraph 1.67 requires of it as a habitable room.
+        /// <para>
+        /// This replaces the previous behaviour, where SAM could assign only one terminal role per space
+        /// and had to report the missing local kitchen extract as an ENGINEERING CHECK REQUIRED warning.
+        /// The shower room's extract is still general extract and still does not satisfy paragraph 1.17a.
+        /// </para>
         /// </summary>
         [Fact]
-        public void Paragraph1_17a_StudioWithoutSeparateKitchen_WarnsLocalKitchenExtractIsNotRepresented()
+        public void Paragraph1_17a_StudioWithoutSeparateKitchen_TakesItsOwnLocalKitchenExtractTerminal()
         {
             Calculate(DataFile(), out PartFCalculator partFCalculator,
                 ("Studio", 30, 75),
                 ("Shower Room", 5, 12.5));
 
+            PartFComplianceResult complianceResult = Assert.Single(partFCalculator.DwellingResults).ComplianceResult;
+
+            PartFVentilationTerminalRequirement terminal = Assert.Single(complianceResult.LocalKitchenExtractTerminals);
+
+            Assert.Equal("Studio", terminal.SpaceName);
+            Assert.True(terminal.IsLocalExtract);
+            Assert.True(terminal.IsInBalancedFlow);
+            Assert.Equal(13, terminal.MinimumRequiredFlowRate_Lps.Value, tolerance);
+
+            //The studio also keeps its supply role: the two requirements are independent.
+            Assert.Contains(complianceResult.SupplyTerminals, x => x.SpaceName == "Studio");
+
+            //And the shower room's extract is general extract, held separately.
+            Assert.Contains(complianceResult.GeneralExtractTerminals, x => x.SpaceName == "Shower Room");
+
+            Assert.DoesNotContain(partFCalculator.Warnings, x => x.Contains("ENGINEERING CHECK REQUIRED"));
+        }
+
+        /// <summary>
+        /// The ENGINEERING CHECK REQUIRED warning is still raised, but now only where the design actually
+        /// says there is no local kitchen extract, rather than because SAM could not represent one.
+        /// </summary>
+        [Fact]
+        public void Paragraph1_17a_StudioWithNoLocalExtractRepresented_IsReportedAsAFailure()
+        {
+            PartFModel partFModel = new PartFModel()
+                .Space("Studio", 30, 75)
+                .Space("Shower Room", 5, 12.5)
+                .LocalExtractMethod("Studio", PartFExtractMethod.NotRepresented);
+
+            PartFCalculator partFCalculator = new(DataFile()) { AdjacencyCluster = partFModel.AdjacencyCluster };
+            Assert.True(partFCalculator.Calculate());
+
             Assert.Contains(partFCalculator.Warnings, x =>
                 x.Contains("ENGINEERING CHECK REQUIRED") &&
-                x.Contains("no explicit local kitchen or cooker extract is represented") &&
                 x.Contains("Studio") &&
                 x.Contains("13 l/s"));
+
+            PartFComplianceResult complianceResult = Assert.Single(partFCalculator.DwellingResults).ComplianceResult;
+
+            Assert.Equal(PartFComplianceStatus.Fail, Assert.Single(complianceResult.LocalKitchenExtractTerminals).ComplianceStatus);
+            Assert.Equal(PartFOverallStatus.Fail, complianceResult.OverallStatus);
+        }
+
+        /// <summary>
+        /// ADF F Vol 1 (2021) Diagram 1.2 note 1 (page 9): "A recirculating cooker hood on its own does not
+        /// provide a means of ventilation that complies with Part F of the Building Regulations." It is
+        /// therefore never accepted as external extract and contributes to no design flow.
+        /// </summary>
+        [Fact]
+        public void Diagram1_2_RecirculatingCookerHood_IsNotAcceptedAsExternalExtract()
+        {
+            PartFModel partFModel = new PartFModel()
+                .Space("Studio", 30, 75)
+                .Space("Shower Room", 5, 12.5)
+                .LocalExtractMethod("Studio", PartFExtractMethod.RecirculatingCookerHood);
+
+            PartFCalculator partFCalculator = new(DataFile()) { AdjacencyCluster = partFModel.AdjacencyCluster };
+            Assert.True(partFCalculator.Calculate());
+
+            PartFComplianceResult complianceResult = Assert.Single(partFCalculator.DwellingResults).ComplianceResult;
+
+            PartFVentilationTerminalRequirement terminal = Assert.Single(complianceResult.LocalKitchenExtractTerminals);
+
+            Assert.Equal(PartFComplianceStatus.Fail, terminal.ComplianceStatus);
+            Assert.False(terminal.IsInBalancedFlow);
+            Assert.Null(terminal.ContinuousDesignFlowRate_Lps);
+
+            Assert.Equal(PartFOverallStatus.Fail, complianceResult.OverallStatus);
+        }
+
+        /// <summary>
+        /// ADF F Vol 1 (2021) Table 1.1 and Diagram 1.1 (pages 8 and 9): a cooker hood extracting to the
+        /// outside is assessed at 30 l/s intermittent. It runs intermittently, so it stays outside the
+        /// balanced continuous flow and the dwelling's continuous extract has to come from elsewhere.
+        /// </summary>
+        [Fact]
+        public void Table1_1_CookerHoodExtractingOutside_IsAssessedIntermittentlyAndOutsideTheBalance()
+        {
+            PartFModel partFModel = new PartFModel()
+                .Space("Studio", 30, 75)
+                .Space("Shower Room", 5, 12.5)
+                .LocalExtractMethod("Studio", PartFExtractMethod.CookerHoodExtractingOutside);
+
+            PartFCalculator partFCalculator = new(DataFile()) { AdjacencyCluster = partFModel.AdjacencyCluster };
+            Assert.True(partFCalculator.Calculate());
+
+            PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
+
+            PartFVentilationTerminalRequirement terminal = Assert.Single(dwellingResult.ComplianceResult.LocalKitchenExtractTerminals);
+
+            Assert.Equal(30, terminal.HighFlowRate_Lps.Value, tolerance);
+            Assert.False(terminal.IsInBalancedFlow);
+            Assert.Null(terminal.ContinuousDesignFlowRate_Lps);
+
+            //Only the shower room's 8 l/s is in the continuous minimum total now.
+            Assert.Equal(8, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+            Assert.Equal(30, dwellingResult.TotalIntermittentExtract_Lps, tolerance);
         }
 
         /// <summary>
@@ -529,9 +701,17 @@ namespace SAM.Tests
 
             Assert.Contains(partFCalculator.Warnings, x => x.Contains("paragraph 1.67"));
 
-            // The wet rooms still hold their Table 1.2 minimums.
-            Assert.Equal(13, rates["Kitchen"], tolerance);
-            Assert.Equal(8, rates["Bathroom"], tolerance);
+            // The whole dwelling rate of 19 l/s is below the 21 l/s total of the two rooms' Table 1.2
+            // minimum high rates, so it is shared in proportion to them and each room reaches its own
+            // figure by boosting. Zero volumes must not disturb that: the deficit split is weighted on the
+            // minimums, not on volume.
+            Assert.Equal(19 * 13 / 21.0, rates["Kitchen"], tolerance);
+            Assert.Equal(19 * 8 / 21.0, rates["Bathroom"], tolerance);
+
+            PartFComplianceResult complianceResult = Assert.Single(partFCalculator.DwellingResults).ComplianceResult;
+
+            Assert.Equal(13, Assert.Single(complianceResult.LocalKitchenExtractTerminals).HighFlowRate_Lps!.Value, tolerance);
+            Assert.Equal(8, Assert.Single(complianceResult.GeneralExtractTerminals).HighFlowRate_Lps!.Value, tolerance);
         }
 
         /// <summary>

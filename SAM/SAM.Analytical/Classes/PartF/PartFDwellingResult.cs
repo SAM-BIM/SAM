@@ -73,13 +73,25 @@ namespace SAM.Analytical
         /// <summary>Paragraph 1.24 (page 10) whole dwelling rate [l/s], the greater of the two above.</summary>
         public double WholeDwellingRate_Lps { get; set; }
 
-        /// <summary>Sum of the Table 1.2 (page 10) minimum extract rates [l/s] of the wet rooms present.</summary>
+        /// <summary>
+        /// Sum of the Table 1.2 (page 10) minimum <b>high</b> rates [l/s] of the continuous extract
+        /// terminals present.
+        /// <para>
+        /// Reported for information and deliberately NOT applied to
+        /// <see cref="ContinuousDesignSystemRate_Lps"/>. Table 1.2's per-room figures are minimum high
+        /// rates, assessed one room at a time on the high condition; its continuous requirement is that
+        /// the <i>total</i> of continuous extract reaches the whole dwelling rate. Raising the continuous
+        /// rate to this sum would systematically oversize normal continuous operation in a dwelling with
+        /// several wet rooms.
+        /// </para>
+        /// </summary>
         public double WetRoomMinimumTotal_Lps { get; set; }
 
         /// <summary>
-        /// Whole dwelling ventilation rate [l/s] at the continuous design condition, per paragraph 1.69
-        /// (page 16): the greatest of every applicable minimum - the bedroom or one habitable room rate,
-        /// the floor area based rate, and the total of the wet room minimums.
+        /// Whole dwelling ventilation rate [l/s] at the continuous design condition, per paragraph 1.24
+        /// (page 10) and paragraph 1.69 (page 16): the greater of the bedroom or one-habitable-room rate
+        /// and the floor area based rate. Equal to <see cref="WholeDwellingRate_Lps"/>; held separately
+        /// because it is the rate the terminals are actually distributed from.
         /// </summary>
         public double ContinuousDesignSystemRate_Lps { get; set; }
 
@@ -135,5 +147,31 @@ namespace SAM.Analytical
 
         /// <summary>Informational notes about expected but noteworthy conditions.</summary>
         public List<string> Remarks { get; set; } = [];
+
+        /// <summary>
+        /// Sum of the high rate supply terminal rates [l/s] in the balanced mechanical ventilation with
+        /// heat recovery flow.
+        /// </summary>
+        public double TotalHighSupply_Lps { get; set; }
+
+        /// <summary>
+        /// Sum of the high rate extract terminal rates [l/s] in the balanced mechanical ventilation with
+        /// heat recovery flow. Extract from an intermittent device such as a cooker hood is excluded,
+        /// because it does not run as part of the balanced system.
+        /// </summary>
+        public double TotalHighExtract_Lps { get; set; }
+
+        /// <summary>
+        /// Sum of the design rates [l/s] of extract terminals that are NOT part of the balanced flow -
+        /// cooker hoods and separate intermittent extract fans - assessed against Table 1.1 rather than
+        /// Table 1.2 and reported separately so they are never mistaken for continuous extract.
+        /// </summary>
+        public double TotalIntermittentExtract_Lps { get; set; }
+
+        /// <summary>
+        /// The Part F conformance assessment of this dwelling: the terminal, transfer, purge and
+        /// commissioning schedules, every clause-level check, and the overall status they add up to.
+        /// </summary>
+        public PartFComplianceResult ComplianceResult { get; set; }
     }
 }

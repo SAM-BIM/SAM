@@ -17,9 +17,30 @@ namespace SAM.Analytical
         public bool IsBedroom { get; private set; }
 
         /// <summary>
-        /// Minimal flw rate [l/s]
+        /// Minimum extract ventilation rate [l/s] for a CONTINUOUS extract system, i.e. the high rate
+        /// column of Approved Document F, Volume 1: Dwellings (2021 edition, England) Table 1.2 (page 10):
+        /// kitchen 13, utility room 8, bathroom 8, sanitary accommodation 6.
+        /// <para>
+        /// Table 1.2 note 1: where the continuous rate provided in a room is equal to or higher than this
+        /// minimum high rate, no extra ventilation is needed. It is therefore a floor on the high rate,
+        /// not a target for the continuous rate.
+        /// </para>
         /// </summary>
         public double? MinFlowRate_Lps { get; private set; }
+
+        /// <summary>
+        /// Minimum extract ventilation rate [l/s] for an INTERMITTENT extract system, from Table 1.1
+        /// (page 8): utility room 30, bathroom 15, sanitary accommodation 6.
+        /// <para>
+        /// Null for a kitchen, because Table 1.1 gives a kitchen two different rates depending on
+        /// something no room category can know: 30 l/s where a cooker hood extracts to the outside, and
+        /// 60 l/s where there is no cooker hood or the hood does not extract to the outside. Those are
+        /// selected from the terminal's extract method instead, using
+        /// <see cref="PartFData.IntermittentKitchenRateWithCookerHood_Lps"/> and
+        /// <see cref="PartFData.IntermittentKitchenRateWithoutCookerHood_Lps"/>.
+        /// </para>
+        /// </summary>
+        public double? IntermittentExtractRate_Lps { get; private set; }
 
         public bool IncludeInFloorAreaCheck { get; private set; }
 
@@ -65,8 +86,10 @@ namespace SAM.Analytical
             string defaultFlowWeightBasis,
             List<string> synonyms,
             bool isCookingSpace = false,
-            SpaceUse spaceUse = SpaceUse.Undefined)
+            SpaceUse spaceUse = SpaceUse.Undefined,
+            double? intermittentExtractRate_Lps = null)
         {
+            IntermittentExtractRate_Lps = intermittentExtractRate_Lps;
             IsCookingSpace = isCookingSpace;
             SpaceUse = spaceUse;
             Name = name;

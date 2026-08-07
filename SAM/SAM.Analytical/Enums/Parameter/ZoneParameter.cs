@@ -29,5 +29,16 @@ namespace SAM.Analytical
         /// </para>
         /// </summary>
         [ParameterProperties("Is Dwelling", "Is Dwelling"), ParameterValue(Core.ParameterType.Boolean)] IsDwelling,
+
+        /// <summary>
+        /// Commissioning evidence for the dwelling this zone represents, following Approved Document F,
+        /// Volume 1 (2021 edition) Section 4 and Appendix C.
+        /// <para>
+        /// Held on the zone because commissioning is per dwelling, not per space or per terminal: one
+        /// commissioning sheet covers one installation address. Per terminal measured air flow rates live
+        /// on the terminals themselves.
+        /// </para>
+        /// </summary>
+        [ParameterProperties("PartF Commissioning Data", "PartF Commissioning Data"), SAMObjectParameterValue(typeof(PartFCommissioningData))] PartFCommissioningData,
     }
 }
