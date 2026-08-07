@@ -365,32 +365,22 @@ namespace SAM.Analytical
         /// </summary>
         private List<Zone> SelectDwellingZones(List<Zone> zones_Category, string zoneCategoryName, out List<Zone> zones_ExplicitlyExcluded)
         {
-            List<Zone> zones_True = [];
-            List<Zone> zones_False = [];
-            List<Zone> zones_Unmarked = [];
+            //The DECISION comes from the shared rule, so that anything needing to know what this calculator
+            //would do - the Part F view preset asks exactly that - gets the same answer without a second copy
+            //of the policy. What stays here is the REPORTING, which is this class's own business: the
+            //classification below only supplies the lists to report on.
+            List<Zone> zones_Selected = zones_Category.PartFDwellingZones();
 
-            foreach (Zone zone in zones_Category)
-            {
-                //TryGetValue distinguishes "explicitly false" from "no value at all", which GetValue
-                //cannot: both would come back as false, and a legacy model would then size nothing.
-                if (zone.TryGetValue(ZoneParameter.IsDwelling, out bool isDwelling))
-                {
-                    (isDwelling ? zones_True : zones_False).Add(zone);
-                }
-                else
-                {
-                    zones_Unmarked.Add(zone);
-                }
-            }
+            zones_Category.PartFClassifyDwellingZones(out List<Zone> zones_True, out List<Zone> zones_False, out List<Zone> zones_Unmarked);
 
             zones_ExplicitlyExcluded = zones_False;
 
-            //No zone carries the parameter: preserve the previous category-based behaviour so existing
-            //models keep working, but recommend marking the dwellings explicitly.
+            //No zone carries the parameter: the shared rule preserves the previous category-based behaviour so
+            //existing models keep working, but recommend marking the dwellings explicitly.
             if (zones_True.Count == 0 && zones_False.Count == 0)
             {
                 Warnings.Add(string.Format("No zone in category '{0}' has an Is Dwelling parameter, so every zone in the category has been sized as a dwelling. Set Is Dwelling on each zone - true for a flat or house, false for a shared corridor, landlord area or commercial unit - so that non-dwelling zones are not sized as dwellings.", zoneCategoryName));
-                return zones_Category;
+                return zones_Selected;
             }
 
             if (zones_False.Count != 0)
@@ -412,7 +402,7 @@ namespace SAM.Analytical
                 Warnings.Add(string.Format("No zone in category '{0}' is marked Is Dwelling = true, so no dwelling was sized. Set Is Dwelling = true on each zone that represents a flat or house.", zoneCategoryName));
             }
 
-            return zones_True;
+            return zones_Selected;
         }
 
         private static string NoMatchingZoneMessage(List<Zone> zones, string zoneCategoryName)

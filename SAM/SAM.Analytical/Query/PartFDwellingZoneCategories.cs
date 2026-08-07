@@ -3,7 +3,6 @@
 
 using SAM.Analytical.Enums;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SAM.Analytical
 {
@@ -18,22 +17,10 @@ namespace SAM.Analytical
         /// mode applies.
         /// </para>
         /// <para>
-        /// <b>Deliberately the same rule as <c>PartFCalculator</c>'s own zone selection</b>, which is what
-        /// makes the answer trustworthy - a category this returns really does size at least one dwelling:
-        /// </para>
-        /// <list type="bullet">
-        /// <item>where NO zone in the category carries <see cref="ZoneParameter.IsDwelling"/>, every zone in it
-        /// is sized as a dwelling. That is the legacy behaviour the calculation keeps so that models predating
-        /// the parameter still work, so the category qualifies.</item>
-        /// <item>otherwise only a zone with an explicit <c>IsDwelling = true</c> is a dwelling - an unmarked
-        /// zone beside marked ones is NOT sized, and neither is an explicit false, which is how a shared
-        /// corridor or a landlord area is kept out. The category qualifies where at least one such zone
-        /// remains.</item>
-        /// </list>
-        /// <para>
-        /// <c>PartFAirflowPresetTests.DwellingCategories_AgreeWithTheCalculator</c>, in SAM_UI where the
-        /// fixture with real geometry lives, runs this and the calculator over the same model and asserts the
-        /// two agree - so the duplicated rule cannot drift silently.
+        /// <b>It asks the calculator's own rule rather than restating it.</b> The decision about which zones in
+        /// a category are dwellings lives in one place, <see cref="PartFDwellingZones"/>, which is what
+        /// <c>PartFCalculator</c> selects with too - so a category this returns really does size at least one
+        /// dwelling, and it cannot come to disagree with the calculation.
         /// </para>
         /// </summary>
         public static List<string> PartFDwellingZoneCategories(this AdjacencyCluster adjacencyCluster)
@@ -67,29 +54,8 @@ namespace SAM.Analytical
 
             foreach (KeyValuePair<string, List<Zone>> keyValuePair in dictionary)
             {
-                bool marked = false;
-                bool dwelling = false;
-
-                foreach (Zone zone in keyValuePair.Value)
-                {
-                    //TryGetValue distinguishes "explicitly false" from "no value at all", which GetValue
-                    //cannot: both come back as false, and a model predating the parameter would then look as
-                    //though it held no dwellings.
-                    if (!zone.TryGetValue(ZoneParameter.IsDwelling, out bool isDwelling))
-                    {
-                        continue;
-                    }
-
-                    marked = true;
-
-                    if (isDwelling)
-                    {
-                        dwelling = true;
-                        break;
-                    }
-                }
-
-                if (!marked || dwelling)
+                //The one rule, asked rather than repeated.
+                if (keyValuePair.Value.PartFDwellingZones().Count != 0)
                 {
                     result.Add(keyValuePair.Key);
                 }
