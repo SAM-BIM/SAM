@@ -7,14 +7,85 @@ namespace SAM.Geometry.Planar
 {
     public class Solver2D
     {
+        /// <summary>
+        /// Default value of <see cref="WorkBudget"/>: the number of geometric comparisons a whole solve
+        /// may make before the remaining items are dropped at their anchors.
+        /// <para>
+        /// This replaced a 10 000 ms wall-clock budget. The behaviour it bounds is the same, but a
+        /// drawing's layout must not depend on how fast the machine that drew it is: with a stopwatch, the
+        /// same saved view solved on a loaded laptop and on a build server could return different
+        /// positions, and there is no way for either to know that happened. A count of comparisons is
+        /// derived only from the input, so an identical input always produces an identical layout.
+        /// </para>
+        /// <para>
+        /// Calibrated by measuring <see cref="WorkUnits"/> on the shapes the two existing consumers
+        /// produce, at the floor plan's own <c>IterationCount</c> of 100 with a <c>LimitArea</c> per label:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>healthy plan, 5 000 space labels on a room-sized grid: <b>9 900</b> units, 0.4 s;</item>
+        /// <item>healthy plan, 2 000 labels: <b>3 960</b> units - the cost is linear in the label count
+        /// while each label places near its anchor, so a 10 000-label plan is around 20 000;</item>
+        /// <item>degenerate collapse, 400 labels sharing one anchor: <b>620 263</b> units, 14.6 s - each
+        /// label places, but only after spiralling out past the pile already there, and the cost grows
+        /// with the square of the count.</item>
+        /// </list>
+        /// <para>
+        /// So this sits more than an order of magnitude above the healthy case - which therefore never
+        /// reaches it, and a test locks that - and bites into the degenerate one at roughly the point in
+        /// time the 10 000 ms stopwatch used to. Time per unit is not constant (a candidate near a large
+        /// pile costs more than one in open space), so the equivalence with the old budget is approximate
+        /// by construction; that is the price of the layout not depending on the machine, and it is worth
+        /// paying.
+        /// </para>
+        /// </summary>
+        public const long DefaultWorkBudget = 500000;
+
         private List<Solver2DData> solver2DDatas;
         private List<IClosed2D> obstacles2D;
         private IClosed2D area;
+        private long workBudget = DefaultWorkBudget;
+        private long workUnits = 0;
 
         public Solver2D(IClosed2D area, List<IClosed2D> obstacles2D)
         {
             this.area = area;
             this.obstacles2D = obstacles2D;
+        }
+
+        /// <summary>
+        /// Geometric comparisons the next <see cref="Solve"/> may make before it stops searching and drops
+        /// each remaining item at its anchor as a <see cref="Solver2DResultType.Fallback"/>. Defaults to
+        /// <see cref="DefaultWorkBudget"/>.
+        /// <para>
+        /// Deliberately a count and not a duration - see <see cref="DefaultWorkBudget"/>. A non-positive
+        /// value removes the budget entirely, which leaves only the degenerate-layout backstop bounding the
+        /// solve; use it only where the input size is known.
+        /// </para>
+        /// </summary>
+        public long WorkBudget
+        {
+            get
+            {
+                return workBudget;
+            }
+
+            set
+            {
+                workBudget = value;
+            }
+        }
+
+        /// <summary>
+        /// Geometric comparisons the last <see cref="Solve"/> made. Deterministic for a given input, which
+        /// is what makes <see cref="WorkBudget"/> testable and lets a consumer log how close a real model
+        /// comes to it.
+        /// </summary>
+        public long WorkUnits
+        {
+            get
+            {
+                return workUnits;
+            }
         }
 
 
@@ -51,9 +122,19 @@ namespace SAM.Geometry.Planar
             }
 
             List<Solver2DResult> result = new List<Solver2DResult>();
-            // Apply priority order
 
-            solver2DDatas.Sort((x, y) => x.Priority.CompareTo(y.Priority));
+            workUnits = 0;
+
+            // Placement order, lowest Priority first, then the order the caller added the items in. It used
+            // to be solver2DDatas.Sort(...) on Priority alone, which is List<T>.Sort - an unstable introsort
+            // - so items of EQUAL priority were placed in an arbitrary order that varied with the number of
+            // items. Placement order decides the layout (each item avoids the ones already placed), so two
+            // solves of one saved drawing could return different positions. Every consumer here leaves
+            // Priority at its default, i.e. all items are equal, so this was the normal case rather than an
+            // edge one. Ordering by index as the tiebreak makes the comparison total, which removes the
+            // dependency on the sort's stability altogether. Note the field itself is no longer re-ordered,
+            // so a second Solve() of the same instance starts from the same order as the first.
+            List<Solver2DData> solver2DDatas_Ordered = ordered();
 
             // Spatial index over already-placed rectangles. Without it Solve() is ~O(N^2): every one of
             // the up-to IterationCount*8 candidate positions per label linearly scans every previously
@@ -62,7 +143,7 @@ namespace SAM.Geometry.Planar
             // bounding box touches, plus a one-cell halo - and the exact InRange test in intersect is
             // unchanged, so placement results are identical to the linear scan. Built only above a size
             // threshold so small inputs (e.g. Mollier chart labels) keep the original path byte-for-byte.
-            RectangleGrid grid = solver2DDatas.Count > 256 ? RectangleGrid.Create(solver2DDatas) : null;
+            RectangleGrid grid = solver2DDatas_Ordered.Count > 256 ? RectangleGrid.Create(solver2DDatas_Ordered) : null;
 
             // Degenerate-layout backstop. Each label that cannot be placed first runs its full
             // IterationCount * 8 candidate sweep before giving up; when a whole batch is unplaceable (e.g. a
@@ -74,19 +155,10 @@ namespace SAM.Geometry.Planar
             const int maxConsecutiveUnplaced = 32;
             int consecutiveUnplaced = 0;
 
-            // Hard wall-clock safety cap. The consecutive-unplaced backstop only catches the case where labels
-            // *fail* to place; a degenerate layout can also be slow while every label *succeeds* - e.g. when all
-            // anchors collapse onto the same point, each label still places but only after spiralling out past a
-            // growing pile of already-placed rectangles (O(N^2)). This budget bounds the whole solve regardless of
-            // the mechanism: once exceeded, the remaining labels skip the search and fall back to their anchor.
-            // A full 10k-label plan solves in well under this, so a normal solve never reaches it.
-            const double budgetMilliseconds = 10000;
-            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
             // The 8 search directions are identical for every label, so build them once rather than per label.
             List<Vector2D> offsets = generateOffsets();
 
-            foreach (Solver2DData solver2DData in solver2DDatas)
+            foreach (Solver2DData solver2DData in solver2DDatas_Ordered)
             {
                 Rectangle2D rectangle2D = solver2DData.Closed2D<Rectangle2D>();
                 Solver2DSettings solver2DSettings = solver2DData.Solver2DSettings;
@@ -109,11 +181,18 @@ namespace SAM.Geometry.Planar
                     iterationCount = 1;
                 }
 
-                // Over the wall-clock budget: stop searching and place every remaining label AT its anchor
-                // (visible, possibly overlapping) rather than dropping it. The consumer blanks an unplaced
-                // (null) label, so returning null here would make tags vanish; placing at the anchor keeps
-                // them on screen. See budgetMilliseconds.
-                bool overBudget = stopwatch.Elapsed.TotalMilliseconds > budgetMilliseconds;
+                // Hard safety cap on the whole solve. The consecutive-unplaced backstop only catches the case
+                // where labels *fail* to place; a degenerate layout can also be slow while every label
+                // *succeeds* - e.g. when all anchors collapse onto the same point, each label still places but
+                // only after spiralling out past a growing pile of already-placed rectangles (O(N^2)). This
+                // budget bounds the solve regardless of the mechanism: once exceeded, the remaining labels
+                // skip the search and are placed AT their anchor (visible, possibly overlapping) rather than
+                // dropped, because a consumer blanks an unplaced (null) label and tags would vanish. Such a
+                // position was never tested, so it is reported as Fallback and never as Solved.
+                //
+                // Counted in geometric comparisons rather than elapsed time - see WorkBudget. A normal solve
+                // of either real consumer never approaches it.
+                bool overBudget = isOverBudget();
 
                 if (sAMGeometry2D is Point2D)
                 {
@@ -134,6 +213,8 @@ namespace SAM.Geometry.Planar
                             {
                                 Vector2D scaledOffset = offset * (solver2DSettings.StartingDistance + (i * solver2DSettings.ShiftDistance));
                                 Rectangle2D rectangleTemp = rectangle2DWithGivenPointInCenter.GetMoved(scaledOffset);
+
+                                workUnits++;
 
                                 if (area.Inside(rectangleTemp) && !intersect(rectangleTemp, result, grid))
                                 {
@@ -184,6 +265,7 @@ namespace SAM.Geometry.Planar
                             Rectangle2D calculatedRectangle = Query.MoveToSegment2D(rectangle2D, segment, newPoint, distanceToCenter, clockwise);
                             Rectangle2D rectangleTemp = fix(Query.MoveToSegment2D(rectangle2D, segment, newPoint, distanceToCenter, clockwise), rectangle2D);
 
+                            workUnits++;
 
                             if (area.Inside(rectangleTemp) && !intersect(rectangleTemp, result, grid))
                             {
@@ -202,7 +284,15 @@ namespace SAM.Geometry.Planar
                     throw new System.NotImplementedException();
                 }
 
-                result.Add(new Solver2DResult(solver2DData, resultRectangle2D));
+                // Geometry that was tested against the area, the obstacles, the rectangles already placed and
+                // the limit area is Solved; the untested anchor the budget forces is Fallback; nothing at all
+                // is Unplaced. The three are not interchangeable to a consumer, which is the whole point of
+                // reporting them - a Fallback rectangle may sit on top of anything.
+                Solver2DResultType solver2DResultType = resultRectangle2D == null
+                    ? Solver2DResultType.Unplaced
+                    : (overBudget ? Solver2DResultType.Fallback : Solver2DResultType.Solved);
+
+                result.Add(new Solver2DResult(solver2DData, resultRectangle2D, solver2DResultType));
 
                 // Track consecutive failures for the degenerate-layout backstop above; any success resets it.
                 if (resultRectangle2D == null)
@@ -293,11 +383,59 @@ namespace SAM.Geometry.Planar
             Rectangle2D result = new Rectangle2D(calculatedRectangle.Origin, -calculatedRectangle.Height, calculatedRectangle.Width, calculatedRectangle.WidthDirection);
             return result;
         }
+        /// <summary>
+        /// Placement order: <see cref="Solver2DData.Priority"/> ascending, then the order the items were
+        /// added. Sorting a list of indices rather than the items makes the comparison total, so the result
+        /// does not depend on <see cref="List{T}.Sort"/> being stable - it is not.
+        /// </summary>
+        private List<Solver2DData> ordered()
+        {
+            List<int> indexes = new List<int>(solver2DDatas.Count);
+            for (int i = 0; i < solver2DDatas.Count; i++)
+            {
+                indexes.Add(i);
+            }
+
+            indexes.Sort((x, y) =>
+            {
+                int compare = solver2DDatas[x].Priority.CompareTo(solver2DDatas[y].Priority);
+
+                return compare != 0 ? compare : x.CompareTo(y);
+            });
+
+            List<Solver2DData> result = new List<Solver2DData>(indexes.Count);
+            foreach (int index in indexes)
+            {
+                result.Add(solver2DDatas[index]);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Whether the solve has spent its <see cref="WorkBudget"/>. A non-positive budget means unlimited.
+        /// </summary>
+        private bool isOverBudget()
+        {
+            return workBudget > 0 && workUnits > workBudget;
+        }
+
         private bool intersect(Rectangle2D rectangle2D, List<Solver2DResult> solver2DResults, RectangleGrid grid)
         {
-            if (obstacles2D.Find(x => x.InRange(rectangle2D) == true) != null)
+            // A null obstacle list is a legitimate "nothing to avoid" - Solver2D's own constructor accepts
+            // one, and the caller that has no obstacles has no reason to allocate an empty list to say so.
+            // It used to throw here.
+            if (obstacles2D != null)
             {
-                return true;
+                foreach (IClosed2D obstacle2D in obstacles2D)
+                {
+                    workUnits++;
+
+                    if (obstacle2D.InRange(rectangle2D) == true)
+                    {
+                        return true;
+                    }
+                }
             }
 
             if (grid != null)
@@ -306,6 +444,8 @@ namespace SAM.Geometry.Planar
                 // and the InRange test below is the same as the linear path, so the outcome is identical.
                 foreach (Rectangle2D placed in grid.Query(rectangle2D))
                 {
+                    workUnits++;
+
                     if (placed.InRange(rectangle2D) == true || rectangle2D.InRange(placed) == true)
                     {
                         return true;
@@ -315,8 +455,30 @@ namespace SAM.Geometry.Planar
                 return false;
             }
 
-            return (solver2DResults.Find(x => x.Closed2D<Rectangle2D>().InRange(rectangle2D) == true) != null) ||
-                    (solver2DResults.Find(x => rectangle2D.InRange(x.Closed2D<Rectangle2D>()) == true) != null);
+            // An item the solver could not place carries NO footprint - it is not drawn - so it is skipped
+            // here, exactly as the grid path skips it. This used to be two List.Find calls that dereferenced
+            // Closed2D<Rectangle2D>() unguarded, so a single earlier unplaceable item made every subsequent
+            // item throw a NullReferenceException. It could only happen on this path, which is the one taken
+            // for 256 items or fewer: a Mollier chart, or a small floor plan. Testing both directions per
+            // rectangle in one pass rather than in two consecutive Find calls is the same predicate over the
+            // same set, so which candidate positions are accepted is unchanged.
+            foreach (Solver2DResult solver2DResult in solver2DResults)
+            {
+                Rectangle2D placed = solver2DResult?.Closed2D<Rectangle2D>();
+                if (placed == null)
+                {
+                    continue;
+                }
+
+                workUnits++;
+
+                if (placed.InRange(rectangle2D) == true || rectangle2D.InRange(placed) == true)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // Uniform-grid spatial index over placed label rectangles, keyed by their (tolerance-expanded)
