@@ -14,7 +14,7 @@ namespace SAM.Analytical
     /// model. <b>Analytical-domain code with no engine dependency of any kind.</b>
     /// <para>
     /// It was extracted from <c>SAM.Analytical.Tas.OverheatingCalculator</c>, which never called TAS: it
-    /// read two named hourly data channels off each <c>Space</c> and produced <c>TM5x</c> results. Sitting
+    /// read two named hourly series off each <c>Space</c> and produced <c>TM5x</c> results. Sitting
     /// in the TAS assembly meant its tests needed a licensed TAS install to run, for no reason other than
     /// where the file happened to live. That class remains, as a thin wrapper over this one, so every
     /// existing Grasshopper and user-interface caller is unaffected.
