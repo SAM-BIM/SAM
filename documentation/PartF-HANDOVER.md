@@ -17,8 +17,8 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `b52aff65` + SAM_Systems `e99f311` — Iteration 0 step 5 complete (5a analytical,
-5b the SAM_Systems catalogue), both hardened after independent review.*
+*Last updated at SAM `b52aff65` + SAM_Systems `bff125f` — Iteration 0 step 5 complete: 5a analytical,
+5b the SAM_Systems catalogue, 5c policy/CI closure. Every one hardened after independent review.*
 
 ### 0a. Repository state — verify this before touching anything
 
@@ -27,7 +27,7 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
 | `SAM` | `feature/partf-terminal-transfer-compliance` | **`b52aff65`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
-| `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`e99f311`** | exactly `e99f311` | clean, level | `sow/2026-Q3` @ `d7303c2` |
+| `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`bff125f`** | exactly `bff125f` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d56f679`** | exactly `d56f679` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
 
@@ -52,7 +52,7 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas; do echo "=== $r ==="; git -C $r status 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
 SAM b52aff65
-SAM_Systems e99f311
+SAM_Systems bff125f
 SAM_UI ffd8e38
 SAM_Tas d56f679
 EOF
@@ -68,7 +68,7 @@ everywhere. **SAM_Tas's and SAM_Systems's branches are new and need PRs like the
 
 ### 0b. Latest checkpoint — what it implemented
 
-**Iteration 0 step 5, both halves, plus review hardening on each.**
+**Iteration 0 step 5 — 5a, 5b and 5c — with review hardening on each.**
 
 - SAM `b23bef3b` → **5a**: the analytical half — `SystemCapability`, `SystemCapabilityRequirement`,
   `SystemCapabilityDescriptor`, `SystemCapabilitySelection`, `Query.PartFSystemCapabilityRequirement`,
@@ -79,18 +79,21 @@ everywhere. **SAM_Tas's and SAM_Systems's branches are new and need PRs like the
   `Query.SystemCapabilityDescriptors`, `Query.SystemEnergyCentreResource`,
   `Query.SystemEnergyCentre(SystemTemplate)`, and the conformance test project.
 - SAM `b52aff65` + SAM_Systems `e99f311` → review fixes, including a **real misselection** (see 0d).
+- SAM_Systems `895a86d` → **5c**: `Application` becomes an eligibility constraint, rank recorded as
+  provisional declared policy, commercial `Boost` recorded as unverified, CI executes the suite.
+- SAM_Systems `bff125f` → 5c review fixes, including a **CI assembly-version restamp** and an unverified
+  capability being credited (see 11j).
 
-Detail in **11h** (5a) and **11i** (5b).
+Detail in **11h** (5a), **11i** (5b) and **11j** (5c).
 
 ### 0c. Tests and builds run, with counts
 
 | Suite | Result | How |
 |---|---|---|
 | `SAM/SAM.Tests` | **1128 passed, 0 failed** | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
-| `SAM_Systems/SAM.Analytical.Systems.Tests` | **20 passed, 0 failed** (new) | `dotnet test SAM_Systems/SAM.Analytical.Systems.Tests/…` |
-| `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
-| `SAM_Systems/SAM.Analytical.Systems.Tests` | **20 passed, 0 failed** — the capability-index conformance test (new) | unchanged by this work, re-run to prove it |
-| `SAM_Systems.sln` | 0 `error` under VS MSBuild | the new test project is now IN the solution, so CI compiles it |
+| `SAM_Systems/SAM.Analytical.Systems.Tests` | **34 passed, 0 failed** | `dotnet test SAM_Systems/SAM.Analytical.Systems.Tests/SAM.Analytical.Systems.Tests.csproj` |
+| `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | unchanged by this work, re-run to prove it |
+| `SAM_Systems.sln` | 0 `error` under VS MSBuild | the test project is in the solution AND now executed by CI |
 | `SAM_UI`, `SAM_Tas`, `SAM_Mollier` | **unchanged since their last run** — see section 2 | not re-run; nothing in them changed |
 
 Three mutation checks were run, all behaving correctly (test failed, then passed on restore): reverting
@@ -122,23 +125,39 @@ defect described in 0d.
    which is preferred). One system listed twice ⇒ not ambiguous, it is selected.
 7. **A malformed capability index disables selection rather than reordering it.** A missing or mistyped
    `Rank`, or a present-but-unusable ventilation identity, refuses the whole index.
-8. **`SystemCapabilityDescriptor` is not an `IJSAMObject`.** It had a second, incompatible JSON shape
+8. **`Application` is an ELIGIBILITY constraint owned by `SAM_Systems`, not documentation.** A Domestic
+   request is never offered a commercial template, and rank is no longer what keeps one out — see 11j.
+   The constraint parameter is **not optional**, so the commercial-inclusive call cannot be written by
+   omission.
+9. **The eligibility guarantee is scoped to capability selection.** The older
+   `DefaultSystemEnergyCentres`/`Create.SystemEnergyCentre` path bypasses the index entirely and is
+   unguarded — recorded, pinned by a test, not changed.
+10. **An unverified capability is never credited.** Every capability an index entry lists under
+   `UnverifiedDeclarations` must be `false`, asserted.
+11. **`SystemCapabilityDescriptor` is not an `IJSAMObject`.** It had a second, incompatible JSON shape
    from the one the catalogue actually uses, and its own reader turned a real index entry into a
    confident empty descriptor. The index is the wire format.
 
 ### 0e. Explicitly deferred
 
-- **CI runs no tests in `SAM_Systems`.** `build.yml` does `msbuild <sln> /t:Rebuild` with no
-  `dotnet test` step, so the conformance test compiles in CI but never executes. Adding a test step is
-  a pipeline change affecting the whole repo — **Michal's call**. Other SAM repos have the same gap.
-- **`Rank` order is PROPOSED, not confirmed** — domestic-before-commercial, unconditioned last.
-  Michal to review.
+- ~~CI runs no tests in `SAM_Systems`~~ — **CLOSED in 5c.** `build.yml` now executes
+  `SAM.Analytical.Systems.Tests` after the ordered Rebuild. **Not yet demonstrated on a real run**: the
+  workflow triggers on `master`/`main`/`sow/**` only, so it will first fire when a PR to `sow/2026-Q3`
+  is opened. Other SAM repos still have the original gap.
+- **The domestic `Rank` order is PROVISIONAL and not confirmed** — `NV 10, EOL 20, EOC 30, MV 40,
+  MVRE 50`. It makes selection deterministic and claims nothing about engineering preference. Michal to
+  confirm or replace. Commercial ranks now order commercial-to-commercial selection only.
 - **`ContinuousVentilation`, `MechanicalSupply` and `Boost` are DECLARED** from each system type's
   meaning, not read from the templates — nothing in the files marks any of them. Each index entry says
   so in `EvidenceFromTemplate`. Michal to confirm the values, particularly `CAV`/`DISP` boost = false.
-- **`Application` (Domestic/Commercial) is documentation only**, not a selection axis. Whether it should
-  become one is Michal's call — today `CapableSystems` reports `CAV`/`VAV`/`DISP` as suitable for a
-  dwelling requirement, and only `Rank` keeps them out of the answer.
+- ~~`Application` is documentation only~~ — **CLOSED in 5c**, it is now an eligibility constraint (11j).
+- **The `Create.SystemEnergyCentre` / `DefaultSystemEnergyCentres` path is UNGUARDED** and is the one with
+  production callers (four Grasshopper components). It derives a template from a file NAME and matches a
+  space's `VentilationSystemTypeName`, so a space carrying `"VAV"` still resolves `VAV.json` in a dwelling
+  model. Pinned by a test, not fixed — **needs its own change and regression**.
+- **The commercial `Boost` values are unverified declarations**, all `false` so they refuse rather than
+  mis-assess. Not to be relied on until confirmed; nothing in Part F work turns on them, since commercial
+  templates are ineligible for a dwelling.
 - **No shipped template models a summer bypass**, so Iteration 2 needs one; until then a bypass
   requirement is refused. Verified against all ten files.
 - **No template self-identifies its ventilation type.** The identity↔file link is only the index's
@@ -822,8 +841,9 @@ communal corridor appeared in the run's DomOv XML as an ordinary room.
 ### 11g. NEXT — Iteration 0 remaining steps, in this order
 
 4. ~~**`OverheatingScenario`**~~ — **DONE**, `7faf964c` + `02e99582`. See 11c.
-5. **DONE, both halves.** 5a in `SAM.Analytical` (see 11h) and 5b in `SAM_Systems` (see 11i). Concrete
-   template selection is enabled: a Part F assessment now resolves to a real `SystemEnergyCentre`.
+5. **DONE — 5a, 5b, 5c.** 5a in `SAM.Analytical` (11h), 5b the `SAM_Systems` catalogue (11i), 5c
+   eligibility and CI closure (11j). Concrete template selection is enabled: a Part F assessment resolves
+   to a real `SystemEnergyCentre`, and a commercial template is never offered for a dwelling.
 6. Lift the `TasTSDQueryTM59Results` recipe into a testable service.
 7. **Make the scenario authoritative** over ventilation strategy (11d).
 8. **Result association** to design dwelling / common space **by identity, not name** — use
@@ -919,8 +939,59 @@ shipped resource is accounted for.
 - **"No template is opened" is proved structurally**, not by a stopwatch: the index is copied alone into
   an empty directory and every requirement Part F can produce still gives the same answer — and
   resolution is asserted to fail there, so the test cannot pass by reading nothing.
-- 20 tests in `SAM_Systems/SAM.Analytical.Systems.Tests`, now in `SAM_Systems.sln` so CI compiles it.
-  **CI still executes no tests in that repo** — see 0e.
+- 34 tests in `SAM_Systems/SAM.Analytical.Systems.Tests`, in `SAM_Systems.sln`, **and executed by CI** —
+  see 11j.
+
+### 11j. Step 5c — eligibility and CI closure (DONE, SAM_Systems `895a86d` + `bff125f`)
+
+**`Application` is an eligibility constraint, not documentation.** It was a comment, and `Rank` was doing
+its job — so `CapableSystems` reported `CAV`, `VAV` and `DISP` as **suitable** for an Approved Document F
+dwelling requirement and only their ranks kept them out of the answer. One edited number could have put a
+variable-air-volume unit in a flat.
+
+- `SystemApplication { Undefined, Domestic, Commercial, Any }` lives in **`SAM_Systems`**. Which of *these*
+  templates is a dwelling system is a fact about this repository's resources, on the same footing as their
+  capabilities. `SAM.Analytical` contains no reference to it and never learns the words.
+- `Query.SystemCapabilityDescriptors(directory, systemApplication)` filters **before** an entry becomes a
+  descriptor. **The parameter is not optional** — defaulting it made the commercial-inclusive call the one
+  you get by writing nothing.
+- **Two roles, asymmetrical.** As a *classification* on an entry, `Any` means "suits either". As a
+  *request*, `Any` and `Undefined` both mean **no constraint** — before that, asking for `Any` returned only
+  `UV`, the one template that can never be selected.
+- `CommercialTemplates_AreExcludedByEligibilityAndNotByRank` **inverts every rank in the index** so
+  commercial sorts first, asserts that premise, and asserts a dwelling still never sees one.
+- A missing, unrecognised, numeric or comma-listed `Application` **refuses the whole index**. The last two
+  matter: `Enum.TryParse` accepts `"3"` and `"Domestic,Commercial"`, and since the members number
+  `Domestic = 1, Commercial = 2, Any = 3` both OR to `Any` — the most permissive value — with
+  `Enum.IsDefined` unable to object. Applications are matched against the three legal names, ordinally.
+
+**The guarantee is scoped, and the limit is recorded rather than left to be discovered.** Eligibility holds
+at the descriptor boundary. It does **not** hold across the repository, because an older, live path —
+`Query.DefaultSystemEnergyCentres` → `Create.SystemEnergyCentre` — derives a `SystemTemplate` from the
+**file name** and matches it against each space's `VentilationSystemTypeName`, consulting neither the index
+nor `Application`. **Four Grasshopper components reach it**, and a space carrying `"VAV"` still resolves
+`VAV.json` there. Nothing in step 5 changed it; `ResolutionIsIdentityDriven_AndDoesNotApplyEligibility`
+pins the behaviour so a future fix has something to change. **Guarding that path is separate work.**
+
+**Rank is declared library policy and nothing else** — not derived, not a claim of engineering minimality.
+The domestic order (`NV 10, EOL 20, EOC 30, MV 40, MVRE 50`) is recorded in the index as **PROVISIONAL AND
+NOT CONFIRMED**: it makes selection deterministic, nothing more. Ranks need only be distinct **within** an
+application, which is the only set they order.
+
+**Unverified declarations are recorded and fail-safe.** `CAV`, `VAV` and `DISP` carry
+`"UnverifiedDeclarations": [ "Boost" ]`, and a test asserts **every capability named there is false** — a
+review caught `VAV` declaring `Boost: true` while listing it as unverified, which is crediting a capability
+nobody confirmed. The name-derived justifications are gone: `"constant volume"`, `"displacement regime"`
+and `"Variable Air Volume → can vary"` are all inference from a label. A non-commercial entry carrying an
+unverified declaration is now **asserted** impossible, not merely commented.
+
+**CI executes the suite.** `build.yml` runs `SAM.Analytical.Systems.Tests` after the ordered Rebuild, with
+`/p:SAMVersion` — **which matters**: three SAM_Systems projects write to the same `build\` folder the
+artifact step publishes, and a test build without it recompiles them at the `1.0.0.0` local-dev fallback
+and overwrites the CI-stamped DLLs, shipping version-inconsistent assemblies. Verified: the test build now
+leaves `2026.3.999.0` in place where it previously left `1.0.0.0`. A failing test no longer costs the build
+artifacts either. **Not yet demonstrated on a real run** — the workflow triggers on `master`/`main`/`sow/**`
+only, so it first fires when a PR to `sow/2026-Q3` is opened.
 
 ## 10. Standing instructions
 
@@ -967,7 +1038,7 @@ remote at the SHAs in **section 0a**, which is authoritative. Nothing should be 
 
 ### State - all pushed, all green
 
-SAM **1128**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123** + **20**, SAM_Mollier **22**;
+SAM **1128**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123** + **34**, SAM_Mollier **22**;
 Grasshopper and Mollier UI 0 `error CS`; SPDX clean. Not merged, no PRs open.
 
 Done and reviewed: the Part F regulatory correction pass, the floor-plan overlay, saved-view persistence,
