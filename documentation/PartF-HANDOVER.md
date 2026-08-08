@@ -17,13 +17,17 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `b23bef3b` — Iteration 0 step 5a (analytical half of system capability selection).*
+*Last updated at SAM `b52aff65` + SAM_Systems `e99f311` — Iteration 0 step 5 complete (5a analytical,
+5b the SAM_Systems catalogue), both hardened after independent review.*
 
 ### 0a. Repository state — verify this before touching anything
 
+**FOUR repos are now in the workstream.** `SAM_Systems` joined at step 5b.
+
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`b23bef3b`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`b52aff65`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`e99f311`** | exactly `e99f311` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d56f679`** | exactly `d56f679` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
 
@@ -42,92 +46,145 @@ Anything else — a dirty tree, an unpushed commit, a divergence, or unrecorded 
 checkpoint and HEAD — means **stop and reconcile before changing any code**.
 
 ```bash
-for r in SAM SAM_UI SAM_Tas SAM_Systems; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/partf-terminal-transfer-compliance; done
+for r in SAM SAM_Systems SAM_UI SAM_Tas; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/partf-terminal-transfer-compliance; done
 ```
 
 ```bash
-for e in "SAM b23bef3b" "SAM_Systems PENDING"; do set -- $e; git -C $1 merge-base --is-ancestor $2 HEAD 2>/dev/null && { echo "$1: descends from $2"; git -C $1 diff --name-only $2 HEAD | grep -v '^documentation/PartF-HANDOVER.md$' | sed "s/^/$1 UNRECORDED CODE: /"; }; done
+while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
+SAM b52aff65
+SAM_Systems e99f311
+SAM_UI ffd8e38
+SAM_Tas d56f679
+EOF
 ```
 
-The second command must print only the `descends from` lines. **Any `UNRECORDED CODE:` line means stop.**
+That must print exactly four `descends from` lines and nothing else. **Any `UNRECORDED CODE:` or
+`DOES NOT CONTAIN` line means stop and reconcile.** (An earlier version of this check passed a literal
+`PENDING` for a repo that had no SHA yet and swallowed the error, so it silently verified nothing —
+the loop above fails loudly instead.)
 
-Not merged. **No PRs open.** `sow/2026-Q3` never committed to directly, untouched in all three.
-`SAM_Systems` is **not in the workstream** — no branch, no changes, and step 5b will need one.
+Not merged. **No PRs open in any of the four.** `sow/2026-Q3` never committed to directly, untouched
+everywhere. **SAM_Tas's and SAM_Systems's branches are new and need PRs like the other two.**
 
 ### 0b. Latest checkpoint — what it implemented
 
-SAM `b23bef3b`, Iteration 0 **step 5a**: the analytical half of system capability selection.
-`SystemCapability` (4 flags), `SystemCapabilityRequirement`, `SystemCapabilityDescriptor`,
-`SystemCapabilitySelection`, `Query.PartFSystemCapabilityRequirement`,
-`Query.SelectMinimumCapableSystem`. Detail in **11h**.
+**Iteration 0 step 5, both halves, plus review hardening on each.**
+
+- SAM `b23bef3b` → **5a**: the analytical half — `SystemCapability`, `SystemCapabilityRequirement`,
+  `SystemCapabilityDescriptor`, `SystemCapabilitySelection`, `Query.PartFSystemCapabilityRequirement`,
+  `Query.CapableSystems`, `Query.SelectPreferredCapableSystem`.
+- SAM `c5112e4f` → preference taken out of `SAM.Analytical` (Michal's correction), handover invariant
+  strengthened.
+- SAM_Systems `c6a441d` → **5b**: `CapabilityIndex.JSON` beside the ten templates,
+  `Query.SystemCapabilityDescriptors`, `Query.SystemEnergyCentreResource`,
+  `Query.SystemEnergyCentre(SystemTemplate)`, and the conformance test project.
+- SAM `b52aff65` + SAM_Systems `e99f311` → review fixes, including a **real misselection** (see 0d).
+
+Detail in **11h** (5a) and **11i** (5b).
 
 ### 0c. Tests and builds run, with counts
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1124 passed, 0 failed** | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
-| `SAM_UI`, `SAM_Tas`, `SAM_Systems`, `SAM_Mollier` | **unchanged since their last run** — see section 2 | not re-run this checkpoint; nothing in them changed |
+| `SAM/SAM.Tests` | **1128 passed, 0 failed** | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
+| `SAM_Systems/SAM.Analytical.Systems.Tests` | **20 passed, 0 failed** (new) | `dotnet test SAM_Systems/SAM.Analytical.Systems.Tests/…` |
+| `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
+| `SAM_Systems/SAM.Analytical.Systems.Tests` | **20 passed, 0 failed** — the capability-index conformance test (new) | unchanged by this work, re-run to prove it |
+| `SAM_Systems.sln` | 0 `error` under VS MSBuild | the new test project is now IN the solution, so CI compiles it |
+| `SAM_UI`, `SAM_Tas`, `SAM_Mollier` | **unchanged since their last run** — see section 2 | not re-run; nothing in them changed |
 
-Two mutation checks were run and both behaved correctly (the test failed, then passed on restore):
-reverting the assumption-name normalisation fails `UnicodeNormalisation_DoesNotChangeCanonicalOrdering`
-and nothing else; adding a `static List<SystemCapabilityDescriptor>` to `SAM.Analytical` fails
-`NoDefaultCatalog_LivesInTheAnalyticalAssembly`.
+Three mutation checks were run, all behaving correctly (test failed, then passed on restore): reverting
+the assumption-name normalisation fails `UnicodeNormalisation_DoesNotChangeCanonicalOrdering` and
+nothing else; adding a `static List<SystemCapabilityDescriptor>` to `SAM.Analytical` fails
+`NoDefaultCatalog_LivesInTheAnalyticalAssembly`; the review independently reproduced the `Rank` typo
+defect described in 0d.
 
 ### 0d. Architectural decisions made in this checkpoint
 
-1. **`SAM.Analytical` owns the capability vocabulary + the Part F requirement rule + the selection rule.
-   `SAM_Systems` owns the capability VALUES for its shipped templates.** Michal's decision, replacing an
-   earlier recommendation of a declared catalog in `SAM.Analytical` — that would have put the names of
-   ten `SAM_Systems` resource files inside the core library. Same cut as TAS: analytical states intent,
-   the specialised assembly owns implementation.
-2. **`HeatRecovery` is a capability, not an identity.** `MVRE` remains SAM's heat-recovery ventilation.
-   It is in the vocabulary so `MVRE` is strictly more capable than `MV` and a requirement that does not
-   ask for heat recovery returns the simpler system.
-3. **Part F requires continuous ventilation and boost, and nothing else — never summer bypass or heat
-   recovery.** Those are Part O mitigation a scenario states.
-4. **Refuse, never approximate.** No capable system ⇒ an explicit refusal naming what was missing.
+1. **`SAM.Analytical` owns the capability vocabulary + the Part F requirement rule + suitability +
+   preference-by-supplied-rank. `SAM_Systems` owns the capability VALUES and the rank.** Michal's
+   decision. Same cut as TAS: analytical states intent, the specialised assembly owns implementation.
+2. **`SAM.Analytical` must NOT infer preference from capabilities.** An earlier revision chose the
+   system with the fewest capabilities. That is a policy about a particular library, not something that
+   follows from Part F — a capability a system happens to have may cost nothing to specify. Preference
+   is now `SystemCapabilityDescriptor.Rank`, supplied by the catalogue and never derived.
+   `Query.CapableSystems` (suitability) is separate from `Query.SelectPreferredCapableSystem` (choice).
+3. **`SystemCapability.MechanicalSupply` exists because of a real misselection the review found.** A
+   balanced dwelling — paragraph 1.67, a supply terminal in every habitable room — was met by
+   `Local Extract Only`, because extract-only does run continuously and can boost. The overheating
+   simulation would have run a system with no supply and no heat recovery against a building with both.
+   `TotalSupply_Lps` is the indicator: those terminals carry `IsInBalancedFlow`.
+4. **`HeatRecovery` is a capability, not an identity.** `MVRE` remains SAM's heat-recovery ventilation.
+5. **Part F requires continuous ventilation, mechanical supply where supply was sized, and boost —
+   never summer bypass or heat recovery.** Those are Part O mitigation a scenario states.
+6. **Refuse, never approximate, and refuse rather than guess.** No capable system ⇒ refusal naming what
+   was missing. Two *different* suitable systems at the same rank ⇒ refusal (the catalogue has not said
+   which is preferred). One system listed twice ⇒ not ambiguous, it is selected.
+7. **A malformed capability index disables selection rather than reordering it.** A missing or mistyped
+   `Rank`, or a present-but-unusable ventilation identity, refuses the whole index.
+8. **`SystemCapabilityDescriptor` is not an `IJSAMObject`.** It had a second, incompatible JSON shape
+   from the one the catalogue actually uses, and its own reader turned a real index entry into a
+   confident empty descriptor. The index is the wire format.
 
 ### 0e. Explicitly deferred
 
-- **Step 5b — the `SAM_Systems` capability catalog.** A side-car index keyed on the existing
-  `SystemTemplate` fields, beside the ten templates, plus resolution of a chosen `SystemTemplate` to a
-  concrete `SystemEnergyCentre`, plus a **conformance test** that opens the real 1.8 MB templates (only
-  in the test, never at runtime). **Concrete template selection is NOT enabled until this lands.**
-- `SystemTemplate.FromJsonObject` whitespace asymmetry — 11f item 7.
+- **CI runs no tests in `SAM_Systems`.** `build.yml` does `msbuild <sln> /t:Rebuild` with no
+  `dotnet test` step, so the conformance test compiles in CI but never executes. Adding a test step is
+  a pipeline change affecting the whole repo — **Michal's call**. Other SAM repos have the same gap.
+- **`Rank` order is PROPOSED, not confirmed** — domestic-before-commercial, unconditioned last.
+  Michal to review.
+- **`ContinuousVentilation`, `MechanicalSupply` and `Boost` are DECLARED** from each system type's
+  meaning, not read from the templates — nothing in the files marks any of them. Each index entry says
+  so in `EvidenceFromTemplate`. Michal to confirm the values, particularly `CAV`/`DISP` boost = false.
+- **`Application` (Domestic/Commercial) is documentation only**, not a selection axis. Whether it should
+  become one is Michal's call — today `CapableSystems` reports `CAV`/`VAV`/`DISP` as suitable for a
+  dwelling requirement, and only `Rank` keeps them out of the answer.
+- **No shipped template models a summer bypass**, so Iteration 2 needs one; until then a bypass
+  requirement is refused. Verified against all ten files.
+- **No template self-identifies its ventilation type.** The identity↔file link is only the index's
+  `Resource` string, so swapping two templates' contents is undetectable.
+- `SystemTemplate.FromJsonObject` whitespace asymmetry — 11f item 7. Worked around at both boundaries
+  that matter; the shared path is still inconsistent for other consumers.
 - Everything in 11f items 1–5.
 
 ### 0f. The precise next task
 
-**Step 5b**, then steps 6–10 in the order in 11g. Step 5b needs `SAM_Systems` brought into the
-workstream on its own `feature/partf-terminal-transfer-compliance` branch off its `sow/2026-Q3`
-— **ask Michal before creating it**, he has kept the workstream to three repos.
+**Step 6** — lift the `TasTSDQueryTM59Results` recipe into a testable service. Reuse, do not rewrite.
+Then steps 7–10 in the order in 11g.
 
-Files likely touched by step 5b:
-- `SAM_Systems/SAM_Systems/files/resources/Analytical/Systems/SystemEnergyCentre/CapabilityIndex.JSON` (new)
-- `SAM_Systems/SAM_Systems/SAM.Analytical.Systems/Query/SystemCapabilityDescriptors.cs` (new)
-- `SAM_Systems/SAM_Systems/SAM.Analytical.Systems/Query/SystemEnergyCentre.cs` (existing loader, reused)
-- a conformance test project under `SAM_Systems`
+Files likely touched by step 6:
+- `SAM_Tas/…/SAM.Analytical.Tas/` — a new service class alongside the existing conversion
+- `SAM_Tas_Grasshopper/…/TasTSDQueryTM59Results` — the component becomes a thin caller
+- `SAM/SAM/SAM.Tests/` or `SAM_Tas/SAM.Analytical.Tas.TM59.Tests/` for its tests
+- **TAS-facing ⇒ VS Framework MSBuild, not `dotnet`** (see 0g)
 
 ### 0g. Environment needed to continue
 
 - **TAS-facing projects need VS Framework MSBuild**, not the dotnet CLI (MSB4803 / `ResolveComReference`):
   `C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe`.
-  `SAM.Analytical` and `SAM.Tests` build fine under `dotnet`.
-- Build **SAM before SAM_UI/SAM_Tas** — they reference its built DLLs.
+  `SAM.Analytical`, `SAM.Tests`, `SAM.Analytical.Systems` and its test project build fine under `dotnet`.
+- Build **SAM before SAM_Systems / SAM_UI / SAM_Tas** — they reference its built DLLs from `SAM\build\`.
+- `SAM.Analytical.Systems` has **no `<LangVersion>`**, so it compiles as **C# 7.3** — no collection
+  expressions, no target-typed `new`. Its test project is C# 12.
+- The conformance test reads the repository's own resources by walking up for the ancestor holding both
+  `files/resources/…/SystemEnergyCentre` **and** `SAM_Systems/SAM.Analytical.Systems`. It therefore only
+  runs from a source checkout, and it deliberately does **not** accept `build_tests/net8.0/`, where the
+  Mollier tests copy two templates.
 - Section 9 has the rest of the gotchas.
 
 ---
 
 ## 1. Where the work is
 
-**COMMITTED AND PUSHED in all three repos. Not merged, no PR opened.** All working trees are clean and
+**COMMITTED AND PUSHED in all FOUR repos. Not merged, no PR opened.** All working trees are clean and
 level with their remotes. Do not merge, squash, force-push, or open a PR unless Michal asks.
 
-All three repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's branch was created in an
-earlier session and needs a PR like the other two.** `sow/2026-Q3` was never committed to directly and is
+All four repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's and SAM_Systems's branches
+are new and need PRs like the other two.** `sow/2026-Q3` was never committed to directly and is
 untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
 
-**Current heads — SAM `b23bef3b`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`. All pushed and verified.**
+**Current heads — SAM `b52aff65`+handover, SAM_Systems `e99f311`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`.
+All pushed and verified. See section 0a, which is authoritative.**
 
 Note for review: `ffd8e38` (SAM_UI) is the Part F dwelling-scope/cache work and is a *different review
 topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at separately.
@@ -150,7 +207,10 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - `884a2f54` **step 4.1 canonicalisation** — assumption names normalised before sorting, JSON primitives through the typed canonicaliser (see 11c)
   - `342dfb26` handover after step 4.1
   - `b23bef3b` **step 5a — analytical half of system capability selection** (see 11h)
-  - **HEAD = `b23bef3b`**, pushed
+  - `b4d5aaa4`, `27ef1730` handover: section 0 and the repo-state invariant
+  - `c5112e4f` **preference taken out of `SAM.Analytical`** + the stronger invariant (Michal's review)
+  - `b52aff65` **`MechanicalSupply` + selection hardening** (review of 5a/5b, see 11h)
+  - **last CODE commit = `b52aff65`**, pushed; HEAD is the handover commit on top
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -173,9 +233,10 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
 
 | Suite | Result |
 |---|---|
-| `SAM/SAM.Tests` | **1124 passed, 0 failed** (1046 + 16 Part O scope/identity + 5 TM extraction + 40 scenario identity + 17 capability selection) |
+| `SAM/SAM.Tests` | **1128 passed, 0 failed** (1046 + 16 Part O scope/identity + 5 TM extraction + 40 scenario identity + 21 capability selection) |
 | `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **180 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor + 17 preset/scope + 6 assessment cache) |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
+| `SAM_Systems/SAM.Analytical.Systems.Tests` | **20 passed, 0 failed** — the capability-index conformance test (new) |
 | `SAM_Mollier/SAM.Core.Mollier.Tests` | **22 passed, 0 failed** |
 | `SAM.Core.Mollier.UI.WPF` | 0 `error CS` — builds unchanged against the hardened engine |
 | `SAM.Analytical.Grasshopper` | 0 `error CS` under VS MSBuild |
@@ -652,6 +713,10 @@ behaves as REcovery despite the library description saying "Recirculation".
 | SAM | `02e99582` | **step 4 hardened after independent review** → 35 tests |
 | SAM | `884a2f54` | **step 4.1 canonicalisation** (Michal's review) → 40 tests |
 | SAM | `b23bef3b` | **step 5a analytical capability selection** → 17 tests |
+| SAM | `c5112e4f` | preference out of `SAM.Analytical`; stronger handover invariant |
+| SAM | `b52aff65` | **`MechanicalSupply`** + selection hardening → 21 tests |
+| SAM_Systems | `c6a441d` | **step 5b `CapabilityIndex.JSON`** + conformance test → 9 tests |
+| SAM_Systems | `e99f311` | malformed-index refusal + structural no-template proof → 20 tests |
 | SAM_Tas | `5e38c94` | `OverheatingCalculator` → compatibility wrapper + 3 equivalence tests |
 | SAM_Tas | `d56f679` | doc terminology |
 
@@ -744,8 +809,9 @@ communal corridor appeared in the run's DomOv XML as an ordinary room.
    `7faf964c`; `ComputeHash` itself is untouched and still ASCII.)*
 7. **`SystemTemplate`'s setters strip spaces; its copy and JSON constructors do not.** `"MV RE"` means
    `MVRE` through `new SystemTemplate(...)` and `MV RE` through `FromJsonObject`. `OverheatingScenario`
-   normalises at its own boundary (`Normalized`) so scenario identity is safe, but the shared
-   serialisation path is still inconsistent for every other consumer. Fixing it means routing
+   normalises at its own boundary (`Normalized`), and `SAM_Systems`' capability-index reader rebuilds
+   identities through the setters for the same reason - so both places that matter are safe, but the
+   shared serialisation path is still inconsistent for every other consumer. Fixing it means routing
    `SystemTemplate.FromJsonObject` through the setters, which changes a path `SAM_Systems` lookups use
    — **needs its own change and regression**, not a drive-by.
 8. **`"R"` / `"G17"` are not runtime-stable** — both changed meaning in .NET Core 3.0, so a double
@@ -756,10 +822,8 @@ communal corridor appeared in the run's DomOv XML as an ordinary room.
 ### 11g. NEXT — Iteration 0 remaining steps, in this order
 
 4. ~~**`OverheatingScenario`**~~ — **DONE**, `7faf964c` + `02e99582`. See 11c.
-5. **SPLIT.** 5a **DONE** (`b23bef3b`, see 11h) — the analytical vocabulary, the Part F requirement rule
-   and the pure selection rule. **5b OUTSTANDING** — the `SAM_Systems` capability catalog for the ten
-   shipped templates and resolution to a concrete `SystemEnergyCentre`. **Concrete template selection is
-   not enabled until 5b lands.**
+5. **DONE, both halves.** 5a in `SAM.Analytical` (see 11h) and 5b in `SAM_Systems` (see 11i). Concrete
+   template selection is enabled: a Part F assessment now resolves to a real `SystemEnergyCentre`.
 6. Lift the `TasTSDQueryTM59Results` recipe into a testable service.
 7. **Make the scenario authoritative** over ventilation strategy (11d).
 8. **Result association** to design dwelling / common space **by identity, not name** — use
@@ -767,38 +831,96 @@ communal corridor appeared in the run's DomOv XML as an ordinary room.
 9. Preserve the TSD-simple vs TPD-full routing boundary.
 10. Thin headless TAS runner, **last**.
 
-### 11h. Step 5a — system capability selection, analytical half (DONE, `b23bef3b`)
+### 11h. Step 5a — system capability selection, analytical half (DONE, `b23bef3b` + `c5112e4f` + `b52aff65`)
 
 **The boundary, decided by Michal and replacing an earlier recommendation of mine.** A declared catalog
 in `SAM.Analytical` would have put the names of ten `SAM_Systems` resource files inside the core
 library. The split is instead the one already drawn for TAS:
 
 ```
-SAM.Analytical                         │  SAM_Systems  (step 5b, NOT BUILT)
-  SystemCapability (vocabulary)        │    CapabilityIndex.JSON beside the templates
-  PartFSystemCapabilityRequirement     │    descriptors for the ten shipped templates
-  SelectMinimumCapableSystem (rule)    │    chosen SystemTemplate → concrete SystemEnergyCentre
-  — owns NO values                     │    conformance test opens the real 1.8 MB files
+SAM.Analytical                              │  SAM_Systems  (11i)
+  SystemCapability (vocabulary)             │    CapabilityIndex.JSON beside the templates
+  PartFSystemCapabilityRequirement (rule)   │    capability VALUES + Rank for the ten templates
+  CapableSystems (suitability)              │    chosen SystemTemplate -> concrete SystemEnergyCentre
+  SelectPreferredCapableSystem (choice)     │    conformance test opens the real 1.8 MB files
+  — owns NO values and NO preference        │
 ```
 
-- **`SystemCapability`** — `ContinuousVentilation`, `Boost`, `SummerBypass`, `HeatRecovery`.
-  Capabilities, **not equipment**. `MVRE` stays the heat-recovery identity; `HeatRecovery` is a property
-  of it. It earns its place by making `MVRE` strictly more capable than `MV`, so a requirement that does
-  not ask for heat recovery returns the simpler system instead of being unable to tell them apart.
-- **`Query.PartFSystemCapabilityRequirement(PartFDwellingResult)`** — continuous ventilation, plus boost
-  exactly when `TotalHighExtract_Lps` exceeds `ContinuousDesignSystemRate_Lps` (intermittent extract
-  excluded — it is not part of the balanced system). **It never asks for summer bypass or heat
-  recovery**, swept over a grid of dwellings so that cannot pass on one convenient case. A dwelling
-  credited with mitigation its design does not have would pass an assessment it should fail.
-- **`Query.SelectMinimumCapableSystem`** — a pure function over descriptors the caller supplies.
-  **Minimum = fewest capabilities, not first found.** Ties broken by `SystemTemplate` identity, field by
-  field, ordinally — asserted over every rotation AND reversal, so a directory enumeration cannot decide
-  an engineering answer. **Refuses and names what was missing**; where every capability exists but never
-  together on one system it says that instead. No nearest match, no default.
+- **`SystemCapability`** — `ContinuousVentilation`, `MechanicalSupply`, `Boost`, `SummerBypass`,
+  `HeatRecovery`. Capabilities, **not equipment**. `MVRE` stays the heat-recovery identity.
+- **`MechanicalSupply` was added after a review found a real misselection.** A balanced dwelling —
+  paragraph 1.67, a supply terminal in every habitable room — was met by `Local Extract Only`, because
+  extract-only does run continuously and can boost. The overheating simulation would have run a system
+  with no supply and no heat recovery against a building that has both.
+- **`Query.PartFSystemCapabilityRequirement(PartFDwellingResult)`** — continuous ventilation; mechanical
+  supply when `TotalSupply_Lps`/`TotalHighSupply_Lps` is non-zero (those terminals carry
+  `IsInBalancedFlow`); boost when `TotalHighExtract_Lps` exceeds `ContinuousDesignSystemRate_Lps`
+  (intermittent extract excluded — it is not part of the balanced system). **It never asks for summer
+  bypass or heat recovery**, swept over a grid of dwellings.
+- **`Query.CapableSystems`** — suitability only, which is all this assembly can honestly decide.
+  Returned in the supplied order so a caller with a different policy has the whole suitable set.
+- **`Query.SelectPreferredCapableSystem`** — takes the first. **Preference is
+  `SystemCapabilityDescriptor.Rank`, supplied by the catalogue and never derived.** An earlier revision
+  ranked by fewest capabilities; Michal rejected that as a policy about a particular library rather than
+  something following from Part F. Ranks are compared with `CompareTo`, not subtracted (overflow put the
+  lowest-ranked system last). The sort breaks a final tie on insertion order, which is the only thing
+  that makes sorting an index list less unstable than sorting the list.
+- **Refusals**: nothing capable ⇒ names what was missing; every capability present but never together on
+  one system ⇒ says that instead; two **different** suitable systems at the lowest rank ⇒ refused, the
+  catalogue has not said which is preferred; one system listed **twice** ⇒ not ambiguous, selected.
+- **`SystemCapabilityDescriptor` is not an `IJSAMObject`** — it had a second JSON shape incompatible with
+  the catalogue's, and its own reader turned a real index entry into a confident empty descriptor.
 - Two structural locks, both mutation-verified: no member of the selection types names a file, path,
-  directory or energy centre; and no static member of `SAM.Analytical` hands out descriptors.
-- 17 tests in `SAM.Tests/SystemCapabilitySelectionTests.cs`. The descriptors there are a **test fixture
-  standing in for the `SAM_Systems` catalog, not a copy of it**.
+  directory or energy centre; no static member of `SAM.Analytical` hands out descriptors.
+- 21 tests in `SAM.Tests/SystemCapabilitySelectionTests.cs`. The descriptors there are a **test fixture
+  standing in for the `SAM_Systems` catalogue, not a copy of it**.
+
+### 11i. Step 5b — the SAM_Systems capability catalogue (DONE, `c6a441d` + `e99f311`)
+
+`files/resources/Analytical/Systems/SystemEnergyCentre/CapabilityIndex.JSON`, beside the ten shipped
+templates. Read at runtime; **the templates are not**. Keyed on the existing `SystemTemplate` identity —
+ventilation part only, because these are ventilation templates and heating/cooling/plant/controls are
+chosen elsewhere. No new system or equipment identity, no `MVHR`.
+
+| | `CV` | `Supply` | `Boost` | `Bypass` | `HR` | Rank | Application |
+|---|---|---|---|---|---|---|---|
+| `NV` Natural Ventilation | yes | | | | | 10 | Domestic |
+| `EOL` Local Extract Only | yes | | yes | | | 20 | Domestic |
+| `EOC` Central Extract Only | yes | | yes | | | 30 | Domestic |
+| `MV` Supply And Extract | yes | yes | yes | | | 40 | Domestic |
+| `MVRE` — SAM's MVHR | yes | yes | yes | | yes | 50 | Domestic |
+| `CAV` Constant Air Volume | yes | yes | | | yes | 60 | Commercial |
+| `VAV` Variable Air Volume | yes | yes | yes | | yes | 70 | Commercial |
+| `DISP` Displacement | yes | yes | | | yes | 80 | Commercial |
+| `UV` Unconditioned | | | | | | 90 | Any |
+
+`Plantroom-Only.json` is listed under `NonVentilationResources` — not a candidate, recorded so every
+shipped resource is accounted for.
+
+- **`Query.SystemCapabilityDescriptors(directory)`** reads the index and nothing else. **A malformed
+  index refuses entirely**: a missing or mistyped `Rank`, or a ventilation identity that is present but
+  unusable. The `Rank` case is why — the review changed `"Rank"` to `"rank"` on VAV and every dwelling
+  requirement then silently selected a commercial VAV unit in place of a dwelling extract fan, because
+  a defaulted 0 sorts first. An **absent** ventilation key still means "not a ventilation template".
+- Identities are rebuilt through `SystemTemplate`'s property setters, so an index entry reading `"M V"`
+  matches a caller's constructor-built `"MV"` (11f item 7).
+- **`Query.SystemEnergyCentreResource`** matches on the ventilation identity and refuses on ambiguity, a
+  blank resource, or any resource containing a separator or `..`.
+- **`Query.SystemEnergyCentre(SystemTemplate)`** is **the one point at which a template is opened at
+  runtime**, once, after the choice, for the system chosen.
+- **What the conformance test can and cannot prove.** `HeatRecovery` is checked against every shipped
+  file — an exchanger with a sensible efficiency **above zero** — and re-establishes the MVRE fact every
+  Part O heat-recovery decision rests on: one exchanger, 0.7 sensible, 0 latent, no recirculation, and
+  `MV` is the same system without it. `SummerBypass` is checked as **absent from all ten** (ignoring
+  `BypassFactor`, a cooling-coil parameter that false-positives a naive search).
+  `ContinuousVentilation`, `MechanicalSupply` and `Boost` **cannot be read off a template at all** and
+  are declared from the system type's meaning; each entry's `EvidenceFromTemplate` says which values are
+  evidence, and a test asserts it says so honestly rather than presenting declaration as measurement.
+- **"No template is opened" is proved structurally**, not by a stopwatch: the index is copied alone into
+  an empty directory and every requirement Part F can produce still gives the same answer — and
+  resolution is asserted to fail there, so the test cannot pass by reading nothing.
+- 20 tests in `SAM_Systems/SAM.Analytical.Systems.Tests`, now in `SAM_Systems.sln` so CI compiles it.
+  **CI still executes no tests in that repo** — see 0e.
 
 ## 10. Standing instructions
 
@@ -811,8 +933,8 @@ SAM.Analytical                         │  SAM_Systems  (step 5b, NOT BUILT)
 - **Working sequence:** implement → test → commit → push → independent review/fixes → test →
   commit/push → update this handover → commit/push handover → continue. Never force-push; never squash
   or rebase published commits; do not open a PR unless asked.
-- Work on `feature/partf-terminal-transfer-compliance` in **all three** repos — SAM_Tas's was created
-  this session and needs a PR like the others. **Never commit to `sow/2026-Q3` directly.**
+- Work on `feature/partf-terminal-transfer-compliance` in **all four** repos — SAM_Tas's and
+  SAM_Systems's are new and need PRs like the others. **Never commit to `sow/2026-Q3` directly.**
 - SAM first (SAM_UI and SAM_Tas CI dep-clone it), PRs against `sow/2026-Q3`, CI green **and** the Codex
   inline comments read.
 - Attribution line `Generated by Michal Dengusiak and CodeClaude` on every commit and PR body.
@@ -830,7 +952,9 @@ only.
 Iteration 0 state, the architecture reconnaissance, the open defect and the follow-ups deliberately not
 fixed. It also holds the decisions that must not be silently revisited and the environment gotchas.
 
-Then in **all three** repos - SAM, SAM_UI and **SAM_Tas** - run:
+Then in **all four** repos - SAM, **SAM_Systems**, SAM_UI and SAM_Tas - run the two verification
+commands in **section 0a**, which check clean/level, descent from the recorded last-code SHA, and that
+nothing but the handover changed since it:
 
 ```
 git status
@@ -839,29 +963,23 @@ git log --oneline -1 origin/feature/partf-terminal-transfer-compliance
 ```
 
 Confirm each is on `feature/partf-terminal-transfer-compliance`, the tree is **clean**, and local matches
-remote at: **SAM `b23bef3b`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`**. Nothing should be outstanding.
+remote at the SHAs in **section 0a**, which is authoritative. Nothing should be outstanding.
 
 ### State - all pushed, all green
 
-SAM **1124**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123**, SAM_Mollier **22**;
+SAM **1128**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123** + **20**, SAM_Mollier **22**;
 Grasshopper and Mollier UI 0 `error CS`; SPDX clean. Not merged, no PRs open.
 
 Done and reviewed: the Part F regulatory correction pass, the floor-plan overlay, saved-view persistence,
-the dwelling-scope correctness fix and cache proof, and the first four Iteration 0 pieces: **Part O
-assessment scope**, **`SimulationSpaceMap`**, the **engine-neutral `TMOverheatingCalculator`
-extraction** with its TAS compatibility wrapper, and **`OverheatingScenario`** with its derived
-deterministic key, reviewed and hardened (11c, and the two new entries in 11f).
+the dwelling-scope correctness fix and cache proof, and Iteration 0 steps 1-5: **Part O assessment
+scope**, **`SimulationSpaceMap`**, the **engine-neutral `TMOverheatingCalculator` extraction** with its
+TAS compatibility wrapper, **`OverheatingScenario`** with its derived deterministic key (11c), and
+**system capability selection** across `SAM.Analytical` and `SAM_Systems` (11h, 11i). Every checkpoint
+independently reviewed and hardened.
 
 **Read section 0 first and verify the repositories against it before changing any code.**
 
-### Your next task: Iteration 0, step 5b onward (section 11g)
-
-5b. The **`SAM_Systems` capability catalog** for the ten shipped `SystemEnergyCentre` templates, keyed on
-   the existing `SystemTemplate` fields, beside the templates; resolution of a chosen `SystemTemplate` to
-   a concrete `SystemEnergyCentre`; and a conformance test that opens the real 1.8 MB files - **only in
-   the test, never at runtime**. 5a is done (`b23bef3b`, section 11h) and holds the vocabulary, the Part
-   F requirement rule and the selection rule. **`SAM_Systems` is not yet in the workstream - ask before
-   creating its branch.**
+### Your next task: Iteration 0, step 6 onward (section 11g)
 6. Lift the `TasTSDQueryTM59Results` recipe into a testable service. Reuse, do not rewrite.
 7. **Make the scenario authoritative** over ventilation strategy - see 11d, three conflicting derivations.
 8. **Result association** to design dwelling / common space **by identity, not name**, via
