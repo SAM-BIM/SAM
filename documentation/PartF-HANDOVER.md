@@ -17,7 +17,7 @@ All three repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's
 session and needs a PR like the other two.** `sow/2026-Q3` was never committed to directly and is
 untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
 
-**Current heads — SAM `2e2362f7`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`. All pushed and verified.**
+**Current heads — SAM `02e99582`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`. All pushed and verified.**
 
 Note for review: `ffd8e38` (SAM_UI) is the Part F dwelling-scope/cache work and is a *different review
 topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at separately.
@@ -33,7 +33,10 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - `060feeda` **Part O scope + `SimulationSpaceMap`** (see 11c)
   - `9cbf308a` **`TMOverheatingCalculator` extraction** (see 11c)
   - `2e2362f7` doc terminology
-  - **HEAD = `2e2362f7`**, pushed
+  - `52698867` record the Iteration 0 state in this handover
+  - `7faf964c` **`OverheatingScenario` + derived deterministic key** (step 4, see 11c)
+  - `02e99582` **step 4 hardened after an independent review** (see 11c)
+  - **HEAD = `02e99582`**, pushed
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -56,7 +59,7 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
 
 | Suite | Result |
 |---|---|
-| `SAM/SAM.Tests` | **1067 passed, 0 failed** (1046 + 16 Part O scope/identity + 5 TM extraction) |
+| `SAM/SAM.Tests` | **1102 passed, 0 failed** (1046 + 16 Part O scope/identity + 5 TM extraction + 35 scenario identity) |
 | `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **180 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor + 17 preset/scope + 6 assessment cache) |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
 | `SAM_Mollier/SAM.Core.Mollier.Tests` | **22 passed, 0 failed** |
@@ -531,6 +534,8 @@ behaves as REcovery despite the library description saying "Recirculation".
 | SAM | `060feeda` | `Query.PartOClassifyAssessmentZones` + `SimulationSpaceMap` + 16 tests |
 | SAM | `9cbf308a` | `TMOverheatingCalculator` extraction + 5 tests |
 | SAM | `2e2362f7` | doc terminology |
+| SAM | `7faf964c` | **`OverheatingScenario` + derived key** (step 4) + 24 tests |
+| SAM | `02e99582` | **step 4 hardened after independent review** → 35 tests |
 | SAM_Tas | `5e38c94` | `OverheatingCalculator` → compatibility wrapper + 3 equivalence tests |
 | SAM_Tas | `d56f679` | doc terminology |
 
@@ -541,6 +546,22 @@ behaves as REcovery despite the library description saying "Recirculation".
   engine key first, unique name as fallback, **refuses on ambiguity**. The key is a
   `Func<Space,string>` so `SAM.Analytical` stays engine-free. Verified on the real run: **9 spaces → 9
   distinct TAS zone guids**, matching the DomOv XML — unique per SPACE, not per zone.
+- **`OverheatingScenario` (step 4, DONE)**: a Part O assessment stated as engineering intent - scope,
+  design zone guid, iteration, the existing `SystemTemplate` identity, and an
+  `OverheatingOperatingAssumptions` bag - with a **derived** key. SHA-256 over a namespace and the
+  components, first 16 bytes stamped version 8 + RFC 4122 variant, mirroring `PartFAnnotationKey`.
+  UTF-8, **length-prefixed** (concatenation is ambiguous), NFC-normalised, enums hashed **by name**,
+  behind the marker `OverheatingScenario:v1`. **Not** `Core.Query.ComputeHash` - it is ASCII and
+  collides. Not in the key: name, `Source`, anything engine-shaped, simulation output, view settings,
+  creation time. `Key` is `Guid.Empty` where `IsValid` is false, held after first derivation and
+  dropped by `FromJsonObject` - the only path that writes identity-defining state.
+  `Key_IsStableAcrossBuilds` pins the exact guid; regenerate it **only** with a schema bump.
+  - **No `Iteration0` member.** `PartOIteration { Undefined, BasePassive, AcousticRestricted,
+    ActiveTrimCooling }` - the foundation stage is a stage of this codebase, not an operating scenario
+    of a building, and a scenario built during it states `Undefined`, which is true.
+  - `VentilationStrategy` / `HasVentilationStrategy` read the existing `SystemTemplate.Ventilation`
+    (`NV`/`MV`/`MVRE`/`UV`). **No second vocabulary, no `MVHR`.** Step 7's consumer must **refuse**
+    where `HasVentilationStrategy` is false, never fall back to the zone-name lookup it replaces.
 - **TM overheating extraction**: `SAM.Analytical.TMOverheatingCalculator` owns TM52 + TM59 + comfort
   helpers; `SAM.Analytical.Tas.OverheatingCalculator` is a delegating wrapper with its public API
   intact (no Grasshopper/UI migration). The two series keys are **instance** properties
@@ -591,14 +612,22 @@ communal corridor appeared in the run's DomOv XML as an ordinary room.
    `NoWeatherData_ThrowsToday_PreExistingBehaviourNotAContract`. The fragility is in the weather layer.
 5. **Missing series → silent no-assessment**, pinned not endorsed. Needs a diagnostic.
 6. **`Core.Query.ComputeHash` uses `Encoding.ASCII`** — non-ASCII names collide. Fine as a checksum,
-   **unsafe for derived identity**. Use UTF-8 for the scenario key.
+   **unsafe for derived identity**. Use UTF-8 for the scenario key. *(Done for the scenario key in
+   `7faf964c`; `ComputeHash` itself is untouched and still ASCII.)*
+7. **`SystemTemplate`'s setters strip spaces; its copy and JSON constructors do not.** `"MV RE"` means
+   `MVRE` through `new SystemTemplate(...)` and `MV RE` through `FromJsonObject`. `OverheatingScenario`
+   normalises at its own boundary (`Normalized`) so scenario identity is safe, but the shared
+   serialisation path is still inconsistent for every other consumer. Fixing it means routing
+   `SystemTemplate.FromJsonObject` through the setters, which changes a path `SAM_Systems` lookups use
+   — **needs its own change and regression**, not a drive-by.
+8. **`"R"` / `"G17"` are not runtime-stable** — both changed meaning in .NET Core 3.0, so a double
+   formatted for identity differs between a .NET Framework host (Revit, gbXML) and .NET 8.
+   `OverheatingOperatingAssumptions.Text(double)` is fixed to nine decimal places for that reason. Any
+   *other* derived identity in SAM that formats a double has the same exposure.
 
 ### 11g. NEXT — Iteration 0 remaining steps, in this order
 
-4. **`OverheatingScenario`** in `SAM.Analytical`: dwelling identity, iteration, ventilation strategy,
-   selected `SystemTemplate` identity, operating assumptions, **derived deterministic key** (UTF-8,
-   version-8 name-based guid, mirroring `PartFAnnotationKey`). **No TPD objects in the scenario** — it
-   describes engineering intent; the TAS adapter decides TSD vs TPD.
+4. ~~**`OverheatingScenario`**~~ — **DONE**, `7faf964c` + `02e99582`. See 11c.
 5. Part F requirement → **minimum suitable `SystemEnergyCentre` template** selection. Capability
    (continuous / boost / summer bypass) must be readable **without deserialising a 1.8 MB template**.
 6. Lift the `TasTSDQueryTM59Results` recipe into a testable service.
@@ -641,24 +670,21 @@ git log --oneline -1 origin/feature/partf-terminal-transfer-compliance
 ```
 
 Confirm each is on `feature/partf-terminal-transfer-compliance`, the tree is **clean**, and local matches
-remote at: **SAM `2e2362f7`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`**. Nothing should be outstanding.
+remote at: **SAM `02e99582`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`**. Nothing should be outstanding.
 
 ### State - all pushed, all green
 
-SAM **1067**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123**, SAM_Mollier **22**;
+SAM **1102**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123**, SAM_Mollier **22**;
 Grasshopper and Mollier UI 0 `error CS`; SPDX clean. Not merged, no PRs open.
 
 Done and reviewed: the Part F regulatory correction pass, the floor-plan overlay, saved-view persistence,
-the dwelling-scope correctness fix and cache proof, and - this session - the first three Iteration 0
-pieces: **Part O assessment scope**, **`SimulationSpaceMap`**, and the **engine-neutral
-`TMOverheatingCalculator` extraction** with its TAS compatibility wrapper.
+the dwelling-scope correctness fix and cache proof, and the first four Iteration 0 pieces: **Part O
+assessment scope**, **`SimulationSpaceMap`**, the **engine-neutral `TMOverheatingCalculator`
+extraction** with its TAS compatibility wrapper, and **`OverheatingScenario`** with its derived
+deterministic key, reviewed and hardened (11c, and the two new entries in 11f).
 
-### Your next task: Iteration 0, step 4 onward (section 11g)
+### Your next task: Iteration 0, step 5 onward (section 11g)
 
-4. **`OverheatingScenario`** in `SAM.Analytical` - dwelling identity, iteration, ventilation strategy,
-   selected `SystemTemplate` identity, operating assumptions, and a **derived deterministic key**
-   (UTF-8, version-8 name-based guid, mirroring `PartFAnnotationKey`; do NOT use
-   `Core.Query.ComputeHash`, it is ASCII and collides). **No TPD objects in the scenario.**
 5. Part F requirement -> minimum suitable **`SystemEnergyCentre` template** selection. Capability must be
    readable without deserialising a 1.8 MB template.
 6. Lift the `TasTSDQueryTM59Results` recipe into a testable service. Reuse, do not rewrite.
@@ -682,6 +708,10 @@ pieces: **Part O assessment scope**, **`SimulationSpaceMap`**, and the **engine-
    states**, not system types.
 5. **`SAM.Analytical` never references `SAM.Analytical.Tas`.** The engineering calculation is
    engine-free; TAS owns conversion, series keys and provenance.
+5a. **A scenario key is derived, never generated, never stored.** UTF-8, length-prefixed, NFC-normalised,
+   enums by name, behind the marker `OverheatingScenario:v1`. `Key_IsStableAcrossBuilds` pins the exact
+   guid - regenerate it ONLY with a deliberate schema bump. There is **no `Iteration0` enum member**: the
+   foundation stage states `Undefined`.
 6. **`Source` is provenance only** - no part in scenario, equipment, dwelling or result identity.
 7. **Series keys are instance state**, defaulted to the analytical vocabulary. Do not reconcile
    `Occupant`/`Occupancy` here.
