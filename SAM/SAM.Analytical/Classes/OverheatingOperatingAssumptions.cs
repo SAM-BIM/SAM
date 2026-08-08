@@ -38,6 +38,12 @@ namespace SAM.Analytical
     /// </summary>
     public class OverheatingOperatingAssumptions : IJSAMObject, IAnalyticalObject
     {
+        /// <summary>
+        /// Nine decimal places, rounded identically by every runtime this assembly loads under. See
+        /// <see cref="Text(double)"/>.
+        /// </summary>
+        private const string format_Numeric = "0.#########";
+
         //Ordinal, not culture-aware: a key must not depend on the machine's collation, and "SS" must never
         //be equal to "ß".
         private readonly SortedDictionary<string, string> dictionary = new(StringComparer.Ordinal);
@@ -99,19 +105,66 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// States a numeric assumption, formatted round-trippably and invariantly. <b>Use this rather than
-        /// formatting the number yourself</b> - a comma decimal separator picked up from the machine's
-        /// locale would make the same scenario derive two different keys on two engineers' machines.
+        /// States a numeric assumption. <b>Use this rather than formatting the number yourself</b> - see
+        /// <see cref="Text(double)"/> for the two ways a hand-formatted double splits one assessment in
+        /// two.
         /// </summary>
         public void Set(string name, double value)
         {
-            Set(name, value.ToString("R", CultureInfo.InvariantCulture));
+            Set(name, Text(value));
         }
 
         /// <summary>States a boolean assumption, invariantly.</summary>
         public void Set(string name, bool value)
         {
             Set(name, value ? "True" : "False");
+        }
+
+        /// <summary>
+        /// The canonical text of a numeric assumption - the form it is both stored and hashed in, so there
+        /// is no hidden precision behind what a reader sees.
+        /// <para>
+        /// <b>Two things would otherwise split one assessment in two.</b> The obvious one is the machine's
+        /// locale: a German-configured machine writes <c>21,5</c>. The less obvious one is the host
+        /// runtime. <c>"R"</c> and <c>"G17"</c> both changed meaning in .NET Core 3.0 - .NET Framework
+        /// formats through a 15-significant-digit intermediate and falls back to 17, .NET 5+ emits the
+        /// shortest round-trippable form - so <c>2.0/3.0</c> is <c>0.66666666666666663</c> under one and
+        /// <c>0.6666666666666666</c> under the other. This assembly is <c>netstandard2.0</c> precisely so
+        /// it loads under both, and SAM has live .NET Framework consumers, so a round-trip format would mean
+        /// the Revit-side process and the WPF-side process deriving two keys for one stated assessment.
+        /// </para>
+        /// <para>
+        /// Fixed to <b>nine decimal places</b>, which both runtimes round to identically, and which is a
+        /// true statement about the engineering: two ventilation rates differing at 10⁻¹⁰ l/s are not two
+        /// operating assumptions. Negative zero is folded into zero for the same reason. The non-finite
+        /// values are written out by name rather than through <c>ToString</c>, whose symbols are a
+        /// culture's business.
+        /// </para>
+        /// </summary>
+        public static string Text(double value)
+        {
+            if (double.IsNaN(value))
+            {
+                return "NaN";
+            }
+
+            if (double.IsPositiveInfinity(value))
+            {
+                return "Infinity";
+            }
+
+            if (double.IsNegativeInfinity(value))
+            {
+                return "-Infinity";
+            }
+
+            //-0.0 and 0.0 compare equal and are the same assumption; only the formatter tells them apart.
+            if (value == 0)
+            {
+                value = 0;
+            }
+
+            return value.ToString(format_Numeric, CultureInfo.InvariantCulture);
         }
 
         /// <summary>Removes an assumption. Removing an unstated one does nothing.</summary>
@@ -141,7 +194,7 @@ namespace SAM.Analytical
             {
                 foreach (KeyValuePair<string, JsonNode> keyValuePair in jsonObject_Assumptions)
                 {
-                    Set(keyValuePair.Key, keyValuePair.Value?.GetValue<string>());
+                    Set(keyValuePair.Key, Text(keyValuePair.Value));
                 }
             }
 
@@ -165,6 +218,31 @@ namespace SAM.Analytical
             jsonObject["Assumptions"] = jsonObject_Assumptions;
 
             return jsonObject;
+        }
+
+        /// <summary>
+        /// The text of a JSON value, without throwing on one that is not a string.
+        /// <para>
+        /// <c>GetValue&lt;string&gt;()</c> throws on a JSON number or boolean, and
+        /// <c>{"SummerBypass": false}</c> is exactly what a person hand-editing a file - or a later version
+        /// - would write, given that <see cref="Set(string, bool)"/> exists. Throwing there would make the
+        /// whole model unreadable over one assumption, so a non-string primitive is taken at its literal
+        /// text instead.
+        /// </para>
+        /// </summary>
+        private static string Text(JsonNode jsonNode)
+        {
+            if (jsonNode == null)
+            {
+                return null;
+            }
+
+            if (jsonNode is JsonValue jsonValue && jsonValue.TryGetValue(out string result))
+            {
+                return result;
+            }
+
+            return jsonNode.ToJsonString();
         }
 
         public override string ToString()

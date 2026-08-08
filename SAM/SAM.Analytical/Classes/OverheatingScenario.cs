@@ -61,13 +61,14 @@ namespace SAM.Analytical
     ///
     /// <para><b>The key cannot go stale</b></para>
     /// <para>
-    /// It is recomputed from current state on every read and is never cached, never persisted and never
-    /// round-tripped through JSON. The identity-defining state has no public setter, and the two mutable
-    /// objects it is built from - <see cref="SystemTemplate"/> and
-    /// <see cref="OverheatingOperatingAssumptions"/> - are copied on the way in and copied on the way out,
-    /// so neither the caller's instance nor one read back off the property is the one the key is derived
-    /// from. There is therefore no sequence of calls that leaves a scenario reporting a key that does not
-    /// describe it.
+    /// It is never persisted and never round-tripped through JSON, so there is no stored copy to disagree
+    /// with anything. The identity-defining state has no public setter, and the two mutable objects it is
+    /// built from - <see cref="SystemTemplate"/> and <see cref="OverheatingOperatingAssumptions"/> - are
+    /// copied on the way in and copied on the way out, so neither the caller's instance nor one read back
+    /// off the property is the one the key is derived from. Exactly two paths write that state: the
+    /// constructors, which derive nothing until asked, and <see cref="FromJsonObject(JsonObject)"/>, which
+    /// discards the derived key before it writes. There is no sequence of calls that leaves a scenario
+    /// reporting a key that does not describe it.
     /// </para>
     ///
     /// <para><b>The encoding is canonical, not convenient</b></para>
@@ -75,11 +76,13 @@ namespace SAM.Analytical
     /// Every component is UTF-8 and length-prefixed, in one fixed order, behind the schema marker
     /// <c>OverheatingScenario:v1</c>. Length prefixes rather than separators because concatenation is
     /// ambiguous - an assumption called <c>AB</c> with value <c>C</c> and one called <c>A</c> with value
-    /// <c>BC</c> must not derive one key. Enums are hashed by <b>name</b>, so inserting a member into
-    /// <see cref="PartOIteration"/> later cannot silently renumber existing assessments. And UTF-8 rather
-    /// than <c>Core.Query.ComputeHash</c>, which encodes ASCII: it maps every non-ASCII character to
-    /// <c>?</c>, so under it <c>café</c> and <c>cafè</c> are the same string. Fine for a checksum, unusable
-    /// for an identity.
+    /// <c>BC</c> must not derive one key. Text is normalised to NFC, so an accent written as one code point
+    /// and as a combining pair are one name. Enums are hashed by <b>name</b>, so inserting a member into
+    /// <see cref="PartOIteration"/> later cannot silently renumber existing assessments. Numbers go through
+    /// <c>OverheatingOperatingAssumptions.Text(double)</c>, which is invariant of both the machine's locale
+    /// and its .NET runtime. And UTF-8 rather than <c>Core.Query.ComputeHash</c>, which encodes ASCII: it
+    /// maps every non-ASCII character to <c>?</c>, so under it <c>café</c> and <c>cafè</c> are the same
+    /// string. Fine for a checksum, unusable for an identity.
     /// </para>
     /// </summary>
     public class OverheatingScenario : IJSAMObject, IAnalyticalObject
@@ -88,8 +91,13 @@ namespace SAM.Analytical
         /// The identity schema marker, hashed first. <b>Bump it only for a deliberate, breaking change to
         /// what the key is made of</b> - doing so re-keys every scenario in existence, which is the point:
         /// a key derived under different rules must not be mistaken for one derived under these.
+        /// <para>
+        /// <c>static readonly</c> rather than <c>const</c>, which the compiler would inline into every
+        /// consuming assembly - so a bump here would leave any assembly that was not rebuilt deriving keys
+        /// under the old marker while believing it was current.
+        /// </para>
         /// </summary>
-        public const string IdentitySchema = "OverheatingScenario:v1";
+        public static readonly string IdentitySchema = "OverheatingScenario:v1";
 
         /// <summary>
         /// Namespace for the derivation, so a scenario key can only ever collide with another scenario key
@@ -102,6 +110,18 @@ namespace SAM.Analytical
         private PartOIteration partOIteration = PartOIteration.Undefined;
         private SystemTemplate systemTemplate = null;
         private OverheatingOperatingAssumptions overheatingOperatingAssumptions = new();
+
+        /// <summary>
+        /// The derived key, held after its first read. <b>Not a cache over mutable state.</b> The only
+        /// paths that write identity-defining state are the constructors - which leave this unset, so the
+        /// first read derives it - and <see cref="FromJsonObject(JsonObject)"/>, which clears it before it
+        /// writes anything. There is therefore no state this can outlive.
+        /// <para>
+        /// It exists because <see cref="GetHashCode"/> is the key: without it, putting scenarios in a
+        /// <c>HashSet</c> - which is how results will be attributed to them - costs a SHA-256 per lookup.
+        /// </para>
+        /// </summary>
+        private Guid? guid_Key = null;
 
         public OverheatingScenario()
         {
@@ -126,7 +146,7 @@ namespace SAM.Analytical
 
             //Copied, not referenced: SystemTemplate is mutable, and a caller who kept their instance could
             //otherwise change this scenario's identity after the fact.
-            this.systemTemplate = systemTemplate != null && systemTemplate.IsValid ? new SystemTemplate(systemTemplate) : null;
+            this.systemTemplate = Normalized(systemTemplate);
             this.overheatingOperatingAssumptions = new OverheatingOperatingAssumptions(overheatingOperatingAssumptions);
         }
 
@@ -137,7 +157,7 @@ namespace SAM.Analytical
                 partOAssessmentScope = overheatingScenario.partOAssessmentScope;
                 guid_Zone = overheatingScenario.guid_Zone;
                 partOIteration = overheatingScenario.partOIteration;
-                systemTemplate = overheatingScenario.systemTemplate == null ? null : new SystemTemplate(overheatingScenario.systemTemplate);
+                systemTemplate = Normalized(overheatingScenario.systemTemplate);
                 overheatingOperatingAssumptions = new OverheatingOperatingAssumptions(overheatingScenario.overheatingOperatingAssumptions);
 
                 Name = overheatingScenario.Name;
@@ -187,18 +207,55 @@ namespace SAM.Analytical
         public OverheatingOperatingAssumptions OperatingAssumptions => new(overheatingOperatingAssumptions);
 
         /// <summary>
-        /// The scenario's identity, derived from its engineering content. Recomputed on every read, so it
-        /// can never disagree with the state it describes.
+        /// The ventilation strategy the scenario states - <c>NV</c>, <c>MV</c>, <c>MVRE</c>, <c>UV</c> -
+        /// or null where no system is stated.
+        /// <para>
+        /// <b>Not a second vocabulary.</b> This names the existing <see cref="SystemTemplate"/> field and
+        /// introduces no identity of its own; in particular there is no <c>MVHR</c>, because <c>MVRE</c>
+        /// already is SAM's heat-recovery ventilation and splitting an established concept in two would
+        /// make one system two.
+        /// </para>
+        /// <para>
+        /// It is exposed because the scenario is meant to become <b>authoritative</b> over the strategy.
+        /// Today three different derivations disagree, and the one that picks the TM59 criterion falls back
+        /// to matching a zone's <i>name</i> against a system library and then defaults to <c>"NV"</c> - so
+        /// an MVRE dwelling is assessed against the natural-ventilation criterion. A consumer that reads
+        /// this must <b>refuse</b> where <see cref="HasVentilationStrategy"/> is false rather than fall
+        /// back to that chain; a silent default is the defect, not the absence of one.
+        /// </para>
         /// </summary>
-        public Guid Key => Derive();
+        public string VentilationStrategy => systemTemplate?.Ventilation;
+
+        /// <summary>
+        /// Whether the scenario actually states a ventilation strategy. A scenario can be
+        /// <see cref="IsValid"/> without one - naming a dwelling is a complete statement of what is being
+        /// assessed - so this is the separate question a consumer of
+        /// <see cref="VentilationStrategy"/> has to ask.
+        /// </summary>
+        public bool HasVentilationStrategy => !string.IsNullOrWhiteSpace(VentilationStrategy);
+
+        /// <summary>
+        /// The scenario's identity, derived from its engineering content.
+        /// <para>
+        /// <b><see cref="Guid.Empty"/> where the scenario is not valid</b>, because a scenario that names
+        /// nothing assessable has no identity to have. Deriving one anyway would give every half-filled
+        /// scenario in a user interface the same real-looking key and let them collide silently in a set;
+        /// empty says "nothing", which is the truth, and reads as such everywhere else in SAM.
+        /// </para>
+        /// </summary>
+        public Guid Key => IsValid ? guid_Key ?? (Guid)(guid_Key = Derive()) : Guid.Empty;
 
         /// <summary>
         /// Whether the scenario names something assessable: a stated scope over a real design zone. The
-        /// iteration and the system may legitimately be unstated.
+        /// iteration and the system may legitimately be unstated - a foundation-stage scenario over a real
+        /// dwelling is a complete statement.
         /// </summary>
         public bool IsValid => partOAssessmentScope != PartOAssessmentScope.Undefined && guid_Zone != Guid.Empty;
 
-        /// <summary>Two scenarios are the same assessment when they derive the same key.</summary>
+        /// <summary>
+        /// Two scenarios are the same assessment when they derive the same key. Two scenarios that name
+        /// nothing assessable are therefore equal, having no identity apiece - see <see cref="Key"/>.
+        /// </summary>
         public override bool Equals(object obj)
         {
             return obj is OverheatingScenario overheatingScenario && Key == overheatingScenario.Key;
@@ -216,41 +273,38 @@ namespace SAM.Analytical
                 return false;
             }
 
-            Name = jsonObject.ContainsKey("Name") ? jsonObject["Name"]?.GetValue<string>() : null;
-            Source = jsonObject.ContainsKey("Source") ? jsonObject["Source"]?.GetValue<string>() : null;
+            //This is the one path that writes identity-defining state after construction, so it is also the
+            //one place the held key has to be dropped. Cleared first, before anything below can throw.
+            guid_Key = null;
 
-            //Enums are read by name. An unrecognised name is Undefined rather than an exception: a scenario
-            //written by a later version must not make a file unreadable, and Undefined is visibly not an
-            //assessment rather than quietly the first member.
-            string text;
+            //Nothing is required, but an object with neither of these is not a scenario at all - and
+            //reporting success on it would hand the caller an empty assessment that looks loaded. Read
+            //before any state is written, so a rejected object leaves this one alone.
+            string text_Scope = Text(jsonObject, "Scope");
+            string text_ZoneGuid = Text(jsonObject, "ZoneGuid");
 
-            partOAssessmentScope = PartOAssessmentScope.Undefined;
-            text = jsonObject.ContainsKey("Scope") ? jsonObject["Scope"]?.GetValue<string>() : null;
-            if (!string.IsNullOrWhiteSpace(text) && Enum.TryParse(text, out PartOAssessmentScope partOAssessmentScope_Temp))
+            if (text_Scope == null && text_ZoneGuid == null)
             {
-                partOAssessmentScope = partOAssessmentScope_Temp;
+                return false;
             }
 
-            partOIteration = PartOIteration.Undefined;
-            text = jsonObject.ContainsKey("Iteration") ? jsonObject["Iteration"]?.GetValue<string>() : null;
-            if (!string.IsNullOrWhiteSpace(text) && Enum.TryParse(text, out PartOIteration partOIteration_Temp))
-            {
-                partOIteration = partOIteration_Temp;
-            }
+            Name = Text(jsonObject, "Name");
+            Source = Text(jsonObject, "Source");
 
-            guid_Zone = Guid.Empty;
-            text = jsonObject.ContainsKey("ZoneGuid") ? jsonObject["ZoneGuid"]?.GetValue<string>() : null;
-            if (!string.IsNullOrWhiteSpace(text) && Guid.TryParse(text, out Guid guid_Zone_Temp))
-            {
-                guid_Zone = guid_Zone_Temp;
-            }
+            //Enums are read by name, and a name this build does not know is Undefined rather than an
+            //exception: a scenario written by a later version must not make a file unreadable, and
+            //Undefined is visibly not an assessment rather than quietly the first member. Enum.TryParse
+            //also accepts numeric text - "99" would parse to (PartOIteration)99, a mitigation stage that
+            //does not exist - so what it returns is checked against the members that do.
+            partOAssessmentScope = Enum.TryParse(text_Scope ?? string.Empty, out PartOAssessmentScope partOAssessmentScope_Temp) && Enum.IsDefined(typeof(PartOAssessmentScope), partOAssessmentScope_Temp) ? partOAssessmentScope_Temp : PartOAssessmentScope.Undefined;
 
-            systemTemplate = null;
-            if (jsonObject["SystemTemplate"] is JsonObject jsonObject_SystemTemplate)
-            {
-                SystemTemplate systemTemplate_Temp = new(jsonObject_SystemTemplate);
-                systemTemplate = systemTemplate_Temp.IsValid ? systemTemplate_Temp : null;
-            }
+            string text_Iteration = Text(jsonObject, "Iteration");
+
+            partOIteration = Enum.TryParse(text_Iteration ?? string.Empty, out PartOIteration partOIteration_Temp) && Enum.IsDefined(typeof(PartOIteration), partOIteration_Temp) ? partOIteration_Temp : PartOIteration.Undefined;
+
+            guid_Zone = Guid.TryParse(text_ZoneGuid ?? string.Empty, out Guid guid_Zone_Temp) ? guid_Zone_Temp : Guid.Empty;
+
+            systemTemplate = jsonObject["SystemTemplate"] is JsonObject jsonObject_SystemTemplate ? Normalized(new SystemTemplate(jsonObject_SystemTemplate)) : null;
 
             overheatingOperatingAssumptions = jsonObject["OperatingAssumptions"] is JsonObject jsonObject_OperatingAssumptions ? new OverheatingOperatingAssumptions(jsonObject_OperatingAssumptions) : new OverheatingOperatingAssumptions();
 
@@ -295,6 +349,46 @@ namespace SAM.Analytical
         public override string ToString()
         {
             return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} [{3}]", partOAssessmentScope, partOIteration, systemTemplate == null ? "-" : systemTemplate.ToString(), guid_Zone.ToString("D", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// The copy of a system identity a scenario holds: rebuilt through
+        /// <see cref="SystemTemplate"/>'s own property setters, and null where nothing is stated.
+        /// <para>
+        /// <b>Rebuilt rather than copy-constructed, and that is not tidiness.</b> Those setters strip
+        /// spaces, and <c>SystemTemplate</c>'s copy and JSON constructors both assign its fields raw - so
+        /// <c>new SystemTemplate("MV RE", …)</c> stores <c>MVRE</c> while the same template arriving from
+        /// JSON as <c>{"Ventilation": "MV RE"}</c> stores <c>MV RE</c>. <c>SystemTemplate</c> treats those
+        /// as one identity; promoting its fields into a key would otherwise make them two. Normalising at
+        /// this boundary fixes it for scenario identity without changing a serialisation path the rest of
+        /// SAM shares.
+        /// </para>
+        /// </summary>
+        private static SystemTemplate Normalized(SystemTemplate systemTemplate)
+        {
+            if (systemTemplate == null || !systemTemplate.IsValid)
+            {
+                return null;
+            }
+
+            return new SystemTemplate(systemTemplate.Ventilation, systemTemplate.Heating, systemTemplate.Cooling, systemTemplate.PlantRoom, systemTemplate.Controls, systemTemplate.Version);
+        }
+
+        /// <summary>
+        /// The text of a JSON property, or null where it is absent or is not text.
+        /// <para>
+        /// <c>GetValue&lt;string&gt;()</c> throws on a JSON number or boolean, which would make one
+        /// hand-edited property cost the whole model rather than that property.
+        /// </para>
+        /// </summary>
+        private static string Text(JsonObject jsonObject, string name)
+        {
+            if (jsonObject == null || name == null || !jsonObject.ContainsKey(name))
+            {
+                return null;
+            }
+
+            return jsonObject[name] is JsonValue jsonValue && jsonValue.TryGetValue(out string result) ? result : null;
         }
 
         /// <summary>
@@ -366,6 +460,12 @@ namespace SAM.Analytical
         /// separated, so no combination of component values can produce the byte sequence of a different
         /// combination. A null component is written as length -1, which is distinct from an empty one:
         /// "not stated" and "stated as blank" are different statements.
+        /// <para>
+        /// Normalised to NFC first. The same accented character has two encodings - one code point, or a
+        /// letter followed by a combining accent - and text typed on macOS is routinely the second. They
+        /// are the same name to everyone reading it, so they must be the same key; without this they are
+        /// different UTF-8 bytes and therefore two assessments.
+        /// </para>
         /// </summary>
         private static void Append(List<byte> bytes, string text)
         {
@@ -375,7 +475,20 @@ namespace SAM.Analytical
                 return;
             }
 
-            byte[] bytes_Text = Encoding.UTF8.GetBytes(text);
+            string text_Temp = text;
+
+            try
+            {
+                text_Temp = text.Normalize(NormalizationForm.FormC);
+            }
+            catch (ArgumentException)
+            {
+                //Text that is not valid Unicode cannot be normalised. Hashing it as it stands is still
+                //deterministic, which is all the key needs; refusing it here would fail an assessment over
+                //a stray character in a name.
+            }
+
+            byte[] bytes_Text = Encoding.UTF8.GetBytes(text_Temp);
 
             AppendLength(bytes, bytes_Text.Length);
             bytes.AddRange(bytes_Text);

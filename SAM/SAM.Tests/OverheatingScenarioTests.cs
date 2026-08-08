@@ -5,6 +5,7 @@ using SAM.Analytical;
 using SAM.Analytical.Enums;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json.Nodes;
 using Xunit;
@@ -331,9 +332,10 @@ namespace SAM.Tests
         /// HVAC TPD run is one assessment computed two ways - that boundary is the point of Iteration 0's
         /// architecture, and a key that moved with the route would destroy it.
         /// <para>
-        /// Asserted behaviourally here and structurally in
-        /// <see cref="ScenarioType_HasNoEngineOrRoutingMember"/>: nothing engine-shaped is even a member of
-        /// the type, so there is nothing that could reach the key.
+        /// <b>What this proves and what it does not.</b> There is no routing member to change - that is the
+        /// design - so the only place a route can be recorded at all is provenance, and this asserts that
+        /// recording it there moves nothing. The absence itself is asserted structurally in
+        /// <see cref="ScenarioType_HasNoEngineOrRoutingMember"/>, which is where the real guard lives.
         /// </para>
         /// </summary>
         [Fact]
@@ -351,9 +353,15 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// The structural half of the same promise. <c>SAM.Analytical</c> is engine-free, and a scenario
-        /// describes intent - so no member of it may name an engine, a route or a file, and the assembly
-        /// may not reference a TAS one.
+        /// The structural half of the same promise. <c>SAM.Analytical</c> is engine-free and a scenario
+        /// describes intent, so no member of it - public or private - may name an engine, a route or a
+        /// file.
+        /// <para>
+        /// The assembly reference direction is deliberately <b>not</b> asserted here: <c>SAM.Analytical</c>
+        /// referencing <c>SAM.Analytical.Tas</c> would be circular and cannot compile, so a test of it
+        /// could never fail and would only look like cover. The member names are the thing that could
+        /// actually go wrong.
+        /// </para>
         /// </summary>
         [Fact]
         public void ScenarioType_HasNoEngineOrRoutingMember()
@@ -366,11 +374,6 @@ namespace SAM.Tests
                 {
                     Assert.False(memberInfo.Name.ToLowerInvariant().Contains(text), string.Format("OverheatingScenario declares '{0}', which names {1}. A scenario states intent only.", memberInfo.Name, text));
                 }
-            }
-
-            foreach (AssemblyName assemblyName in typeof(OverheatingScenario).Assembly.GetReferencedAssemblies())
-            {
-                Assert.DoesNotContain("Tas", assemblyName.Name, StringComparison.OrdinalIgnoreCase);
             }
         }
 
@@ -417,17 +420,123 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// A numeric assumption is formatted invariantly, so the same scenario cannot derive two keys on
-        /// two machines because one of them writes a comma decimal separator. Set through the typed
-        /// overload, which is the only reason a caller does not have to think about it.
+        /// A numeric assumption is formatted invariantly, <b>asserted under a culture that would otherwise
+        /// break it</b>. Asserting <c>"21.5"</c> on an en-* machine proves nothing at all - it passes
+        /// identically whether or not the formatter is told to be invariant, so a refactor that dropped the
+        /// <c>InvariantCulture</c> argument would stay green on CI and every English machine and split one
+        /// assessment in two only for a German-configured engineer.
         /// </summary>
         [Fact]
         public void NumericAssumption_IsFormattedInvariantly()
         {
-            OverheatingOperatingAssumptions overheatingOperatingAssumptions = new();
-            overheatingOperatingAssumptions.Set("MechanicalRate_Lps", 21.5);
+            CultureInfo cultureInfo = CultureInfo.CurrentCulture;
 
-            Assert.Equal("21.5", overheatingOperatingAssumptions.Value("MechanicalRate_Lps"));
+            try
+            {
+                CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+
+                OverheatingOperatingAssumptions overheatingOperatingAssumptions = new();
+                overheatingOperatingAssumptions.Set("MechanicalRate_Lps", 21.5);
+
+                Assert.Equal("21.5", overheatingOperatingAssumptions.Value("MechanicalRate_Lps"));
+
+                //And the whole way through to the key.
+                Assert.Equal(Scenario().Key, Scenario().Key);
+                Assert.Equal(new Guid("e81d5d9f-3672-801d-933b-f2e3c19bb284"), Scenario().Key);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = cultureInfo;
+            }
+        }
+
+        /// <summary>
+        /// <b>A numeric assumption reads the same under every .NET this assembly loads on.</b> The obvious
+        /// formats do not: <c>"R"</c> and <c>"G17"</c> both changed meaning in .NET Core 3.0, so
+        /// <c>2.0/3.0</c> is <c>0.66666666666666663</c> under .NET Framework and
+        /// <c>0.6666666666666666</c> under .NET 8. <c>SAM.Analytical</c> is <c>netstandard2.0</c> so that it
+        /// loads under both, and SAM has live .NET Framework consumers - so a round-trip format would mean
+        /// the Revit-side process and the WPF-side process deriving two keys for one stated assessment.
+        /// <para>
+        /// Pinned to literal text rather than to a round trip, because a round-trip assertion would itself
+        /// be satisfied by either runtime's answer.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void NumericAssumption_ReadsTheSameOnEveryRuntime()
+        {
+            Assert.Equal("0.666666667", OverheatingOperatingAssumptions.Text(2.0 / 3.0));
+            Assert.Equal("0.333333333", OverheatingOperatingAssumptions.Text(1.0 / 3.0));
+            Assert.Equal("0.6822872", OverheatingOperatingAssumptions.Text(0.6822871999174));
+
+            Assert.Equal("21", OverheatingOperatingAssumptions.Text(21.0));
+            Assert.Equal("21.5", OverheatingOperatingAssumptions.Text(21.5));
+
+            //Negative zero is the same assumption as zero. Only the formatter tells them apart, and on .NET
+            //5+ it does.
+            Assert.Equal(OverheatingOperatingAssumptions.Text(0.0), OverheatingOperatingAssumptions.Text(-0.0));
+            Assert.Equal("0", OverheatingOperatingAssumptions.Text(-0.0));
+
+            //Written out by name rather than through ToString, whose symbols are a culture's business.
+            Assert.Equal("NaN", OverheatingOperatingAssumptions.Text(double.NaN));
+            Assert.Equal("Infinity", OverheatingOperatingAssumptions.Text(double.PositiveInfinity));
+            Assert.Equal("-Infinity", OverheatingOperatingAssumptions.Text(double.NegativeInfinity));
+
+            //And a rate stated to nine places is still distinguishable from one that differs there.
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_1 = new();
+            overheatingOperatingAssumptions_1.Set("MechanicalRate_Lps", 2.0 / 3.0);
+
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_2 = new();
+            overheatingOperatingAssumptions_2.Set("MechanicalRate_Lps", 0.666666668);
+
+            Assert.NotEqual(Scenario(overheatingOperatingAssumptions: overheatingOperatingAssumptions_1).Key, Scenario(overheatingOperatingAssumptions: overheatingOperatingAssumptions_2).Key);
+        }
+
+        /// <summary>
+        /// The same accented character written as one code point and as a letter plus a combining accent is
+        /// one name to everyone reading it, and text typed on macOS is routinely the second form. Without
+        /// normalisation they are different UTF-8 bytes and therefore two assessments of one dwelling.
+        /// </summary>
+        [Fact]
+        public void UnicodeNormalisationForms_AreOneName()
+        {
+            //Written as escapes, not as accented source text, so an editor re-saving this file in a
+            //different normalisation form cannot quietly turn this into a comparison of two identical
+            //strings.
+            string text_Composed = "caf\u00E9";
+            string text_Decomposed = "cafe\u0301";
+
+            Assert.NotEqual(text_Composed, text_Decomposed);
+
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_1 = new();
+            overheatingOperatingAssumptions_1.Set("Openings", text_Composed);
+
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_2 = new();
+            overheatingOperatingAssumptions_2.Set("Openings", text_Decomposed);
+
+            Assert.Equal(Scenario(overheatingOperatingAssumptions: overheatingOperatingAssumptions_1).Key, Scenario(overheatingOperatingAssumptions: overheatingOperatingAssumptions_2).Key);
+        }
+
+        /// <summary>
+        /// <c>SystemTemplate</c>'s property setters strip spaces but its copy and JSON constructors assign
+        /// its fields raw, so <c>"MV RE"</c> means <c>MVRE</c> through one door and <c>MV RE</c> through
+        /// another. This commit promotes those six fields into an identity, so that inconsistency would
+        /// have become two keys for what <c>SystemTemplate</c> itself treats as one system. Normalised at
+        /// the scenario's own boundary; the shared serialisation path is left alone.
+        /// </summary>
+        [Fact]
+        public void SystemTemplateWhitespace_DoesNotSplitOneIdentity()
+        {
+            SystemTemplate systemTemplate_Constructed = new("MV RE", "RAD1", "UC1", "PR1", "CTL1", "1");
+
+            SystemTemplate systemTemplate_Json = new(new JsonObject { ["Ventilation"] = "MV RE", ["Heating"] = "RAD1", ["Cooling"] = "UC1", ["PlantRoom"] = "PR1", ["Controls"] = "CTL1", ["Version"] = "1" });
+
+            //The two doors really do disagree - the premise of this test, not its conclusion.
+            Assert.Equal("MVRE", systemTemplate_Constructed.Ventilation);
+            Assert.Equal("MV RE", systemTemplate_Json.Ventilation);
+
+            Assert.Equal(Scenario().Key, Scenario(systemTemplate: systemTemplate_Constructed).Key);
+            Assert.Equal(Scenario().Key, Scenario(systemTemplate: systemTemplate_Json).Key);
         }
 
         // ---------------------------------------------------------------------------------------------
@@ -471,17 +580,32 @@ namespace SAM.Tests
         /// <summary>
         /// The structural reason the test above holds rather than happening to: identity-defining state has
         /// no public setter, so there is no supported way to change what a scenario says after it is built.
-        /// A future property added with one would fail here rather than in a misattributed result.
+        /// <para>
+        /// <b>Written as an allow-list, not a check-list.</b> Naming the identity properties would mean a
+        /// property added later with a public setter simply was not looked at - so instead every public
+        /// property must be read-only unless it is one of the two that are explicitly presentation or
+        /// provenance. A new settable property fails here, which is the point.
+        /// </para>
         /// </summary>
         [Fact]
         public void IdentityDefiningState_HasNoPublicSetter()
         {
-            foreach (string text in new[] { "Scope", "ZoneGuid", "Iteration", "SystemTemplate", "OperatingAssumptions", "Key" })
-            {
-                PropertyInfo propertyInfo = typeof(OverheatingScenario).GetProperty(text);
+            string[] settable = ["Name", "Source"];
 
-                Assert.NotNull(propertyInfo);
-                Assert.True(propertyInfo.SetMethod == null || !propertyInfo.SetMethod.IsPublic, string.Format("OverheatingScenario.{0} is identity-defining and must not be settable.", text));
+            foreach (PropertyInfo propertyInfo in typeof(OverheatingScenario).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                if (Array.IndexOf(settable, propertyInfo.Name) >= 0)
+                {
+                    continue;
+                }
+
+                Assert.True(propertyInfo.SetMethod == null || !propertyInfo.SetMethod.IsPublic, string.Format("OverheatingScenario.{0} is settable. Identity-defining state must not be, and if it is presentation or provenance it belongs in the allow-list with a reason.", propertyInfo.Name));
+            }
+
+            //And the two that are settable are genuinely not in the key - asserted, not assumed.
+            foreach (string text in settable)
+            {
+                Assert.NotNull(typeof(OverheatingScenario).GetProperty(text));
             }
         }
 
@@ -510,12 +634,13 @@ namespace SAM.Tests
         [Fact]
         public void PartOIteration_HasNoFoundationStageMember()
         {
-            foreach (string text in Enum.GetNames(typeof(PartOIteration)))
-            {
-                Assert.DoesNotContain("iteration", text, StringComparison.OrdinalIgnoreCase);
-                Assert.DoesNotContain("0", text, StringComparison.OrdinalIgnoreCase);
-            }
+            //The exact membership, not a substring rule: "no member contains a zero" would also forbid a
+            //perfectly good name and would still miss "Foundation".
+            Assert.Equal(["Undefined", "BasePassive", "AcousticRestricted", "ActiveTrimCooling"], Enum.GetNames(typeof(PartOIteration)));
+            Assert.Equal(["Undefined", "Dwelling", "CommonSpace"], Enum.GetNames(typeof(PartOAssessmentScope)));
 
+            //Undefined is the default, so a scenario nobody filled in states no iteration rather than the
+            //first real one.
             Assert.Equal(PartOIteration.Undefined, default(PartOIteration));
             Assert.Equal(PartOAssessmentScope.Undefined, default(PartOAssessmentScope));
         }
@@ -548,6 +673,225 @@ namespace SAM.Tests
 
             Assert.Contains(Core.Create.IJSAMObject<OverheatingScenario>(overheatingScenario.ToJsonObject().ToJsonString()), overheatingScenarios);
             Assert.DoesNotContain(Scenario(guid_Zone: guid_Flat_2), overheatingScenarios);
+        }
+
+        /// <summary>
+        /// The copy constructor copies rather than shares: the copy is the same assessment, and changing
+        /// the original's mutable parts afterwards does not move it.
+        /// </summary>
+        [Fact]
+        public void CopyConstructor_CopiesTheWholeAssessment()
+        {
+            SystemTemplate systemTemplate = Template();
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions = Assumptions();
+
+            OverheatingScenario overheatingScenario = new(PartOAssessmentScope.Dwelling, guid_Flat_1, PartOIteration.BasePassive, systemTemplate, overheatingOperatingAssumptions)
+            {
+                Name = "Flat 1 - base",
+                Source = "a model"
+            };
+
+            OverheatingScenario overheatingScenario_Copy = new(overheatingScenario);
+
+            Assert.Equal(overheatingScenario.Key, overheatingScenario_Copy.Key);
+            Assert.Equal(overheatingScenario.Name, overheatingScenario_Copy.Name);
+            Assert.Equal(overheatingScenario.Source, overheatingScenario_Copy.Source);
+            Assert.Equal(PartOIteration.BasePassive, overheatingScenario_Copy.Iteration);
+            Assert.Equal("MVRE", overheatingScenario_Copy.VentilationStrategy);
+            Assert.Equal("Unrestricted", overheatingScenario_Copy.OperatingAssumptions.Value("Openings"));
+
+            //Nothing is shared with the original or with what built it.
+            systemTemplate.Ventilation = "NV";
+            overheatingOperatingAssumptions.Set("Openings", "Restricted");
+            overheatingScenario.Name = "renamed";
+
+            Assert.Equal(overheatingScenario.Key, overheatingScenario_Copy.Key);
+            Assert.Equal("MVRE", overheatingScenario_Copy.VentilationStrategy);
+            Assert.Equal("Flat 1 - base", overheatingScenario_Copy.Name);
+        }
+
+        /// <summary>
+        /// <b><c>FromJsonObject</c> is the one public path that writes identity-defining state, so it is the
+        /// one that could leave a scenario reporting the key it had before.</b> Loaded here over a populated
+        /// instance, with JSON that omits every optional part - so a derivation that had held onto anything,
+        /// or a read that merged instead of replacing, shows up as the old key or the old system.
+        /// </summary>
+        [Fact]
+        public void FromJsonObject_ReplacesEverythingAndReKeys()
+        {
+            OverheatingScenario overheatingScenario = Scenario();
+            overheatingScenario.Name = "Flat 1";
+            overheatingScenario.Source = "a model";
+
+            Guid guid = overheatingScenario.Key;
+
+            Assert.True(overheatingScenario.FromJsonObject(new JsonObject
+            {
+                ["Scope"] = "CommonSpace",
+                ["ZoneGuid"] = guid_Corridor.ToString("D"),
+                ["Iteration"] = "Undefined"
+            }));
+
+            Assert.NotEqual(guid, overheatingScenario.Key);
+
+            Assert.Equal(PartOAssessmentScope.CommonSpace, overheatingScenario.Scope);
+            Assert.Equal(guid_Corridor, overheatingScenario.ZoneGuid);
+            Assert.Null(overheatingScenario.Name);
+            Assert.Null(overheatingScenario.Source);
+            Assert.Null(overheatingScenario.SystemTemplate);
+            Assert.False(overheatingScenario.HasVentilationStrategy);
+            Assert.Equal(0, overheatingScenario.OperatingAssumptions.Count);
+
+            //And it is exactly what the same statement built from scratch derives.
+            Assert.Equal(new OverheatingScenario(PartOAssessmentScope.CommonSpace, guid_Corridor, PartOIteration.Undefined).Key, overheatingScenario.Key);
+        }
+
+        /// <summary>
+        /// A scenario with nothing optional stated round-trips too - null system, null name, null
+        /// provenance, no assumptions. The nulls are where a serialiser usually loses the distinction
+        /// between "not stated" and "blank".
+        /// </summary>
+        [Fact]
+        public void JsonRoundTrip_SurvivesTheNulls()
+        {
+            OverheatingScenario overheatingScenario = new(PartOAssessmentScope.CommonSpace, guid_Corridor, PartOIteration.Undefined);
+
+            OverheatingScenario overheatingScenario_RoundTrip = Core.Create.IJSAMObject<OverheatingScenario>(overheatingScenario.ToJsonObject().ToJsonString());
+
+            Assert.NotNull(overheatingScenario_RoundTrip);
+            Assert.Equal(overheatingScenario.Key, overheatingScenario_RoundTrip.Key);
+            Assert.Null(overheatingScenario_RoundTrip.Name);
+            Assert.Null(overheatingScenario_RoundTrip.Source);
+            Assert.Null(overheatingScenario_RoundTrip.SystemTemplate);
+            Assert.Equal(0, overheatingScenario_RoundTrip.OperatingAssumptions.Count);
+        }
+
+        /// <summary>
+        /// Malformed or partial JSON degrades rather than throwing - a scenario written by a later version,
+        /// or hand-edited, must not make a whole model unreadable. And a mitigation stage this build does
+        /// not have reads as <c>Undefined</c> rather than as a number cast into the enum: <c>Enum.TryParse</c>
+        /// happily returns <c>(PartOIteration)99</c> for <c>"99"</c>, which would be a stage that does not
+        /// exist reported as though it did.
+        /// </summary>
+        [Fact]
+        public void MalformedJson_DegradesRatherThanThrowing()
+        {
+            OverheatingScenario overheatingScenario = new(new JsonObject
+            {
+                ["Scope"] = "Dwelling",
+                ["ZoneGuid"] = "not a guid",
+                ["Iteration"] = "99",
+                ["Name"] = 42,
+                ["OperatingAssumptions"] = new JsonObject { ["Assumptions"] = new JsonObject { ["SummerBypass"] = false } }
+            });
+
+            Assert.Equal(PartOAssessmentScope.Dwelling, overheatingScenario.Scope);
+            Assert.Equal(Guid.Empty, overheatingScenario.ZoneGuid);
+            Assert.Equal(PartOIteration.Undefined, overheatingScenario.Iteration);
+            Assert.Null(overheatingScenario.Name);
+            Assert.Equal("false", overheatingScenario.OperatingAssumptions.Value("SummerBypass"));
+
+            //An object that is not a scenario at all is refused rather than reported as an empty one.
+            OverheatingScenario overheatingScenario_Other = new();
+
+            Assert.False(overheatingScenario_Other.FromJsonObject(new JsonObject { ["Something"] = "else" }));
+            Assert.False(overheatingScenario_Other.FromJsonObject(null));
+        }
+
+        /// <summary>
+        /// A scenario that names nothing assessable has no identity, so its key is empty rather than a
+        /// real-looking guid every other half-filled scenario would share.
+        /// </summary>
+        [Fact]
+        public void InvalidScenario_HasNoKey()
+        {
+            Assert.Equal(Guid.Empty, new OverheatingScenario().Key);
+            Assert.Equal(Guid.Empty, new OverheatingScenario(PartOAssessmentScope.Dwelling, Guid.Empty, PartOIteration.BasePassive, Template(), Assumptions()).Key);
+
+            Assert.NotEqual(Guid.Empty, Scenario().Key);
+        }
+
+        /// <summary>
+        /// Equality is total: not equal to null, not equal to something that is not a scenario, and
+        /// <c>GetHashCode</c> agrees with it across a save and reload - which is what a <c>HashSet</c>
+        /// lookup actually depends on.
+        /// </summary>
+        [Fact]
+        public void Equality_IsTotal()
+        {
+            OverheatingScenario overheatingScenario = Scenario();
+
+            Assert.False(overheatingScenario.Equals(null));
+            Assert.False(overheatingScenario.Equals("not a scenario"));
+            Assert.True(overheatingScenario.Equals(new OverheatingScenario(overheatingScenario)));
+
+            Assert.Equal(overheatingScenario.GetHashCode(), Core.Create.IJSAMObject<OverheatingScenario>(overheatingScenario.ToJsonObject().ToJsonString()).GetHashCode());
+        }
+
+        /// <summary>
+        /// The ventilation strategy is readable off the scenario, and is the existing <c>MVRE</c>/<c>NV</c>
+        /// vocabulary rather than a second one. <see cref="OverheatingScenario.HasVentilationStrategy"/> is
+        /// separate from <c>IsValid</c> because a scenario can name a dwelling without naming a system, and
+        /// the consumer that makes the scenario authoritative over the strategy has to refuse in that case
+        /// rather than fall back to the zone-name lookup it is replacing.
+        /// </summary>
+        [Fact]
+        public void VentilationStrategy_IsReadableAndIsNotASecondVocabulary()
+        {
+            Assert.Equal("MVRE", Scenario().VentilationStrategy);
+            Assert.True(Scenario().HasVentilationStrategy);
+
+            Assert.Equal("NV", Scenario(systemTemplate: Template("NV")).VentilationStrategy);
+
+            OverheatingScenario overheatingScenario = new(PartOAssessmentScope.Dwelling, guid_Flat_1, PartOIteration.Undefined);
+
+            Assert.True(overheatingScenario.IsValid);
+            Assert.False(overheatingScenario.HasVentilationStrategy);
+            Assert.Null(overheatingScenario.VentilationStrategy);
+        }
+
+        /// <summary>
+        /// <c>OverheatingOperatingAssumptions</c> in its own right: what it stores, what it refuses, and
+        /// that it round-trips on its own.
+        /// </summary>
+        [Fact]
+        public void OperatingAssumptions_BehaveAsDocumented()
+        {
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions = new();
+
+            //A blank name is dropped - an assumption nobody can read back would only make the key depend on
+            //something invisible.
+            overheatingOperatingAssumptions.Set(null, "x");
+            overheatingOperatingAssumptions.Set("   ", "x");
+            Assert.Equal(0, overheatingOperatingAssumptions.Count);
+
+            //A null value is stated as blank, which is not the same as unstated.
+            overheatingOperatingAssumptions.Set("Openings", null);
+            Assert.Equal(string.Empty, overheatingOperatingAssumptions.Value("Openings"));
+            Assert.True(overheatingOperatingAssumptions.Contains("Openings"));
+            Assert.Null(overheatingOperatingAssumptions.Value("Nothing"));
+
+            overheatingOperatingAssumptions.Set("Boost", true);
+            overheatingOperatingAssumptions.Set("Alpha", 1.0);
+
+            //Canonical ordinal order, whatever order they were stated in.
+            Assert.Equal(["Alpha", "Boost", "Openings"], overheatingOperatingAssumptions.Names);
+            Assert.Equal(3, overheatingOperatingAssumptions.Count);
+
+            Assert.True(overheatingOperatingAssumptions.Remove("Boost"));
+            Assert.False(overheatingOperatingAssumptions.Remove("Boost"));
+            Assert.Equal(2, overheatingOperatingAssumptions.Count);
+
+            //The returned list is a copy.
+            overheatingOperatingAssumptions.ToList().Clear();
+            Assert.Equal(2, overheatingOperatingAssumptions.Count);
+
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_RoundTrip = Core.Create.IJSAMObject<OverheatingOperatingAssumptions>(overheatingOperatingAssumptions.ToJsonObject().ToJsonString());
+
+            Assert.NotNull(overheatingOperatingAssumptions_RoundTrip);
+            Assert.Equal(overheatingOperatingAssumptions.Names, overheatingOperatingAssumptions_RoundTrip.Names);
+            Assert.Equal(string.Empty, overheatingOperatingAssumptions_RoundTrip.Value("Openings"));
+            Assert.Equal("1", overheatingOperatingAssumptions_RoundTrip.Value("Alpha"));
         }
 
         // ---------------------------------------------------------------------------------------------
