@@ -37,6 +37,20 @@ namespace SAM.Analytical.Enums
         ContinuousVentilation = 1,
 
         /// <summary>
+        /// Supplies air mechanically, rather than only extracting it - the difference between Approved
+        /// Document F system 4 and system 3.
+        /// <para>
+        /// <b>Added after a review found a real misselection.</b> Without it, a dwelling designed with
+        /// balanced mechanical supply and extract - paragraph 1.67, a supply terminal in every habitable
+        /// room - was met by a <c>Local Extract Only</c> template, because extract-only satisfies
+        /// "continuous, and can boost". The overheating simulation would then have run a system with no
+        /// supply and no heat recovery against a building that has both, which is exactly the outcome
+        /// <c>SystemCapabilitySelection</c> exists to prevent.
+        /// </para>
+        /// </summary>
+        MechanicalSupply = 16,
+
+        /// <summary>
         /// Can be raised above its continuous rate on demand, for a wet room's Table 1.2 high rate.
         /// </summary>
         Boost = 2,

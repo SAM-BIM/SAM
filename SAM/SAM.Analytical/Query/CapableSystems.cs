@@ -49,8 +49,11 @@ namespace SAM.Analytical
                 }
             }
 
-            //Sorted through an index list rather than relying on List.Sort's stability, so the answer does
-            //not depend on how many items there happen to be - the same trap Solver2D was hardened for.
+            //Sorted through an index list so the insertion index is available as the FINAL tie-break: two
+            //descriptors with the same rank AND the same identity then keep the order they arrived in
+            //instead of being ordered arbitrarily. Sorting an index list without that last comparison is
+            //exactly as unstable as sorting the list itself, which an earlier revision's comment claimed
+            //otherwise - the same trap Solver2D was hardened for.
             List<int> indices = [];
             for (int i = 0; i < result.Count; i++)
             {
@@ -59,9 +62,18 @@ namespace SAM.Analytical
 
             indices.Sort((x, y) =>
             {
-                int compare = result[x].Rank - result[y].Rank;
+                //CompareTo, not subtraction: ranks come from a file, and int.MaxValue - int.MinValue
+                //overflows to a wrong sign, which both mis-orders the list and can make List.Sort throw on
+                //an inconsistent comparator.
+                int compare = result[x].Rank.CompareTo(result[y].Rank);
+                if (compare != 0)
+                {
+                    return compare;
+                }
 
-                return compare != 0 ? compare : SystemCapabilityDescriptor.CompareIdentity(result[x], result[y]);
+                compare = SystemCapabilityDescriptor.CompareIdentity(result[x], result[y]);
+
+                return compare != 0 ? compare : x.CompareTo(y);
             });
 
             List<SystemCapabilityDescriptor> result_Ordered = [];
@@ -142,7 +154,12 @@ namespace SAM.Analytical
 
             SystemCapabilityDescriptor systemCapabilityDescriptor_Result = systemCapabilityDescriptors_Capable[0];
 
-            if (systemCapabilityDescriptors_Capable.Count > 1 && systemCapabilityDescriptors_Capable[1].Rank == systemCapabilityDescriptor_Result.Rank)
+            //A tie on rank is only ambiguous when the two are different SYSTEMS. One system listed twice is
+            //a duplicated entry, not a choice - the answer is unambiguous and reporting it as a preference
+            //ambiguity would send somebody looking for the wrong defect.
+            if (systemCapabilityDescriptors_Capable.Count > 1
+                && systemCapabilityDescriptors_Capable[1].Rank == systemCapabilityDescriptor_Result.Rank
+                && SystemCapabilityDescriptor.CompareIdentity(systemCapabilityDescriptors_Capable[1], systemCapabilityDescriptor_Result) != 0)
             {
                 return SystemCapabilitySelection.Refused(string.Format("'{0}' and '{1}' both meet {2} and are both ranked {3}, so the catalogue has not said which is preferred.", systemCapabilityDescriptor_Result.SystemTemplate, systemCapabilityDescriptors_Capable[1].SystemTemplate, systemCapabilityRequirement, systemCapabilityDescriptor_Result.Rank));
             }

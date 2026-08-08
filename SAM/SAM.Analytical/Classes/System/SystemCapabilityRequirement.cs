@@ -34,6 +34,7 @@ namespace SAM.Analytical
         private static readonly SystemCapability[] systemCapabilities =
         [
             SystemCapability.ContinuousVentilation,
+            SystemCapability.MechanicalSupply,
             SystemCapability.Boost,
             SystemCapability.SummerBypass,
             SystemCapability.HeatRecovery

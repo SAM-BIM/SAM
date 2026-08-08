@@ -2,9 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Analytical.Enums;
-using SAM.Core;
 using System;
-using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
@@ -27,8 +25,16 @@ namespace SAM.Analytical
     /// so it never carries a list of another repository's files, and a template added there does not
     /// need a change here.
     /// </para>
+    /// <para>
+    /// <b>Not an <c>IJSAMObject</c>, deliberately.</b> An earlier revision serialised itself as a
+    /// <c>Capabilities</c> string array, while the shipped catalogue is written as named booleans a person
+    /// can audit - two formats for one concept, and a review showed the descriptor's own reader turning a
+    /// real index entry into a confident, empty descriptor. Nothing needs to serialise a descriptor: the
+    /// index is the wire format and the assembly that owns it parses it. Removing the reader removes the
+    /// possibility of using the wrong one.
+    /// </para>
     /// </summary>
-    public class SystemCapabilityDescriptor : IJSAMObject, IAnalyticalObject
+    public class SystemCapabilityDescriptor
     {
         private SystemTemplate systemTemplate = null;
         private SystemCapability systemCapability = SystemCapability.None;
@@ -56,11 +62,6 @@ namespace SAM.Analytical
                 systemCapability = systemCapabilityDescriptor.systemCapability;
                 rank = systemCapabilityDescriptor.rank;
             }
-        }
-
-        public SystemCapabilityDescriptor(JsonObject jsonObject)
-        {
-            FromJsonObject(jsonObject);
         }
 
         /// <summary>The system's existing identity. A copy.</summary>
@@ -139,45 +140,6 @@ namespace SAM.Analytical
             }
 
             return Compare(systemTemplate_1.Version, systemTemplate_2.Version);
-        }
-
-        public bool FromJsonObject(JsonObject jsonObject)
-        {
-            if (jsonObject == null)
-            {
-                return false;
-            }
-
-            systemTemplate = jsonObject["SystemTemplate"] is JsonObject jsonObject_SystemTemplate ? new SystemTemplate(jsonObject_SystemTemplate) : null;
-
-            SystemCapabilityRequirement systemCapabilityRequirement = jsonObject["Capabilities"] is JsonArray ? new SystemCapabilityRequirement(jsonObject) : null;
-
-            systemCapability = systemCapabilityRequirement == null ? SystemCapability.None : systemCapabilityRequirement.Capabilities;
-
-            rank = jsonObject["Rank"] is JsonValue jsonValue && jsonValue.TryGetValue(out int rank_Temp) ? rank_Temp : 0;
-
-            return true;
-        }
-
-        public JsonObject ToJsonObject()
-        {
-            JsonObject jsonObject = new()
-            {
-                ["_type"] = Core.Query.FullTypeName(this)
-            };
-
-            if (systemTemplate != null)
-            {
-                jsonObject["SystemTemplate"] = systemTemplate.ToJsonObject();
-            }
-
-            //The same shape a requirement writes, so one reader serves both sides of the boundary.
-            JsonObject jsonObject_Capabilities = new SystemCapabilityRequirement(systemCapability).ToJsonObject();
-
-            jsonObject["Capabilities"] = jsonObject_Capabilities["Capabilities"]?.DeepClone();
-            jsonObject["Rank"] = rank;
-
-            return jsonObject;
         }
 
         public override string ToString()

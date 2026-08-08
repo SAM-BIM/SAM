@@ -162,6 +162,79 @@ namespace SAM.Tests
             Assert.Equal("MVRE", systemCapabilityDescriptors.SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation)).SystemTemplate?.Ventilation);
         }
 
+        /// <summary>
+        /// <b>One system listed twice is not an ambiguity.</b> A duplicated entry has a single answer, and
+        /// reporting it as "the catalogue has not said which is preferred" would send somebody looking for a
+        /// preference defect instead of a duplicate one.
+        /// </summary>
+        [Fact]
+        public void OneSystemListedTwice_IsNotAmbiguous()
+        {
+            List<SystemCapabilityDescriptor> systemCapabilityDescriptors =
+            [
+                new(Template("MVRE"), SystemCapability.ContinuousVentilation, 50),
+                new(Template("MVRE"), SystemCapability.ContinuousVentilation, 50)
+            ];
+
+            SystemCapabilitySelection systemCapabilitySelection = systemCapabilityDescriptors.SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation));
+
+            Assert.True(systemCapabilitySelection.IsSelected);
+            Assert.Equal("MVRE", systemCapabilitySelection.SystemTemplate?.Ventilation);
+        }
+
+        /// <summary>
+        /// <b>Ranks are compared, not subtracted.</b> Ranks come from a file, and <c>int.MaxValue</c> minus
+        /// <c>int.MinValue</c> overflows to the wrong sign - which both mis-orders the list and can make
+        /// <c>List.Sort</c> throw on an inconsistent comparator. A review found the lowest-ranked system
+        /// finishing last, silently.
+        /// </summary>
+        [Fact]
+        public void ExtremeRanks_AreOrderedCorrectly()
+        {
+            List<SystemCapabilityDescriptor> systemCapabilityDescriptors =
+            [
+                new(Template("AAA"), SystemCapability.ContinuousVentilation, int.MaxValue),
+                new(Template("BBB"), SystemCapability.ContinuousVentilation, int.MinValue + 1),
+                new(Template("CCC"), SystemCapability.ContinuousVentilation, 0)
+            ];
+
+            Assert.Equal(["BBB", "CCC", "AAA"], Ventilations(systemCapabilityDescriptors.CapableSystems(Requirement(SystemCapability.ContinuousVentilation))));
+            Assert.Equal("BBB", systemCapabilityDescriptors.SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation)).SystemTemplate?.Ventilation);
+        }
+
+        /// <summary>
+        /// <b>Mechanical supply is required exactly when the assessment sized supply terminals</b>, and a
+        /// dwelling that has them is never offered an extract-only system. The defect a review found: a
+        /// balanced design - paragraph 1.67, a supply terminal in every habitable room - was met by
+        /// <c>Local Extract Only</c>, because extract-only does run continuously and can boost.
+        /// </summary>
+        [Fact]
+        public void MechanicalSupply_IsRequiredWhenSupplyTerminalsWereSized()
+        {
+            PartFDwellingResult partFDwellingResult = new("Flat 1") { ContinuousDesignSystemRate_Lps = 21.0, TotalHighExtract_Lps = 39.0 };
+
+            //Extract only - no supply terminals, so no mechanical supply is required.
+            Assert.False(partFDwellingResult.PartFSystemCapabilityRequirement().Requires(SystemCapability.MechanicalSupply));
+
+            partFDwellingResult.TotalSupply_Lps = 21.0;
+
+            Assert.True(partFDwellingResult.PartFSystemCapabilityRequirement().Requires(SystemCapability.MechanicalSupply));
+
+            //The high-rate supply on its own is enough, for a design recorded only at the boost condition.
+            PartFDwellingResult partFDwellingResult_High = new("Flat 2") { ContinuousDesignSystemRate_Lps = 21.0, TotalHighSupply_Lps = 21.0 };
+
+            Assert.True(partFDwellingResult_High.PartFSystemCapabilityRequirement().Requires(SystemCapability.MechanicalSupply));
+
+            //And an extract-only system is then not even suitable.
+            List<SystemCapabilityDescriptor> systemCapabilityDescriptors =
+            [
+                new(Template("EOL"), SystemCapability.ContinuousVentilation | SystemCapability.Boost, 20),
+                new(Template("MV"), SystemCapability.ContinuousVentilation | SystemCapability.Boost | SystemCapability.MechanicalSupply, 40)
+            ];
+
+            Assert.Equal(["MV"], Ventilations(systemCapabilityDescriptors.CapableSystems(partFDwellingResult.PartFSystemCapabilityRequirement())));
+        }
+
         // ---------------------------------------------------------------------------------------------
         // Refusal
         // ---------------------------------------------------------------------------------------------
@@ -380,37 +453,38 @@ namespace SAM.Tests
         // ---------------------------------------------------------------------------------------------
 
         /// <summary>
-        /// Both types round-trip, because they cross an assembly boundary: <c>SAM_Systems</c> writes the
-        /// descriptors and this assembly reads the requirement. Capabilities are written by <b>name</b>, so
-        /// adding a member cannot renumber a stored file, and a name a build does not know is ignored
-        /// rather than turned into a bit nothing understands.
+        /// The requirement round-trips, because it crosses an assembly boundary. Capabilities are written by
+        /// <b>name</b>, so adding a member cannot renumber a stored file, and a name a build does not know is
+        /// ignored rather than turned into a bit nothing understands.
+        /// <para>
+        /// <b>The descriptor deliberately does not round-trip.</b> It used to, as a <c>Capabilities</c>
+        /// string array, while the shipped catalogue is written as named booleans a person can audit - two
+        /// formats for one concept, and a review showed the descriptor's own reader turning a real index
+        /// entry into a confident, empty descriptor. The index is the wire format and the assembly that owns
+        /// it parses it.
+        /// </para>
         /// </summary>
         [Fact]
-        public void RequirementAndDescriptor_RoundTrip()
+        public void Requirement_RoundTrips()
         {
-            SystemCapabilityRequirement systemCapabilityRequirement = Requirement(SystemCapability.ContinuousVentilation | SystemCapability.SummerBypass);
+            SystemCapabilityRequirement systemCapabilityRequirement = Requirement(SystemCapability.ContinuousVentilation | SystemCapability.MechanicalSupply | SystemCapability.SummerBypass);
 
             SystemCapabilityRequirement systemCapabilityRequirement_RoundTrip = Core.Create.IJSAMObject<SystemCapabilityRequirement>(systemCapabilityRequirement.ToJsonObject().ToJsonString());
 
             Assert.NotNull(systemCapabilityRequirement_RoundTrip);
             Assert.Equal(systemCapabilityRequirement.Capabilities, systemCapabilityRequirement_RoundTrip.Capabilities);
 
-            SystemCapabilityDescriptor systemCapabilityDescriptor = new(Template("MVRE"), SystemCapability.ContinuousVentilation | SystemCapability.Boost | SystemCapability.SummerBypass | SystemCapability.HeatRecovery, 30);
-
-            SystemCapabilityDescriptor systemCapabilityDescriptor_RoundTrip = Core.Create.IJSAMObject<SystemCapabilityDescriptor>(systemCapabilityDescriptor.ToJsonObject().ToJsonString());
-
-            Assert.NotNull(systemCapabilityDescriptor_RoundTrip);
-            Assert.Equal(systemCapabilityDescriptor.Capabilities, systemCapabilityDescriptor_RoundTrip.Capabilities);
-            Assert.Equal("MVRE", systemCapabilityDescriptor_RoundTrip.SystemTemplate?.Ventilation);
-            Assert.Equal(30, systemCapabilityDescriptor_RoundTrip.Rank);
-
-            //Written by name, and a name from a later version is ignored rather than misread.
             Assert.Contains("SummerBypass", systemCapabilityRequirement.ToJsonObject().ToJsonString());
+            Assert.Contains("MechanicalSupply", systemCapabilityRequirement.ToJsonObject().ToJsonString());
 
+            //A name from a later version is ignored rather than misread.
             System.Text.Json.Nodes.JsonObject jsonObject = systemCapabilityRequirement.ToJsonObject();
             (jsonObject["Capabilities"] as System.Text.Json.Nodes.JsonArray)?.Add("SomethingFromALaterVersion");
 
             Assert.Equal(systemCapabilityRequirement.Capabilities, new SystemCapabilityRequirement(jsonObject).Capabilities);
+
+            //And the descriptor has no serialisation to reach for.
+            Assert.False(typeof(SystemCapabilityDescriptor).GetInterfaces().Length > 0, "SystemCapabilityDescriptor implements an interface again - it is a plain value and the index is the wire format.");
         }
 
         /// <summary>
