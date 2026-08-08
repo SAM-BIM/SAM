@@ -27,19 +27,29 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d56f679`** | exactly `d56f679` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
 
-**Why `SAM`'s HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own
-hash, so a pinned HEAD here would be wrong the moment it landed. The last **code** commit is pinned
-instead, and the invariant to verify is the one that actually matters: **every tree clean and every
-branch level with its remote**, with `SAM`'s HEAD being `b23bef3b` or a handover commit descended from
-it. Anything else — a dirty tree, an unpushed commit, a divergence — means **stop and reconcile**.
+**Why a HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own hash, so
+a pinned HEAD would be wrong the moment it landed. The last **code** commit is pinned instead.
+
+**The invariant, and a descendant check is NOT enough.** "HEAD descends from the recorded SHA" also
+passes when somebody committed code and never recorded it — exactly the state this file exists to
+prevent. So verify all three of:
+
+1. every tree **clean** and every branch **level with its remote**;
+2. HEAD **descends from** the recorded last-code SHA;
+3. **every change between that SHA and HEAD touches only `documentation/PartF-HANDOVER.md`.**
+
+Anything else — a dirty tree, an unpushed commit, a divergence, or unrecorded code between the
+checkpoint and HEAD — means **stop and reconcile before changing any code**.
 
 ```bash
-for r in SAM SAM_UI SAM_Tas; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/partf-terminal-transfer-compliance; done
+for r in SAM SAM_UI SAM_Tas SAM_Systems; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/partf-terminal-transfer-compliance; done
 ```
 
 ```bash
-git -C SAM merge-base --is-ancestor b23bef3b HEAD && echo "SAM contains the recorded code checkpoint"
+for e in "SAM b23bef3b" "SAM_Systems PENDING"; do set -- $e; git -C $1 merge-base --is-ancestor $2 HEAD 2>/dev/null && { echo "$1: descends from $2"; git -C $1 diff --name-only $2 HEAD | grep -v '^documentation/PartF-HANDOVER.md$' | sed "s/^/$1 UNRECORDED CODE: /"; }; done
 ```
+
+The second command must print only the `descends from` lines. **Any `UNRECORDED CODE:` line means stop.**
 
 Not merged. **No PRs open.** `sow/2026-Q3` never committed to directly, untouched in all three.
 `SAM_Systems` is **not in the workstream** — no branch, no changes, and step 5b will need one.

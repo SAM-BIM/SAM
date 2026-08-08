@@ -32,18 +32,20 @@ namespace SAM.Analytical
     {
         private SystemTemplate systemTemplate = null;
         private SystemCapability systemCapability = SystemCapability.None;
+        private int rank = 0;
 
         public SystemCapabilityDescriptor()
         {
 
         }
 
-        public SystemCapabilityDescriptor(SystemTemplate systemTemplate, SystemCapability systemCapability)
+        public SystemCapabilityDescriptor(SystemTemplate systemTemplate, SystemCapability systemCapability, int rank = 0)
         {
             //Copied: SystemTemplate is mutable, and a descriptor a selector is reading must not change
             //underneath it.
             this.systemTemplate = systemTemplate == null ? null : new SystemTemplate(systemTemplate);
             this.systemCapability = systemCapability;
+            this.rank = rank;
         }
 
         public SystemCapabilityDescriptor(SystemCapabilityDescriptor systemCapabilityDescriptor)
@@ -52,6 +54,7 @@ namespace SAM.Analytical
             {
                 systemTemplate = systemCapabilityDescriptor.systemTemplate == null ? null : new SystemTemplate(systemCapabilityDescriptor.systemTemplate);
                 systemCapability = systemCapabilityDescriptor.systemCapability;
+                rank = systemCapabilityDescriptor.rank;
             }
         }
 
@@ -67,23 +70,22 @@ namespace SAM.Analytical
         public SystemCapability Capabilities => systemCapability;
 
         /// <summary>
-        /// How many capabilities it has - the measure "minimum suitable" is minimum by. A system that can
-        /// do more than was asked is a heavier answer than one that can do exactly what was asked.
+        /// Where this system sits in the preference order of whoever supplied it. <b>Lower is preferred.</b>
+        /// <para>
+        /// <b>Supplied, never inferred.</b> An earlier revision ranked systems by counting their
+        /// capabilities, on the reasoning that a system able to do more than was asked implies plant nobody
+        /// required. Michal was right to reject it: that is a policy about a particular set of shipped
+        /// templates, and <c>SAM.Analytical</c> has no business holding it. Whether heat recovery makes a
+        /// system a heavier answer than one without is a judgement about equipment - a capability a system
+        /// happens to have may cost nothing to specify - and the assembly that ships the templates is the
+        /// one that knows.
+        /// </para>
+        /// <para>
+        /// So this assembly reads the number and orders by it. It never derives it, never second-guesses
+        /// it, and attaches no meaning to any particular value beyond "lower first".
+        /// </para>
         /// </summary>
-        public int CapabilityCount
-        {
-            get
-            {
-                int result = 0;
-
-                for (int value = (int)systemCapability; value != 0; value >>= 1)
-                {
-                    result += value & 1;
-                }
-
-                return result;
-            }
-        }
+        public int Rank => rank;
 
         /// <summary>Whether the descriptor names a system and says anything about it.</summary>
         public bool IsValid => systemTemplate != null && systemTemplate.IsValid;
@@ -152,6 +154,8 @@ namespace SAM.Analytical
 
             systemCapability = systemCapabilityRequirement == null ? SystemCapability.None : systemCapabilityRequirement.Capabilities;
 
+            rank = jsonObject["Rank"] is JsonValue jsonValue && jsonValue.TryGetValue(out int rank_Temp) ? rank_Temp : 0;
+
             return true;
         }
 
@@ -171,13 +175,14 @@ namespace SAM.Analytical
             JsonObject jsonObject_Capabilities = new SystemCapabilityRequirement(systemCapability).ToJsonObject();
 
             jsonObject["Capabilities"] = jsonObject_Capabilities["Capabilities"]?.DeepClone();
+            jsonObject["Rank"] = rank;
 
             return jsonObject;
         }
 
         public override string ToString()
         {
-            return string.Format("{0} [{1}]", systemTemplate == null ? "-" : systemTemplate.ToString(), new SystemCapabilityRequirement(systemCapability));
+            return string.Format("{0} [{1}] rank {2}", systemTemplate == null ? "-" : systemTemplate.ToString(), new SystemCapabilityRequirement(systemCapability), rank);
         }
 
         private static int Compare(string text_1, string text_2)

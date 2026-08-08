@@ -11,32 +11,67 @@ using Xunit;
 namespace SAM.Tests
 {
     /// <summary>
-    /// Choosing the minimum system that meets an Approved Document F requirement.
+    /// Deciding which systems meet an Approved Document F requirement, and taking the one a supplier's own
+    /// preference order puts first.
     /// <para>
     /// <b>Only the analytical half is here, and that is the design.</b> <c>SAM.Analytical</c> owns the
     /// capability vocabulary, the rule that reads a requirement off a Part F assessment, and the rule that
-    /// picks the minimum system meeting it. Which of the shipped <c>SystemEnergyCentre</c> templates
-    /// actually provides what is a fact about <c>SAM_Systems</c>' own resources and lives beside them - so
-    /// nothing in this assembly names a template file, and the descriptors below are a <b>test fixture</b>
-    /// standing in for that catalog, not a copy of it.
+    /// decides <b>suitability</b>. It does not own preference: which of several suitable systems is the
+    /// right answer is a judgement about a particular library of templates, and the assembly that ships
+    /// them is the one that knows. So nothing here names a template file, and the descriptors below are a
+    /// <b>test fixture</b> standing in for the <c>SAM_Systems</c> catalogue, not a copy of it.
     /// </para>
     /// </summary>
     public class SystemCapabilitySelectionTests
     {
         // ---------------------------------------------------------------------------------------------
-        // The selection rule
+        // Suitability
         // ---------------------------------------------------------------------------------------------
 
         /// <summary>
-        /// Asked only for continuous ventilation, the answer is the simplest system that provides it -
-        /// <b>not</b> the first capable one in the list, and not a more capable one. A system that can do
-        /// more than was asked implies plant nobody required, and on a Part O assessment it would quietly
-        /// credit the dwelling with mitigation the design does not have.
+        /// Every system that meets the requirement comes back, in the supplied preference order - so a
+        /// caller with a different policy has the whole suitable set to apply it to rather than only this
+        /// assembly's answer.
         /// </summary>
         [Fact]
-        public void ContinuousOnly_SelectsTheMinimumCapableSystem()
+        public void CapableSystems_ReturnsEverySuitableSystemInPreferenceOrder()
         {
-            SystemCapabilitySelection systemCapabilitySelection = Descriptors().SelectMinimumCapableSystem(Requirement(SystemCapability.ContinuousVentilation));
+            Assert.Equal(["NV", "MV", "MVRE"], Ventilations(Descriptors().CapableSystems(Requirement(SystemCapability.ContinuousVentilation))));
+            Assert.Equal(["MV", "MVRE"], Ventilations(Descriptors().CapableSystems(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.Boost))));
+            Assert.Equal(["MVRE"], Ventilations(Descriptors().CapableSystems(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.SummerBypass))));
+
+            //A system that can do nothing is offered and is never suitable.
+            Assert.DoesNotContain("UV", Ventilations(Descriptors().CapableSystems(Requirement(SystemCapability.ContinuousVentilation))));
+
+            //Nothing required, nothing suitable - an empty requirement is not met by everything.
+            Assert.Empty(Descriptors().CapableSystems(new SystemCapabilityRequirement()));
+            Assert.Empty(Descriptors().CapableSystems(null));
+            Assert.Empty(((List<SystemCapabilityDescriptor>)null).CapableSystems(Requirement(SystemCapability.ContinuousVentilation)));
+        }
+
+        /// <summary>
+        /// Requiring boost removes every system that cannot boost; requiring summer bypass leaves only the
+        /// heat-recovery system, because bypass is a state of a heat exchanger and there is nothing to
+        /// bypass without one.
+        /// </summary>
+        [Fact]
+        public void RequiredCapabilities_ExcludeSystemsThatLackThem()
+        {
+            Assert.Equal("MV", Descriptors().SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.Boost)).SystemTemplate?.Ventilation);
+            Assert.Equal("MVRE", Descriptors().SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.SummerBypass)).SystemTemplate?.Ventilation);
+        }
+
+        // ---------------------------------------------------------------------------------------------
+        // Preference
+        // ---------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// The preferred system is the suitable one the catalogue ranked first.
+        /// </summary>
+        [Fact]
+        public void PreferredSystem_IsTheLowestRankedSuitableOne()
+        {
+            SystemCapabilitySelection systemCapabilitySelection = Descriptors().SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation));
 
             Assert.True(systemCapabilitySelection.IsSelected);
             Assert.Equal("NV", systemCapabilitySelection.SystemTemplate?.Ventilation);
@@ -44,36 +79,30 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// Requiring boost removes every system that cannot boost, and the answer is again the least
-        /// capable of what remains - the mechanical system without heat recovery, not the one with it.
+        /// <b>Rank decides, and extra capability does not.</b> An earlier revision chose the system with
+        /// the fewest capabilities, on the reasoning that anything more implies plant nobody required -
+        /// which is a policy about a particular library, not something that follows from Part F, and a
+        /// capability a system happens to have may cost nothing to specify. Here the <b>more</b> capable
+        /// system is ranked first and it wins, which the old rule could not have produced.
         /// </summary>
         [Fact]
-        public void BoostRequired_ExcludesSystemsThatCannotBoost()
+        public void ExtraCapability_DoesNotMakeASystemLessPreferred()
         {
-            SystemCapabilitySelection systemCapabilitySelection = Descriptors().SelectMinimumCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.Boost));
+            List<SystemCapabilityDescriptor> systemCapabilityDescriptors =
+            [
+                new(Template("MVRE"), SystemCapability.ContinuousVentilation | SystemCapability.Boost | SystemCapability.SummerBypass | SystemCapability.HeatRecovery, 10),
+                new(Template("NV"), SystemCapability.ContinuousVentilation, 20)
+            ];
 
-            Assert.True(systemCapabilitySelection.IsSelected);
-            Assert.Equal("MV", systemCapabilitySelection.SystemTemplate?.Ventilation);
-        }
-
-        /// <summary>
-        /// Requiring summer bypass removes everything that cannot bypass, which here leaves only the
-        /// heat-recovery system - because bypass is a state of a heat exchanger and there is nothing to
-        /// bypass without one.
-        /// </summary>
-        [Fact]
-        public void SummerBypassRequired_ExcludesSystemsThatCannotBypass()
-        {
-            SystemCapabilitySelection systemCapabilitySelection = Descriptors().SelectMinimumCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.SummerBypass));
-
-            Assert.True(systemCapabilitySelection.IsSelected);
-            Assert.Equal("MVRE", systemCapabilitySelection.SystemTemplate?.Ventilation);
+            Assert.Equal("MVRE", systemCapabilityDescriptors.SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation)).SystemTemplate?.Ventilation);
+            Assert.Equal(["MVRE", "NV"], Ventilations(systemCapabilityDescriptors.CapableSystems(Requirement(SystemCapability.ContinuousVentilation))));
         }
 
         /// <summary>
         /// <b>The order the systems arrived in cannot change the answer.</b> A caller that built its list
         /// by enumerating a directory would otherwise let the file system decide an engineering question,
-        /// and the answer would differ between two machines with the same library.
+        /// and the answer would differ between two machines with the same library. Asserted over every
+        /// rotation and the reverse of each.
         /// </summary>
         [Fact]
         public void SystemOrdering_CannotChangeTheSelection()
@@ -82,11 +111,8 @@ namespace SAM.Tests
 
             List<SystemCapabilityDescriptor> systemCapabilityDescriptors = Descriptors();
 
-            string expected = systemCapabilityDescriptors.SelectMinimumCapableSystem(systemCapabilityRequirement).SystemTemplate?.Ventilation;
+            Assert.Equal("MV", systemCapabilityDescriptors.SelectPreferredCapableSystem(systemCapabilityRequirement).SystemTemplate?.Ventilation);
 
-            Assert.Equal("MV", expected);
-
-            //Every rotation of the list, and the reverse of each.
             for (int i = 0; i < systemCapabilityDescriptors.Count; i++)
             {
                 List<SystemCapabilityDescriptor> systemCapabilityDescriptors_Rotated = [];
@@ -96,29 +122,44 @@ namespace SAM.Tests
                     systemCapabilityDescriptors_Rotated.Add(systemCapabilityDescriptors[(i + j) % systemCapabilityDescriptors.Count]);
                 }
 
-                Assert.Equal(expected, systemCapabilityDescriptors_Rotated.SelectMinimumCapableSystem(systemCapabilityRequirement).SystemTemplate?.Ventilation);
+                Assert.Equal("MV", systemCapabilityDescriptors_Rotated.SelectPreferredCapableSystem(systemCapabilityRequirement).SystemTemplate?.Ventilation);
+                Assert.Equal(["MV", "MVRE"], Ventilations(systemCapabilityDescriptors_Rotated.CapableSystems(systemCapabilityRequirement)));
 
                 systemCapabilityDescriptors_Rotated.Reverse();
 
-                Assert.Equal(expected, systemCapabilityDescriptors_Rotated.SelectMinimumCapableSystem(systemCapabilityRequirement).SystemTemplate?.Ventilation);
+                Assert.Equal("MV", systemCapabilityDescriptors_Rotated.SelectPreferredCapableSystem(systemCapabilityRequirement).SystemTemplate?.Ventilation);
+                Assert.Equal(["MV", "MVRE"], Ventilations(systemCapabilityDescriptors_Rotated.CapableSystems(systemCapabilityRequirement)));
             }
         }
 
         /// <summary>
-        /// <b>Two systems that are equally minimal are separated by identity, not by position.</b> Same
-        /// capabilities, same everything except the version - and whichever way round they are offered, the
-        /// lower identity wins.
+        /// <b>Two suitable systems at the same rank are a refusal, not a coin toss.</b> The catalogue has
+        /// not said which is preferred, and breaking the tie on a name would let an alphabetical accident
+        /// pick a building's plant. This is the same rule <c>SimulationSpaceMap</c> follows: refuse on
+        /// ambiguity rather than resolve it by something nobody chose.
         /// </summary>
         [Fact]
-        public void EquallyMinimalSystems_AreSeparatedByIdentity()
+        public void SuitableSystemsAtTheSameRank_AreRefusedNotGuessedAt()
         {
-            SystemCapabilityDescriptor systemCapabilityDescriptor_1 = new(new SystemTemplate("MV", "RAD1", "UC1", "PR1", "CTL1", "1"), SystemCapability.ContinuousVentilation);
-            SystemCapabilityDescriptor systemCapabilityDescriptor_2 = new(new SystemTemplate("MV", "RAD1", "UC1", "PR1", "CTL1", "2"), SystemCapability.ContinuousVentilation);
+            List<SystemCapabilityDescriptor> systemCapabilityDescriptors =
+            [
+                new(Template("MV"), SystemCapability.ContinuousVentilation, 10),
+                new(Template("NV"), SystemCapability.ContinuousVentilation, 10)
+            ];
 
-            SystemCapabilityRequirement systemCapabilityRequirement = Requirement(SystemCapability.ContinuousVentilation);
+            SystemCapabilitySelection systemCapabilitySelection = systemCapabilityDescriptors.SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation));
 
-            Assert.Equal("1", new List<SystemCapabilityDescriptor> { systemCapabilityDescriptor_1, systemCapabilityDescriptor_2 }.SelectMinimumCapableSystem(systemCapabilityRequirement).SystemTemplate?.Version);
-            Assert.Equal("1", new List<SystemCapabilityDescriptor> { systemCapabilityDescriptor_2, systemCapabilityDescriptor_1 }.SelectMinimumCapableSystem(systemCapabilityRequirement).SystemTemplate?.Version);
+            Assert.False(systemCapabilitySelection.IsSelected);
+            Assert.Contains("has not said which is preferred", systemCapabilitySelection.Reason);
+
+            //Both are still reported as suitable - the ambiguity is about preference, not about fitness,
+            //and a caller that wants to choose differently can.
+            Assert.Equal(2, systemCapabilityDescriptors.CapableSystems(Requirement(SystemCapability.ContinuousVentilation)).Count);
+
+            //A tie at a rank that is not the lowest changes nothing.
+            systemCapabilityDescriptors.Add(new SystemCapabilityDescriptor(Template("MVRE"), SystemCapability.ContinuousVentilation, 5));
+
+            Assert.Equal("MVRE", systemCapabilityDescriptors.SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation)).SystemTemplate?.Ventilation);
         }
 
         // ---------------------------------------------------------------------------------------------
@@ -135,11 +176,11 @@ namespace SAM.Tests
         {
             List<SystemCapabilityDescriptor> systemCapabilityDescriptors =
             [
-                new(Template("NV"), SystemCapability.ContinuousVentilation),
-                new(Template("MV"), SystemCapability.ContinuousVentilation | SystemCapability.Boost)
+                new(Template("NV"), SystemCapability.ContinuousVentilation, 10),
+                new(Template("MV"), SystemCapability.ContinuousVentilation | SystemCapability.Boost, 20)
             ];
 
-            SystemCapabilitySelection systemCapabilitySelection = systemCapabilityDescriptors.SelectMinimumCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.SummerBypass));
+            SystemCapabilitySelection systemCapabilitySelection = systemCapabilityDescriptors.SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.SummerBypass));
 
             Assert.False(systemCapabilitySelection.IsSelected);
             Assert.Null(systemCapabilitySelection.Descriptor);
@@ -158,11 +199,11 @@ namespace SAM.Tests
         {
             List<SystemCapabilityDescriptor> systemCapabilityDescriptors =
             [
-                new(Template("NV"), SystemCapability.ContinuousVentilation),
-                new(Template("XX"), SystemCapability.SummerBypass)
+                new(Template("NV"), SystemCapability.ContinuousVentilation, 10),
+                new(Template("XX"), SystemCapability.SummerBypass, 20)
             ];
 
-            SystemCapabilitySelection systemCapabilitySelection = systemCapabilityDescriptors.SelectMinimumCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.SummerBypass));
+            SystemCapabilitySelection systemCapabilitySelection = systemCapabilityDescriptors.SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.SummerBypass));
 
             Assert.False(systemCapabilitySelection.IsSelected);
             Assert.Equal(SystemCapability.None, systemCapabilitySelection.Missing);
@@ -170,25 +211,25 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// An empty requirement is refused rather than answered with the smallest system on the shelf.
-        /// Choosing a system nobody asked for is inventing a requirement, and the same goes for an empty or
-        /// absent library.
+        /// An empty requirement is refused rather than answered with whatever is ranked first. Choosing a
+        /// system nobody asked for is inventing a requirement, and the same goes for an empty or absent
+        /// library.
         /// </summary>
         [Fact]
         public void NothingRequiredOrNothingOffered_IsRefused()
         {
-            Assert.False(Descriptors().SelectMinimumCapableSystem(new SystemCapabilityRequirement()).IsSelected);
-            Assert.False(Descriptors().SelectMinimumCapableSystem(null).IsSelected);
+            Assert.False(Descriptors().SelectPreferredCapableSystem(new SystemCapabilityRequirement()).IsSelected);
+            Assert.False(Descriptors().SelectPreferredCapableSystem(null).IsSelected);
 
             SystemCapabilityRequirement systemCapabilityRequirement = Requirement(SystemCapability.ContinuousVentilation);
 
-            Assert.False(new List<SystemCapabilityDescriptor>().SelectMinimumCapableSystem(systemCapabilityRequirement).IsSelected);
-            Assert.False(((List<SystemCapabilityDescriptor>)null).SelectMinimumCapableSystem(systemCapabilityRequirement).IsSelected);
+            Assert.False(new List<SystemCapabilityDescriptor>().SelectPreferredCapableSystem(systemCapabilityRequirement).IsSelected);
+            Assert.False(((List<SystemCapabilityDescriptor>)null).SelectPreferredCapableSystem(systemCapabilityRequirement).IsSelected);
 
             //A descriptor naming no system is not a system, and a list of them is an empty library.
             List<SystemCapabilityDescriptor> systemCapabilityDescriptors = [null, new SystemCapabilityDescriptor(), new SystemCapabilityDescriptor(null, SystemCapability.ContinuousVentilation)];
 
-            Assert.False(systemCapabilityDescriptors.SelectMinimumCapableSystem(systemCapabilityRequirement).IsSelected);
+            Assert.False(systemCapabilityDescriptors.SelectPreferredCapableSystem(systemCapabilityRequirement).IsSelected);
         }
 
         // ---------------------------------------------------------------------------------------------
@@ -249,7 +290,7 @@ namespace SAM.Tests
 
             Assert.False(systemCapabilityRequirement.IsValid);
             Assert.Equal(SystemCapability.None, systemCapabilityRequirement.Capabilities);
-            Assert.False(Descriptors().SelectMinimumCapableSystem(systemCapabilityRequirement).IsSelected);
+            Assert.False(Descriptors().SelectPreferredCapableSystem(systemCapabilityRequirement).IsSelected);
 
             Assert.False(((PartFDwellingResult)null).PartFSystemCapabilityRequirement().IsValid);
         }
@@ -260,7 +301,7 @@ namespace SAM.Tests
         {
             PartFDwellingResult partFDwellingResult = new("Flat 1") { ContinuousDesignSystemRate_Lps = 21.0, TotalHighExtract_Lps = 39.0 };
 
-            Assert.Equal("MV", Descriptors().SelectMinimumCapableSystem(partFDwellingResult.PartFSystemCapabilityRequirement()).SystemTemplate?.Ventilation);
+            Assert.Equal("MV", Descriptors().SelectPreferredCapableSystem(partFDwellingResult.PartFSystemCapabilityRequirement()).SystemTemplate?.Ventilation);
         }
 
         // ---------------------------------------------------------------------------------------------
@@ -323,20 +364,15 @@ namespace SAM.Tests
 
         /// <summary>
         /// <c>MVRE</c> stays the heat-recovery identity and nothing is added beside it. Heat recovery is a
-        /// <b>capability</b> of that system, which is precisely why a requirement that does not ask for it
-        /// returns the simpler system - the distinction is made without a second name for one concept.
+        /// <b>capability</b> of that system, so the distinction between it and <c>MV</c> is made without a
+        /// second name for one concept.
         /// </summary>
         [Fact]
         public void HeatRecovery_IsACapabilityOfMvreAndNotASecondIdentity()
         {
             Assert.DoesNotContain("MVHR", Enum.GetNames(typeof(SystemCapability)));
 
-            SystemCapabilitySelection systemCapabilitySelection = Descriptors().SelectMinimumCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.Boost | SystemCapability.HeatRecovery));
-
-            Assert.Equal("MVRE", systemCapabilitySelection.SystemTemplate?.Ventilation);
-
-            //Not asked for, so not chosen - the whole reason HeatRecovery is in the vocabulary.
-            Assert.Equal("MV", Descriptors().SelectMinimumCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.Boost)).SystemTemplate?.Ventilation);
+            Assert.Equal("MVRE", Descriptors().SelectPreferredCapableSystem(Requirement(SystemCapability.ContinuousVentilation | SystemCapability.Boost | SystemCapability.HeatRecovery)).SystemTemplate?.Ventilation);
         }
 
         // ---------------------------------------------------------------------------------------------
@@ -359,14 +395,14 @@ namespace SAM.Tests
             Assert.NotNull(systemCapabilityRequirement_RoundTrip);
             Assert.Equal(systemCapabilityRequirement.Capabilities, systemCapabilityRequirement_RoundTrip.Capabilities);
 
-            SystemCapabilityDescriptor systemCapabilityDescriptor = new(Template("MVRE"), SystemCapability.ContinuousVentilation | SystemCapability.Boost | SystemCapability.SummerBypass | SystemCapability.HeatRecovery);
+            SystemCapabilityDescriptor systemCapabilityDescriptor = new(Template("MVRE"), SystemCapability.ContinuousVentilation | SystemCapability.Boost | SystemCapability.SummerBypass | SystemCapability.HeatRecovery, 30);
 
             SystemCapabilityDescriptor systemCapabilityDescriptor_RoundTrip = Core.Create.IJSAMObject<SystemCapabilityDescriptor>(systemCapabilityDescriptor.ToJsonObject().ToJsonString());
 
             Assert.NotNull(systemCapabilityDescriptor_RoundTrip);
             Assert.Equal(systemCapabilityDescriptor.Capabilities, systemCapabilityDescriptor_RoundTrip.Capabilities);
             Assert.Equal("MVRE", systemCapabilityDescriptor_RoundTrip.SystemTemplate?.Ventilation);
-            Assert.Equal(4, systemCapabilityDescriptor_RoundTrip.CapabilityCount);
+            Assert.Equal(30, systemCapabilityDescriptor_RoundTrip.Rank);
 
             //Written by name, and a name from a later version is ignored rather than misread.
             Assert.Contains("SummerBypass", systemCapabilityRequirement.ToJsonObject().ToJsonString());
@@ -401,17 +437,17 @@ namespace SAM.Tests
         }
 
         // ---------------------------------------------------------------------------------------------
-        // Fixture - a stand-in for the SAM_Systems catalog, NOT a copy of it
+        // Fixture - a stand-in for the SAM_Systems catalogue, NOT a copy of it
         // ---------------------------------------------------------------------------------------------
 
         private static List<SystemCapabilityDescriptor> Descriptors()
         {
             return
             [
-                new(Template("UV"), SystemCapability.None),
-                new(Template("NV"), SystemCapability.ContinuousVentilation),
-                new(Template("MV"), SystemCapability.ContinuousVentilation | SystemCapability.Boost),
-                new(Template("MVRE"), SystemCapability.ContinuousVentilation | SystemCapability.Boost | SystemCapability.SummerBypass | SystemCapability.HeatRecovery)
+                new(Template("UV"), SystemCapability.None, 40),
+                new(Template("NV"), SystemCapability.ContinuousVentilation, 10),
+                new(Template("MV"), SystemCapability.ContinuousVentilation | SystemCapability.Boost, 20),
+                new(Template("MVRE"), SystemCapability.ContinuousVentilation | SystemCapability.Boost | SystemCapability.SummerBypass | SystemCapability.HeatRecovery, 30)
             ];
         }
 
@@ -423,6 +459,18 @@ namespace SAM.Tests
         private static SystemCapabilityRequirement Requirement(SystemCapability systemCapability)
         {
             return new SystemCapabilityRequirement(systemCapability);
+        }
+
+        private static List<string> Ventilations(IEnumerable<SystemCapabilityDescriptor> systemCapabilityDescriptors)
+        {
+            List<string> result = [];
+
+            foreach (SystemCapabilityDescriptor systemCapabilityDescriptor in systemCapabilityDescriptors)
+            {
+                result.Add(systemCapabilityDescriptor.SystemTemplate?.Ventilation);
+            }
+
+            return result;
         }
     }
 }
