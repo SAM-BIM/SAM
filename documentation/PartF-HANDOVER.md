@@ -17,7 +17,7 @@ All three repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's
 session and needs a PR like the other two.** `sow/2026-Q3` was never committed to directly and is
 untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
 
-**Current heads — SAM `02e99582`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`. All pushed and verified.**
+**Current heads — SAM `884a2f54`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`. All pushed and verified.**
 
 Note for review: `ffd8e38` (SAM_UI) is the Part F dwelling-scope/cache work and is a *different review
 topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at separately.
@@ -36,7 +36,9 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - `52698867` record the Iteration 0 state in this handover
   - `7faf964c` **`OverheatingScenario` + derived deterministic key** (step 4, see 11c)
   - `02e99582` **step 4 hardened after an independent review** (see 11c)
-  - **HEAD = `02e99582`**, pushed
+  - `5d4274a5` handover after step 4
+  - `884a2f54` **step 4.1 canonicalisation** — assumption names normalised before sorting, JSON primitives through the typed canonicaliser (see 11c)
+  - **HEAD = `884a2f54`**, pushed
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -59,7 +61,7 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
 
 | Suite | Result |
 |---|---|
-| `SAM/SAM.Tests` | **1102 passed, 0 failed** (1046 + 16 Part O scope/identity + 5 TM extraction + 35 scenario identity) |
+| `SAM/SAM.Tests` | **1107 passed, 0 failed** (1046 + 16 Part O scope/identity + 5 TM extraction + 40 scenario identity) |
 | `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **180 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor + 17 preset/scope + 6 assessment cache) |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
 | `SAM_Mollier/SAM.Core.Mollier.Tests` | **22 passed, 0 failed** |
@@ -536,6 +538,7 @@ behaves as REcovery despite the library description saying "Recirculation".
 | SAM | `2e2362f7` | doc terminology |
 | SAM | `7faf964c` | **`OverheatingScenario` + derived key** (step 4) + 24 tests |
 | SAM | `02e99582` | **step 4 hardened after independent review** → 35 tests |
+| SAM | `884a2f54` | **step 4.1 canonicalisation** (Michal's review) → 40 tests |
 | SAM_Tas | `5e38c94` | `OverheatingCalculator` → compatibility wrapper + 3 equivalence tests |
 | SAM_Tas | `d56f679` | doc terminology |
 
@@ -562,6 +565,18 @@ behaves as REcovery despite the library description saying "Recirculation".
   - `VentilationStrategy` / `HasVentilationStrategy` read the existing `SystemTemplate.Ventilation`
     (`NV`/`MV`/`MVRE`/`UV`). **No second vocabulary, no `MVHR`.** Step 7's consumer must **refuse**
     where `HasVentilationStrategy` is false, never fall back to the zone-name lookup it replaces.
+  - **Canonicalisation is at the boundary, not at the hash** (step 4.1). An assumption **name** is
+    NFC-normalised *before* it enters the ordinal `SortedDictionary`, because the assumptions are hashed
+    in name order and ordinal order runs over raw code units — composed `é` (U+00E9) sorts **after**
+    `f`, the decomposed form sorts **before** it. Normalising only inside `Append` left canonically
+    identical assumptions hashed in different **orders**. Proved by mutation.
+  - **One canonicaliser per type, whichever door a value came through.** A JSON primitive goes through
+    the same path as the typed setter that would have written it: `{"SummerBypass": false}` stores
+    `False`, not `false`; a JSON number goes through `Text(double)`. A JSON **string** stays text (so
+    `"21.0"` is not `21`). An object or array is **refused**, not flattened — there is no canonical form
+    for arbitrary JSON and property order alone would decide the key.
+  - An **invalid** scenario is equal only to itself. Its key is empty, and treating "no identity" as a
+    shared identity collapsed every half-filled scenario in a user interface into one `HashSet` entry.
 - **TM overheating extraction**: `SAM.Analytical.TMOverheatingCalculator` owns TM52 + TM59 + comfort
   helpers; `SAM.Analytical.Tas.OverheatingCalculator` is a delegating wrapper with its public API
   intact (no Grasshopper/UI migration). The two series keys are **instance** properties
@@ -670,11 +685,11 @@ git log --oneline -1 origin/feature/partf-terminal-transfer-compliance
 ```
 
 Confirm each is on `feature/partf-terminal-transfer-compliance`, the tree is **clean**, and local matches
-remote at: **SAM `02e99582`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`**. Nothing should be outstanding.
+remote at: **SAM `884a2f54`, SAM_UI `ffd8e38`, SAM_Tas `d56f679`**. Nothing should be outstanding.
 
 ### State - all pushed, all green
 
-SAM **1102**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123**, SAM_Mollier **22**;
+SAM **1107**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123**, SAM_Mollier **22**;
 Grasshopper and Mollier UI 0 `error CS`; SPDX clean. Not merged, no PRs open.
 
 Done and reviewed: the Part F regulatory correction pass, the floor-plan overlay, saved-view persistence,
