@@ -17,8 +17,8 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `b52aff65` + SAM_Systems `bff125f` — Iteration 0 step 5 complete: 5a analytical,
-5b the SAM_Systems catalogue, 5c policy/CI closure. Every one hardened after independent review.*
+*Last updated at SAM `d327496a` + SAM_Systems `bff125f` — Iteration 0 steps 5 and 6 complete: 5a
+analytical, 5b the SAM_Systems catalogue, 5c policy/CI closure, 6 the TM59 recipe extraction.*
 
 ### 0a. Repository state — verify this before touching anything
 
@@ -26,7 +26,7 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`b52aff65`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`d327496a`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`bff125f`** | exactly `bff125f` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d56f679`** | exactly `d56f679` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
@@ -51,7 +51,7 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas; do echo "=== $r ==="; git -C $r status 
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM b52aff65
+SAM d327496a
 SAM_Systems bff125f
 SAM_UI ffd8e38
 SAM_Tas d56f679
@@ -68,7 +68,7 @@ everywhere. **SAM_Tas's and SAM_Systems's branches are new and need PRs like the
 
 ### 0b. Latest checkpoint — what it implemented
 
-**Iteration 0 step 5 — 5a, 5b and 5c — with review hardening on each.**
+**Iteration 0 step 5 (5a, 5b, 5c) and step 6.**
 
 - SAM `b23bef3b` → **5a**: the analytical half — `SystemCapability`, `SystemCapabilityRequirement`,
   `SystemCapabilityDescriptor`, `SystemCapabilitySelection`, `Query.PartFSystemCapabilityRequirement`,
@@ -84,13 +84,16 @@ everywhere. **SAM_Tas's and SAM_Systems's branches are new and need PRs like the
 - SAM_Systems `bff125f` → 5c review fixes, including a **CI assembly-version restamp** and an unverified
   capability being credited (see 11j).
 
-Detail in **11h** (5a), **11i** (5b) and **11j** (5c).
+- SAM `d327496a` → **step 6**: `TM59AssessmentCalculator` / `TM59AssessmentResult` — the
+  `Tas.TSDQueryTM59Results` recipe lifted into `SAM.Analytical`, behaviour unchanged.
+
+Detail in **11h** (5a), **11i** (5b), **11j** (5c) and **11k** (6).
 
 ### 0c. Tests and builds run, with counts
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1128 passed, 0 failed** | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
+| `SAM/SAM.Tests` | **1137 passed, 0 failed** | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
 | `SAM_Systems/SAM.Analytical.Systems.Tests` | **34 passed, 0 failed** | `dotnet test SAM_Systems/SAM.Analytical.Systems.Tests/SAM.Analytical.Systems.Tests.csproj` |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | unchanged by this work, re-run to prove it |
 | `SAM_Systems.sln` | 0 `error` under VS MSBuild | the test project is in the solution AND now executed by CI |
@@ -151,6 +154,9 @@ defect described in 0d.
   meaning, not read from the templates — nothing in the files marks any of them. Each index entry says
   so in `EvidenceFromTemplate`. Michal to confirm the values, particularly `CAV`/`DISP` boost = false.
 - ~~`Application` is documentation only~~ — **CLOSED in 5c**, it is now an eligibility constraint (11j).
+- **The `Tas.TSDQueryTM59Results` Grasshopper component still holds its own copy of the step 6 recipe.**
+  Repointing it at `TM59AssessmentCalculator` needs `SAM_Tas_Grasshopper` in the workstream — a fifth
+  repo. Until then the recipe exists twice and only the service is tested.
 - **The `Create.SystemEnergyCentre` / `DefaultSystemEnergyCentres` path is UNGUARDED** and is the one with
   production callers (four Grasshopper components). It derives a template from a file NAME and matches a
   space's `VentilationSystemTypeName`, so a space carrying `"VAV"` still resolves `VAV.json` in a dwelling
@@ -168,14 +174,20 @@ defect described in 0d.
 
 ### 0f. The precise next task
 
-**Step 6** — lift the `TasTSDQueryTM59Results` recipe into a testable service. Reuse, do not rewrite.
-Then steps 7–10 in the order in 11g.
+**Step 7 — make the scenario authoritative over ventilation strategy** (11d, three conflicting
+derivations). `OverheatingScenario.VentilationStrategy` / `HasVentilationStrategy` exist for it, and the
+consumer must **refuse** where no strategy is stated rather than fall back to the zone-name →`"NV"` chain.
+`Space.ToTM59` already accepts a `systemType` override, so the seam exists.
 
-Files likely touched by step 6:
-- `SAM_Tas/…/SAM.Analytical.Tas/` — a new service class alongside the existing conversion
-- `SAM_Tas_Grasshopper/…/TasTSDQueryTM59Results` — the component becomes a thin caller
-- `SAM/SAM/SAM.Tests/` or `SAM_Tas/SAM.Analytical.Tas.TM59.Tests/` for its tests
-- **TAS-facing ⇒ VS Framework MSBuild, not `dotnet`** (see 0g)
+Files likely touched by step 7:
+- `SAM/SAM/SAM.Analytical/Classes/TMOverheatingCalculator.cs` — `SystemTypeName` is derivation #3
+- `SAM/SAM/SAM.Analytical/Classes/TM59AssessmentCalculator.cs` — where a scenario would be supplied
+- `SAM_Tas/…/Convert/ToTM59/Zone.cs` and `Building.cs` — derivations #1 and #2, **TAS-facing ⇒ VS
+  Framework MSBuild**
+- `SAM/SAM/SAM.Tests/`
+
+Then 8 (result association via `SimulationSpaceMap`, three-flat regression mandatory), 9 (TSD/TPD
+routing boundary), 10 (thin headless runner, last).
 
 ### 0g. Environment needed to continue
 
@@ -993,6 +1005,55 @@ leaves `2026.3.999.0` in place where it previously left `1.0.0.0`. A failing tes
 artifacts either. **Not yet demonstrated on a real run** — the workflow triggers on `master`/`main`/`sow/**`
 only, so it first fires when a PR to `sow/2026-Q3` is opened.
 
+### 11k. Step 6 — the TM59 assessment recipe, extracted (DONE, SAM `d327496a`)
+
+`SAM.Analytical.TM59AssessmentCalculator` + `TM59AssessmentResult`. **Moved, not redesigned.**
+
+The `Tas.TSDQueryTM59Results` Grasshopper component held the only working statement of the sequence,
+inside a `SolveInstance` interleaved with parameter plumbing — so nothing could call it, nothing could
+test it, and the step 10 headless runner would have had to restate it and drift.
+
+```
+TSD file ──(TAS)──> analyticalModel_TSD          <- stays in SAM.Analytical.Tas
+                          │
+                          ├─ RestoreDesignInternalConditions(design)   <- engine-free
+                          ├─ Spaces(spaces, zones)                     <- engine-free
+                          └─ Calculate(spaces, extended)               <- engine-free
+                                 └─> TM59AssessmentResult
+                                       Spaces, MechanicalVentilationResults,
+                                       NaturalVentilationResults, CorridorResults,
+                                       Max/MinIndoorComfortTemperatures
+```
+
+Only the read needs TAS, so the recipe runs under plain `dotnet test` — the same split
+`TMOverheatingCalculator` already makes.
+
+**Two things preserved verbatim although known to be wrong**, both documented on the class as pinned
+rather than endorsed:
+
+1. **Spaces are matched by NAME**, in the internal-condition restore and in the space selection. Every
+   flat has a "Bedroom 2". `SimulationSpaceMap` fixes it by identity, refusing on ambiguity — **step 8**.
+   Changing it here would have made the extraction unverifiable.
+2. **The criterion still comes from `TMOverheatingCalculator`'s existing derivation**, which falls back to
+   a zone-name lookup then defaults to `"NV"` — **step 7**.
+
+One incidental asymmetry removed with no behaviour change: the component null-guarded two of its three
+result splits and not the third. `FindAll` never returns null, so the guard never did anything; the three
+are now one generic `Split<T>`.
+
+**9 tests**, and the one that makes this an extraction rather than a rewrite is
+`TheService_MatchesTheComponentsOwnSequence` — the component's sequence is **inlined verbatim** from its
+`SolveInstance` and its output compared with the service's: spaces, all three criterion lists, and both
+comfort limit series. Deliberately not factored; it is a transcript. Also pinned: the silent
+no-assessment when the series key is the analytical spelling against a TAS-written model, and that
+**no spaces and no zones means the whole model** — which is why the real run exported a communal corridor
+into a domestic overheating assessment as an ordinary room.
+
+**NOT DONE — the Grasshopper component still holds its own copy.** Repointing
+`SAM_Tas_Grasshopper/…/TasTSDQueryTM59Results.cs` at the service is the remaining half of the extraction
+and needs `SAM_Tas_Grasshopper` brought into the workstream — a **fifth** repo, not brought in without
+asking. Until then the recipe exists twice, and the service is the one that is tested.
+
 ## 10. Standing instructions
 
 - **Two-laptop continuity rule, mandatory.** This file is the authoritative continuation state. After
@@ -1038,7 +1099,7 @@ remote at the SHAs in **section 0a**, which is authoritative. Nothing should be 
 
 ### State - all pushed, all green
 
-SAM **1128**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123** + **34**, SAM_Mollier **22**;
+SAM **1137**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123** + **34**, SAM_Mollier **22**;
 Grasshopper and Mollier UI 0 `error CS`; SPDX clean. Not merged, no PRs open.
 
 Done and reviewed: the Part F regulatory correction pass, the floor-plan overlay, saved-view persistence,
@@ -1050,8 +1111,9 @@ independently reviewed and hardened.
 
 **Read section 0 first and verify the repositories against it before changing any code.**
 
-### Your next task: Iteration 0, step 6 onward (section 11g)
-6. Lift the `TasTSDQueryTM59Results` recipe into a testable service. Reuse, do not rewrite.
+### Your next task: Iteration 0, step 7 onward (section 11g)
+6. **DONE** (`d327496a`, see 11k) — `TM59AssessmentCalculator` in `SAM.Analytical`. **The Grasshopper
+   component still holds its own copy**; repointing it needs `SAM_Tas_Grasshopper` in the workstream.
 7. **Make the scenario authoritative** over ventilation strategy - see 11d, three conflicting derivations.
 8. **Result association** to design dwelling / common space **by identity, not name**, via
    `SimulationSpaceMap`. Three-flat isolation regression is mandatory.
