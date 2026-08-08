@@ -518,6 +518,117 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>Normalising only at the point of hashing is not enough, and this is the case that proves
+        /// it.</b> The assumptions are hashed in ordinal name order, and ordinal order runs over raw code
+        /// units: composed <c>é</c> is U+00E9 and sorts <b>after</b> <c>f</c>, while the decomposed form
+        /// begins with <c>e</c> and sorts <b>before</b> it. So two canonically identical sets of
+        /// assumptions would have been hashed in different orders and derived two keys - normalised text,
+        /// but in the wrong sequence. The name is therefore normalised on the way into the sorted store,
+        /// not on the way out of it.
+        /// </summary>
+        [Fact]
+        public void UnicodeNormalisation_DoesNotChangeCanonicalOrdering()
+        {
+            //The bare accented character, not a word containing one - a leading "c" would sort both forms
+            //to the same side of "f" and the premise below would be vacuous.
+            string text_Composed = "\u00E9";
+            string text_Decomposed = "e\u0301";
+
+            //The premise: these really do sort on opposite sides of "f".
+            Assert.True(string.CompareOrdinal(text_Composed, "f") > 0);
+            Assert.True(string.CompareOrdinal(text_Decomposed, "f") < 0);
+
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_1 = new();
+            overheatingOperatingAssumptions_1.Set(text_Composed, "Unrestricted");
+            overheatingOperatingAssumptions_1.Set("f", "Restricted");
+
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_2 = new();
+            overheatingOperatingAssumptions_2.Set(text_Decomposed, "Unrestricted");
+            overheatingOperatingAssumptions_2.Set("f", "Restricted");
+
+            //One name, one order, one key.
+            Assert.Equal(overheatingOperatingAssumptions_1.Names, overheatingOperatingAssumptions_2.Names);
+            Assert.Equal(Scenario(overheatingOperatingAssumptions: overheatingOperatingAssumptions_1).Key, Scenario(overheatingOperatingAssumptions: overheatingOperatingAssumptions_2).Key);
+
+            //And it is readable back by either form.
+            Assert.Equal("Unrestricted", overheatingOperatingAssumptions_2.Value(text_Composed));
+            Assert.Equal("Unrestricted", overheatingOperatingAssumptions_1.Value(text_Decomposed));
+            Assert.True(overheatingOperatingAssumptions_1.Contains(text_Decomposed));
+            Assert.True(overheatingOperatingAssumptions_2.Remove(text_Composed));
+        }
+
+        /// <summary>
+        /// <b>A boolean written the typed way and the JSON way is one assumption.</b>
+        /// <c>Set(name, false)</c> stores <c>False</c>; taking a JSON <c>false</c> at its literal text
+        /// would store <c>false</c> - the same engineering assumption deriving two keys according to which
+        /// door it came through. A JSON primitive goes through the same canonicaliser as the setter that
+        /// would have written it.
+        /// </summary>
+        [Fact]
+        public void TypedBooleanAndJsonBoolean_DeriveSameKey()
+        {
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_Typed = new();
+            overheatingOperatingAssumptions_Typed.Set("SummerBypass", false);
+
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_Json = new(new JsonObject
+            {
+                ["Assumptions"] = new JsonObject { ["SummerBypass"] = false }
+            });
+
+            Assert.Equal("False", overheatingOperatingAssumptions_Json.Value("SummerBypass"));
+            Assert.Equal(Scenario(overheatingOperatingAssumptions: overheatingOperatingAssumptions_Typed).Key, Scenario(overheatingOperatingAssumptions: overheatingOperatingAssumptions_Json).Key);
+        }
+
+        /// <summary>
+        /// The same for a number, which would otherwise bypass
+        /// <c>OverheatingOperatingAssumptions.Text(double)</c> entirely and be hashed as whatever text the
+        /// JSON writer happened to emit.
+        /// </summary>
+        [Fact]
+        public void TypedNumberAndJsonNumber_DeriveSameKey()
+        {
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_Typed = new();
+            overheatingOperatingAssumptions_Typed.Set("MechanicalRate_Lps", 21.0);
+
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_Json = new(new JsonObject
+            {
+                ["Assumptions"] = new JsonObject { ["MechanicalRate_Lps"] = 21.0 }
+            });
+
+            Assert.Equal("21", overheatingOperatingAssumptions_Json.Value("MechanicalRate_Lps"));
+            Assert.Equal(Scenario(overheatingOperatingAssumptions: overheatingOperatingAssumptions_Typed).Key, Scenario(overheatingOperatingAssumptions: overheatingOperatingAssumptions_Json).Key);
+
+            //A JSON string that happens to look numeric is text and stays as it is - "21.0" is not "21".
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions_Text = new(new JsonObject
+            {
+                ["Assumptions"] = new JsonObject { ["MechanicalRate_Lps"] = "21.0" }
+            });
+
+            Assert.Equal("21.0", overheatingOperatingAssumptions_Text.Value("MechanicalRate_Lps"));
+        }
+
+        /// <summary>
+        /// An object or an array is refused rather than flattened into text. There is no canonical form for
+        /// arbitrary JSON - property order alone would decide the key - and an operating assumption is a
+        /// value, not a structure. The one assumption is dropped; the file stays readable.
+        /// </summary>
+        [Fact]
+        public void StructuredJsonAssumption_IsRefusedNotFlattened()
+        {
+            OverheatingOperatingAssumptions overheatingOperatingAssumptions = new(new JsonObject
+            {
+                ["Assumptions"] = new JsonObject
+                {
+                    ["Openings"] = "Unrestricted",
+                    ["Structured"] = new JsonObject { ["a"] = 1 },
+                    ["List"] = new JsonArray(1, 2)
+                }
+            });
+
+            Assert.Equal(["Openings"], overheatingOperatingAssumptions.Names);
+        }
+
+        /// <summary>
         /// <c>SystemTemplate</c>'s property setters strip spaces but its copy and JSON constructors assign
         /// its fields raw, so <c>"MV RE"</c> means <c>MVRE</c> through one door and <c>MV RE</c> through
         /// another. This commit promotes those six fields into an identity, so that inconsistency would
@@ -789,7 +900,10 @@ namespace SAM.Tests
             Assert.Equal(Guid.Empty, overheatingScenario.ZoneGuid);
             Assert.Equal(PartOIteration.Undefined, overheatingScenario.Iteration);
             Assert.Null(overheatingScenario.Name);
-            Assert.Equal("false", overheatingScenario.OperatingAssumptions.Value("SummerBypass"));
+
+            //Canonicalised through the same path Set(name, bool) uses, not taken at its JSON text - see
+            //TypedBooleanAndJsonBoolean_DeriveSameKey.
+            Assert.Equal("False", overheatingScenario.OperatingAssumptions.Value("SummerBypass"));
 
             //An object that is not a scenario at all is refused rather than reported as an empty one.
             OverheatingScenario overheatingScenario_Other = new();
@@ -809,6 +923,31 @@ namespace SAM.Tests
             Assert.Equal(Guid.Empty, new OverheatingScenario(PartOAssessmentScope.Dwelling, Guid.Empty, PartOIteration.BasePassive, Template(), Assumptions()).Key);
 
             Assert.NotEqual(Guid.Empty, Scenario().Key);
+        }
+
+        /// <summary>
+        /// <b>And having no identity is not an identity they all share.</b> Several half-filled scenarios -
+        /// which is what a user interface holds while somebody is still choosing dwellings - must not
+        /// collapse into one entry of a set just because none of them has said what it is yet. Equality
+        /// falls back to reference for those, and <c>GetHashCode</c> with it.
+        /// </summary>
+        [Fact]
+        public void InvalidScenarios_DoNotCollapseIntoOne()
+        {
+            OverheatingScenario overheatingScenario_1 = new();
+            OverheatingScenario overheatingScenario_2 = new();
+
+            Assert.NotEqual(overheatingScenario_1, overheatingScenario_2);
+            Assert.Equal(overheatingScenario_1, overheatingScenario_1);
+
+            HashSet<OverheatingScenario> overheatingScenarios = [overheatingScenario_1, overheatingScenario_2, new OverheatingScenario()];
+
+            Assert.Equal(3, overheatingScenarios.Count);
+            Assert.Contains(overheatingScenario_1, overheatingScenarios);
+
+            //An incomplete scenario is not equal to a complete one either, whichever way round it is asked.
+            Assert.NotEqual((object)overheatingScenario_1, Scenario());
+            Assert.NotEqual((object)Scenario(), overheatingScenario_1);
         }
 
         /// <summary>

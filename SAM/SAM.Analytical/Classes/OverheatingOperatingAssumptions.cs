@@ -5,6 +5,7 @@ using SAM.Core;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
@@ -81,18 +82,26 @@ namespace SAM.Analytical
         /// <summary>Whether an assumption of this name is stated.</summary>
         public bool Contains(string name)
         {
-            return name != null && dictionary.ContainsKey(name);
+            return name != null && dictionary.ContainsKey(Canonical(name));
         }
 
         /// <summary>The value stated for an assumption, or null where it is not stated.</summary>
         public string Value(string name)
         {
-            return name != null && dictionary.TryGetValue(name, out string result) ? result : null;
+            return name != null && dictionary.TryGetValue(Canonical(name), out string result) ? result : null;
         }
 
         /// <summary>
         /// States an assumption. A blank name is ignored - an unnamed assumption cannot be read back and
         /// would only make the key depend on something invisible. A null value is stored as empty.
+        /// <para>
+        /// <b>The name is normalised here, before it is sorted, and that ordering is why.</b> The
+        /// assumptions are hashed in ordinal name order, and ordinal order is taken over the raw code
+        /// units: composed <c>é</c> is U+00E9 and sorts <i>after</i> <c>f</c>, while the decomposed form
+        /// starts with <c>e</c> and sorts <i>before</i> it. Normalising only at the point of hashing would
+        /// have left two canonically identical sets of assumptions hashed in different orders, and
+        /// therefore two keys for one assessment - the exact failure normalising was added to prevent.
+        /// </para>
         /// </summary>
         public void Set(string name, string value)
         {
@@ -101,7 +110,7 @@ namespace SAM.Analytical
                 return;
             }
 
-            dictionary[name] = value ?? string.Empty;
+            dictionary[Canonical(name)] = Canonical(value) ?? string.Empty;
         }
 
         /// <summary>
@@ -117,7 +126,17 @@ namespace SAM.Analytical
         /// <summary>States a boolean assumption, invariantly.</summary>
         public void Set(string name, bool value)
         {
-            Set(name, value ? "True" : "False");
+            Set(name, Text(value));
+        }
+
+        /// <summary>
+        /// The canonical text of a boolean assumption. Written out rather than taken from
+        /// <c>bool.ToString()</c> so that the one form is what every route produces - the typed setter and
+        /// a JSON <c>true</c>/<c>false</c> alike.
+        /// </summary>
+        public static string Text(bool value)
+        {
+            return value ? "True" : "False";
         }
 
         /// <summary>
@@ -170,7 +189,33 @@ namespace SAM.Analytical
         /// <summary>Removes an assumption. Removing an unstated one does nothing.</summary>
         public bool Remove(string name)
         {
-            return name != null && dictionary.Remove(name);
+            return name != null && dictionary.Remove(Canonical(name));
+        }
+
+        /// <summary>
+        /// Text in its canonical form: NFC, so an accent written as one code point and as a letter followed
+        /// by a combining accent are one string. Text typed on macOS is routinely the second form.
+        /// <para>
+        /// Text that is not valid Unicode cannot be normalised and is returned as it stands. Hashing it is
+        /// still deterministic, which is all an identity needs; refusing it would fail an assessment over a
+        /// stray character in somebody's room name.
+        /// </para>
+        /// </summary>
+        public static string Canonical(string text)
+        {
+            if (text == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return text.Normalize(NormalizationForm.FormC);
+            }
+            catch (ArgumentException)
+            {
+                return text;
+            }
         }
 
         /// <summary>
@@ -194,7 +239,10 @@ namespace SAM.Analytical
             {
                 foreach (KeyValuePair<string, JsonNode> keyValuePair in jsonObject_Assumptions)
                 {
-                    Set(keyValuePair.Key, Text(keyValuePair.Value));
+                    if (TryGetText(keyValuePair.Value, out string value))
+                    {
+                        Set(keyValuePair.Key, value);
+                    }
                 }
             }
 
@@ -221,28 +269,59 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// The text of a JSON value, without throwing on one that is not a string.
+        /// The canonical text of a JSON assumption value, or false where the value is not something an
+        /// assumption may be.
         /// <para>
-        /// <c>GetValue&lt;string&gt;()</c> throws on a JSON number or boolean, and
-        /// <c>{"SummerBypass": false}</c> is exactly what a person hand-editing a file - or a later version
-        /// - would write, given that <see cref="Set(string, bool)"/> exists. Throwing there would make the
-        /// whole model unreadable over one assumption, so a non-string primitive is taken at its literal
-        /// text instead.
+        /// <b>A JSON primitive goes through exactly the same canonicaliser as the typed setter that would
+        /// have written it.</b> <c>{"SummerBypass": false}</c> is what a person hand-editing a file would
+        /// write, given that <see cref="Set(string, bool)"/> exists - and taking it at its literal JSON
+        /// text would store <c>false</c> where the typed path stores <c>False</c>, so the same engineering
+        /// assumption would derive two keys depending on which door it came through. Numbers have the same
+        /// problem against <see cref="Text(double)"/>.
+        /// </para>
+        /// <para>
+        /// <b>An object or an array is refused rather than flattened.</b> There is no canonical text for
+        /// arbitrary JSON - property order alone would decide the key - and an operating assumption is a
+        /// value, not a structure. Refusing drops that one assumption; it does not make the file
+        /// unreadable.
         /// </para>
         /// </summary>
-        private static string Text(JsonNode jsonNode)
+        private static bool TryGetText(JsonNode jsonNode, out string result)
         {
+            result = null;
+
             if (jsonNode == null)
             {
-                return null;
+                //A JSON null is an assumption stated as blank, which Set already distinguishes from one
+                //that is not stated at all.
+                return true;
             }
 
-            if (jsonNode is JsonValue jsonValue && jsonValue.TryGetValue(out string result))
+            if (!(jsonNode is JsonValue jsonValue))
             {
-                return result;
+                return false;
             }
 
-            return jsonNode.ToJsonString();
+            //String first: a JSON string "21" is text that happens to look numeric and must stay as it is.
+            if (jsonValue.TryGetValue(out string text))
+            {
+                result = text;
+                return true;
+            }
+
+            if (jsonValue.TryGetValue(out bool boolean))
+            {
+                result = Text(boolean);
+                return true;
+            }
+
+            if (jsonValue.TryGetValue(out double number))
+            {
+                result = Text(number);
+                return true;
+            }
+
+            return false;
         }
 
         public override string ToString()

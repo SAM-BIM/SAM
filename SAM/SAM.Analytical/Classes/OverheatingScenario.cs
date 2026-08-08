@@ -253,17 +253,37 @@ namespace SAM.Analytical
         public bool IsValid => partOAssessmentScope != PartOAssessmentScope.Undefined && guid_Zone != Guid.Empty;
 
         /// <summary>
-        /// Two scenarios are the same assessment when they derive the same key. Two scenarios that name
-        /// nothing assessable are therefore equal, having no identity apiece - see <see cref="Key"/>.
+        /// Two scenarios are the same assessment when they derive the same key.
+        /// <para>
+        /// <b>A scenario that names nothing assessable is equal only to itself.</b> It has no identity - its
+        /// <see cref="Key"/> is empty - and treating "no identity" as an identity they all share would
+        /// collapse every half-filled scenario a user interface is holding into one entry of a
+        /// <c>HashSet</c>. Reference equality is the honest answer for something that has not said what it
+        /// is yet.
+        /// </para>
         /// </summary>
         public override bool Equals(object obj)
         {
-            return obj is OverheatingScenario overheatingScenario && Key == overheatingScenario.Key;
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (!(obj is OverheatingScenario overheatingScenario))
+            {
+                return false;
+            }
+
+            return IsValid && overheatingScenario.IsValid && Key == overheatingScenario.Key;
         }
 
+        /// <summary>
+        /// The key where there is one, and the identity hash where there is not - so this agrees with
+        /// <see cref="Equals(object)"/> in both cases, which is what a <c>HashSet</c> lookup depends on.
+        /// </summary>
         public override int GetHashCode()
         {
-            return Key.GetHashCode();
+            return IsValid ? Key.GetHashCode() : base.GetHashCode();
         }
 
         public bool FromJsonObject(JsonObject jsonObject)
@@ -461,10 +481,10 @@ namespace SAM.Analytical
         /// combination. A null component is written as length -1, which is distinct from an empty one:
         /// "not stated" and "stated as blank" are different statements.
         /// <para>
-        /// Normalised to NFC first. The same accented character has two encodings - one code point, or a
-        /// letter followed by a combining accent - and text typed on macOS is routinely the second. They
-        /// are the same name to everyone reading it, so they must be the same key; without this they are
-        /// different UTF-8 bytes and therefore two assessments.
+        /// Normalised to NFC through <c>OverheatingOperatingAssumptions.Canonical</c>, the one
+        /// implementation - the same accented character has two encodings, and text typed on macOS is
+        /// routinely the second. This catches the components that do not go through the assumptions bag,
+        /// which normalises its names on the way in because it also <i>sorts</i> by them.
         /// </para>
         /// </summary>
         private static void Append(List<byte> bytes, string text)
@@ -475,20 +495,7 @@ namespace SAM.Analytical
                 return;
             }
 
-            string text_Temp = text;
-
-            try
-            {
-                text_Temp = text.Normalize(NormalizationForm.FormC);
-            }
-            catch (ArgumentException)
-            {
-                //Text that is not valid Unicode cannot be normalised. Hashing it as it stands is still
-                //deterministic, which is all the key needs; refusing it here would fail an assessment over
-                //a stray character in a name.
-            }
-
-            byte[] bytes_Text = Encoding.UTF8.GetBytes(text_Temp);
+            byte[] bytes_Text = Encoding.UTF8.GetBytes(OverheatingOperatingAssumptions.Canonical(text));
 
             AppendLength(bytes, bytes_Text.Length);
             bytes.AddRange(bytes_Text);
