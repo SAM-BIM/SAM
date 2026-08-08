@@ -21,14 +21,24 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ### 0a. Repository state — verify this before touching anything
 
-| Repo | Branch | HEAD | Remote | Tree | Cut from |
+| Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`b23bef3b`** | level | clean | `sow/2026-Q3` @ `34dea440` |
-| `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | level | clean | `sow/2026-Q3` @ `074f3d9` |
-| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d56f679`** | level | clean | `sow/2026-Q3` @ `3d58bfe` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`b23bef3b`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
+| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d56f679`** | exactly `d56f679` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
+
+**Why `SAM`'s HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own
+hash, so a pinned HEAD here would be wrong the moment it landed. The last **code** commit is pinned
+instead, and the invariant to verify is the one that actually matters: **every tree clean and every
+branch level with its remote**, with `SAM`'s HEAD being `b23bef3b` or a handover commit descended from
+it. Anything else — a dirty tree, an unpushed commit, a divergence — means **stop and reconcile**.
 
 ```bash
 for r in SAM SAM_UI SAM_Tas; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/partf-terminal-transfer-compliance; done
+```
+
+```bash
+git -C SAM merge-base --is-ancestor b23bef3b HEAD && echo "SAM contains the recorded code checkpoint"
 ```
 
 Not merged. **No PRs open.** `sow/2026-Q3` never committed to directly, untouched in all three.
