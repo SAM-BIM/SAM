@@ -17,19 +17,28 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `d327496a` + SAM_Systems `bff125f` — Iteration 0 steps 5 and 6 complete: 5a
-analytical, 5b the SAM_Systems catalogue, 5c policy/CI closure, 6 the TM59 recipe extraction.*
+*Last updated at SAM `d2b0f971` + SAM_Tas `121035c` + SAM_Tas_Grasshopper `047c583` — **Iteration 0 step 7
+complete and reviewed**: the `OverheatingScenario` is authoritative over ventilation strategy, and the
+`Tas.TSDQueryTM59Results` component now calls the extracted service so the TM59 recipe exists once.*
 
 ### 0a. Repository state — verify this before touching anything
 
-**FOUR repos are now in the workstream.** `SAM_Systems` joined at step 5b.
+**FIVE repos are now in the workstream.** `SAM_Systems` joined at step 5b; **`SAM_Tas_Grasshopper` joined at
+step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the step 6 service.
 
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`d327496a`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`d2b0f971`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`bff125f`** | exactly `bff125f` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
-| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d56f679`** | exactly `d56f679` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
+| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`121035c`** | exactly `121035c` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
+| `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`047c583`** | exactly `047c583` | clean, level | `sow/2026-Q3` @ `9555aa1` |
+
+**One wrinkle in `SAM`'s history, recorded rather than rewritten.** The step 7 review-fix commit
+`d2b0f971` also carries a partial update of this file, because the handover edit was in progress when it
+was staged. `d2b0f971` is therefore both a code commit and a handover commit. Nothing was force-pushed and
+nothing rewritten; the invariant below still holds, because the only commits *after* `d2b0f971` touch this
+file alone.
 
 **Why a HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own hash, so
 a pinned HEAD would be wrong the moment it landed. The last **code** commit is pinned instead.
@@ -46,29 +55,45 @@ Anything else — a dirty tree, an unpushed commit, a divergence, or unrecorded 
 checkpoint and HEAD — means **stop and reconcile before changing any code**.
 
 ```bash
-for r in SAM SAM_Systems SAM_UI SAM_Tas; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/partf-terminal-transfer-compliance; done
+for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/partf-terminal-transfer-compliance; done
 ```
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM d327496a
+SAM d2b0f971
 SAM_Systems bff125f
 SAM_UI ffd8e38
-SAM_Tas d56f679
+SAM_Tas 121035c
+SAM_Tas_Grasshopper 047c583
 EOF
 ```
 
-That must print exactly four `descends from` lines and nothing else. **Any `UNRECORDED CODE:` or
+That must print exactly **five** `descends from` lines and nothing else. **Any `UNRECORDED CODE:` or
 `DOES NOT CONTAIN` line means stop and reconcile.** (An earlier version of this check passed a literal
 `PENDING` for a repo that had no SHA yet and swallowed the error, so it silently verified nothing —
 the loop above fails loudly instead.)
 
-Not merged. **No PRs open in any of the four.** `sow/2026-Q3` never committed to directly, untouched
-everywhere. **SAM_Tas's and SAM_Systems's branches are new and need PRs like the other two.**
+Not merged. **No PRs open in any of the five.** `sow/2026-Q3` never committed to directly, untouched
+everywhere. **`SAM_Tas`'s, `SAM_Systems`'s and now `SAM_Tas_Grasshopper`'s branches are new and need PRs
+like the other two** — still waiting on Michal.
 
 ### 0b. Latest checkpoint — what it implemented
 
-**Iteration 0 step 5 (5a, 5b, 5c) and step 6.**
+**Iteration 0 step 7 — the scenario is authoritative over ventilation strategy. Detail in 11l.**
+
+- SAM `193968ff` + SAM_Tas `f6e32b4` + SAM_Tas_Grasshopper `047c583` → **7a**, the behaviour-preserving
+  repoint. `TM59AssessmentCalculator.SourceFallback` so provenance survives it,
+  `Create.TM59AssessmentCalculator` keeping TAS's two series keys and provenance in TAS's assembly, and
+  `Tas.TSDQueryTM59Results` calling the service. **The TM59 recipe now exists once.**
+- SAM `f6772519` → **7b**, `VentilationStrategyMap` + `VentilationStrategySelection`. The criterion is
+  stated by the scenario, and refused where nothing states it.
+- SAM_Tas `b03f02b` → **7c**, the TM59 **XML export** takes the strategy from the scenario too, through
+  `Space.ToTM59`'s existing `systemType` seam.
+- SAM `d2b0f971` + SAM_Tas `121035c` → **review fixes**, including two real defects: an unrecognised
+  strategy silently assessed as mechanical, and the export still dropping unexportable rooms silently.
+  See 0d.
+
+**Previous checkpoint — Iteration 0 step 5 (5a, 5b, 5c) and step 6.**
 
 - SAM `b23bef3b` → **5a**: the analytical half — `SystemCapability`, `SystemCapabilityRequirement`,
   `SystemCapabilityDescriptor`, `SystemCapabilitySelection`, `Query.PartFSystemCapabilityRequirement`,
@@ -93,19 +118,69 @@ Detail in **11h** (5a), **11i** (5b), **11j** (5c) and **11k** (6).
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1137 passed, 0 failed** | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
-| `SAM_Systems/SAM.Analytical.Systems.Tests` | **34 passed, 0 failed** | `dotnet test SAM_Systems/SAM.Analytical.Systems.Tests/SAM.Analytical.Systems.Tests.csproj` |
-| `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | unchanged by this work, re-run to prove it |
-| `SAM_Systems.sln` | 0 `error` under VS MSBuild | the test project is in the solution AND now executed by CI |
-| `SAM_UI`, `SAM_Tas`, `SAM_Mollier` | **unchanged since their last run** — see section 2 | not re-run; nothing in them changed |
+| `SAM/SAM.Tests` | **1173 passed, 0 failed** (was 1137) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
+| `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **42 passed, 0 failed** (was 25) | `dotnet test SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/…csproj` — **build SAM and the TM59 library first** |
+| `SAM_Tas_Grasshopper/SAM.Analytical.Grasshopper.Tas` | 0 `error CS` under **VS Framework MSBuild** | no test project in that repo; equivalence is pinned in `SAM.Tests` |
+| `SAM_Systems/SAM.Analytical.Systems.Tests` | **34 passed, 0 failed** | unchanged by step 7 |
+| `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | unchanged by step 7 |
+| `SAM_Systems.sln` | 0 `error` under VS MSBuild | the test project is in the solution AND executed by CI |
+| `SAM_UI`, `SAM_Mollier` | **unchanged since their last run** — see section 2 | not re-run; nothing in them changed. SAM's step 7 changes are purely additive, so they cannot break a consumer |
 
-Three mutation checks were run, all behaving correctly (test failed, then passed on restore): reverting
-the assumption-name normalisation fails `UnicodeNormalisation_DoesNotChangeCanonicalOrdering` and
-nothing else; adding a `static List<SystemCapabilityDescriptor>` to `SAM.Analytical` fails
-`NoDefaultCatalog_LivesInTheAnalyticalAssembly`; the review independently reproduced the `Rank` typo
-defect described in 0d.
+**Five mutation checks were run across step 7, all behaving correctly** (test failed, then passed on
+restore):
 
-### 0d. Architectural decisions made in this checkpoint
+1. making a refusal fall back to `SystemTypeName` → fails **4** tests;
+2. removing the strategy normalisation → fails `UV_StillRoutesToTheCorridorCriterion`;
+3. returning the `Building` regardless of refusals → fails `AnUnsettledStrategy_RefusesTheWholeExport`;
+4. disabling the closed ventilation vocabulary → fails **5** tests;
+5. disabling the export's dropped-zone guard → fails `ASpaceThatCannotBeExported_RefusesRatherThanVanishing`
+   and `ANullManager_RefusesRatherThanExportingNothing`.
+
+**A trap worth remembering, hit during mutation 5.** The `SAM_Tas` test project references
+`SAM/build/SAM.Analytical.dll`, so a mutation left in `SAM.Analytical` and not rebuilt away silently
+poisons the *next* suite you run. It looked like a third test failing for the export guard; it was the
+previous mutation still in the built DLL. **Rebuild SAM before every SAM_Tas run**, mutation testing
+included.
+
+### 0d. Architectural decisions made in this checkpoint (step 7)
+
+1. **The scenario is authoritative, and a refusal never falls back.** Where a `VentilationStrategyMap` is
+   supplied, none of the three derivations in 11d is consulted — not as a seed, not as a tie-break. Falling
+   through on refusal would restore the defect invisibly, at the one input where nothing was said.
+2. **Three refusals, three sentences.** "No scenario covers this space", "the scenario states no strategy",
+   "two scenarios disagree" and now "the strategy stated is not one I have a criterion for" are different
+   mistakes with different fixes. Collapsing them would send somebody looking in the wrong place.
+3. **The recognised ventilation vocabulary is CLOSED** — `NV MV MVRE UV EOL EOC CAV VAV DISP`. The criterion
+   selection reads `UV` as corridor, `NV` as natural and *everything else* as mechanical, and an open default
+   in the authoritative path is the step 7 defect pointing the other way: a scenario stating `"Natural"`, or
+   `"N-V"`, or `"MVHR"` — **a name that does not exist, because `MVRE` is SAM's heat-recovery ventilation** —
+   was assessed mechanically and reported as a result. Found by review. **The set is declared policy, like
+   `SAM_Systems`' rank, and a project with a custom system-type library needs it extended.**
+4. **The vocabulary is NOT read from `Query.DefaultSystemTypeLibrary()`.** That comes from `ActiveSetting` and
+   can be absent, and making the authoritative path depend on the same installed resource the *defective*
+   derivation used would trade one silent failure for another. A list of names is vocabulary and belongs in
+   `SAM.Analytical`, which already names `UV` and `NV` in `Query.IsMechanicalVentilation`.
+5. **The assessment drops a refused space; the export refuses the whole document.** Asymmetric on purpose. A
+   result list is naturally partial and `TM59AssessmentResult` reports the gaps. A TM59 XML is configuration
+   for the external TAS TM59 tool, which cannot be told a room is missing — it would assess what it was given
+   and produce a complete-looking answer for an incomplete building.
+6. **"Cannot be exported" counts as a refusal too.** `Space.ToTM59` returns null for a space with no internal
+   condition, and for a null `TM59Manager`. Found by review: those were dropped silently and the completeness
+   gate still passed, so a three-space building shipped two zones as a success.
+7. **A null return always carries a reason.** Found by review: with a map supplied and nothing to export, the
+   export returned null with an *empty* refusal list, so the documented contract lied.
+8. **Provenance and routing never touch the criterion.** Not `Source`, not TSD-versus-TPD, not which engine
+   wrote the numbers. Tested on both routes.
+9. **The map is live and held by reference; the scenario is copied.** A map is built up scenario by scenario
+   and is not an identity, so it is not copied in — the opposite of `OverheatingScenario`, deliberately, and
+   now stated and tested rather than left to be discovered.
+10. **Refusals are reported, not thrown**, so one unstated dwelling does not cost every other dwelling in the
+    building its assessment. And they are a **copy** on both types — a reporting layer that de-duplicates in
+    place was able to erase the record of which dwellings went unassessed.
+11. **`Calculate_TM52` deliberately does not clear the TM59 refusals.** TM52 selects no criterion, so
+    clearing them would let a TM52 run erase a TM59 run's record.
+
+### 0d-prev. Architectural decisions from the step 5 checkpoint
 
 1. **`SAM.Analytical` owns the capability vocabulary + the Part F requirement rule + suitability +
    preference-by-supplied-rank. `SAM_Systems` owns the capability VALUES and the rank.** Michal's
@@ -154,9 +229,21 @@ defect described in 0d.
   meaning, not read from the templates — nothing in the files marks any of them. Each index entry says
   so in `EvidenceFromTemplate`. Michal to confirm the values, particularly `CAV`/`DISP` boost = false.
 - ~~`Application` is documentation only~~ — **CLOSED in 5c**, it is now an eligibility constraint (11j).
-- **The `Tas.TSDQueryTM59Results` Grasshopper component still holds its own copy of the step 6 recipe.**
-  Repointing it at `TM59AssessmentCalculator` needs `SAM_Tas_Grasshopper` in the workstream — a fifth
-  repo. Until then the recipe exists twice and only the service is tested.
+- ~~The `Tas.TSDQueryTM59Results` Grasshopper component still holds its own copy of the step 6 recipe.~~
+  **CLOSED in step 7a.** `SAM_Tas_Grasshopper` is the fifth repo and the component calls the service.
+- **`TasTPDQueryTM59Results` still holds a THIRD inline copy of the recipe**, and repointing it is **step 9,
+  not a drive-by** — its middle stage is the two-pass TAS workaround that must be preserved. See **11m**,
+  which is authoritative on that boundary.
+- **No production caller supplies a `VentilationStrategyMap` yet**, so the shipped TM59 XML export still uses
+  the derivations: `Convert.ToXml(AnalyticalModel, …)`, reached from `ToTBD`, calls the two-argument
+  `ToTM59`. Wiring a scenario through is step 10's runner. The map is also **only reachable from tests
+  today** for a second reason — it is keyed on `Space.Guid`, and a scenario carries a *design zone* guid
+  while the assessment runs over TSD-read spaces with fresh guids. **`SimulationSpaceMap` in step 8 is what
+  makes a real caller possible**, which is exactly why the two review defects above had to be fixed now
+  rather than later.
+- **The closed ventilation vocabulary is declared policy and needs Michal's confirmation** — the nine
+  identities in `VentilationStrategyMap`. A project shipping a custom `SAM_SystemTypeLibrary` would have its
+  extra identities refused.
 - **The `Create.SystemEnergyCentre` / `DefaultSystemEnergyCentres` path is UNGUARDED** and is the one with
   production callers (four Grasshopper components). It derives a template from a file NAME and matches a
   space's `VentilationSystemTypeName`, so a space carrying `"VAV"` still resolves `VAV.json` in a dwelling
@@ -174,20 +261,24 @@ defect described in 0d.
 
 ### 0f. The precise next task
 
-**Step 7 — make the scenario authoritative over ventilation strategy** (11d, three conflicting
-derivations). `OverheatingScenario.VentilationStrategy` / `HasVentilationStrategy` exist for it, and the
-consumer must **refuse** where no strategy is stated rather than fall back to the zone-name →`"NV"` chain.
-`Space.ToTM59` already accepts a `systemType` override, so the seam exists.
+**Step 8 — result association to the design dwelling / common space by IDENTITY, not name.** Use the
+existing `SimulationSpaceMap` (11c): stable engine key first, unique name as fallback, **refuse on
+ambiguity**. **The three-flat duplicate-bedroom regression is mandatory** — every flat has a "Bedroom 2",
+and misattributing one dwelling's overheating to another is the worst error this workflow can make.
 
-Files likely touched by step 7:
-- `SAM/SAM/SAM.Analytical/Classes/TMOverheatingCalculator.cs` — `SystemTypeName` is derivation #3
-- `SAM/SAM/SAM.Analytical/Classes/TM59AssessmentCalculator.cs` — where a scenario would be supplied
-- `SAM_Tas/…/Convert/ToTM59/Zone.cs` and `Building.cs` — derivations #1 and #2, **TAS-facing ⇒ VS
-  Framework MSBuild**
-- `SAM/SAM/SAM.Tests/`
+What step 7 deliberately left pinned for step 8, and where:
+- `TM59AssessmentCalculator.RestoreDesignInternalConditions` — matches simulated to design spaces **by
+  name**;
+- `TM59AssessmentCalculator.Spaces` — resolves requested spaces and zones **by name**, and de-duplicates
+  zone-contributed spaces by name;
+- both documented on the class as pinned rather than endorsed.
 
-Then 8 (result association via `SimulationSpaceMap`, three-flat regression mandatory), 9 (TSD/TPD
-routing boundary), 10 (thin headless runner, last).
+**Step 8 is also what makes step 7 reachable from production.** `VentilationStrategyMap` is keyed on
+`Space.Guid`; a scenario carries a *design zone* guid while the assessment runs over TSD-read spaces with
+fresh guids. `SimulationSpaceMap` is the bridge, so building a real map is step 8's job.
+
+Then 9 (**the TSD-simple vs TPD-full boundary — read 11m first, it is authoritative and the two-pass TAS
+workaround must be preserved**), 10 (thin headless runner, last).
 
 ### 0g. Environment needed to continue
 
@@ -264,14 +355,15 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
 
 | Suite | Result |
 |---|---|
-| `SAM/SAM.Tests` | **1128 passed, 0 failed** (1046 + 16 Part O scope/identity + 5 TM extraction + 40 scenario identity + 21 capability selection) |
+| `SAM/SAM.Tests` | **1173 passed, 0 failed** (1046 + 16 Part O scope/identity + 5 TM extraction + 40 scenario identity + 21 capability selection + 9 TM59 assessment recipe + 36 ventilation strategy) |
 | `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **180 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor + 17 preset/scope + 6 assessment cache) |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
-| `SAM_Systems/SAM.Analytical.Systems.Tests` | **20 passed, 0 failed** — the capability-index conformance test (new) |
+| `SAM_Systems/SAM.Analytical.Systems.Tests` | **34 passed, 0 failed** — capability index conformance + eligibility |
 | `SAM_Mollier/SAM.Core.Mollier.Tests` | **22 passed, 0 failed** |
 | `SAM.Core.Mollier.UI.WPF` | 0 `error CS` — builds unchanged against the hardened engine |
 | `SAM.Analytical.Grasshopper` | 0 `error CS` under VS MSBuild |
-| `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **25 passed, 0 failed** (22 + 3 wrapper equivalence) |
+| `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **42 passed, 0 failed** (22 + 3 wrapper equivalence + 4 assessment-calculator factory + 13 scenario-authoritative export) |
+| `SAM_Tas_Grasshopper/SAM.Analytical.Grasshopper.Tas` | 0 `error CS` under VS Framework MSBuild — no test project in that repo |
 | SPDX | present on every changed `.cs` |
 
 `dotnet build` on the Grasshopper project exits non-zero on a post-build `%APPDATA%` copy (no Rhino
@@ -750,6 +842,13 @@ behaves as REcovery despite the library description saying "Recirculation".
 | SAM_Systems | `e99f311` | malformed-index refusal + structural no-template proof → 20 tests |
 | SAM_Tas | `5e38c94` | `OverheatingCalculator` → compatibility wrapper + 3 equivalence tests |
 | SAM_Tas | `d56f679` | doc terminology |
+| SAM | `193968ff` | **step 7a** `TM59AssessmentCalculator.SourceFallback` — provenance survives the repoint |
+| SAM_Tas | `f6e32b4` | **step 7a** `Create.TM59AssessmentCalculator` — TAS's series keys + provenance stay in SAM_Tas |
+| SAM_Tas_Grasshopper | `047c583` | **step 7a** `Tas.TSDQueryTM59Results` repointed; the recipe now exists once |
+| SAM | `f6772519` | **step 7b** `VentilationStrategyMap` + `VentilationStrategySelection` → 16 tests |
+| SAM_Tas | `b03f02b` | **step 7c** scenario-authoritative TM59 XML export → 9 tests |
+| SAM | `d2b0f971` | step 7 review fixes — closed vocabulary, refusal copies, falsifiable controls → 1173 |
+| SAM_Tas | `121035c` | step 7 review fixes — no silently dropped rooms, null returns carry a reason → 42 |
 
 - **Part O scope** (`PartOClassifyAssessmentZones`): dwellings vs common space, dwelling half
   **delegated to `Query.PartFDwellingZones`** (single source of truth). The corridor is *returned* as
@@ -792,7 +891,15 @@ behaves as REcovery despite the library description saying "Recirculation".
   (`ResultantTemperatureSeriesKey`, `OccupancySensibleGainSeriesKey`) defaulted to the analytical
   vocabulary; the wrapper supplies TAS's. Equivalence tests run under `dotnet test` **without TAS COM**.
 
-### 11d. THE OPEN DEFECT — ventilation strategy has THREE conflicting derivations
+### 11d. ~~THE OPEN DEFECT~~ — CLOSED in step 7. Ventilation strategy had THREE conflicting derivations
+
+**Fixed in step 7 (11l).** Where a `VentilationStrategyMap` is supplied, the scenario states the strategy and
+**all three derivations below are bypassed**; where nothing states it, the space is **refused**. All three
+remain reachable for callers that supply no scenario, documented as **superseded**, and derivation #3's
+`"NV"` default is the one that made an MVRE dwelling assess as naturally ventilated. Kept below because it
+is the record of what the defect was and which code still contains it.
+
+
 
 The real run exposed `Nat Vent` / `Mech Vent` mixed across three flats of one building. Root cause:
 
@@ -856,11 +963,15 @@ communal corridor appeared in the run's DomOv XML as an ordinary room.
 5. **DONE — 5a, 5b, 5c.** 5a in `SAM.Analytical` (11h), 5b the `SAM_Systems` catalogue (11i), 5c
    eligibility and CI closure (11j). Concrete template selection is enabled: a Part F assessment resolves
    to a real `SystemEnergyCentre`, and a commercial template is never offered for a dwelling.
-6. Lift the `TasTSDQueryTM59Results` recipe into a testable service.
-7. **Make the scenario authoritative** over ventilation strategy (11d).
-8. **Result association** to design dwelling / common space **by identity, not name** — use
-   `SimulationSpaceMap`. Three-flat isolation regression is mandatory.
-9. Preserve the TSD-simple vs TPD-full routing boundary.
+6. ~~Lift the `TasTSDQueryTM59Results` recipe into a testable service.~~ **DONE** (11k), and **fully
+   closed in 7a** — the component now calls it, so the recipe exists once.
+7. ~~**Make the scenario authoritative** over ventilation strategy (11d).~~ **DONE and reviewed** — see
+   **11l**. 11d is closed.
+8. **NEXT — result association** to design dwelling / common space **by identity, not name** — use
+   `SimulationSpaceMap`. Three-flat duplicate-bedroom regression is mandatory. It is also what makes step 7
+   reachable from production; see 0f.
+9. Preserve the TSD-simple vs TPD-full routing boundary. **Read 11m first — it is authoritative, the
+   two-pass TAS workaround is deliberate and must not be removed as duplication.**
 10. Thin headless TAS runner, **last**.
 
 ### 11h. Step 5a — system capability selection, analytical half (DONE, `b23bef3b` + `c5112e4f` + `b52aff65`)
@@ -1105,12 +1216,44 @@ hide the others' reasons. The strategy goes in through `Space.ToTM59`'s existing
 the seam that was already there — and a non-`Undefined` value means that method's internal-condition
 fallback is never reached. The two-argument overload is untouched and a null map delegates to it.
 
-**Tests: SAM 1153 (was 1137), SAM_Tas TM59.Tests 37 (was 25).** Every override test carries a **control**
+**Tests: SAM 1173 (was 1137), SAM_Tas TM59.Tests 42 (was 25).** Every override test carries a **control**
 that runs the same model without the map and shows the old derivation reaching the opposite answer —
 without those, a passing test would prove only that the map agreed with a derivation that was already
-right. Three mutations run, all caught and restored: a refusal falling back to `SystemTypeName` fails 4
-tests; removing the strategy normalisation fails `UV_StillRoutesToTheCorridorCriterion`; returning the
-`Building` regardless of refusals fails `AnUnsettledStrategy_RefusesTheWholeExport`.
+right. Five mutations run, all caught and restored — listed in 0c, along with the build-order trap one of
+them exposed.
+
+**What the independent review found, and it was not cosmetic** (fixed in SAM `d2b0f971` + SAM_Tas
+`121035c`):
+
+1. **An unrecognised strategy was silently assessed as MECHANICAL** — the step 7 defect pointing the other
+   way, reachable from the *authoritative* path. `"Natural"`, `"Mixed Mode"`, `"N-V"`, or `"MVHR"` (a name
+   that does not exist, because `MVRE` is SAM's heat-recovery ventilation) all became mechanical results with
+   no refusal. The vocabulary is now **closed**; see 0d items 3 and 4.
+2. **The export still dropped rooms silently.** `Space.ToTM59` returns null for a space with no internal
+   condition and for a null `TM59Manager`; those were omitted, no refusal was recorded, and the completeness
+   gate still passed — a three-space building shipped two zones as a success, which is the one failure the
+   external TAS tool could never notice.
+3. **A null export return could carry an empty reason list**, so the documented contract lied.
+4. **`TM59AssessmentResult.VentilationStrategyRefusals` was caller-mutable** while the property it is copied
+   from was not — a reporting layer de-duplicating in place could erase the record of which dwellings went
+   unassessed.
+5. **Two tests were not falsifiable.** The zone-name control used zones named `"NV"`/`"NV Wing"` against an
+   MVRE scenario and asserted `"Natural"` — which the `"NV"` default says anyway, so it would have passed
+   with the entire zone-name lookup deleted. It now uses `MVRE` and `MVR` against an `NV` scenario, where the
+   control reads *mechanical* and the assertion flips. **And the direction of the `StartsWith` step was
+   documented backwards**: the comparison asks whether the *library entry's* name starts with the zone name,
+   so a zone must be a **prefix** of an entry — `"NV Wing"` matches nothing and went through the default,
+   while `"MVR"` genuinely exercises it. Separately, the test claiming to pin derivation #2 in the assessment
+   could not: `TMOverheatingCalculator` never consults a `VentilationSystem`, so its control came from
+   derivation #1. Renamed to what it proves — that an attached mechanical system is **inert** there —
+   with derivation #2 pinned on the export side, where it lives.
+6. **The normalisation comment was wrong and `.Trim()` was dead code.** `OverheatingScenario.Normalized`
+   already rebuilds the `SystemTemplate` through setters that strip **every** space, so `"MV RE"` and
+   `" uv "` cannot reach the map; only `.ToUpper()` does work, and the test claiming to pin whitespace
+   normalisation was vacuous.
+
+The review confirmed **no behaviour regression in the 7a repoint**, having read the old `SolveInstance`
+against the new one line by line, and confirmed `OverheatingScenario`'s identity is untouched.
 
 **The step 6 equivalence test still matters and its doc comment now says why.** The component calls the
 service, so the two agree by construction and the component can no longer disagree with itself. What
@@ -1216,43 +1359,57 @@ only.
 Iteration 0 state, the architecture reconnaissance, the open defect and the follow-ups deliberately not
 fixed. It also holds the decisions that must not be silently revisited and the environment gotchas.
 
-Then in **all four** repos - SAM, **SAM_Systems**, SAM_UI and SAM_Tas - run the two verification
-commands in **section 0a**, which check clean/level, descent from the recorded last-code SHA, and that
-nothing but the handover changed since it:
-
-```
-git status
-git log --oneline -4
-git log --oneline -1 origin/feature/partf-terminal-transfer-compliance
-```
+Then in **all five** repos - SAM, **SAM_Systems**, SAM_UI, SAM_Tas and **SAM_Tas_Grasshopper** - run the
+two verification commands in **section 0a**, which check clean/level, descent from the recorded last-code
+SHA, and that nothing but the handover changed since it. The second must print exactly **five**
+`descends from` lines and nothing else.
 
 Confirm each is on `feature/partf-terminal-transfer-compliance`, the tree is **clean**, and local matches
 remote at the SHAs in **section 0a**, which is authoritative. Nothing should be outstanding.
 
 ### State - all pushed, all green
 
-SAM **1137**, SAM_UI **180**, SAM_Tas TM59.Tests **25**, SAM_Systems **123** + **34**, SAM_Mollier **22**;
-Grasshopper and Mollier UI 0 `error CS`; SPDX clean. Not merged, no PRs open.
+SAM **1173**, SAM_Tas TM59.Tests **42**, SAM_UI **180**, SAM_Systems **123** + **34**, SAM_Mollier **22**;
+Grasshopper (including `SAM.Analytical.Grasshopper.Tas`) and Mollier UI 0 `error CS`; SPDX clean.
+Not merged, **no PRs open in any of the five**.
 
 Done and reviewed: the Part F regulatory correction pass, the floor-plan overlay, saved-view persistence,
-the dwelling-scope correctness fix and cache proof, and Iteration 0 steps 1-5: **Part O assessment
-scope**, **`SimulationSpaceMap`**, the **engine-neutral `TMOverheatingCalculator` extraction** with its
-TAS compatibility wrapper, **`OverheatingScenario`** with its derived deterministic key (11c), and
-**system capability selection** across `SAM.Analytical` and `SAM_Systems` (11h, 11i). Every checkpoint
-independently reviewed and hardened.
+the dwelling-scope correctness fix and cache proof, and **Iteration 0 steps 1-7**: Part O assessment scope,
+`SimulationSpaceMap`, the engine-neutral `TMOverheatingCalculator` extraction with its TAS compatibility
+wrapper, `OverheatingScenario` with its derived deterministic key (11c), system capability selection across
+`SAM.Analytical` and `SAM_Systems` (11h-11j), the `TM59AssessmentCalculator` extraction (11k) **now called
+by its Grasshopper component**, and **the scenario made authoritative over ventilation strategy (11l)**.
+Every checkpoint independently reviewed and hardened.
 
 **Read section 0 first and verify the repositories against it before changing any code.**
 
-### Your next task: Iteration 0, step 7 onward (section 11g)
-6. **DONE** (`d327496a`, see 11k) — `TM59AssessmentCalculator` in `SAM.Analytical`. **The Grasshopper
-   component still holds its own copy**; repointing it needs `SAM_Tas_Grasshopper` in the workstream.
-7. **Make the scenario authoritative** over ventilation strategy - see 11d, three conflicting derivations.
-8. **Result association** to design dwelling / common space **by identity, not name**, via
-   `SimulationSpaceMap`. Three-flat isolation regression is mandatory.
-9. Preserve the TSD-simple vs TPD-full-HVAC routing boundary.
+### Your next task: Iteration 0, step 8 onward (section 11g)
+7. **DONE and reviewed** (see 11l) — the scenario is authoritative over the TM59 criterion and over the XML
+   export, and refuses where nothing states a strategy. 11d is closed.
+8. **NEXT - result association** to design dwelling / common space **by identity, not name**, via
+   `SimulationSpaceMap`. **Three-flat duplicate-bedroom regression is mandatory.** It is also what makes
+   step 7 reachable from production - see 0f for exactly what was left pinned and why.
+9. Preserve the TSD-simple vs TPD-full-HVAC routing boundary. **Read 11m before touching anything there:
+   the two-pass TAS workaround is deliberate, is required for the current TAS version, and must not be
+   removed or simplified as apparent duplication.**
 10. Thin headless TAS runner, **last**.
 
 **Do not implement Iteration 1, 2 or 3 behaviour.** Do not start CoolBreeze.
+
+### Decisions still waiting on Michal - do not decide these yourself, ask
+
+1. The provisional domestic `Rank` order (`NV 10, EOL 20, EOC 30, MV 40, MVRE 50`).
+2. The unverified commercial `Boost` declarations (all `false`, `CAV`/`VAV`/`DISP`).
+3. Whether `Application` should also gate the older unguarded `Create.SystemEnergyCentre` /
+   `DefaultSystemEnergyCentres` path - the one that HAS production callers (four Grasshopper components),
+   where a space carrying `"VAV"` still resolves `VAV.json`.
+4. PRs for the three new branches: `SAM_Tas`, `SAM_Systems` and `SAM_Tas_Grasshopper`.
+5. The `SAM_Systems` CI test step is implemented and locally verified but has **never run** - the workflow
+   triggers on `master`/`main`/`sow` only, so it first fires on a PR to `sow/2026-Q3`.
+6. **NEW - the closed ventilation vocabulary** in `VentilationStrategyMap`
+   (`NV MV MVRE UV EOL EOC CAV VAV DISP`). Declared policy; a custom `SAM_SystemTypeLibrary` with extra
+   identities would be refused.
+7. **NEW - the three TPD discrepancies in 11m**, which must not be guessed at.
 
 ### Rules established under review. Each has a test; do not undo any
 
@@ -1273,8 +1430,18 @@ independently reviewed and hardened.
 6. **`Source` is provenance only** - no part in scenario, equipment, dwelling or result identity.
 7. **Series keys are instance state**, defaulted to the analytical vocabulary. Do not reconcile
    `Occupant`/`Occupancy` here.
-8. **Behaviour preserved, not improved** in the extraction: the `"NV"` default, the zone-name lookup, the
-   silent no-assessment and the no-weather throw are all pinned, not endorsed. Fixing them is later work.
+8. **Behaviour preserved, not improved** in the extraction: the silent no-assessment on a missing series and
+   the no-weather throw are still pinned, not endorsed. The `"NV"` default and the zone-name lookup are
+   **superseded as of step 7** — bypassed whenever a scenario states a strategy, reachable only for callers
+   that state none.
+8a. **The scenario is authoritative over ventilation strategy, and a refusal NEVER falls back** (11l). Three
+   distinct refusals — uncovered space, scenario states nothing, scenarios disagree — plus a fourth for a
+   strategy outside the **closed** vocabulary, because "anything that is not NV or UV is mechanical" is the
+   same defect pointing the other way. The assessment drops a refused space and reports it; the **export
+   refuses the whole document**, because the external TAS TM59 tool cannot be told a room is missing.
+8b. **The two-pass TPD route is a required TAS workaround, not duplication** (11m). Never remove or simplify
+   it; always modify a **copy** of the TBD; both routes converge on `TM59AssessmentCalculator`, which must
+   not learn the words TSD or TPD.
 9. **ONE renderer, ONE placement path** for Part F presentation (sections 5-6).
 10. **Model owns engineering data; view owns presentation only.** Reflection test asserts it.
 
