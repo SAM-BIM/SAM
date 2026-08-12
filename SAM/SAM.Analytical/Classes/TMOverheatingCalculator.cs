@@ -110,17 +110,33 @@ namespace SAM.Analytical
         /// none of them has a scenario to state yet. Making the fallback unreachable is a later step, once
         /// there is a path that always supplies one.
         /// </para>
+        /// <para>
+        /// <b>Held by reference, and live.</b> A caller that keeps adding scenarios after assigning this will
+        /// change what the next <see cref="Calculate_TM59"/> decides. That is deliberate - a map is built up
+        /// scenario by scenario and is not an identity - but it is the opposite of the copy-in discipline
+        /// <c>OverheatingScenario</c> follows, so it is stated rather than left to be discovered.
+        /// </para>
         /// </summary>
         public VentilationStrategyMap VentilationStrategyMap { get; set; } = null;
 
         /// <summary>
         /// Why spaces were left out of the last <see cref="Calculate_TM59"/> because
-        /// <see cref="VentilationStrategyMap"/> refused them, one sentence each. A copy; replaced by each
-        /// call, and empty where no map was supplied or nothing was refused.
+        /// <see cref="VentilationStrategyMap"/> refused them, one sentence each. A copy; replaced by every
+        /// <see cref="Calculate_TM59"/> call, and empty where no map was supplied or nothing was refused.
         /// <para>
         /// The refusals are reported rather than thrown so that one unstated dwelling does not lose the
         /// assessment of every other dwelling in the building - but they are reported, which is the whole
         /// difference between this and the silent default it replaces.
+        /// </para>
+        /// <para>
+        /// <b><see cref="Calculate_TM52"/> deliberately does not clear these.</b> TM52 selects no criterion and
+        /// so can neither produce nor answer a ventilation refusal; clearing them would let a TM52 run erase a
+        /// TM59 run's record of which dwellings went unassessed. They belong to the last TM59 call and nothing
+        /// else touches them.
+        /// </para>
+        /// <para>
+        /// A space listed twice is refused twice, because it was asked about twice - the same way the no-map
+        /// path assesses it twice. De-duplicating only the refusals would misreport the input.
         /// </para>
         /// </summary>
         public List<string> VentilationStrategyRefusals => [.. ventilationStrategyRefusals];

@@ -60,48 +60,84 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// <b>An NV scenario beats a mechanical <c>VentilationSystem</c> in the model.</b> Derivation #2: the
-        /// TM59 XML export took any related <c>VentilationSystem</c> that <c>IsMechanicalVentilation()</c> and
-        /// let it override the internal condition. Here the model carries an MVRE ventilation system <i>and</i>
-        /// an internal condition saying MVRE, and the scenario states NV - so the natural criterion applies.
+        /// <b>A mechanical <c>VentilationSystem</c> on the model is inert here, and the scenario governs
+        /// anyway.</b>
         /// <para>
-        /// The export side of derivation #2 is covered in <c>SAM_Tas</c>, where it lives. What this pins is
-        /// that a mechanical system on the model cannot reach the criterion behind the scenario's back.
+        /// <b>Derivation #2 does not reach this assessment at all</b> - <c>TMOverheatingCalculator</c> reads the
+        /// internal condition, then zone names, then defaults, and never consults a related
+        /// <c>VentilationSystem</c>. Only the TM59 XML export did, and that is pinned where it lives, in
+        /// <c>SAM_Tas</c>'s <c>VentilationStrategyExportTests</c>, with a control that really does flip. Saying
+        /// this test covers derivation #2 would be a claim it cannot support.
+        /// </para>
+        /// <para>
+        /// What it does pin is worth pinning: the internal condition is left silent so nothing but the zone-name
+        /// default is available, an MVRE ventilation system is attached, and the assessment still reaches
+        /// <i>natural</i> - so the system is provably inert - while the scenario moves it to mechanical.
         /// </para>
         /// </summary>
         [Fact]
-        public void AnNVScenario_OverridesAMechanicalVentilationSystemOnTheModel()
+        public void AMechanicalVentilationSystemOnTheModel_IsInertAndTheScenarioGoverns()
         {
-            AnalyticalModel analyticalModel = Model(ventilationSystemTypeName: "MVRE", ventilationSystem: true);
+            AnalyticalModel analyticalModel = Model(ventilationSystemTypeName: null, ventilationSystem: true);
 
-            //Control: without the scenario this model is assessed mechanically.
-            Assert.Equal("Mechanical", Criterion(analyticalModel, null));
-
-            Assert.Equal("Natural", Criterion(analyticalModel, Map(analyticalModel, "NV")));
-
-            //And the mechanical system really is on the model - the control is not passing for another reason.
             Space space = analyticalModel.GetSpaces()[0];
-            Assert.NotEmpty(analyticalModel.AdjacencyCluster.MechanicalSystems<VentilationSystem>(space));
+
+            //The mechanical system really is attached and really is mechanical.
+            List<VentilationSystem> ventilationSystems = analyticalModel.AdjacencyCluster.MechanicalSystems<VentilationSystem>(space);
+            Assert.NotEmpty(ventilationSystems);
+            Assert.True(ventilationSystems[0].IsMechanicalVentilation());
+
+            //And it changes nothing: the assessment still falls to natural ventilation.
+            Assert.Equal("Natural", Criterion(analyticalModel, null));
+
+            Assert.Equal("Mechanical", Criterion(analyticalModel, Map(analyticalModel, "MVRE")));
         }
 
         /// <summary>
         /// <b>A misleading zone name cannot override the scenario.</b> Derivation #3's middle step looked a
-        /// zone's name up in <c>Query.DefaultSystemTypeLibrary()</c> - so a zone that happens to be called "NV"
-        /// or "NV Wing" was read as a statement that the dwelling is naturally ventilated. It is not a
-        /// statement about anything; it is a name.
+        /// zone's name up in <c>Query.DefaultSystemTypeLibrary()</c>, so a zone named after a library entry was
+        /// read as a statement that the dwelling is ventilated that way. It is not a statement about anything;
+        /// it is a name.
+        /// <para>
+        /// <b>Both zone names below make the control reach <i>mechanical</i>, and the scenario states NV</b> - so
+        /// the assertion flips and the test is falsifiable. An earlier revision used zones named "NV" and
+        /// "NV Wing" against an MVRE scenario, where the control read "Natural" whether the zone-name lookup
+        /// existed or not, because the <c>"NV"</c> default says the same thing. It would have passed with the
+        /// entire lookup deleted.
+        /// </para>
+        /// <para>
+        /// <c>MVRE</c> matches by <c>Equals</c>. <c>MVR</c> matches by <c>StartsWith</c> - and note the
+        /// direction: the comparison asks whether the <i>library entry's name</i> starts with the zone name, so
+        /// a zone must be a PREFIX of an entry. "NV Wing" matches nothing at all.
+        /// </para>
         /// </summary>
         [Theory]
-        [InlineData("NV")]
-        [InlineData("NV Wing")]
+        [InlineData("MVRE")]
+        [InlineData("MVR")]
         public void AMisleadingZoneName_CannotOverrideTheScenario(string zoneName)
         {
             //No internal-condition system type at all, so the old derivation reaches the zone-name lookup.
             AnalyticalModel analyticalModel = Model(ventilationSystemTypeName: null, zoneName: zoneName);
 
-            //Control: the zone NAME is what decides it today - by exact match, then by StartsWith.
-            Assert.Equal("Natural", Criterion(analyticalModel, null));
+            //Control: the zone NAME alone is what decides it today.
+            Assert.Equal("Mechanical", Criterion(analyticalModel, null));
 
-            Assert.Equal("Mechanical", Criterion(analyticalModel, Map(analyticalModel, "MVRE")));
+            Assert.Equal("Natural", Criterion(analyticalModel, Map(analyticalModel, "NV")));
+        }
+
+        /// <summary>
+        /// The premise of the test above, isolated: a zone name that matches no library entry falls to the
+        /// <c>"NV"</c> default, and one that matches a mechanical entry does not. If this ever stops holding,
+        /// the controls above stop meaning what they claim.
+        /// </summary>
+        [Theory]
+        [InlineData("Flat 1", "Natural")]
+        [InlineData("NV Wing", "Natural")]
+        [InlineData("MVRE", "Mechanical")]
+        [InlineData("MVR", "Mechanical")]
+        public void TheZoneNameLookup_IsWhatTheControlsRelyOn(string zoneName, string criterion_Expected)
+        {
+            Assert.Equal(criterion_Expected, Criterion(Model(ventilationSystemTypeName: null, zoneName: zoneName), null));
         }
 
         /// <summary>
@@ -242,6 +278,95 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>A strategy the assessment has no TM59 criterion for refuses - it is NOT assumed mechanical.</b>
+        /// <para>
+        /// This is the same defect as the <c>"NV"</c> default, pointing the other way, and it would have been
+        /// reached from the <i>authoritative</i> path. The criterion selection reads <c>UV</c> as corridor,
+        /// <c>NV</c> as natural and <b>everything else</b> as mechanical, so a scenario stating "Natural", or
+        /// "Mixed Mode", or a one-character typo like "N-V" would have been assessed against the mechanical
+        /// criterion and reported as a result, with no refusal and no diagnostic.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData("Natural")]
+        [InlineData("Mixed Mode")]
+        [InlineData("N-V")]
+        [InlineData("MVHR")]
+        public void AnUnrecognisedStrategy_RefusesAndIsNotAssumedMechanical(string ventilationStrategy)
+        {
+            AnalyticalModel analyticalModel = Model(ventilationSystemTypeName: null, zoneName: "Flat 1");
+            Space space = analyticalModel.GetSpaces()[0];
+
+            VentilationStrategyMap ventilationStrategyMap = Map(analyticalModel, ventilationStrategy);
+
+            VentilationStrategySelection ventilationStrategySelection = ventilationStrategyMap.Selection(space);
+
+            Assert.False(ventilationStrategySelection.IsSelected);
+            Assert.Null(ventilationStrategySelection.VentilationStrategy);
+
+            //The refusal quotes what was actually stated and lists what would have been accepted.
+            Assert.Contains("not a ventilation identity", ventilationStrategySelection.Reason);
+            Assert.Contains(space.Name, ventilationStrategySelection.Reason);
+            Assert.Contains("MVRE", ventilationStrategySelection.Reason);
+
+            TM59AssessmentResult tM59AssessmentResult = Calculator(analyticalModel, ventilationStrategyMap).Calculate([space]);
+
+            //Not assessed at all - and in particular NOT assessed mechanically.
+            Assert.Empty(tM59AssessmentResult.MechanicalVentilationResults);
+            Assert.Empty(tM59AssessmentResult.NaturalVentilationResults);
+            Assert.Empty(tM59AssessmentResult.CorridorResults);
+            Assert.Single(tM59AssessmentResult.VentilationStrategyRefusals);
+
+            //"MVHR" specifically: MVRE is SAM's heat-recovery ventilation and there is no MVHR identity, so a
+            //scenario reaching for that name is refused rather than quietly treated as some other system.
+        }
+
+        /// <summary>
+        /// All nine ventilation identities the shipped system-type library defines are accepted, so the closed
+        /// vocabulary above does not refuse a legitimate dwelling or commercial system. <c>NV</c> and <c>UV</c>
+        /// keep their own criteria; the other seven are mechanical.
+        /// </summary>
+        [Theory]
+        [InlineData("NV", "Natural")]
+        [InlineData("UV", "Corridor")]
+        [InlineData("MV", "Mechanical")]
+        [InlineData("MVRE", "Mechanical")]
+        [InlineData("EOL", "Mechanical")]
+        [InlineData("EOC", "Mechanical")]
+        [InlineData("CAV", "Mechanical")]
+        [InlineData("VAV", "Mechanical")]
+        [InlineData("DISP", "Mechanical")]
+        public void EveryRecognisedStrategy_IsAccepted(string ventilationStrategy, string criterion_Expected)
+        {
+            AnalyticalModel analyticalModel = Model(ventilationSystemTypeName: null, zoneName: "Flat 1");
+
+            Assert.Equal(criterion_Expected, Criterion(analyticalModel, Map(analyticalModel, ventilationStrategy)));
+        }
+
+        /// <summary>
+        /// Two scenarios stating the <i>same</i> unrecognised word are not ambiguous - one answer said twice is
+        /// still one answer - so the refusal names the strategy rather than a disagreement. Stating an
+        /// unrecognised word against a recognised one is a disagreement.
+        /// </summary>
+        [Fact]
+        public void UnrecognisedStrategies_ConflictOnlyWhenTheyDisagree()
+        {
+            Space space = new("Flat 1 Bedroom 2");
+
+            VentilationStrategyMap ventilationStrategyMap_Same = new();
+            ventilationStrategyMap_Same.Add(Scenario("Natural"), [space]);
+            ventilationStrategyMap_Same.Add(Scenario("Natural"), [space]);
+
+            Assert.Contains("not a ventilation identity", ventilationStrategyMap_Same.Selection(space).Reason);
+
+            VentilationStrategyMap ventilationStrategyMap_Different = new();
+            ventilationStrategyMap_Different.Add(Scenario("Natural"), [space]);
+            ventilationStrategyMap_Different.Add(Scenario("NV"), [space]);
+
+            Assert.Contains("different ventilation strategies", ventilationStrategyMap_Different.Selection(space).Reason);
+        }
+
+        /// <summary>
         /// An invalid scenario records nothing: it names nothing assessable, so a claim from it would be a
         /// claim no caller could act on. The map is empty, and every space is then refused as uncovered.
         /// </summary>
@@ -342,9 +467,14 @@ namespace SAM.Tests
 
             Assert.Equal("Corridor", Criterion(analyticalModel, Map(analyticalModel, "UV")));
 
-            //Whitespace and case are normalised on the way in, because SystemTemplate's copy and JSON
-            //constructors do not strip spaces the way its setters do.
-            Assert.Equal("Corridor", Criterion(analyticalModel, Map(analyticalModel, " uv ")));
+            //Case is normalised on the way into the map. Spaces are NOT normalised there and do not need to be:
+            //SystemTemplate's setters already strip every one of them, which is why " u v " arrives as "uv" and
+            //why an earlier revision's Trim() was dead code with a comment describing a case it never saw.
+            Assert.Equal("Corridor", Criterion(analyticalModel, Map(analyticalModel, "uv")));
+            Assert.Equal("Corridor", Criterion(analyticalModel, Map(analyticalModel, " u v ")));
+
+            //The premise, so the assertion above is not passing for a different reason.
+            Assert.Equal("uv", new SystemTemplate(" u v ", null, null, null, null, null).Ventilation);
         }
 
         /// <summary>
@@ -400,8 +530,9 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// The reported refusals are a copy, so a caller cannot edit the calculator's record of what it
-        /// refused - the same rule every other list-returning property in this area follows.
+        /// The reported refusals are a copy <b>on both types</b>, so a reporting layer that normalises or
+        /// de-duplicates in place cannot erase the record of which dwellings went unassessed - while the three
+        /// criterion lists still show a short count, which is exactly what the record exists to explain.
         /// </summary>
         [Fact]
         public void ReportedRefusals_AreACopy()
@@ -420,6 +551,69 @@ namespace SAM.Tests
             tMOverheatingCalculator.VentilationStrategyRefusals.Clear();
 
             Assert.Single(tMOverheatingCalculator.VentilationStrategyRefusals);
+
+            //And on the result object, which is the one a report actually reads.
+            TM59AssessmentResult tM59AssessmentResult = Calculator(analyticalModel, new VentilationStrategyMap()).Calculate(analyticalModel.GetSpaces());
+
+            Assert.Single(tM59AssessmentResult.VentilationStrategyRefusals);
+
+            tM59AssessmentResult.VentilationStrategyRefusals.Clear();
+
+            Assert.Single(tM59AssessmentResult.VentilationStrategyRefusals);
+        }
+
+        /// <summary>
+        /// <b><c>Calculate_TM52</c> does not clear the TM59 refusals.</b> TM52 selects no criterion, so it can
+        /// neither produce nor answer a ventilation refusal - and clearing them would let a TM52 run erase a
+        /// TM59 run's record of which dwellings went unassessed.
+        /// </summary>
+        [Fact]
+        public void CalculateTM52_LeavesTheTM59RefusalsAlone()
+        {
+            AnalyticalModel analyticalModel = Model(ventilationSystemTypeName: "MVRE");
+
+            TMOverheatingCalculator tMOverheatingCalculator = new(analyticalModel)
+            {
+                OccupancySensibleGainSeriesKey = key_Tas_OccupantSensibleGain,
+                TextMap = TextMap(),
+                VentilationStrategyMap = new VentilationStrategyMap()
+            };
+
+            tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces());
+
+            Assert.Single(tMOverheatingCalculator.VentilationStrategyRefusals);
+
+            tMOverheatingCalculator.Calculate_TM52(analyticalModel.GetSpaces());
+
+            Assert.Single(tMOverheatingCalculator.VentilationStrategyRefusals);
+        }
+
+        /// <summary>
+        /// <b>The map is held by reference and is live.</b> A caller building it up scenario by scenario after
+        /// handing it over will change what the next assessment decides. Deliberate - a map is not an identity,
+        /// unlike <c>OverheatingScenario</c>, which copies everything in - and pinned so the asymmetry is a
+        /// decision rather than an accident.
+        /// </summary>
+        [Fact]
+        public void TheMap_IsHeldByReferenceAndIsLive()
+        {
+            AnalyticalModel analyticalModel = Model(ventilationSystemTypeName: null, zoneName: "Flat 1");
+            List<Space> spaces = analyticalModel.GetSpaces();
+
+            VentilationStrategyMap ventilationStrategyMap = new();
+
+            TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(analyticalModel, ventilationStrategyMap);
+
+            //Empty at this point, so the space is refused as uncovered.
+            Assert.Single(tM59AssessmentCalculator.Calculate(spaces).VentilationStrategyRefusals);
+
+            //Filled in afterwards, and the same calculator now assesses it.
+            ventilationStrategyMap.Add(Scenario("MVRE"), spaces);
+
+            TM59AssessmentResult tM59AssessmentResult = tM59AssessmentCalculator.Calculate(spaces);
+
+            Assert.Empty(tM59AssessmentResult.VentilationStrategyRefusals);
+            Assert.Single(tM59AssessmentResult.MechanicalVentilationResults);
         }
 
         // ---------------------------------------------------------------------------------------------

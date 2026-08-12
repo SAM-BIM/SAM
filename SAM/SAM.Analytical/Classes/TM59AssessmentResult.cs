@@ -22,6 +22,8 @@ namespace SAM.Analytical
     /// </summary>
     public class TM59AssessmentResult
     {
+        private readonly List<string> ventilationStrategyRefusals;
+
         internal TM59AssessmentResult(List<Space> spaces, List<TMResult> tMResults_MechanicalVentilation, List<TMResult> tMResults_NaturalVentilation, List<TMResult> tMResults_Corridor, IndexedDoubles indexedDoubles_MaxIndoorComfortTemperatures, IndexedDoubles indexedDoubles_MinIndoorComfortTemperatures, List<string> ventilationStrategyRefusals = null)
         {
             Spaces = spaces;
@@ -30,7 +32,10 @@ namespace SAM.Analytical
             CorridorResults = tMResults_Corridor;
             MaxIndoorComfortTemperatures = indexedDoubles_MaxIndoorComfortTemperatures;
             MinIndoorComfortTemperatures = indexedDoubles_MinIndoorComfortTemperatures;
-            VentilationStrategyRefusals = ventilationStrategyRefusals ?? [];
+            //Copied in, and copied out again by the property. A reporting layer that normalises or de-duplicates
+            //in place would otherwise erase the record of which dwellings went unassessed - while the three
+            //criterion lists still showed a short count, which is precisely what this list exists to explain.
+            this.ventilationStrategyRefusals = ventilationStrategyRefusals == null ? [] : [.. ventilationStrategyRefusals];
         }
 
         /// <summary>
@@ -63,11 +68,18 @@ namespace SAM.Analytical
         /// <para>
         /// <b>These are the assessment's gaps and they must be read.</b> A space named here is absent from all
         /// three criterion lists, so a caller totalling the lists and comparing the total with the number of
-        /// spaces it asked about will silently see fewer - which is the correct outcome and the reason this
-        /// list exists to say why. The alternative, and what this replaces, was assessing the space against a
-        /// defaulted natural-ventilation criterion and reporting it as a result.
+        /// spaces it asked about will see fewer - and this says why. The alternative, and what this replaces,
+        /// was assessing the space against a defaulted natural-ventilation criterion and reporting it as a
+        /// result.
         /// </para>
+        /// <para>
+        /// <b>It does not account for the whole shortfall.</b> A space whose hourly series are missing also
+        /// produces no result, and that is still silent - pre-existing behaviour, pinned rather than endorsed,
+        /// and a diagnostic for it is separate work. So a short count means "refused, or missing data", and
+        /// only the first is itemised here.
+        /// </para>
+        /// <para>A copy, so a reporting layer cannot edit the record of what went unassessed.</para>
         /// </summary>
-        public List<string> VentilationStrategyRefusals { get; }
+        public List<string> VentilationStrategyRefusals => [.. ventilationStrategyRefusals];
     }
 }

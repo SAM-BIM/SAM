@@ -1049,10 +1049,142 @@ no-assessment when the series key is the analytical spelling against a TAS-writt
 **no spaces and no zones means the whole model** — which is why the real run exported a communal corridor
 into a domestic overheating assessment as an ordinary room.
 
-**NOT DONE — the Grasshopper component still holds its own copy.** Repointing
-`SAM_Tas_Grasshopper/…/TasTSDQueryTM59Results.cs` at the service is the remaining half of the extraction
-and needs `SAM_Tas_Grasshopper` brought into the workstream — a **fifth** repo, not brought in without
-asking. Until then the recipe exists twice, and the service is the one that is tested.
+~~**NOT DONE** — the Grasshopper component still holds its own copy.~~ **CLOSED in step 7a** — see 11l.
+`SAM_Tas_Grasshopper` is now the **fifth repo** in the workstream and `TasTSDQueryTM59Results` calls the
+service.
+
+### 11l. Step 7 — the scenario is authoritative over ventilation strategy (DONE)
+
+Three commits, in this order, because 7a had to be behaviour-preserving **before** the semantics changed:
+
+| Repo | SHA | What |
+|---|---|---|
+| SAM | `193968ff` | **7a** — `TM59AssessmentCalculator.SourceFallback`, so the repoint keeps TAS's provenance |
+| SAM_Tas | `f6e32b4` | **7a** — `Create.TM59AssessmentCalculator`, TAS's two series keys + provenance in TAS's assembly |
+| SAM_Tas_Grasshopper | `047c583` | **7a** — `TasTSDQueryTM59Results` repointed; ~90 lines of `SolveInstance` become four calls |
+| SAM | `f6772519` | **7b** — `VentilationStrategyMap` + `VentilationStrategySelection`; the criterion is stated, not derived |
+| SAM_Tas | `b03f02b` | **7c** — the TM59 **XML export** takes the strategy from the scenario too |
+
+**7a, and why `SourceFallback` had to exist first.** The component reached the recipe through
+`SAM.Analytical.Tas.OverheatingCalculator`, which supplies three values that are TAS's and not the
+assessment's: the two series keys the TSD conversion writes, and the assembly name a result reports as its
+`Source` when the model is unnamed. The service exposed the keys but not the fallback, so repointing would
+have silently changed a published result's provenance from `SAM.Analytical.Tas` to `SAM.Analytical` as a
+side effect of a refactor. `Create.TM59AssessmentCalculator` keeps all three in `SAM_Tas` rather than
+restating them at the call site — a second place to keep them right is the drift the extraction existed to
+stop. **One behaviour difference, and it is a refusal replacing a crash:** where the TSD read produced
+nothing the old code dereferenced null, and the component now reports `"Invalid data"`.
+
+**7b — what the map replaces.** All three derivations in 11d, and it replaces them rather than seeding them.
+`VentilationStrategyMap` is keyed on `Space.Guid`, **never on a name**, and it does no matching of its own,
+so it cannot quietly reintroduce matching by name — resolving a simulation space to its design space stays
+step 8's job. The caller supplies the spaces each scenario governs.
+
+- **Refusal never falls through.** A space no scenario covers, a scenario that states no strategy, and two
+  scenarios stating different strategies are three refusals with **three different sentences**, because they
+  are three different mistakes with three different fixes. A refused space produces **no result** and its
+  reason lands in `TM59AssessmentResult.VentilationStrategyRefusals`. Falling back on refusal would restore
+  the exact defect the map removes, invisibly, at the one input where nothing was said.
+- **Reported, not thrown**, so one unstated dwelling does not cost every other dwelling its assessment.
+- **Nothing is inferred from provenance** — not `Source`, not TSD-versus-TPD, not which engine wrote the
+  numbers.
+- **What a strategy MEANS is unchanged**: `UV` → corridor, `NV` → natural, anything else → mechanical, the
+  vocabulary the criterion selection already had. Step 7 changed *which* strategy applies.
+- **Scenario identity untouched.** `VentilationStrategy` / `HasVentilationStrategy` already existed and are
+  only read. `Key_IsStableAcrossBuilds` still pins the same guid.
+- **Left unsupplied, nothing changes.** `SystemTypeName` is documented as **superseded**, not deleted — the
+  Grasshopper and user-interface callers have no scenario to state yet, and removing their behaviour without
+  giving them a way to state the right one would be a regression.
+
+**7c — the export refuses the WHOLE document, which is deliberately different from the assessment.** The
+assessment drops a refused space and reports it; a TM59 XML is configuration for the external TAS TM59 tool,
+which has no way of being told a room is missing — it would assess what it was given and produce a
+complete-looking answer for an incomplete building. So `ToTM59(…, VentilationStrategyMap, out refusals)`
+returns **null** if any space is refused, having visited every space first so one unstated dwelling does not
+hide the others' reasons. The strategy goes in through `Space.ToTM59`'s existing `systemType` parameter —
+the seam that was already there — and a non-`Undefined` value means that method's internal-condition
+fallback is never reached. The two-argument overload is untouched and a null map delegates to it.
+
+**Tests: SAM 1153 (was 1137), SAM_Tas TM59.Tests 37 (was 25).** Every override test carries a **control**
+that runs the same model without the map and shows the old derivation reaching the opposite answer —
+without those, a passing test would prove only that the map agreed with a derivation that was already
+right. Three mutations run, all caught and restored: a refusal falling back to `SystemTypeName` fails 4
+tests; removing the strategy normalisation fails `UV_StillRoutesToTheCorridorCriterion`; returning the
+`Building` regardless of refusals fails `AnUnsettledStrategy_RefusesTheWholeExport`.
+
+**The step 6 equivalence test still matters and its doc comment now says why.** The component calls the
+service, so the two agree by construction and the component can no longer disagree with itself. What
+`TheService_MatchesTheComponentsOwnSequence` pins is the only falsifiable thing left: that the service
+still does what the component *used* to do. Delete it and the last statement of the original behaviour goes
+with it.
+
+**No production caller supplies a map yet.** `Convert.ToXml(AnalyticalModel, …)` — reached from `ToTBD`,
+which is the workflow path that wrote the real run's DomOv XML — still calls the two-argument `ToTM59`, so
+**the shipped export still uses the derivations.** Wiring a scenario through is step 10's runner. Recorded
+here so this is not mistaken for "the export is fixed everywhere".
+
+### 11m. Step 9 — the TSD-simple vs TPD-full boundary (Michal's clarification, AUTHORITATIVE)
+
+**The two-pass TPD route is a deliberate TAS compatibility workaround. It is NOT duplication. Do not remove
+it, simplify it, or "consolidate" it into the TSD path.** It is expensive on purpose.
+
+**Why it exists.** The TPD route does not give the `ResultantTemperature` series TM59 needs, so the workflow
+deliberately runs **two** simulations.
+
+**The intended TPD-full sequence, as stated by Michal:**
+
+1. Simulate the actual system.
+2. Read the resulting **supply air temperature** and **supply airflow**.
+3. Inject those values into a **copy** of the TBD.
+4. Simulate that modified TBD again.
+5. Read the resulting TSD.
+6. Take the TM59 `ResultantTemperature` from that second simulation.
+7. Pass the prepared analytical result model into the common `TM59AssessmentCalculator`.
+
+**Constraints, all of them binding:**
+
+- The first simulation's supply temperature and airflow are **engineering inputs** to the second run, **not
+  provenance**. They are therefore not something a scenario states and not something step 7's
+  `VentilationStrategyMap` touches.
+- **Always modify a COPY of the TBD**, never the original design model.
+- **Preserve current TPD-full behaviour exactly** until TAS exposes an equivalent native resultant
+  temperature through the TPD workflow.
+- **Documentation and regression coverage must explain why the two-pass route exists**, so a future refactor
+  cannot delete it as duplicate work. That coverage is owed and does not exist yet.
+- When TAS does expose it natively, the workaround may be retired **behind the preparation boundary** without
+  changing `TM59AssessmentCalculator`.
+
+**The boundary step 9 must draw.** Preparation differs; assessment does not.
+
+```
+TSD-simple:  TSD ───────────────────────────────────────────► analytical result model ─┐
+                                                                                       ├─► TM59AssessmentCalculator
+TPD-full:    TPD ─► pass 1 ─► TBD COPY ─► pass 2 ─► TSD ────► analytical result model ─┘
+```
+
+`TM59AssessmentCalculator` **must not care** which side prepared the model, and must not learn the words
+TSD or TPD.
+
+**What the code does TODAY — read this before touching anything, because it is NOT the sequence above.**
+Two separate TPD-side mechanisms exist and **only one of them is the two-pass route**:
+
+| | Where | What it actually does |
+|---|---|---|
+| **A** | `SAM_Tas/…/SAM.Analytical.Tas.TPD/Modify/CalculateResultantTemperature.cs`, driven by the component `Tas.CalculateResultantTemperatureFromTPD` (`SAM_Tas_Grasshopper/…/SAM.Analytical.Grasshopper.Tas.TPD/`) | **The two-pass route.** Reads an already-simulated TPD (`Simulate = false`, `IncludeComponentResults = true`), takes each space's `SpaceDataType.ZoneTemperature`, **copies** the TBD to `<name>_TPDThermostat.tbd`, writes that series into every zone internal condition's thermostat **upper- and lower-limit profiles** as yearly profiles (`factor 1`), **simulates again** to `<name>_TPDThermostat.tsd`, and returns both paths |
+| **B** | `SAM_Tas_Grasshopper/…/SAM.Analytical.Grasshopper.Tas.TPD/Component/TasTPDQueryTM59Results.cs` | **Not the two-pass route.** Reads the TSD beside the TPD via `ToSAM_SpaceSystemResults(path_TPD, out path_TSD)` and synthesises `ResultantTemperature` as the arithmetic **mean of the TSD's `MeanRadiantTemperature` and the TPD's `ZoneTemperature`**, then runs its own inline copy of the TM59 recipe |
+
+**Three discrepancies step 9 must reconcile with Michal — do not guess at any of them:**
+
+1. **A injects zone temperature into thermostat setpoint limits**, not supply air temperature and supply
+   airflow. Airflow injection exists as separate, uncalled modifiers (`Modify.UpdateSpaceAirflows`,
+   `Modify.UpdateFanAirflows`). Whether the intended sequence describes A's evolution or a different
+   mechanism is **Michal's call**.
+2. **B is a one-pass approximation and does not use A at all.** Two different TPD answers to the same
+   question are shipping side by side, and which one is the TPD-full path is not settled in the code.
+3. **B still holds a third inline copy of the TM59 recipe.** Repointing it at `TM59AssessmentCalculator` is
+   step 9, **not** a step 7 drive-by, precisely because its middle stage is the thing being preserved.
+
+Step 7 changed **nothing** in either mechanism, by design.
 
 ## 10. Standing instructions
 

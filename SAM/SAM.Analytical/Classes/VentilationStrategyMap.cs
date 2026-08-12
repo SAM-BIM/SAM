@@ -46,15 +46,57 @@ namespace SAM.Analytical
     /// </summary>
     public class VentilationStrategyMap
     {
+        /// <summary>
+        /// The ventilation identities a TM59 criterion is known for. <b>A closed set, and that is the point.</b>
+        /// <para>
+        /// The criterion selection reads <c>UV</c> as the corridor criterion, <c>NV</c> as natural and
+        /// <b>everything else</b> as mechanical. That last step is an open default, and an open default in the
+        /// authoritative path is the same defect as the <c>"NV"</c> one this class removes, only pointing the
+        /// other way: a scenario stating <c>"Natural"</c>, or <c>"N-V"</c>, or any typo, would be assessed
+        /// mechanically and exported as "Mech Vent" with no refusal and no diagnostic. So a strategy outside
+        /// this set is <b>refused</b> rather than assumed mechanical.
+        /// </para>
+        /// <para>
+        /// These are the nine ventilation identities the shipped <c>SAM_SystemTypeLibrary</c> defines, which are
+        /// also the nine <c>SAM_Systems</c> keys its capability index on. It is a list of <b>names</b>, which is
+        /// vocabulary and belongs here - <c>Query.IsMechanicalVentilation</c> already names <c>UV</c> and
+        /// <c>NV</c> in this assembly. It is deliberately <b>not</b> read from
+        /// <c>Query.DefaultSystemTypeLibrary()</c>: that comes from <c>ActiveSetting</c> and can be absent, and
+        /// making the authoritative path depend on the same installed resource the defective derivation used
+        /// would trade one silent failure for another.
+        /// </para>
+        /// <para>
+        /// <b>A project with a custom system-type library needs this extended</b>, and the accepted set is
+        /// declared policy rather than anything Part F requires - the same footing as <c>SAM_Systems</c>' rank.
+        /// </para>
+        /// </summary>
+        private static readonly HashSet<string> ventilationStrategies_Recognised = new(StringComparer.Ordinal)
+        {
+            "NV", "MV", "MVRE", "UV", "EOL", "EOC", "CAV", "VAV", "DISP"
+        };
+
         /// <summary>What one scenario said about one space.</summary>
         private class Claim
         {
-            public string SpaceName;
-
+            /// <summary>
+            /// The design zone the claiming scenario names, for the refusal message. <b>The space's own name is
+            /// deliberately not stored</b> - a refusal quotes the space the caller asked about, so that the
+            /// message can never name a different object from the one that was queried.
+            /// </summary>
             public Guid ZoneGuid;
 
-            /// <summary>The normalised strategy, or null where the scenario stated none.</summary>
+            /// <summary>
+            /// The normalised strategy, or null where the scenario stated none <b>or stated one this assembly
+            /// has no TM59 criterion for</b>. The two are told apart by <see cref="IsUnrecognised"/>, because
+            /// "you said nothing" and "you said something I cannot act on" need different fixes.
+            /// </summary>
             public string VentilationStrategy;
+
+            /// <summary>What the scenario stated where it was not recognised, for the refusal message.</summary>
+            public string VentilationStrategy_Unrecognised;
+
+            /// <summary>Whether the scenario stated a strategy outside the recognised vocabulary.</summary>
+            public bool IsUnrecognised => VentilationStrategy_Unrecognised != null;
 
             /// <summary>Whether a second scenario claimed this space and said something different.</summary>
             public bool IsConflicted;
@@ -71,16 +113,30 @@ namespace SAM.Analytical
         /// somebody looking in the wrong place. Both refuse.
         /// </para>
         /// <para>
+        /// <b>A strategy outside the recognised vocabulary is recorded as unrecognised</b>, not as mechanical
+        /// and not as silence. See <see cref="ventilationStrategies_Recognised"/> for why that matters.
+        /// </para>
+        /// <para>
         /// <b>Two scenarios over one space refuse unless they agree.</b> Identical strategies are not a
         /// conflict - the same thing said twice is still one answer. Anything else means the scenarios have
         /// not said how the space is ventilated, and the same rule applies when one of them states nothing.
+        /// </para>
+        /// <para>
+        /// <b>The map is live and is held by reference</b>, here and by the calculators it is given to. A
+        /// caller may keep adding after handing it over and the next assessment will see the additions. That is
+        /// deliberate - a map is built up scenario by scenario, unlike <c>OverheatingScenario</c>, which copies
+        /// everything in because it is an identity - but it does mean the map must not be shared between two
+        /// callers that disagree about what is in it.
         /// </para>
         /// </summary>
         /// <param name="overheatingScenario">The scenario. Ignored where null or not <c>IsValid</c>.</param>
         /// <param name="spaces">
         /// The spaces it governs - the objects the assessment will run over, for their guids.
         /// </param>
-        /// <returns>Whether anything was recorded.</returns>
+        /// <returns>
+        /// Whether the scenario applied to at least one space. True does not promise the claim changed
+        /// anything: re-stating the same strategy for the same space is applicable and idempotent.
+        /// </returns>
         public bool Add(OverheatingScenario overheatingScenario, IEnumerable<Space> spaces)
         {
             if (overheatingScenario == null || !overheatingScenario.IsValid || spaces == null)
@@ -90,11 +146,22 @@ namespace SAM.Analytical
                 return false;
             }
 
-            //Normalised here rather than at every read: SystemTemplate's copy and JSON constructors do not
-            //strip spaces the way its setters do, so "MV RE" can reach this point where "MVRE" was meant.
+            //Upper-cased, not trimmed: OverheatingScenario.Normalized already rebuilt the SystemTemplate
+            //through its setters, which strip EVERY space, so " uv " and "MV RE" cannot arrive here. Case is
+            //the one thing those setters leave alone, and the criterion selection compares upper-case.
             string ventilationStrategy = overheatingScenario.HasVentilationStrategy
-                ? overheatingScenario.VentilationStrategy.Trim().ToUpper()
+                ? overheatingScenario.VentilationStrategy.ToUpper()
                 : null;
+
+            //A strategy this assembly has no TM59 criterion for is not silence and not mechanical. Recorded as
+            //itself so the refusal can quote it back.
+            string ventilationStrategy_Unrecognised = null;
+
+            if (ventilationStrategy != null && !ventilationStrategies_Recognised.Contains(ventilationStrategy))
+            {
+                ventilationStrategy_Unrecognised = ventilationStrategy;
+                ventilationStrategy = null;
+            }
 
             bool result = false;
 
@@ -111,17 +178,25 @@ namespace SAM.Analytical
                 {
                     dictionary_Claim[space.Guid] = new Claim
                     {
-                        SpaceName = space.Name,
                         ZoneGuid = overheatingScenario.ZoneGuid,
-                        VentilationStrategy = ventilationStrategy
+                        VentilationStrategy = ventilationStrategy,
+                        VentilationStrategy_Unrecognised = ventilationStrategy_Unrecognised
                     };
 
                     continue;
                 }
 
-                if (claim.IsConflicted || string.Equals(claim.VentilationStrategy, ventilationStrategy, StringComparison.Ordinal))
+                if (claim.IsConflicted)
                 {
-                    //Already refused, or the same answer again. Neither changes anything.
+                    //Already refused for disagreement. Nothing said now can settle it.
+                    continue;
+                }
+
+                if (string.Equals(claim.VentilationStrategy, ventilationStrategy, StringComparison.Ordinal)
+                    && string.Equals(claim.VentilationStrategy_Unrecognised, ventilationStrategy_Unrecognised, StringComparison.Ordinal))
+                {
+                    //The same answer again - including the same unrecognised word twice, which is still one
+                    //answer and still refused, just not for ambiguity.
                     continue;
                 }
 
@@ -148,12 +223,17 @@ namespace SAM.Analytical
 
             if (claim.IsConflicted)
             {
-                return VentilationStrategySelection.Refused(string.Format("More than one overheating scenario covers space '{0}' and they state different ventilation strategies, so it is not settled how it is ventilated.", claim.SpaceName));
+                return VentilationStrategySelection.Refused(string.Format("More than one overheating scenario covers space '{0}' and they state different ventilation strategies, so it is not settled how it is ventilated.", space.Name));
+            }
+
+            if (claim.IsUnrecognised)
+            {
+                return VentilationStrategySelection.Refused(string.Format("The overheating scenario for design zone {0} states ventilation strategy '{1}', which is not a ventilation identity this assessment has a TM59 criterion for, so space '{2}' cannot be assessed. Expected one of: {3}.", claim.ZoneGuid, claim.VentilationStrategy_Unrecognised, space.Name, string.Join(", ", ventilationStrategies_Recognised)));
             }
 
             if (claim.VentilationStrategy == null)
             {
-                return VentilationStrategySelection.Refused(string.Format("The overheating scenario for design zone {0} states no ventilation strategy, so space '{1}' cannot be assessed against a TM59 criterion.", claim.ZoneGuid, claim.SpaceName));
+                return VentilationStrategySelection.Refused(string.Format("The overheating scenario for design zone {0} states no ventilation strategy, so space '{1}' cannot be assessed against a TM59 criterion.", claim.ZoneGuid, space.Name));
             }
 
             return VentilationStrategySelection.Selected(claim.VentilationStrategy);
