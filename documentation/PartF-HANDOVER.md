@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: LGPL-3.0-or-later -->
+﻿<!-- SPDX-License-Identifier: LGPL-3.0-or-later -->
 <!-- Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors -->
 
 # Part F — session handover
@@ -89,7 +89,16 @@ like the other two** — still waiting on Michal.
   containing a room named exactly `Bedroom 2`, plus the communal corridor.
 - The new scenario inputs are **optional and appended after existing Grasshopper inputs**, preserving saved
   component port indices and the two existing production workflows. When scenarios are supplied they are
-  authoritative; when absent the documented legacy fallback remains available.
+  authoritative; when absent the documented legacy fallback remains available. Verified in source: the
+  `overheatingScenarios_` parameter is the last input registered in both
+  `TasTSDQueryTM59Results` and `SAMAnalyticalCreateTBDByTM59`, and the latter keeps the two-argument
+  `ToXml` on the no-scenario branch.
+
+**One commit message overstates what was outstanding, and cannot be rewritten.** SAM `cc5e67f0` says a
+fresh independent review of step 8 "is still owed". That was wrong when written: the review had completed
+and its fixes are in SAM `f712fd9f`, recorded by `f2629967`. The agent *I* had spawned to re-review died on
+a session limit, and I mistook that for the review itself not having happened. Nothing was force-pushed;
+**this file is the correcting record**, which is what it is for. Step 8 has been reviewed.
 
 **Previous checkpoint — Iteration 0 step 7, scenario-authoritative ventilation strategy. Detail in 11l.**
 
@@ -130,7 +139,7 @@ Detail in **11h** (5a), **11i** (5b), **11j** (5c) and **11k** (6).
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1183 passed, 0 failed** | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
+| `SAM/SAM.Tests` | **1185 passed, 0 failed** | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
 | `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **46 passed, 0 failed** | `dotnet test SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/…csproj` — **build SAM and the TM59 library first** |
 | `SAM_Tas_Grasshopper/SAM.Analytical.Grasshopper.Tas` | 0 `error CS` under **VS Framework MSBuild** | no test project in that repo; equivalence is pinned in `SAM.Tests` |
 | `SAM_Systems/SAM.Analytical.Systems.Tests` | **34 passed, 0 failed** | unchanged by step 7 |
@@ -408,7 +417,7 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
 
 | Suite | Result |
 |---|---|
-| `SAM/SAM.Tests` | **1183 passed, 0 failed** |
+| `SAM/SAM.Tests` | **1185 passed, 0 failed** |
 | `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **180 passed, 0 failed** (123 + 21 placement + 7 identity + 6 whole-floor + 17 preset/scope + 6 assessment cache) |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** |
 | `SAM_Systems/SAM.Analytical.Systems.Tests` | **34 passed, 0 failed** — capability index conformance + eligibility |
@@ -906,6 +915,9 @@ behaves as REcovery despite the library description saying "Recirculation".
 | SAM_Tas | `1aba5eec` | **step 8** TAS stable-key mapping and print-route scenario seam |
 | SAM_Tas_Grasshopper | `f8ca646c` | **step 8** `Tas.TSDQueryTM59Results` stops matching by name |
 | SAM | `f712fd9f` | step 8 review fixes — fail-safe mapping, scoped selection, transactional scenarios → 1183 |
+| SAM_Tas | `7f3dfda` | step 8 — both TAS acceptance paths proved by identity → 46 |
+| SAM_Tas_Grasshopper | `b8dae4b` | step 8 — scenarios wired into both existing TAS workflows |
+| SAM | `cc5e67f0` | step 8 further review — repeated scenario is not a collision, proof 10 made behavioural → 1185 |
 | SAM_Tas | `7f3dfda` | step 8 review acceptance coverage for both TAS production paths → 46 |
 | SAM_Tas_Grasshopper | `b8dae4b` | step 8 review wiring in both existing Grasshopper workflows |
 
@@ -1433,7 +1445,28 @@ SAM_Tas_Grasshopper `b8dae4b`.
    indices; review moved both to the end. Review also prevented a successful SAP conversion from overwriting
    a failed/refused TM59 status while still allowing the SAP attempt to run.
 
-**Final validation:** SAM **1183 passed, 0 failed**; SAM_Tas TM59.Tests **46 passed, 0 failed**; the
+**A further review pass, SAM `cc5e67f0`**, on top of the above:
+
+7. **The same assessment stated twice was treated as a collision.** Two scenarios are the same assessment
+   exactly when they derive the same `Key`, and the rule this codebase already follows -
+   `VentilationStrategyMap` for a repeated strategy, `Query.SelectPreferredCapableSystem` for one system
+   listed twice - is that one answer said twice is still one answer. A caller assembling its scenario list
+   from two overlapping sources was refused AND had the scenario struck out. Caught before anything is
+   written, because re-walking the spaces and then storing the result would have overwritten the first
+   pass's record of them with an empty list. A scenario struck out by a real collision is absent from that
+   record, so it cannot be resurrected this way.
+8. **Proof 10 was only a reflection scan over member names**, which proves something about the vocabulary
+   and nothing about the implementation. It now first varies the simulated model's **name** - what a result
+   reports as its `Source` - and the stamped provenance fallback, and asserts every association comes out
+   identical, with the results demonstrably carrying the different provenance so it cannot pass by the two
+   models being the same. The scan is kept as a guard against a future member reaching for a file name when
+   an identity is missing.
+
+Two more mutations, caught and restored: disabling the same-key guard fails
+`TheSameScenarioTwice_IsNotACollision`; building the strategy map inside `Add()` instead of the second pass
+fails `TwoScenariosOverOneSpace_RefuseExplicitly` and `ThreeScenariosOverOneSpace_AllRefuse`.
+
+**Final validation:** SAM **1185 passed, 0 failed**; SAM_Tas TM59.Tests **46 passed, 0 failed**; the
 SAM_Tas_Grasshopper project built under VS Framework MSBuild with **0 errors**. The TAS suite covers both
 paths with three exact duplicate `Bedroom 2` names plus the corridor. Three additional review mutations
 proved the resolved-only whole-model filter, zones-only scope and transactional scenario ownership; all were
@@ -1487,7 +1520,7 @@ remote at the SHAs in **section 0a**, which is authoritative. Nothing should be 
 
 ### State - all pushed, all green
 
-SAM **1183**, SAM_Tas TM59.Tests **46**, SAM_UI **180**, SAM_Systems **123** + **34**, SAM_Mollier **22**;
+SAM **1185**, SAM_Tas TM59.Tests **46**, SAM_UI **180**, SAM_Systems **123** + **34**, SAM_Mollier **22**;
 Grasshopper (including `SAM.Analytical.Grasshopper.Tas`) and Mollier UI 0 `error CS`; SPDX clean.
 Not merged, **no PRs open in any of the five**.
 
