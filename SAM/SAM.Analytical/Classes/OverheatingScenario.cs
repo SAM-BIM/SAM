@@ -216,12 +216,15 @@ namespace SAM.Analytical
         /// make one system two.
         /// </para>
         /// <para>
-        /// It is exposed because the scenario is meant to become <b>authoritative</b> over the strategy.
-        /// Today three different derivations disagree, and the one that picks the TM59 criterion falls back
-        /// to matching a zone's <i>name</i> against a system library and then defaults to <c>"NV"</c> - so
-        /// an MVRE dwelling is assessed against the natural-ventilation criterion. A consumer that reads
-        /// this must <b>refuse</b> where <see cref="HasVentilationStrategy"/> is false rather than fall
-        /// back to that chain; a silent default is the defect, not the absence of one.
+        /// <b>This is now the authoritative statement of the strategy</b>, carried to the assessment by
+        /// <c>VentilationStrategyMap</c> and read by <c>TMOverheatingCalculator</c> in place of the three
+        /// derivations that used to disagree - the space's internal condition, any related mechanical
+        /// <c>VentilationSystem</c>, and a zone-<i>name</i> lookup against a system library that defaulted to
+        /// <c>"NV"</c> and so assessed an MVRE dwelling against the natural-ventilation criterion.
+        /// </para>
+        /// <para>
+        /// A consumer reading this must <b>refuse</b> where <see cref="HasVentilationStrategy"/> is false
+        /// rather than fall back to that chain; a silent default is the defect, not the absence of one.
         /// </para>
         /// </summary>
         public string VentilationStrategy => systemTemplate?.Ventilation;

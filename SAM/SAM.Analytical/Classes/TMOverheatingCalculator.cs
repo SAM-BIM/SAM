@@ -36,6 +36,8 @@ namespace SAM.Analytical
     {
         private TextMap textMap = Query.DefaultInternalConditionTextMap_TM59();
 
+        private List<string> ventilationStrategyRefusals = [];
+
         public TMOverheatingCalculator(AnalyticalModel analyticalModel)
         {
             AnalyticalModel = analyticalModel;
@@ -90,6 +92,38 @@ namespace SAM.Analytical
         /// keep stamping its own assembly name, as it always has.
         /// </summary>
         public string SourceFallback { get; set; } = Core.Query.Name(typeof(TMOverheatingCalculator).Assembly);
+
+        /// <summary>
+        /// Which ventilation strategy governs which space, as stated by <c>OverheatingScenario</c>. Where this
+        /// is supplied it is <b>authoritative</b> for the TM59 criterion.
+        /// <para>
+        /// Supplied, not derived, and it replaces the derivation rather than seeding it. The space's internal
+        /// condition, the zone-name lookup and the natural-ventilation default in
+        /// <see cref="SystemTypeName"/> are all bypassed, and a space the map refuses produces <b>no
+        /// assessment</b> with its reason in <see cref="VentilationStrategyRefusals"/> - never an assessment
+        /// against a fallback criterion. A gap is visible; a number measured against the wrong TM59 rule is
+        /// not.
+        /// </para>
+        /// <para>
+        /// <b>Left null the old derivation applies, unchanged.</b> Every existing caller - the Grasshopper
+        /// components, the user interface, <c>OverheatingCalculator</c> - keeps the behaviour it had, because
+        /// none of them has a scenario to state yet. Making the fallback unreachable is a later step, once
+        /// there is a path that always supplies one.
+        /// </para>
+        /// </summary>
+        public VentilationStrategyMap VentilationStrategyMap { get; set; } = null;
+
+        /// <summary>
+        /// Why spaces were left out of the last <see cref="Calculate_TM59"/> because
+        /// <see cref="VentilationStrategyMap"/> refused them, one sentence each. A copy; replaced by each
+        /// call, and empty where no map was supplied or nothing was refused.
+        /// <para>
+        /// The refusals are reported rather than thrown so that one unstated dwelling does not lose the
+        /// assessment of every other dwelling in the building - but they are reported, which is the whole
+        /// difference between this and the silent default it replaces.
+        /// </para>
+        /// </summary>
+        public List<string> VentilationStrategyRefusals => [.. ventilationStrategyRefusals];
 
         public TextMap TextMap
         {
@@ -148,6 +182,10 @@ namespace SAM.Analytical
 
         public List<TM59ExtendedResult> Calculate_TM59(IEnumerable<Space> spaces)
         {
+            //Cleared even where the call is about to fail, so a stale refusal from an earlier call can never
+            //be read as belonging to this one.
+            ventilationStrategyRefusals = [];
+
             if (AnalyticalModel == null || spaces == null || textMap == null)
             {
                 return null;
@@ -169,7 +207,13 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                string systemTypeName = SystemTypeName(adjacencyCluster, space_Temp);
+                if (!TryGetVentilationStrategy(adjacencyCluster, space_Temp, out string systemTypeName))
+                {
+                    //Refused, and the reason is recorded. No criterion applies, so no result is produced -
+                    //deliberately, in place of the "NV" default that made this the wrong assessment rather
+                    //than an absent one.
+                    continue;
+                }
 
                 List<TM59SpaceApplication> tM59SpaceApplications = tM59Manager.TM59SpaceApplications(space?.InternalCondition);
                 if (tM59SpaceApplications == null || tM59SpaceApplications.Count == 0)
@@ -340,14 +384,52 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// The ventilation system type governing a space, as the TM59 criterion selection reads it: the
-        /// space's own internal condition first, then a system type whose name matches one of the space's
-        /// zones, and "NV" where nothing says otherwise.
+        /// The ventilation strategy the TM59 criterion selection uses for a space: the scenario's, where
+        /// <see cref="VentilationStrategyMap"/> was supplied, and otherwise the old derivation.
         /// <para>
-        /// <b>Preserved exactly as extracted, including the zone-name lookup and the natural-ventilation
-        /// default.</b> Both are questionable - a dwelling's criterion should not turn on whether a zone
-        /// happens to be named after a library entry - but correcting that is the scenario work, not this
-        /// refactor, and doing it here would make the extraction unverifiable.
+        /// <b>The two paths do not blend.</b> With a map, a refusal is a refusal - it does not fall through to
+        /// <see cref="SystemTypeName"/>, because falling through would restore exactly the defect the map
+        /// exists to remove and would do it invisibly, at the one input where nothing was said.
+        /// </para>
+        /// </summary>
+        /// <returns>False where the space must not be assessed at all.</returns>
+        private bool TryGetVentilationStrategy(AdjacencyCluster adjacencyCluster, Space space, out string ventilationStrategy)
+        {
+            if (VentilationStrategyMap == null)
+            {
+                //No scenario stated. The pre-existing derivation, unchanged, for every caller that has none.
+                ventilationStrategy = SystemTypeName(adjacencyCluster, space);
+
+                return true;
+            }
+
+            VentilationStrategySelection ventilationStrategySelection = VentilationStrategyMap.Selection(space);
+
+            if (!ventilationStrategySelection.IsSelected)
+            {
+                ventilationStrategyRefusals.Add(ventilationStrategySelection.Reason);
+                ventilationStrategy = null;
+
+                return false;
+            }
+
+            ventilationStrategy = ventilationStrategySelection.VentilationStrategy;
+
+            return true;
+        }
+
+        /// <summary>
+        /// The ventilation system type governing a space as it was derived <b>before a scenario could state
+        /// one</b>: the space's own internal condition first, then a system type whose name matches one of the
+        /// space's zones, and "NV" where nothing says otherwise.
+        /// <para>
+        /// <b>Superseded, and kept only for callers with no scenario.</b> Every step of it is unsound as a way
+        /// of choosing an Approved Document O criterion. The zone-name lookup makes a dwelling's assessment
+        /// turn on whether somebody named a zone after a library entry, and the default silently assesses an
+        /// MVRE dwelling as naturally ventilated. Supplying a <see cref="VentilationStrategyMap"/> bypasses
+        /// this method entirely; it remains reachable because the Grasshopper and user-interface callers have
+        /// no scenario to state yet, and removing it would change their behaviour without giving them a way to
+        /// state the right one.
         /// </para>
         /// </summary>
         private static string SystemTypeName(AdjacencyCluster adjacencyCluster, Space space)

@@ -22,7 +22,7 @@ namespace SAM.Analytical
     /// </summary>
     public class TM59AssessmentResult
     {
-        internal TM59AssessmentResult(List<Space> spaces, List<TMResult> tMResults_MechanicalVentilation, List<TMResult> tMResults_NaturalVentilation, List<TMResult> tMResults_Corridor, IndexedDoubles indexedDoubles_MaxIndoorComfortTemperatures, IndexedDoubles indexedDoubles_MinIndoorComfortTemperatures)
+        internal TM59AssessmentResult(List<Space> spaces, List<TMResult> tMResults_MechanicalVentilation, List<TMResult> tMResults_NaturalVentilation, List<TMResult> tMResults_Corridor, IndexedDoubles indexedDoubles_MaxIndoorComfortTemperatures, IndexedDoubles indexedDoubles_MinIndoorComfortTemperatures, List<string> ventilationStrategyRefusals = null)
         {
             Spaces = spaces;
             MechanicalVentilationResults = tMResults_MechanicalVentilation;
@@ -30,6 +30,7 @@ namespace SAM.Analytical
             CorridorResults = tMResults_Corridor;
             MaxIndoorComfortTemperatures = indexedDoubles_MaxIndoorComfortTemperatures;
             MinIndoorComfortTemperatures = indexedDoubles_MinIndoorComfortTemperatures;
+            VentilationStrategyRefusals = ventilationStrategyRefusals ?? [];
         }
 
         /// <summary>
@@ -55,5 +56,18 @@ namespace SAM.Analytical
 
         /// <summary>The lower comfort limit series.</summary>
         public IndexedDoubles MinIndoorComfortTemperatures { get; }
+
+        /// <summary>
+        /// Spaces left out because the <c>OverheatingScenario</c> did not settle how they are ventilated, one
+        /// sentence each. Empty where no scenario was supplied or nothing was refused.
+        /// <para>
+        /// <b>These are the assessment's gaps and they must be read.</b> A space named here is absent from all
+        /// three criterion lists, so a caller totalling the lists and comparing the total with the number of
+        /// spaces it asked about will silently see fewer - which is the correct outcome and the reason this
+        /// list exists to say why. The alternative, and what this replaces, was assessing the space against a
+        /// defaulted natural-ventilation criterion and reporting it as a result.
+        /// </para>
+        /// </summary>
+        public List<string> VentilationStrategyRefusals { get; }
     }
 }

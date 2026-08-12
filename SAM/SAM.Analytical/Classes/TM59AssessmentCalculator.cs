@@ -23,17 +23,20 @@ namespace SAM.Analytical
     /// the same split that <c>TMOverheatingCalculator</c> already makes, for the same reason.
     /// </para>
     ///
-    /// <para><b>Two things preserved verbatim that are known to be wrong</b></para>
+    /// <para><b>One thing still preserved verbatim that is known to be wrong</b></para>
     /// <list type="bullet">
     /// <item><b>Spaces are matched by NAME</b>, in <see cref="RestoreDesignInternalConditions"/> and in
     /// <see cref="Spaces"/>. Every flat in a block has a "Bedroom 2", so this silently pairs one dwelling's
     /// room with another's. <c>SimulationSpaceMap</c> exists to fix it - by identity, refusing on ambiguity -
     /// and doing so here would make the extraction unverifiable. It is the next step, not this one.</item>
-    /// <item><b>The criterion is chosen by <c>TMOverheatingCalculator</c>'s existing derivation</b>, which
-    /// falls back to matching a zone's name against a system library and then defaults to natural
-    /// ventilation - so an MVHR dwelling can be assessed against the wrong criterion. Making the scenario
-    /// authoritative is also a later step.</item>
     /// </list>
+    /// <para>
+    /// <b>The criterion is no longer derived</b> where a caller supplies
+    /// <see cref="VentilationStrategyMap"/>: the scenario states the ventilation strategy and a space it does
+    /// not cover is refused rather than defaulted. Left unsupplied, <c>TMOverheatingCalculator</c>'s old
+    /// derivation still applies - it falls back to matching a zone's name against a system library and then
+    /// defaults to natural ventilation, so an MVRE dwelling is assessed against the wrong criterion.
+    /// </para>
     /// </summary>
     public class TM59AssessmentCalculator
     {
@@ -79,6 +82,18 @@ namespace SAM.Analytical
         /// </para>
         /// </summary>
         public string SourceFallback { get; set; } = null;
+
+        /// <summary>
+        /// Which ventilation strategy governs which space, as stated by <c>OverheatingScenario</c>. Where this
+        /// is supplied it is <b>authoritative</b> for the TM59 criterion, and a space it refuses is left out of
+        /// the assessment with its reason in <c>TM59AssessmentResult.VentilationStrategyRefusals</c>.
+        /// <para>
+        /// Passed straight to <see cref="TMOverheatingCalculator.VentilationStrategyMap"/>; see there for what
+        /// it replaces and why a refusal must not fall back. Left null, the old derivation applies and this
+        /// service behaves exactly as the component it was lifted from did.
+        /// </para>
+        /// </summary>
+        public VentilationStrategyMap VentilationStrategyMap { get; set; } = null;
 
         /// <summary>
         /// Copies each design space's <c>InternalCondition</c> onto the simulated space of the same name.
@@ -234,7 +249,8 @@ namespace SAM.Analytical
             {
                 TM52BuildingCategory = TM52BuildingCategory,
                 ResultantTemperatureSeriesKey = ResultantTemperatureSeriesKey,
-                OccupancySensibleGainSeriesKey = OccupancySensibleGainSeriesKey
+                OccupancySensibleGainSeriesKey = OccupancySensibleGainSeriesKey,
+                VentilationStrategyMap = VentilationStrategyMap
             };
 
             //Only when the caller stated one. Left null, TMOverheatingCalculator keeps its own default rather
@@ -259,7 +275,7 @@ namespace SAM.Analytical
             IndexedDoubles indexedDoubles_Max = tMOverheatingCalculator.GetMaxIndoorComfortTemperatures(0, 364);
             IndexedDoubles indexedDoubles_Min = tMOverheatingCalculator.GetMinIndoorComfortTemperatures(0, 364);
 
-            return new TM59AssessmentResult(spaces_Temp, tMResults_MechanicalVentilation, tMResults_NaturalVentilation, tMResults_Corridor, indexedDoubles_Max, indexedDoubles_Min);
+            return new TM59AssessmentResult(spaces_Temp, tMResults_MechanicalVentilation, tMResults_NaturalVentilation, tMResults_Corridor, indexedDoubles_Max, indexedDoubles_Min, tMOverheatingCalculator.VentilationStrategyRefusals);
         }
 
         /// <summary>
