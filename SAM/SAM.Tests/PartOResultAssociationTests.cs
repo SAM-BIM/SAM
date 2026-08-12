@@ -250,8 +250,8 @@ namespace SAM.Tests
 
         /// <summary>
         /// <b>Proof 8: two candidate mappings for one design identity refuse explicitly.</b> Two simulated spaces
-        /// carry Flat 1's stable identity. Forwards each knows its design space; backwards "which simulated result
-        /// is Flat 1's" has two answers, and answering it would attribute one room's overheating to another.
+        /// carry Flat 1's stable identity. Neither direction remains usable: restoring design intent onto both
+        /// candidates would be just as unsafe as choosing one of their results for Flat 1.
         /// </summary>
         [Fact]
         public void TwoCandidateMappingsForOneDesignIdentity_RefuseExplicitly()
@@ -263,8 +263,8 @@ namespace SAM.Tests
             Assert.Null(fixture.SimulationSpaceMap.Simulation(fixture.DesignSpace("Flat 1")));
             Assert.False(fixture.SimulationSpaceMap.IsComplete);
 
-            //Forwards is still fine - this is a reverse-direction ambiguity, not a broken map.
-            Assert.NotNull(fixture.SimulationSpaceMap.Design(fixture.SimulationSpace("Flat 1")));
+            //The forward direction is struck out too, so neither candidate can receive Flat 1's design intent.
+            Assert.Null(fixture.SimulationSpaceMap.Design(fixture.SimulationSpace("Flat 1")));
 
             //So Flat 1's scenario is refused, and the other flats are not.
             Assert.Contains(fixture.ScenarioMap.Refusals, x => x.Contains("does not resolve to exactly one simulated space"));
@@ -274,6 +274,10 @@ namespace SAM.Tests
             //A requested design space is refused for the same reason rather than resolved to either candidate.
             Assert.Empty(fixture.Calculator.Spaces([fixture.DesignSpace("Flat 1")], null));
             Assert.Single(fixture.Calculator.AssociationRefusals);
+
+            //And the whole-model path cannot put the ambiguous candidate back into the assessment.
+            Assert.DoesNotContain(fixture.Calculator.Spaces(null, null), x => x.Guid == fixture.SimulationSpace("Flat 1").Guid);
+            Assert.Contains(fixture.Calculator.AssociationRefusals, x => x.Contains("does not resolve to exactly one design space"));
         }
 
         /// <summary>
@@ -295,6 +299,11 @@ namespace SAM.Tests
 
             //Neither wins: the space maps to no scenario at all.
             Assert.Null(overheatingScenarioMap.Scenario(fixture.SimulationSpace("Flat 1")));
+
+            //The scenario accepted first is rolled back whole, including its strategy claim.
+            Assert.Empty(overheatingScenarioMap.Spaces(fixture.Scenario("Flat 1")));
+            Assert.DoesNotContain(overheatingScenarioMap.OverheatingScenarios, x => x.Key == fixture.Scenario("Flat 1").Key);
+            Assert.False(overheatingScenarioMap.VentilationStrategyMap.Selection(fixture.SimulationSpace("Flat 1")).IsSelected);
 
             //And the untouched flats still resolve.
             Assert.NotNull(overheatingScenarioMap.Scenario(fixture.SimulationSpace("Flat 3")));

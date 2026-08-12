@@ -142,7 +142,7 @@ namespace SAM.Analytical
         public VentilationStrategyMap VentilationStrategyMap { get; set; } = null;
 
         /// <summary>
-        /// Copies each design space's <c>InternalCondition</c> onto the simulated space of the same name.
+        /// Copies each design space's <c>InternalCondition</c> onto the simulated space resolved to it.
         /// <para>
         /// <b>Why the assessment needs it.</b> A model read back from a simulation carries results but not
         /// the design intent, and TM59 chooses its criterion and its occupancy profile from the internal
@@ -222,7 +222,10 @@ namespace SAM.Analytical
         /// Anything that does not resolve is <b>reported in <see cref="AssociationRefusals"/> and left out</b>.
         /// </para>
         /// </summary>
-        /// <param name="spaces_Design">Design spaces. Null means every space in the simulated model.</param>
+        /// <param name="spaces_Design">
+        /// Design spaces. Null means every resolved simulated space only when <paramref name="zones_Design"/>
+        /// is null too; with zones supplied, null means no individually selected spaces.
+        /// </param>
         /// <param name="zones_Design">Design zones, resolved through the design model's relations.</param>
         public List<Space> Spaces(IEnumerable<Space> spaces_Design, IEnumerable<Zone> zones_Design)
         {
@@ -235,12 +238,24 @@ namespace SAM.Analytical
 
             List<Space> result = [];
 
-            if (spaces_Design == null)
+            if (spaces_Design == null && zones_Design == null)
             {
-                //Everything the simulation produced. No resolution needed, and no design object was named.
-                result = analyticalModel.GetSpaces() ?? [];
+                //The whole model still means every RESOLVED simulated space. Returning an unresolved space
+                //here would undo RestoreDesignInternalConditions' refusal: the component would calculate it
+                //with whatever intent the simulation happened to carry and publish a result anyway.
+                foreach (Space space in analyticalModel.GetSpaces() ?? [])
+                {
+                    if (simulationSpaceMap.Design(space) == null)
+                    {
+                        associationRefusals.Add(string.Format("Simulated space '{0}' does not resolve to exactly one design space, so it cannot be assessed. It was left out rather than matched to a design space of the same name.", space.Name));
+
+                        continue;
+                    }
+
+                    Add(result, space);
+                }
             }
-            else
+            else if (spaces_Design != null)
             {
                 foreach (Space space_Design in spaces_Design)
                 {

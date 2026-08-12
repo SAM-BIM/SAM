@@ -126,8 +126,8 @@ namespace SAM.Tests
 
             Zone zone_Design = analyticalModel_Design.GetZones().Find(x => x.Name == "Flat 1");
 
-            //The whole model, because spaces was null - and Flat 1's space is not added a second time.
-            Assert.Equal(4, tM59AssessmentCalculator.Spaces(null, [zone_Design]).Count);
+            //A zone-only request is a zone scope, not "the whole model" merely because spaces is null.
+            Assert.Equal(["Flat 1 Bedroom 2"], tM59AssessmentCalculator.Spaces(null, [zone_Design]).ConvertAll(x => x.Name));
 
             //Asked for the zone alone, only its spaces come back.
             Assert.Equal(["Flat 1 Bedroom 2"], tM59AssessmentCalculator.Spaces([], [zone_Design]).ConvertAll(x => x.Name));

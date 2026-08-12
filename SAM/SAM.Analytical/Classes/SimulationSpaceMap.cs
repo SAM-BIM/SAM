@@ -129,29 +129,42 @@ namespace SAM.Analytical
         /// <para>
         /// <b>The reverse direction has its own ambiguity, and it is not the same one.</b> Two simulation spaces
         /// can resolve to a single design space - one stable key stamped on two simulated zones, or two
-        /// simulated spaces sharing a unique design name. Forwards that is fine; each simulation space knows
-        /// its design space. Backwards it is not: "which simulated result belongs to this dwelling" would have
-        /// two answers, and picking either would attribute one room's overheating to another. So the design
-        /// space is struck out of the reverse map and reported.
+        /// simulated spaces sharing a unique design name. Neither direction is then safe: backwards, "which
+        /// simulated result belongs to this dwelling" has two answers; forwards, restoring the same design
+        /// intent onto both candidates would let both produce apparently valid results. Both candidates and the
+        /// design space are therefore struck out and reported.
         /// </para>
         /// </summary>
         private void Resolve(Space space_Simulation, Space space_Design)
         {
-            dictionary_Design[space_Simulation.Guid] = space_Design;
-
             if (dictionary_Simulation.TryGetValue(space_Design.Guid, out Space space_Simulation_Existing))
             {
+                if (space_Simulation_Existing != null && space_Simulation_Existing.Guid == space_Simulation.Guid)
+                {
+                    //The same object was supplied twice. It is one mapping, not two candidates.
+                    dictionary_Design[space_Simulation.Guid] = space_Design;
+
+                    return;
+                }
+
                 if (space_Simulation_Existing != null)
                 {
-                    //Null marks it struck out rather than removing the entry, so a third claimant cannot
-                    //silently re-resolve it.
+                    //Null marks both directions struck out rather than removing either entry, so a third
+                    //claimant cannot silently re-resolve the design space and neither of the first two
+                    //simulation spaces can still receive design intent through Design().
                     dictionary_Simulation[space_Design.Guid] = null;
-                    spaces_Design_Ambiguous.Add(space_Design);
+                    dictionary_Design[space_Simulation_Existing.Guid] = null;
+                    Add(spaces_Ambiguous, space_Simulation_Existing);
+                    Add(spaces_Design_Ambiguous, space_Design);
                 }
+
+                dictionary_Design[space_Simulation.Guid] = null;
+                Add(spaces_Ambiguous, space_Simulation);
 
                 return;
             }
 
+            dictionary_Design[space_Simulation.Guid] = space_Design;
             dictionary_Simulation[space_Design.Guid] = space_Simulation;
         }
 
@@ -190,8 +203,8 @@ namespace SAM.Analytical
         public List<Space> Ambiguous => [.. spaces_Ambiguous];
 
         /// <summary>
-        /// Design spaces that more than one simulation space resolved to. Reported and struck out of
-        /// <see cref="Simulation"/>, never guessed between.
+        /// Design spaces that more than one simulation space resolved to. Reported and struck out of both
+        /// <see cref="Simulation"/> and <see cref="Design"/>, never guessed between.
         /// </summary>
         public List<Space> AmbiguousDesign => [.. spaces_Design_Ambiguous];
 
@@ -243,6 +256,14 @@ namespace SAM.Analytical
             }
 
             return result;
+        }
+
+        private static void Add(List<Space> spaces, Space space)
+        {
+            if (space != null && spaces.Find(x => x != null && x.Guid == space.Guid) == null)
+            {
+                spaces.Add(space);
+            }
         }
     }
 }

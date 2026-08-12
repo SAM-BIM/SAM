@@ -92,6 +92,17 @@ namespace SAM.Analytical
             {
                 Add(overheatingScenario);
             }
+
+            //Build the authoritative strategy map only after every ownership collision has been found. Add()
+            //can invalidate a scenario that was accepted earlier; adding claims as it went left that first
+            //scenario's ventilation strategy live even though Scenario(space) correctly said neither won.
+            foreach (OverheatingScenario overheatingScenario in this.overheatingScenarios)
+            {
+                if (dictionary_Spaces.TryGetValue(overheatingScenario.Key, out List<Space> spaces))
+                {
+                    ventilationStrategyMap.Add(overheatingScenario, spaces);
+                }
+            }
         }
 
         /// <summary>The scenarios that were successfully tied to at least one simulated space.</summary>
@@ -254,7 +265,23 @@ namespace SAM.Analytical
                     //SelectPreferredCapableSystem already follow.
                     refusals.Add(string.Format("Simulated space '{0}' is claimed by more than one scenario - design zones {1} and {2} - so which assessment it belongs to is not settled.", space.Name, overheatingScenario_Existing?.ZoneGuid, overheatingScenario.ZoneGuid));
 
-                    dictionary_Scenario[space.Guid] = null;
+                    //The scenario accepted earlier loses its WHOLE dwelling, not just the shared room. Leaving
+                    //its other rooms and its VentilationStrategyMap claim live would turn "neither wins" into
+                    //"the first wins everywhere except result association".
+                    if (overheatingScenario_Existing != null && dictionary_Spaces.TryGetValue(overheatingScenario_Existing.Key, out List<Space> spaces_Existing))
+                    {
+                        foreach (Space space_Existing in spaces_Existing)
+                        {
+                            dictionary_Scenario[space_Existing.Guid] = null;
+                        }
+
+                        dictionary_Spaces.Remove(overheatingScenario_Existing.Key);
+                        overheatingScenarios.RemoveAll(x => x != null && x.Key == overheatingScenario_Existing.Key);
+                    }
+                    else
+                    {
+                        dictionary_Scenario[space.Guid] = null;
+                    }
 
                     return;
                 }
@@ -271,9 +298,6 @@ namespace SAM.Analytical
 
             dictionary_Spaces[overheatingScenario_Stored.Key] = spaces;
             overheatingScenarios.Add(overheatingScenario_Stored);
-
-            //The strategy the scenario states, now against identities the assessment will actually see.
-            ventilationStrategyMap.Add(overheatingScenario_Stored, spaces);
         }
     }
 }
