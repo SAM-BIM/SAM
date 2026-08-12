@@ -17,7 +17,9 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `f712fd9f` + SAM_Tas `7f3dfda` + SAM_Tas_Grasshopper `b8dae4b` — **Iteration 0 step 8
+*Last updated at SAM `5f3ad8fb` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
+complete (the TSD-simple vs TPD-full preparation boundary, with the supply-temperature transfer proved
+impossible and refused) and Iteration 1's BasePassive vertical slice landed. Previously: step 8
 complete and independently reviewed**: simulation results, scenarios and design spaces are associated by
 identity, and both existing TAS acceptance paths accept the scenario/identity architecture.*
 
@@ -28,16 +30,24 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`f712fd9f`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`5f3ad8fb`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`bff125f`** | exactly `bff125f` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
-| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`7f3dfda`** | exactly `7f3dfda` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
-| `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`b8dae4b`** | exactly `b8dae4b` | clean, level | `sow/2026-Q3` @ `9555aa1` |
+| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`134dc1d`** | exactly `134dc1d` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
+| `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`94ac244`** | exactly `94ac244` | clean, level | `sow/2026-Q3` @ `9555aa1` |
+
+**The step 9 session opened by finding this table WRONG, and the check caught it. Worth keeping as evidence
+the invariant earns its keep.** It pinned `SAM`'s last code commit at `f712fd9f`, but `cc5e67f0` — a real code
+commit touching `OverheatingScenarioMap.cs` and `PartOResultAssociationTests.cs` — had landed on top of it and
+was described in 0b and 11n prose while the table was never bumped. So the loop below printed two
+`UNRECORDED CODE:` lines on a repository that was in fact perfectly healthy. **A stale pin and unrecorded work
+look identical from here**, which is exactly why the rule is to stop and reconcile rather than assume: the
+resolution was to read the prose, confirm the commit was accounted for, and correct the pin. Do the same if it
+happens again — and bump this table in the *same* commit that lands code.
 
 **One older wrinkle in `SAM`'s history, recorded rather than rewritten.** The step 7 review-fix commit
 `d2b0f971` also carries a partial update of this file, because the handover edit was in progress when it
-was staged. Nothing was force-pushed and nothing rewritten. It is historical now: the invariant below is
-anchored at the later, code-only step 8 review commit `f712fd9f`.
+was staged. Nothing was force-pushed and nothing rewritten. It is historical now.
 
 **Why a HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own hash, so
 a pinned HEAD would be wrong the moment it landed. The last **code** commit is pinned instead.
@@ -59,11 +69,11 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM f712fd9f
+SAM 5f3ad8fb
 SAM_Systems bff125f
 SAM_UI ffd8e38
-SAM_Tas 7f3dfda
-SAM_Tas_Grasshopper b8dae4b
+SAM_Tas 134dc1d
+SAM_Tas_Grasshopper 94ac244
 EOF
 ```
 
@@ -78,7 +88,24 @@ like the other two** — still waiting on Michal.
 
 ### 0b. Latest checkpoint — what it implemented
 
-**Iteration 0 step 8 — identity-based association, complete and independently reviewed. Detail in 11n.**
+**Iteration 0 step 9 — the TSD-simple vs TPD-full preparation boundary, plus Iteration 1's BasePassive
+vertical slice. Detail in 11o (step 9) and 11p (BasePassive).**
+
+- SAM_Tas `418f508` + SAM_Tas_Grasshopper `697c798` → **step 9**. `ResultantTemperatureTransfer`,
+  `ResultantTemperaturePreparation` and `ApproximateResultantTemperatureMap`; the legacy MRT+zone-temperature
+  synthesis moved out of the Grasshopper component into `SAM_Tas`; `Tas.TPDQueryTM59Results` (1.0.2) reduced to
+  read → prepare → assess with its third inline copy of the TM59 recipe deleted, and its three name matches
+  replaced by the step 8 identity path; `Tas.CalculateResultantTemperatureFromTPD` (1.0.2) now reports why it
+  refused. **The intended supply-temperature/airflow transfer is refused, not approximated — the limitation and
+  its evidence are in 11o, and it is the most important thing in this checkpoint.**
+- SAM `5f3ad8fb` → **Iteration 1, BasePassive**, on Michal's mid-session re-prioritisation.
+  `Query.PartOOperatingAssumptions`, `Create.OverheatingScenarios`, and
+  `SAMAnalytical.CreateOverheatingScenarios` — **the component that was missing**: three components accepted
+  `overheatingScenarios_` and nothing created one, so the scenario-authoritative path could not be driven from
+  Grasshopper at all. **Stating a stage still does not make a simulation obey it; see the scope boundary in 11p.**
+
+**Previous checkpoint — Iteration 0 step 8 — identity-based association, complete and independently reviewed.
+Detail in 11n.**
 
 - SAM `d7abd48a` + SAM_Tas `1aba5eec` + SAM_Tas_Grasshopper `f8ca646c` → the original step 8
   implementation: `SimulationSpaceMap` applied to restore, selection and result association; TAS stable
@@ -139,8 +166,11 @@ Detail in **11h** (5a), **11i** (5b), **11j** (5c) and **11k** (6).
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1185 passed, 0 failed** | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
-| `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **46 passed, 0 failed** | `dotnet test SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/…csproj` — **build SAM and the TM59 library first** |
+| `SAM/SAM.Tests` | **1196 passed, 0 failed** (was 1185; +11 `PartOIterationSliceTests`) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
+| `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **65 passed, 0 failed** (was 46; +19 `PreparationBoundaryTests`) | `dotnet test SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/…csproj` — **build SAM and the TM59 library first** |
+| `SAM_Tas.sln` | 0 errors under VS Framework MSBuild | `MSBuild.exe SAM_Tas.sln -restore -p:Configuration=Debug` |
+| `SAM.Analytical.Grasshopper.Tas.TPD` | 0 errors under VS Framework MSBuild | step 9's component changes |
+| `SAM.Analytical.Grasshopper` (SAM) | 0 `error CS` under VS Framework MSBuild | the new scenario component. **Its post-build step fails with `MSB3073` copying to `%APPDATA%\SAM`** — the known PostBuild APPDATA trap, pre-existing and unrelated; pass `-p:PostBuildEvent=` to compile only |
 | `SAM_Tas_Grasshopper/SAM.Analytical.Grasshopper.Tas` | 0 `error CS` under **VS Framework MSBuild** | no test project in that repo; equivalence is pinned in `SAM.Tests` |
 | `SAM_Systems/SAM.Analytical.Systems.Tests` | **34 passed, 0 failed** | unchanged by step 7 |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | unchanged by step 7 |
@@ -294,9 +324,17 @@ included.
 - ~~`Application` is documentation only~~ — **CLOSED in 5c**, it is now an eligibility constraint (11j).
 - ~~The `Tas.TSDQueryTM59Results` Grasshopper component still holds its own copy of the step 6 recipe.~~
   **CLOSED in step 7a.** `SAM_Tas_Grasshopper` is the fifth repo and the component calls the service.
-- **`TasTPDQueryTM59Results` still holds a THIRD inline copy of the recipe**, and repointing it is **step 9,
-  not a drive-by** — its middle stage is the two-pass TAS workaround that must be preserved. See **11m**,
-  which is authoritative on that boundary.
+- ~~`TasTPDQueryTM59Results` still holds a THIRD inline copy of the recipe.~~ **CLOSED in step 9** (11o). The
+  recipe now exists once; the component calls the service. **New deferred item in its place: the TPD-full route
+  cannot transfer supply air temperature into a TBD copy at all** — it is refused rather than approximated, and
+  the supported transfer (the first pass's achieved zone temperature into the thermostat limits) is an
+  approximation. See 11o; this needs Michal's decision, and possibly EDSL's.
+- **`PartOIteration` still has no effect on the SIMULATION INPUTS.** BasePassive can be stated and assessed
+  (11p), but nothing writes aperture control or ventilation rates into a TBD, so a stated stage is not a
+  modelled stage. `AcousticRestricted` is therefore key-distinct but behaviourally identical to BasePassive on
+  the input side, and `ActiveTrimCooling` refuses outright.
+- **The four Part O assumption VALUES are declared policy** and need Michal's confirmation (11p). Their
+  **names** are permanent — they are in `OverheatingScenario.Key`.
 - ~~No production caller can supply a `VentilationStrategyMap`.~~ **CLOSED in step 8.** Both existing
   Grasshopper entry points accept optional `OverheatingScenario` inputs and construct the identity-aware
   scenario/ventilation maps. Supplying scenarios takes the authoritative path; omitting them preserves the
@@ -322,19 +360,23 @@ included.
 
 ### 0f. The precise next task
 
-**Step 9 — preserve and make explicit the TSD-simple vs TPD-full preparation boundary. Read 11m in full
-before touching either implementation.** `TM59AssessmentCalculator` must remain engine-neutral and must not
-learn the words TSD or TPD.
+**Two things need Michal, and neither is code:**
 
-Step 9 cannot be implemented safely until Michal resolves the three discrepancies in 11m:
+1. **Confirm the four BasePassive/AcousticRestricted assumption VALUES in 11p.** The names are permanent and
+   cannot be changed without re-keying every scenario; the values are declared policy read off
+   `PartOIteration`'s own stage definitions, not from Approved Document O.
+2. **Decide what to do about the TPD-full limitation in 11o.** The intended supply-temperature transfer is
+   impossible in the TBD object model. The options are: accept the achieved-zone-temperature transfer as the
+   documented approximation (what the code does now), raise it with EDSL, or change the route's shape.
 
-1. whether the intended second pass evolves mechanism A or describes a different supply-temperature and
-   airflow injection;
-2. which of mechanism A and mechanism B is the authoritative TPD-full path;
-3. where B's preparation boundary settles before its inline TM59 recipe is repointed.
+**Then, in order:**
 
-Do not guess. Do not redesign `CalculateResultantTemperature.cs` or `TasTPDQueryTM59Results` while waiting.
-After step 9: step 10, the thin headless TAS runner, last.
+3. **Apply BasePassive to the simulation inputs** — the half 11p explicitly does not do. Aperture control and
+   ventilation rates in the TBD/gbXML export, so a stated stage is a *modelled* stage. This is the natural next
+   increment now that the slice exists, and it is what makes `AcousticRestricted` mean anything.
+4. **Step 10** — the thin headless TAS runner, last.
+
+`TM59AssessmentCalculator` must remain engine-neutral and must never learn the words TSD or TPD.
 
 ### 0g. Environment needed to continue
 
@@ -361,8 +403,8 @@ All five repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's,
 SAM_Tas_Grasshopper's branches are new and need PRs like the other two.** `sow/2026-Q3` was never committed to directly and is
 untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
 
-**Current code heads — SAM `f712fd9f`+handover, SAM_Systems `bff125f`, SAM_UI `ffd8e38`, SAM_Tas
-`7f3dfda`, SAM_Tas_Grasshopper `b8dae4b`. All pushed and verified. See section 0a, which is
+**Current code heads — SAM `5f3ad8fb`+handover, SAM_Systems `bff125f`, SAM_UI `ffd8e38`, SAM_Tas
+`134dc1d`, SAM_Tas_Grasshopper `94ac244`. All pushed and verified. See section 0a, which is
 authoritative.**
 
 Note for review: `ffd8e38` (SAM_UI) is the Part F dwelling-scope/cache work and is a *different review
@@ -389,7 +431,10 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - `b4d5aaa4`, `27ef1730` handover: section 0 and the repo-state invariant
   - `c5112e4f` **preference taken out of `SAM.Analytical`** + the stronger invariant (Michal's review)
   - `b52aff65` **`MechanicalSupply` + selection hardening** (review of 5a/5b, see 11h)
-  - `f712fd9f` **step 8 independent-review fixes** — last CODE commit, pushed; HEAD is the handover commit on top
+  - `f712fd9f` **step 8 independent-review fixes**
+  - `cc5e67f0` **step 8 further review**: same-key scenarios are one answer, proof 10 made behavioural (11n)
+  - `5f3ad8fb` **Iteration 1 — BasePassive stated and assessable** (11p) — last CODE commit, pushed; HEAD is
+    the handover commit on top
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -408,10 +453,13 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - `d56f679` doc terminology
   - `1aba5eec` original step 8 TAS identity mapping
   - `7f3dfda` step 8 review acceptance coverage for both TAS paths
-  - **HEAD = `7f3dfda`**, pushed
+  - `418f508` **step 9 — the TSD-simple vs TPD-full preparation boundary** (11o)
+  - `134dc1d` **step 9 independent-review fixes** (11o)
+  - **HEAD = `134dc1d`**, pushed
 - **SAM_Systems**: **HEAD = `bff125f`**, pushed; unchanged by step 8.
 - **SAM_Tas_Grasshopper**: `f8ca646c` original step 8 result association; `b8dae4b` review wiring for
-  both existing workflows; **HEAD = `b8dae4b`**, pushed.
+  both existing workflows; `697c798` **step 9 — the TPD query component made thin over the common
+  assessment** (11o); `94ac244` step 9 review fix; **HEAD = `94ac244`**, pushed.
 
 ## 2. Validation state (all green at handover)
 
@@ -1041,10 +1089,14 @@ communal corridor appeared in the run's DomOv XML as an ordinary room.
 8. ~~Result association to design dwelling / common space **by identity, not name**.~~ **DONE and
    independently reviewed** — see **11n**. The mandatory three-flat duplicate-`Bedroom 2` regression covers
    both existing TAS production paths.
-9. **NEXT — preserve the TSD-simple vs TPD-full routing boundary. Read 11m first.** The two-pass TAS
-   workaround is deliberate and must not be removed as duplication. Implementation is waiting on Michal's
-   three decisions in 11m; do not guess.
+9. ~~Preserve the TSD-simple vs TPD-full routing boundary.~~ **DONE — see 11o.** The two-pass route is named,
+   its refusals are explicit, mechanism B's preparation moved into `SAM_Tas` and its component is thin. **The
+   intended supply-temperature/airflow transfer proved impossible in the TBD object model and is refused
+   rather than approximated — 11o records the evidence.** Michal's three decisions in 11m are resolved.
 10. Thin headless TAS runner, **last**.
+
+**Iteration 1 has started ahead of step 10, on Michal's instruction** — BasePassive is stated and assessable
+(11p). Its remaining half is applying a stage to the **simulation inputs**, which 11p deliberately does not do.
 
 ### 11h. Step 5a — system capability selection, analytical half (DONE, `b23bef3b` + `c5112e4f` + `b52aff65`)
 
@@ -1387,18 +1439,20 @@ Two separate TPD-side mechanisms exist and **only one of them is the two-pass ro
 | **A** | `SAM_Tas/…/SAM.Analytical.Tas.TPD/Modify/CalculateResultantTemperature.cs`, driven by the component `Tas.CalculateResultantTemperatureFromTPD` (`SAM_Tas_Grasshopper/…/SAM.Analytical.Grasshopper.Tas.TPD/`) | **The two-pass route.** Reads an already-simulated TPD (`Simulate = false`, `IncludeComponentResults = true`), takes each space's `SpaceDataType.ZoneTemperature`, **copies** the TBD to `<name>_TPDThermostat.tbd`, writes that series into every zone internal condition's thermostat **upper- and lower-limit profiles** as yearly profiles (`factor 1`), **simulates again** to `<name>_TPDThermostat.tsd`, and returns both paths |
 | **B** | `SAM_Tas_Grasshopper/…/SAM.Analytical.Grasshopper.Tas.TPD/Component/TasTPDQueryTM59Results.cs` | **Not the two-pass route.** Reads the TSD beside the TPD via `ToSAM_SpaceSystemResults(path_TPD, out path_TSD)` and synthesises `ResultantTemperature` as the arithmetic **mean of the TSD's `MeanRadiantTemperature` and the TPD's `ZoneTemperature`**, then runs its own inline copy of the TM59 recipe |
 
-**Three discrepancies step 9 must reconcile with Michal — do not guess at any of them:**
+**The three discrepancies are now RESOLVED — Michal decided them at the start of the step 9 session, and
+step 9 implemented the answers. Kept here as the record of what was open and what was decided.**
 
-1. **A injects zone temperature into thermostat setpoint limits**, not supply air temperature and supply
-   airflow. Airflow injection exists as separate, uncalled modifiers (`Modify.UpdateSpaceAirflows`,
-   `Modify.UpdateFanAirflows`). Whether the intended sequence describes A's evolution or a different
-   mechanism is **Michal's call**.
-2. **B is a one-pass approximation and does not use A at all.** Two different TPD answers to the same
-   question are shipping side by side, and which one is the TPD-full path is not settled in the code.
-3. **B still holds a third inline copy of the TM59 recipe.** Repointing it at `TM59AssessmentCalculator` is
-   step 9, **not** a step 7 drive-by, precisely because its middle stage is the thing being preserved.
+1. ~~Whether the intended sequence describes A's evolution or a different mechanism.~~ **A is authoritative
+   and the intended transfer was to be supply air temperature + supply airflow.** Implemented as far as TAS
+   allows, which turned out to be **not at all** on the write side — see 11o, which records the limitation and
+   the evidence. `UpdateSpaceAirflows` / `UpdateFanAirflows` were checked and are **not** the required
+   transfer: both write **scalar design sizing values into the TPD**, not hourly series into a TBD copy.
+2. ~~Which of A and B is the authoritative TPD-full path.~~ **A is authoritative; B is a legacy/approximate
+   compatibility route.** A must never fall back to B.
+3. ~~Where B's preparation boundary settles.~~ **Inside `SAM.Analytical.Tas.TPD`**, as
+   `ApproximateResultantTemperatureMap`, with the component reduced to read → prepare → assess.
 
-Steps 7 and 8 changed **nothing** in either mechanism, by design.
+Steps 7 and 8 changed **nothing** in either mechanism, by design. Step 9 changed both.
 
 ### 11n. Step 8 — identity-based result association (DONE and independently reviewed)
 
@@ -1479,6 +1533,200 @@ two-pass TBD/TSD thermostat-profile workaround; mechanism B remains the separate
 temperature synthesis with its inline recipe. The discrepancies in 11m are recorded accurately and require
 Michal's decisions before step 9 begins.
 
+### 11o. Step 9 — the TSD-simple vs TPD-full boundary (DONE)
+
+**Implemented:** SAM_Tas `418f508`, SAM_Tas_Grasshopper `697c798`.
+
+**The rule the code now holds: preparation differs; assessment does not.** Three routes reach TM59, each
+preparing the required hourly `ResultantTemperature` differently, and all three then run the identical
+engine-neutral `TM59AssessmentCalculator`, which still never sees the words TSD, TPD or TAS.
+
+```
+TSD-simple:  TSD ─────────────────────────────────────────────────► model ─┐
+TPD-full:    TPD ─► pass 1 ─► TBD COPY ─► pass 2 ─► TSD ─────────► model ─┼─► TM59AssessmentCalculator
+TPD-approx:  TPD + companion TSD ─► synthesised (MRT + ZT) / 2 ──► model ─┘
+```
+
+**New types, all in `SAM.Analytical.Tas.TPD` and all free of TAS COM types** — which is what makes the
+boundary testable without an installed TAS, and is the reason the new suite runs under `dotnet test`:
+
+- `ResultantTemperatureTransfer` — names what crosses between the two passes, so the route's engineering
+  content is reviewable instead of implicit in one method body.
+- `ResultantTemperaturePreparation` — the TPD-full route's decisions: paths, transfer, refusals.
+  `TryBeginSecondPass` is the whole "may we proceed, and on which file" step, so the invariants can be
+  proved: **a refusal copies nothing and leaves the design TBD byte-identical**, and where the route
+  proceeds it proceeds **on a copy**.
+- `ApproximateResultantTemperatureMap` — mechanism B's preparation, moved out of the Grasshopper component.
+
+#### THE LIMITATION — the intended transfer cannot be performed, and is refused rather than approximated
+
+**Michal's intended sequence was: read the first pass's supply air temperature and supply airflow, inject
+both into the TBD copy, simulate. TAS cannot do this, and the blockage is specifically on the WRITE side.**
+
+- **The read half is available and already happening.** `Convert.ToSAM_SpaceSystemResults` calls
+  `ToSAM_SpaceSystemResult(null, start, end)`, which with no explicit list asks the `SystemZone` for **every**
+  `SpaceDataType` — and that enum already contains `SupplyAirTemperature = 3` and `FlowRate = 1` alongside
+  `ZoneTemperature = 9`. The numeric values are the TPD result-data-type codes, confirmed by the sibling
+  enums (`FanDataType`, `AirJunctionDataType`) sharing codes 1–8 for the standard duct/air result set. So the
+  supply conditions are in hand.
+- **The write half has nowhere to go.** Reflected over the whole `Interop.TBD` assembly (143 types): the
+  **only** temperature-valued member anywhere in it is `IWeatherYear.groundTemperature`. A TBD zone, its
+  internal condition, its thermostat and its internal gain expose **no per-zone supply air temperature of any
+  kind**. That is by design — TBD introduces ventilation air at outside or adjacent-zone conditions, and
+  conditioned supply air is a TPD concept. It is exactly why TAS keeps the two models apart.
+- **Injecting the airflow alone would be worse than partial progress.** TBD's ventilation profile
+  (`Profiles.ticV`, which SAM already reads as `InternalConditionParameter.SupplyAirFlow`) does accept an
+  hourly series, so the airflow half is mechanically writable. But air introduced **without its temperature**
+  enters at outside conditions, which states a system that does not exist. And once the thermostat pins the
+  zone air temperature — which is what the supported transfer does — an injected flow moves only the plant
+  load the second pass is not being used for, leaving `ResultantTemperature` **untouched**. The two halves
+  are not independent, and half of this transfer is not a fraction of the answer.
+- **`UpdateSpaceAirflows` / `UpdateFanAirflows` are not it.** Both operate on the **TPD** (`TPDDoc`) and set
+  **scalar design sizing values** (`FlowRate.Value`, `FreshAir.Value`, `tpdSizedVariableValue`). They are
+  neither hourly nor TBD-side.
+
+**Therefore `ResultantTemperatureTransfer.SupplyAirTemperatureAndAirflow` is refused with the reason stated,
+and the supported transfer remains `ZoneTemperatureToThermostatLimits` — now named as the approximation it
+is.** That transfer is not laziness: `ResultantTemperature` is a function of air temperature and mean radiant
+temperature, so pinning the air temperature to the first pass's **achieved** value leaves TBD to compute only
+the radiant half, which is the half TPD cannot give. It closes the loop; the intended transfer cannot.
+
+**If a future TAS release exposes a per-zone supply air temperature on the TBD side**, the one place that has
+to change is `ResultantTemperaturePreparation.TransferRefusal`.
+
+#### Behaviour changes, all deliberate and all previously silent
+
+1. **A TPD carrying no usable first-pass results now refuses** rather than copying the TBD and simulating a
+   copy identical to the design model — which would return a plain TBD answer while the workflow reported it
+   as systems-aware. The one failure on that route that produced a *plausible* number rather than an error.
+2. **A TPD series shorter than the radiant series refuses** rather than being wrapped to fill the year.
+   `GetValues(range, bounded: true)` **wraps** the available indices, so the returned length proves nothing —
+   the check is against `GetMinIndex`/`GetMaxIndex`.
+3. **Mechanism B stopped matching by name**, in three places: TPD-result attribution, design internal-condition
+   restore, and requested-space/zone selection. All three took the first same-named candidate, so in a block of
+   flats one dwelling's system results and another dwelling's internal condition could be reported against a
+   third dwelling's room. Identity is decided **once for the whole model**, not per space — a stamped space
+   with no matching result must not fall through to the name rule and collect a same-named sibling's results.
+4. **Refusals are reported** as Grasshopper warnings on both TPD components. `CalculateResultantTemperatureFromTPD`
+   previously returned `false` with nothing said, so a missing companion TBD was indistinguishable from a
+   failed simulation.
+
+#### Independent review, and the one finding that matters most
+
+**Review fixes:** SAM_Tas `134dc1d`, SAM_Tas_Grasshopper `94ac244`. Nine confirmed defects and
+four risks were raised; all valid ones are fixed. Three deserve recording here.
+
+**1. THE OPEN RISK — the two identities have never been shown to be the same string, and if they are not, the
+approximate route returns NOTHING for a block of flats.** Mechanism B correlates a space to a TPD result by
+matching `SpaceParameter.ZoneGuid` (which `ActiveSetting` maps to `TSD.ZoneData.zoneGUID`) against
+`SystemSpaceResult.Reference`. That reference comes from `(systemZone as dynamic).GUID` — and **`ISystemZone`
+declares no `GUID`**, verified by reflection, so it binds to `ISystemComponent.GUID`: **the TPD component's own
+guid.** Nothing establishes that a TPD component guid equals a TBD/TSD zone guid, and step 8's "verified on the
+real run" evidence covers only the TSD route. If they differ, identity mode never engages, the whole model falls
+to name mode, and three rooms all called `Bedroom 2` are **entirely refused** — safe, but useless, and a
+functional regression against the old (mis-attributing) behaviour.
+
+**What was done about it:** the risk is documented on the class, the fall back to names now emits **one
+model-wide diagnostic naming the cause** rather than only N baffling per-room messages, and a test
+(`WhereTheTwoIdentityNamespacesDisagree_ItSaysSoOnceAndFallsToNames`) gives the two sides **different** strings
+so the assumption cannot be silently re-encoded in the fixture — which is exactly what the original tests did.
+
+**The probable fix, NOT applied:** `IZoneLoad.GUID`. `ITSDData` — the object carrying `TBDPath` and `TSDPath` —
+exposes `GetZoneLoadForGuid(string)`, so a zone load is addressable by the guid the TBD/TSD side uses. Moving
+`ToSAM_SpaceSystemResult` onto `zoneLoad.GUID` is therefore the likely correction, but `Reference` also
+correlates a `SystemSpaceResult` to its `SystemSpace`/`SystemZone` in the energy-centre model and is persisted
+in JSON. **Verify against Michal's real TPD (`2027-08-03-HVAC`, 11e) before changing it.**
+
+**2. A claim in the step 9 commit message is WRONG and this is the correcting record.** The commit says the only
+temperature-valued member in `Interop.TBD` is `IWeatherYear.groundTemperature`. It is not: `IControls` has
+frost-protection, authority and night-setback temperatures, `IEmitter` has outside-temperature cut-offs, and
+`ISurfaceOutputSpec` has `dryBulbTemp`. The original scan matched `Temperature` case-sensitively and missed
+every member spelled `Temp`. **The load-bearing conclusion survives and was re-verified member by member: no
+TBD type exposes a per-zone supply air temperature, and none of those members is a zone supply condition.** The
+code comments and the test were corrected; the commit message cannot be.
+
+**3. A silent scope change on `Tas.TPDQueryTM59Results`, deliberate but previously unrecorded.** Supplying
+**only zones** in `_spaces_` used to assess the **whole model** (the old code treated `spaces == null` as
+whole-model and then *added* the zones' spaces). It now returns only the zones' spaces, because
+`TM59AssessmentCalculator.Spaces` means whole-model when **both** arguments are null — step 8 review finding 3,
+now inherited by this component too. Correct, but existing definitions wired zones-only will return fewer rows.
+
+**Also fixed:** malformed paths refuse instead of throwing `ArgumentNullException` out of a Grasshopper port;
+the length guard now checks **alignment and count** rather than index span, so a TPD simulated over a
+sub-period refuses instead of being silently **rotated** to fill the year; two spaces claiming one identity are
+refused in both directions, matching `SimulationSpaceMap`'s policy; `ApproximateResultantTemperatureMap` gained
+`IsSupported` and the component checks it rather than dereferencing a null model; a broken XML `cref`; redundant
+deep clones of 8760-element parameter sets; and a null JSON element now refuses instead of throwing in a cast.
+
+**Recorded, not fixed — `Modify.CalculateResultantTemperature` still zero-fills.** The authoritative route reads
+`GetValues(new Range<int>(0, 8759))` **unbounded**, so a TPD simulated over part of the year yields `0.0` for the
+rest, and those zeros go into **both** thermostat limit profiles of the TBD copy — the second pass then runs
+against a 0 °C setpoint outside the simulated period. Pre-existing and left alone under "preserve behaviour
+exactly", but note the irony: **mechanism A, the authoritative route, lacks the very protection step 9 added to
+mechanism B.** Worth its own change and regression.
+
+#### Proofs (19 new tests, `PreparationBoundaryTests`)
+
+Original TBD unchanged on refusal · second pass operates on a copy · payload follows the first pass's own
+results · supply conditions readable but neither half transferred · the intended transfer refused with its
+reason · unstated transfer refused · a failed TPD-full run produces nothing assessable and never falls back ·
+the synthesis is the mean · **the common calculator cannot synthesise a resultant temperature itself**
+(handed a radiant series alone it produces no assessment — the behavioural proof that B's arithmetic is not
+in `SAM.Analytical`) · B ties each `Bedroom 2` to its own TPD result · without identity B refuses rather than
+crossing flats · TSD-simple assesses without the two-pass preparation · the two TPD routes prepare
+distinguishably (A carries 24.0 through unchanged, B yields 22.0 from the same inputs) · both routes converge
+on the same assessment · step 7 ventilation authority intact on the approximate route.
+
+### 11p. Iteration 1 — BasePassive, the first usable vertical slice (DONE)
+
+**Implemented:** SAM `5f3ad8fb`. **Michal re-prioritised this mid-session**: the earliest usable milestone is
+a complete BasePassive slice through the **existing TSD-simple workflow**, producing TM59 results he can test
+by hand, and TPD-full/ActiveTrimCooling must not delay it.
+
+**What was actually missing, and it was not what the name suggested.** `PartOIteration` was **identity-only** —
+its own documentation says no member of it causes any behaviour anywhere — and, more importantly, **no
+component anywhere created an `OverheatingScenario`.** Three components accepted `overheatingScenarios_`
+(`Tas.TSDQueryTM59Results`, `Tas.TPDQueryTM59Results`, `SAMAnalytical.CreateTBDByTM59`) and nothing produced
+one, so the whole scenario-authoritative path from step 7/8 **could not be driven from Grasshopper at all**.
+That, not the enum, was the blocker to manual testing.
+
+- `Query.PartOOperatingAssumptions(PartOIteration, out string refusal)` — the single place a stage's
+  assumptions are written down. Four names: `Openings Restricted`, `Mechanical Ventilation At Design Rate`,
+  `Boost Available`, `Summer Bypass Available`. **BasePassive** and **AcousticRestricted** are stated;
+  **ActiveTrimCooling refuses** (what it assumes about a cooling provision is unsettled, and guessing would
+  put an unreviewed assumption inside a permanent identity); **Undefined returns an empty set**, which is the
+  honest answer rather than a refusal.
+- `Create.OverheatingScenarios(zones, iteration, strategyByZoneGuid, out refusals)` — the set for one stage.
+  Scope comes from `Query.PartOClassifyAssessmentZones` so it cannot drift from what Part F sizes. **One
+  stricter rule on top:** an **unmarked** zone beside marked ones is **refused**, not called a common space —
+  that split is right for classifying a marked-up model but would assess an unmarked bedroom against the
+  corridor criterion. A model that marks nothing keeps the documented legacy behaviour. A zone stating no
+  ventilation strategy is refused, never defaulted.
+- `SAMAnalytical.CreateOverheatingScenarios` (1.0.0) — the missing component. Zones + iteration + strategies
+  → scenarios, with refusals as warnings and on an output.
+
+**THE SCOPE BOUNDARY, and it must not be misread.** Stating a stage **does not make a simulation obey it**.
+Nothing in this slice writes aperture control profiles or ventilation rates into a TBD, so a BasePassive
+scenario asserts the model was **assessed** as base provision, not that it was **built** that way — and
+`Openings Restricted` / `Mechanical Ventilation At Design Rate` are properties of the **simulation inputs**.
+Applying a stage to the export is separate, unwritten work. **Modelling the stage you state remains the
+modeller's job today.**
+
+**The four assumption NAMES are permanent** — they participate in `OverheatingScenario.Key`, so renaming one
+re-keys every scenario that states it and orphans every result already attributed. **Their VALUES are declared
+policy** read off `PartOIteration`'s own stage definitions; nothing in Approved Document O was parsed, and
+**Michal needs to confirm them.** Note `AcousticRestricted` states a summer bypass that **no shipped template
+can satisfy** (0e) — that refusal belongs to capability selection, not here, because what a scenario *assumes*
+and what a system can *do* are different statements and conflating them would hide the mismatch.
+
+**How to test it by hand:** `SAMAnalytical.CreateOverheatingScenarios` (zones from the dwelling category,
+`_partOIteration` = `BasePassive`, one strategy per zone or one for all) → `overheatingScenarios` into
+`Tas.TSDQueryTM59Results`'s appended `overheatingScenarios_` input → TM59 results, with any refusal shown as
+a component warning.
+
+**Deferred, on Michal's instruction:** `AcousticRestricted` is *stated* and key-distinct but has no
+input-side behaviour either; `ActiveTrimCooling` refuses.
+
 ## 10. Standing instructions
 
 - **Two-laptop continuity rule, mandatory.** This file is the authoritative continuation state. After
@@ -1520,22 +1768,29 @@ remote at the SHAs in **section 0a**, which is authoritative. Nothing should be 
 
 ### State - all pushed, all green
 
-SAM **1185**, SAM_Tas TM59.Tests **46**, SAM_UI **180**, SAM_Systems **123** + **34**, SAM_Mollier **22**;
-Grasshopper (including `SAM.Analytical.Grasshopper.Tas`) and Mollier UI 0 `error CS`; SPDX clean.
+SAM **1196**, SAM_Tas TM59.Tests **65**, SAM_UI **180**, SAM_Systems **123** + **34**, SAM_Mollier **22**;
+Grasshopper (including `SAM.Analytical.Grasshopper.Tas`, `.Tas.TPD` and SAM's own) 0 `error CS`; SPDX clean.
 Not merged, **no PRs open in any of the five**.
 
 Done and reviewed: the Part F regulatory correction pass, the floor-plan overlay, saved-view persistence,
-the dwelling-scope correctness fix and cache proof, and **Iteration 0 steps 1-8**: Part O assessment scope,
+the dwelling-scope correctness fix and cache proof, and **Iteration 0 steps 1-9**: Part O assessment scope,
 `SimulationSpaceMap`, the engine-neutral `TMOverheatingCalculator` extraction with its TAS compatibility
 wrapper, `OverheatingScenario` with its derived deterministic key (11c), system capability selection across
 `SAM.Analytical` and `SAM_Systems` (11h-11j), the `TM59AssessmentCalculator` extraction (11k) **now called
 by its Grasshopper component**, **the scenario made authoritative over ventilation strategy (11l)**, and
-**identity-based result/scenario association wired into both existing TAS acceptance paths (11n)**.
+**identity-based result/scenario association wired into both existing TAS acceptance paths (11n)**, and
+**the TSD-simple vs TPD-full preparation boundary (11o)**. Iteration 1 has begun: **BasePassive can be
+stated and assessed, and the scenario-creating Grasshopper component that was missing now exists (11p)**.
 Every checkpoint independently reviewed and hardened.
+
+**Two things to read before anything else:** the TPD-full route **cannot** transfer supply air temperature
+into a TBD copy and refuses rather than approximating (11o), and the approximate TPD route's identity match
+**may not engage on real models** because the TPD result reference and the TBD/TSD zone guid have never been
+shown to be the same string (11o, review finding 1). Both need Michal.
 
 **Read section 0 first and verify the repositories against it before changing any code.**
 
-### Your next task: Iteration 0, step 9 onward (section 11g)
+### Your next task: see section 0f (Iteration 0 step 9 is DONE)
 7. **DONE and reviewed** (see 11l) — the scenario is authoritative over the TM59 criterion and over the XML
    export, and refuses where nothing states a strategy. 11d is closed.
 8. **DONE and independently reviewed** (see 11n) — association is through `SimulationSpaceMap`; both
