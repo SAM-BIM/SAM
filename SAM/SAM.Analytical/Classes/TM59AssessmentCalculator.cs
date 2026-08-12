@@ -68,6 +68,19 @@ namespace SAM.Analytical
         public string OccupancySensibleGainSeriesKey { get; set; } = Core.Query.Name(SpaceSimulationResultParameter.OccupancySensibleGain);
 
         /// <summary>
+        /// What each result reports as its <c>Source</c> where the model is unnamed. Passed straight to
+        /// <see cref="TMOverheatingCalculator.SourceFallback"/>.
+        /// <para>
+        /// <b>Exposed because provenance is the caller's, not this assembly's.</b> Left unset, a result off a
+        /// nameless model would be stamped <c>SAM.Analytical</c>; a TAS caller has always stamped
+        /// <c>SAM.Analytical.Tas</c>, and taking that away when the recipe moved would have changed what a
+        /// published result says about where it came from. <b>Provenance only</b> - it names no object and
+        /// takes no part in any scenario, criterion or result identity.
+        /// </para>
+        /// </summary>
+        public string SourceFallback { get; set; } = null;
+
+        /// <summary>
         /// Copies each design space's <c>InternalCondition</c> onto the simulated space of the same name.
         /// <para>
         /// <b>Why the assessment needs it.</b> A model read back from a simulation carries results but not
@@ -223,6 +236,13 @@ namespace SAM.Analytical
                 ResultantTemperatureSeriesKey = ResultantTemperatureSeriesKey,
                 OccupancySensibleGainSeriesKey = OccupancySensibleGainSeriesKey
             };
+
+            //Only when the caller stated one. Left null, TMOverheatingCalculator keeps its own default rather
+            //than being handed an empty provenance.
+            if (!string.IsNullOrWhiteSpace(SourceFallback))
+            {
+                tMOverheatingCalculator.SourceFallback = SourceFallback;
+            }
 
             List<TM59ExtendedResult> tM59ExtendedResults = tMOverheatingCalculator.Calculate_TM59(spaces_Temp);
             if (tM59ExtendedResults == null)

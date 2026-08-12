@@ -214,9 +214,17 @@ namespace SAM.Tests
 
         /// <summary>
         /// <b>The equivalence test, and the one that makes this an extraction rather than a rewrite.</b> The
-        /// component's own sequence is inlined below, verbatim from its <c>SolveInstance</c> minus the
-        /// parameter plumbing, and its output is compared with the service's. Everything else here says the
-        /// service behaves sensibly; this says it behaves <i>the same</i>.
+        /// sequence inlined below is <c>Tas.TSDQueryTM59Results</c>'s own, verbatim from the
+        /// <c>SolveInstance</c> it had before the component was repointed at this service, minus the parameter
+        /// plumbing - and its output is compared with the service's. Everything else here says the service
+        /// behaves sensibly; this says it behaves <i>the same</i>.
+        /// <para>
+        /// <b>It did not stop mattering when the component was repointed.</b> The component now calls the
+        /// service, so the two agree by construction and the component can no longer disagree with itself.
+        /// What this pins is the thing that is still falsifiable: that the service continues to do what the
+        /// component <i>used</i> to do. Delete it and the last statement of the original behaviour goes with
+        /// it.
+        /// </para>
         /// <para>
         /// The inlined copy is deliberately not factored - it is a transcript, and tidying it would defeat
         /// the point.
