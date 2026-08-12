@@ -17,7 +17,7 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `5f3ad8fb` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
+*Last updated at SAM `2e8c513f` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
 complete (the TSD-simple vs TPD-full preparation boundary, with the supply-temperature transfer proved
 impossible and refused) and Iteration 1's BasePassive vertical slice landed. Previously: step 8
 complete and independently reviewed**: simulation results, scenarios and design spaces are associated by
@@ -30,7 +30,7 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`5f3ad8fb`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`2e8c513f`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`bff125f`** | exactly `bff125f` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`134dc1d`** | exactly `134dc1d` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
@@ -69,7 +69,7 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 5f3ad8fb
+SAM 2e8c513f
 SAM_Systems bff125f
 SAM_UI ffd8e38
 SAM_Tas 134dc1d
@@ -98,7 +98,13 @@ vertical slice. Detail in 11o (step 9) and 11p (BasePassive).**
   replaced by the step 8 identity path; `Tas.CalculateResultantTemperatureFromTPD` (1.0.2) now reports why it
   refused. **The intended supply-temperature/airflow transfer is refused, not approximated — the limitation and
   its evidence are in 11o, and it is the most important thing in this checkpoint.**
-- SAM `5f3ad8fb` → **Iteration 1, BasePassive**, on Michal's mid-session re-prioritisation.
+- SAM `2e8c513f` → **Iteration 1, the REAL BasePassive slice (11q)**. Michal corrected the milestone: a scenario
+  attached to an existing simulation is not the deliverable. `Modify.ApplyPartFVentilationRates` carries the Part
+  F sized airflows onto the internal conditions the simulation actually reads — **they never reached it before**,
+  because `Query.CalculatedSupplyAirFlow` had no knowledge of `PartFSpaceData` — and
+  `SAMAnalytical.PreparePartOIteration` drives the whole slice with the applied rates inspectable. The Part F
+  calculation itself is **reused unchanged**, not reimplemented.
+- SAM `5f3ad8fb` → **Iteration 1, BasePassive scenario identity (11p)**, on Michal's earlier re-prioritisation.
   `Query.PartOOperatingAssumptions`, `Create.OverheatingScenarios`, and
   `SAMAnalytical.CreateOverheatingScenarios` — **the component that was missing**: three components accepted
   `overheatingScenarios_` and nothing created one, so the scenario-authoritative path could not be driven from
@@ -166,7 +172,7 @@ Detail in **11h** (5a), **11i** (5b), **11j** (5c) and **11k** (6).
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1196 passed, 0 failed** (was 1185; +11 `PartOIterationSliceTests`) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
+| `SAM/SAM.Tests` | **1207 passed, 0 failed** (was 1185; +11 `PartOIterationSliceTests`, +11 `PartFAirflowApplicationTests`) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
 | `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **65 passed, 0 failed** (was 46; +19 `PreparationBoundaryTests`) | `dotnet test SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/…csproj` — **build SAM and the TM59 library first** |
 | `SAM_Tas.sln` | 0 errors under VS Framework MSBuild | `MSBuild.exe SAM_Tas.sln -restore -p:Configuration=Debug` |
 | `SAM.Analytical.Grasshopper.Tas.TPD` | 0 errors under VS Framework MSBuild | step 9's component changes |
@@ -371,10 +377,22 @@ included.
 
 **Then, in order:**
 
-3. **Apply BasePassive to the simulation inputs** — the half 11p explicitly does not do. Aperture control and
-   ventilation rates in the TBD/gbXML export, so a stated stage is a *modelled* stage. This is the natural next
-   increment now that the slice exists, and it is what makes `AcousticRestricted` mean anything.
-4. **Step 10** — the thin headless TAS runner, last.
+3. **Confirm which Approved Document F condition `AcousticRestricted` simulates at** (11q). Its assumptions say
+   boost is *available*, not continuous; running a whole cooling season at the Table 1.2 high rate is a much more
+   favourable claim. Refused until decided rather than guessed.
+4. **Wire the ventilation SYSTEM selection** — the remaining half of 11q. Step 5's capability selection has **no
+   production caller anywhere**, and nothing calls `Modify.AddVentilationSystem` from Part F, so the *selected
+   system* is still not represented on the model. Note the constraint: descriptors come from `SAM_Systems`, which
+   `SAM.Analytical` deliberately does not reference (11h), so a caller must supply them.
+5. **Apply a stage to aperture control** — so BasePassive's "openings operated without restriction" is enforced
+   on the model rather than only stated. This is what would make `AcousticRestricted` mean anything.
+6. **Step 10** — the thin headless TAS runner, last.
+
+**The BasePassive slice as it now stands, for manual testing:**
+`AnalyticalModel` → `SAMAnalytical.AddVentilationPropertiesByPartF` (or `CheckPartFCompliance`) →
+`SAMAnalytical.PreparePartOIteration` (`BasePassive`) → inspect `supply m3/s` / `extract m3/s` / `partF l/s` →
+`To gbXML` → `SAMAnalytical.WorkflowgbXML` (`Simulation=true`) → `Tas.TSDQueryTM59Results` with
+`overheatingScenarios_` connected.
 
 `TM59AssessmentCalculator` must remain engine-neutral and must never learn the words TSD or TPD.
 
@@ -403,7 +421,7 @@ All five repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's,
 SAM_Tas_Grasshopper's branches are new and need PRs like the other two.** `sow/2026-Q3` was never committed to directly and is
 untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
 
-**Current code heads — SAM `5f3ad8fb`+handover, SAM_Systems `bff125f`, SAM_UI `ffd8e38`, SAM_Tas
+**Current code heads — SAM `2e8c513f`+handover, SAM_Systems `bff125f`, SAM_UI `ffd8e38`, SAM_Tas
 `134dc1d`, SAM_Tas_Grasshopper `94ac244`. All pushed and verified. See section 0a, which is
 authoritative.**
 
@@ -433,8 +451,9 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - `b52aff65` **`MechanicalSupply` + selection hardening** (review of 5a/5b, see 11h)
   - `f712fd9f` **step 8 independent-review fixes**
   - `cc5e67f0` **step 8 further review**: same-key scenarios are one answer, proof 10 made behavioural (11n)
-  - `5f3ad8fb` **Iteration 1 — BasePassive stated and assessable** (11p) — last CODE commit, pushed; HEAD is
-    the handover commit on top
+  - `5f3ad8fb` **Iteration 1 — BasePassive stated and assessable** (11p)
+  - `2e8c513f` **Iteration 1 — Part F airflows reach the simulation** (11q) — last CODE commit, pushed; HEAD
+    is the handover commit on top
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -1726,6 +1745,95 @@ a component warning.
 
 **Deferred, on Michal's instruction:** `AcousticRestricted` is *stated* and key-distinct but has no
 input-side behaviour either; `ActiveTrimCooling` refuses.
+
+### 11q. Iteration 1 - the REAL BasePassive slice: Part F airflows reach the simulation (DONE)
+
+**Implemented:** SAM `2e8c513f`. **Michal corrected the milestone**: a scenario attached to an existing
+simulation is not the deliverable. The slice must be
+
+```
+AnalyticalModel -> Part F calculation/terminal transfer -> Part-F-PREPARED AnalyticalModel
+              -> BasePassive preparation -> existing TSD simulation -> TM59AssessmentCalculator
+```
+
+with the calculated Part F airflows **inspectable on the model before simulation**.
+
+#### What already existed and is reused unchanged - do NOT write another airflow recipe
+
+- `Query.DefaultPartFCalculator()` loads `PartFCalculator` with the shipped rule set
+  (`SAM_PartFSpaceRulesUKDwellingsMVHR.json`).
+- `partFCalculator.AdjacencyCluster = ...; Calculate(zoneCategoryName)` sizes one house, or every dwelling zone
+  in a category independently.
+- **It writes its answer onto the model** - `PartFCalculator.cs:1286`,
+  `space.SetValue(SpaceParameter.PartFSpaceData, ...)`.
+- `PartFSpaceData` holds the authoritative **terminal collection** (`PartFVentilationTerminalRequirement`) with
+  `ContinuousDesignFlowRate_Lps` / `HighFlowRate_Lps` / `SetbackFlowRate_Lps` /
+  `MinimumRequiredFlowRate_Lps`, plus space roll-ups `ContinuousSupplyFlowRate_Lps`,
+  `ContinuousExtractFlowRate_Lps`, `NetContinuousFlowRate_Lps`. Dwelling level: `FinalSystemRate_Lps`,
+  `SetbackSystemRate_Lps`, `DwellingResults`.
+- Driven already by `SAMAnalytical.AddVentilationPropertiesByPartF` (sizing) and
+  `SAMAnalytical.CheckPartFCompliance` (sizes identically, then transfer-air network, door undercuts, purge,
+  overall status - the terminal-transfer workflow).
+
+#### The gap that was closed
+
+**`Query.CalculatedSupplyAirFlow` - what the TAS export reads - sums four `InternalCondition` parameters in
+m3/s and had never looked at `PartFSpaceData`.** Part F sizing (l/s, on the space) and simulation airflow
+(m3/s, on the internal condition) were two disconnected representations, so a Part-F-sized model simulated
+with whatever its internal conditions happened to say, and the Part F numbers were **reporting only**.
+
+`Modify.ApplyPartFVentilationRates(model, PartFOperatingMode, out refusals, out notes)` is the bridge. **Two
+hazards make it more than a unit conversion, and Michal decided both:**
+
+1. **The summing hazard.** Writing a Part F rate beside an existing per-area or per-person rate would **add**
+   to it and over-ventilate the room, silently. **Decision: Part F becomes authoritative** - the other three
+   supply bases and their three exhaust twins are cleared, and every space where something was displaced is
+   named in `notes`.
+2. **The shared internal condition hazard.** Part F rates are per room; internal conditions are routinely
+   shared between rooms, so writing in place would let one bedroom's rate overwrite another's - the normal case
+   in a block of flats. **Decision: a per-space clone**, fresh guid, named after the space, disambiguated where
+   two rooms share a name (three flats all have a `Bedroom 2`).
+
+Also: a wet room gets its extract and an **explicit zero supply**, because under the balanced MVHR arrangement
+Part F sizes its make-up air is transfer air through the internal door, and a stale supply rate would model a
+room ventilated twice. `MeasuredCommissioning` is **refused** - measured rates are site evidence and must never
+be driven into a design simulation.
+
+`Query.PartOIterationOperatingMode(PartOIteration, out refusal)` is the join between the two documents.
+**BasePassive -> `PartFOperatingMode.ContinuousDesign`**, which is a restatement of what the iteration says,
+not a judgement. **`AcousticRestricted` is REFUSED**: its assumptions say boost is *available*, not continuous,
+and simulating a whole cooling season at the Table 1.2 high rate is a materially **more favourable** claim than
+making boost available to a control strategy - an engineering decision, not a mapping. Returns nullable rather
+than an `Undefined` enum member, which would have renumbered every persisted `PartFOperatingMode`.
+
+`SAMAnalytical.PreparePartOIteration` (1.0.0) drives the slice: Part-F-sized model + iteration + strategies ->
+applied model + scenarios + **the applied supply read back through the query the SIMULATION uses** (not the
+value that was written) alongside the Part F l/s it came from, plus notes and refusals.
+
+#### Still NOT done - reported, not implied
+
+1. **No ventilation SYSTEM object is selected or applied.** Step 5's capability selection
+   (`Query.PartFSystemCapabilityRequirement`, `Query.CapableSystems`, `Query.SelectPreferredCapableSystem`)
+   exists and `SAM_Systems` holds the catalogue, but **grep finds no production caller anywhere** - only
+   comments and tests - and `Modify.AddVentilationSystem` is never called from Part F. Note the constraint:
+   selection needs `SystemCapabilityDescriptor`s from `SAM_Systems`, which `SAM.Analytical` deliberately does
+   not reference (11h), so the descriptors must be passed in by the caller.
+2. **Nothing touches aperture control**, so BasePassive's "openings operated without restriction" is still not
+   enforced on the model.
+
+#### Proof (11 new tests, `PartFAirflowApplicationTests`)
+
+End to end on the **real** calculator with the shipped rule set - nothing stubbed - asserting the applied rate
+equals the Part F rate as read back through `CalculatedSupplyAirFlow`; a wet room gets extract and zero supply;
+an existing per-area rate is cleared and reported rather than added to; two rooms sharing one internal
+condition end up with the rates their own volumes earned; the supplied model is unmodified; measured rates
+refuse; an unsized model refuses naming what to run first; a sized space with no internal condition refuses;
+and the three iteration mappings.
+
+**The non-mutation test caught a real aliasing bug:** `AdjacencyCluster`'s clone **shares its `Space` objects**
+with the model it came from, so assigning an internal condition in place reached back through the clone and
+changed the caller's model. Fixed by writing onto `new Space(space)`, which keeps the guid so `AddObject`
+replaces rather than duplicating. **Remember this for any `Modify` that claims to return a copy.**
 
 ## 10. Standing instructions
 
