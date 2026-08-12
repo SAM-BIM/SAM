@@ -33,9 +33,18 @@ namespace SAM.Analytical
     {
         private readonly Dictionary<Guid, Space> dictionary_Design = [];
 
+        /// <summary>
+        /// The other direction: design space guid to the simulation space it produced. <b>Needed because a
+        /// scenario names a DESIGN zone</b>, so carrying its intent forward - which ventilation strategy governs
+        /// which simulated space - means walking design to simulation, not simulation to design.
+        /// </summary>
+        private readonly Dictionary<Guid, Space> dictionary_Simulation = [];
+
         private readonly List<Space> spaces_Unresolved = [];
 
         private readonly List<Space> spaces_Ambiguous = [];
+
+        private readonly List<Space> spaces_Design_Ambiguous = [];
 
         /// <summary>
         /// Builds the map.
@@ -64,7 +73,7 @@ namespace SAM.Analytical
                 {
                     if (spaces_Key.Count == 1)
                     {
-                        dictionary_Design[space_Simulation.Guid] = spaces_Key[0];
+                        Resolve(space_Simulation, spaces_Key[0]);
                         continue;
                     }
 
@@ -78,7 +87,7 @@ namespace SAM.Analytical
                 {
                     if (spaces_Name.Count == 1)
                     {
-                        dictionary_Design[space_Simulation.Guid] = spaces_Name[0];
+                        Resolve(space_Simulation, spaces_Name[0]);
                         continue;
                     }
 
@@ -93,12 +102,82 @@ namespace SAM.Analytical
         }
 
         /// <summary>
+        /// A map over one set of spaces where each space <b>is</b> its own counterpart.
+        /// <para>
+        /// <b>For a design-only workflow, where there is no simulation to map to.</b> Preparing the TAS TM59
+        /// configuration works on the design model: the spaces the export writes are the design spaces, so
+        /// carrying a scenario to them needs an identity, not a translation. Passing a self-built map with a null
+        /// key function would be wrong there - it would fall back to names and refuse three rooms all called
+        /// "Bedroom 2", which are exactly the rooms that workflow has to export.
+        /// </para>
+        /// <para>
+        /// Resolution is by <c>Guid</c> to itself, so duplicate names cannot make it ambiguous and no name is
+        /// read at all. <see cref="IsComplete"/> is true for any set of non-null spaces.
+        /// </para>
+        /// </summary>
+        public static SimulationSpaceMap Identity(IEnumerable<Space> spaces)
+        {
+            List<Space> spaces_Temp = Clean(spaces);
+
+            //Both sides are the same objects, and the key is each space's own guid - which is unique by
+            //construction, so neither the key branch nor the name branch can be ambiguous.
+            return new SimulationSpaceMap(spaces_Temp, spaces_Temp, x => x.Guid.ToString());
+        }
+
+        /// <summary>
+        /// Records one resolved pair, in both directions.
+        /// <para>
+        /// <b>The reverse direction has its own ambiguity, and it is not the same one.</b> Two simulation spaces
+        /// can resolve to a single design space - one stable key stamped on two simulated zones, or two
+        /// simulated spaces sharing a unique design name. Forwards that is fine; each simulation space knows
+        /// its design space. Backwards it is not: "which simulated result belongs to this dwelling" would have
+        /// two answers, and picking either would attribute one room's overheating to another. So the design
+        /// space is struck out of the reverse map and reported.
+        /// </para>
+        /// </summary>
+        private void Resolve(Space space_Simulation, Space space_Design)
+        {
+            dictionary_Design[space_Simulation.Guid] = space_Design;
+
+            if (dictionary_Simulation.TryGetValue(space_Design.Guid, out Space space_Simulation_Existing))
+            {
+                if (space_Simulation_Existing != null)
+                {
+                    //Null marks it struck out rather than removing the entry, so a third claimant cannot
+                    //silently re-resolve it.
+                    dictionary_Simulation[space_Design.Guid] = null;
+                    spaces_Design_Ambiguous.Add(space_Design);
+                }
+
+                return;
+            }
+
+            dictionary_Simulation[space_Design.Guid] = space_Simulation;
+        }
+
+        /// <summary>
         /// The design space a simulation space came from, or null where it could not be resolved
         /// unambiguously.
         /// </summary>
         public Space Design(Space space_Simulation)
         {
             return space_Simulation != null && dictionary_Design.TryGetValue(space_Simulation.Guid, out Space result) ? result : null;
+        }
+
+        /// <summary>
+        /// The simulation space a design space produced, or null where nothing produced it or more than one
+        /// thing did.
+        /// <para>
+        /// <b>This is the direction a scenario travels.</b> An <c>OverheatingScenario</c> names a design zone,
+        /// so deciding which simulated spaces it governs - and therefore which TM59 criterion applies to them -
+        /// means going design to simulation. Null is a refusal and must be treated as one: the alternative is
+        /// matching the design space's name against the simulated model, which is the defect this class exists
+        /// to remove.
+        /// </para>
+        /// </summary>
+        public Space Simulation(Space space_Design)
+        {
+            return space_Design != null && dictionary_Simulation.TryGetValue(space_Design.Guid, out Space result) ? result : null;
         }
 
         /// <summary>Simulation spaces with no counterpart in the design model at all.</summary>
@@ -110,8 +189,17 @@ namespace SAM.Analytical
         /// </summary>
         public List<Space> Ambiguous => [.. spaces_Ambiguous];
 
-        /// <summary>Whether every simulation space resolved to exactly one design space.</summary>
-        public bool IsComplete => spaces_Unresolved.Count == 0 && spaces_Ambiguous.Count == 0;
+        /// <summary>
+        /// Design spaces that more than one simulation space resolved to. Reported and struck out of
+        /// <see cref="Simulation"/>, never guessed between.
+        /// </summary>
+        public List<Space> AmbiguousDesign => [.. spaces_Design_Ambiguous];
+
+        /// <summary>
+        /// Whether every simulation space resolved to exactly one design space <b>and</b> no design space was
+        /// claimed by two simulation spaces - so the mapping is one-to-one and usable in both directions.
+        /// </summary>
+        public bool IsComplete => spaces_Unresolved.Count == 0 && spaces_Ambiguous.Count == 0 && spaces_Design_Ambiguous.Count == 0;
 
         private static List<Space> Clean(IEnumerable<Space> spaces)
         {

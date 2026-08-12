@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-or-later
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Analytical;
@@ -40,7 +40,7 @@ namespace SAM.Tests
             AnalyticalModel analyticalModel_Simulation = Model_Simulation();
             AnalyticalModel analyticalModel_Design = Model_Design();
 
-            TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(analyticalModel_Simulation);
+            TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(analyticalModel_Simulation, analyticalModel_Design);
 
             //Nothing to begin with - the simulated model is a rebuild.
             foreach (Space space in tM59AssessmentCalculator.AnalyticalModel.GetSpaces())
@@ -48,7 +48,7 @@ namespace SAM.Tests
                 Assert.Null(space.InternalCondition);
             }
 
-            Assert.True(tM59AssessmentCalculator.RestoreDesignInternalConditions(analyticalModel_Design));
+            Assert.True(tM59AssessmentCalculator.RestoreDesignInternalConditions());
 
             foreach (Space space in tM59AssessmentCalculator.AnalyticalModel.GetSpaces())
             {
@@ -57,7 +57,7 @@ namespace SAM.Tests
             }
 
             //And it does not throw or wipe anything when there is nothing to restore from.
-            Assert.False(Calculator(Model_Simulation()).RestoreDesignInternalConditions(null));
+            Assert.False(new TM59AssessmentCalculator(Model_Simulation(), null, new SimulationSpaceMap(null, null, null)).RestoreDesignInternalConditions());
         }
 
         /// <summary>
@@ -77,37 +77,68 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// Named spaces are looked up in the simulated model, and one that is not there is skipped rather
-        /// than carried through as the design object it came from.
+        /// <b>Requested spaces are DESIGN objects resolved by identity.</b> A real design space resolves to the
+        /// simulated space it produced; one the design model does not hold is refused with a reason.
+        /// <para>
+        /// <b>And a fabricated space with the right NAME no longer resolves</b>, which is the behaviour change.
+        /// Before step 8 a caller could conjure <c>new Space("Flat 1 Bedroom 2")</c> and be handed a result; now
+        /// only the actual design object counts, because in a block of flats a name identifies nothing.
+        /// </para>
         /// </summary>
         [Fact]
-        public void NamedSpaces_AreResolvedAgainstTheSimulatedModel()
+        public void RequestedSpaces_AreResolvedByIdentityAndNotByName()
         {
-            TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(Model_Simulation());
+            AnalyticalModel analyticalModel_Design = Model_Design();
 
-            List<Space> spaces = tM59AssessmentCalculator.Spaces([new Space("Flat 1 Bedroom 2"), new Space("Nowhere")], null);
+            TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(Model_Simulation(), analyticalModel_Design);
+
+            Space space_Design = analyticalModel_Design.GetSpaces().Find(x => x.Name == "Flat 1 Bedroom 2");
+
+            List<Space> spaces = tM59AssessmentCalculator.Spaces([space_Design], null);
 
             Assert.Equal(["Flat 1 Bedroom 2"], spaces.ConvertAll(x => x.Name));
+            Assert.Empty(tM59AssessmentCalculator.AssociationRefusals);
+
+            //A fabricated space carrying the same name is refused, not resolved.
+            Assert.Empty(tM59AssessmentCalculator.Spaces([new Space("Flat 1 Bedroom 2")], null));
+            Assert.Single(tM59AssessmentCalculator.AssociationRefusals);
+            Assert.Contains("does not resolve to exactly one simulated space", tM59AssessmentCalculator.AssociationRefusals[0]);
+
+            //As is one that names nothing in the model at all.
+            Assert.Empty(tM59AssessmentCalculator.Spaces([new Space("Nowhere")], null));
+            Assert.Single(tM59AssessmentCalculator.AssociationRefusals);
         }
 
         /// <summary>
-        /// A zone contributes every space related to it, and a space already selected is not added twice.
+        /// <b>A zone contributes its spaces through the DESIGN model's relations</b>, and a space already
+        /// selected is not added twice - de-duplicated by <c>Guid</c>, not by name.
+        /// <para>
+        /// The design model is what says which rooms make up Flat 1. The simulated model's zones are a rebuild
+        /// with fresh guids that no scenario and no design zone can name, so they are not consulted.
+        /// </para>
         /// </summary>
         [Fact]
-        public void Zones_ContributeTheirSpacesWithoutDuplicating()
+        public void Zones_ContributeTheirSpacesByIdentityWithoutDuplicating()
         {
-            TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(Model_Simulation());
+            AnalyticalModel analyticalModel_Design = Model_Design();
 
-            List<Space> spaces = tM59AssessmentCalculator.Spaces(null, [new Zone("Flat 1")]);
+            TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(Model_Simulation(), analyticalModel_Design);
+
+            Zone zone_Design = analyticalModel_Design.GetZones().Find(x => x.Name == "Flat 1");
 
             //The whole model, because spaces was null - and Flat 1's space is not added a second time.
-            Assert.Equal(4, spaces.Count);
+            Assert.Equal(4, tM59AssessmentCalculator.Spaces(null, [zone_Design]).Count);
 
             //Asked for the zone alone, only its spaces come back.
-            Assert.Equal(["Flat 1 Bedroom 2"], tM59AssessmentCalculator.Spaces([], [new Zone("Flat 1")]).ConvertAll(x => x.Name));
+            Assert.Equal(["Flat 1 Bedroom 2"], tM59AssessmentCalculator.Spaces([], [zone_Design]).ConvertAll(x => x.Name));
 
-            //A zone the simulated model does not have contributes nothing rather than throwing.
+            //A fabricated zone with a real zone's name is refused rather than resolved by that name.
+            Assert.Empty(tM59AssessmentCalculator.Spaces([], [new Zone("Flat 1")]));
+            Assert.Contains("is not in the design model", tM59AssessmentCalculator.AssociationRefusals[0]);
+
+            //And a zone that names nothing contributes nothing rather than throwing.
             Assert.Empty(tM59AssessmentCalculator.Spaces([], [new Zone("Flat 9")]));
+            Assert.Single(tM59AssessmentCalculator.AssociationRefusals);
         }
 
         /// <summary>
@@ -119,7 +150,7 @@ namespace SAM.Tests
         {
             TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(Model_Simulation());
 
-            Assert.True(tM59AssessmentCalculator.RestoreDesignInternalConditions(Model_Design()));
+            Assert.True(tM59AssessmentCalculator.RestoreDesignInternalConditions());
 
             TM59AssessmentResult tM59AssessmentResult = tM59AssessmentCalculator.Calculate(tM59AssessmentCalculator.Spaces(null, null));
 
@@ -145,7 +176,7 @@ namespace SAM.Tests
         public void Extended_ChoosesTheResultFormAndNothingElse()
         {
             TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(Model_Simulation());
-            tM59AssessmentCalculator.RestoreDesignInternalConditions(Model_Design());
+            tM59AssessmentCalculator.RestoreDesignInternalConditions();
 
             List<Space> spaces = tM59AssessmentCalculator.Spaces(null, null);
 
@@ -178,11 +209,14 @@ namespace SAM.Tests
         public void TheWrongSeriesKey_ProducesNoAssessment()
         {
             //Left at the analytical default, against a model written by the TAS converter.
-            TM59AssessmentCalculator tM59AssessmentCalculator = new(Model_Simulation());
+            AnalyticalModel analyticalModel_Simulation = Model_Simulation();
+            AnalyticalModel analyticalModel_Design = Model_Design();
+
+            TM59AssessmentCalculator tM59AssessmentCalculator = new(analyticalModel_Simulation, analyticalModel_Design, new SimulationSpaceMap(analyticalModel_Design.GetSpaces(), analyticalModel_Simulation.GetSpaces(), null));
 
             Assert.Equal(Core.Query.Name(SpaceSimulationResultParameter.OccupancySensibleGain), tM59AssessmentCalculator.OccupancySensibleGainSeriesKey);
 
-            tM59AssessmentCalculator.RestoreDesignInternalConditions(Model_Design());
+            tM59AssessmentCalculator.RestoreDesignInternalConditions();
 
             TM59AssessmentResult tM59AssessmentResult = tM59AssessmentCalculator.Calculate(tM59AssessmentCalculator.Spaces(null, null));
 
@@ -193,7 +227,7 @@ namespace SAM.Tests
 
             //And with the key the converter actually wrote, the same model does assess.
             TM59AssessmentCalculator tM59AssessmentCalculator_Tas = Calculator(Model_Simulation());
-            tM59AssessmentCalculator_Tas.RestoreDesignInternalConditions(Model_Design());
+            tM59AssessmentCalculator_Tas.RestoreDesignInternalConditions();
 
             TM59AssessmentResult tM59AssessmentResult_Tas = tM59AssessmentCalculator_Tas.Calculate(tM59AssessmentCalculator_Tas.Spaces(null, null));
 
@@ -206,10 +240,10 @@ namespace SAM.Tests
         [Fact]
         public void NothingToAssess_ProducesNoResult()
         {
-            Assert.Null(new TM59AssessmentCalculator(null).Calculate([]));
-            Assert.Null(new TM59AssessmentCalculator(null).Spaces(null, null));
+            Assert.Null(new TM59AssessmentCalculator(null, null, null).Calculate([]));
+            Assert.Null(new TM59AssessmentCalculator(null, null, null).Spaces(null, null));
             Assert.Null(Calculator(Model_Simulation()).Calculate(null));
-            Assert.False(new TM59AssessmentCalculator(null).RestoreDesignInternalConditions(Model_Design()));
+            Assert.False(new TM59AssessmentCalculator(null, Model_Design(), new SimulationSpaceMap(null, null, null)).RestoreDesignInternalConditions());
         }
 
         /// <summary>
@@ -235,7 +269,7 @@ namespace SAM.Tests
         {
             //---- the service ----
             TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(Model_Simulation());
-            tM59AssessmentCalculator.RestoreDesignInternalConditions(Model_Design());
+            tM59AssessmentCalculator.RestoreDesignInternalConditions();
 
             TM59AssessmentResult tM59AssessmentResult = tM59AssessmentCalculator.Calculate(tM59AssessmentCalculator.Spaces(null, null));
 
@@ -311,9 +345,24 @@ namespace SAM.Tests
             return tMResults.ConvertAll(x => x?.Name);
         }
 
-        private static TM59AssessmentCalculator Calculator(AnalyticalModel analyticalModel)
+        /// <summary>
+        /// A calculator over a simulated model and a design model, tied together by a
+        /// <c>SimulationSpaceMap</c>.
+        /// <para>
+        /// <b>A null key function on purpose.</b> This fixture's spaces have distinct names, so unique-name
+        /// matching resolves every one of them - which is exactly the condition under which the name matching
+        /// this class used to do was correct. That is what keeps the equivalence transcript below meaningful.
+        /// The three-flat fixture where names REPEAT is in <c>PartOResultAssociationTests</c>, and it is the one
+        /// that needs a real identity.
+        /// </para>
+        /// </summary>
+        private static TM59AssessmentCalculator Calculator(AnalyticalModel analyticalModel, AnalyticalModel analyticalModel_Design = null)
         {
-            return new TM59AssessmentCalculator(analyticalModel)
+            analyticalModel_Design ??= Model_Design();
+
+            SimulationSpaceMap simulationSpaceMap = new(analyticalModel_Design?.GetSpaces(), analyticalModel?.GetSpaces(), null);
+
+            return new TM59AssessmentCalculator(analyticalModel, analyticalModel_Design, simulationSpaceMap)
             {
                 //What the TAS wrapper supplies, because the TSD converter writes this spelling.
                 OccupancySensibleGainSeriesKey = key_Tas_OccupantSensibleGain
@@ -354,14 +403,25 @@ namespace SAM.Tests
             return result;
         }
 
-        /// <summary>The design model - the same space names, carrying the internal conditions.</summary>
+        /// <summary>
+        /// The design model - the same space names, carrying the internal conditions, <b>and zoned</b>, because a
+        /// requested zone is now resolved through the design model's own relations rather than the simulated
+        /// model's rebuilt ones.
+        /// </summary>
         private static AnalyticalModel Model_Design()
         {
             AdjacencyCluster adjacencyCluster = new();
 
-            foreach (string name in new[] { "Flat 1 Bedroom 2", "Flat 2 Bedroom 2", "Flat 3 Bedroom 2", "Corridor" })
+            foreach (string name in new[] { "Flat 1", "Flat 2", "Flat 3", "Corridor" })
             {
-                adjacencyCluster.AddObject(new Space(name) { InternalCondition = new InternalCondition(name) });
+                string name_Space = name == "Corridor" ? "Corridor" : name + " Bedroom 2";
+
+                Space space = new(name_Space) { InternalCondition = new InternalCondition(name_Space) };
+                Zone zone = new(name);
+
+                adjacencyCluster.AddObject(space);
+                adjacencyCluster.AddObject(zone);
+                adjacencyCluster.AddRelation(zone, space);
             }
 
             return new AnalyticalModel("Three Flats", null, null, null, adjacencyCluster);

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-or-later
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core;
@@ -23,13 +23,24 @@ namespace SAM.Analytical
     /// the same split that <c>TMOverheatingCalculator</c> already makes, for the same reason.
     /// </para>
     ///
-    /// <para><b>One thing still preserved verbatim that is known to be wrong</b></para>
-    /// <list type="bullet">
-    /// <item><b>Spaces are matched by NAME</b>, in <see cref="RestoreDesignInternalConditions"/> and in
-    /// <see cref="Spaces"/>. Every flat in a block has a "Bedroom 2", so this silently pairs one dwelling's
-    /// room with another's. <c>SimulationSpaceMap</c> exists to fix it - by identity, refusing on ambiguity -
-    /// and doing so here would make the extraction unverifiable. It is the next step, not this one.</item>
-    /// </list>
+    /// <para>
+    /// <b>Nothing here matches a space by name any more, and there is no fallback that does.</b> Both
+    /// <see cref="RestoreDesignInternalConditions"/> and <see cref="Spaces"/> resolve through
+    /// <see cref="SimulationSpaceMap"/> and refuse what does not resolve. The name-matching code they used to
+    /// contain is <b>deleted, not gated</b>: an optional identity mode would have left the wrong behaviour one
+    /// forgotten argument away, in a workflow where every flat in a block has a "Bedroom 2".
+    /// </para>
+    /// <para>
+    /// <b>The internal condition is why this had to be the calculation's input and not a label on its output.</b>
+    /// Restoring the wrong flat's internal condition drives the assessment with the wrong occupancy profile and
+    /// the wrong system, and then attributes the answer correctly - a wrong number that passes every check
+    /// downstream of it. Associating results by identity afterwards would not have caught that.
+    /// </para>
+    /// <para>
+    /// A caller with no engine-stable identity is not stuck: <c>SimulationSpaceMap</c> built with a null key
+    /// function matches on <b>unique</b> names and refuses duplicates. Name matching therefore still exists, in
+    /// exactly one place, where it is already tested and already refuses rather than guesses.
+    /// </para>
     /// <para>
     /// <b>The criterion is no longer derived</b> where a caller supplies
     /// <see cref="VentilationStrategyMap"/>: the scenario states the ventilation strategy and a space it does
@@ -42,16 +53,51 @@ namespace SAM.Analytical
     {
         private AnalyticalModel analyticalModel = null;
 
+        private readonly AnalyticalModel analyticalModel_Design = null;
+
+        private readonly SimulationSpaceMap simulationSpaceMap = null;
+
+        private List<string> associationRefusals = [];
+
         /// <param name="analyticalModel">
         /// The model read back from a simulation - fresh spaces carrying hourly series, not the design model.
         /// </param>
-        public TM59AssessmentCalculator(AnalyticalModel analyticalModel)
+        /// <param name="analyticalModel_Design">
+        /// The design model, which holds the internal conditions and the zone-to-space relations a scenario is
+        /// stated against. Held rather than passed per call, because selecting spaces needs it as much as
+        /// restoring internal conditions does.
+        /// </param>
+        /// <param name="simulationSpaceMap">
+        /// How a simulated space is known to be a given design space. <b>Required, and there is no name-matching
+        /// alternative</b> - see the class summary. A caller with no engine-stable identity passes a map built
+        /// with a null key function, which matches on unique names and refuses on duplicates.
+        /// </param>
+        public TM59AssessmentCalculator(AnalyticalModel analyticalModel, AnalyticalModel analyticalModel_Design, SimulationSpaceMap simulationSpaceMap)
         {
             this.analyticalModel = analyticalModel;
+            this.analyticalModel_Design = analyticalModel_Design;
+            this.simulationSpaceMap = simulationSpaceMap;
         }
 
         /// <summary>The simulated model the assessment reads, as it currently stands.</summary>
         public AnalyticalModel AnalyticalModel => analyticalModel;
+
+        /// <summary>The design model the assessment takes its intent from.</summary>
+        public AnalyticalModel AnalyticalModel_Design => analyticalModel_Design;
+
+        /// <summary>How a simulated space is known to be a given design space.</summary>
+        public SimulationSpaceMap SimulationSpaceMap => simulationSpaceMap;
+
+        /// <summary>
+        /// Why a space could not be tied to the design model, one sentence each - an unresolved identity, or an
+        /// identity two objects claim. A copy, and replaced by each <see cref="RestoreDesignInternalConditions"/>
+        /// or <see cref="Spaces"/> call.
+        /// <para>
+        /// <b>These are refusals, not warnings.</b> A space named here was left out rather than paired with a
+        /// same-named room from another dwelling, which is what the code this replaced would have done.
+        /// </para>
+        /// </summary>
+        public List<string> AssociationRefusals => [.. associationRefusals];
 
         /// <summary>The TM52 building category the comfort limits are derived for.</summary>
         public TM52BuildingCategory TM52BuildingCategory { get; set; } = TM52BuildingCategory.CategoryII;
@@ -104,24 +150,22 @@ namespace SAM.Analytical
         /// about how it is used.
         /// </para>
         /// <para>
-        /// <b>By name, preserved.</b> This is the component's behaviour unchanged, and it is wrong in the way
-        /// described on the class: two flats' "Bedroom 2" are indistinguishable. Fixing it means
-        /// <c>SimulationSpaceMap</c>, which refuses on ambiguity rather than guessing, and that is the next
-        /// step - changing it here would mean the extraction could not be shown to preserve behaviour.
+        /// <b>By IDENTITY, through <see cref="SimulationSpaceMap"/>, and there is no name-matching path left.</b>
+        /// This is the correctness that matters most in the whole association: the internal condition is an
+        /// <i>input</i> to the calculation, not a label on its output. Getting it from the wrong flat's
+        /// "Bedroom 2" would drive the assessment with the wrong occupancy profile and the wrong system, and
+        /// then attribute the result correctly - producing a wrong number that survives every downstream check.
+        /// A space whose identity does not resolve is <b>left alone and reported</b>, never paired with a
+        /// same-named room.
         /// </para>
         /// </summary>
-        /// <param name="analyticalModel_Design">The design model whose internal conditions are authoritative.</param>
         /// <returns>Whether anything was restored.</returns>
-        public bool RestoreDesignInternalConditions(AnalyticalModel analyticalModel_Design)
+        public bool RestoreDesignInternalConditions()
         {
-            AdjacencyCluster adjacencyCluster = analyticalModel?.AdjacencyCluster;
-            if (adjacencyCluster == null)
-            {
-                return false;
-            }
+            associationRefusals = [];
 
-            List<Space> spaces_Design = analyticalModel_Design?.GetSpaces();
-            if (spaces_Design == null)
+            AdjacencyCluster adjacencyCluster = analyticalModel?.AdjacencyCluster;
+            if (adjacencyCluster == null || analyticalModel_Design == null || simulationSpaceMap == null)
             {
                 return false;
             }
@@ -132,19 +176,27 @@ namespace SAM.Analytical
                 return false;
             }
 
+            bool result = false;
+
             foreach (Space space in spaces)
             {
-                Space space_Design = spaces_Design.Find(x => x.Name == space.Name);
-                if (space_Design != null)
+                Space space_Design = simulationSpaceMap.Design(space);
+                if (space_Design == null)
                 {
-                    space.InternalCondition = space_Design.InternalCondition;
-                    adjacencyCluster.AddObject(space);
+                    associationRefusals.Add(string.Format("Simulated space '{0}' does not resolve to exactly one design space, so its design internal condition cannot be restored. It was left as the simulation produced it rather than paired with a space of the same name.", space.Name));
+
+                    continue;
                 }
+
+                space.InternalCondition = space_Design.InternalCondition;
+                adjacencyCluster.AddObject(space);
+
+                result = true;
             }
 
             analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
 
-            return true;
+            return result;
         }
 
         /// <summary>
@@ -155,75 +207,113 @@ namespace SAM.Analytical
         /// Scoping that properly is the Part O assessment-scope work, not this.
         /// </para>
         /// <para>
-        /// A zone contributes every space related to it. Spaces already present are not added twice, matched
-        /// by name - the component's behaviour, and the same name-matching caveat applies.
+        /// <b>The arguments are DESIGN objects and they are resolved by identity.</b> A design space becomes the
+        /// simulated space it produced, through <see cref="SimulationSpaceMap"/>. A design <i>zone</i> is looked
+        /// up in the design model by guid and contributes the simulated counterparts of the spaces related to it
+        /// there - the design model is what says which rooms make up Flat 2, and the simulated model's own zones
+        /// are a rebuild whose guids mean nothing to a scenario.
+        /// </para>
+        /// <para>
+        /// De-duplication is by <c>Guid</c>, not by name, so asking for a zone and one of its rooms does not
+        /// return the room twice - and three rooms all called "Bedroom 2" are three entries, which is the
+        /// correct answer and the one name matching could not give.
+        /// </para>
+        /// <para>
+        /// Anything that does not resolve is <b>reported in <see cref="AssociationRefusals"/> and left out</b>.
         /// </para>
         /// </summary>
-        public List<Space> Spaces(IEnumerable<Space> spaces, IEnumerable<Zone> zones)
+        /// <param name="spaces_Design">Design spaces. Null means every space in the simulated model.</param>
+        /// <param name="zones_Design">Design zones, resolved through the design model's relations.</param>
+        public List<Space> Spaces(IEnumerable<Space> spaces_Design, IEnumerable<Zone> zones_Design)
         {
-            if (analyticalModel == null)
+            associationRefusals = [];
+
+            if (analyticalModel == null || simulationSpaceMap == null)
             {
                 return null;
             }
 
-            List<Space> result;
+            List<Space> result = [];
 
-            if (spaces == null)
+            if (spaces_Design == null)
             {
-                result = analyticalModel.GetSpaces();
+                //Everything the simulation produced. No resolution needed, and no design object was named.
+                result = analyticalModel.GetSpaces() ?? [];
             }
             else
             {
-                result = [];
-
-                foreach (Space space in spaces)
+                foreach (Space space_Design in spaces_Design)
                 {
-                    Space space_Result = analyticalModel.GetSpaces()?.Find(x => x.Name == space?.Name);
-                    if (space_Result == null)
+                    if (space_Design == null)
                     {
                         continue;
                     }
 
-                    result.Add(space_Result);
+                    Space space = simulationSpaceMap.Simulation(space_Design);
+                    if (space == null)
+                    {
+                        associationRefusals.Add(string.Format("Design space '{0}' does not resolve to exactly one simulated space, so it cannot be assessed. It was left out rather than matched to a simulated space of the same name.", space_Design.Name));
+
+                        continue;
+                    }
+
+                    Add(result, space);
                 }
             }
 
-            if (zones == null)
+            foreach (Zone zone_Design in zones_Design ?? [])
             {
-                return result;
-            }
-
-            if (result == null)
-            {
-                result = [];
-            }
-
-            foreach (Zone zone in zones)
-            {
-                Zone zone_Temp = analyticalModel.GetZones()?.Find(x => x.Name == zone?.Name);
-                if (zone_Temp == null)
+                if (zone_Design == null)
                 {
                     continue;
                 }
 
-                List<Space> spaces_Zone = analyticalModel.AdjacencyCluster.GetRelatedObjects<Space>(zone_Temp);
-                if (spaces_Zone == null)
+                //The DESIGN model's relations, by guid. A zone is a statement about the design, and the
+                //simulated model's zones are fresh objects that no scenario can name.
+                Zone zone = analyticalModel_Design?.GetZones()?.Find(x => x != null && x.Guid == zone_Design.Guid);
+                if (zone == null)
                 {
+                    associationRefusals.Add(string.Format("Design zone '{0}' is not in the design model, so the spaces it covers cannot be identified.", zone_Design.Name));
+
+                    continue;
+                }
+
+                List<Space> spaces_Zone = analyticalModel_Design.AdjacencyCluster.GetRelatedObjects<Space>(zone);
+                if (spaces_Zone == null || spaces_Zone.Count == 0)
+                {
+                    associationRefusals.Add(string.Format("Design zone '{0}' holds no spaces, so there is nothing in it to assess.", zone_Design.Name));
+
                     continue;
                 }
 
                 foreach (Space space_Zone in spaces_Zone)
                 {
-                    if (result.Find(x => x.Name == space_Zone.Name) != null)
+                    Space space = simulationSpaceMap.Simulation(space_Zone);
+                    if (space == null)
                     {
+                        associationRefusals.Add(string.Format("Design space '{0}' in zone '{1}' does not resolve to exactly one simulated space, so it cannot be assessed.", space_Zone.Name, zone_Design.Name));
+
                         continue;
                     }
 
-                    result.Add(space_Zone);
+                    Add(result, space);
                 }
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Appends a space unless it is already there - <b>by <c>Guid</c></b>. Names cannot do this job: three
+        /// flats' "Bedroom 2" are three different rooms, and de-duplicating them by name would silently assess
+        /// one of them and drop the other two.
+        /// </summary>
+        private static void Add(List<Space> spaces, Space space)
+        {
+            if (spaces.Find(x => x != null && x.Guid == space.Guid) == null)
+            {
+                spaces.Add(space);
+            }
         }
 
         /// <summary>

@@ -413,7 +413,7 @@ namespace SAM.Tests
             TM59AssessmentCalculator tM59AssessmentCalculator_Tas = Calculator(analyticalModel_Tas, Map(analyticalModel_Tas, "MVRE"));
             tM59AssessmentCalculator_Tas.SourceFallback = "SAM.Analytical.Tas";
 
-            TM59AssessmentCalculator tM59AssessmentCalculator_Analytical = new(analyticalModel_Analytical)
+            TM59AssessmentCalculator tM59AssessmentCalculator_Analytical = new(analyticalModel_Analytical, analyticalModel_Analytical, new SimulationSpaceMap(analyticalModel_Analytical.GetSpaces(), analyticalModel_Analytical.GetSpaces(), null))
             {
                 VentilationStrategyMap = Map(analyticalModel_Analytical, "MVRE"),
                 SourceFallback = "SAM.Analytical"
@@ -650,7 +650,13 @@ namespace SAM.Tests
 
         private static TM59AssessmentCalculator Calculator(AnalyticalModel analyticalModel, VentilationStrategyMap ventilationStrategyMap)
         {
-            return new TM59AssessmentCalculator(analyticalModel)
+            //A SELF map: these fixtures use one model as both design and simulation, because they are about
+            //which criterion applies rather than about association. Every space resolves to itself, so the
+            //identity layer is present and inert - which is what keeps these tests about step 7. The three-flat
+            //association fixture lives in PartOResultAssociationTests.
+            List<Space> spaces = analyticalModel?.GetSpaces();
+
+            return new TM59AssessmentCalculator(analyticalModel, analyticalModel, new SimulationSpaceMap(spaces, spaces, null))
             {
                 OccupancySensibleGainSeriesKey = key_Tas_OccupantSensibleGain,
                 VentilationStrategyMap = ventilationStrategyMap
