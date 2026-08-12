@@ -307,6 +307,69 @@ namespace SAM.Tests
 
             //And the untouched flats still resolve.
             Assert.NotNull(overheatingScenarioMap.Scenario(fixture.SimulationSpace("Flat 3")));
+            Assert.True(overheatingScenarioMap.VentilationStrategyMap.Selection(fixture.SimulationSpace("Flat 3")).IsSelected);
+        }
+
+        /// <summary>
+        /// <b>The same assessment stated twice is one answer, not a collision</b> - the rule
+        /// <c>VentilationStrategyMap</c> and <c>Query.SelectPreferredCapableSystem</c> already follow. Two
+        /// scenarios are the same assessment exactly when they derive the same <c>Key</c>, so a caller assembling
+        /// its scenario list from two overlapping sources is not punished for it.
+        /// </summary>
+        [Fact]
+        public void TheSameScenarioTwice_IsNotACollision()
+        {
+            Fixture fixture = new();
+
+            List<OverheatingScenario> overheatingScenarios = [.. fixture.Scenarios, new OverheatingScenario(fixture.Scenario("Flat 1"))];
+
+            //The duplicate really is the same assessment, and really is a different object.
+            Assert.Equal(fixture.Scenario("Flat 1").Key, overheatingScenarios[^1].Key);
+            Assert.NotSame(fixture.Scenario("Flat 1"), overheatingScenarios[^1]);
+
+            OverheatingScenarioMap overheatingScenarioMap = new(overheatingScenarios, fixture.AnalyticalModel_Design, fixture.SimulationSpaceMap);
+
+            Assert.True(overheatingScenarioMap.IsComplete);
+            Assert.Empty(overheatingScenarioMap.Refusals);
+
+            //Recorded once, with its spaces intact - the second walk must not overwrite the first's record.
+            Assert.Single(overheatingScenarioMap.Spaces(fixture.Scenario("Flat 1")));
+            Assert.Equal(4, overheatingScenarioMap.OverheatingScenarios.Count);
+
+            Assert.NotNull(overheatingScenarioMap.Scenario(fixture.SimulationSpace("Flat 1")));
+            Assert.True(overheatingScenarioMap.VentilationStrategyMap.Selection(fixture.SimulationSpace("Flat 1")).IsSelected);
+        }
+
+        /// <summary>
+        /// Three <i>different</i> scenarios over one space all refuse, and the third does not resurrect the first
+        /// by finding its claim already struck out.
+        /// </summary>
+        [Fact]
+        public void ThreeScenariosOverOneSpace_AllRefuse()
+        {
+            Fixture fixture = new();
+
+            Guid guid_Zone = fixture.DesignZone("Flat 1").Guid;
+
+            List<OverheatingScenario> overheatingScenarios =
+            [
+                fixture.Scenario("Flat 1"),
+                new OverheatingScenario(PartOAssessmentScope.Dwelling, guid_Zone, PartOIteration.BasePassive, new SystemTemplate("NV", null, null, null, null, null)),
+                new OverheatingScenario(PartOAssessmentScope.Dwelling, guid_Zone, PartOIteration.AcousticRestricted, new SystemTemplate("MV", null, null, null, null, null))
+            ];
+
+            OverheatingScenarioMap overheatingScenarioMap = new(overheatingScenarios, fixture.AnalyticalModel_Design, fixture.SimulationSpaceMap);
+
+            Assert.False(overheatingScenarioMap.IsComplete);
+
+            //None of the three owns it, and none of the three has a strategy for it.
+            Assert.Null(overheatingScenarioMap.Scenario(fixture.SimulationSpace("Flat 1")));
+            Assert.False(overheatingScenarioMap.VentilationStrategyMap.Selection(fixture.SimulationSpace("Flat 1")).IsSelected);
+
+            foreach (OverheatingScenario overheatingScenario in overheatingScenarios)
+            {
+                Assert.Empty(overheatingScenarioMap.Spaces(overheatingScenario));
+            }
         }
 
         // ---------------------------------------------------------------------------------------------
@@ -350,14 +413,48 @@ namespace SAM.Tests
         /// <summary>
         /// <b>Proof 10: no TSD, TPD, file or provenance value participates in identity matching.</b>
         /// <para>
-        /// Asserted structurally over the public surface of the three types that do the matching, because a
-        /// comment saying "we do not read <c>Source</c>" is not enforceable and the temptation to reach for a
-        /// file name when an identity is missing is exactly how this class of defect returns.
+        /// <b>Asserted behaviourally first</b>, because the structural scan below is the weaker half: it only
+        /// proves no public member is <i>named</i> after provenance, not that the implementation ignores it. So
+        /// the model name - which is what a result reports as its <c>Source</c> - and the stamped provenance
+        /// fallback are both changed, and every association comes out identical.
+        /// </para>
+        /// <para>
+        /// The scan is kept as a guard against a future member reaching for a file name when an identity is
+        /// missing, which is exactly how this class of defect returns.
         /// </para>
         /// </summary>
         [Fact]
         public void NoProvenanceOrEngineValue_ParticipatesInIdentityMatching()
         {
+            //--- behavioural: change the provenance, keep the association ---
+            Fixture fixture_Default = new();
+            fixture_Default.Calculator.RestoreDesignInternalConditions();
+
+            Fixture fixture_Provenance = new(source: "From a completely different file.tsd");
+            fixture_Provenance.Calculator.SourceFallback = "SomeOtherAssembly";
+            fixture_Provenance.Calculator.RestoreDesignInternalConditions();
+
+            //Same association, expressed without a single name or reference to either model.
+            Assert.Equal(fixture_Default.AssociationByZoneGuid(), fixture_Provenance.AssociationByZoneGuid());
+
+            //Every flat still got its own design intent, under the other provenance.
+            foreach (string flat in Fixture.Flats)
+            {
+                Assert.Equal(flat + " IC", fixture_Provenance.SimulationSpace(flat).InternalCondition.Name);
+            }
+
+            //And the results really do carry the different provenance, so this is not passing by the two being
+            //identical models.
+            TM59AssessmentResult tM59AssessmentResult_Provenance = fixture_Provenance.Assess();
+
+            Assert.Equal("From a completely different file.tsd", tM59AssessmentResult_Provenance.NaturalVentilationResults[0].Source);
+            Assert.NotEqual(fixture_Default.Assess().NaturalVentilationResults[0].Source, tM59AssessmentResult_Provenance.NaturalVentilationResults[0].Source);
+
+            //Association is unaffected by it.
+            Assert.Equal(4, fixture_Provenance.ScenarioMap.Associate(tM59AssessmentResult_Provenance, out List<TMResult> tMResults_Unassociated).Count);
+            Assert.Empty(tMResults_Unassociated);
+
+            //--- structural: the weaker guard ---
             string[] forbidden = ["tsd", "tpd", "tbd", "file", "path", "directory", "source", "provenance", "engine"];
 
             foreach (Type type in new[] { typeof(SimulationSpaceMap), typeof(OverheatingScenarioMap), typeof(VentilationStrategyMap) })
@@ -455,7 +552,11 @@ namespace SAM.Tests
             /// <param name="duplicate_StableKey">
             /// A flat whose stable identity is stamped onto a second simulated space as well.
             /// </param>
-            internal Fixture(bool rename = false, string drop_StableKey = null, string duplicate_StableKey = null)
+            /// <param name="source">
+            /// The simulated model's NAME, which is what a result reports as its <c>Source</c>. Varying it must
+            /// change nothing about association.
+            /// </param>
+            internal Fixture(bool rename = false, string drop_StableKey = null, string duplicate_StableKey = null, string source = "Three Flats")
             {
                 AdjacencyCluster adjacencyCluster_Design = new();
                 AdjacencyCluster adjacencyCluster_Simulation = new();
@@ -520,7 +621,7 @@ namespace SAM.Tests
 
                 AnalyticalModel_Design = new AnalyticalModel("Three Flats", null, null, null, adjacencyCluster_Design);
 
-                AnalyticalModel_Simulation = new AnalyticalModel("Three Flats", null, null, null, adjacencyCluster_Simulation);
+                AnalyticalModel_Simulation = new AnalyticalModel(source, null, null, null, adjacencyCluster_Simulation);
                 AnalyticalModel_Simulation.SetValue(AnalyticalModelParameter.WeatherData, new WeatherData("Test", "Test", 51.5, -0.1, 0, WeatherYear()));
 
                 //The stable key is supplied by the caller, exactly as SAM_Tas supplies the TAS zone guid -

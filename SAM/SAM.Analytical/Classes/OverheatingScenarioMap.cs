@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-or-later
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using System;
@@ -231,6 +231,19 @@ namespace SAM.Analytical
                 return;
             }
 
+            //The SAME assessment stated twice is one answer, not a collision - the rule VentilationStrategyMap
+            //and SelectPreferredCapableSystem already follow. Two scenarios are the same assessment exactly when
+            //they derive the same key, so this is neither a name nor a reference comparison. Caught HERE, before
+            //anything is written, because re-walking the spaces would overwrite the first pass's record of them
+            //with an empty one.
+            //
+            //A scenario STRUCK OUT by a collision is not in dictionary_Spaces, so it cannot be resurrected this
+            //way: it walks on and collides again with its own nulled claims.
+            if (dictionary_Spaces.ContainsKey(overheatingScenario.Key))
+            {
+                return;
+            }
+
             List<Space> spaces_Design = analyticalModel_Design.AdjacencyCluster.GetRelatedObjects<Space>(zone_Design);
             if (spaces_Design == null || spaces_Design.Count == 0)
             {
@@ -261,8 +274,8 @@ namespace SAM.Analytical
 
                 if (dictionary_Scenario.TryGetValue(space.Guid, out OverheatingScenario overheatingScenario_Existing))
                 {
-                    //Two scenarios over one simulated space. Neither wins - the same rule SimulationSpaceMap and
-                    //SelectPreferredCapableSystem already follow.
+                    //Two DIFFERENT scenarios over one simulated space. Neither wins - the same rule
+                    //SimulationSpaceMap and SelectPreferredCapableSystem already follow.
                     refusals.Add(string.Format("Simulated space '{0}' is claimed by more than one scenario - design zones {1} and {2} - so which assessment it belongs to is not settled.", space.Name, overheatingScenario_Existing?.ZoneGuid, overheatingScenario.ZoneGuid));
 
                     //The scenario accepted earlier loses its WHOLE dwelling, not just the shared room. Leaving
