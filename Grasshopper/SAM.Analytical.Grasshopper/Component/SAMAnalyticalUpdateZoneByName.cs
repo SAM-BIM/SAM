@@ -139,18 +139,11 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
-
             index = Params.IndexOfInputParam("isDwelling_");
             bool? isDwelling = null;
             if (index == -1 || !dataAccess.GetData(index, ref isDwelling))
             {
                 isDwelling = null;
-            }
-
-            if (zoneType == ZoneType.Undefined && zoneCategory == null)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid data");
-                return;
             }
 
             Zone zone = null;
@@ -170,16 +163,13 @@ namespace SAM.Analytical.Grasshopper
                         zone = Analytical.Modify.UpdateZone(adjacencyCluster, name, zoneType, [.. spaces]);
                     }
 
-                    if (zone is not null)
+                    if (zone is not null && isDwelling.HasValue)
                     {
-                        if (isDwelling is not null && isDwelling.HasValue)
-                        {
-                            zone.SetValue(ZoneParameter.IsDwelling, isDwelling.Value);
-                            adjacencyCluster.AddObject(zone);
-                        }
-
-                        sAMObject = new AnalyticalModel(analyticalModel, adjacencyCluster);
+                        zone.SetValue(ZoneParameter.IsDwelling, isDwelling.Value);
+                        adjacencyCluster.AddObject(zone);
                     }
+
+                    sAMObject = new AnalyticalModel(analyticalModel, adjacencyCluster);
                 }
             }
             else if (sAMObject is AdjacencyCluster)
@@ -194,13 +184,10 @@ namespace SAM.Analytical.Grasshopper
                     zone = Analytical.Modify.UpdateZone(adjacencyCluster, name, zoneType, [.. spaces]);
                 }
 
-                if (zone is not null)
+                if (zone is not null && isDwelling.HasValue)
                 {
-                    if (isDwelling is not null && isDwelling.HasValue)
-                    {
-                        zone.SetValue(ZoneParameter.IsDwelling, isDwelling.Value);
-                        adjacencyCluster.AddObject(zone);
-                    }
+                    zone.SetValue(ZoneParameter.IsDwelling, isDwelling.Value);
+                    adjacencyCluster.AddObject(zone);
                 }
 
                 sAMObject = adjacencyCluster;

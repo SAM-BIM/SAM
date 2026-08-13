@@ -287,7 +287,7 @@ namespace SAM.Analytical.Grasshopper
                 Zone zone = Analytical.Modify.UpdateZone(adjacencyCluster, name_Temp, zoneCategory, spaces_Temp.ToArray());
                 if (zone != null)
                 {
-                    if (isDwelling is not null && isDwelling.HasValue)
+                    if (isDwelling.HasValue)
                     {
                         zone.SetValue(ZoneParameter.IsDwelling, isDwelling.Value);
                         adjacencyCluster.AddObject(zone);
