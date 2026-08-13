@@ -102,7 +102,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "Modified SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "internalConditions", NickName = "internalConditions", Description = "SAM Analytical InternalConditions", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
@@ -113,7 +113,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateInternalConditionList()
           : base("SAMAnalytical.UpdateInternalConditionList", "SAMAnalytical.UpdateInternalConditionList",
-              "Update or create InternalCondition properties for Spaces in an AnalyticalModel, accepting lists of values matched by index to each Space. If nothing is connected, the original model is output unchanged. A default NCM S37_OfficeCell IC with 8-to-18 gain profiles is assigned. The original model is not modified; a copy is returned.",
+              "Updates InternalConditions (IC) Properties for Spaces or Add new IC if is not included. \nIf nothing connected - default type S37_OfficeCell will be assign.\n This includes 8to18 Profile for gains and Constant profile for SetPoints",
               "SAM", "SAM_IC")
         {
         }

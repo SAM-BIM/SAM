@@ -31,44 +31,35 @@ namespace SAM.Analytical.Grasshopper
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
-        // Long, multi-line description for tooltips and docs (SAM style guide).
-        private const string DescriptionLong =
-@"Calculate adaptive comfort upper and lower temperature limits from the dry bulb temperatures in a SAM weather object.
-
-SUMMARY
-Calculates an upper and lower adaptive comfort temperature limit for each available time step, using the ASHRAE 55 adaptive comfort model.
-
-Accepts WeatherData, WeatherYear, WeatherDay or WeatherHour. The supplied weather object is returned unchanged.
-
-METHOD
-For outdoor dry bulb temperatures between 10°C and 33.5°C:
-
-  upper = (dry bulb temperature × 0.31) + 17.8 + 3.5
-  lower = (dry bulb temperature × 0.31) + 17.8 − 3.5
-
-Temperatures below 10°C are calculated using 10°C.
-Temperatures above 33.5°C are calculated using 33.5°C.
-
-INPUTS
-_weatherObject
-  SAM WeatherData, WeatherYear, WeatherDay or WeatherHour containing dry bulb temperature data.
-
-OUTPUTS
-weatherObject
-  The supplied weather object, returned unchanged.
-
-upper
-  Upper adaptive comfort temperature limit [°C] for each available time step.
-
-lower
-  Lower adaptive comfort temperature limit [°C] for each available time step.";
-
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.
         /// </summary>
         public SAMWeatherAdaptiveSetpointACCI()
           : base("SAMWeather.AdaptiveSetpointACCI", "SAMWeather.AdaptiveSetpointACCI",
-        DescriptionLong,
+        "https://accim.readthedocs.io/en/latest/4_detailed%20use.html\n" +
+        "https://github.com/dsanchez-garcia/accim/blob/master/accim/sample_files/jupyter_notebooks/addAccis/using_addAccis.ipynb\n" +
+        "Adopted 2->INT ASHRAE55->90->3->Adap. Limits   Horizont. Extended\n" +
+        "https://htmlpreview.github.io/?https://github.com/dsanchez-garcia/accim/blob/master/accim/docs/html_files/full_setpoint_table.html\n\n" +
+        "1. Input Parameter:\n" +
+        "   - dryBulbTemperature (External Weather Data): The dry bulb temperature from the weather data, which is used to calculate the upper and lower limits.\n" +
+        "\n" +
+        "2. Conditions:\n" +
+        "   - Within Range (10°C to 33.5°C):\n" +
+        "     - If the dryBulbTemperature is between 10°C and 33.5°C, inclusive, the following equations are used to calculate the upper and lower limits:\n" +
+        "       - upperLimit = (dryBulbTemperature * 0.31) + 17.8 + 3.5\n" +
+        "       - lowerLimit = (dryBulbTemperature * 0.31) + 17.8 - 3.5\n" +
+        "   - Below Range (< 10°C):\n" +
+        "     - If the dryBulbTemperature is below 10°C, a fixed dry bulb temperature of 10°C is used in the equations to calculate the upper and lower limits:\n" +
+        "       - upperLimit = (10 * 0.31) + 17.8 + 3.5\n" +
+        "       - lowerLimit = (10 * 0.31) + 17.8 - 3.5\n" +
+        "   - Above Range (> 33.5°C):\n" +
+        "     - If the dryBulbTemperature is above 33.5°C, a fixed dry bulb temperature of 33.5°C is used in the equations to calculate the upper and lower limits:\n" +
+        "       - upperLimit = (33.5 * 0.31) + 17.8 + 3.5\n" +
+        "       - lowerLimit = (33.5 * 0.31) + 17.8 - 3.5\n" +
+        "\n" +
+        "3. Output Parameters:\n" +
+        "   - upperLimit: The calculated upper limit value.\n" +
+        "   - lowerLimit: The calculated lower limit value.",
         "SAM", "Weather")
         {
         }
@@ -81,7 +72,7 @@ lower
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "_weatherObject", NickName = "_weatherObject", Description = "SAM WeatherData, WeatherYear, WeatherDay or WeatherHour containing dry bulb temperature data.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "_weatherObject", NickName = "_weatherObject", Description = "SAM Weather Object such as WeatherHour, WeatherDay etc.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -95,9 +86,9 @@ lower
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "weatherObject", NickName = "weatherObject", Description = "The supplied weather object passed through unchanged.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "upper", NickName = "upper", Description = "Upper adaptive comfort temperature limit [°C] for each available time step. See component description for the ASHRAE 55 equation and 10–33.5°C clamping.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "lower", NickName = "lower", Description = "Lower adaptive comfort temperature limit [°C] for each available time step. See component description for the ASHRAE 55 equation and 10–33.5°C clamping.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooWeatherObjectParam() { Name = "weatherObject", NickName = "weatherObject", Description = "SAM Weather Object such as WeatherHour, WeatherDay etc.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "upper", NickName = "upper", Description = "Upper Dry Bulb Temperature", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "lower", NickName = "lower", Description = "Lower Dry Bulb Temperature", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

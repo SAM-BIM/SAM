@@ -31,7 +31,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometryFlipNormal()
           : base("SAMGeometry.FlipNormal", "SAMGeometry.FlipNormal",
-              "Reverse the normal direction of a Face3D",
+              "Modify Flip SAM Geometry",
               "SAM", "Geometry")
         {
         }
@@ -44,7 +44,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "_face3D", NickName = "_face3D", Description = "Face3D whose normal direction is to be flipped", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "_face3D", NickName = "_face3D", Description = "SAM Geometry Face3D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -57,7 +57,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "Face3D", NickName = "Face3D", Description = "Face3D with its normal direction reversed", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "Face3D", NickName = "Face3D", Description = "SAM Geometry Face3D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

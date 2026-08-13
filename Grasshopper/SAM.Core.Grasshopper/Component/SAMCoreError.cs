@@ -34,7 +34,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreError()
           : base("SAMCore.Error", "SAMCore.Error",
-              "Computes error metrics between model values and reference values: bias (M), MAE, RMSE, nRMSE, MAPE, and Bland-Altman limits of agreement",
+              "Calculates Error",
               "SAM", "Core")
         {
         }
@@ -46,8 +46,8 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_values_M", NickName = "_values_M", Description = "Modelled or simulated values to validate", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_values_R", NickName = "_values_R", Description = "Reference (measured or benchmark) values to compare against", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_values_M", NickName = "_values_M", Description = "Model/engine under test values", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_values_R", NickName = "_values_R", Description = "Reference values", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }

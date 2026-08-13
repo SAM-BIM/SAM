@@ -77,16 +77,16 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = [];
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Interval() { Name = "Azimuths", NickName = "Azimuths", Description = "The azimuth sectors used for classification, echoed back for reference", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Interval() { Name = "Azimuths", NickName = "Azimuths", Description = "Azimuths intervals", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "Vertical Panels grouped by azimuth sector as a data tree", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures", NickName = "Apertures", Description = "Vertical Apertures grouped by azimuth sector as a data tree", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Panels", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures", NickName = "Apertures", Description = "SAM Apertures", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels_Horizontal", NickName = "Panels_Horizontal", Description = "Horizontal (flat/roof) Panels that cannot be assigned an azimuth direction", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures_Horizontal", NickName = "Apertures_Horizontal", Description = "Horizontal (skylight/roof) Apertures that cannot be assigned an azimuth direction", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels_Horizontal", NickName = "Panels_Horizontal", Description = "SAM Panels Horizontal", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures_Horizontal", NickName = "Apertures_Horizontal", Description = "SAM Apertures Horizontal", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels_Tilted", NickName = "Panels_Tilted", Description = "Tilted (non-vertical, non-horizontal) Panels grouped by azimuth sector as a data tree", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures_Tilted", NickName = "Apertures_Tilted", Description = "Tilted (non-vertical, non-horizontal) Apertures grouped by azimuth sector as a data tree", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels_Tilted", NickName = "Panels_Tilted", Description = "SAM Panels Tilted", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures_Tilted", NickName = "Apertures_Tilted", Description = "SAM Apertures Tilted", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
 
                 return [.. result];
             }
@@ -97,7 +97,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFilterByAzimuth()
           : base("SAMAnalytical.FilterByAzimuth", "SAMAnalytical.FilterByAzimuth",
-              "Classify analytical Panels and Apertures into orientation sectors based on azimuth angle [°]. Horizontal and tilted elements are separated into distinct outputs. Supports four- or eight-sector compass groups with user-defined intervals and true-north correction.",
+              "Filter By Azimuth",
               "SAM", "Analytical01")
         {
         }

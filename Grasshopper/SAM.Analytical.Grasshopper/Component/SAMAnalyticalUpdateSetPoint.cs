@@ -63,7 +63,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateSetPoint()
           : base("SAMAnalytical.UpdateSetPoint", "SAMAnalytical.UpdateSetPoint",
-              "Update set-point profiles (heating, cooling, humidification, dehumidification) and emitter radiant properties in InternalConditions for selected Spaces. If nothing is connected the original model is output unchanged. The original model is not modified; a copy is returned.",
+              "Updates SetPoint (Cooling, Heating, Humidification and Dehumidification ) Properties for Spaces \nIf nothing connect orignal Analytical Model will be outputed \nFor reference see https://edsl.myzen.co.uk/manuals/Building%20Simulator/",
               "SAM", "SAM_IC")
         {
         }

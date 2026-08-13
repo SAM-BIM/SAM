@@ -28,7 +28,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreCoutryCode()
           : base("SAMCore.CoutryCode", "SAMCore.CoutryCode",
-              "Select a Country Code for regional building standards and weather data",
+              "Select CoutryCode",
               "SAM", "Core")
         {
         }

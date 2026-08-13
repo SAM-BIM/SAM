@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalPanelLocation()
           : base("SAMAnalytical.PanelLocation", "SAMAnalytical.PanelLocation",
-              "Allows the engineer to extract the position, orientation (tilt and azimuth), and normal vector of a panel for solar and thermal analysis",
+              "Location of SAM Analytical Panel",
               "SAM", "Analytical02")
         {
         }
@@ -59,11 +59,11 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "Origin", NickName = "Origin", Description = "Origin point of the panel plane [m]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Tilt", NickName = "Tilt", Description = "Panel tilt angle from horizontal [°]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Azimuth", NickName = "Azimuth", Description = "Panel azimuth angle from true north, clockwise [°]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Vector() { Name = "Normal", NickName = "Normal", Description = "Surface normal vector of the panel (perpendicular outward)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "InternalPoint", NickName = "InternalPoint", Description = "A point guaranteed to lie on the panel surface [m]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "Origin", NickName = "Origin", Description = "Origin Point", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Tilt", NickName = "Tilt", Description = "Tilt of SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Azimuth", NickName = "Azimuth", Description = "Azimuth of SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Vector() { Name = "Normal", NickName = "Normal", Description = "Normal of SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "InternalPoint", NickName = "InternalPoint", Description = "InternalPoint of SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

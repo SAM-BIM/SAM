@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalPerimeterSpaces()
           : base("SAMAnalytical.PerimeterSpaces", "SAMAnalytical.PerimeterSpaces",
-              "Allows the engineer to identify perimeter (façade-facing) spaces from a set, with optional filtering by aperture presence and panel type",
+              "Gets Perimeter Spaces",
               "SAM", "Analytical03")
         {
         }
@@ -50,15 +50,15 @@ namespace SAM.Analytical.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = null;
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_apertureCheck_", NickName = "_apertureCheck_", Description = "If True, only perimeter spaces whose external panels contain apertures (doors/windows) are selected", Access = GH_ParamAccess.item, Optional = true };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_apertureCheck_", NickName = "_apertureCheck_", Description = "If True, only Perimeter Spaces will be selected that have Panels exposed to Sun AND containing aperture.", Access = GH_ParamAccess.item, Optional = true };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_wallsOnly_", NickName = "_apertureCheck_", Description = "If True, only spaces with Wall panels exposed externally are considered; if False, Roof and FloorExposed panels are also included", Access = GH_ParamAccess.item, Optional = true };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_wallsOnly_", NickName = "_apertureCheck_", Description = "If True, only Perimeter Spaces will be selected that have Panels Wall exposed to Sun. If False also spaces with Roof, ExposedFloor will be selected", Access = GH_ParamAccess.item, Optional = true };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "Optional list of SAM Analytical Spaces to evaluate; if omitted, all spaces in the adjacency cluster are used", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Voluntary));
 
                 return result.ToArray();
             }
@@ -72,8 +72,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSpaceParam { Name = "in", NickName = "in", Description = "Spaces identified as perimeter (façade-facing)", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam { Name = "out", NickName = "out", Description = "Spaces identified as non-perimeter (internal)", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam { Name = "in", NickName = "in", Description = "SAM Space recognized as perimeter spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam { Name = "out", NickName = "out", Description = "SAM Space not recognized as perimeter spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

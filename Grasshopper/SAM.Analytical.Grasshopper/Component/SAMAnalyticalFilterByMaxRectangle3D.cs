@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFilterByMaxRectangle3D()
           : base("SAMAnalytical.FilterByMaxRectangle3D", "SAMAnalytical.FilterByMaxRectangle3D",
-              "Remove Panels whose largest inscribed rectangle falls below a minimum dimension [m], and remove Apertures that are too small. Useful for cleaning geometrically insignificant elements from the model.",
+              "Filter Analytical Objects By Maximal Rectangle3D dimension",
               "SAM", "Analytical01")
         {
         }
@@ -45,14 +45,14 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Panels to evaluate", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_panelMinDimension", NickName = "_panelMinDimension", Description = "Minimum edge length of the Panel's largest inscribed rectangle [m]", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_panelMinDimension", NickName = "_panelMinDimension", Description = "Minimal dimension for Panel Rectangle3D", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_apertureMinDimension", NickName = "_apertureMinDimension", Description = "Minimum edge length of the Aperture's largest inscribed rectangle [m]", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_apertureMinDimension", NickName = "_apertureMinDimension", Description = "Minimal dimension for Aperture Rectangle3D", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -68,8 +68,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "in", NickName = "in", Description = "Panels that meet the minimum rectangle dimension", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "out", NickName = "out", Description = "Panels and Apertures removed because they were too small", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "in", NickName = "in", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "out", NickName = "out", Description = "out", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

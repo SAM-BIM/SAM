@@ -39,7 +39,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreParameterByType()
           : base("SAMCore.ParameterByType", "SAMCore.ParameterByType",
-              "Select and extract a single parameter from the available parameters of a SAM type. Connect the output of SAMCore.GetType as input",
+              "Get one Parameter from all possible Type parameters \n* connect input SAMCore.GetType",
               "SAM", "Core")
         {
         }
@@ -120,7 +120,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         protected override void RegisterInputParams(GH_InputParamManager inputParamManager)
         {
-            inputParamManager.AddGenericParameter("Type", "Type", "SAM type whose parameters are listed for selection. Connect the output of SAMCore.GetType", GH_ParamAccess.item);
+            inputParamManager.AddGenericParameter("Type", "Type", "Type \n* connect input SAMCore.GetType", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         protected override void RegisterOutputParams(GH_OutputParamManager outputParamManager)
         {
-            outputParamManager.AddParameter(new GooObjectParam(), "Parameter", "Parameter", "SAM parameter selected from the type's available parameters", GH_ParamAccess.item);
+            outputParamManager.AddParameter(new GooObjectParam(), "Parameter", "Parameter", "Parameter", GH_ParamAccess.item);
         }
 
         /// <summary>

@@ -34,7 +34,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreReplaceByGuid()
           : base("SAMCore.ReplaceByGuid", "SAMCore.ReplaceByGuid",
-              "Replaces SAM objects in a source list with objects from a replacement list where GUIDs match",
+              "Replace SAM Objects from one list by SAM Object from another list by matching Guid",
               "SAM", "Core")
         {
         }
@@ -46,8 +46,8 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_sAMObjects", NickName = "_sAMobjects", Description = "Source list of SAM objects to search for replacements", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_replacementSAMObjects", NickName = "_replacementSAMObjects", Description = "Replacement objects. Objects with matching GUIDs replace; non-matching objects are appended", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_sAMObjects", NickName = "_sAMobjects", Description = "SAM Objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_replacementSAMObjects", NickName = "_replacementSAMObjects", Description = "SAM Objects", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -58,7 +58,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "sAMObjects", NickName = "sAMObjects", Description = "Resulting list with replacements applied where GUIDs matched", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "sAMObjects", NickName = "sAMObjects", Description = "SAM Objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

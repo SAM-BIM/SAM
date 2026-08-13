@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateTransparentMaterial()
           : base("SAMAnalytical.CreateTransparentMaterial", "SAMAnalytical.CreateTransparentMaterial",
-              "Allows an engineer to create a SAM TransparentMaterial for use in glazing layers within ApertureConstructions (windows, skylights, curtain walls).",
+              "Create Transparent Material",
               "SAM", "Analytical01")
         {
         }
@@ -62,7 +62,7 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "internalLightReflectance_", NickName = "internalLightReflectance_", Description = "Internal Light Reflectance [-]", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "externalEmissivity_", NickName = "externalEmissivity_", Description = "External Emissivity [-]", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "internalEmissivity_", NickName = "internalEmissivity_", Description = "Internal Emissivity [-]", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "isBlind_", NickName = "isBlind_", Description = "If true, the material is treated as an internal blind/screen layer", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "isBlind_", NickName = "isBlind_", Description = "Is Blind", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -75,7 +75,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "material", NickName = "material", Description = "Output SAM TransparentMaterial for glazing layers", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMaterialParam() { Name = "material", NickName = "material", Description = "SAM Analytical Material", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

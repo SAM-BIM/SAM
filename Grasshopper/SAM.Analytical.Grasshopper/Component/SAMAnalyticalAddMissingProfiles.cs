@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper.Component
         /// </summary>
         public SAMAddMissingProfiles()
           : base("SAMAnalytical.AddMissingProfiles", "SAMAnalytical.AddMissingProfiles",
-              "Scan an AnalyticalModel for ApertureConstructions and PanelConstructions that reference Profiles not yet present in the model's ProfileLibrary, and import those Profiles from a supplied ProfileLibrary. Returns the updated model, the added profiles, and any profile names that still remain unresolved.",
+              "Add Missing Profiles",
               "SAM", "Analytical")
         {
         }
@@ -45,9 +45,9 @@ namespace SAM.Analytical.Grasshopper.Component
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel to scan for missing profiles", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                GooProfileLibraryParam gooProfileLibraryParam = new GooProfileLibraryParam { Name = "_profileLibrary_", NickName = "_profileLibrary_", Description = "SAM ProfileLibrary providing the profiles to fill gaps. Defaults to the SAM default ProfileLibrary.", Access = GH_ParamAccess.item };
+                GooProfileLibraryParam gooProfileLibraryParam = new GooProfileLibraryParam { Name = "_profileLibrary_", NickName = "_profileLibrary_", Description = "SAM Analytical Profile Library", Access = GH_ParamAccess.item };
                 gooProfileLibraryParam.PersistentData.Append(new GooProfileLibrary(Analytical.Query.DefaultProfileLibrary()));
                 result.Add(new GH_SAMParam(gooProfileLibraryParam, ParamVisibility.Binding));
 
@@ -63,9 +63,9 @@ namespace SAM.Analytical.Grasshopper.Component
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "Updated AnalyticalModel with missing profiles added", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "profiles", NickName = "profiles", Description = "Profiles that were successfully imported from the library", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "missingProfileNames", NickName = "missingProfileNames", Description = "Profile names that could not be resolved from the supplied library", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "profiles", NickName = "profiles", Description = "SAM Analytical Profiles", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "missingProfileNames", NickName = "missingProfileNames", Description = "Missing Profile Names. This Profiles could not be found in ProfileLibrary and are still missing", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

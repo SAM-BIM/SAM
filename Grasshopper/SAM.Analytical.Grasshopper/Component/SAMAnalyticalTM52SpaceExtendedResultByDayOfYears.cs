@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalTM52SpaceExtendedResultByDaysOfYear()
           : base("SAMAnalytical.TM52SpaceExtendedResultByDaysOfYears", "SAMAnalytical.TM52SpaceExtendedResultByDaysOfYear",
-              "Filter a TM52 space extended result to specific days of the year",
+              "TM52SpaceExtendedResult by days of the year",
               "SAM", "Analytical03")
         {
         }
@@ -47,7 +47,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooResultParam() { Name = "_tM52SpaceExtendedResult", NickName = "_tM52SpaceExtendedResult", Description = "TM52 space extended result containing hourly comfort data", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooResultParam() { Name = "_tM52SpaceExtendedResult", NickName = "_tM52SpaceExtendedResult", Description = "SAM TM52SpaceExtendedResult", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Integer integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_daysOfYear", NickName = "_daysOfYear", Description = "Days of the year indexes", Access = GH_ParamAccess.list };
                 //integer.SetPersistentData(true);
@@ -65,7 +65,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooResultParam() { Name = "tM52SpaceExtendedResult", NickName = "tM52SpaceExtendedResult", Description = "Filtered TM52 space extended result for the specified days", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooResultParam() { Name = "tM52SpaceExtendedResult", NickName = "tM52SpaceExtendedResult", Description = "SAM TM52SpaceExtendedResult", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

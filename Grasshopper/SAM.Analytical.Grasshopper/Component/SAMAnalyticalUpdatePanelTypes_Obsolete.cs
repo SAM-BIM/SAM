@@ -52,7 +52,7 @@ namespace SAM.Analytical.Grasshopper.Obsolete_20200707
                 GH_SAMParam[] result = new GH_SAMParam[5];
                 result[0] = new GH_SAMParam(new GooAdjacencyClusterParam() { Name = "AdjacencyCluster", NickName = "AdjacencyCluster", Description = "SAM Analytical AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding);
                 result[1] = new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary);
-                result[2] = new GH_SAMParam(new Param_GenericObject() { Name = "PanelTypes", NickName = "PanelTypes", Description = "SAM Analytical PanelType names", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary);
+                result[2] = new GH_SAMParam(new Param_GenericObject() { Name = "PanelTypes", NickName = "PanelTypes", Description = "SAM Analytical PanelTypes", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary);
                 result[3] = new GH_SAMParam(new Param_Geometry() { Name = "Geometries", NickName = "Geometries", Description = "GH Geometries from SAM Analytical Panels", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary);
                 result[4] = new GH_SAMParam(new Param_String() { Name = "SpaceAdjNames", NickName = "SpaceAdjNames", Description = "Space Adjacency Names, to which Space each Panel is connected", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary);
                 return result;

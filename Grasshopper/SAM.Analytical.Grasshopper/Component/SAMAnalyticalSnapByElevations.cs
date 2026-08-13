@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSnapByElevations()
           : base("SAMAnalytical.SnapByElevations", "SAMAnalytical.SnapByElevations",
-              "Snap panel vertices to specified elevation planes within a tolerance range, cleaning up imprecise geometry from BIM imports.",
+              "Snap By Elevation",
               "SAM", "Analytical03")
         {
         }
@@ -46,16 +46,16 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels to snap", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_elevations", NickName = "_elevations", Description = "Target elevations as numbers, Level objects or numeric strings [m]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_elevations", NickName = "_elevations", Description = "elevations", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_minTolerance_", NickName = "_minTolerance_", Description = "Minimum snapping tolerance; vertices within this distance are snapped [m]", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_minTolerance_", NickName = "_minTolerance_", Description = "Minimal Tolerance", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(Core.Tolerance.MicroDistance);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_maxTolerance_", NickName = "_maxTolerance_", Description = "Maximum search tolerance for finding nearby elevation planes [m]", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_maxTolerance_", NickName = "_maxTolerance_", Description = "Maximal Tolerance", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(Core.Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -71,7 +71,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Analytical Panels with vertices snapped to nearby elevations", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

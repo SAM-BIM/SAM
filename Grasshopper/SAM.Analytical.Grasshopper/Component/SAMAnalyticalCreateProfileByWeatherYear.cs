@@ -34,8 +34,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new Weather.Grasshopper.GooWeatherYearParam() { Name = "_weatherYear", NickName = "_weatherYear", Description = "SAM Weather WeatherYear containing the weather data", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_weatherDataType", NickName = "_weatherDataType", Description = "SAM Weather WeatherDataType to extract (e.g. DryBulbTemperature, GlobalSolarRadiation)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Weather.Grasshopper.GooWeatherYearParam() { Name = "_weatherYear", NickName = "_weatherYear", Description = "SAM Weather WeatherYear", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_weatherDataType", NickName = "_weatherDataType", Description = "SAM Weather WeatherDataType", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -45,7 +45,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "profile", NickName = "profile", Description = "Created SAM Analytical Profile from weather data", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "profile", NickName = "profile", Description = "SAM Analytical Profile", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -55,7 +55,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateProfileByWeatherYear()
           : base("SAMAnalytical.CreateProfileByWeatherYear", "SAMAnalytical.CreateProfileByWeatherYear",
-              "Create a SAM Analytical Profile from a WeatherYear by extracting a specific WeatherDataType.",
+              "Creates SAM Analytical Profile By WeatherYear",
               "SAM", "Analytical01")
         {
         }

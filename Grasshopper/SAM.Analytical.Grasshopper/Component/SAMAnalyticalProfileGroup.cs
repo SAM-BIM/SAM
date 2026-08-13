@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalProfileGroup()
           : base("SAMAnalytical.ProfileGroup", "SAMAnalytical.ProfileGroup",
-              "Allows an engineer to select a ProfileGroup to filter profiles by category.",
+              "Select ProfileGroup",
               "SAM", "Analytical03")
         {
         }

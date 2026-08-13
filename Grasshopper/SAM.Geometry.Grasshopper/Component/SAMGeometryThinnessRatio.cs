@@ -33,7 +33,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometryThinnessRatio()
           : base("SAMGeometry.ThinnessRatio", "SAMGeometry.ThinnessRatio",
-              "Calculate the thinness ratio of a Face3D (perimeter squared divided by area)",
+              "Calculate Thinness Ratio",
               "SAM", "Geometry")
         {
         }
@@ -49,7 +49,7 @@ namespace SAM.Geometry.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject gerenricObject;
 
-                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_face3D", NickName = "_face3D", Description = "Face3D to evaluate for thinness", Access = GH_ParamAccess.item };
+                gerenricObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_face3D", NickName = "_face3D", Description = "SAM Geometry Face3D Objects", Access = GH_ParamAccess.item };
                 gerenricObject.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gerenricObject, ParamVisibility.Binding));
 
@@ -65,7 +65,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "thinnessRatio", NickName = "thinnessRatio", Description = "Dimensionless thinness ratio (equilateral = minimum, sliver = high)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "thinnessRatio", NickName = "thinnessRatio", Description = "thinnessRatio", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

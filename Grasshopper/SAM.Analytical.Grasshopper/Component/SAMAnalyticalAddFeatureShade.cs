@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAddFeatureShade()
           : base("SAMAnalytical.AddFeatureShade", "SAMAnalytical.AddFeatureShade",
-              "Assign FeatureShade objects (e.g. overhangs, side fins, horizontal louvres) to Panels or Apertures in an AdjacencyCluster or AnalyticalModel. FeatureShades are paired one-to-one with target objects; if fewer shades than targets are provided, the first shade is repeated.",
+              "Add FeatureShade",
               "SAM", "Analytical")
         {
         }
@@ -46,9 +46,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analyticalObject_", NickName = "_analyticalObject_", Description = "SAM Analytical Object (AdjacencyCluster or AnalyticalModel) containing the targets. Optional; if omitted, the shading objects are applied without a context.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooFeatureShadeParam { Name = "_featureShades", NickName = "_featureShades", Description = "FeatureShade objects to assign (e.g. overhangs, side fins, louvres)", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analyticalObjects_", NickName = "_analyticalObjects_", Description = "Target Panels or Apertures to which the FeatureShades are assigned. If omitted, all apertures in the AdjacencyCluster are targeted.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analyticalObject_", NickName = "_analyticalObject_", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooFeatureShadeParam { Name = "_featureShades", NickName = "_featureShades", Description = "SAM Analytical FeatureShades", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analyticalObjects_", NickName = "_analyticalObjects_", Description = "SAM Analytical Objects such as Panels or Apertures", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -62,8 +62,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analyticalObject", NickName = "analyticalObject", Description = "SAM Analytical Object with shading applied", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analyticalObjects", NickName = "analyticalObjects", Description = "Panels or Apertures with FeatureShades assigned", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analyticalObject", NickName = "analyticalObject", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analyticalObjects", NickName = "analyticalObjects", Description = "SAM Analytical Objects such as Panels or Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

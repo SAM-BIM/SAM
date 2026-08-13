@@ -32,7 +32,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreSetValue()
           : base("SetValue", "SetValue",
-              "Assigns a value to a named property on a SAM object. Connect a single object and value, or graft lists for per-item mapping",
+              "Set Value of object by Parameter.\nie. If you have one space or list of spaces then for ONE specific parameter connect one value or individual for each  space  ",
               "SAM", "Core")
         {
         }
@@ -47,16 +47,16 @@ namespace SAM.Core.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject param_GenericObject;
-                param_GenericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_sAMObject", NickName = "_sAMObject", Description = "SAM object to modify. Use Graft to set values item-by-item across a list", Access = GH_ParamAccess.item };
+                param_GenericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_sAMObject", NickName = "_sAMObject", Description = "SAM Object\nConnect item or list", Access = GH_ParamAccess.item };
                 param_GenericObject.DataMapping = GH_DataMapping.Graft;
                 result.Add(new GH_SAMParam(param_GenericObject, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_parameter", NickName = "_parameter", Description = "Name of the property to set (e.g. 'Name', 'Orientation', or a parameter name from GetNames)", Access = GH_ParamAccess.item };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_parameter", NickName = "_parameter", Description = "Parameter", Access = GH_ParamAccess.item };
                 param_String.DataMapping = GH_DataMapping.Graft;
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_value", NickName = "_value", Description = "New value to assign to the specified property. Use Graft for per-item assignment", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_value", NickName = "_value", Description = "Value \nConnect item or list", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -70,8 +70,8 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<ParameterizedSAMObject>() { Name = "SAMObject", NickName = "SAMObject", Description = "Modified SAM object with the new value applied", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Successful", NickName = "Successful", Description = "True if the value was successfully assigned to the object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<ParameterizedSAMObject>() { Name = "SAMObject", NickName = "SAMObject", Description = "SAMObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "Successful", NickName = "Successful", Description = "Correctly imported?", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

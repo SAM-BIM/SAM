@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAdjustPanels()
           : base("SAMAnalytical.AdjustPanels", "SAMAnalytical.AdjustPanels",
-              "Allows the engineer to snap or adjust panel geometries to align with a reference Face3D surface, within a given distance tolerance",
+              "Adjusts Panels",
               "SAM", "Analytical")
         {
         }
@@ -58,7 +58,7 @@ namespace SAM.Analytical.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number = null;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "maxDistance_", NickName = "maxDistance_", Description = "Maximum distance a panel can be moved to align with the reference face [m]", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "maxDistance_", NickName = "maxDistance_", Description = "max Distance", Access = GH_ParamAccess.item };
                 number.SetPersistentData(0.5);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 

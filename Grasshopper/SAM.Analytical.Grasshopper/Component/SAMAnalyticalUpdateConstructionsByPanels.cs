@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateConstructionsByPanels()
           : base("SAMAnalytical.UpdateConstructionsByPanels", "SAMAnalytical.UpdateConstructionsByPanels",
-              "Update Constructions in an AdjacencyCluster or AnalyticalModel by matching input Panels to existing Panels by geometry. Internal floors without matching panels are converted to Air. The original is not modified; a copy is returned.",
+              "Update Constructions By Panels from input Panels. If you have internal floor and conneted Panels does not contain Panel in same location it will convert existing panel into Air",
               "SAM", "Analytical04")
         {
         }
@@ -81,7 +81,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "analytical", NickName = "analytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

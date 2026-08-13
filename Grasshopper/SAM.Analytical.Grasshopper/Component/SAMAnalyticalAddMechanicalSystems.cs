@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAddMechanicalSystems()
           : base("SAMAnalytical.AddMechanicalSystems", "SAMAnalytical.AddMechanicalSystems",
-              "Generate and assign heating, cooling, ventilation, and domestic hot water MechanicalSystems to an AnalyticalModel or AdjacencyCluster. Spaces are grouped and systems sized automatically using a SystemTypeLibrary. Returns the updated object, the created mechanical systems, and associated AirHandlingUnits.",
+              "Add MechanicalSystems to SAM Analytical Model",
               "SAM", "Analytical")
         {
         }
@@ -46,28 +46,28 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSystemTypeLibraryParam() { Name = "_systemTypeLibrary_", NickName = "_systemTypeLibrary_", Description = "SAM SystemTypeLibrary defining the mechanical systems to create. If omitted, the default SystemTypeLibrary from ActiveSettings is used.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "Spaces to include in mechanical system assignment. If omitted, all spaces in the AdjacencyCluster are used.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSystemTypeLibraryParam() { Name = "_systemTypeLibrary_", NickName = "_systemTypeLibrary_", Description = "SAM SystemTypeLibrary", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_supplyUnitName_", NickName = "_supplyUnitName_", Description = "Name for the supply AirHandlingUnit. Default: AHU1.", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_supplyUnitName_", NickName = "_supplyUnitName_", Description = "Supply Unit Name", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData("AHU1");
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_exhaustUnitName_", NickName = "_exhaustUnitName_", Description = "Name for the exhaust AirHandlingUnit. Default: AHU1.", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_exhaustUnitName_", NickName = "_exhaustUnitName_", Description = "Exhaust Unit Name", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData("AHU1");
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_ventilationRiserName_", NickName = "_ventilationRiserName_", Description = "Name for the ventilation riser. Default: RV1.", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_ventilationRiserName_", NickName = "_ventilationRiserName_", Description = "Ventilation Riser Name", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData("RV1");
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_heatingRiserName_", NickName = "_heatingRiserName_", Description = "Name for the heating riser. Default: RH1.", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_heatingRiserName_", NickName = "_heatingRiserName_", Description = "Heating Riser Name", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData("RH1");
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_coolingRiserName_", NickName = "_coolingRiserName_", Description = "Name for the cooling riser. Default: RC1.", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_coolingRiserName_", NickName = "_coolingRiserName_", Description = "Cooling Riser Name", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData("RC1");
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
@@ -83,9 +83,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object with mechanical systems applied", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSystemParam() { Name = "mechanicalSystems", NickName = "mechanicalSystems", Description = "MechanicalSystems created (VentilationSystem, HeatingSystem, CoolingSystem, DomesticHotWaterSystem)", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooAnalyticalEquipmentParam() { Name = "equipments", NickName = "equipments", Description = "AirHandlingUnits associated with the created ventilation systems", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam { Name = "analytical", NickName = "analytical", Description = "SAM Analytical", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSystemParam() { Name = "mechanicalSystems", NickName = "mechanicalSystems", Description = "SAM Mechanical Systems", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalEquipmentParam() { Name = "equipments", NickName = "equipments", Description = "SAM Mechanical Equipments", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

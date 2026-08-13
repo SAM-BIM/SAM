@@ -38,9 +38,9 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(new GooProfileParam() { Name = "profile_", NickName = "profile_", Description = "SAM Analytical Profile", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "infiltrationACH_", NickName = "infiltrationACH_", Description = "Infiltration Air Changes Per Hour, ac/h", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
                 //result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "toExternalFacing_", NickName = "toExternalFacing_", Description = "If False then value for Infiltration Air Changes Per Hour will be applied to all spaces", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "airflowPerExtArea_", NickName = "airflowPerExtArea_", Description = "Airflow per exposed panel area [m3/s per m2]. Typical values: 0.0001 (tight), 0.0003 (average), 0.0006 (leaky) at ~4 Pa pressure differential", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "airflowPerExtArea_", NickName = "airflowPerExtArea_", Description = "Airflow Per Exposed Panel Area, m3/s per m2  \n*typical building pressures of ~4 Pa between inside and outside, \n* 0.0001 (m3/s per m2 facade) - Tight building, \n* 0.0003 (m3/s per m2 facade) - Average building, \n* 0.0006 (m3/s per m2 facade) - Leaky building", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
 
-                global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "toExternalFacing_", NickName = "toExternalFacing_", Description = "If True, infiltration is applied only to spaces with external panels; if False, all spaces receive the infiltration rate", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "toExternalFacing_", NickName = "toExternalFacing_", Description = "If False then value for Infiltration Air Changes Per Hour will be applied to all spaces, \nif True only spaces with Exposed Panel ", Access = GH_ParamAccess.item };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Voluntary));
 
@@ -64,7 +64,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateInfiltrationGains()
           : base("SAMAnalytical.UpdateInfiltrationGains", "SAMAnalytical.UpdateInfiltrationGains",
-              "Update infiltration rates [ac/h or m3/s per m2] in InternalConditions for selected Spaces. Optionally restrict to external-facing spaces only. If no inputs are connected the original model is returned unchanged.",
+              "Updates Infiltration in Internal Condition for Spaces \nIf nothing connect orignal Analytical Model will be outputed",
               "SAM", "SAM_IC")
         {
         }

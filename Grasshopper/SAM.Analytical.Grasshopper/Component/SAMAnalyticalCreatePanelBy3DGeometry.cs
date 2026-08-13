@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreatePanelBy3DGeometry()
           : base("SAMAnalytical.CreatePanelBy3DGeometry", "SAMAnalytical.CreatePanelBy3DGeometry",
-              "Create a SAM Analytical Panel from 3D geometry. Supports automatic panel-type detection from face normals.",
+              "Create SAM Analytical Panel by 3D Geometry",
               "SAM", "Analytical01")
         {
         }
@@ -44,25 +44,25 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = [];
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panel_", NickName = "panel_", Description = "Optional source SAM Analytical Panel to derive PanelType and Construction from", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "3Dgeometry_", NickName = "3Dgeometry_", Description = "3D geometry (e.g. Rhino Brep, Surface, or Mesh) to convert into a Panel", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_String() { Name = "panelType_", NickName = "panelType_", Description = "SAM Analytical PanelType as a string (e.g. 'Wall', 'Floor', 'Roof'). Auto-detected from orientation if omitted.", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction_", NickName = "construction_", Description = "SAM Analytical Construction to assign to the created Panel", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "panel_", NickName = "panel_", Description = "Source SAM Analytical Panel", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "3Dgeometry_", NickName = "3Dgeometry_", Description = "3D Geometry", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_String() { Name = "panelType_", NickName = "panelType_", Description = "SAM Analytical PanelType", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "construction_", NickName = "construction_", Description = "SAM Analytical Construction", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
                 Param_Boolean param_Boolean;
 
-                param_Boolean = new Param_Boolean() { Name = "simplify_", NickName = "simplify_", Description = "Simplify the 3D geometry before converting to a Panel", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean = new Param_Boolean() { Name = "simplify_", NickName = "simplify_", Description = "Simplify", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
 
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
                 Param_Number param_Number;
 
-                param_Number = new () { Name = "minArea_", NickName = "minArea_", Description = "Minimum acceptable aperture area [m²]. Apertures smaller than this are discarded.", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new () { Name = "minArea_", NickName = "minArea_", Description = "Minimal Acceptable area of Aperture", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Geometric tolerance for coplanarity and edge matching [m]", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(Tolerance.Distance);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -79,7 +79,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result =
                 [
-                    new GH_SAMParam(new GooPanelParam() { Name = "panel", NickName = "panel", Description = "Created SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding),
+                    new GH_SAMParam(new GooPanelParam() { Name = "panel", NickName = "panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item }, ParamVisibility.Binding),
                 ];
                 return [.. result];
             }

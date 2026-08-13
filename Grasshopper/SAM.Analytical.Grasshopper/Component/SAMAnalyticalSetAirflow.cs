@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetAirflow()
           : base("SAMAnalytical.SetAirflow", "SAMAnalytical.SetAirflow",
-              "Assigns exhaust, supply, and outside-supply airflow rates to spaces using per-person, per-area, ACH, or absolute flow methods",
+              "Sets Airflow for given spaces",
               "SAM", "Analytical03")
         {
         }
@@ -48,19 +48,19 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "SAM Analytical Spaces to receive the airflow values; if omitted, all spaces are updated", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "_spaces_", NickName = "_spaces_", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean boolean;
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_exhaustAirFlow_", NickName = "_exhaustAirFlow_", Description = "Set to true to assign the calculated airflow as exhaust airflow", Access = GH_ParamAccess.item };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_exhaustAirFlow_", NickName = "_exhaustAirFlow_", Description = "Apply to Exhaust Air Flow", Access = GH_ParamAccess.item };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_outsideSupplyAirFlow_", NickName = "_outsideSupplyAirFlow_", Description = "Set to true to assign the calculated airflow as outside supply airflow", Access = GH_ParamAccess.item };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_outsideSupplyAirFlow_", NickName = "_outsideSupplyAirFlow_", Description = "Apply to Outside Supply Air Flow", Access = GH_ParamAccess.item };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_supplyAirFlow_", NickName = "_supplyAirFlow_", Description = "Set to true to assign the calculated airflow as supply airflow", Access = GH_ParamAccess.item };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_supplyAirFlow_", NickName = "_supplyAirFlow_", Description = "Apply to Supply Air Flow", Access = GH_ParamAccess.item };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
@@ -83,7 +83,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Analytical", NickName = "Analytical", Description = "SAM Analytical Object with updated airflow values", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Analytical", NickName = "Analytical", Description = "Objects", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

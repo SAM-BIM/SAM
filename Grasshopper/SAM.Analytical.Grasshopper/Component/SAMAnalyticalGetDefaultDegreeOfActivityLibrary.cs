@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGetDefaultDegreeOfActivityLibrary()
           : base("SAMAnalytical.GetDefaultDegreeOfActivityLibrary", "SAMAnalytical.GetDefaultDegreeOfActivityLibrary",
-              "Retrieve the default DegreeOfActivityLibrary from the active analytical settings.",
+              "Get Default SAM DegreeOfActivityLibrary",
               "SAM", "Analytical01")
         {
         }
@@ -57,8 +57,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooDegreeOfActivityLibraryParam() { Name = "DegreeOfActivityLibrary", NickName = "DegreeOfActivityLibrary", Description = "The default DegreeOfActivityLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooDegreeOfActivityParam() { Name = "DegreeOfActivities", NickName = "DegreeOfActivities", Description = "All DegreeOfActivity objects contained in the library", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooDegreeOfActivityLibraryParam() { Name = "DegreeOfActivityLibrary", NickName = "DegreeOfActivityLibrary", Description = "SAM Analytical DegreeOfActivityLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooDegreeOfActivityParam() { Name = "DegreeOfActivities", NickName = "DegreeOfActivities", Description = "SAM Analytical DegreeOfActivity", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

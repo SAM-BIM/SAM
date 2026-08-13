@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalTM52BuildingCategory()
           : base("SAMAnalytical.TM52BuildingCategory", "SAMAnalytical.TM52BuildingCategory",
-              "Allows an engineer to select a TM52 Building Category (I, II, III) for adaptive thermal comfort assessment.",
+              "TM52 Building Category",
               "SAM", "Analytical03")
         {
         }

@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGetInternalConditionTextMap()
           : base("SAMAnalytical.GetInternalConditionTextMap", "SAMAnalytical.GetInternalConditionTextMap",
-              "Retrieve the default InternalCondition TextMap from the active analytical settings.",
+              "Get InternalCondition TextMap",
               "SAM", "Analytical02")
         {
         }
@@ -57,7 +57,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooTextMapParam() { Name = "TextMap", NickName = "TextMap", Description = "Core TextMap for InternalCondition lookups", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooTextMapParam() { Name = "TextMap", NickName = "TextMap", Description = "SAM Core TextMap", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -26,18 +26,19 @@ namespace SAM.Core.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_Components;
-                param_Components = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_components", NickName = "_components", Description = "Names, nicknames, or GUIDs of components to update. If left empty the entire document is scanned", Access = GH_ParamAccess.list, Optional = true };
+                param_Components = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_components", NickName = "_components", Description = "Component names, nicknames, or GUID strings (optional). If empty, scans entire document.", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(param_Components, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_DryRun;
-                param_DryRun = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_dryRun", NickName = "_dryRun", Description = "If true, reports which components would be updated without applying changes", Access = GH_ParamAccess.item, Optional = true };
+                param_DryRun = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_dryRun", NickName = "_dryRun", Description = "Preview mode — reports changes without applying them", Access = GH_ParamAccess.item, Optional = true };
                 param_DryRun.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_DryRun, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Trigger input — set to true to execute the update on the document", Access = GH_ParamAccess.item, Optional = false };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Run Update", Access = GH_ParamAccess.item, Optional = false };
                 param_Boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
+
                 return result.ToArray();
             }
         }
@@ -47,9 +48,9 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooLogParam() { Name = "log", NickName = "log", Description = "Log of update actions performed or previewed", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "succeeded", NickName = "succeeded", Description = "True if updates completed and components were successfully upgraded", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "manualReconnection", NickName = "manual", Description = "Components that need wires manually reconnected after update. Right-click this component to navigate to each issue", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooLogParam() { Name = "log", NickName = "log", Description = "Log", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "succeeded", NickName = "succeeded", Description = "Succeeded", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "manualReconnection", NickName = "manual", Description = "Updated components that require manual wire reconnection. Right-click this component to navigate to each issue.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -59,7 +60,7 @@ namespace SAM.Core.Grasshopper
 
         public SAMCoreUpdate()
           : base("SAMCore.Update", "SAMCore.Update",
-              "Upgrades selected Grasshopper SAM components to their latest version, with optional dry-run preview",
+              "Updates Grasshopper components to the latest version",
               "SAM", "SAM")
         {
         }

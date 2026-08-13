@@ -37,7 +37,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMGeometryFace3DSpacing()
           : base("SAMGeometry.Face3DSpacing", "SAMGeometry.Face3DSpacing",
-              "Find nearby parallel faces within a distance range and output the closest point between each pair",
+              "Calculates Spacing between Face3Ds",
               "SAM", "Geometry")
         {
         }
@@ -52,15 +52,15 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_face3Ds", NickName = "_face3Ds", Description = "Face3Ds to check for proximity", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_face3Ds", NickName = "_face3Ds", Description = "SAM Spatial Face3Ds", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_max_", NickName = "_max_", Description = "Maximum search distance between faces [m]", Access = GH_ParamAccess.item, Optional = true };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_max_", NickName = "_max_", Description = "Maximal distance to be checked", Access = GH_ParamAccess.item, Optional = true };
                 number.SetPersistentData(Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_min_", NickName = "_min_", Description = "Minimum search distance between faces [m]", Access = GH_ParamAccess.item, Optional = true };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_min_", NickName = "_min_", Description = "Minimal distance to be checked", Access = GH_ParamAccess.item, Optional = true };
                 number.SetPersistentData(Tolerance.Distance);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
@@ -76,8 +76,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "points", NickName = "points", Description = "Closest point between each face pair within the search range", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "face3Ds", NickName = "face3Ds", Description = "Face3Ds grouped by spacing point, in a data tree", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "points", NickName = "points", Description = "Points", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "face3Ds", NickName = "face3Ds", Description = "SAM Spatial Face3Ds", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

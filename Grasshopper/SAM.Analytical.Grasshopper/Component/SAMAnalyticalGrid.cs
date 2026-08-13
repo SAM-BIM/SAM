@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGrid()
           : base("SAMAnalytical.Grid", "SAMAnalytical.Grid",
-              "Allows the engineer to generate a regular 2D grid of lines from a set of analytical panels, useful for panel layout and modularisation studies",
+              "Calculates Grid from Panels",
               "SAM", "Analytical02")
         {
         }
@@ -47,23 +47,23 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_SAManalytical", NickName = "_SAManalytical", Description = "SAM Analytical objects (Panels, AdjacencyCluster, or AnalyticalModel) to extract panel geometry from", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooJSAMObjectParam<SAMObject>() { Name = "_SAManalytical", NickName = "_SAManalytical", Description = "SAM Analytical Object", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Plane param_Plane;
-                param_Plane = new global::Grasshopper.Kernel.Parameters.Param_Plane() { Name = "plane_", NickName = "plane_", Description = "Optional reference plane for the grid; defaults to World XY", Access = GH_ParamAccess.item, Optional = true };
+                param_Plane = new global::Grasshopper.Kernel.Parameters.Param_Plane() { Name = "plane_", NickName = "plane_", Description = "GH Plane", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(param_Plane, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Point param_Point;
-                param_Point = new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "origin_", NickName = "origin_", Description = "Optional origin point for grid alignment [m]", Access = GH_ParamAccess.item, Optional = true };
+                param_Point = new global::Grasshopper.Kernel.Parameters.Param_Point() { Name = "origin_", NickName = "origin_", Description = "GH Origin Point", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(param_Point, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_x_", NickName = "_x_", Description = "Grid cell size along the X-axis [m]", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_x_", NickName = "_x_", Description = "Grid size on X Axis", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(0.2);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_y_", NickName = "_y_", Description = "Grid cell size along the Y-axis [m]", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_y_", NickName = "_y_", Description = "Grid size on Y Axis", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(0.2);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -79,7 +79,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Line() { Name = "Lines", NickName = "Lines", Description = "Grid lines generated from panel extents", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Line() { Name = "Lines", NickName = "Lines", Description = "Lines", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

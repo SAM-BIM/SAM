@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalRemoveFromConstructionManager()
           : base("SAMAnalytical.RemoveFromConstructionManager", "SAMAnalytical.RemoveFromConstructionManager",
-              "Remove Construction, ApertureConstruction and Material objects from a ConstructionManager. Objects can be supplied individually or via their library containers (ConstructionLibrary, ApertureConstructionLibrary, MaterialLibrary).",
+              "Remove From ConstructionManager",
               "SAM", "Analytical03")
         {
         }
@@ -48,19 +48,19 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "_constructionManager", NickName = "_constructionManager", Description = "SAM ConstructionManager to remove entries from", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "_constructionManager", NickName = "_constructionManager", Description = "SAM Analytical ConstructionManager", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 GooAnalyticalObjectParam analyticalObjectParam;
 
-                analyticalObjectParam = new GooAnalyticalObjectParam() { Name = "constructions_", NickName = "constructions_", Description = "Construction objects or ConstructionLibrary to remove. Also accepts a ConstructionManager to copy all its Constructions from", Access = GH_ParamAccess.list, Optional = true };
+                analyticalObjectParam = new GooAnalyticalObjectParam() { Name = "constructions_", NickName = "constructions_", Description = "SAM Analytical Constructions", Access = GH_ParamAccess.list, Optional = true };
                 analyticalObjectParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(analyticalObjectParam, ParamVisibility.Binding));
 
-                analyticalObjectParam = new GooAnalyticalObjectParam() { Name = "apertureConstructions_", NickName = "apertureConstructions_", Description = "ApertureConstruction objects or ApertureConstructionLibrary to remove. Also accepts a ConstructionManager to copy all its ApertureConstructions from", Access = GH_ParamAccess.list, Optional = true };
+                analyticalObjectParam = new GooAnalyticalObjectParam() { Name = "apertureConstructions_", NickName = "apertureConstructions_", Description = "SAM Analytical ApertureConstructions", Access = GH_ParamAccess.list, Optional = true };
                 analyticalObjectParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(analyticalObjectParam, ParamVisibility.Binding));
 
-                GooSAMObjectParam sAMObjectParam = new GooSAMObjectParam() { Name = "materials_", NickName = "materials_", Description = "Material objects or MaterialLibrary to remove. Also accepts a ConstructionManager to copy all its Materials from", Access = GH_ParamAccess.list, Optional = true };
+                GooSAMObjectParam sAMObjectParam = new GooSAMObjectParam() { Name = "materials_", NickName = "materials_", Description = "SAM Materials", Access = GH_ParamAccess.list, Optional = true };
                 sAMObjectParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(sAMObjectParam, ParamVisibility.Binding));
 
@@ -76,7 +76,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager", NickName = "constructionManager", Description = "Modified ConstructionManager with the specified entries removed", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager", NickName = "constructionManager", Description = "SAM Analytical ConstructionManager", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

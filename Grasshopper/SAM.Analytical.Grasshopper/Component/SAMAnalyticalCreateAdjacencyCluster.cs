@@ -39,7 +39,8 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateAdjacencyCluster()
           : base("SAMAnalytical.CreateAdjacencyCluster", "SAMAnalytical.CreateAdjacencyCluster",
-              "Allows an engineer to create an AdjacencyCluster from 2D floor-plan outlines, generating walls and enclosing Spaces between stacked levels automatically.\nProvide only the top face (floor or roof) outlines of each storey; the component builds the connecting walls and intermediate slabs.\nFor closed 3D volumes, use CreateAdjacencyClusterByBreps instead."
+              "Create AdjacencyCluster for Horizontal Floors and Roofs only, Use only Top Floors or Roof shape ONLY this will generate Walls and close Spaces. For 3D shapes use 'Create.SAMAdjacencyCluster' from Topologic \n "
+                + "---->   ------\n        |\n        |    First Floor\n---->   ------\n        |\n        |   Ground Floor\n        -------\n\nSECTION"
                 , "SAM", "Analytical")
         {
         }
@@ -53,15 +54,15 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                global::Grasshopper.Kernel.Parameters.Param_GenericObject param_GenericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_geometry", NickName = "_geometry", Description = "Top faces (floors or roofs) as SAM Face3D, ISegmentable3D, or Rhino curves. Provide only the uppermost outline of each storey.", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten };
+                global::Grasshopper.Kernel.Parameters.Param_GenericObject param_GenericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_geometry", NickName = "_geometry", Description = "SAM or Rhino Geometry, Use only Top Floors or Roof shape ONLY", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten };
                 result.Add(new GH_SAMParam(param_GenericObject, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "elevation_Ground_", NickName = "elevation_Ground_", Description = "Ground elevation [m]", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "elevation_Ground_", NickName = "elevation_Ground_", Description = "Ground Elevation, Number", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Geometric tolerance for snapping and planar projection [m]", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(Core.Tolerance.Distance);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -77,7 +78,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAdjacencyClusterParam() { Name = "AdjacencyCluster", NickName = "AdjacencyCluster", Description = "Output SAM Analytical AdjacencyCluster containing generated Panels and Spaces", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAdjacencyClusterParam() { Name = "AdjacencyCluster", NickName = "AdjacencyCluster", Description = "SAM Analytical AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

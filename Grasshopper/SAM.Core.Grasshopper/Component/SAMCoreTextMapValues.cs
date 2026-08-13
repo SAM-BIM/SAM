@@ -37,7 +37,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreTextMapValues()
           : base("SAMCore.TextMapValues", "SAMCore.TextMapValues",
-              "Extracts all keys and corresponding replacement values from a TextMap dictionary",
+              "Gets TextMap values and keys",
               "SAM", "Core")
         {
         }
@@ -49,7 +49,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMObjectParam() { Name = "_textMap", NickName = "_textMap", Description = "TextMap dictionary from which to extract keys and values", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMObjectParam() { Name = "_textMap", NickName = "_textMap", Description = "TextMap", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -60,8 +60,8 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "keys", NickName = "keys", Description = "List of all keys in the TextMap dictionary", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "values", NickName = "values", Description = "Data tree of replacement values per key (one branch per key)", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "keys", NickName = "keys", Description = "Keys", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "values", NickName = "values", Description = "Values", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -32,7 +32,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreRound()
           : base("SAMCore.Round", "SAMCore.Round",
-              "Rounds a numeric value to a specified number of decimal places",
+              "Rounds number",
               "SAM", "Core")
         {
         }
@@ -44,8 +44,8 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "_number", NickName = "_number", Description = "Numeric value to round", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                global::Grasshopper.Kernel.Parameters.Param_Integer param_Integer = new global::Grasshopper.Kernel.Parameters.Param_Integer { Name = "numberOfDecimals_", NickName = "numberOfDecimals_", Description = "Number of decimal places to round to (default: 2)", Access = GH_ParamAccess.item, Optional = true };
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "_number", NickName = "_number", Description = "Number", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                global::Grasshopper.Kernel.Parameters.Param_Integer param_Integer = new global::Grasshopper.Kernel.Parameters.Param_Integer { Name = "numberOfDecimals_", NickName = "numberOfDecimals_", Description = "Number Of Decimals", Access = GH_ParamAccess.item, Optional = true };
                 param_Integer.SetPersistentData(2);
                 result.Add(new GH_SAMParam(param_Integer, ParamVisibility.Binding));
 
@@ -58,7 +58,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "Number", NickName = "Number", Description = "Rounded numeric value to the specified number of decimal places", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "Number", NickName = "Number", Description = "Number", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalRemoveSpacesByBrep()
           : base("SAMAnalytical.RemoveSpacesByBrep", "SAMAnalytical.RemoveSpacesByBrep",
-              "Remove Spaces from an AdjacencyCluster or AnalyticalModel that are enclosed by one or more closed Breps or Shells. Internal points are computed automatically using the silver-spacing and tolerance parameters.",
+              "Remove Spaces By Brep",
               "SAM", "Analytical")
         {
         }
@@ -49,25 +49,25 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                GooAnalyticalObjectParam gooAnalyticalObjectParam = new() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel from which Spaces will be removed", Access = GH_ParamAccess.item };
+                GooAnalyticalObjectParam gooAnalyticalObjectParam = new() { Name = "_analyticalObject", NickName = "_analyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(gooAnalyticalObjectParam, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject genericObject = new()
                 {
                     Name = "_breps",
                     NickName = "_breps",
-                    Description = "Closed Breps or Shells enclosing the Spaces to remove",
+                    Description = "Breps or shells",
                     Access = GH_ParamAccess.list,
                 };
                 result.Add(new GH_SAMParam(genericObject, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number paramNumber;
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "silverSpacing_", NickName = "silverSpacing_", Description = "Silver-spacing tolerance for internal point generation [m]", Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "silverSpacing_", NickName = "silverSpacing_", Description = "Silver Spacing for computation of Spaces", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Core.Tolerance.MacroDistance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Voluntary));
 
-                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Distance tolerance for containment tests [m]", Access = GH_ParamAccess.item };
+                paramNumber = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "tolerance_", NickName = "tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Core.Tolerance.Distance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
@@ -85,8 +85,8 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result =
                 [
-                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "Modified AdjacencyCluster or AnalyticalModel with the enclosed Spaces removed", Access = GH_ParamAccess.item }, ParamVisibility.Binding),
-                    new GH_SAMParam(new GooSpaceParam() { Name = "Spaces", NickName = "Spaces", Description = "Space objects that were removed", Access = GH_ParamAccess.list }, ParamVisibility.Binding)
+                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "SAM AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding),
+                    new GH_SAMParam(new GooSpaceParam() { Name = "Spaces", NickName = "Spaces", Description = "Removed SAM spaces", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary)
                 ];
                 return [.. result];
             }

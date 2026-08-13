@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateConstructionManager()
           : base("SAMAnalytical.CreateConstructionManager", "SAMAnalytical.CreateConstructionManager",
-              "Allows an engineer to create a SAM ConstructionManager aggregating Constructions, ApertureConstructions, and Materials, optionally inheriting from an existing manager.",
+              "Create ConstructionManager",
               "SAM", "Analytical")
         {
         }
@@ -48,22 +48,22 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager_", NickName = "constructionManager_", Description = "Optional source SAM ConstructionManager to clone and extend", Access = GH_ParamAccess.item, Optional = true }));
+                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager_", NickName = "constructionManager_", Description = "SAM Analytical ConstructionManager \nif connected all object will be transered to new \n  and additional element will be added from inputs below", Access = GH_ParamAccess.item, Optional = true }));
 
                 GooAnalyticalObjectParam analyticalObjectParam;
-                analyticalObjectParam = new GooAnalyticalObjectParam() { Name = "constructions_", NickName = "constructions_", Description = "SAM Constructions, ConstructionManagers, or ConstructionLibraries to add", Access = GH_ParamAccess.list, Optional = true };
+                analyticalObjectParam = new GooAnalyticalObjectParam() { Name = "constructions_", NickName = "constructions_", Description = "SAM Analytical Constructions \n if constructionManager will be connected all construction will be taken from input object", Access = GH_ParamAccess.list, Optional = true };
                 analyticalObjectParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(analyticalObjectParam, ParamVisibility.Binding));
 
-                analyticalObjectParam = new GooAnalyticalObjectParam() { Name = "apertureConstructions_", NickName = "apertureConstructions_", Description = "SAM ApertureConstructions, ConstructionManagers, or ApertureConstructionLibraries to add", Access = GH_ParamAccess.list, Optional = true };
+                analyticalObjectParam = new GooAnalyticalObjectParam() { Name = "apertureConstructions_", NickName = "apertureConstructions_", Description = "SAM Analytical ApertureConstructions \n if constructionManager will be connected all construction will be taken from input object", Access = GH_ParamAccess.list, Optional = true };
                 analyticalObjectParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(analyticalObjectParam, ParamVisibility.Binding));
 
-                GooSAMObjectParam sAMObjectParam = new GooSAMObjectParam() { Name = "materials_", NickName = "materials_", Description = "SAM Materials, MaterialLibraries, or ConstructionManagers to pull materials from", Optional = true, Access = GH_ParamAccess.list };
+                GooSAMObjectParam sAMObjectParam = new GooSAMObjectParam() { Name = "materials_", NickName = "materials_", Description = "SAM Materials\n* you can connect optionally constructionManager to pull materials ", Optional = true, Access = GH_ParamAccess.list };
                 sAMObjectParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(sAMObjectParam, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "removeUnused_", NickName = "removeUnused_", Description = "If true, removes materials not referenced by any Construction; default is false", Access = GH_ParamAccess.item, Optional = true }));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "removeUnused_", NickName = "removeUnused_", Description = "Remove unused materials from created Construction Manager \nDefault False", Access = GH_ParamAccess.item, Optional = true }));
 
                 return result.ToArray();
             }
@@ -77,7 +77,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager", NickName = "constructionManager", Description = "Output SAM Analytical ConstructionManager", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager", NickName = "constructionManager", Description = "SAM Analytical ConstructionManager", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

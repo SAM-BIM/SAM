@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateProfileByBooleansAndValues()
           : base("SAMAnalytical.CreateProfileByBooleansAndValues", "SAMAnalytical.CreateProfileByBooleansAndValues",
-              "Create a SAM Analytical Profile by mapping boolean values to custom numeric values (True/False -> user-defined values).",
+              "Create Profile By Bools and Values",
               "SAM", "Analytical01")
         {
         }
@@ -46,18 +46,18 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "_name", NickName = "_name", Description = "Name for the created Profile", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "category_", NickName = "category_", Description = "SAM Analytical ProfileGroup or ProfileType string (e.g. 'Gain', 'Thermostat')", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_bools", NickName = "_bools", Description = "List of boolean values defining the Profile", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "_name", NickName = "_name", Description = "Profile Name", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String { Name = "category_", NickName = "category_", Description = "Profile Category", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_bools", NickName = "_bools", Description = "Bools as value or list", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number = null;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "_valueTrue", NickName = "_valueTrue", Description = "Numeric value assigned for True", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "_valueTrue", NickName = "_valueTrue", Description = "Value True", Access = GH_ParamAccess.item };
                 number.SetPersistentData(1);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "_valueFalse", NickName = "_valueFalse", Description = "Numeric value assigned for False", Access = GH_ParamAccess.item };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number { Name = "_valueFalse", NickName = "_valueFalse", Description = "Value False", Access = GH_ParamAccess.item };
                 number.SetPersistentData(0);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
@@ -73,7 +73,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "profile", NickName = "profile", Description = "Created SAM Analytical Profile", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooProfileParam() { Name = "profile", NickName = "profile", Description = "SAM Analytical Profile", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

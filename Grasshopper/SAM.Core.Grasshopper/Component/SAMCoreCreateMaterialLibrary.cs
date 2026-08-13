@@ -30,7 +30,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreCreateMaterialLibrary()
           : base("SAMCore.CreateMaterialLibrary", "SAMCore.CreateMaterialLibrary",
-              "Create a new empty SAM Material Library with a given name",
+              "Create SAM Material Library",
               "SAM", "Core")
         {
         }
@@ -45,7 +45,7 @@ namespace SAM.Core.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name_", NickName = "_name_", Description = "Name for the new SAM Material Library", Access = GH_ParamAccess.item };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name_", NickName = "_name_", Description = "Name", Access = GH_ParamAccess.item };
                 param_String.SetPersistentData("Default Material Library");
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
@@ -61,7 +61,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooMaterialLibraryParam() { Name = "MaterialLibrary", NickName = "MaterialLibrary", Description = "New SAM Material Library, empty and ready for materials", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMaterialLibraryParam() { Name = "MaterialLibrary", NickName = "MaterialLibrary", Description = "SAM MaterialLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

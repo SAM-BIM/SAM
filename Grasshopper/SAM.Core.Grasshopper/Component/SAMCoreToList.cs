@@ -31,7 +31,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreToList()
           : base("ToList", "ToList",
-              "Splits delimited text into a data tree of strings using the specified separator character",
+              "Converts text to list using given separator",
               "SAM", "Core")
         {
         }
@@ -45,9 +45,9 @@ namespace SAM.Core.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_text", NickName = "_text", Description = "Delimited text string to split into a list", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_text", NickName = "_text", Description = "Text as single string", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_String param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_separator", NickName = "_separator", Description = "Delimiter character (defaults to CSV separator ',')", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_String param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_separator", NickName = "_separator", Description = "Separator", Access = GH_ParamAccess.item };
                 param_String.SetPersistentData(Core.Query.Separator(DelimitedFileType.Csv).ToString());
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
@@ -63,7 +63,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "List", NickName = "List", Description = "Data tree of strings split by the separator", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "List", NickName = "List", Description = "List", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

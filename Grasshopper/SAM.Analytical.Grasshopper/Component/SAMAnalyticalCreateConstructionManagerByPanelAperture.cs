@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateConstructionManagerByPanelAperture()
           : base("SAMAnalytical.CreateConstructionManagerByPanelAperture", "SAMAnalyticalCreate.CreateConstructionManagerByPanelAperture",
-              "Allows an engineer to extract a ConstructionManager from an AnalyticalModel by collecting the Constructions and ApertureConstructions used by selected Panels and Apertures.",
+              "Creates Construction Manager By Panel Or Aperture",
               "SAM", "Analytical")
         {
         }

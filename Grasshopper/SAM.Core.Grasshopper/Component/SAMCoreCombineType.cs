@@ -30,7 +30,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMCoreCombineType()
           : base("SAMCore.CombineType", "SAMCore.CombineType",
-              "Select a CombineType to control how SAM objects are combined (e.g. Merge, Union)",
+              "Select CombineType",
               "SAM", "Core")
         {
         }

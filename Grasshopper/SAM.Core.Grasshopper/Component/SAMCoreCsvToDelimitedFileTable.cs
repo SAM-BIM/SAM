@@ -34,7 +34,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreCsvToDelimitedFileTable()
           : base("Csv.ToDelimitedFileTable", "Csv.ToDelimitedFileTable",
-              "Import CSV data from a file path or raw text string into a DelimitedFileTable for tabular building-performance analyses.",
+              "Converts csv text or file to DelimitedFileTable",
               "SAM", "Core")
         {
         }
@@ -46,7 +46,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_csv", NickName = "_csv", Description = "Either a full path to a .csv file, or a raw CSV-formatted text string", Access = GH_ParamAccess.item }, ParamVisibility.Binding)); return result.ToArray();
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_csv", NickName = "_csv", Description = "file path to csv text", Access = GH_ParamAccess.item }, ParamVisibility.Binding)); return result.ToArray();
             }
         }
 
@@ -55,7 +55,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooDelimitedFileTableParam() { Name = "DelimitedFileTable", NickName = "DelimitedFileTable", Description = "Resulting DelimitedFileTable populated with the CSV data", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooDelimitedFileTableParam() { Name = "DelimitedFileTable", NickName = "DelimitedFileTable", Description = "SAM Core DelimitedFileTable", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGetDefaultConstructionLibrary()
           : base("SAMAnalytical.GetDefaultConstructionLibrary", "SAMAnalytical.GetDefaultConstructionLibrary",
-              "Retrieve the default ConstructionLibrary from the active analytical settings.",
+              "Get Default SAM ConstructionLibrary",
               "SAM", "Analytical01")
         {
         }
@@ -57,8 +57,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooInternalConditionLibraryParam() { Name = "ConstructionLibrary", NickName = "ConstructionLibrary", Description = "The default ConstructionLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "Constructions", NickName = "Constructions", Description = "All Construction objects contained in the library", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooInternalConditionLibraryParam() { Name = "ConstructionLibrary", NickName = "ConstructionLibrary", Description = "SAM Analytical ConstructionLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionParam() { Name = "Constructions", NickName = "Constructions", Description = "SAM Analytical Constructions", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

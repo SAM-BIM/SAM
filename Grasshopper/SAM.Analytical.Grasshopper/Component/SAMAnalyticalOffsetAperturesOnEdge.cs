@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalOffsetAperturesOnEdge()
           : base("SAMAnalytical.OffsetAperturesOnEdge", "SAMAnalytical.OffsetAperturesOnEdge",
-              "Offset apertures (windows/doors) inwards from the panel edge by a specified distance, and remove any aperture whose parent panel becomes too small.",
+              "Offset Aperture On Edge. It offset Panel inwards by distance and checks if ovelap, if true then offset aperute by distance default = 0.1m. *it will remove Aperture is Panel dimension is below 0.2m",
               "SAM", "Analytical02")
         {
         }
@@ -45,10 +45,10 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panel", NickName = "_panel", Description = "SAM Analytical Panel containing apertures to adjust", Access = GH_ParamAccess.item, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panel", NickName = "_panel", Description = "SAM Analytical Panel", Access = GH_ParamAccess.item, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "distance_", NickName = "distance_", Description = "Distance by which apertures are offset from the panel edge [m]", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "distance_", NickName = "distance_", Description = "Distance", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.1);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -64,7 +64,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Analytical Panel with repositioned apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

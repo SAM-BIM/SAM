@@ -28,7 +28,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreAbout()
           : base("SAM.About", "SAM.About",
-              "Provides information about the SAM toolkit. Right-click to select the type of information to display",
+              "Right click to find out more about our toolkit",
               "SAM", "About")
         {
         }

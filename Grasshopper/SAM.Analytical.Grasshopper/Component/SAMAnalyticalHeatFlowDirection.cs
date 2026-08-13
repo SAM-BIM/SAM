@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalHeatFlowDirection()
           : base("SAMAnalytical.HeatFlowDirection", "SAMAnalytical.HeatFlowDirection",
-              "Allows an engineer to select a HeatFlowDirection (Up, Down, Horizontal) for U-value calculation or construction assignment.",
+              "Select Heat Flow Direction",
               "SAM", "Analytical02")
         {
         }

@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalDefaultConstructionManager()
           : base("SAMAnalytical.DefaultConstructionManager", "SAMAnalytical.DefaultConstructionManager",
-              "Allows an engineer to retrieve the default ConstructionManager loaded from the active SAM settings.",
+              "Gets Default ConstructionManager",
               "SAM", "Analytical01")
         {
         }
@@ -58,7 +58,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager", NickName = "constructionManager", Description = "Default SAM Analytical ConstructionManager from settings", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager", NickName = "constructionManager", Description = "Analytical ConstructionManager", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

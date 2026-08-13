@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGetDefaultSystemTypeLibrary()
           : base("SAMAnalytical.GetDefaultSystemTypeLibrary", "SAMAnalytical.GetDefaultSystemTypeLibrary",
-              "Retrieve the default SystemTypeLibrary from the active analytical settings.",
+              "Get Default SAM SystemTypeLibrary",
               "SAM", "Analytical02")
         {
         }
@@ -57,8 +57,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSystemTypeLibraryParam() { Name = "SystemTypeLibrary", NickName = "SystemTypeLibrary", Description = "The default SystemTypeLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSystemTypeParam() { Name = "SystemTypes", NickName = "SystemTypes", Description = "All ISystemType objects contained in the library", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooSystemTypeLibraryParam() { Name = "SystemTypeLibrary", NickName = "SystemTypeLibrary", Description = "SAM Analytical SystemTypeLibrary", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSystemTypeParam() { Name = "SystemTypes", NickName = "SystemTypes", Description = "SAM Analytical SystemTypes", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

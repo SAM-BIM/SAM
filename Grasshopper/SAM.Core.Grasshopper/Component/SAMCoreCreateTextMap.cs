@@ -32,7 +32,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreCreateTextMap()
           : base("SAMCore.CreateTextMap", "SAMCore.CreateTextMap",
-              "Create a SAM Core TextMap from paired lists of keys and values for storing name-value mappings",
+              "Creates SAM Core TextMap",
               "SAM", "Core")
         {
         }
@@ -45,8 +45,8 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_keys", NickName = "_keys", Description = "List of key strings to define the mapping entries", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_values", NickName = "_values", Description = "List of value strings corresponding to each key, matched by index", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_keys", NickName = "_keys", Description = "Keys", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_values", NickName = "_values", Description = "Values", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -59,7 +59,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooTextMapParam() { Name = "TextMap", NickName = "TextMap", Description = "SAM Core TextMap containing the paired key-value entries", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooTextMapParam() { Name = "TextMap", NickName = "TextMap", Description = "SAM Core Text Map", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

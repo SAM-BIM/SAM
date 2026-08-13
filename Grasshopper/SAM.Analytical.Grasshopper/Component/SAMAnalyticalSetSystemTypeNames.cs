@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetSystemTypeNames()
           : base("SAMAnalytical.SetSystemTypeNames", "SAMAnalytical.SetSystemTypeNames",
-              "Assigns HVAC system type names (ventilation, heating, cooling) to InternalConditions of spaces or zones within an AnalyticalModel\n *All input lists (ventilationSystemTypeNames_, heatingSystemTypeNames_, coolingSystemTypeNames_) must match the list length of spacesOrZones",
+              "Allow to change SystemTypeNames in internal condition\n * Please note that all input  ventilationSystemType_, heatingSystemTypeNames_ etc need to  match list length of spaces",
               "SAM", "Analytical03")
         {
         }
@@ -49,12 +49,12 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                GooAnalyticalModelParam analyticalModelParam = new GooAnalyticalModelParam() { Name = "analyticalModel_", NickName = "analyticalModel_", Description = "SAM Analytical Model containing the spaces to update", Access = GH_ParamAccess.item, Optional = true };
+                GooAnalyticalModelParam analyticalModelParam = new GooAnalyticalModelParam() { Name = "analyticalModel_", NickName = "analyticalModel_", Description = "SAM Analytical Model", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(analyticalModelParam, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject paramGenericObject;
 
-                paramGenericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_spacesOrZones", NickName = "_spacesOrZones", Description = "SAM Analytical Spaces or Zones to assign system types to \n*All input system type lists below must match the length of this list", Access = GH_ParamAccess.list, Optional = true };
+                paramGenericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_spacesOrZones", NickName = "_spacesOrZones", Description = "SAM Analytical Spaces or Zones \n * Please note that all input below SystemType need to  match list length of spaces", Access = GH_ParamAccess.list, Optional = true };
                 paramGenericObject.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(paramGenericObject, ParamVisibility.Binding));
 
@@ -79,7 +79,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analyticals", NickName = "analyticals", Description = "SAM Analytical Objects with updated system type names", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analyticals", NickName = "analyticals", Description = "SAM Analytical Objects", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -36,7 +36,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFilterByGeometry()
           : base("SAMAnalytical.FilterByGeometry", "SAMAnalytical.FilterByGeometry",
-              "Separate analytical Panels and Spaces into 'inside' and 'outside' groups relative to one or more closed Breps. Set _insideOnly_ to True to require full enclosure; otherwise partial overlap suffices.",
+              "Filter Analytical Objects By Geometry, output Panels that are inside closed brep",
               "SAM", "Analytical01")
         {
         }
@@ -51,17 +51,17 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                GooAnalyticalObjectParam gooAnalyticalObjectParam = new GooAnalyticalObjectParam() { Name = "_analyticals", NickName = "_analyticals", Description = "SAM AnalyticalModel, AdjacencyCluster, Panels or Spaces to filter", Access = GH_ParamAccess.list };
+                GooAnalyticalObjectParam gooAnalyticalObjectParam = new GooAnalyticalObjectParam() { Name = "_analyticals", NickName = "_analyticals", Description = "SAM Analytical Object \nAnalytical Model, Adjacency Cluster, Panels or Spaces", Access = GH_ParamAccess.list };
                 gooAnalyticalObjectParam.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(gooAnalyticalObjectParam, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Brep() { Name = "_breps", NickName = "_breps", Description = "Closed Breps defining the filter envelope", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Brep() { Name = "_breps", NickName = "_breps", Description = "Breps", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = new() { Name = "_insideOnly_", NickName = "_insideOnly_", Description = "If True, only elements fully enclosed by the Brep are returned; if False, any element touching the Brep is included", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = new() { Name = "_insideOnly_", NickName = "_insideOnly_", Description = "Inside Only\nif True only fully inside element will be return", Access = GH_ParamAccess.item };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Number paramNumber = new() { Name = "_tolerance_", NickName = "_tolerance_", Description = "Proximity tolerance for geometry tests [m]", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Number paramNumber = new() { Name = "_tolerance_", NickName = "_tolerance_", Description = "Tolerance", Access = GH_ParamAccess.item };
                 paramNumber.SetPersistentData(Tolerance.Distance);
                 result.Add(new GH_SAMParam(paramNumber, ParamVisibility.Binding));
 
@@ -79,8 +79,8 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result =
                 [
-                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "In", NickName = "In", Description = "Panels/Spaces that pass the geometry test (inside or touching)", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
-                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Out", NickName = "Out", Description = "Panels/Spaces that fail the geometry test", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
+                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "In", NickName = "In", Description = "SAM Analytical Objects In - Panels or Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
+                    new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "Out", NickName = "Out", Description = "SAM Analytical Objects Out", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
                 ];
                 return [.. result];
             }

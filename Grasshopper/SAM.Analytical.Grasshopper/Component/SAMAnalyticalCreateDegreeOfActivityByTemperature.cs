@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateDegreeOfActivityByTemperature()
           : base("SAMAnalytical.CreateDegreeOfActivityByTemperature", "SAMAnalytical.CreateDegreeOfActivityByTemperature",
-              "Create a SAM Analytical DegreeOfActivity based on activity level and room temperature according to VDI 2078 / EN 13779.",
+              "Create SAM Analytical DegreeOfActivity By RoomTemperature according to VDI 2078, EN 13779; Activity Level I (seating, relaxed), Activity Level II (seating office, school, lab), Activity Level II (standing, light activity, shop, lab, light industry), Activity Level IV (standing, moderate activity, lab assistant, working with machinery); I=100 W/p, II=125 W/p, III=170 W/p, IV=210 W/p",
               "SAM", "Analytical")
         {
         }
@@ -46,17 +46,17 @@ namespace SAM.Analytical.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name_", NickName = "_name_", Description = "Name for the DegreeOfActivity. Auto-generated if omitted.", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name_", NickName = "_name_", Description = "Name ,default = Activity level", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData(string.Empty);
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Integer param_Integer;
-                param_Integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_activityLevel_", NickName = "_activityLevel_", Description = "Activity level [1-4]: I=100, II=125, III=170, IV=210 W/person. Default 2.", Access = GH_ParamAccess.item, Optional = true };
+                param_Integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_activityLevel_", NickName = "_activityLevel_", Description = "Activity level [1 - 4], I=100 W/p, II=125 W/p, III=170 W/p, IV=210 W/p ", Access = GH_ParamAccess.item, Optional = true };
                 param_Integer.SetPersistentData(2);
                 result.Add(new GH_SAMParam(param_Integer, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_temperature_", NickName = "_temperature_", Description = "Room temperature [°C], range 16-28. Default 24.", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_temperature_", NickName = "_temperature_", Description = "Temperature [degC], will range between 16-28 default = 24 degC", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(24);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -72,7 +72,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooDegreeOfActivityParam() { Name = "DegreeOfActivity", NickName = "DegreeOfActivity", Description = "Created SAM Analytical DegreeOfActivity", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooDegreeOfActivityParam() { Name = "DegreeOfActivity", NickName = "DegreeOfActivity", Description = "SAM Analytical DegreeOfActivity", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

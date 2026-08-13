@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalDefaultGasType()
           : base("SAMAnalytical.DefaultGasType", "SAMAnalytical.DefaultGasType",
-              "Allows an engineer to select a DefaultGasType (Air, Argon, Krypton, Xenon) for glazing cavity fill specification.",
+              "Select Default Gas Type",
               "SAM", "Analytical01")
         {
         }

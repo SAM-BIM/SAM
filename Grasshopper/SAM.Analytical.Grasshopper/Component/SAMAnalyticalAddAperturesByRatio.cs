@@ -97,28 +97,28 @@ Notes
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number = null;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_ratio_", NickName = "_ratio_", Description = "Target window-to-wall ratio (WWR) per panel [0.0\u20131.0]. If omitted, the object passes through unchanged.", Access = GH_ParamAccess.item, Optional = true };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_ratio_", NickName = "_ratio_", Description = "Ratio", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = null;
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_subdivide_", NickName = "_subdivide_", Description = "When true, split the aperture band into multiple openings tiled horizontally. Spacing is controlled by _horizontalSeparation_.", Access = GH_ParamAccess.item, Optional = true };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_subdivide_", NickName = "_subdivide_", Description = "Subdivide \n  If True, split the aperture band into multiple openings; \n  spacing is controlled by _horizontalSeparation", Access = GH_ParamAccess.item, Optional = true };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_apertureHeight_", NickName = "_apertureHeight_", Description = "Height of the aperture band measured from the sill [m]", Access = GH_ParamAccess.item, Optional = true };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_apertureHeight_", NickName = "_apertureHeight_", Description = "Default aperture Height", Access = GH_ParamAccess.item, Optional = true };
                 number.SetPersistentData(2.5);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_sillHeight_", NickName = "_sillHeight_", Description = "Height of the sill above the floor level [m]. Typical values: 0.85\u20131.0 m.", Access = GH_ParamAccess.item, Optional = true };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_sillHeight_", NickName = "_sillHeight_", Description = "Default sill Height \n Keep sill ~0.85–1.0 [m]", Access = GH_ParamAccess.item, Optional = true };
                 number.SetPersistentData(0.85);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_horizontalSeparation_", NickName = "_horizontalSeparation_", Description = "Clear horizontal spacing (edge-to-edge) between neighbouring sub-divided apertures [m]", Access = GH_ParamAccess.item, Optional = true };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_horizontalSeparation_", NickName = "_horizontalSeparation_", Description = "Horizontal Separation distance [m]", Access = GH_ParamAccess.item, Optional = true };
                 number.SetPersistentData(3);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                GooApertureConstructionParam apertureConstructionParam = new GooApertureConstructionParam() { Name = "_apertureConstruction_", NickName = "_apertureConstruction_", Description = "SAM Analytical ApertureConstructions", Access = GH_ParamAccess.item, Optional = true };
+                GooApertureConstructionParam apertureConstructionParam = new GooApertureConstructionParam() { Name = "_apertureConstruction_", NickName = "_apertureConstruction_", Description = "SAM Analytical Aperture Construction", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(apertureConstructionParam, ParamVisibility.Binding));
 
                 // Frame Width
@@ -126,7 +126,7 @@ Notes
                 {
                     Name = "frameWidth_",
                     NickName = "frameWidth_",
-                    Description = "Frame width offset from the aperture geometry edge on each side [m]. Use either this or framePercentage_, not both.",
+                    Description = "Frame Width.",
                     Access = GH_ParamAccess.item,
                     Optional = true
                 };
@@ -137,17 +137,17 @@ Notes
                 {
                     Name = "framePercentage_",
                     NickName = "framePercentage_",
-                    Description = "Frame inset as a percentage of the aperture pane dimension [0\u2013100%]. Use either this or frameWidth_, not both.",
+                    Description = "Frame Percentage [0 - 100]",
                     Access = GH_ParamAccess.item,
                     Optional = true
                 };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_keepSeparationDistance_", NickName = "_keepSeparationDistance_", Description = "When true, the specified horizontal separation distance is maintained exactly. When false, separation may be increased to reach the target ratio.", Access = GH_ParamAccess.item, Optional = true };
+                boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_keepSeparationDistance_", NickName = "_keepSeparationDistance_", Description = "Keep horizontal separation distance between apertures", Access = GH_ParamAccess.item, Optional = true };
                 boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Voluntary));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_offset_", NickName = "_offset_", Description = "Minimum clearance between the wall edges and the closest aperture edge [m]", Access = GH_ParamAccess.item, Optional = true };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_offset_", NickName = "_offset_", Description = "Minimal Ofsset between wall and apertures", Access = GH_ParamAccess.item, Optional = true };
                 number.SetPersistentData(0.1);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
@@ -163,9 +163,9 @@ Notes
             get
             {
                 List<GH_SAMParam> result = [];
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analyticalObject", NickName = "analyticalObject", Description = "SAM Analytical Object with apertures applied", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "apertures", NickName = "apertures", Description = "Apertures created to meet the target WWR", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "successful", NickName = "successful", Description = "True if at least one aperture was successfully added", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analyticalObject", NickName = "analyticalObject", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "apertures", NickName = "apertures", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "successful", NickName = "successful", Description = "Successful", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return [.. result];
             }
         }

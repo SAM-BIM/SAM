@@ -61,7 +61,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateOccupancyGains()
           : base("SAMAnalytical.UpdateOccupancyGains", "SAMAnalytical.UpdateOccupancyGains",
-              "Update occupancy gain properties (sensible/latent per person [W], area per person [m2/p], number of persons) in InternalConditions for selected Spaces. Uses DegreeOfActivity to set default gains. If nothing is connected the original model is output unchanged. The original model is not modified.",
+              "Updates Occupancy Gains Properties for Spaces\nIf nothing connect orignal Analytical Model will be outputed \nIf incoming occupancy for the space is zero, value will not be overriden by areaPerPerson ",
               "SAM", "SAM_IC")
         {
         }

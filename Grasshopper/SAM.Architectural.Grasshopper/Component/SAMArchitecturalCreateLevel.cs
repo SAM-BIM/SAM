@@ -31,7 +31,7 @@ namespace SAM.Architectural.Grasshopper
         /// </summary>
         public SAMArchitecturalCreateLevel()
           : base("SAMArchitectural.CreateLevel", "SAMArchitectural.CreateLevel",
-              "Create a SAM Architectural Level with a name and elevation, used to define storeys and building levels.",
+              "Create SAM Architectural Level",
               "SAM", "Architectural")
         {
         }
@@ -44,8 +44,8 @@ namespace SAM.Architectural.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name", NickName = "name", Description = "Name for the building level, e.g. 'Ground Floor', 'Level 1'.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_elevation", NickName = "elevation", Description = "Elevation of the level [m] above the project datum.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name", NickName = "name", Description = "Name", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_elevation", NickName = "elevation", Description = "Elevation", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -58,7 +58,7 @@ namespace SAM.Architectural.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooLevelParam() { Name = "Level", NickName = "Level", Description = "Created SAM Architectural Level with the supplied name and elevation.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooLevelParam() { Name = "Level", NickName = "Level", Description = "SAM Architectural Level", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

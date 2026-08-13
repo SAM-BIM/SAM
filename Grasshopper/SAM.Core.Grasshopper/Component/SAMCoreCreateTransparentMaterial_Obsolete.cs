@@ -33,7 +33,7 @@ namespace SAM.Core.Grasshopper.Obsolete
         /// </summary>
         public SAMCoreCreateTransparentMaterial()
           : base("SAMCore.CreateTransparentMaterial", "SAMCore.CreateTransparentMaterial",
-              "Create a SAM Transparent Material by name (Obsolete)",
+              "Create Transparent Material",
               "SAM", "Core")
         {
         }

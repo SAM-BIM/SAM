@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalHourlyValues()
           : base("SAMAnalytical.HourlyValues", "SAMAnalytical.HourlyValues",
-              "Allows an engineer to extract hourly TM52/TM59 comfort band values for a given day from an extended thermal result, including acceptable temperature ranges and exceedance data.",
+              "TM52SpaceExtendedResult hourly values",
               "SAM", "Analytical02")
         {
         }
@@ -49,7 +49,7 @@ namespace SAM.Analytical.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooResultParam() { Name = "_tMExtendedResult", NickName = "_tMExtendedResult", Description = "SAM TMExtendedResult such as TM52ExtendedResult or TM59ExtendedResult", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Integer integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_dayOfYear", NickName = "_dayOfYear", Description = "Day-of-year index [1\u2013365/366] to extract hourly data for", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Integer integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_dayOfYear", NickName = "_dayOfYear", Description = "Day of the year index", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(integer, ParamVisibility.Binding));
 
                 return result.ToArray();
@@ -64,18 +64,18 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "name", NickName = "name", Description = "Space name from the extended result", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "minAcceptableTemperatures", NickName = "minAcceptableTemperatures", Description = "Min acceptable comfort temperatures [\u00B0C]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "maxAcceptableTemperatures", NickName = "maxAcceptableTemperatures", Description = "Max acceptable comfort temperatures [\u00B0C]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "operativeTemperatures", NickName = "operativeTemperatures", Description = "Operative temperatures for each hour [\u00B0C]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "temperatureDifferences", NickName = "temperatureDifferences", Description = "Temperature differences from comfort band [\u00B0C]", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "occupancies", NickName = "occupancies", Description = "Boolean occupancy status for each hour", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "name", NickName = "name", Description = "Name", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "minAcceptableTemperatures", NickName = "minAcceptableTemperatures", Description = "Min Acceptable Temperatures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "maxAcceptableTemperatures", NickName = "maxAcceptableTemperatures", Description = "Max Acceptable Temperatures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "operativeTemperatures", NickName = "operativeTemperatures", Description = "Operative Temperatures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "temperatureDifferences", NickName = "temperatureDifferences", Description = "Temperature Differences", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "occupancies", NickName = "occupancies", Description = "Occupancies", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "occupiedHourIndices", NickName = "occupiedHourIndices", Description = "List of occupied hour-of-year indices", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "occupiedHours", NickName = "occupiedHours", Description = "Total count of occupied hours in the year", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "maxExceedableHours", NickName = "maxExceedableHours", Description = "Maximum number of exceedable hours allowed by the standard", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "occupiedHourIndicesExceedingComfortRange", NickName = "occupiedHourIndicesExceedingComfortRange", Description = "List of occupied hour indices that exceed the comfort range", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "occupiedHoursExceedingComfortRange", NickName = "occupiedHoursExceedingComfortRange", Description = "Total count of occupied hours exceeding the comfort range", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "occupiedHourIndices", NickName = "occupiedHourIndices", Description = "Occupied Hour Indices", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "occupiedHours", NickName = "occupiedHours", Description = "Occupied Hours", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "maxExceedableHours", NickName = "maxExceedableHours", Description = "Max Exceedable Hours", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "occupiedHourIndicesExceedingComfortRange", NickName = "occupiedHourIndicesExceedingComfortRange", Description = "Occupied Hour Indices Exceeding Comfort Range", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "occupiedHoursExceedingComfortRange", NickName = "occupiedHoursExceedingComfortRange", Description = "Occupied Hours Exceeding Comfort Range", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
 
                 return result.ToArray();
             }

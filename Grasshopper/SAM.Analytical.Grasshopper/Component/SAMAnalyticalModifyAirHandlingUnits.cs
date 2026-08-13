@@ -35,7 +35,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalModifyAirHandlingUnits()
           : base("SAMAnalytical.ModifyAirHandlingUnits", "SAMAnalytical.ModifyAirHandlingUnits",
-              "Modify Air Handling Unit parameters (supply temperatures, coil settings, heat recovery efficiencies) in an AdjacencyCluster or AnalyticalModel. A copy of the original is created; all connected AHUs receive the same single input value for each property.",
+              "Modify AirHandlingUnits in AdjacencyCluster or AnalyticalModel",
               "SAM", "Analytical02")
         {
         }
@@ -79,7 +79,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

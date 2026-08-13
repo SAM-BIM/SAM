@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetInternalConditionPerArea()
           : base("SAMAnalytical.SetInternalConditionPerArea", "SAMAnalytical.SetInternalConditionPerArea",
-              "Assigns an InternalCondition to spaces whose calculated floor area meets a given comparison threshold",
+              "Set Internal Condition Per Area",
               "SAM", "Analytical03")
         {
         }
@@ -46,18 +46,18 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel containing the spaces to evaluate", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "_internalCondition", NickName = "_internalCondition", Description = "SAM Analytical InternalCondition to assign to qualifying spaces", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "_internalCondition", NickName = "_internalCondition", Description = "SAM Analytical InternalCondition", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_includeInvalid_", NickName = "_includeInvalid_", Description = "Include spaces with invalid (NaN) or null area values in the assignment", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Boolean boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_includeInvalid_", NickName = "_includeInvalid_", Description = "Include invalid values (NaN) or null Parameter", Access = GH_ParamAccess.item };
                 boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(boolean, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_String @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_comparisonType_", NickName = "_comparisonType_", Description = "Number ComparisonType (e.g. Less, Greater, Equals) for the area threshold", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_String @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_comparisonType_", NickName = "_comparisonType_", Description = "Number ComparisonType", Access = GH_ParamAccess.item };
                 @string.SetPersistentData(Core.NumberComparisonType.Less);
                 result.Add(new GH_SAMParam(@string, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Number number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_value_", NickName = "_value_", Description = "Area threshold value [m\u00b2]", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_Number number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_value_", NickName = "_value_", Description = "Area value", Access = GH_ParamAccess.item };
                 number.SetPersistentData(2);
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
@@ -75,8 +75,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "AnalyticalModel", NickName = "AnalyticalModel", Description = "SAM AnalyticalModel with InternalConditions assigned per area", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "Spaces", NickName = "Spaces", Description = "SAM Analytical Spaces that met the area threshold", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "AnalyticalModel", NickName = "AnalyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "Spaces", NickName = "Spaces", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

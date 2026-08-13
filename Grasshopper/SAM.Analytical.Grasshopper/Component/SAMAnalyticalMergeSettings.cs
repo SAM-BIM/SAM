@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalMergeSettings()
           : base("SAMAnalytical.MergeSettings", "SAMAnalytical.MergeSettings",
-              "Create merge settings to configure how analytical objects are combined",
+              "Create MergeSettings",
               "SAM", "Analytical")
         {
         }
@@ -46,7 +46,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooTypeMergeSettingsParam() { Name = "_typeMergeSettings", NickName = "_typeMergeSettings", Description = "List of type-specific merge settings defining merge behaviour per object type", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooTypeMergeSettingsParam() { Name = "_typeMergeSettings", NickName = "_typeMergeSettings", Description = "Type merge settings", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -60,7 +60,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooMergeSettingsParam() { Name = "mergeSettings", NickName = "mergeSettings", Description = "Merge settings object for use with the Merge component", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooMergeSettingsParam() { Name = "mergeSettings", NickName = "mergeSettings", Description = "Merge Settings", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

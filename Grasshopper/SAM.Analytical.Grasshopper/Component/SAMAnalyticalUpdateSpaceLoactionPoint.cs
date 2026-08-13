@@ -69,8 +69,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = [];
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "Modified SAM AnalyticalObject", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "Spaces", NickName = "Spaces", Description = "SAM Analytical Space list", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "AnalyticalObject", NickName = "AnalyticalObject", Description = "SAM Analytical Object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "Spaces", NickName = "Spaces", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Heights", NickName = "Heights", Description = "SAM Heights", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return [.. result];
             }
@@ -81,7 +81,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateSpaceLoactionPoint()
           : base("SAMAnalytical.UpdateSpaceLoactionPoint", "SAMAnalytical.UpdateSpaceLoactionPoint",
-              "Calculate and assign optimal location points for Spaces by analysing the largest axis-aligned rectangle in a horizontal section. The original is not modified; a copy is returned.",
+              "Updates Space Loaction Point",
               "SAM", "SAM_IC")
         {
         }

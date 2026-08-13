@@ -33,7 +33,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public CreateSAMTransform3DPlaneToPlane()
           : base("Create.SAMTransform3DPlaneToPlane", "Create.Transoform3DPlaneToPlane",
-              "Creates a 3D transformation matrix that maps one plane coordinate system onto another, e.g. for aligning elements between two building faces.",
+              "Creates SAM Transform3D Plane To Plane)",
               "SAM", "Geometry")
         {
         }
@@ -47,9 +47,9 @@ namespace SAM.Geometry.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_source", NickName = "_source", Description = "Source plane defining the coordinate system to map from [m]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_source", NickName = "_source", Description = "Source Rhino or SAM Plane", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_target", NickName = "_target", Description = "Target plane defining the coordinate system to map onto [m]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_target", NickName = "_target", Description = "Target Rhino or SAM Plane", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -63,7 +63,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooTransform3DParam() { Name = "Transform3D", NickName = "Transform3D", Description = "4x4 transformation matrix mapping from the source plane to the target plane", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooTransform3DParam() { Name = "Transform3D", NickName = "Transform3D", Description = "SAM Geometry Transform3D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

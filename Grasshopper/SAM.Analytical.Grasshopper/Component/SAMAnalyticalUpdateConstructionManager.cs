@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateConstructionManager()
           : base("SAMAnalytical.UpdateConstructionManager", "SAMAnalytical.UpdateConstructionManager",
-              "Update a ConstructionManager by adding Constructions, ApertureConstructions, or Materials from libraries or individual objects. The original is not modified; a copy is returned.",
+              "Update ConstructionManager",
               "SAM", "Analytical04")
         {
         }

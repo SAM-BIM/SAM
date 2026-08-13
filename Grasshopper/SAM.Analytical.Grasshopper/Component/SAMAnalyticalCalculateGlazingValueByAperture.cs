@@ -38,7 +38,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCalculateGlazingValueByAperture()
           : base("SAMAnalytical.CalculateGlazingValueByAperture", "SAMAnalytical.CalculateGlazingValueByAperture",
-              "Calculate glazing optical and thermal properties per aperture in accordance with EN 410",
+              "Calculate Glazing Value By Aperture using EN 410",
               "SAM WIP", "Tas")
         {
         }
@@ -51,12 +51,12 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = [];
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel containing the material library and aperture definitions", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "_apertures_", NickName = "_apertures_", Description = "Apertures to calculate glazing values for. If none connected, all transparent apertures are processed.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "_apertures_", NickName = "_apertures_", Description = "SAM Apertures", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_tMean_", NickName = "_tMean_",                     Description = "Mean cavity gap temperature [°C]", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_tMean_", NickName = "_tMean_", Description = "Mean gap temperature", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(20);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Voluntary));
 
@@ -64,7 +64,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "_hi_",
                     NickName = "_hi_",
-                    Description = "Internal surface heat transfer coefficient hi [W/(m²·K)].\nCalculated as hi = 3.6 + (4.1 * εi / 0.837).\nFor uncoated soda-lime glass εi = 0.837 gives hi = 7.7 W/(m²·K) (Rsi = 0.13).\nDefault: auto-calculated; override with a fixed value.",
+                    Description = "hi [W/m²K]\nInternal heat transfer coefficient.\nCalculated as: hi = 3.6 + (4.1 * εi / 0.837)\nwhere εi is the corrected emissivity of the inside surface.\nFor uncoated soda-lime silicate or borosilicate glass: εi = 0.837 = hi = 7.7W/m²K \nDefault: Calculated for equation you can override with fix hi = 7.7 W/m²K for Rsi = 0.13.\nTas: hi=8",
                     Access = GH_ParamAccess.item,
                     Optional = true
                 };
@@ -75,7 +75,7 @@ namespace SAM.Analytical.Grasshopper
                 {
                     Name = "_he_",
                     NickName = "_he_",
-                    Description = "External surface heat transfer coefficient he [W/(m²·K)].\nDefault: he = 25 (Rse = 0.04).",
+                    Description = "he [W/m²K]\nExternal heat transfer coefficient.\nDefault: he = 25 for Rse = 0.04.\nTas: he=23",
                     Access = GH_ParamAccess.item,
                     Optional = true
                 };
@@ -84,7 +84,7 @@ namespace SAM.Analytical.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean @boolean = null;
 
-                @boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Connect a Boolean toggle to execute the calculation", Access = GH_ParamAccess.item };
+                @boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Connect a boolean toggle to run.", Access = GH_ParamAccess.item };
                 @boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(@boolean, ParamVisibility.Binding));
 
@@ -100,8 +100,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = [];
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "AnalyticalModel", NickName = "AnalyticalModel", Description = "Input SAM AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures", NickName = "Apertures", Description = "Apertures processed, in the same order as the tree branches", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "AnalyticalModel", NickName = "AnalyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "Apertures", NickName = "Apertures", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 // Light Visible (outside incidence)
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Tv", NickName = "Tv", Description = "Visible transmittance, outside incidence (EN 410).\n | TAS: Light Transmittance", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
@@ -124,7 +124,7 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "SolarEnergyBalanceResidualExt", NickName = "SolarEnergyBalanceResidualExt", Description = "Energy balance residual (external incidence) = 1 − (τ + ρ + Σα).\n | TAS: n/a", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "SolarEnergyBalanceResidualInt", NickName = "SolarEnergyBalanceResidualInt", Description = "Energy balance residual (internal incidence) = 1 − (τ + ρ + Σα).\n | TAS: n/a", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "successful", NickName = "successful", Description = "True when the calculation completed successfully", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "successful", NickName = "successful", Description = "Correctly imported?\n | TAS: n/a", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
 
                 return [.. result];

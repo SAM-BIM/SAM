@@ -28,7 +28,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreParameterType()
           : base("SAMCore.ParameterType", "SAMCore.ParameterType",
-              "Select a Parameter Type for filtering SAM parameters by their category",
+              "Select ParameterType",
               "SAM", "Core")
         {
         }

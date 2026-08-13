@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalGetDefaultApertureConstructions()
           : base("SAMAnalytical.GetDefaultApertureConstructions", "SAMAnalytical.GetDefaultApertureConstructions",
-              "Retrieve default ApertureConstruction objects for given combinations of ApertureType and PanelType.",
+              "Get Default SAM ApertureConstructions",
               "SAM", "Analytical01")
         {
         }
@@ -48,10 +48,10 @@ namespace SAM.Analytical.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_apertureTypes_", NickName = "_apertureTypes_", Description = "Optional list of ApertureType names to filter; all types used if not supplied", Access = GH_ParamAccess.list, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_apertureTypes_", NickName = "_apertureTypes_", Description = "SAM Analytical ApertureTypes", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_panelTypes_", NickName = "_panelTypes_", Description = "Optional list of PanelType names to filter; all types used if not supplied", Access = GH_ParamAccess.list, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_panelTypes_", NickName = "_panelTypes_", Description = "SAM Analytical PanelTypes", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
                 return result.ToArray();
@@ -66,7 +66,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "ApertureConstructions", NickName = "ApertureConstructions", Description = "Default ApertureConstruction objects for the requested type combinations", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "ApertureConstructions", NickName = "ApertureConstructions", Description = "SAM Analytical Aperture Constructions", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

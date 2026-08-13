@@ -36,7 +36,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalModifyProfileByNumberComparison()
           : base("SAMAnalytical.ModifyProfileByNumberComparison", "SAMAnalytical.ModifyProfileByNumberComparison",
-              "Compare a Profile against another set of values using a NumberComparisonType (e.g. greater than, less than), and assign True/False values or keep original values. The original Profile is not modified; a new Profile is returned.",
+              "Modify Profile By Number Comparison",
               "SAM", "Analytical02")
         {
         }

@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateSpace()
           : base("SAMAnalytical.CreateSpace", "SAMAnalytical.CreateSpace",
-              "Allows an engineer to create a SAM Space representing a thermal zone, with optional location point (default 0,0,0.75 [m]), internal condition, volume, and area.",
+              "Create SAM Space, if nothing connect default values: _name = Space_Default, _locationPoint = (0, 0, 0.75)",
               "SAM", "Analytical01")
         {
         }
@@ -66,7 +66,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "space", NickName = "space", Description = "Output SAM Analytical Space representing a thermal zone", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "space", NickName = "space", Description = "SAM Analytical Space", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateFeatureShade()
           : base("SAMAnalytical.CreateFeatureShade", "SAMAnalytical.CreateFeatureShade",
-              "Create a SAM Analytical FeatureShade object defining the geometry and transmittance of shading devices (overhangs and fins).",
+              "Create FeatureShade",
               "SAM", "Analytical")
         {
         }
@@ -49,57 +49,57 @@ namespace SAM.Analytical.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name_", NickName = "_name_", Description = "Name for the FeatureShade", Optional = true, Access = GH_ParamAccess.item };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name_", NickName = "_name_", Description = "Name", Optional = true, Access = GH_ParamAccess.item };
                 param_String.SetPersistentData(string.Empty);
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_description_", NickName = "_description_", Description = "Description for the FeatureShade", Optional = true, Access = GH_ParamAccess.item };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_description_", NickName = "_description_", Description = "Description", Optional = true, Access = GH_ParamAccess.item };
                 param_String.SetPersistentData(string.Empty);
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_surfaceHeight_", NickName = "_surfaceHeight_", Description = "Surface height of the aperture [m]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_surfaceHeight_", NickName = "_surfaceHeight_", Description = "Surface Height", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_surfaceWidth_", NickName = "_surfaceWidth_", Description = "Surface width of the aperture [m]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_surfaceWidth_", NickName = "_surfaceWidth_", Description = "Surface Width", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_leftFinDepth_", NickName = "_leftFinDepth_", Description = "Left fin depth [m]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_leftFinDepth_", NickName = "_leftFinDepth_", Description = "Left Fin Depth", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_leftFinOffset_", NickName = "_leftFinOffset_", Description = "Left fin offset from aperture edge [m]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_leftFinOffset_", NickName = "_leftFinOffset_", Description = "Left Fin Offset", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_leftFinTransmittance_", NickName = "_leftFinTransmittance_", Description = "Left fin transmittance factor [0-1]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_leftFinTransmittance_", NickName = "_leftFinTransmittance_", Description = "Left Fin Transmittance", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_rightFinDepth_", NickName = "_rightFinDepth_", Description = "Right fin depth [m]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_rightFinDepth_", NickName = "_rightFinDepth_", Description = "Right Fin Depth", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_rightFinOffset_", NickName = "_rightFinOffset_", Description = "Right fin offset from aperture edge [m]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_rightFinOffset_", NickName = "_rightFinOffset_", Description = "Right Fin Offset", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_rightFinTransmittance_", NickName = "_rightFinTransmittance_", Description = "Right fin transmittance factor [0-1]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_rightFinTransmittance_", NickName = "_rightFinTransmittance_", Description = "Right Fin Transmittance", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_overhangDepth_", NickName = "_overhangDepth_", Description = "Overhang depth [m]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_overhangDepth_", NickName = "_overhangDepth_", Description = "Overhang Depth", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_overhangOffset_", NickName = "_overhangOffset_", Description = "Overhang vertical offset above the aperture [m]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_overhangOffset_", NickName = "_overhangOffset_", Description = "Overhang Offset", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_overhangTransmittance_", NickName = "_overhangTransmittance_", Description = "Overhang transmittance factor [0-1]", Optional = true, Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_overhangTransmittance_", NickName = "_overhangTransmittance_", Description = "Overhang Transmittance", Optional = true, Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 

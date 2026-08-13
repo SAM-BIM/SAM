@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetApertureConstructionByAnalyticalModel()
           : base("SAMAnalytical.SetApertureConstructionByAnalyticalModel", "SAMAnalytical.SetApertureConstructionByAnalyticalModel",
-              "Assigns an ApertureConstruction to apertures in an AnalyticalModel, resolving missing materials from a ConstructionManager \n*The layers should be ordered from inside to outside",
+              "Set Aperture Construction By AnalyticalModel \n*The layers should be ordered from inside to outside",
               "SAM", "Analytical03")
         {
         }
@@ -48,9 +48,9 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "_apertures", NickName = "apertures", Description = "SAM Analytical Apertures to assign the construction to", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "_apertureConstruction", NickName = "apertureConstruction", Description = "SAM Analytical ApertureConstruction to assign \n*The layers should be ordered from inside to outside" }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager_", NickName = "constructionManager_", Description = "SAM Analytical ConstructionManager used to resolve construction materials", Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "_apertures", NickName = "apertures", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureConstructionParam() { Name = "_apertureConstruction", NickName = "apertureConstruction", Description = "SAM Analytical ApertureConstruction \n*The layers should be ordered from inside to outside" }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionManagerParam() { Name = "constructionManager_", NickName = "constructionManager_", Description = "SAM Analytical ConstructionManager", Optional = true }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }
@@ -63,8 +63,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM AnalyticalModel with updated aperture constructions", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "apertures", NickName = "apertures", Description = "SAM Analytical Apertures with updated construction", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam { Name = "analyticalModel", NickName = "analyticalModel", Description = "SAM AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureParam() { Name = "apertures", NickName = "apertures", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

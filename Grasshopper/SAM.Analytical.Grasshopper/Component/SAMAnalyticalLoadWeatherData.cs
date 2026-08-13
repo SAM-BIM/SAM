@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalLoadWeatherData()
           : base("SAMAnalytical.LoadWeatherData", "SAMAnalytical.LoadWeatherData",
-              "Allows an engineer to load an EPW weather file and generate SAM WeatherData with optional Cooling and Heating DesignDays.\n\n* Right-click to access weather data sources:\n  - climate.onebuilding.org\n  - ladybug.tools/epwmap",
+              "Load SAM Weather WeatherData \n*right click over icon to access website with .weatear data \n- OneBuilding\n- LadybugTools",
               "SAM", "Weather")
         {
         }
@@ -45,11 +45,11 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                global::Grasshopper.Kernel.Parameters.Param_String @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_epwPath", NickName = "_epwPath", Description = "Full file path to the EPW weather data file", Access = GH_ParamAccess.item, Optional = false };
+                global::Grasshopper.Kernel.Parameters.Param_String @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_epwPath", NickName = "_epwPath", Description = "EPW File Path", Access = GH_ParamAccess.item, Optional = false };
                 result.Add(new GH_SAMParam(@string, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "heatingDesignDayTemp_", NickName = "heatingDesignDayTemp_", Description = "Optional heating design day override temperature [\u00B0C]", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "heatingDesignDayWindspeed_", NickName = "heatingDesignDayWindspeed_", Description = "Optional heating design day override wind speed [m/s]", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "heatingDesignDayTemp_", NickName = "heatingDesignDayTemp_", Description = "Heating DesignDay Temperature", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "heatingDesignDayWindspeed_", NickName = "heatingDesignDayWindspeed_", Description = "Heating DesignDay Windspeed", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
 
                 return result.ToArray();
             }
@@ -63,9 +63,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooWeatherDataParam() { Name = "weatherData", NickName = "weatherData", Description = "Loaded SAM WeatherData from the EPW file", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooDesignDayParam() { Name = "coolingDesignDay", NickName = "coolingDesignDay", Description = "SAM Cooling DesignDay derived from the weather data", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new GooDesignDayParam() { Name = "heatingDesignDay", NickName = "heatingDesignDay", Description = "SAM Heating DesignDay derived from the weather data (with optional overrides)", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooWeatherDataParam() { Name = "weatherData", NickName = "weatherData", Description = "SAM Weather Data", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooDesignDayParam() { Name = "coolingDesignDay", NickName = "coolingDesignDay", Description = "SAM Cooling DesignDay", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooDesignDayParam() { Name = "heatingDesignDay", NickName = "heatingDesignDay", Description = "SAM Heating DesignDay", Access = GH_ParamAccess.item }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

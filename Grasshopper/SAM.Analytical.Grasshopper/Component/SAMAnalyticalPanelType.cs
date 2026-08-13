@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalPanelType()
           : base("SAMAnalytical.PanelType", "SAMAnalytical.PanelType",
-              "Allows an engineer to select a PanelType (Wall, Floor, Roof, etc.) for building element classification.",
+              "Select Panel Type",
               "SAM", "Analytical03")
         {
         }

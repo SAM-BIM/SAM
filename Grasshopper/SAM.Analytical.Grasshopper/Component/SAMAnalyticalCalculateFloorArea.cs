@@ -38,7 +38,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCalculateFloorArea()
           : base("SAMAnalytical.CalculateFloorArea", "SAMAnalytical.CalculateFloorArea",
-              "Calculate the floor area of analytical spaces from their enclosing panels. The canonical value is the actual sloped surface area, not the horizontal plan projection. Uses the same shared calculation as model creation, so an explicit recalculation always matches the value computed at build time.",
+              "Calculates Floor Area from Space. The canonical value is the actual geometrical floor surface area, so a ramped or tilted floor reports its real sloped area rather than a horizontal projection or section. Uses the same shared calculation as model creation, so an explicit recalculation always matches creation time.",
               "SAM", "Analytical")
         {
         }
@@ -51,8 +51,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM AnalyticalModel or AdjacencyCluster containing spaces and panel geometry", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "Spaces to calculate floor area for. If none connected, all spaces are processed.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AnalyticalModel or AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces_", NickName = "spaces_", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_maxTiltDifference_", NickName = "_maxTiltDifference_", Description = "Maximal Allowed Tilt Difference in degrees from horizontal. A panel counts as floor when its space relative normal faces downward and its slope is within this many degrees of horizontal, so the default 20 accepts floors ramped up to 20 degrees. Ramped floors contribute their actual sloped surface area, not their horizontal projection.", Access = GH_ParamAccess.item };
                 number.SetPersistentData(20);
@@ -70,10 +70,10 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Analytical", NickName = "Analytical", Description = "Input object with updated floor area values stored on spaces", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Areas", NickName = "Areas", Description = "Calculated floor areas [m²] per space. NaN means no floor area could be established and any existing stored value is preserved.", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "Spaces", NickName = "Spaces", Description = "Spaces processed, in the same order as the Areas and Panels outputs", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "Panels counted as floor for each space. A panel qualifies geometrically (space-relative normal facing downward, slope within _maxTiltDifference_, finite positive area) and its type must be Floor, Internal Floor, Exposed Floor, Raised Floor, Slab on Grade, Underground Slab, Undefined, or Air. Air is accepted as a virtual floor boundary and is NOT retyped; vertical Air partitions, upward-facing Air panels and Air panels outside the tilt range are excluded. Empty branches mean the area came from the horizontal-section fallback or a preserved existing value.", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Analytical", NickName = "Analytical", Description = "SAM Analytical Object such as AnalyticalModel or AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "Areas", NickName = "Areas", Description = "Calculated Areas. The sum of the actual surface areas of the Panels below. NaN means no floor area could be established and none was already stored, in which case an existing valid area is preserved rather than overwritten.", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "Spaces", NickName = "Spaces", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Panels", NickName = "Panels", Description = "SAM Analytical Panels counted as floor for each Space. A panel qualifies geometrically (related to the Space, space relative normal facing downward, slope within _maxTiltDifference_, finite positive area) and its type must be accepted: Floor, Internal Floor, Exposed Floor, Raised Floor, Slab on Grade, Underground Slab, Undefined, or Air. Air is accepted as a virtual floor boundary and is NOT retyped; vertical Air partitions, upward facing Air panels and Air panels outside the tilt range are excluded. Empty means the area came from the horizontal section fallback or from a preserved existing value.", Access = GH_ParamAccess.tree }, ParamVisibility.Voluntary));
                 return result.ToArray();
             }
         }

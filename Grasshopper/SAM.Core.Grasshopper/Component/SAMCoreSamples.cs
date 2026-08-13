@@ -17,21 +17,21 @@ namespace SAM.Core.Grasshopper
 {
     /// <summary>
     /// List and insert Grasshopper sample files (.gh / .ghx) from the built-in "Samples" folder
-    /// shipped with the SAM Core plugin, plus any additional folders you provide.
+    /// next to the SAM Core plugin, plus any additional folders you provide.
     /// Makes no changes to your model until you pick a sample from the menu.
     /// </summary>
     /// <remarks>
     /// <para>
     /// SUMMARY
     ///   • Searches for sample files under the default "Samples" directory located next to the plugin DLL.
-    ///   • You can add extra directories via <c>_directory_</c>. All valid folders are searched.
-    ///   • Outputs a flat list of discovered sample file paths. Use the component button to insert content.
+    ///   • You can add extra directories via <c>_directory_</c> (one or more). All valid folders are searched.
+    ///   • Outputs a flat list of discovered sample file paths. Use the component's button to insert content.
     /// </para>
     /// <para>
     /// INPUTS
     ///   _directory_  (Text[], optional)
     ///     Additional folder paths to include in the search. If omitted, only the built-in
-    ///     &lt;root&gt;/Samples directory is used.
+    ///     <root>/Samples directory is used.
     ///     Type: Text (paths)
     ///     Required: No
     /// </para>
@@ -42,16 +42,16 @@ namespace SAM.Core.Grasshopper
     /// </para>
     /// <para>
     /// NOTES
-    ///   • Use the component button to open a pop-up menu of folders; pick an item to insert
+    ///   • Use the component's button to open a pop-up menu of folders → pick an item to insert
     ///     that sample's content into the active Grasshopper document.
     ///   • Paths that do not exist are ignored. If no valid folders remain, the component raises
     ///     an informative Grasshopper runtime error message and stops.
     /// </para>
     /// <para>
     /// EXAMPLE
-    ///   1) Drop the component on the canvas.
-    ///   2) (Optional) Supply extra sample directories via _directory_.
-    ///   3) Click the component button and choose a sample to insert.
+    ///   1) Drop the component on canvas.
+    ///   2) (Optional) Supply extra sample directories → _directory_
+    ///   3) Click the component's button and choose a sample to insert.
     /// </para>
     /// </remarks>
     public class SAMCoreSamples : GH_SAMVariableOutputParameterComponent
@@ -124,7 +124,7 @@ EXAMPLE
                     Name = "_directory_",
                     NickName = "_directory_",
                     Description = @"Additional folder paths to search for .gh / .ghx samples.
-If empty, only the built-in Samples directory is used.
+If empty, only the built-in <plugin>/Samples directory is used.
 Type: Text (paths)
 Required: No",
                     Optional = true,

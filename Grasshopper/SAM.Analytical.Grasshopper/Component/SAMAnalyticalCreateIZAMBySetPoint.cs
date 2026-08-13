@@ -36,26 +36,26 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical object (AnalyticalModel or AdjacencyCluster)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name", NickName = "_name", Description = "Air Handling Unit (AHU) name identifier", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "_analytical", NickName = "_analytical", Description = "SAM Analytical Object such as AnalyticalModel or AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name", NickName = "_name", Description = "SAM AHU Name", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number number = null;
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_setPoints", NickName = "_setPoints", Description = "Temperature setpoint values [°C]", Access = GH_ParamAccess.list };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_setPoints", NickName = "_setPoints", Description = "Set Points", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_tempAccuracies_", NickName = "_tempAccuracies_", Description = "Temperature accuracy bandwidth [K], default 1.5", Access = GH_ParamAccess.list };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_tempAccuracies_", NickName = "_tempAccuracies_", Description = "Temperature Accuracy", Access = GH_ParamAccess.list };
                 number.SetPersistentData(new List<GH_Number> { new GH_Number(1.5) });
                 result.Add(new GH_SAMParam(number, ParamVisibility.Binding));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_humidities", NickName = "_humidity", Description = "Humidity setpoint values [%]", Access = GH_ParamAccess.list };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_humidities", NickName = "_humidity", Description = "Humidity", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_humidityAccuracies_", NickName = "_humidityAccuracy_", Description = "Humidity accuracy bandwidth [%], default 10", Access = GH_ParamAccess.list };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_humidityAccuracies_", NickName = "_humidityAccuracy_", Description = "HumidityAccuracy", Access = GH_ParamAccess.list };
                 number.SetPersistentData(new List<GH_Number> { new GH_Number(10) });
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
 
-                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_densities_", NickName = "_densities_", Description = "Air density values [kg/m³], default 1.2", Access = GH_ParamAccess.list };
+                number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_densities_", NickName = "_densities_", Description = "Densities", Access = GH_ParamAccess.list };
                 number.SetPersistentData(new List<GH_Number> { new GH_Number(FluidProperty.Air.Density) });
                 result.Add(new GH_SAMParam(number, ParamVisibility.Voluntary));
                 return result.ToArray();
@@ -67,8 +67,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "Updated SAM AnalyticalObject with the AirHandlingUnit and AirHandlingUnitAirMovement", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooAirMovementObjectParam() { Name = "iZAM", NickName = "iZAM", Description = "Created AirHandlingUnitAirMovement (IZAM) object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "analytical", NickName = "analytical", Description = "SAM Analytical Object such as AnalyticalModel or AdjacencyCluster", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAirMovementObjectParam() { Name = "iZAM", NickName = "iZAM", Description = "SAM Air Movement Objects (IZAM)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

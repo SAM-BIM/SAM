@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetConstructionLayersByPanelType()
           : base("SAMAnalytical.SetConstructionLayersByPanelType", "SAMAnalytical.SetConstructionLayersByPanelType",
-              "Updates construction layers on panels in an AnalyticalModel by matching PanelType to entries in construction and material libraries",
+              "Set SAM Analytical ConstructionLayers By PanelType",
               "SAM", "Analytical03")
         {
         }
@@ -48,14 +48,14 @@ namespace SAM.Analytical.Grasshopper
 
                 result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooConstructionLibraryParam() { Name = "_constructionLibrary_", NickName = "_constructionLibrary_", Description = "SAM Analytical Construction Library used to match constructions by PanelType", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooConstructionLibraryParam() { Name = "_constructionLibrary_", NickName = "_constructionLibrary_", Description = "SAM Analytical Contruction Library", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new GooApertureConstructionLibraryParam() { Name = "_apertureConstructionLibrary_", NickName = "_apertureConstructionLibrary_", Description = "SAM Analytical Aperture Construction Library used to match aperture constructions by type", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooApertureConstructionLibraryParam() { Name = "_apertureConstructionLibrary_", NickName = "_apertureConstructionLibrary_", Description = "SAM Analytical Aperture Contruction Library", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new GooMaterialLibraryParam() { Name = "_materialLibrary_", NickName = "_materialLibrary_", Description = "SAM Material Library", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_emptyOnly_", NickName = "_emptyOnly_", Description = "If true, only update panels with no existing construction layers", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_emptyOnly_", NickName = "_emptyOnly_", Description = "Only Null or Constructions without ConctructionLayers", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
@@ -71,7 +71,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "AnalyticalModel", NickName = "AnalyticalModel", Description = "SAM Analytical Model with updated construction layers", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "AnalyticalModel", NickName = "AnalyticalModel", Description = "SAM Analytical Model", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

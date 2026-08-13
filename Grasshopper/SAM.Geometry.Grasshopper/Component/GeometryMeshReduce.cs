@@ -32,7 +32,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public GeometryMeshReduce()
           : base("Geometry.MeshReduce", "Geometry.MeshReduce",
-              "Reduce polygon count of a Rhino mesh whilst preserving overall shape",
+              "Reduce Rhino Mesh",
               "SAM", "Geometry")
         {
         }
@@ -46,25 +46,25 @@ namespace SAM.Geometry.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Mesh() { Name = "_mesh", NickName = "_mesh", Description = "Rhino mesh to reduce", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Mesh() { Name = "_mesh", NickName = "_mesh", Description = "Rhino Mesh", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
 
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_distortion_", NickName = "_distortion_", Description = "Allow shape distortion to meet the target count", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_distortion_", NickName = "_distortion_", Description = "Allow Distortion towards desire count", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Integer param_Integer;
 
-                param_Integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_count_", NickName = "_count_", Description = "Target number of polygons after reduction", Access = GH_ParamAccess.item, Optional = true };
+                param_Integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_count_", NickName = "_count_", Description = "Desired Polygon Count", Access = GH_ParamAccess.item, Optional = true };
                 param_Integer.SetPersistentData(44);
                 result.Add(new GH_SAMParam(param_Integer, ParamVisibility.Binding));
 
-                param_Integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_accuracy_", NickName = "_accuracy_", Description = "Reduction accuracy (1 = coarse, 10 = finest)", Access = GH_ParamAccess.item, Optional = true };
+                param_Integer = new global::Grasshopper.Kernel.Parameters.Param_Integer() { Name = "_accuracy_", NickName = "_accuracy_", Description = "Accuracy lowest 1 to 10 highest", Access = GH_ParamAccess.item, Optional = true };
                 param_Integer.SetPersistentData(10);
                 result.Add(new GH_SAMParam(param_Integer, ParamVisibility.Binding));
 
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_normalizedSize_", NickName = "_normalizedSize_", Description = "Normalise face sizes across the mesh", Access = GH_ParamAccess.item, Optional = true };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_normalizedSize_", NickName = "_normalizedSize_", Description = "Normalized Face Size", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 
@@ -80,7 +80,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Mesh() { Name = "Mesh", NickName = "Mesh", Description = "Reduced mesh", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Mesh() { Name = "Mesh", NickName = "Mesh", Description = "Mesh", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

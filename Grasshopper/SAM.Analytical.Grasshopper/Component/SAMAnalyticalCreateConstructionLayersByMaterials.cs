@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateConstructionLayersByMaterials()
           : base("SAMAnalytical.CreateConstructionLayersByMaterials", "SAMAnalyticalCreate.ConstructionLayersByMaterials",
-              "Allows an engineer to create SAM ConstructionLayers from a list of SAM Materials paired with thicknesses, ordered from inside to outside.",
+              "Create Construction Layers By Materials",
               "SAM", "Analytical")
         {
         }
@@ -50,7 +50,7 @@ namespace SAM.Analytical.Grasshopper
                 GooMaterialParam gooMaterialParam = new GooMaterialParam() { Name = "_materials", NickName = "_materials", Description = "SAM Materials", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(gooMaterialParam, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_Number param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_thicknesses_", NickName = "_thicknesses_", Description = "Construction Layer thicknesses, in the same order as _materials [m]", Optional = true, Access = GH_ParamAccess.list };
+                global::Grasshopper.Kernel.Parameters.Param_Number param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_thicknesses_", NickName = "_thicknesses_", Description = "Contruction Layer Thicknesses [m]", Optional = true, Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
                 return result.ToArray();

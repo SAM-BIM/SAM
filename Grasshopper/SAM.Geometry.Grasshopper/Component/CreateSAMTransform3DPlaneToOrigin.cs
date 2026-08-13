@@ -33,7 +33,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public CreateSAMTransform3DPlaneToOrigin()
           : base("Create.SAMTransform3DPlaneToOrigin", "Create.Transoform3DPlaneToOrigin",
-              "Creates a 3D transformation matrix that maps a local plane coordinate system back to the world origin, useful for normalising building-element orientations.",
+              "Creates SAM Transform3D By Plane To Origin",
               "SAM", "Geometry")
         {
         }
@@ -47,7 +47,7 @@ namespace SAM.Geometry.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_plane", NickName = "_plane", Description = "Source plane defining the local coordinate system to map from [m]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_plane", NickName = "_plane", Description = "Rhino or SAM Plane", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 return result.ToArray();
             }
@@ -61,7 +61,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooTransform3DParam() { Name = "Transform3D", NickName = "Transform3D", Description = "4x4 transformation matrix mapping from the specified plane to the world origin", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooTransform3DParam() { Name = "Transform3D", NickName = "Transform3D", Description = "SAM Geometry Transform3D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

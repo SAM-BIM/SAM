@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalRenameAnalyticalModel()
           : base("SAMAnalytical.RenameAnalyticalModel", "SAMAnalytical.RenameAnalyticalModel",
-              "Renames an AnalyticalModel and optionally sets its case description for simulation identification",
+              "Rename AnalyticalModel",
               "SAM", "Analytical")
         {
         }
@@ -52,10 +52,10 @@ namespace SAM.Analytical.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name", NickName = "_name", Description = "New name for the AnalyticalModel", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name", NickName = "_name", Description = "Name", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "caseDescription_", NickName = "caseDescription_", Description = "Case description for simulation identification", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "caseDescription_", NickName = "caseDescription_", Description = "Case Description", Access = GH_ParamAccess.item, Optional = true };
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
 
@@ -73,7 +73,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                GooAnalyticalModelParam analyticalModelParam = new GooAnalyticalModelParam() { Name = "AnalyticalModel", NickName = "AnalyticalModel", Description = "SAM AnalyticalModel with updated name and description", Access = GH_ParamAccess.item };
+                GooAnalyticalModelParam analyticalModelParam = new GooAnalyticalModelParam() { Name = "AnalyticalModel", NickName = "AnalyticalModel", Description = "SAM AnalyticalModel", Access = GH_ParamAccess.item };
                 result.Add(new GH_SAMParam(analyticalModelParam, ParamVisibility.Binding));
 
                 return [.. result];

@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalHeatTransferCoefficientByDefaultGasType()
           : base("SAMAnalytical.HeatTransferCoefficientByDefaultGasType", "SAMAnalyticalCreate.HeatTransferCoefficientByDefaultGasType",
-              "Calculate the heat transfer coefficient of a glazing cavity gas in accordance with EN 673",
+              "Calculate Heat Transfer Coefficient By DefaultGasType",
               "SAM", "Analytical02")
         {
         }
@@ -49,7 +49,7 @@ namespace SAM.Analytical.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
                 global::Grasshopper.Kernel.Parameters.Param_GenericObject param_GenericObject;
-                param_GenericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_defaultGasType_", NickName = "_defaultGasType_", Description = "Predefined gas type e.g. Argon, Air, Krypton, Xenon, SF6", Access = GH_ParamAccess.item, Optional = true };
+                param_GenericObject = new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "_defaultGasType_", NickName = "_defaultGasType_", Description = "DefaultGasType", Access = GH_ParamAccess.item, Optional = true };
                 param_GenericObject.PersistentData.Append(new GH_ObjectWrapper(DefaultGasType.Argon.ToString()));
                 result.Add(new GH_SAMParam(param_GenericObject, ParamVisibility.Binding));
 
@@ -59,15 +59,15 @@ namespace SAM.Analytical.Grasshopper
                 param_Number.SetPersistentData(0.012);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_meanTemperature_", NickName = "_meanTemperature_", Description = "Mean gas temperature [K]", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_meanTemperature_", NickName = "_meanTemperature_", Description = "Mean Temperature [K]", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(283);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_temperatureDifference_", NickName = "_temperatureDifference_", Description = "Temperature difference across the cavity [K]", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_temperatureDifference_", NickName = "_temperatureDifference_", Description = "Mean temperature difference across the cavity [K]", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(15);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_angle_", NickName = "_angle_", Description = "Tilt angle [rad] measured from horizontal; negative values indicate downward heat flow. Default: π/2 (vertical)", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_angle_", NickName = "_angle_", Description = "Angle in radians (measured in 2D from Upward direction (0, 1) Vector2D.SignedAngle(Vector2D)), angle less than 0 considered as downward direction", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(System.Math.PI / 2);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
@@ -83,7 +83,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "HeatTransferCoefficient", NickName = "HeatTransferCoefficient", Description = "Heat transfer coefficient [W/(m²·K)]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "HeatTransferCoefficient", NickName = "HeatTransferCoefficient", Description = "Heat Transfer Coefficient [W/m2K]", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

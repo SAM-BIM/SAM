@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalModifyVentilationSystemsByZone()
           : base("SAMAnalytical.ModifyVentilationSystemsByZone", "SAMAnalytical.ModifyVentilationSystemsByZone",
-              "Split ventilation systems by zone category to create zone-specific mechanical systems in an AnalyticalModel. A copy of the model is created; the original remains unchanged.",
+              "Modify Ventilation System By Zone",
               "SAM", "Analytical02")
         {
         }

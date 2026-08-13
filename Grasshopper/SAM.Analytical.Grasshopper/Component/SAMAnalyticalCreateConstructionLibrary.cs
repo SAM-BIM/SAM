@@ -32,7 +32,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateConstructionLibrary()
           : base("SAMAnalytical.CreateConstructionLibrary", "SAMAnalytical.CreateConstructionLibrary",
-              "Allows an engineer to create a SAM ConstructionLibrary populated with Constructions, for reuse across multiple AnalyticalModels.",
+              "Create SAM Construction Library",
               "SAM", "Analytical")
         {
         }
@@ -46,7 +46,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                global::Grasshopper.Kernel.Parameters.Param_String param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name_", NickName = "_name_", Description = "Name of the ConstructionLibrary", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_String param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_name_", NickName = "_name_", Description = "Name", Access = GH_ParamAccess.item };
                 param_String.SetPersistentData("Default Construction Library");
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 

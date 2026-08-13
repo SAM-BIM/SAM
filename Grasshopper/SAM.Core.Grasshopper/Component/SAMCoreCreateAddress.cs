@@ -31,7 +31,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreCreateAddress()
           : base("SAMCore.CreateAddress", "SAMCore.CreateAddress",
-              "Create a SAM Address object for use in building-performance models. Defaults to a generic UK address.",
+              "Create Address",
               "SAM", "Core")
         {
         }
@@ -49,19 +49,19 @@ namespace SAM.Core.Grasshopper
 
                 global::Grasshopper.Kernel.Parameters.Param_String param_String;
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_street_", NickName = "_street_", Description = "Street name and number", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_street_", NickName = "_street_", Description = "Street", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData(address.Street);
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_city_", NickName = "_city_", Description = "City or town name", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_city_", NickName = "_city_", Description = "City", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData(address.City);
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_postalCode_", NickName = "_postalCode_", Description = "Postal (postcode) identifier", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_postalCode_", NickName = "_postalCode_", Description = "Postal Code", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData(address.PostalCode);
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
-                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_countryCode_", NickName = "_countryCode_", Description = "Country code per ISO 3166, e.g. GBR, USA", Access = GH_ParamAccess.item, Optional = true };
+                param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_countryCode_", NickName = "_countryCode_", Description = "Country Code", Access = GH_ParamAccess.item, Optional = true };
                 param_String.SetPersistentData(address.CountryCode.ToString());
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
@@ -77,7 +77,7 @@ namespace SAM.Core.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAddressParam() { Name = "address", NickName = "address", Description = "Resulting SAM Address object", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAddressParam() { Name = "address", NickName = "address", Description = "SAM Core Address", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

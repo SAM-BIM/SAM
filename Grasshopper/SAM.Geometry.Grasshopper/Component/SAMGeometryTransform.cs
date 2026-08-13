@@ -26,7 +26,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public SAMGeometryTransform()
           : base("SAMGeometry.Transform", "SAMGeometry.Transform",
-              "Applies a SAM 3D transformation matrix to any SAM geometry, useful for positioning, rotating or mirroring building elements.",
+              "Transforms SAM Geometry",
               "SAM", "Geometry")
         {
         }
@@ -39,8 +39,8 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "_SAMGeometry", NickName = "_SAMGeometry", Description = "SAM geometry to transform (supports any ISAMGeometry)", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooTransform3DParam() { Name = "_transform3D", NickName = "_transform3D", Description = "4x4 transformation matrix defining the translation, rotation and scaling", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "_SAMGeometry", NickName = "_SAMGeometry", Description = "SAM Geometry", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooTransform3DParam() { Name = "_transform3D", NickName = "_transform3D", Description = "SAM Transform 3D", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -53,7 +53,7 @@ namespace SAM.Geometry.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "SAMGeometry", NickName = "SAMGeometry", Description = "Transformed SAM geometry at the new position and orientation", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "SAMGeometry", NickName = "SAMGeometry", Description = "SAM Geometry", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

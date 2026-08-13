@@ -53,8 +53,8 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel containing Zones, Spaces and Panels to query", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "zoneCategoryName_", NickName = "zoneCategoryName_", Description = "Zone Category Names (as strings) and/or specific SAM Zone objects used to select Zones. Different Zones sharing the same category name remain separate for classification.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel containing the Zones, Spaces and Panels to query.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new Param_GenericObject() { Name = "zoneCategoryName_", NickName = "zoneCategoryName_", Description = "Zone Category Names used to select Zones, specific SAM Zones connected directly, or a mixture of both. Different Zones sharing the same category name remain separate.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
@@ -67,9 +67,9 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "externalPanels", NickName = "externalPanels", Description = "External Panels (e.g. walls, roofs) associated with Spaces in the selected Zones", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "internalPanelsWithinZone", NickName = "internalPanelsWithinZone", Description = "Internal Panels between Spaces that belong to the same selected Zone (e.g. partitions within a flat)", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "internalPanelsToSpacesOutsideZone", NickName = "internalPanelsToSpacesOutsideZone", Description = "Internal Panels between a Space in a selected Zone and a Space outside that Zone (e.g. party walls between flats, or flat-to-corridor panels)", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "externalPanels", NickName = "externalPanels", Description = "External Panels associated with Spaces belonging to the selected Zones.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "internalPanelsWithinZone", NickName = "internalPanelsWithinZone", Description = "Internal Panels between Spaces belonging to the same selected Zone.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "internalPanelsToSpacesOutsideZone", NickName = "internalPanelsToSpacesOutsideZone", Description = "Internal Panels between a Space in a selected Zone and a Space outside that same Zone. The other Space may belong to another Zone or may have no Zone assignment.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
