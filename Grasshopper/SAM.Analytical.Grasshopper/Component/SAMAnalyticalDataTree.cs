@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalDataTree()
           : base("SAMAnalytical.DataTree", "SAMAnalytical.DataTree",
-              "Decompose an analytical object into a data tree of spaces, panels and apertures",
+              "Decompose an AnalyticalModel or AdjacencyCluster into a data tree of panels and apertures, with spaces returned separately.",
               "SAM", "Analytical01")
         {
         }
