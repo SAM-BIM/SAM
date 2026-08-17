@@ -17,7 +17,7 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `0e33ed27` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
+*Last updated at SAM `0fa247fd` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
 complete (the TSD-simple vs TPD-full preparation boundary, with the supply-temperature transfer proved
 impossible and refused) and Iteration 1's BasePassive vertical slice landed. Previously: step 8
 complete and independently reviewed**: simulation results, scenarios and design spaces are associated by
@@ -30,7 +30,7 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`0e33ed27`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`0fa247fd`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`24ed46a`** | exactly `24ed46a` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`134dc1d`** | exactly `134dc1d` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
@@ -69,7 +69,7 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 0e33ed27
+SAM 0fa247fd
 SAM_Systems 24ed46a
 SAM_UI ffd8e38
 SAM_Tas 134dc1d
@@ -435,7 +435,7 @@ All five repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's,
 SAM_Tas_Grasshopper's branches are new and need PRs like the other two.** `sow/2026-Q3` was never committed to directly and is
 untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
 
-**Current code heads — SAM `0e33ed27`+handover, SAM_Systems `24ed46a`, SAM_UI `ffd8e38`, SAM_Tas
+**Current code heads — SAM `0fa247fd`+handover, SAM_Systems `24ed46a`, SAM_UI `ffd8e38`, SAM_Tas
 `134dc1d`, SAM_Tas_Grasshopper `94ac244`. All pushed and verified. See section 0a, which is
 authoritative.**
 
@@ -469,8 +469,9 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - `2e8c513f` **Iteration 1 — Part F airflows reach the simulation** (11q)
   - merge of `sow/2026-Q3` (43 files, zero overlap with this branch)
   - `5565d96c` **CI-only TM59 test fix** (11r)
-  - `0e33ed27` **TMOverheatingCalculator null-library NRE fix** (11r) — last CODE commit, pushed; HEAD is the
-    handover commit on top
+  - `0e33ed27` **TMOverheatingCalculator null-library NRE fix** (11r)
+  - `0fa247fd` **SAM.Tests made independent of an installed SAM** (11r) — last CODE commit, pushed; HEAD is
+    the handover commit on top
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -1904,6 +1905,42 @@ and does not call it - so this was the only instance.
 one. Two separate defects hid behind that for as long as the code was only ever run locally. Verified both
 fixes by moving this machine's own settings file aside and running the full Release suite with it absent
 (**1207 passed, 0 failed**), then restoring it.
+
+**A THIRD round followed, because my verification was wrong — and that is the most useful thing in this
+section.** After the two fixes above, CI failed again on a *different* set: `PartFAirflowApplicationTests` (7,
+needing `PartFData`) and `VentilationStrategyTests` (4, needing `DefaultSystemTypeLibrary`). Those were the
+very tests flagged as at-risk when the null-library guard went in, and then wrongly cleared.
+
+**Why the verification was worthless.** "Clean environment" was simulated by moving `%APPDATA%\SAM\settings`
+aside — but `%APPDATA%\SAM\resources` was left in place, so `ActiveSetting.GetDefault()` still loaded every
+library from disk and the suite passed. It proved nothing about a runner with no SAM install.
+
+**The real shape of the problem.** This was never one missing resource. **Every** library the suite reaches
+through `ActiveSetting` is absent on a clean runner, because `GetDefault()` finds its resources via
+`Core.Query.ResourcesDirectory` → `Assembly.CodeBase`. Fixed properly in `0fa247fd`:
+`SAMResourcesModuleInitializer` seeds `ActiveSetting` from **this repository's own** resource files, copied
+into the test output and read through `AppContext.BaseDirectory`, in `GetDefault()`'s own dependency order
+(`PartFData` last — it resolves its space-use vocabulary against the SpaceUse text map). Seeded
+unconditionally from the repo rather than the install, so a test run means the same thing on a laptop and on
+CI.
+
+**How to verify this class of thing properly — use this, not a file move.** Point the whole profile at an
+empty directory, so no SAM install is visible at all:
+
+```powershell
+$iso = Join-Path $env:TEMP ("sam_clean_" + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Force (Join-Path $iso "AppData\Roaming") | Out-Null
+$env:APPDATA = Join-Path $iso "AppData\Roaming"; $env:LOCALAPPDATA = Join-Path $iso "AppData\Local"; $env:USERPROFILE = $iso
+Test-Path (Join-Path $env:APPDATA "SAM")   # must print False
+dotnet test SAM\SAM\SAM.Tests\SAM.Tests.csproj -c Release --no-build
+```
+
+Under that, the suite passes **1207/1207**; with the real profile restored it passes 1207/1207 in both Debug
+and Release. **Also run Release, not just Debug** — CI runs Release only, and the first two rounds were
+Debug-only locally.
+
+**If a new test needs another `ActiveSetting` default**, copy its resource in `SAM.Tests.csproj` *and* seed it
+in `SAMResourcesModuleInitializer`. Do not assume a clean runner behaves like a developer machine.
 
 **Worth remembering:** `Assembly.CodeBase`-based path discovery (`Core.Query.ResourcesDirectory`,
 `Query.DefaultPath`, `Core.Query.ExecutingAssemblyDirectory`) is fragile under any hosting scenario other
