@@ -21,4 +21,16 @@
     <ProjectReference Include="..\SAM.Architectural\SAM.Architectural.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The same TM59 TextMap resource SAM.Analytical.Query.DefaultInternalConditionTextMap_TM59 loads,
+         copied locally so TM59AssessmentCalculatorTests / TMOverheatingCalculatorTests / VentilationStrategyTests
+         / PartOResultAssociationTests / PartOIterationSliceTests don't depend on a %APPDATA%\SAM install or on
+         Assembly.CodeBase-based path discovery resolving correctly under the test host - see
+         TM59TextMapModuleInitializer, which seeds ActiveSetting.Setting from this file at process start. -->
+    <None Include="..\..\files\resources\Analytical\SAM_InternalConditionTextMap_TM59.JSON">
+      <Link>Resources\SAM_InternalConditionTextMap_TM59.JSON</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
