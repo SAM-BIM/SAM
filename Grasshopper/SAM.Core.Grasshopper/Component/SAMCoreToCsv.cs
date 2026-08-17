@@ -50,7 +50,7 @@ namespace SAM.Core.Grasshopper
                 param_GenericObject.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(param_GenericObject, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_parameterNames", NickName = "_parameterNames", Description = "Csv file path", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_parameterNames", NickName = "_parameterNames", Description = "Parameter names", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
                 param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_includeHeader_", NickName = "_includeHeader_", Description = "Include Header in csv", Access = GH_ParamAccess.item };
@@ -59,7 +59,7 @@ namespace SAM.Core.Grasshopper
 
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "path_", NickName = "path_", Description = "Csv file path", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
 
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Run, set to True to export JSON to given path", Access = GH_ParamAccess.item };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_run", NickName = "_run", Description = "Run, set to True to export CSV to given path", Access = GH_ParamAccess.item };
                 param_Boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 

@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalUpdateNormals()
           : base("SAMAnalytical.UpdateNormals", "SAMAnalytical.UpdateNormals",
-              "Add Space to SAM Analytical Model",
+              "Update Panel Normals",
               "SAM", "Analytical04")
         {
         }

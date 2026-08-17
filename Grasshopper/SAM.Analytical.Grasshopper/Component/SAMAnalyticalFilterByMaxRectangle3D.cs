@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFilterByMaxRectangle3D()
           : base("SAMAnalytical.FilterByMaxRectangle3D", "SAMAnalytical.FilterByMaxRectangle3D",
-              "Filter Analytical Objects By Maxilal Rectangle3D dimension",
+              "Filter Analytical Objects By Maximal Rectangle3D dimension",
               "SAM", "Analytical01")
         {
         }
@@ -48,11 +48,11 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(new GooPanelParam() { Name = "_panels", NickName = "_panels", Description = "SAM Analytical Panels", Access = GH_ParamAccess.list, DataMapping = GH_DataMapping.Flatten }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Number param_Number;
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_panelMinDimension", NickName = "_panelMinDimension", Description = "Minimal dimesion for Panel Rectangle3D", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_panelMinDimension", NickName = "_panelMinDimension", Description = "Minimal dimension for Panel Rectangle3D", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_apertureMinDimension", NickName = "_apertureMinDimension", Description = "Minimal dimesion for Aperture Rectangle3D", Access = GH_ParamAccess.item };
+                param_Number = new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "_apertureMinDimension", NickName = "_apertureMinDimension", Description = "Minimal dimension for Aperture Rectangle3D", Access = GH_ParamAccess.item };
                 param_Number.SetPersistentData(0.0);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 

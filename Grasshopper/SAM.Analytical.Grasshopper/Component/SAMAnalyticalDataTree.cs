@@ -33,7 +33,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalDataTree()
           : base("SAMAnalytical.DataTree", "SAMAnalytical.DataTree",
-              "Add Apertures to SAM Analytical Object: ie Panel, AdjacencyCluster or Analytical Model",
+              "Decompose an AnalyticalModel or AdjacencyCluster into a data tree of panels and apertures, with spaces returned separately.",
               "SAM", "Analytical01")
         {
         }
@@ -59,7 +59,7 @@ namespace SAM.Analytical.Grasshopper
             get
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "tree", NickName = "tree", Description = "SAM Analytical Apertures", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "tree", NickName = "tree", Description = "Data tree of panels and apertures", Access = GH_ParamAccess.tree }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "SAM Analytical Spaces", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }

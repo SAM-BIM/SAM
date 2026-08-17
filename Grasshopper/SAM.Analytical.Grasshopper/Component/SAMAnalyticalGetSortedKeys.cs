@@ -48,7 +48,7 @@ namespace SAM.Analytical.Grasshopper
 
                 result.Add(new GH_SAMParam(new GooTextMapParam() { Name = "_textMap", NickName = "_textMap", Description = "SAM Core TextMap", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_text", NickName = "_text", Description = "Serached Text", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_text", NickName = "_text", Description = "Searched Text", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
                 param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_caseSensitive_", NickName = "_caseSensitive_", Description = "case Sensitive", Access = GH_ParamAccess.item, Optional = true };

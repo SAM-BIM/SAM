@@ -33,7 +33,7 @@ namespace SAM.Geometry.Grasshopper
         /// </summary>
         public GeometryCreateShell()
           : base("Geometry.CreateShell", "Geometry.CreateShell",
-              "Creates SAM Plane by points",
+              "Creates SAM Shell from Rhino Mesh",
               "SAM", "Geometry")
         {
         }

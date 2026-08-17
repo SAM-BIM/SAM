@@ -55,7 +55,7 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
                 global::Grasshopper.Kernel.Parameters.Param_Boolean param_Boolean;
-                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_defaultConstruction_", NickName = "_defaultConstruction_", Description = "Set default Construtcion for Panels", Access = GH_ParamAccess.item };
+                param_Boolean = new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "_defaultConstruction_", NickName = "_defaultConstruction_", Description = "Set default Construction for Panels", Access = GH_ParamAccess.item };
                 param_Boolean.SetPersistentData(false);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Binding));
 

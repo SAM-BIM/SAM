@@ -57,7 +57,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalSetDefaultApertureConstruction()
           : base("SAMAdjacencyCluster.SetDefaultApertureConstruction", "SAMAdjacencyCluster.SetDefaultApertureConstruction",
-              "Sets Default ApertureConstruction By PanelType and ApertureType for Adjacency Cluster only if currect ApertureConstruction does not follow naming convenction ",
+              "Sets Default ApertureConstruction By PanelType and ApertureType for Adjacency Cluster only if current ApertureConstruction does not follow naming convention ",
               "SAM", "Analytical03")
         {
         }
