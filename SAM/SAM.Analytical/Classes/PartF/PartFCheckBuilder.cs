@@ -526,15 +526,42 @@ namespace SAM.Analytical
             }
             else
             {
-                check_Measured.Status = partFCommissioningData.AirFlowRateNoticeGiven ? PartFComplianceStatus.Pass : PartFComplianceStatus.CannotBeDetermined;
-                check_Measured.Evidence = string.Format("Equipment: {0}, last UKAS calibration {1}. Measured totals - continuous supply {2}, continuous extract {3}, high supply {4}, high extract {5}. Notice of measured rates recorded as {6}.",
+                //The clause requires the PROCEDURE, not only the notice: a calibrated device, of a known
+                //accuracy, itself calibrated within the last 12 months. AirFlowRateNoticeGiven alone proves
+                //someone ticked a box, not that the measurement behind it meets paragraph 4.10c - so it is
+                //no longer sufficient on its own for a Pass. Equipment and calibration date are free text
+                //(so a project's own conventions survive), which is why this can only confirm they were
+                //RECORDED, not validate the accuracy or the 12-month window; that remains a person's check.
+                bool hasEquipment = !string.IsNullOrWhiteSpace(partFCommissioningData.MeasurementEquipment);
+                bool hasCalibrationDate = !string.IsNullOrWhiteSpace(partFCommissioningData.CalibrationDate);
+
+                check_Measured.Status = partFCommissioningData.AirFlowRateNoticeGiven && hasEquipment && hasCalibrationDate
+                    ? PartFComplianceStatus.Pass
+                    : PartFComplianceStatus.CannotBeDetermined;
+
+                List<string> missing = [];
+                if (!partFCommissioningData.AirFlowRateNoticeGiven)
+                {
+                    missing.Add("the notice of measured rates has not been recorded as given");
+                }
+                if (!hasEquipment)
+                {
+                    missing.Add("no measurement equipment is recorded");
+                }
+                if (!hasCalibrationDate)
+                {
+                    missing.Add("no calibration date is recorded");
+                }
+
+                check_Measured.Evidence = string.Format("Equipment: {0}, last UKAS calibration {1}. Measured totals - continuous supply {2}, continuous extract {3}, high supply {4}, high extract {5}. Notice of measured rates recorded as {6}.{7}",
                     Text(partFCommissioningData.MeasurementEquipment),
                     Text(partFCommissioningData.CalibrationDate),
                     Rate(partFCommissioningData.MeasuredContinuousSupplyTotal_Lps),
                     Rate(partFCommissioningData.MeasuredContinuousExtractTotal_Lps),
                     Rate(partFCommissioningData.MeasuredHighSupplyTotal_Lps),
                     Rate(partFCommissioningData.MeasuredHighExtractTotal_Lps),
-                    partFCommissioningData.AirFlowRateNoticeGiven ? "given" : "not yet given");
+                    partFCommissioningData.AirFlowRateNoticeGiven ? "given" : "not yet given",
+                    missing.Count == 0 ? string.Empty : string.Format(" Outstanding: {0}.", string.Join("; ", missing)));
             }
 
             partFComplianceResult.AddCheck(check_Measured);
@@ -545,6 +572,13 @@ namespace SAM.Analytical
 
             List<PartFVentilationTerminalRequirement> terminals_Measured = [.. partFComplianceResult.Terminals.Where(x => x.MeasuredContinuousFlowRate_Lps is not null || x.MeasuredHighFlowRate_Lps is not null)];
 
+            //Every REQUIRED terminal that carries a design rate is a fan Appendix C paragraph C2 expects to
+            //have been measured - not only the ones that happen to have a measurement recorded. A dwelling
+            //where one fan out of five was measured, and happened to meet its own design rate, must not
+            //report the same clean Pass as one where all five were verified: the other four were simply
+            //never checked, and reporting Pass would say they were.
+            List<PartFVentilationTerminalRequirement> terminals_Applicable = [.. partFComplianceResult.Terminals.Where(x => x.IsRequired && (x.ContinuousDesignFlowRate_Lps is not null || x.HighFlowRate_Lps is not null))];
+
             if (terminals_Measured.Count == 0 && (partFCommissioningData is null || !partFCommissioningData.HasMeasuredValues))
             {
                 check_Compare.Status = PartFComplianceStatus.CannotBeDetermined;
@@ -553,19 +587,32 @@ namespace SAM.Analytical
             else
             {
                 List<string> shortfalls = [];
+                List<string> unmeasured = [];
 
-                foreach (PartFVentilationTerminalRequirement terminal in terminals_Measured)
+                foreach (PartFVentilationTerminalRequirement terminal in terminals_Applicable)
                 {
-                    if (terminal.MeasuredContinuousFlowRate_Lps is not null && terminal.ContinuousDesignFlowRate_Lps is not null
-                        && terminal.MeasuredContinuousFlowRate_Lps.Value + tolerance_Lps < terminal.ContinuousDesignFlowRate_Lps.Value)
+                    if (terminal.ContinuousDesignFlowRate_Lps is not null)
                     {
-                        shortfalls.Add(string.Format("{0} continuous: measured {1:0.##} l/s against a design {2:0.##} l/s", terminal.SpaceName, terminal.MeasuredContinuousFlowRate_Lps, terminal.ContinuousDesignFlowRate_Lps));
+                        if (terminal.MeasuredContinuousFlowRate_Lps is null)
+                        {
+                            unmeasured.Add(string.Format("{0} continuous", terminal.SpaceName));
+                        }
+                        else if (terminal.MeasuredContinuousFlowRate_Lps.Value + tolerance_Lps < terminal.ContinuousDesignFlowRate_Lps.Value)
+                        {
+                            shortfalls.Add(string.Format("{0} continuous: measured {1:0.##} l/s against a design {2:0.##} l/s", terminal.SpaceName, terminal.MeasuredContinuousFlowRate_Lps, terminal.ContinuousDesignFlowRate_Lps));
+                        }
                     }
 
-                    if (terminal.MeasuredHighFlowRate_Lps is not null && terminal.HighFlowRate_Lps is not null
-                        && terminal.MeasuredHighFlowRate_Lps.Value + tolerance_Lps < terminal.HighFlowRate_Lps.Value)
+                    if (terminal.HighFlowRate_Lps is not null)
                     {
-                        shortfalls.Add(string.Format("{0} high: measured {1:0.##} l/s against a design {2:0.##} l/s", terminal.SpaceName, terminal.MeasuredHighFlowRate_Lps, terminal.HighFlowRate_Lps));
+                        if (terminal.MeasuredHighFlowRate_Lps is null)
+                        {
+                            unmeasured.Add(string.Format("{0} high", terminal.SpaceName));
+                        }
+                        else if (terminal.MeasuredHighFlowRate_Lps.Value + tolerance_Lps < terminal.HighFlowRate_Lps.Value)
+                        {
+                            shortfalls.Add(string.Format("{0} high: measured {1:0.##} l/s against a design {2:0.##} l/s", terminal.SpaceName, terminal.MeasuredHighFlowRate_Lps, terminal.HighFlowRate_Lps));
+                        }
                     }
                 }
 
@@ -578,6 +625,11 @@ namespace SAM.Analytical
                 {
                     check_Compare.Status = PartFComplianceStatus.CannotBeDetermined;
                     check_Compare.Evidence = "Dwelling totals have been measured but no individual terminal has a measured rate, so the per-fan comparison Appendix C paragraph C2 asks for could not be made.";
+                }
+                else if (unmeasured.Count != 0)
+                {
+                    check_Compare.Status = PartFComplianceStatus.CannotBeDetermined;
+                    check_Compare.Evidence = string.Format("{0} of {1} applicable design rate(s) have not been measured yet: {2}. Appendix C paragraph C2 requires every fan to be measured, so a partial set cannot pass the comparison.", unmeasured.Count, terminals_Applicable.Count(x => x.ContinuousDesignFlowRate_Lps is not null) + terminals_Applicable.Count(x => x.HighFlowRate_Lps is not null), string.Join("; ", unmeasured));
                 }
                 else
                 {

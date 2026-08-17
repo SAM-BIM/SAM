@@ -181,6 +181,12 @@ WHAT IT STILL DOES NOT DO
             //that will be simulated are the same identity.
             List<Zone> zones_Model = analyticalModel_Applied.GetZones() ?? [];
 
+            //Connected-but-every-guid-invalid is NOT the same statement as "unconnected", and must not
+            //collapse to the same behaviour. Only an UNCONNECTED port means "assess the whole model" - once
+            //a caller has explicitly named zones, an explicit selection that resolved to nothing is a stale
+            //or wrong reference, and producing scenarios for every zone in the model instead would silently
+            //broaden a targeted request into a whole-building assessment.
+            bool zonesConnected = false;
             List<Zone> zones = null;
             index = Params.IndexOfInputParam("zones_");
             if (index != -1)
@@ -188,6 +194,7 @@ WHAT IT STILL DOES NOT DO
                 List<IAnalyticalObject> analyticalObjects = [];
                 if (dataAccess.GetDataList(index, analyticalObjects) && analyticalObjects != null)
                 {
+                    zonesConnected = true;
                     zones = [];
 
                     foreach (Zone zone in analyticalObjects.FindAll(x => x is Zone).ConvertAll(x => (Zone)x))
@@ -201,19 +208,21 @@ WHAT IT STILL DOES NOT DO
 
                         zones.Add(zone_Model);
                     }
-
-                    if (zones.Count == 0)
-                    {
-                        zones = null;
-                    }
                 }
             }
 
-            zones ??= zones_Model;
+            if (!zonesConnected)
+            {
+                zones = zones_Model;
+            }
 
             List<OverheatingScenario> overheatingScenarios = [];
 
-            if (zones.Count == 0)
+            if (zonesConnected && zones.Count == 0)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "None of the zones supplied to zones_ are in the model, so no scenarios were stated. Correct the selection, or disconnect zones_ to assess the whole model.");
+            }
+            else if (zones.Count == 0)
             {
                 //Not fatal: a single-house model may carry no zones at all, and the airflow application above is
                 //still the useful half of this component.

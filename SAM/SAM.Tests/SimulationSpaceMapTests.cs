@@ -89,6 +89,32 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>A STATED key that matches no design space is refused, never given a second chance by name.</b>
+        /// <para>
+        /// This is the shape a rerun against an updated design takes: the simulated space still carries an
+        /// identity, but that identity belonged to a design that has since changed - a different simulation
+        /// batch, an updated model whose stable IDs moved on while its room names happened to stay the same.
+        /// Falling through to a name match here would silently attribute that rerun's result to a room it
+        /// never came from, which is the exact misattribution this class exists to refuse. The room in this
+        /// fixture shares its name with no other design space, so a map that wrongly fell back to name
+        /// matching would resolve it - the failure has to be caught here, not merely by an ambiguous name.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AStatedKeyMatchingNoDesignSpace_IsUnresolvedNotNameMatched()
+        {
+            Space space_Design = Space("Bedroom 2", "zone-old");
+            Space space_Simulation = Space("Bedroom 2", "zone-new");
+
+            SimulationSpaceMap simulationSpaceMap = new([space_Design], [space_Simulation], StableKey);
+
+            Assert.Null(simulationSpaceMap.Design(space_Simulation));
+            Assert.Equal([space_Simulation.Guid], simulationSpaceMap.Unresolved.ConvertAll(x => x.Guid));
+            Assert.Empty(simulationSpaceMap.Ambiguous);
+            Assert.False(simulationSpaceMap.IsComplete);
+        }
+
+        /// <summary>
         /// <b>Identity beats a contradicting name - but only because the identity is unique.</b> The
         /// simulation space is called "Bedroom 2" and carries zone-7, while a different design space is
         /// genuinely called "Bedroom 2". The key wins and resolves to the Kitchen, because a renamed room is

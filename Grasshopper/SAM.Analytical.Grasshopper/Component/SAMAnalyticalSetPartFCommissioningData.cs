@@ -151,8 +151,13 @@ namespace SAM.Analytical.Grasshopper
 
         private static GH_SAMParam Boolean(string name, string description)
         {
+            //Deliberately no SetPersistentData: with a persistent default, GetData always succeeds even when
+            //the port is unconnected, so the read-time Boolean() helper below could never tell "explicitly
+            //wired false" apart from "not wired at all" and its ?? fallback to the existing value could
+            //never trigger. An unwired boolean here behaves exactly like the Text/Number inputs already do -
+            //leaving whatever was previously recorded alone - which is what stops a rerun that only adds a
+            //measured rate from silently resetting every previously-confirmed notice flag to false.
             global::Grasshopper.Kernel.Parameters.Param_Boolean result = new() { Name = name, NickName = name, Description = description, Access = GH_ParamAccess.item, Optional = true };
-            result.SetPersistentData(false);
 
             return new GH_SAMParam(result, ParamVisibility.Voluntary);
         }

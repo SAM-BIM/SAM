@@ -27,6 +27,15 @@ namespace SAM.Analytical
         public const string SourceReference = "Approved Document F, Volume 1: Dwellings (2021 edition), paragraphs 1.26 to 1.31 and Table 1.4 (page 11)";
 
         /// <summary>
+        /// Floating-point tolerance for comparing two areas in m2. <b>Not <see cref="PartFAirflowNetwork.Tolerance_Lps"/></b>,
+        /// which is a flow-rate tolerance in l/s: reusing it here compared an area difference against a
+        /// number named and sized for a different quantity, which happened to be harmless only because that
+        /// constant's value is negligible for either unit. Named and owned by this class so a future change
+        /// to the airflow tolerance cannot silently move this comparison's meaning with it.
+        /// </summary>
+        private const double Tolerance_M2 = 1e-6;
+
+        /// <summary>
         /// The Part O interaction of paragraph 0.21 (page 4), reported on every habitable room so the
         /// higher of the two standards is applied knowingly.
         /// </summary>
@@ -210,7 +219,7 @@ namespace SAM.Analytical
                 return;
             }
 
-            if (provided.Value + PartFAirflowNetwork.Tolerance_Lps < partFPurgeVentilationData.RequiredOpeningArea_M2.Value)
+            if (provided.Value + Tolerance_M2 < partFPurgeVentilationData.RequiredOpeningArea_M2.Value)
             {
                 partFPurgeVentilationData.ComplianceStatus = PartFComplianceStatus.Fail;
                 partFPurgeVentilationData.Diagnostic = string.Format("The opening area provided is {0:0.###} m2 against the {1:0.###} m2 required by Table 1.4 for this opening type. Paragraph 1.30 allows a smaller opening only where expert advice shows that four air changes per hour are still achieved.", provided.Value, partFPurgeVentilationData.RequiredOpeningArea_M2.Value);

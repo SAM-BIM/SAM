@@ -69,17 +69,30 @@ namespace SAM.Analytical
                 //disagreement then means the space was renamed, not that the match is wrong.
                 string key = func_StableKey?.Invoke(space_Simulation);
 
-                if (!string.IsNullOrWhiteSpace(key) && dictionary_Key.TryGetValue(key, out List<Space> spaces_Key))
+                if (!string.IsNullOrWhiteSpace(key))
                 {
-                    if (spaces_Key.Count == 1)
+                    if (dictionary_Key.TryGetValue(key, out List<Space> spaces_Key))
                     {
-                        Resolve(space_Simulation, spaces_Key[0]);
+                        if (spaces_Key.Count == 1)
+                        {
+                            Resolve(space_Simulation, spaces_Key[0]);
+                            continue;
+                        }
+
+                        //One key on two design spaces is a broken model, not a naming coincidence. Say so
+                        //rather than fall through to the weaker rule and appear to have resolved it.
+                        spaces_Ambiguous.Add(space_Simulation);
                         continue;
                     }
 
-                    //One key on two design spaces is a broken model, not a naming coincidence. Say so rather
-                    //than fall through to the weaker rule and appear to have resolved it.
-                    spaces_Ambiguous.Add(space_Simulation);
+                    //A STATED key that matches no design space is not the same thing as no key at all. It is
+                    //evidence this space came from a different simulation batch than the design it is being
+                    //paired with - e.g. results re-run against an updated model whose room names happened to
+                    //stay the same while its stable identities changed. Falling through to the name match
+                    //would then silently attribute a rerun's result to a room it never came from, which is
+                    //exactly the misattribution this class exists to refuse. Name fallback is reserved for a
+                    //space that carries NO identity at all.
+                    spaces_Unresolved.Add(space_Simulation);
                     continue;
                 }
 

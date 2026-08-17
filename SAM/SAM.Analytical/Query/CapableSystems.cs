@@ -157,11 +157,18 @@ namespace SAM.Analytical
             //A tie on rank is only ambiguous when the two are different SYSTEMS. One system listed twice is
             //a duplicated entry, not a choice - the answer is unambiguous and reporting it as a preference
             //ambiguity would send somebody looking for the wrong defect.
-            if (systemCapabilityDescriptors_Capable.Count > 1
-                && systemCapabilityDescriptors_Capable[1].Rank == systemCapabilityDescriptor_Result.Rank
-                && SystemCapabilityDescriptor.CompareIdentity(systemCapabilityDescriptors_Capable[1], systemCapabilityDescriptor_Result) != 0)
+            //
+            //Checked across every entry at the lowest rank, not only index 1: the list is sorted by rank
+            //then identity, so a genuinely different system at the same rank can sit at index 2 or later
+            //behind a DUPLICATE of the preferred entry at index 1. Stopping at index 1 would then see two
+            //identical identities, correctly call that a duplicate rather than an ambiguity, and never look
+            //far enough to find the real alternative one place further on.
+            for (int i = 1; i < systemCapabilityDescriptors_Capable.Count && systemCapabilityDescriptors_Capable[i].Rank == systemCapabilityDescriptor_Result.Rank; i++)
             {
-                return SystemCapabilitySelection.Refused(string.Format("'{0}' and '{1}' both meet {2} and are both ranked {3}, so the catalogue has not said which is preferred.", systemCapabilityDescriptor_Result.SystemTemplate, systemCapabilityDescriptors_Capable[1].SystemTemplate, systemCapabilityRequirement, systemCapabilityDescriptor_Result.Rank));
+                if (SystemCapabilityDescriptor.CompareIdentity(systemCapabilityDescriptors_Capable[i], systemCapabilityDescriptor_Result) != 0)
+                {
+                    return SystemCapabilitySelection.Refused(string.Format("'{0}' and '{1}' both meet {2} and are both ranked {3}, so the catalogue has not said which is preferred.", systemCapabilityDescriptor_Result.SystemTemplate, systemCapabilityDescriptors_Capable[i].SystemTemplate, systemCapabilityRequirement, systemCapabilityDescriptor_Result.Rank));
+                }
             }
 
             return SystemCapabilitySelection.Selected(systemCapabilityDescriptor_Result);

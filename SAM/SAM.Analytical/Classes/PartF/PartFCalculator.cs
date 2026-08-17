@@ -205,12 +205,12 @@ namespace SAM.Analytical
 
             AdjacencyCluster adjacencyCluster = new(AdjacencyCluster, deepClone: true);
 
-            Dictionary<Guid, PartFPurgeVentilationData> dictionary_Purge = ClearStalePartFSpaceData(adjacencyCluster);
+            Dictionary<Guid, PartFPurgeVentilationData> dictionary_Purge = ClearStalePartFSpaceData(adjacencyCluster, out Dictionary<(Guid, PartFTerminalRole), (double?, double?)> dictionary_Measured);
             Dictionary<Guid, PartFDoorTransferData> dictionary_DoorTransfer = ReadDoorTransferInputs(adjacencyCluster);
 
             List<Space> spaces_Selected = Resolve(adjacencyCluster, spaces is null ? adjacencyCluster.GetSpaces() : [.. spaces]);
 
-            CalculateDwelling(adjacencyCluster, null, spaces_Selected, dictionary_Purge, dictionary_DoorTransfer, null);
+            CalculateDwelling(adjacencyCluster, null, spaces_Selected, dictionary_Purge, dictionary_Measured, dictionary_DoorTransfer, null);
 
             AdjacencyCluster = adjacencyCluster;
 
@@ -250,7 +250,7 @@ namespace SAM.Analytical
 
             AdjacencyCluster adjacencyCluster = new(AdjacencyCluster, deepClone: true);
 
-            Dictionary<Guid, PartFPurgeVentilationData> dictionary_Purge = ClearStalePartFSpaceData(adjacencyCluster);
+            Dictionary<Guid, PartFPurgeVentilationData> dictionary_Purge = ClearStalePartFSpaceData(adjacencyCluster, out Dictionary<(Guid, PartFTerminalRole), (double?, double?)> dictionary_Measured);
             Dictionary<Guid, PartFDoorTransferData> dictionary_DoorTransfer = ReadDoorTransferInputs(adjacencyCluster);
 
             List<Zone> zones = adjacencyCluster.GetZones();
@@ -348,7 +348,7 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                CalculateDwelling(adjacencyCluster, tuple.Item1.Name, tuple.Item2, dictionary_Purge, dictionary_DoorTransfer, tuple.Item1);
+                CalculateDwelling(adjacencyCluster, tuple.Item1.Name, tuple.Item2, dictionary_Purge, dictionary_Measured, dictionary_DoorTransfer, tuple.Item1);
             }
 
             AdjacencyCluster = adjacencyCluster;
@@ -454,10 +454,21 @@ namespace SAM.Analytical
         /// capacity are things only a person can supply, and clearing them would silently discard the
         /// engineer's work every time the model was recalculated. They are harvested here and reapplied.
         /// </para>
+        /// <para>
+        /// <b>So are a terminal's MEASURED rates, for the same reason.</b> <c>BuildTerminals</c> builds a
+        /// brand new <see cref="PartFVentilationTerminalRequirement"/> for every terminal on every run - it
+        /// has no memory of the previous run's object - so a measured rate recorded on last run's terminal
+        /// is gone the moment this method clears the space's old <c>PartFSpaceData</c>, unless it is
+        /// harvested here exactly as the purge record is. Losing it silently is worse than losing the purge
+        /// record: <c>PartFCheckBuilder</c>'s Appendix C comparison reads these values to decide whether the
+        /// installed system was actually verified, so a recalculation that drops them would make a
+        /// previously-evidenced dwelling report as unmeasured again.
+        /// </para>
         /// </summary>
-        private static Dictionary<Guid, PartFPurgeVentilationData> ClearStalePartFSpaceData(AdjacencyCluster adjacencyCluster)
+        private static Dictionary<Guid, PartFPurgeVentilationData> ClearStalePartFSpaceData(AdjacencyCluster adjacencyCluster, out Dictionary<(Guid, PartFTerminalRole), (double? ContinuousDesignFlowRate_Lps, double? HighFlowRate_Lps)> dictionary_Measured)
         {
             Dictionary<Guid, PartFPurgeVentilationData> result = [];
+            dictionary_Measured = [];
 
             foreach (Space space in adjacencyCluster?.GetSpaces() ?? [])
             {
@@ -469,6 +480,19 @@ namespace SAM.Analytical
                 if (partFSpaceData.Purge is not null)
                 {
                     result[space.Guid] = partFSpaceData.Purge;
+                }
+
+                foreach (PartFVentilationTerminalRequirement terminal in partFSpaceData.Terminals ?? [])
+                {
+                    if (terminal is null || (terminal.MeasuredContinuousFlowRate_Lps is null && terminal.MeasuredHighFlowRate_Lps is null))
+                    {
+                        continue;
+                    }
+
+                    //Keyed by role rather than the terminal's name text: the name is derived from the space
+                    //name plus a role suffix, so a space rename between runs would otherwise orphan a
+                    //measurement that still belongs to the same physical terminal.
+                    dictionary_Measured[(space.Guid, terminal.TerminalRole)] = (terminal.MeasuredContinuousFlowRate_Lps, terminal.MeasuredHighFlowRate_Lps);
                 }
 
                 space.RemoveValue(SpaceParameter.PartFSpaceData);
@@ -541,6 +565,7 @@ namespace SAM.Analytical
             string dwellingName,
             List<Space> spaces,
             Dictionary<Guid, PartFPurgeVentilationData> dictionary_Purge,
+            Dictionary<(Guid, PartFTerminalRole), (double? ContinuousDesignFlowRate_Lps, double? HighFlowRate_Lps)> dictionary_Measured,
             Dictionary<Guid, PartFDoorTransferData> dictionary_DoorTransfer,
             Zone zone)
         {
@@ -571,7 +596,7 @@ namespace SAM.Analytical
 
             CalculateWholeDwellingRates(dwellingResult, dwellingSpaces);
 
-            BuildTerminals(dwellingResult, dwellingSpaces);
+            BuildTerminals(dwellingResult, dwellingSpaces, dictionary_Measured);
 
             AllocateContinuousRates(dwellingResult, dwellingSpaces);
 
@@ -738,7 +763,7 @@ namespace SAM.Analytical
         // Terminals
         // ------------------------------------------------------------------
 
-        private void BuildTerminals(PartFDwellingResult dwellingResult, List<DwellingSpace> dwellingSpaces)
+        private void BuildTerminals(PartFDwellingResult dwellingResult, List<DwellingSpace> dwellingSpaces, Dictionary<(Guid, PartFTerminalRole), (double? ContinuousDesignFlowRate_Lps, double? HighFlowRate_Lps)> dictionary_Measured)
         {
             double kitchenRate_Lps = partFData.GetKitchenExtractHighRate_Lps();
 
@@ -759,7 +784,7 @@ namespace SAM.Analytical
                 //kitchen take a supply terminal exactly as a bedroom does.
                 if (partFCategory.PartFType == PartFType.Habitable && partFCategory.IsTerminalSpace && partFCategory.ScaleSupplyWithVolume)
                 {
-                    dwellingSpace.Terminals.Add(new PartFVentilationTerminalRequirement(string.Format("{0} - supply", dwellingSpace.Space.Name), dwellingSpace.Space.Guid, PartFTerminalRole.Supply)
+                    PartFVentilationTerminalRequirement terminal_Supply = new(string.Format("{0} - supply", dwellingSpace.Space.Name), dwellingSpace.Space.Guid, PartFTerminalRole.Supply)
                     {
                         SpaceName = dwellingSpace.Space.Name,
                         ExtractMethod = PartFExtractMethod.NotRepresented,
@@ -767,7 +792,10 @@ namespace SAM.Analytical
                         IsInBalancedFlow = true,
                         IsRequired = true,
                         SourceReference = "Approved Document F, Volume 1: Dwellings (2021 edition), paragraph 1.67 (page 16)",
-                    });
+                    };
+
+                    ApplyMeasuredRates(terminal_Supply, dictionary_Measured);
+                    dwellingSpace.Terminals.Add(terminal_Supply);
                 }
 
                 //Paragraph 1.17a (page 8): extract ventilation to the outside from the room containing the
@@ -776,7 +804,9 @@ namespace SAM.Analytical
                 //without being local kitchen extract at all.
                 if (partFCategory.IsCookingSpace)
                 {
-                    dwellingSpace.Terminals.Add(BuildLocalKitchenExtractTerminal(dwellingSpace, kitchenRate_Lps, dwellingResult));
+                    PartFVentilationTerminalRequirement terminal_Kitchen = BuildLocalKitchenExtractTerminal(dwellingSpace, kitchenRate_Lps, dwellingResult);
+                    ApplyMeasuredRates(terminal_Kitchen, dictionary_Measured);
+                    dwellingSpace.Terminals.Add(terminal_Kitchen);
                     continue;
                 }
 
@@ -784,7 +814,7 @@ namespace SAM.Analytical
                 //least the Table 1.2 minimum high rate.
                 if (partFCategory.PartFVentilationType == Enums.PartFVentilationType.extract && partFCategory.IsTerminalSpace)
                 {
-                    dwellingSpace.Terminals.Add(new PartFVentilationTerminalRequirement(string.Format("{0} - general extract", dwellingSpace.Space.Name), dwellingSpace.Space.Guid, PartFTerminalRole.GeneralExtract)
+                    PartFVentilationTerminalRequirement terminal_Extract = new(string.Format("{0} - general extract", dwellingSpace.Space.Name), dwellingSpace.Space.Guid, PartFTerminalRole.GeneralExtract)
                     {
                         SpaceName = dwellingSpace.Space.Name,
 
@@ -803,9 +833,29 @@ namespace SAM.Analytical
                         IsLocalExtract = false,
                         IsRequired = true,
                         SourceReference = "Approved Document F, Volume 1: Dwellings (2021 edition), paragraph 1.17 (page 8), Table 1.2 (page 10) and paragraph 1.70 (page 17)",
-                    });
+                    };
+
+                    ApplyMeasuredRates(terminal_Extract, dictionary_Measured);
+                    dwellingSpace.Terminals.Add(terminal_Extract);
                 }
             }
+        }
+
+        /// <summary>
+        /// Carries a previous run's measured rate onto the freshly built terminal that replaces it, keyed by
+        /// the space it belongs to and its role - never by object identity, since <c>BuildTerminals</c>
+        /// constructs a new <see cref="PartFVentilationTerminalRequirement"/> every run and has nothing else
+        /// stable to match against.
+        /// </summary>
+        private static void ApplyMeasuredRates(PartFVentilationTerminalRequirement terminal, Dictionary<(Guid, PartFTerminalRole), (double? ContinuousDesignFlowRate_Lps, double? HighFlowRate_Lps)> dictionary_Measured)
+        {
+            if (terminal is null || dictionary_Measured is null || !dictionary_Measured.TryGetValue((terminal.SpaceGuid, terminal.TerminalRole), out (double? ContinuousDesignFlowRate_Lps, double? HighFlowRate_Lps) measured))
+            {
+                return;
+            }
+
+            terminal.MeasuredContinuousFlowRate_Lps = measured.ContinuousDesignFlowRate_Lps;
+            terminal.MeasuredHighFlowRate_Lps = measured.HighFlowRate_Lps;
         }
 
         /// <summary>

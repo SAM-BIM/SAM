@@ -224,7 +224,12 @@ namespace SAM.Analytical.Grasshopper
                 string text = null;
                 if (dataAccess.GetData(index, ref text) && !string.IsNullOrWhiteSpace(text))
                 {
-                    if (!Enum.TryParse(text, true, out partFOperatingMode))
+                    //Enum.TryParse alone is not enough: given numeric text such as "9" it succeeds and
+                    //returns that value even though no PartFOperatingMode member has it, so IsDefined is
+                    //checked as well. Without it, an undefined value reaches PartFSchematic.Rate, whose
+                    //default branch returns null - producing a misleading empty schematic under a heading
+                    //naming the raw number rather than refusing the bad input up front.
+                    if (!Enum.TryParse(text, true, out partFOperatingMode) || !Enum.IsDefined(typeof(PartFOperatingMode), partFOperatingMode))
                     {
                         partFOperatingMode = PartFOperatingMode.ContinuousDesign;
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("'{0}' is not a recognised operating mode. Use ContinuousDesign, HighBoost, Setback or MeasuredCommissioning. ContinuousDesign has been used instead.", text));

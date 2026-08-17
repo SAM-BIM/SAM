@@ -147,6 +147,11 @@ IMPORTANT - what this does not do
 
             //Requested zones are matched back to the model's own zones BY GUID, so a zone rebuilt or renamed
             //upstream cannot silently select a different one - and two zones sharing a name cannot collide.
+            //Connected-but-every-guid-invalid is NOT the same statement as "unconnected". Only an
+            //UNCONNECTED port means "assess the whole model" - once a caller has explicitly named zones, a
+            //selection that resolved to nothing is a stale or wrong reference, and silently broadening it to
+            //every zone in the model would turn a targeted request into a whole-building assessment.
+            bool zonesConnected = false;
             List<Zone> zones = null;
             index = Params.IndexOfInputParam("zones_");
             if (index != -1)
@@ -154,6 +159,7 @@ IMPORTANT - what this does not do
                 List<IAnalyticalObject> analyticalObjects = [];
                 if (dataAccess.GetDataList(index, analyticalObjects) && analyticalObjects != null)
                 {
+                    zonesConnected = true;
                     zones = [];
 
                     foreach (Zone zone in analyticalObjects.FindAll(x => x is Zone).ConvertAll(x => (Zone)x))
@@ -167,12 +173,13 @@ IMPORTANT - what this does not do
 
                         zones.Add(zone_Model);
                     }
-
-                    if (zones.Count == 0)
-                    {
-                        zones = null;
-                    }
                 }
+            }
+
+            if (zonesConnected && zones.Count == 0)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "None of the zones supplied to zones_ are in the supplied analytical object, so no scenarios were created. Correct the selection, or disconnect zones_ to assess the whole model.");
+                return;
             }
 
             //Unconnected means the whole model, which is the shape the dwelling category has: the flats and the

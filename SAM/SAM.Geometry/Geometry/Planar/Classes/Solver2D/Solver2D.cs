@@ -225,6 +225,23 @@ namespace SAM.Geometry.Planar
                                     resultRectangle2D = rectangleTemp;
                                     break;
                                 }
+
+                                // Re-checked WITHIN this label's own sweep, not only before it started. The
+                                // outer overBudget snapshot bounds every OTHER label; on its own it does nothing
+                                // for the single expensive label that is spending the budget right now - a large
+                                // IterationCount against a crowded obstacle set can burn millions of comparisons
+                                // in one label's foreach before the outer loop gets another chance to look. Once
+                                // spent mid-sweep, this label falls back to its OWN anchor - the untested
+                                // rectangle2DWithGivenPointInCenter, exactly as a label that started already over
+                                // budget uses, and exactly what Fallback promises a caller: at the anchor, never
+                                // at whatever arbitrary spiralled-out candidate happened to be under test when
+                                // the budget ran out.
+                                if (!overBudget && isOverBudget())
+                                {
+                                    overBudget = true;
+                                    resultRectangle2D = rectangle2DWithGivenPointInCenter;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -274,6 +291,16 @@ namespace SAM.Geometry.Planar
                                     continue;
                                 }
                                 resultRectangle2D = rectangleTemp;
+                                break;
+                            }
+
+                            // Same re-check as the Point2D branch above, and the same anchor-only Fallback
+                            // contract: the untested rectangle2D at its original position, never the arbitrary
+                            // segment-relative candidate under test when the budget ran out.
+                            if (!overBudget && isOverBudget())
+                            {
+                                overBudget = true;
+                                resultRectangle2D = rectangle2D;
                                 break;
                             }
                         }
