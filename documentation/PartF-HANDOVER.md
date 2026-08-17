@@ -31,7 +31,7 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
 | `SAM` | `feature/partf-terminal-transfer-compliance` | **`2e8c513f`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
-| `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`bff125f`** | exactly `bff125f` | clean, level | `sow/2026-Q3` @ `d7303c2` |
+| `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`24ed46a`** | exactly `24ed46a` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`134dc1d`** | exactly `134dc1d` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
 | `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`94ac244`** | exactly `94ac244` | clean, level | `sow/2026-Q3` @ `9555aa1` |
@@ -70,7 +70,7 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
 SAM 2e8c513f
-SAM_Systems bff125f
+SAM_Systems 24ed46a
 SAM_UI ffd8e38
 SAM_Tas 134dc1d
 SAM_Tas_Grasshopper 94ac244
@@ -421,7 +421,7 @@ All five repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's,
 SAM_Tas_Grasshopper's branches are new and need PRs like the other two.** `sow/2026-Q3` was never committed to directly and is
 untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
 
-**Current code heads — SAM `2e8c513f`+handover, SAM_Systems `bff125f`, SAM_UI `ffd8e38`, SAM_Tas
+**Current code heads — SAM `2e8c513f`+handover, SAM_Systems `24ed46a`, SAM_UI `ffd8e38`, SAM_Tas
 `134dc1d`, SAM_Tas_Grasshopper `94ac244`. All pushed and verified. See section 0a, which is
 authoritative.**
 
@@ -475,7 +475,10 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - `418f508` **step 9 — the TSD-simple vs TPD-full preparation boundary** (11o)
   - `134dc1d` **step 9 independent-review fixes** (11o)
   - **HEAD = `134dc1d`**, pushed
-- **SAM_Systems**: **HEAD = `bff125f`**, pushed; unchanged by step 8.
+- **SAM_Systems**: `bff125f` unchanged by step 8; `24ed46a` **"fix missing reference"** — Michal's own local build
+  fix, adding the `SAM.Architectural` reference `SAM.Analytical.Grasshopper.Systems.csproj` was missing.
+  Unrelated to Part F/O; recorded here only because §0a's invariant caught it as unpinned. **HEAD = `24ed46a`**,
+  pushed.
 - **SAM_Tas_Grasshopper**: `f8ca646c` original step 8 result association; `b8dae4b` review wiring for
   both existing workflows; `697c798` **step 9 — the TPD query component made thin over the common
   assessment** (11o); `94ac244` step 9 review fix; **HEAD = `94ac244`**, pushed.
