@@ -456,9 +456,13 @@ namespace SAM.Analytical
                 return result;
             }
 
+            //Null wherever the ambient SAM install has no system type library - a clean CI runner, a headless
+            //host, or any process whose ActiveSetting was never seeded from %APPDATA%\SAM. Both loops below
+            //dereferenced it, so this threw a NullReferenceException out of the middle of an assessment rather
+            //than falling through to the documented "NV" default.
             SystemTypeLibrary systemTypeLibrary = Query.DefaultSystemTypeLibrary();
 
-            List<Zone> zones = adjacencyCluster?.GetRelatedObjects<Zone>(space);
+            List<Zone> zones = systemTypeLibrary == null ? null : adjacencyCluster?.GetRelatedObjects<Zone>(space);
             if (zones != null)
             {
                 foreach (Zone zone in zones)
