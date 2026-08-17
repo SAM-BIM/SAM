@@ -30,7 +30,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreCopyMaterials()
           : base("SAMCore.CopyMaterials", "SAMCore.CopyMaterials",
-              "Compy Materials from MaterialLibraries to desired MaterialLibrary",
+              "Copy Materials from MaterialLibraries to desired MaterialLibrary",
               "SAM", "Core")
         {
         }

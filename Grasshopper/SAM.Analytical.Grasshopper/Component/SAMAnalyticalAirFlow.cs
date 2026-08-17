@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalAirflow()
           : base("SAMAnalytical.Airflow", "SAMAnalytical.Airflow",
-              "Calculates Exhaust and Supply Airflow from Internal Condition ONLY" +
+              "Calculates Exhaust and Supply Airflow from Internal Condition ONLY\n" +
               "Calculated Exhaust/Supply Air Flow [m3/s] for IC inside Space.as Sum of ExhaustAirFlowPerPerson, ExhaustAirFlowPerArea, ExhaustAirFlow and ExhaustAirChangesPerHour",
               "SAM", "Analytical")
         {

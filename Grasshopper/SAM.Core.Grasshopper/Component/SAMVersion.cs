@@ -56,7 +56,7 @@ namespace SAM.Core.Grasshopper
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "CurrentVersion", NickName = "CurrentVersion", Description = "Current Version", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "LatestVersion", NickName = "LatesttVersion", Description = "The Latest Version", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "IsUpdateAvaliable", NickName = "IsUpdateAvaliable", Description = "Is new version avaliable?", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "IsUpdateAvaliable", NickName = "IsUpdateAvaliable", Description = "Is new version available?", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }

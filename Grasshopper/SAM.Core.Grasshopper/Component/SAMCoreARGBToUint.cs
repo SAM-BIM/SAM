@@ -30,7 +30,7 @@ namespace SAM.Core.Grasshopper
         /// </summary>
         public SAMCoreARGBToUint()
           : base("ARGBToUint", "ARGBToUint",
-              "Converts Uint to ARGB",
+              "Converts ARGB to Uint",
               "SAM", "Core")
         {
         }

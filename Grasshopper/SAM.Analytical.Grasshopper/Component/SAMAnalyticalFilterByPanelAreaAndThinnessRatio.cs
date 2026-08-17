@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalFilterByPanelAreaAndThinnessRatio()
           : base("SAMAnalytical.FilterByPanelAreaAndThinnessRatio", "SAMAnalytical.FilterByPanelAreaAndThinnessRatio",
-              "Filters Analytcial Model/AdjacencyCluster by Panel Area And ThinnessRatio. To filter only by Areau use ThinnessRatio = 1",
+              "Filters Analytical Model/AdjacencyCluster by Panel Area And ThinnessRatio. To filter only by Area use _minThinnessRatio_ = 1",
               "SAM", "Analytical01")
         {
         }
@@ -69,8 +69,8 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "Analytical", NickName = "Analytical", Description = "SAM Analytical AdjacencyCluster or AnalyticalModel", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "In", NickName = "In", Description = "SAM Analytical Panels left in SAMAnlayticalCluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
-                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Out", NickName = "Out", Description = "SAM Analytical Panels removed from SAMAnlayticalCluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "In", NickName = "In", Description = "SAM Analytical Panels left in SAMAnalyticalCluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooPanelParam() { Name = "Out", NickName = "Out", Description = "SAM Analytical Panels removed from SAMAnalyticalCluster", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 return result.ToArray();
             }
         }
