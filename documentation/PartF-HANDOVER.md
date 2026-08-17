@@ -17,7 +17,7 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `2e8c513f` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
+*Last updated at SAM `5565d96c` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
 complete (the TSD-simple vs TPD-full preparation boundary, with the supply-temperature transfer proved
 impossible and refused) and Iteration 1's BasePassive vertical slice landed. Previously: step 8
 complete and independently reviewed**: simulation results, scenarios and design spaces are associated by
@@ -30,7 +30,7 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`2e8c513f`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`5565d96c`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`24ed46a`** | exactly `24ed46a` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`134dc1d`** | exactly `134dc1d` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
@@ -69,7 +69,7 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 2e8c513f
+SAM 5565d96c
 SAM_Systems 24ed46a
 SAM_UI ffd8e38
 SAM_Tas 134dc1d
@@ -82,9 +82,23 @@ That must print exactly **five** `descends from` lines and nothing else. **Any `
 `PENDING` for a repo that had no SHA yet and swallowed the error, so it silently verified nothing —
 the loop above fails loudly instead.)
 
-Not merged. **No PRs open in any of the five.** `sow/2026-Q3` never committed to directly, untouched
-everywhere. **`SAM_Tas`'s, `SAM_Systems`'s and now `SAM_Tas_Grasshopper`'s branches are new and need PRs
-like the other two** — still waiting on Michal.
+**All five now have open PRs against `sow/2026-Q3` — opened together, in dependency order, once every
+branch was merged current with sow.** `sow/2026-Q3` itself never committed to directly, untouched
+everywhere.
+
+| Repo | PR |
+|---|---|
+| `SAM` | [SAM-BIM/SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
+| `SAM_Systems` | [SAM-BIM/SAM_Systems#14](https://github.com/SAM-BIM/SAM_Systems/pull/14) |
+| `SAM_Tas` | [SAM-BIM/SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
+| `SAM_Tas_Grasshopper` | [SAM-BIM/SAM_Tas_Grasshopper#4](https://github.com/SAM-BIM/SAM_Tas_Grasshopper/pull/4) |
+| `SAM_UI` | [SAM-BIM/SAM_UI#75](https://github.com/SAM-BIM/SAM_UI/pull/75) |
+
+**Before opening them:** each branch was checked for drift against `sow/2026-Q3` (only `SAM` and `SAM_UI`
+had any — 20 and 2 commits behind respectively), file-overlap was confirmed zero on both sides with
+`git merge-tree`, and `sow/2026-Q3` was merged into `SAM` and `SAM_UI` with the full suite re-run green
+after (`SAM.Tests` 1207/1207, `SAM.Analytical.UI.WPF.Tests` 180/180) before pushing. See 11r for a CI-only
+test failure this surfaced and its fix — nothing in the merge itself was at fault.
 
 ### 0b. Latest checkpoint — what it implemented
 
@@ -421,7 +435,7 @@ All five repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's,
 SAM_Tas_Grasshopper's branches are new and need PRs like the other two.** `sow/2026-Q3` was never committed to directly and is
 untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
 
-**Current code heads — SAM `2e8c513f`+handover, SAM_Systems `24ed46a`, SAM_UI `ffd8e38`, SAM_Tas
+**Current code heads — SAM `5565d96c`+handover, SAM_Systems `24ed46a`, SAM_UI `ffd8e38`, SAM_Tas
 `134dc1d`, SAM_Tas_Grasshopper `94ac244`. All pushed and verified. See section 0a, which is
 authoritative.**
 
@@ -452,8 +466,9 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - `f712fd9f` **step 8 independent-review fixes**
   - `cc5e67f0` **step 8 further review**: same-key scenarios are one answer, proof 10 made behavioural (11n)
   - `5f3ad8fb` **Iteration 1 — BasePassive stated and assessable** (11p)
-  - `2e8c513f` **Iteration 1 — Part F airflows reach the simulation** (11q) — last CODE commit, pushed; HEAD
-    is the handover commit on top
+  - `2e8c513f` **Iteration 1 — Part F airflows reach the simulation** (11q)
+  - merge of `sow/2026-Q3` (43 files, zero overlap with this branch)
+  - `5565d96c` **CI-only TM59 test fix** (11r) — last CODE commit, pushed; HEAD is the handover commit on top
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -1837,6 +1852,45 @@ and the three iteration mappings.
 with the model it came from, so assigning an internal condition in place reached back through the clone and
 changed the caller's model. Fixed by writing onto `new Space(space)`, which keeps the guid so `AddObject`
 replaces rather than duplicating. **Remember this for any `Modify` that claims to return a copy.**
+
+### 11r. CI-only TM59 test failure, found and fixed after opening the PRs (DONE)
+
+**Implemented:** SAM `5565d96c`.
+
+**Context.** Michal asked to merge `sow/2026-Q3` into all five feature branches and open PRs (see 0a for the
+merges, all clean, zero file overlap, confirmed by `git merge-tree` before merging). PR SAM-BIM/SAM#73's
+`test (Release)` check failed with `Assert.NotNull() Failure: Value is null` on
+`TM59AssessmentCalculatorTests`, `TMOverheatingCalculatorTests`, `VentilationStrategyTests`,
+`PartOResultAssociationTests` and `PartOIterationSliceTests` - none of which reproduced locally, in either
+Debug or Release.
+
+**Root cause.** `TMOverheatingCalculator.Calculate_TM59` refuses (returns null) when its `TextMap` is null.
+None of the five files set `TextMap` explicitly, so all five rely on
+`Query.DefaultInternalConditionTextMap_TM59()`, which checks `ActiveSetting.Setting` first and falls back to
+`Core.Query.ResourcesDirectory(Assembly.GetExecutingAssembly())` - which resolves a directory from
+**`Assembly.CodeBase`, an API obsolete since .NET 5** and not reliably populated under the `dotnet test` host.
+On a developer machine with a real SAM install this is masked entirely: a persisted `%APPDATA%\SAM\settings`
+file satisfies `ActiveSetting.Setting` before either fallback is ever reached - exactly why it passed on
+every machine that had ever run a real SAM install, and only failed on a clean CI runner.
+
+**Proven, not assumed.** This machine's own `%APPDATA%\SAM\settings` was moved aside; all 73 affected tests
+then failed exactly as CI did; the fix below was applied; all 73 passed with the settings file still absent;
+the file was restored and the full suite re-run (**1207 passed, both Debug and Release**) to confirm no
+regression with it back in place.
+
+**Fix.** `TM59TextMapModuleInitializer` (`[ModuleInitializer]`) seeds `SAM.Analytical.ActiveSetting.Setting`
+once per process, reading the TM59 TextMap resource from **`AppContext.BaseDirectory`** - the one path .NET
+Core guarantees is populated and correct under every hosting scenario, which `Assembly.CodeBase` is not.
+`SAM.Tests.csproj` copies the resource locally, mirroring the pattern `SAM_Tas`'s own TM59 test project
+already uses for the identical reason (see that project's `TESTING.md`). Fixed **once for the whole
+assembly** rather than in five separate test files, since none of them set `TextMap` themselves - they were
+written expecting the production default, and that is what this seeds.
+
+**Worth remembering:** `Assembly.CodeBase`-based path discovery (`Core.Query.ResourcesDirectory`,
+`Query.DefaultPath`, `Core.Query.ExecutingAssemblyDirectory`) is fragile under any hosting scenario other
+than a real installed SAM. Any new test that instantiates something depending on an `ActiveSetting` default
+should either set the dependency explicitly or add itself to this initializer's coverage - do not assume a
+clean CI runner behaves like a developer machine with `%APPDATA%\SAM` populated.
 
 ## 10. Standing instructions
 
