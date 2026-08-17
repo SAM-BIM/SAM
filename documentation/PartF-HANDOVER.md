@@ -31,10 +31,18 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
 | `SAM` | `feature/partf-terminal-transfer-compliance` | **`8de00cc7`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
-| `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`24ed46a`** | exactly `24ed46a` | clean, level | `sow/2026-Q3` @ `d7303c2` |
-| `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
-| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`134dc1d`** | exactly `134dc1d` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
+| `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`4446bb8`** | exactly `4446bb8` | clean, level | `sow/2026-Q3` @ `d7303c2` |
+| `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`5b617e8`** | exactly `5b617e8` | clean, level | `sow/2026-Q3` @ `074f3d9` |
+| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`332736c`** | exactly `332736c` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
 | `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`94ac244`** | exactly `94ac244` | clean, level | `sow/2026-Q3` @ `9555aa1` |
+
+**`SAM_UI`'s pin is a MERGE commit, and that is why the check fired on it.** The 2026-08-17 session's
+verification loop printed eleven `UNRECORDED CODE:` lines for `SAM_UI` - Grasshopper component files that have
+nothing to do with Part F. The reconciliation: `5b617e8` is a merge of `sow/2026-Q3` into the feature branch
+whose **first parent is the recorded `ffd8e38`**, and those files came in from the other side (PR #74,
+Grasshopper component descriptions). So it was a base sync, not unrecorded feature work. The pin is bumped to
+the merge itself. **If the loop fires again on `SAM_UI`, check for a merge before assuming lost work** -
+`git log -1 --format='%P' <head>` showing two parents is the tell.
 
 **The step 9 session opened by finding this table WRONG, and the check caught it. Worth keeping as evidence
 the invariant earns its keep.** It pinned `SAM`'s last code commit at `f712fd9f`, but `cc5e67f0` — a real code
@@ -70,9 +78,9 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
 SAM 8de00cc7
-SAM_Systems 24ed46a
-SAM_UI ffd8e38
-SAM_Tas 134dc1d
+SAM_Systems 4446bb8
+SAM_UI 5b617e8
+SAM_Tas 332736c
 SAM_Tas_Grasshopper 94ac244
 EOF
 ```
@@ -1949,7 +1957,7 @@ than a real installed SAM. Any new test that instantiates something depending on
 should either set the dependency explicitly or add itself to this initializer's coverage - do not assume a
 clean CI runner behaves like a developer machine with `%APPDATA%\SAM` populated.
 
-### 11s. Codex/Copilot review findings on all five open PRs (SAM DONE, four repos NOT STARTED)
+### 11s. Codex/Copilot review findings on all five open PRs (SAM + SAM_Systems + SAM_Tas DONE, two repos left)
 
 **Read this section first if resuming mid-review.** Once all five PRs (§0a) went CLEAN, `chatgpt-codex-connector`
 left inline findings on all five. Per the standing rule (§10, "address every valid finding regardless of
@@ -1984,34 +1992,90 @@ message; the two open items:**
    bookkeping together — under-scoped to rush. Visualization only (does not affect any PASS/FAIL verdict), so
    lower urgency than a wrong compliance answer, but still a real defect per the standing rule.
 
-**SAM_Systems (`#14`), SAM_Tas (`#29`), SAM_Tas_Grasshopper (`#4`), SAM_UI (`#75`) — NOT STARTED.** Findings
-already fetched and written up once this session; re-fetch is one command per repo if this context is gone:
+**SAM_Systems (`#14`) is DONE — `4446bb8`.** `SystemCapabilityDescriptors` applied the `Application`
+eligibility filter with a `continue` as soon as it had read the entry's application, which skipped the
+ventilation-text check, `SystemTemplate.IsValid` and the `Rank` refusal along with the entry. So the SAME
+half-edited catalogue was accepted for one application and refused for another. **The entry it reopened the
+hole on is the exact one the reader's own `Rank` comment records as the original defect**: a case typo on
+VAV's `"Rank"`. VAV is `Commercial`, so after eligibility became a filter that typo refused an `Any` or
+`Commercial` request and was silently dropped from a `Domestic` one — and Approved Document F selection is
+precisely the `Domestic` caller. The existing `MalformedIndex_ProducesNoDescriptors` breaks EOL, a *domestic*
+entry, so it kept passing throughout. Eligibility now filters the survivors: `IsEligible` is the last thing
+before `result.Add`. Tests: `BrokenEntryOutsideTheRequestedApplication_StillRefusesTheIndex` (VAV broken five
+ways × all four request kinds; all five cases fail without the reordering) and
+`ValidatingEveryEntry_DoesNotChangeWhatIsOffered` (6 domestic / 4 commercial unchanged, so the fix was not
+bought by leaking commercial templates into a dwelling answer). 40/40 + 123/123 Release.
+
+**SAM_Tas (`#29`) is DONE — `332736c`.** Both findings valid and fixed.
+
+1. `ToTM59` guarded `spaces == null` while its own refusal message said "there is no model, **or it holds no
+   spaces**". An empty list fell through, the loop had nothing to visit, nothing was refused, the completeness
+   gate saw a clean run, and `ToXml` wrote a **zero-zone document and returned true**. Reachability had to be
+   established rather than assumed, and it holds: an untouched `AdjacencyCluster` has no `Space` type
+   registered so `GetSpaces()` returns *null* (the half that already refused), but `RemoveObject` deletes the
+   guid and **leaves the type's bucket**, so a model whose spaces were all deleted returns an *empty* list.
+2. `ApproximateResultantTemperatureMap` — the comment on the cast claimed to guard "a null or non-numeric
+   element" and guarded only the null; a string or bool threw `InvalidOperationException` out of a Grasshopper
+   component and **aborted the whole preparation map** instead of excluding the one space.
+
+   **The fix is deliberately NOT just `TryGetValue<double>`, and this was measured, not assumed.** A
+   `JsonValue` built in-process from an `int`, `float` or `decimal` reports `JsonValueKind.Number` and still
+   fails BOTH `TryGetValue<double>` and `GetValue<double>` — the framework converts numeric types only for
+   `JsonElement`-backed values, which is what *parsing* produces. A parsed `5` reads as `5.0`; an in-process
+   `5` throws. So a strict guard would have turned a legitimate whole-number series into a refusal. `TryGetDouble`
+   decides on numeric *kind*, then reads, falling back to the node's JSON text parsed **invariantly** (a decimal
+   comma would otherwise read "20.5" as 205). `AWholeNumberRadiantValue_IsRead` pins that half.
+
+   70/70 Release. All five new tests were first run against the pre-fix binary and failed there exactly as
+   reported.
+
+> **GOTCHA that cost a full wrong test run, worth reading before touching SAM_Tas tests.**
+> `SAM.Analytical.Tas.TM59.Tests` references **prebuilt DLLs from `build/`** on purpose — a `ProjectReference`
+> would drag in the TAS COM interop. So `dotnet test` alone **silently tests the OLD code**: the first run
+> "failed" with the pre-fix message text and pre-fix stack traces while the source was already fixed. Build
+> `SAM.Analytical.Tas.TPD` and `SAM.Analytical.Tas.TM59` **with VS MSBuild first** — `dotnet build` fails both
+> with `MSB4803` on `ResolveComReference`:
+> ```bash
+> "/c/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" SAM_Tas/SAM.Analytical.Tas.TPD/SAM.Analytical.Tas.TPD.csproj -p:Configuration=Release -v:m -nologo
+> ```
+> (Silver lining: that accidental run is the cleanest possible proof the tests catch the defects.)
+
+**STILL TO DO — `SAM_Tas_Grasshopper` (`#4`, 1 finding) and `SAM_UI` (`#75`, 3 findings, two P1).** Verbatim
+below so no re-query is needed; re-fetch is one command per repo if wanted:
 
 ```bash
 gh api "repos/SAM-BIM/<repo>/pulls/<number>/comments" --jq '.[] | "path=\(.path) line=\(.line // .original_line)\n\(.body)\n===="'
 ```
-(SAM_Systems #14, SAM_Tas #29, SAM_Tas_Grasshopper #4, SAM_UI #75.)
+(SAM_Tas_Grasshopper #4, SAM_UI #75.)
 
-- **SAM_Systems** — `SystemCapabilityDescriptors.cs:113`: `continue` skips validation for entries excluded by
-  the requested `Application`, so a domestic call can accept a catalogue whose commercial-only entries would
-  have failed the "missing/non-integer rank refuses the whole index" invariant. Validate every entry first,
-  filter by application after.
-- **SAM_Tas** — two findings: `SAM.Analytical.Tas.TM59/Convert/ToTM59/Building.cs:107` doesn't treat an empty
-  (not null) space list as the same refusal case, so `ToXml` can report success on a complete-looking empty
-  TM59 document; `SAM.Analytical.Tas.TPD/Classes/ApproximateResultantTemperatureMap.cs:346` — a non-numeric
-  JSON node in the radiant-temperature array throws instead of producing the documented per-space refusal
-  (this is in the step 9 boundary code from earlier in this session — see §11o).
-- **SAM_Tas_Grasshopper** — `SAMAnalyticalCreateTBDByTM59.cs:234`: rerunning at a path with an existing TM59
-  companion file, when the new scenario map is incomplete, skips `ToXml` but leaves the stale XML in place
-  after rewriting the TBD — TAS can open ventilation strategies that don't match the current scenarios.
-- **SAM_UI** — three findings, two P1: `PartFAssessmentWindow.xaml.cs:345` — switching dwellings in a
-  multi-dwelling assessment discards unsaved edits in the other two, because `Load()` recreates all row
-  collections without calling their `Apply()` first and `Button_OK_Click` only applies the CURRENTLY selected
-  dwelling's rows; `AddVentilationByPartF.cs:193` — unchecking a previously confirmed check still writes
-  `UserConfirmed` back via `PersistConfirmations`, so an explicitly withdrawn confirmation is silently
-  reinstated on the next calculation; `PartFAirflowViewSettingsWindow.xaml.cs:86` (P2) — the dwelling selector
-  offers every zone in the model regardless of the assessed scope, so saving a selection outside that scope
-  draws nothing.
+- **SAM_Tas_Grasshopper** — `Grasshopper/SAM.Analytical.Grasshopper.Tas/Component/SAMAnalyticalCreateTBDByTM59.cs:234`
+  (P2): rerunning at a path with an existing TM59 companion file, when the new scenario map is incomplete,
+  skips `ToXml` but leaves the stale XML in place **after rewriting the TBD** — so TAS opens ventilation
+  strategies that do not correspond to the current scenarios. Codex's suggestion: delete or invalidate the
+  existing companion XML on refusal, or validate the scenario map *before* producing the TBD. **Note the
+  interaction with the `SAM_Tas` fix just landed**: `ToXml` now also refuses an empty space list, so there is
+  one more refusal path that must not leave stale XML behind.
+- **SAM_UI** — three findings, two P1:
+  - `WPF/SAM.Analytical.UI.WPF/Windows/PartFAssessmentWindow.xaml.cs:345` (**P1**) — switching dwellings in a
+    multi-dwelling assessment discards unsaved edits, because `Load()` clears and recreates all three row
+    collections without calling their `Apply()` first, and `Button_OK_Click` applies only the CURRENTLY
+    selected dwelling's rows. Commit the current grids before loading the next dwelling, or retain per-dwelling
+    row state.
+  - `WPF/SAM.Analytical.UI.WPF/Modify/AddVentilationByPartF.cs:193` (**P1**) — unchecking a previously
+    confirmed check restores its calculated final status via `PartFCheckRow.Apply()`, but the record still
+    reaches `PersistConfirmations`, which unconditionally writes `UserConfirmed` back into the commissioning
+    data. The next calculation therefore reinstates a confirmation the user explicitly withdrew. Reset or
+    remove the persisted confirmation status **while retaining any supporting notes**.
+  - `WPF/SAM.Analytical.UI.WPF/Windows/PartFAirflowViewSettingsWindow.xaml.cs:86` (P2) — the loop offers every
+    model zone as a selectable dwelling regardless of the chosen assessment scope; saving one sets
+    `SelectedDwelling`, but the renderer filters only the results calculated for the selected category, so the
+    saved view **draws nothing**. Rebuild the list from the dwelling zones belonging to the selected scope, and
+    update it when that scope changes.
+
+**`SAM_UI` is the WPF repo, so expect the two P1s to need a real look at row lifecycle rather than a local
+patch** — and note there is no headless test for a WPF window, so check what `SAM.Analytical.UI.WPF.Tests`
+already covers (it has a `Helpers/PartFPlanModel.cs`, so some of this is testable without a window) before
+concluding a fix cannot be regression-tested.
 
 **Process for the next session, matching what worked this session:** verify each finding by reading the
 actual current code (don't take Codex's claim on trust — one SAM finding's example numbers didn't match
@@ -2061,11 +2125,23 @@ SHA, and that nothing but the handover changed since it. The second must print e
 Confirm each is on `feature/partf-terminal-transfer-compliance`, the tree is **clean**, and local matches
 remote at the SHAs in **section 0a**, which is authoritative. Nothing should be outstanding.
 
+### YOUR ACTUAL NEXT TASK — finish section 11s
+
+**All five PRs are OPEN and were reviewed by `chatgpt-codex-connector`. Three repos' findings are fixed; two
+are left: `SAM_Tas_Grasshopper` #4 (1 finding) and `SAM_UI` #75 (3 findings, two P1).** They are transcribed
+verbatim with file, line and rationale in **section 11s**, so nothing needs re-querying. Two SAM items are
+also carried forward there (`PartFAirflowNetwork`, which needs re-deriving from scratch — a previous attempt
+was reverted for breaking a real test — and `PartFSchematic`'s reversed high-rate transfer path).
+
+Everything below this heading is the state as of the *previous* checkpoint and is still accurate about the
+feature work; section 11s is where the live task is.
+
 ### State - all pushed, all green
 
-SAM **1196**, SAM_Tas TM59.Tests **65**, SAM_UI **180**, SAM_Systems **123** + **34**, SAM_Mollier **22**;
+SAM **1208**, SAM_Tas TM59.Tests **70**, SAM_UI **180**, SAM_Systems **123** + **40**, SAM_Mollier **22**;
 Grasshopper (including `SAM.Analytical.Grasshopper.Tas`, `.Tas.TPD` and SAM's own) 0 `error CS`; SPDX clean.
-Not merged, **no PRs open in any of the five**.
+Not merged; **all five PRs are open** (SAM #73, SAM_Systems #14, SAM_Tas #29, SAM_Tas_Grasshopper #4,
+SAM_UI #75) — push to the same branch to update one, do **not** open a new PR.
 
 Done and reviewed: the Part F regulatory correction pass, the floor-plan overlay, saved-view persistence,
 the dwelling-scope correctness fix and cache proof, and **Iteration 0 steps 1-9**: Part O assessment scope,
