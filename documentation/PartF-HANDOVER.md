@@ -17,7 +17,7 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `0fa247fd` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
+*Last updated at SAM `8de00cc7` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
 complete (the TSD-simple vs TPD-full preparation boundary, with the supply-temperature transfer proved
 impossible and refused) and Iteration 1's BasePassive vertical slice landed. Previously: step 8
 complete and independently reviewed**: simulation results, scenarios and design spaces are associated by
@@ -30,7 +30,7 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`0fa247fd`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`8de00cc7`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`24ed46a`** | exactly `24ed46a` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`134dc1d`** | exactly `134dc1d` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
@@ -69,7 +69,7 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 0fa247fd
+SAM 8de00cc7
 SAM_Systems 24ed46a
 SAM_UI ffd8e38
 SAM_Tas 134dc1d
@@ -186,7 +186,7 @@ Detail in **11h** (5a), **11i** (5b), **11j** (5c) and **11k** (6).
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1207 passed, 0 failed** (was 1185; +11 `PartOIterationSliceTests`, +11 `PartFAirflowApplicationTests`) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj` |
+| `SAM/SAM.Tests` | **1208 passed, 0 failed** (was 1185; +11 `PartOIterationSliceTests`, +11 `PartFAirflowApplicationTests`, +1 `SimulationSpaceMapTests`) — verified in Release, matching CI | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
 | `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **65 passed, 0 failed** (was 46; +19 `PreparationBoundaryTests`) | `dotnet test SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/…csproj` — **build SAM and the TM59 library first** |
 | `SAM_Tas.sln` | 0 errors under VS Framework MSBuild | `MSBuild.exe SAM_Tas.sln -restore -p:Configuration=Debug` |
 | `SAM.Analytical.Grasshopper.Tas.TPD` | 0 errors under VS Framework MSBuild | step 9's component changes |
@@ -435,7 +435,7 @@ All five repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's,
 SAM_Tas_Grasshopper's branches are new and need PRs like the other two.** `sow/2026-Q3` was never committed to directly and is
 untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
 
-**Current code heads — SAM `0fa247fd`+handover, SAM_Systems `24ed46a`, SAM_UI `ffd8e38`, SAM_Tas
+**Current code heads — SAM `8de00cc7`+handover, SAM_Systems `24ed46a`, SAM_UI `ffd8e38`, SAM_Tas
 `134dc1d`, SAM_Tas_Grasshopper `94ac244`. All pushed and verified. See section 0a, which is
 authoritative.**
 
@@ -470,8 +470,9 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - merge of `sow/2026-Q3` (43 files, zero overlap with this branch)
   - `5565d96c` **CI-only TM59 test fix** (11r)
   - `0e33ed27` **TMOverheatingCalculator null-library NRE fix** (11r)
-  - `0fa247fd` **SAM.Tests made independent of an installed SAM** (11r) — last CODE commit, pushed; HEAD is
-    the handover commit on top
+  - `0fa247fd` **SAM.Tests made independent of an installed SAM** (11r)
+  - `8de00cc7` **Codex review findings addressed on PR #73** (11s) — last CODE commit, pushed; HEAD is the
+    handover commit on top
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -1947,6 +1948,79 @@ in `SAMResourcesModuleInitializer`. Do not assume a clean runner behaves like a 
 than a real installed SAM. Any new test that instantiates something depending on an `ActiveSetting` default
 should either set the dependency explicitly or add itself to this initializer's coverage - do not assume a
 clean CI runner behaves like a developer machine with `%APPDATA%\SAM` populated.
+
+### 11s. Codex/Copilot review findings on all five open PRs (SAM DONE, four repos NOT STARTED)
+
+**Read this section first if resuming mid-review.** Once all five PRs (§0a) went CLEAN, `chatgpt-codex-connector`
+left inline findings on all five. Per the standing rule (§10, "address every valid finding regardless of
+authorship — never skip one as pre-existing/not my work"), every finding across all five repos needs
+verifying against the real code and fixing if valid — **most of what Codex found predates this session's work
+entirely** (the Part F correction pass, step 5/7/8, Solver2D hardening), and that is not a reason to skip it.
+
+**SAM (`#73`) is DONE — 9 of 12 fixed in `8de00cc7`, 1 reverted, 2 carried forward. Full detail in that commit
+message; the two open items:**
+
+1. **`PartFAirflowNetwork.Solve` — REVERTED, needs fresh thinking, not a retry of the same approach.** Codex's
+   finding is real in the abstract (an imbalanced component's supply gets fully apportioned across demand
+   that doesn't match it), but the obvious fix — refuse a component whose net flow isn't ~zero — **broke
+   `HighRateTransfer_IsSolvedSeparatelyFromTheContinuousCondition`**, an existing, intentional regression
+   test. That failure is evidence, not an obstacle to work around: supply and extract are allocated
+   **dwelling-wide**, while a "component" here is a physically disconnected sub-graph connected by doors, so
+   an individual component legitimately does not have to sum to zero on its own — the proportional
+   apportionment already handles that reasonably. **Do not require per-component balance.** If there is a
+   real fix here, it has to distinguish "a component that doesn't balance because dwelling-wide allocation
+   doesn't split per sub-graph" (normal) from whatever genuinely pathological shape Codex's `+20/-10` example
+   was gesturing at — and it isn't obvious those are even distinguishable from inside `Solve` without more
+   context than it currently has. Re-derive from scratch; do not just loosen the tolerance on the reverted
+   approach.
+2. **`PartFSchematic.cs:266` (`AppendBranches`) — confirmed real, not fixed.** The branch filter only follows
+   `x.UpstreamSpaceGuid == guid && Rate(x, mode) > Tolerance`. At `HighBoost`, a transfer record's direction
+   can reverse relative to how it was oriented at the continuous condition (per-room high-rate minima
+   distribute differently from the continuous volume-weighted split), giving `Rate(x, HighBoost) < 0` — the
+   filter drops it, and nothing checks the OTHER direction (`x.DownstreamSpaceGuid == guid && Rate(x, mode) <
+   -Tolerance`, meaning flow now runs the other way), so the route silently vanishes from the high-rate
+   schematic. **The fix needs to gather candidates from both directions and continue the recursion to whichever
+   end is now downstream**, which touches the branch-list construction, `RouteText`, and the visited-set
+   bookkeping together — under-scoped to rush. Visualization only (does not affect any PASS/FAIL verdict), so
+   lower urgency than a wrong compliance answer, but still a real defect per the standing rule.
+
+**SAM_Systems (`#14`), SAM_Tas (`#29`), SAM_Tas_Grasshopper (`#4`), SAM_UI (`#75`) — NOT STARTED.** Findings
+already fetched and written up once this session; re-fetch is one command per repo if this context is gone:
+
+```bash
+gh api "repos/SAM-BIM/<repo>/pulls/<number>/comments" --jq '.[] | "path=\(.path) line=\(.line // .original_line)\n\(.body)\n===="'
+```
+(SAM_Systems #14, SAM_Tas #29, SAM_Tas_Grasshopper #4, SAM_UI #75.)
+
+- **SAM_Systems** — `SystemCapabilityDescriptors.cs:113`: `continue` skips validation for entries excluded by
+  the requested `Application`, so a domestic call can accept a catalogue whose commercial-only entries would
+  have failed the "missing/non-integer rank refuses the whole index" invariant. Validate every entry first,
+  filter by application after.
+- **SAM_Tas** — two findings: `SAM.Analytical.Tas.TM59/Convert/ToTM59/Building.cs:107` doesn't treat an empty
+  (not null) space list as the same refusal case, so `ToXml` can report success on a complete-looking empty
+  TM59 document; `SAM.Analytical.Tas.TPD/Classes/ApproximateResultantTemperatureMap.cs:346` — a non-numeric
+  JSON node in the radiant-temperature array throws instead of producing the documented per-space refusal
+  (this is in the step 9 boundary code from earlier in this session — see §11o).
+- **SAM_Tas_Grasshopper** — `SAMAnalyticalCreateTBDByTM59.cs:234`: rerunning at a path with an existing TM59
+  companion file, when the new scenario map is incomplete, skips `ToXml` but leaves the stale XML in place
+  after rewriting the TBD — TAS can open ventilation strategies that don't match the current scenarios.
+- **SAM_UI** — three findings, two P1: `PartFAssessmentWindow.xaml.cs:345` — switching dwellings in a
+  multi-dwelling assessment discards unsaved edits in the other two, because `Load()` recreates all row
+  collections without calling their `Apply()` first and `Button_OK_Click` only applies the CURRENTLY selected
+  dwelling's rows; `AddVentilationByPartF.cs:193` — unchecking a previously confirmed check still writes
+  `UserConfirmed` back via `PersistConfirmations`, so an explicitly withdrawn confirmation is silently
+  reinstated on the next calculation; `PartFAirflowViewSettingsWindow.xaml.cs:86` (P2) — the dwelling selector
+  offers every zone in the model regardless of the assessed scope, so saving a selection outside that scope
+  draws nothing.
+
+**Process for the next session, matching what worked this session:** verify each finding by reading the
+actual current code (don't take Codex's claim on trust — one SAM finding's example numbers didn't match
+reality, though its conclusion still held); implement the fix; add or extend a regression test in that repo's
+existing test project where one exists; **run the full affected test suite in Release before considering a
+fix done** — the SAM airflow-network revert exists precisely because a fix that looked right broke a real,
+passing test; commit with SPDX; push to the SAME branch (`feature/partf-terminal-transfer-compliance`), which
+updates the existing open PR automatically — no new PR needed; re-check that repo's CI goes green; update this
+section.
 
 ## 10. Standing instructions
 
