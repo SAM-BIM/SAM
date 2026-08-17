@@ -17,7 +17,7 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `5565d96c` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
+*Last updated at SAM `0e33ed27` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
 complete (the TSD-simple vs TPD-full preparation boundary, with the supply-temperature transfer proved
 impossible and refused) and Iteration 1's BasePassive vertical slice landed. Previously: step 8
 complete and independently reviewed**: simulation results, scenarios and design spaces are associated by
@@ -30,7 +30,7 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`5565d96c`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`0e33ed27`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`24ed46a`** | exactly `24ed46a` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`ffd8e38`** | exactly `ffd8e38` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`134dc1d`** | exactly `134dc1d` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
@@ -69,7 +69,7 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 5565d96c
+SAM 0e33ed27
 SAM_Systems 24ed46a
 SAM_UI ffd8e38
 SAM_Tas 134dc1d
@@ -435,7 +435,7 @@ All five repos are on `feature/partf-terminal-transfer-compliance`. **SAM_Tas's,
 SAM_Tas_Grasshopper's branches are new and need PRs like the other two.** `sow/2026-Q3` was never committed to directly and is
 untouched everywhere (SAM_Tas verified at `3d58bfe` local and remote).
 
-**Current code heads — SAM `5565d96c`+handover, SAM_Systems `24ed46a`, SAM_UI `ffd8e38`, SAM_Tas
+**Current code heads — SAM `0e33ed27`+handover, SAM_Systems `24ed46a`, SAM_UI `ffd8e38`, SAM_Tas
 `134dc1d`, SAM_Tas_Grasshopper `94ac244`. All pushed and verified. See section 0a, which is
 authoritative.**
 
@@ -468,7 +468,9 @@ topic* from the two Iteration 0 commits in SAM/SAM_Tas — worth looking at sepa
   - `5f3ad8fb` **Iteration 1 — BasePassive stated and assessable** (11p)
   - `2e8c513f` **Iteration 1 — Part F airflows reach the simulation** (11q)
   - merge of `sow/2026-Q3` (43 files, zero overlap with this branch)
-  - `5565d96c` **CI-only TM59 test fix** (11r) — last CODE commit, pushed; HEAD is the handover commit on top
+  - `5565d96c` **CI-only TM59 test fix** (11r)
+  - `0e33ed27` **TMOverheatingCalculator null-library NRE fix** (11r) — last CODE commit, pushed; HEAD is the
+    handover commit on top
 - **SAM_UI**: `feature/partf-terminal-transfer-compliance`, on `sow/2026-Q3` @ `074f3d9`.
   - `e787105` shared 2D-view infrastructure (`FloorPlan2DControl.Overlay`/`Plane`/`WorldToScreen`/`ViewChanged`,
     `AdjacencyCluster.SpaceSectionFace2Ds`, label-solver diagnostic reading `ResultType`)
@@ -1853,7 +1855,7 @@ with the model it came from, so assigning an internal condition in place reached
 changed the caller's model. Fixed by writing onto `new Space(space)`, which keeps the guid so `AddObject`
 replaces rather than duplicating. **Remember this for any `Modify` that claims to return a copy.**
 
-### 11r. CI-only TM59 test failure, found and fixed after opening the PRs (DONE)
+### 11r. Two ActiveSetting-dependent failures, found by CI after opening the PRs (DONE)
 
 **Implemented:** SAM `5565d96c`.
 
@@ -1885,6 +1887,23 @@ Core guarantees is populated and correct under every hosting scenario, which `As
 already uses for the identical reason (see that project's `TESTING.md`). Fixed **once for the whole
 assembly** rather than in five separate test files, since none of them set `TextMap` themselves - they were
 written expecting the production default, and that is what this seeds.
+
+**A SECOND, genuinely different failure followed — and it was a production defect, not a test problem.**
+`5565d96c` let the TM59 tests reach real logic instead of refusing early on a null `TextMap`, and they then
+threw `NullReferenceException` from `TMOverheatingCalculator.SystemTypeName`. That method dereferenced
+`Query.DefaultSystemTypeLibrary()` in two loops **without a guard**, and that library also comes from
+`ActiveSetting` - so on a clean runner the legacy ventilation-strategy derivation threw out of the middle of
+an assessment instead of falling through to the `"NV"` default it documents for "nothing says otherwise".
+Fixed in `0e33ed27` by skipping the zone-name lookup when the library is absent, which reaches that same
+default. Behaviour is unchanged wherever a library exists. `DefaultSystemTypeLibrary()` has exactly one other
+mention in the codebase - `VentilationStrategyMap`'s documentation, which already states it "can be absent"
+and does not call it - so this was the only instance.
+
+**The pattern behind both failures is the same, and it is worth internalising:** anything reached through
+`ActiveSetting` is null on a machine without a populated `%APPDATA%\SAM`, and *every* developer machine has
+one. Two separate defects hid behind that for as long as the code was only ever run locally. Verified both
+fixes by moving this machine's own settings file aside and running the full Release suite with it absent
+(**1207 passed, 0 failed**), then restoring it.
 
 **Worth remembering:** `Assembly.CodeBase`-based path discovery (`Core.Query.ResourcesDirectory`,
 `Query.DefaultPath`, `Core.Query.ExecutingAssemblyDirectory`) is fragile under any hosting scenario other
