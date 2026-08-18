@@ -33,7 +33,7 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 | `SAM` | `feature/partf-terminal-transfer-compliance` | **`8de00cc7`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`4446bb8`** | exactly `4446bb8` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`fcf0ec8`** | exactly `fcf0ec8` | clean, level | `sow/2026-Q3` @ `074f3d9` |
-| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d269d772`** | exactly `d269d772` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
+| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d76be13`** | exactly `d76be13` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
 | `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`32f2763`** | exactly `32f2763` | clean, level | `sow/2026-Q3` @ `9555aa1` |
 
 **`SAM_UI`'s pin is a MERGE commit, and that is why the check fired on it.** The 2026-08-17 session's
@@ -67,6 +67,17 @@ the recorded `94ac244`. Both were already committed, pushed, and level with orig
 divergence, just two review-fix commits that landed without a handover bump. Both pins are corrected above.
 `SAM_UI #75` is out of scope for the diagnostic-logging work this checkpoint adds; the correction here is
 bookkeeping only, made to keep the invariant honest before touching `SAM_Tas` / `SAM_Tas_Grasshopper` code.
+
+**2026-08-18 Option B session opened by finding `SAM_Tas` stale again, plus a base sync in all five — both
+benign, and the check earned its keep for the fourth time.** `SAM_Tas` had pushed `05155e6` "Log both sides
+of the zone-guid identity separately, and PartFSpaceData's per-terminal-role rates" on top of the recorded
+`d269d772` — the diagnostic-logger follow-up that produced the evidence this checkpoint acts on, committed
+and pushed but never recorded here. Separately, **all five** repos printed `AGENTS.md` and
+`PROJECT_PROGRESS.md` as unrecorded: those came in from a `sow/2026-Q3` base-sync merge (`SAM_Tas`'s is
+`a8690ee`, first parent the recorded pin), not from feature work — the same merge shape §0a already warns
+about for `SAM_UI`. Nothing was lost, nothing diverged. `SAM_Tas`'s pin is bumped to this checkpoint's code
+commit below; the four documentation-only rows are left as they are, since `AGENTS.md`/`PROJECT_PROGRESS.md`
+are not Part F code and re-pinning four repos to record a base sync would obscure the next real firing.
 
 **Why a HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own hash, so
 a pinned HEAD would be wrong the moment it landed. The last **code** commit is pinned instead.
@@ -120,6 +131,22 @@ after (`SAM.Tests` 1207/1207, `SAM.Analytical.UI.WPF.Tests` 180/180) before push
 test failure this surfaced and its fix — nothing in the merge itself was at fault.
 
 ### 0b. Latest checkpoint — what it implemented
+
+**2026-08-18 — the §11o identity defect FIXED, Option B only. Detail in 11t.**
+
+- SAM_Tas `d76be13` → `Convert.ToSAM(TSD.ZoneData)` stamps `SpaceParameter.ZoneGuid` from
+  `zoneData.zoneGUID` explicitly, mirroring `Convert.ToSAM(TBD.zone)`. One guarded `SetValue` plus
+  `TsdZoneIdentityStampTests` (5 new). 89/89 `SAM.Analytical.Tas.TM59.Tests` in Debug **and** Release.
+- **Root cause confirmed in source, and it is more specific than "the generic mapper is broken".** The
+  `TypeMap` entry exists, but `SpaceParameter.ZoneGuid`'s registered name is `"Zone Guid"` — *with a space* —
+  and `SAM.Core.Create.ParameterSet` reads the source property using that SAM-side name instead of the
+  TAS-side `"zoneGUID"`, then stores under the TAS-side name. Inverted both ways; the space defeats even a
+  case-insensitive match. Full trace in 11t.
+- **The generic `Create.ParameterSet` / `TypeMap` defect is NOT fixed and is now a named deferred item in
+  §0e.** It is the same defect behind `ZoneNumber`, `Description`, `Volume` and `FloorArea`.
+- **Still required: the manual Flat1 BasePassive Grasshopper run.** This session has no Rhino canvas to drive.
+  The acceptance criteria and the one way this fix could make things *worse* are both in 11t — read them
+  before running it.
 
 **2026-08-17/18 — Part O → TAS → TM59 diagnostic logging, diagnostic-only. No compliance path touched.**
 
@@ -250,7 +277,7 @@ Detail in **11h** (5a), **11i** (5b), **11j** (5c) and **11k** (6).
 | Suite | Result | How |
 |---|---|---|
 | `SAM/SAM.Tests` | **1208 passed, 0 failed** (was 1185; +11 `PartOIterationSliceTests`, +11 `PartFAirflowApplicationTests`, +1 `SimulationSpaceMapTests`) — verified in Release, matching CI | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
-| `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **65 passed, 0 failed** (was 46; +19 `PreparationBoundaryTests`) | `dotnet test SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/…csproj` — **build SAM and the TM59 library first** |
+| `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **89 passed, 0 failed** in Debug **and** Release (65 → 81 `PartODiagnosticLogTests` → 84 → +5 `TsdZoneIdentityStampTests`) | `dotnet test SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/…csproj` — **build SAM and `SAM_Tas.sln` (VS Framework MSBuild, per config) first**; this project links the prebuilt `build/` DLLs, so `dotnet test` alone silently tests the previous build |
 | `SAM_Tas.sln` | 0 errors under VS Framework MSBuild | `MSBuild.exe SAM_Tas.sln -restore -p:Configuration=Debug` |
 | `SAM.Analytical.Grasshopper.Tas.TPD` | 0 errors under VS Framework MSBuild | step 9's component changes |
 | `SAM.Analytical.Grasshopper` (SAM) | 0 `error CS` under VS Framework MSBuild | the new scenario component. **Its post-build step fails with `MSB3073` copying to `%APPDATA%\SAM`** — the known PostBuild APPDATA trap, pre-existing and unrelated; pass `-p:PostBuildEvent=` to compile only |
@@ -394,6 +421,18 @@ included.
 
 ### 0e. Explicitly deferred
 
+- **`SAM.Core.Create.ParameterSet` / `TypeMap` is BROKEN for every TAS-imported parameter whose SAM-side
+  name differs from its TAS-side property name — a separate SAM infrastructure task, deliberately not fixed
+  in the Option B checkpoint.** `ParameterSet` reads the source property by the **SAM-side** name and stores
+  the result under the **TAS-side** name, i.e. inverted in both directions (11t has the line-by-line trace).
+  Any registration whose two names differ therefore silently produces nothing — `SpaceParameter.ZoneGuid`
+  (`"Zone Guid"` vs `"zoneGUID"`) was the one that mattered for identity and is now stamped explicitly
+  instead; `ZoneNumber`, `Description`, `Volume` and `FloorArea` are in the same position and are **not**
+  fixed. **Fixing the shared helper changes behaviour across many TAS-imported parameters at once**, which is
+  why it was cut out of the identity repair. Note the trap for whoever takes it: correcting the direction
+  will start populating parameters that are absent today, so anything downstream that currently reads a
+  default because the value never arrived will change answer.
+
 - ~~CI runs no tests in `SAM_Systems`~~ — **CLOSED in 5c.** `build.yml` now executes
   `SAM.Analytical.Systems.Tests` after the ordered Rebuild. **Not yet demonstrated on a real run**: the
   workflow triggers on `master`/`main`/`sow/**` only, so it will first fire when a PR to `sow/2026-Q3`
@@ -443,7 +482,13 @@ included.
 
 ### 0f. The precise next task
 
-**Two things need Michal, and neither is code:**
+**FIRST, and it is the only thing gating the Option B checkpoint: rerun the Flat1 BasePassive Grasshopper
+test and confirm the identity now resolves by guid.** The criteria, and the one way this fix could make
+things worse rather than better, are in 11t. `%APPDATA%\SAM` was refreshed in the implementing session, so
+the installed assembly already carries the fix. Nothing else in this list depends on the answer, but the
+checkpoint is not closed until it is run.
+
+**Then two things need Michal, and neither is code:**
 
 1. **Confirm the four BasePassive/AcousticRestricted assumption VALUES in 11p.** The names are permanent and
    cannot be changed without re-keying every scenario; the values are declared policy read off
@@ -2161,6 +2206,111 @@ section.
 - SPDX header on every changed `.cs`.
 - Use the SAM implementation-summary style for the final response.
 
+### 11t. The §11o identity defect — root cause and the Option B repair (DONE, SAM_Tas `d76be13`)
+
+**What was actually wrong.** `Convert.ToSAM(TSD.ZoneData)` never stamped `SpaceParameter.ZoneGuid`. It left
+it to the generic `Create.ParameterSet_Space` → `SAM.Core.Create.ParameterSet` → `TypeMap` path. The mapping
+**is** registered — `SAM.Analytical.Tas/Manager/ActiveSetting.cs:167`:
+
+```csharp
+typeMap.Add(SpaceParameter.ZoneGuid, typeof(TSD.ZoneData), "zoneGUID");
+```
+
+but it cannot fire, and the reason is exact. `TypeMap.Add(Enum, Type, string)` stores the enum's
+**`ParameterProperties` name**, and `SpaceParameter.ZoneGuid` is declared
+`[ParameterProperties("Zone Guid", "Zone Guid")]` — **with a space**. The tuple is therefore
+`(Space, ZoneData, "Zone Guid", "zoneGUID")`. `SAM.Core.Create.ParameterSet` then does, per name:
+
+```csharp
+string name_destination = typeMap.GetName(typeName_1, typeName_2, name);   // "zoneGUID"
+if (!Query.TryGetValue(@object /* the ZoneData */, name /* "Zone Guid" */, out value))
+    continue;                                                              // always taken
+result.Add(name_destination, value as dynamic);                            // would store under "zoneGUID"
+```
+
+It reads the property off the **TSD object** using the **SAM-side** name, and would store the result under
+the **TAS-side** name — inverted in both directions. `TSD.ZoneData` has no member called `"Zone Guid"`, and
+the space defeats even a case-insensitive match (`"ZoneGuid"` vs `"zoneGUID"` would have collided
+case-insensitively; `"Zone Guid"` cannot). So the parameter is silently never added, and
+`Query.SimulationSpaceKey` returns null for every simulated space. **This is a real defect in the shared
+helper, not a missing registration** — see §0e, where it is deferred as its own infrastructure task.
+
+**Why `zoneData.zoneGUID` is the correct source and no linked-TBD lookup was invented.** Michal's domain
+statement — a TSD is linked back to its TBD, and the stable zone guid lives on the TAS zone in the TBD — is
+corroborated by the code, and the codebase **already depends on the equality in production**:
+
+| Side | Built at | From |
+|---|---|---|
+| TSD | `Convert/ToSAM/PanelSimulationResults.cs:19` | `new ZoneSurfaceReference(surfaceData.surfaceNumber, zoneData.zoneGUID)` |
+| TBD | `Modify/UpdateIds.cs:88` | `new ZoneSurfaceReference(zoneSurface.number, zone.GUID)` |
+
+and `Modify/AddResults.cs:120` equates the two (`zoneGuid.Equals(zoneSurfaceReference.ZoneGuid)`, where
+`zoneGuid` is the design space's `ZoneGuid`) to attach surface results to panels. That long-standing path
+only works if TSD `zoneData.zoneGUID` **is** the TBD `zone.GUID`. The link is also explicit:
+`Convert.ToSAM_AnalyticalModel` stamps `AnalyticalModelParameter.Path_TBD` from
+`SimulationData.buildingPath` (`Convert/ToSAM/AnalyticalModel.cs:108`). **The name is not used as identity
+anywhere in this fix** — it remains only `SimulationSpaceMap`'s documented fallback.
+
+**The design side is still name-assigned, and that has NOT changed.** `Modify.UpdateIds` still strips
+`ZoneGuid` from every space (line 22) before the loop that would read it (line 56), so the guid lookup always
+misses and the TBD zone is found by **name** (line 59) before `zone.GUID` is stamped (line 65). The
+`zoneGuidProvenance: "assignedDuringWorkflow"` note the logger emits therefore remains accurate. Option B
+repairs the *simulated* side only; the design side's name-match provenance is a separate decision Michal
+still owes (preserve the guid through the strip, or refuse an ambiguous name match).
+
+**The fix.** One guarded stamp, mirroring the TBD converter in the same file:
+
+```csharp
+if (!string.IsNullOrWhiteSpace(zoneData.zoneGUID))
+{
+    space.SetValue(SpaceParameter.ZoneGuid, zoneData.zoneGUID);
+}
+```
+
+Blank stays blank — a zone with no stated guid carries no identity and still resolves through the
+unique-name fallback. No fallback name and no synthetic guid is invented. Nothing in `SAM.Core`,
+`TypeMap`, `ActiveSetting`, Part F sizing, Part O preparation, the TM59 criteria, `SimulationSpaceMap`,
+`OverheatingScenarioMap` or the diagnostic logger was touched; the diff is that one file plus a new test file.
+
+**The one way this can make things worse, and it is worth understanding before the acceptance run.**
+`SimulationSpaceMap` refuses a **stated** key that matches no design space as `Unresolved` — it deliberately
+does *not* fall through to the name (`SimulationSpaceMap.cs:88-96`, and the reasoning there is sound: a
+stated-but-disagreeing key means a different simulation batch). So if the two guid strings ever differ in
+**format** — braces, casing — the live run flips from "9 resolved by unique name" to "9 unresolved", which is
+worse than today. The static evidence above says they are the same string; it could not be executed here,
+because that needs TAS COM. **The failure is loud, not silent**, and `05155e6` already logs
+`designZoneGuidRaw` and `simulatedZoneGuidRaw` separately and uncoalesced, so one look at the log
+distinguishes "matched" from "both populated but different" from "simulated still blank".
+
+**Tests — `SAM.Analytical.Tas.TM59.Tests/TsdZoneIdentityStampTests.cs`, 5 new, 89/89 in Debug and Release.**
+The stamp is what `Query.SimulationSpaceKey` reads back; a stamped simulated space resolves by key **even
+when renamed**; two rooms named exactly `"Bedroom 2"` resolve by guid where their unstamped equivalents are
+refused — the case the unique-name fallback structurally cannot serve, and the reason "the fallback was
+succeeding" was never good enough; an absent guid still resolves by unique name; a blank guid is not a stated
+identity.
+
+**What these tests do NOT do, stated plainly: they do not call the converter, so they will not fail if the
+stamp is reverted.** `TSD.ZoneData` is COM interop. It *is* an interface (41 members) that a managed fake
+could implement, but `Convert.ToSAM` reaches `ActiveSetting.Setting`, whose `GetDefault()` references
+`typeof(TAS3D.Zone)`, `typeof(TBD.zone)` and `typeof(TSD.ZoneData)` — so exercising the converter needs the
+whole TAS interop surface loaded inside a `net8.0` project built specifically to exclude it (see that
+project's own csproj comment). That was judged not worth breaking the COM-free boundary for. **The converter
+line itself is covered by the manual acceptance run below, and by nothing else.**
+
+**Manual acceptance — still required, not done.** Rerun the existing Flat1 BasePassive Grasshopper test:
+`simulatedZoneGuidRaw` populated for every expected simulated space; `designZoneGuidRaw` and
+`simulatedZoneGuidRaw` corresponding; `identityMode = zoneGuid` for all 9; `simulationSpaceMapIsComplete` and
+`overheatingScenarioMapIsComplete` both true; `unassociatedCount = 0`; TM59 results unchanged from the
+previous run, with Corridor still `337 vs 262` fail unless the simulation itself changed for an unrelated
+reason. The logger needs no modification. **`%APPDATA%\SAM` was refreshed by a Debug
+`SAM_Tas_Grasshopper.sln` build in this session** (its post-build copies `$(TargetDir)*.dll` there), so the
+installed `SAM.Analytical.Tas.dll` carries the fix — without that the canvas would have exercised the old
+assembly and reported `uniqueName`, looking exactly like a failed fix.
+
+**Related, still open and NOT addressed here:** the TPD route's identity match (11o review finding 1) — the
+TPD result reference and the TBD/TSD zone guid have still never been shown to be the same string. The
+evidence gathered here is about **TSD** only.
+
 ---
 
 ## Paste this into the new session
@@ -2193,7 +2343,7 @@ feature work; section 11s is where the live task is.
 
 ### State - all pushed, all green
 
-SAM **1208**, SAM_Tas TM59.Tests **70**, SAM_UI **180**, SAM_Systems **123** + **40**, SAM_Mollier **22**;
+SAM **1208**, SAM_Tas TM59.Tests **89**, SAM_UI **180**, SAM_Systems **123** + **40**, SAM_Mollier **22**;
 Grasshopper (including `SAM.Analytical.Grasshopper.Tas`, `.Tas.TPD` and SAM's own) 0 `error CS`; SPDX clean.
 Not merged; **all five PRs are open** (SAM #73, SAM_Systems #14, SAM_Tas #29, SAM_Tas_Grasshopper #4,
 SAM_UI #75) — push to the same branch to update one, do **not** open a new PR.
