@@ -33,7 +33,7 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 | `SAM` | `feature/partf-terminal-transfer-compliance` | **`8de00cc7`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`4446bb8`** | exactly `4446bb8` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`fcf0ec8`** | exactly `fcf0ec8` | clean, level | `sow/2026-Q3` @ `074f3d9` |
-| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d76be13`** | exactly `d76be13` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
+| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`2750a21`** | exactly `2750a21` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
 | `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`32f2763`** | exactly `32f2763` | clean, level | `sow/2026-Q3` @ `9555aa1` |
 
 **`SAM_UI`'s pin is a MERGE commit, and that is why the check fired on it.** The 2026-08-17 session's
@@ -131,6 +131,25 @@ after (`SAM.Tests` 1207/1207, `SAM.Analytical.UI.WPF.Tests` 180/180) before push
 test failure this surfaced and its fix — nothing in the merge itself was at fault.
 
 ### 0b. Latest checkpoint — what it implemented
+
+**2026-08-18 — first SAM BasePassive vs native TAS comparison, on real Flat1 output. Detail in 11u.**
+
+- SAM_Tas `2750a21` → `PartODiagnosticLog` now also logs `summerOccupiedHours`/`maxExceedableSummerHours`
+  for `natural`/`naturalBedroom` rows, read straight off `TM59NaturalVentilationResult.SummerOccupiedHours`/
+  `MaxExceedableSummerHours` (plain) or derived via `GetSummerOccupiedHours()`/`GetSummerMaxExceedableHours()`
+  (extended) — the exact methods `Query.Simplify` (`SAM.Analytical`) already uses for the same purpose. 2 new
+  tests, 91/91 `SAM.Analytical.Tas.TM59.Tests` in Debug **and** Release.
+- **Why:** comparing a rerun of Flat1 BasePassive against TAS's own "Domestic Overheating (CIBSE TM59)"
+  report for the same `.tsd` found the log's existing `occupiedHours`/`maxExceedableHours` pair is the
+  whole-year annual basis, not TAS's day-criterion basis ("Occupied Summer Hours" / "Max. Exceedable
+  Hours") — for `Studio 1_0` these read 8760/262 in the log against TAS's 3672/110, even though the actual
+  exceedance count and Pass/Fail matched exactly. A log-completeness gap, not a TM59 defect — full detail
+  and the space-by-space comparison table are in 11u.
+- **Also investigated and closed, no code change:** SAM logged 2 hours exceeding 28°C for a zero-occupancy
+  bathroom where TAS's report showed 0. Confirmed apples-to-oranges, not a defect — SAM's corridor/ancillary
+  check deliberately runs over the full 8760-hour year regardless of occupancy (`MaxExceedableHours = 8760 ×
+  3% ≈ 262` is the tell), while TAS's canned report skips the check entirely for a room it buckets as
+  "Other". See 11u.
 
 **2026-08-18 — the §11o identity defect FIXED and independently confirmed live, Option B CLOSED. Detail in 11t.**
 
@@ -491,9 +510,13 @@ included.
 **The Option B checkpoint is closed.** The Flat1 BasePassive Grasshopper acceptance run confirmed the
 identity now resolves by guid on all 9 spaces, with TM59 outputs unchanged — evidence in 0b and 11t.
 
-**What Iteration 1 needs next is a different validation, not more identity work: SAM BasePassive vs native
-TAS results, to prove the actual thermal/TM59 outputs match, not just that the identity chain resolves.**
-Michal flagged this as the next task; it has not been scoped yet.
+**The SAM-vs-native-TAS validation Michal flagged next has started — one comparison run done, on the same
+Flat1 BasePassive data.** 8 of 9 spaces agree with TAS's own report on every number that governs pass/fail;
+the 9th (`Corridor_1`) disagrees by design (SAM's own communal-corridor criterion, which TAS's canned report
+has no equivalent for — already anticipated in 11t's acceptance criteria, not a new finding). One log gap
+found and closed (11u), one apparent discrepancy investigated and found not to be a defect (11u). **Not yet
+done:** the other TM59 criteria/scenarios this one flat happens not to exercise, and a second model to widen
+the sample beyond one flat.
 
 **Two things need Michal, and neither is code:**
 
@@ -2327,6 +2350,62 @@ one by one, not only the aggregate `run` record.
 **Related, still open and NOT addressed here:** the TPD route's identity match (11o review finding 1) — the
 TPD result reference and the TBD/TSD zone guid have still never been shown to be the same string. The
 evidence gathered here is about **TSD** only.
+
+### 11u. First SAM BasePassive vs native TAS comparison (Flat1, DONE for this one run — SAM_Tas `2750a21`)
+
+**What this is.** With Option B closed, 0f's next task was to prove the actual TM59 numbers match TAS, not
+just that the identity chain resolves. Michal reran Flat1 BasePassive in TAS itself and pulled the native
+"Domestic Overheating (CIBSE TM59)" report (`Report XMLs\Domestic Overheating (CIBSE TM59).xlsx`) for the
+same `.tsd` the matching SAM diagnostic-log run (`Flat1.BasePassive.partO.20260818-134420.jsonl`) was built
+from. Both were compared space by space.
+
+**Result: 8 of 9 spaces agree with TAS on every number that governs pass/fail.**
+
+| Space | Criterion | TAS | SAM | Agreement |
+|---|---|---|---|---|
+| Bedroom 2_3, Bedroom 2_6 | mechanical | occ./max/exceeding-26/Pass | identical | exact |
+| Kitchen_4, Kitchen_7 | mechanical | occ./max/exceeding-26/Pass | identical | exact |
+| Studio 1_0 | naturalBedroom | day 37, night 3285/32/11, Pass | identical on all four | exact (see log gap below) |
+| Ensuite_5, Ensuite_8 | corridor | 0/0/0, Pass | 0 hours >28°C, Pass | exact |
+| Bathroom_2 | corridor | 0/0/0, Pass | 2 hours >28°C, Pass | investigated, not a defect (below) |
+| Corridor_1 | corridor | 0/0/0, Pass (TAS report) | 337 vs 262, **Fail** | **by design**, not a new finding |
+
+`Corridor_1`'s disagreement is the one 11t's own acceptance criteria already named — SAM deliberately runs
+its own communal-corridor overheating criterion (0d point 10), which TAS's canned report template has no
+equivalent for: a zero-occupancy circulation space is simply bucketed "Other" and trivially reported as
+0/0/0/Pass there.
+
+**Finding 1 — a real gap, fixed in `2750a21`.** `Studio 1_0`'s actual TM59 numbers (day exceedance 37, night
+3285/32/11, Pass) matched TAS exactly, but the log's `occupiedHours`/`maxExceedableHours` showed `8760`/`262`
+— the whole-year annual pair also carried on `TM59NaturalVentilationResult` — while TAS's report states the
+day criterion against `3672`/`110` ("Occupied Summer Hours" / "Max. Exceedable Hours"). The correct pair
+(`SummerOccupiedHours`/`MaxExceedableSummerHours`) was on the result object all along and is exactly what
+`Query.Simplify` (`SAM.Analytical`) already reads when building a plain result from an extended one — this
+log simply never read it. Not a TM59 defect: the assessment used the right basis throughout, only the log
+displayed a misleading pair alongside it. `PartODiagnosticLog.SetCriterionSpecificFields` now logs
+`summerOccupiedHours`/`maxExceedableSummerHours` for `natural`/`naturalBedroom` rows (plain branch: direct
+properties; extended branch: `GetSummerOccupiedHours()`/`GetSummerMaxExceedableHours()`, the same methods
+`Query.Simplify` uses). 2 new tests in `PartODiagnosticLogTests.cs`; 91/91 in Debug and Release.
+
+**Finding 2 — investigated, confirmed NOT a defect, no code change.** `Bathroom_2` (0 occupied hours, an
+ancillary room) logged 2 hours exceeding 28°C where TAS's report showed 0. Traced to
+`TM59CorridorExtendedResult.GetHoursNumberExceeding28()` (`SAM.Analytical`), which scans the resultant
+temperature over the **whole 8760-hour year**, not gated on occupancy — confirmed deliberate by
+`TM59CorridorExtendedResult.MaxExceedableHours` being overridden to `(wholeYearHourCount) × 3% ≈ 262`, not
+`OccupiedHours × 3%` the way the base type computes it for occupied criteria. TAS's own canned report
+evidently skips its check entirely for a room it classifies "Other" (reporting 0/0/0 as "not run", not "0
+measured") — SAM_Tas has no access to TAS's report-generation logic to confirm this beyond the pattern
+itself. Also confirmed in source: **"corridor" is the catch-all in `TMOverheatingCalculator.Calculate_TM59`**
+— any space whose `TM59Manager.TM59SpaceApplications` comes back empty (not matched as sleeping/living/
+cooking) routes here, not only actual corridors; a bathroom qualifies the same way an actual corridor does.
+Nothing changed: SAM's occupancy-independent ancillary-space check is intentional and arguably the more
+conservative behaviour, not a bug to match TAS's silence on.
+
+**Not yet done — 0f is explicit about the remaining gap.** This is one flat, one iteration
+(`BasePassive`), one `.tsd`. It exercises `mechanical`, `naturalBedroom` and `corridor` but not plain
+`natural` (non-bedroom), and covers none of `AcousticRestricted`/`ActiveTrimCooling`. A second model and the
+other iterations are still needed before "SAM BasePassive matches native TAS" can be claimed generally
+rather than for this one run.
 
 ---
 
