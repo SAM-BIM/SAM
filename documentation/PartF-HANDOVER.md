@@ -2411,12 +2411,11 @@ rather than for this one run.
 
 ## Paste this into the new session
 
-Continue the Approved Document F / Part O work in the SAM-BIM workspace. We are building **Iteration 0**
-only.
+Continue the Approved Document F / Part O work in the SAM-BIM workspace.
 
 **First: read `SAM/documentation/PartF-HANDOVER.md` in full** - especially **section 11**, which is the
-Iteration 0 state, the architecture reconnaissance, the open defect and the follow-ups deliberately not
-fixed. It also holds the decisions that must not be silently revisited and the environment gotchas.
+Iteration 0/1 state, the architecture reconnaissance, and the follow-ups deliberately not fixed. It also
+holds the decisions that must not be silently revisited and the environment gotchas.
 
 Then in **all five** repos - SAM, **SAM_Systems**, SAM_UI, SAM_Tas and **SAM_Tas_Grasshopper** - run the
 two verification commands in **section 0a**, which check clean/level, descent from the recorded last-code
@@ -2426,54 +2425,50 @@ SHA, and that nothing but the handover changed since it. The second must print e
 Confirm each is on `feature/partf-terminal-transfer-compliance`, the tree is **clean**, and local matches
 remote at the SHAs in **section 0a**, which is authoritative. Nothing should be outstanding.
 
-### YOUR ACTUAL NEXT TASK — finish section 11s
+### YOUR ACTUAL NEXT TASK — widen the SAM-vs-native-TAS comparison (Iteration 1), then Iterations 2/3
 
-**All five PRs are OPEN and were reviewed by `chatgpt-codex-connector`. Three repos' findings are fixed; two
-are left: `SAM_Tas_Grasshopper` #4 (1 finding) and `SAM_UI` #75 (3 findings, two P1).** They are transcribed
-verbatim with file, line and rationale in **section 11s**, so nothing needs re-querying. Two SAM items are
-also carried forward there (`PartFAirflowNetwork`, which needs re-deriving from scratch — a previous attempt
-was reverted for breaking a real test — and `PartFSchematic`'s reversed high-rate transfer path).
+**Where this stands.** The §11o identity defect is fixed and independently confirmed live (11t, SAM_Tas
+`d76be13` — Option B, CLOSED). A first SAM-vs-native-TAS comparison then ran on that same fixed identity
+chain (11u, SAM_Tas `2750a21`): Flat1 BasePassive, one `.tsd`, compared space-by-space against TAS's own
+"Domestic Overheating (CIBSE TM59)" report. **8 of 9 spaces agreed with TAS on every number that governs
+pass/fail; the 9th (`Corridor_1`) disagrees by design**, not a defect (SAM runs its own communal-corridor
+criterion TAS's canned report has no equivalent for — already anticipated in 11t). Two things the comparison
+surfaced were resolved in the same checkpoint: a log-completeness gap (`summerOccupiedHours`/
+`maxExceedableSummerHours` now logged for natural-criterion rows) and an investigated non-defect (a
+zero-occupancy bathroom's corridor check runs the whole year regardless of occupancy, deliberately).
 
-Everything below this heading is the state as of the *previous* checkpoint and is still accurate about the
-feature work; section 11s is where the live task is.
+**Continuing Iteration 1 testing means widening that one comparison, not repeating it.** 11u names what
+Flat1 didn't exercise: a plain `natural` (non-bedroom) criterion, and only one model. Rerun against a
+different flat/model, or a model with a non-bedroom naturally-ventilated room, and diff against its own TAS
+report the same way. If a new discrepancy turns up, investigate it the way 11u's two findings were
+investigated before concluding it's a bug — the corridor "discrepancy" that looked like one on first read
+turned out to be intentional, occupancy-independent behaviour in `TM59CorridorExtendedResult`.
 
-### State - all pushed, all green
+**Before testing Iteration 2 (`AcousticRestricted`) or Iteration 3 (`ActiveTrimCooling`), read this — it
+will look like a bug if you don't.** `Query.PartOIterationOperatingMode` (11q) currently **refuses both**:
+`AcousticRestricted` because whether its stated "boost available" assumption means continuous or on-demand
+provision is an unresolved engineering question (11q, 0f item 3), and `ActiveTrimCooling` because what it
+assumes about a cooling provision is unsettled (11p/0e). So running either through
+`SAMAnalytical.PreparePartOIteration` today produces a **refusal**, not a completed run with different
+numbers from BasePassive - that refusal firing correctly is itself worth confirming on a live canvas, but it
+is not the same exercise as the Flat1 BasePassive comparison. Meaningful Iteration 2/3 testing is gated on
+Michal's answers below, not on more code.
 
-SAM **1208**, SAM_Tas TM59.Tests **89**, SAM_UI **180**, SAM_Systems **123** + **40**, SAM_Mollier **22**;
-Grasshopper (including `SAM.Analytical.Grasshopper.Tas`, `.Tas.TPD` and SAM's own) 0 `error CS`; SPDX clean.
-Not merged; **all five PRs are open** (SAM #73, SAM_Systems #14, SAM_Tas #29, SAM_Tas_Grasshopper #4,
-SAM_UI #75) — push to the same branch to update one, do **not** open a new PR.
-
-Done and reviewed: the Part F regulatory correction pass, the floor-plan overlay, saved-view persistence,
-the dwelling-scope correctness fix and cache proof, and **Iteration 0 steps 1-9**: Part O assessment scope,
-`SimulationSpaceMap`, the engine-neutral `TMOverheatingCalculator` extraction with its TAS compatibility
-wrapper, `OverheatingScenario` with its derived deterministic key (11c), system capability selection across
-`SAM.Analytical` and `SAM_Systems` (11h-11j), the `TM59AssessmentCalculator` extraction (11k) **now called
-by its Grasshopper component**, **the scenario made authoritative over ventilation strategy (11l)**, and
-**identity-based result/scenario association wired into both existing TAS acceptance paths (11n)**, and
-**the TSD-simple vs TPD-full preparation boundary (11o)**. Iteration 1 has begun: **BasePassive can be
-stated and assessed, and the scenario-creating Grasshopper component that was missing now exists (11p)**.
-Every checkpoint independently reviewed and hardened.
-
-**Two things to read before anything else:** the TPD-full route **cannot** transfer supply air temperature
-into a TBD copy and refuses rather than approximating (11o), and the approximate TPD route's identity match
-**may not engage on real models** because the TPD result reference and the TBD/TSD zone guid have never been
-shown to be the same string (11o, review finding 1). Both need Michal.
+**What actually unblocks Iteration 2/3:** 0f's numbered list, specifically items 1 (confirm the four
+BasePassive/AcousticRestricted assumption values, 11p) and 3 (confirm which Approved Document F condition
+`AcousticRestricted` simulates at, 11q) - the latter is the direct unblock for
+`PartOIterationOperatingMode`'s refusal. Neither is code; both need Michal's decision, not a guess.
 
 **Read section 0 first and verify the repositories against it before changing any code.**
 
-### Your next task: see section 0f (Iteration 0 step 9 is DONE)
-7. **DONE and reviewed** (see 11l) — the scenario is authoritative over the TM59 criterion and over the XML
-   export, and refuses where nothing states a strategy. 11d is closed.
-8. **DONE and independently reviewed** (see 11n) — association is through `SimulationSpaceMap`; both
-   existing TAS paths carry optional scenarios; the three-flat duplicate-`Bedroom 2` plus corridor
-   regression covers both.
-9. **NEXT — preserve the TSD-simple vs TPD-full-HVAC routing boundary.** Read 11m before touching either
-   implementation. The two-pass TAS workaround is deliberate and must not be removed or simplified as
-   apparent duplication. The three discrepancies in 11m require Michal's answers first; do not guess.
-10. Thin headless TAS runner, **last**.
+### Also outstanding, in parallel, not blocking Iteration 1/2/3 testing: finish section 11s
 
-**Do not implement Iteration 1, 2 or 3 behaviour.** Do not start CoolBreeze.
+**Three repos' Codex/Copilot review findings are fixed (SAM, SAM_Systems, SAM_Tas); two are not:**
+`SAM_Tas_Grasshopper` #4 (1 finding, a stale-TM59-XML-on-refusal case) and `SAM_UI` #75 (3 findings, two P1
+- a dwelling-switch data-loss bug and a withdrawn-confirmation bug in the WPF assessment window). Transcribed
+verbatim with file, line and rationale in **section 11s**, so nothing needs re-querying. This predates the
+Option B/comparison work and was not touched by it - pick it up whenever it's convenient, it does not gate
+the testing above.
 
 ### Decisions still waiting on Michal - do not decide these yourself, ask
 
@@ -2482,13 +2477,16 @@ shown to be the same string (11o, review finding 1). Both need Michal.
 3. Whether `Application` should also gate the older unguarded `Create.SystemEnergyCentre` /
    `DefaultSystemEnergyCentres` path - the one that HAS production callers (four Grasshopper components),
    where a space carrying `"VAV"` still resolves `VAV.json`.
-4. PRs for the three new branches: `SAM_Tas`, `SAM_Systems` and `SAM_Tas_Grasshopper`.
-5. The `SAM_Systems` CI test step is implemented and locally verified but has **never run** - the workflow
+4. The `SAM_Systems` CI test step is implemented and locally verified but has **never run** - the workflow
    triggers on `master`/`main`/`sow` only, so it first fires on a PR to `sow/2026-Q3`.
-6. **NEW - the closed ventilation vocabulary** in `VentilationStrategyMap`
+5. The closed ventilation vocabulary in `VentilationStrategyMap`
    (`NV MV MVRE UV EOL EOC CAV VAV DISP`). Declared policy; a custom `SAM_SystemTypeLibrary` with extra
    identities would be refused.
-7. **NEW - the three TPD discrepancies in 11m**, which must not be guessed at.
+6. The three TPD discrepancies in 11m, which must not be guessed at.
+7. **The four BasePassive/AcousticRestricted assumption VALUES (11p)** and **which Approved Document F
+   condition `AcousticRestricted` simulates at (11q)** - see above, these two gate Iteration 2 testing.
+8. Preserve `ZoneGuid` through `Modify.UpdateIds`'s strip, or refuse an ambiguous name match instead (11t) -
+   the design side is still name-assigned; Option B repaired the simulated side only.
 
 ### Rules established under review. Each has a test; do not undo any
 
