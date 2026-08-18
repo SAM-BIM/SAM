@@ -32,9 +32,9 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 |---|---|---|---|---|---|
 | `SAM` | `feature/partf-terminal-transfer-compliance` | **`8de00cc7`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`4446bb8`** | exactly `4446bb8` | clean, level | `sow/2026-Q3` @ `d7303c2` |
-| `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`5b617e8`** | exactly `5b617e8` | clean, level | `sow/2026-Q3` @ `074f3d9` |
-| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`332736c`** | exactly `332736c` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
-| `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`94ac244`** | exactly `94ac244` | clean, level | `sow/2026-Q3` @ `9555aa1` |
+| `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`fcf0ec8`** | exactly `fcf0ec8` | clean, level | `sow/2026-Q3` @ `074f3d9` |
+| `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`d269d772`** | exactly `d269d772` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
+| `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`32f2763`** | exactly `32f2763` | clean, level | `sow/2026-Q3` @ `9555aa1` |
 
 **`SAM_UI`'s pin is a MERGE commit, and that is why the check fired on it.** The 2026-08-17 session's
 verification loop printed eleven `UNRECORDED CODE:` lines for `SAM_UI` - Grasshopper component files that have
@@ -56,6 +56,17 @@ happens again — and bump this table in the *same* commit that lands code.
 **One older wrinkle in `SAM`'s history, recorded rather than rewritten.** The step 7 review-fix commit
 `d2b0f971` also carries a partial update of this file, because the handover edit was in progress when it
 was staged. Nothing was force-pushed and nothing rewritten. It is historical now.
+
+**2026-08-17 diagnostic-checkpoint session opened by finding two more pins stale — both benign, same
+shape as the step 9 incident above.** `SAM_UI` had pushed `fcf0ec8` "Fix Part F assessment window review
+findings" (`PartFConfirmationsTests.cs`, `AddVentilationByPartF.cs`, `PartFAirflowViewSettingsWindow.xaml.cs`,
+`PartFAssessmentWindow.xaml.cs`) on top of the recorded `5b617e8`, and `SAM_Tas_Grasshopper` had pushed
+`5b9fa39` "Remove stale TM59 XML when the scenario map is refused" (a PR #4 review-fix in
+`SAMAnalyticalCreateTBDByTM59.cs`, deleting a stale TM59 companion file on a refused conversion) on top of
+the recorded `94ac244`. Both were already committed, pushed, and level with origin — no dirty tree, no
+divergence, just two review-fix commits that landed without a handover bump. Both pins are corrected above.
+`SAM_UI #75` is out of scope for the diagnostic-logging work this checkpoint adds; the correction here is
+bookkeeping only, made to keep the invariant honest before touching `SAM_Tas` / `SAM_Tas_Grasshopper` code.
 
 **Why a HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own hash, so
 a pinned HEAD would be wrong the moment it landed. The last **code** commit is pinned instead.
@@ -79,9 +90,9 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
 SAM 8de00cc7
 SAM_Systems 4446bb8
-SAM_UI 5b617e8
-SAM_Tas 332736c
-SAM_Tas_Grasshopper 94ac244
+SAM_UI fcf0ec8
+SAM_Tas d269d772
+SAM_Tas_Grasshopper 32f2763
 EOF
 ```
 
@@ -109,6 +120,50 @@ after (`SAM.Tests` 1207/1207, `SAM.Analytical.UI.WPF.Tests` 180/180) before push
 test failure this surfaced and its fix — nothing in the merge itself was at fault.
 
 ### 0b. Latest checkpoint — what it implemented
+
+**2026-08-17/18 — Part O → TAS → TM59 diagnostic logging, diagnostic-only. No compliance path touched.**
+
+- SAM_Tas `d269d772` → `SAM.Analytical.Tas.TM59/Classes/PartODiagnosticLog.cs` (new, COM-free) +
+  `PartODiagnosticLogTests.cs` (new, 11 tests). Composes `SimulationSpaceMap`, `OverheatingScenarioMap`,
+  `Query.SimulationSpaceKey`, `PartFSpaceData`/`TMResult`/`OverheatingScenario`'s own `ToJsonObject()` into one
+  JSON Lines summary per Part O run, plus an optional hourly companion. Calls no Part F/Part O/TM59
+  calculation and edits no existing file.
+- SAM_Tas_Grasshopper `32f2763` → `Tas.LogPartODiagnostics` (new component,
+  `SAM.Analytical.Grasshopper.Tas/Component/TasLogPartODiagnostics.cs`), a thin wrapper that taps wires
+  already on the Part O canvas, runs no simulation, mutates no model.
+- **The round-trip question the plan opened with is resolved, in source, before any component code was
+  written**: `Modify.RunWorkflow` → `WorkflowCalculator.Calculate` takes a copy of the `AnalyticalModel` and
+  only ever mutates `Space` objects in place (`UpdateIds` touches `ZoneGuid` only; `UpdateDesignLoads` touches
+  design-load values only) or reconstructs via `new Space(space)`/`new AdjacencyCluster(adjacencyCluster)`,
+  both of which explicitly carry `InternalCondition` forward and deep-clone the parameter set
+  `PartFSpaceData` lives in. **`PartFSpaceData` and the Part-F-applied `InternalCondition` survive the
+  workflow unchanged** — so the logger takes **one** `AnalyticalModel_Design` input (the same wire that feeds
+  `Tas.TSDQueryTM59Results._analyticalModel`), not a pre/post-workflow pair. Pinned as a test.
+- **A pre-existing identity-provenance gap is recorded, not fixed, per the plan's explicit instruction not
+  to touch it.** `Modify.UpdateIds` (`SAM_Tas/SAM.Analytical.Tas/Modify/UpdateIds.cs`) strips
+  `SpaceParameter.ZoneGuid` from every space (line 22) before the loop that would otherwise read it (line
+  56), so in practice every space's `ZoneGuid` is (re)assigned by a TAS zone **name** match during that
+  workflow step, not read from a pre-existing guid. A `zoneGuid` identity mode is real — the key matches on
+  both sides by the time the logger reads it — but does not, on its own, prove the chain one layer up was
+  ever free of a name match. The logger records this as `zoneGuidProvenance: "assignedDuringWorkflow"` plus
+  an explanatory note on every `run` record, so a reader of the log is not misled. This needs Michal's own
+  decision (preserve the guid through the strip, or refuse an ambiguous name match) and is explicitly **not**
+  addressed here.
+- Two correctness bugs caught and fixed before this landed, neither in the plan: (1) the TM59 *extended*
+  result types are not subtypes of their plain siblings — an unqualified `is TM59MechanicalVentilationResult`
+  would have silently reported `criterion: null` for every row once hourly logging (`_extended_ = true`) was
+  in use; (2) a result with no governing scenario was initially still being folded into a `space` row via a
+  union with result-referenced spaces, contradicting the plan's own test 3. Both fixed; see the SAM_Tas
+  commit body for detail.
+- Not yet done: the plan's manual-acceptance steps on a live Grasshopper/Rhino/TAS canvas (wire the
+  component, confirm Part F numbers match the GH panel on the real Flat1 BasePassive run, confirm
+  `identityMode` on live data, confirm TM59 outputs unchanged connected vs disconnected). This session's
+  environment has no Rhino/TAS install to run that canvas — flagged rather than claimed. **Whoever picks this
+  up next should run that canvas before treating this checkpoint as fully closed.**
+- SAM.Analytical built (`dotnet build`, Debug + Release). `SAM_Tas.sln` and `SAM_Tas_Grasshopper.sln` built
+  with **VS Framework MSBuild** (Debug; `SAM_Tas.sln` also Release) — 0 errors, 0 warnings on the new files.
+  `SAM.Analytical.Tas.TM59.Tests`: **81 passed, 0 failed** in both Debug and Release (11 new, 70 pre-existing,
+  no regressions).
 
 **Iteration 0 step 9 — the TSD-simple vs TPD-full preparation boundary, plus Iteration 1's BasePassive
 vertical slice. Detail in 11o (step 9) and 11p (BasePassive).**
