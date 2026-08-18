@@ -76,6 +76,33 @@ namespace SAM.Tests
             Assert.True(tM59NaturalVentilationBedroomExtendedResult.GetNightHoursNumberExceeding26() > 0);
         }
 
+        /// <summary>
+        /// The night-time verdict survives simplification too, and agrees with the extended branch's.
+        /// <para>
+        /// <c>Pass</c> on every TM59 result is Criterion 1 alone, so without
+        /// <c>TM59NaturalVentilationBedroomResult.Criterion2</c> a caller holding a simplified result had the
+        /// night-time hours and the night-time limit but no statement of what they decided - and would have
+        /// had to restate the comparison, which is inclusive here and strict everywhere else.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void PlainBedroom_CarriesTheNightTimeCriterionAndNotJustItsHours()
+        {
+            TM59NaturalVentilationBedroomExtendedResult tM59NaturalVentilationBedroomExtendedResult = new("Bedroom", "SAM.Tests", null, TM52BuildingCategory.CategoryII, OccupiedHourIndices(), Temperatures(24), Temperatures(25), Temperatures(27));
+
+            TM59NaturalVentilationBedroomResult tM59NaturalVentilationBedroomResult = (TM59NaturalVentilationBedroomResult)tM59NaturalVentilationBedroomExtendedResult.Simplify();
+
+            Assert.Equal(tM59NaturalVentilationBedroomExtendedResult.Criterion2, tM59NaturalVentilationBedroomResult.Criterion2);
+
+            //Not vacuous: this fixture's bedroom exceeds 26 C on every night-occupied hour, far past the 1%
+            //allowance - so the two agreeing is agreement on a false, not on a default.
+            Assert.False(tM59NaturalVentilationBedroomResult.Criterion2);
+
+            //And the inclusive boundary is the direction the extended type states: actual == limit passes.
+            Assert.True(new TM59NaturalVentilationBedroomResult("Bedroom", "SAM.Tests", null, TM52BuildingCategory.CategoryII, 3672, 110, 37, 3285, 3672, 110, 32, 32, true).Criterion2);
+            Assert.False(new TM59NaturalVentilationBedroomResult("Bedroom", "SAM.Tests", null, TM52BuildingCategory.CategoryII, 3672, 110, 37, 3285, 3672, 110, 32, 33, true).Criterion2);
+        }
+
         private static TM59NaturalVentilationExtendedResult NaturalVentilationExtendedResult()
         {
             return new TM59NaturalVentilationExtendedResult("Living", "SAM.Tests", null, TM52BuildingCategory.CategoryII, OccupiedHourIndices(), Temperatures(24), Temperatures(25), Temperatures(27), TM59SpaceApplication.Living);
