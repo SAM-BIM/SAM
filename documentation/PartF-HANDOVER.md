@@ -17,11 +17,11 @@ recorded there. **If the actual state differs, stop and reconcile before changin
 
 ## 0. Cross-laptop continuation state
 
-*Last updated at SAM `8de00cc7` + SAM_Tas `134dc1d` + SAM_Tas_Grasshopper `94ac244` — **Iteration 0 step 9
-complete (the TSD-simple vs TPD-full preparation boundary, with the supply-temperature transfer proved
-impossible and refused) and Iteration 1's BasePassive vertical slice landed. Previously: step 8
-complete and independently reviewed**: simulation results, scenarios and design spaces are associated by
-identity, and both existing TAS acceptance paths accept the scenario/identity architecture.*
+*Last updated at SAM `3fcfb880` + SAM_Tas `2750a21` + SAM_Tas_Grasshopper `29c31db` (SAM_Systems `4446bb8`,
+SAM_UI `fcf0ec8` unchanged) — **the TM59 verification `report` output implemented and Iteration 1 BasePassive
+report validation CLOSED against the real Flat1 comparison (11v)**. Previously: the first SAM-vs-native-TAS
+comparison on real Flat1 output (11u), and before that, Iteration 0 step 9 complete and Iteration 1's
+BasePassive vertical slice landed.*
 
 ### 0a. Repository state — verify this before touching anything
 
@@ -30,11 +30,11 @@ step 7a**, with Michal's approval, to repoint `Tas.TSDQueryTM59Results` at the s
 
 | Repo | Branch | Last CODE commit | HEAD should be | Tree | Cut from |
 |---|---|---|---|---|---|
-| `SAM` | `feature/partf-terminal-transfer-compliance` | **`8de00cc7`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
+| `SAM` | `feature/partf-terminal-transfer-compliance` | **`3fcfb880`** | that, **plus the handover commit(s) on top** | clean, level | `sow/2026-Q3` @ `34dea440` |
 | `SAM_Systems` | `feature/partf-terminal-transfer-compliance` | **`4446bb8`** | exactly `4446bb8` | clean, level | `sow/2026-Q3` @ `d7303c2` |
 | `SAM_UI` | `feature/partf-terminal-transfer-compliance` | **`fcf0ec8`** | exactly `fcf0ec8` | clean, level | `sow/2026-Q3` @ `074f3d9` |
 | `SAM_Tas` | `feature/partf-terminal-transfer-compliance` | **`2750a21`** | exactly `2750a21` | clean, level | `sow/2026-Q3` @ `3d58bfe` |
-| `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`32f2763`** | exactly `32f2763` | clean, level | `sow/2026-Q3` @ `9555aa1` |
+| `SAM_Tas_Grasshopper` | `feature/partf-terminal-transfer-compliance` | **`29c31db`** | exactly `29c31db` | clean, level | `sow/2026-Q3` @ `9555aa1` |
 
 **`SAM_UI`'s pin is a MERGE commit, and that is why the check fired on it.** The 2026-08-17 session's
 verification loop printed eleven `UNRECORDED CODE:` lines for `SAM_UI` - Grasshopper component files that have
@@ -79,6 +79,22 @@ about for `SAM_UI`. Nothing was lost, nothing diverged. `SAM_Tas`'s pin is bumpe
 commit below; the four documentation-only rows are left as they are, since `AGENTS.md`/`PROJECT_PROGRESS.md`
 are not Part F code and re-pinning four repos to record a base sync would obscure the next real firing.
 
+**2026-08-18 TM59 report-validation session — SAM and `SAM_Tas_Grasshopper` pins bumped; `SAM_Systems` and
+`SAM_UI` unchanged.** SAM pushed three commits: `07d1c728` (a real, independently-discovered `Query.Simplify`
+argument-order bug in the non-bedroom natural-ventilation branch — the summer-hours pair and the annual limit
+were rotated by one constructor position; Pass/Fail unaffected), `3a386baf` (the new `TM59AssessmentReport`/
+`TM59AssessmentReportFormatter` verification layer plus `Criterion2` on `TM59NaturalVentilationBedroomResult`),
+and `3fcfb880` (a further real defect the BasePassive validation pass itself found while comparing the new
+`report` output against the real Flat1 run — detail in 11v). `SAM_Tas_Grasshopper` pushed `2bee815` (the new
+`report` Grasshopper output, thin over the SAM service) and `29c31db` (CI-only: registered
+`TasLogPartODiagnostics`'s ComponentGuid — added in `32f2763` without a baseline entry — in the GUID-identity
+check's baseline; the Windows CI job had been failing on every push to this branch since `32f2763`, for a
+reason unrelated to any Part F/O/TM59 code). `SAM_Tas_Grasshopper`'s pin is bumped to `29c31db` even though it
+is maintenance rather than production code — the same reasoning `SAM_Systems`' `24ed46a` "fix missing
+reference" pin already established: 0a's invariant catches any unpinned commit, feature or not. `SAM_Systems`
+and `SAM_UI` printed only the same `AGENTS.md`/`PROJECT_PROGRESS.md` base-sync rows already accepted as
+benign (see the 2026-08-18 Option B entry above); their pins are unchanged.
+
 **Why a HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own hash, so
 a pinned HEAD would be wrong the moment it landed. The last **code** commit is pinned instead.
 
@@ -99,11 +115,11 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -v '^documentation/PartF-HANDOVER\.md$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 8de00cc7
+SAM 3fcfb880
 SAM_Systems 4446bb8
 SAM_UI fcf0ec8
-SAM_Tas d269d772
-SAM_Tas_Grasshopper 32f2763
+SAM_Tas 2750a21
+SAM_Tas_Grasshopper 29c31db
 EOF
 ```
 
@@ -131,6 +147,26 @@ after (`SAM.Tests` 1207/1207, `SAM.Analytical.UI.WPF.Tests` 180/180) before push
 test failure this surfaced and its fix — nothing in the merge itself was at fault.
 
 ### 0b. Latest checkpoint — what it implemented
+
+**2026-08-18 — TM59 verification `report` output implemented, and Iteration 1 BasePassive report validation
+CLOSED against the real Flat1 comparison. Detail in 11v.**
+
+- SAM `07d1c728`, `3a386baf`, `3fcfb880` → the `TM59AssessmentReport`/`TM59AssessmentReportFormatter`
+  verification layer over `TM59AssessmentResult` (`TM59ComplianceStatus` Pass/Fail/NotApplicable,
+  `TM59RiskStatus` Acceptable/SignificantRisk, Criterion 1/2 stated separately, Actual/Limit/Margin,
+  unassessed spaces, legend), a real `Query.Simplify` argument-order bug found and fixed ahead of it, and a
+  further real defect the validation pass itself found: Criterion 1's report Limit read the annual
+  `MaxExceedableHours` instead of `MaxExceedableSummerHours`.
+- SAM_Tas_Grasshopper `2bee815` → `Tas.TSDQueryTM59Results` (now `1.0.9`) gets the new `report` output,
+  appended last, thin over the SAM service. `29c31db` → unrelated CI-only fix: registered
+  `TasLogPartODiagnostics`'s ComponentGuid in the GUID-identity baseline it had been missing from since
+  `32f2763`.
+- **Validated against the real Flat1 BasePassive run 11u already used** — the actual `.tsd`, the real SAM
+  diagnostic JSONL and TAS's own "Domestic Overheating (CIBSE TM59)" report, parsed directly rather than
+  taken from this handover's summary of them. All applicable occupied-space TM59 criteria match TAS's report
+  exactly; the full-year >28 C / corridor-style bucket disagrees on `Corridor_1` by the same already-
+  investigated design (11u), and correctly does not fail the occupied-space assessment.
+- `SAM.Tests` **1230/1230** (Release, was 1229). `SAM.Analytical.Tas.TM59.Tests` **91/91**, unaffected.
 
 **2026-08-18 — first SAM BasePassive vs native TAS comparison, on real Flat1 output. Detail in 11u.**
 
@@ -2406,6 +2442,100 @@ conservative behaviour, not a bug to match TAS's silence on.
 `natural` (non-bedroom), and covers none of `AcousticRestricted`/`ActiveTrimCooling`. A second model and the
 other iterations are still needed before "SAM BasePassive matches native TAS" can be claimed generally
 rather than for this one run.
+
+### 11v. TM59 verification report — implementation, GUID baseline fix, and Iteration 1 report validation
+
+**What this is.** A new `TM59AssessmentReport`/`TM59AssessmentReportFormatter` layer over
+`TM59AssessmentResult` (SAM `07d1c728`, `3a386baf`, `3fcfb880`), exposed as `Tas.TSDQueryTM59Results`'s new
+`report` output (SAM_Tas_Grasshopper `2bee815`), plus an unrelated CI fix found in passing
+(SAM_Tas_Grasshopper `29c31db`). Then a validation pass compared the actual `report` text against the same
+real Flat1 BasePassive run 11u already validated, using the real evidence files directly rather than this
+handover's own summary of them — and found and fixed one further defect in the report itself.
+
+**Three SAM commits:**
+
+- `07d1c728` — a real, independently-discovered `Query.Simplify` bug: the non-bedroom natural-ventilation
+  branch passed the summer-hours pair and the annual limit rotated by one constructor position, so every
+  simplified (non-extended) result reported `SummerOccupiedHours`/`MaxExceedableSummerHours` under swapped
+  meanings. Pass/Fail was unaffected (derived from `HoursExceedingComfortRange` directly). Isolated with its
+  own regression test, ahead of the reporting work and in its own commit on purpose.
+- `3a386baf` — the report itself: `TM59ComplianceStatus` (Pass/Fail/NotApplicable) and `TM59RiskStatus`
+  (Acceptable/SignificantRisk) as separate concepts, Criterion 1/2 stated separately, mechanical results,
+  Actual/Limit/Margin, unassessed spaces, and a legend. `TM59NaturalVentilationBedroomResult` gained
+  `Criterion2` (Pass on a TM59 result is Criterion 1 alone; without this a simplified bedroom result carried
+  the night-time numbers but no verdict to report against them).
+- `3fcfb880` — **found during the validation pass below, not before it.** Criterion 1's Limit read the base
+  type's annual `MaxExceedableHours`, not `MaxExceedableSummerHours` — the basis TAS's own report actually
+  states this criterion on, paired with "Occupied Summer Hours". For `Studio 1_0` this showed `262` where
+  TAS's real figure is `110`. Existing tests missed it because every one of them happened to use the same
+  number (110) for both the annual and summer test values, so the wrong field and the right one were
+  indistinguishable by coincidence. Fixed; the natural-ventilation test fixtures now use a deliberately
+  wrong-looking annual placeholder (`999`) so that coincidence cannot recur, and a new test pins the real
+  Studio 1_0 figures directly. Mutation-tested: reverting the fix fails 5 tests, including the new one.
+
+**One SAM_Tas_Grasshopper commit, unrelated to the report:** `29c31db` registers
+`TasLogPartODiagnostics`'s ComponentGuid (`fb234a4c-...`, added in `32f2763` without a baseline entry) in
+`.github/scripts/guid-baseline.json` — the "Check TAS Grasshopper GUID identity" CI job had been failing on
+every push to this branch since `32f2763`, unrelated to any Part F/O/TM59 code. Regenerated via the script's
+own `-UpdateBaseline` and diffed to confirm it changed exactly one line, at its correct sorted position, with
+nothing else touched. Windows CI is green again.
+
+**The ancillary-vs-corridor limitation, restated because it shapes the report's wording.**
+`TMOverheatingCalculator.Calculate_TM59` buckets a space into `CorridorResults` when it has no TM59 space
+application at all, **or** when its stated strategy is `"UV"` — which `SAM_Systems`' own capability index
+describes as "Unconditioned. Provides nothing," not "communal corridor." Nothing on the resulting
+`TM59CorridorResult` records which reason applied. `Space`, `InternalCondition`, `TM59Manager` and
+`TM59SpaceClassification` were all checked for an authoritative distinction; none exists. The report names
+the section `FULL-YEAR >28 C / CORRIDOR-STYLE RESULTS` (never "COMMUNAL CORRIDORS"), prints a caveat beside
+the table, and every row is `ComplianceStatus.NotApplicable` — the report never claims a bathroom, hall or
+ensuite is a confirmed communal corridor.
+
+**Iteration 1 BasePassive report validation — CLOSED, evidence gathered from source.** The real files
+(`Flat1.BasePassive.partO.20260818-134420.jsonl` and TAS's own `Domestic Overheating (CIBSE TM59).xlsx`, both
+in `...\SAM_daily\2026-07-15 PartO\Simulation\`) were parsed directly — the xlsx via its raw OOXML, the JSONL
+via its own space records — and the actual `TM59AssessmentReport` text was built from the real numbers.
+
+**All applicable occupied-space TM59 criteria in the BasePassive case match the TAS native report exactly:**
+
+| Space | Check | TAS | `report` (post-`3fcfb880`) |
+|---|---|---|---|
+| Studio 1_0 | Criterion 1 | 37 / 110 | 37 / 110, margin +73 |
+| Studio 1_0 | Criterion 2 | 11 / 32 | 11 / 32, margin +21 |
+| Bedroom 2_3 | >26 C | 131 / 262 | 131 / 262, margin +131 |
+| Kitchen_4 | >26 C | 135 / 142 | 135 / 142, margin +7 |
+| Bedroom 2_6 | >26 C | 129 / 262 | 129 / 262, margin +133 |
+| Kitchen_7 | >26 C | 129 / 142 | 129 / 142, margin +13 |
+
+**Bathroom/ensuite/corridor-style differences are the already-investigated assessment-scope/classification
+distinction, not a new discrepancy:** TAS reports `Bathroom_2` (2/262), `Ensuite_5` and `Ensuite_8` (0/262
+each) under whichever ventilation-type table matches their system, as "Other" with no equivalent criterion
+applied. SAM's existing full-year >28 C bucket evaluates them independently of that table placement, and
+produces the same real hour counts either way. For `Corridor_1` (337/262, margin −75): this exceeds the
+threshold, so the report states `RiskStatus = SignificantRisk` — this does **not** fail the occupied-space
+TM59 assessment, and the current domain cannot prove that every result in this bucket is a physical communal
+corridor (the paragraph above explains why). `OCCUPIED SPACE ASSESSMENT: PASS` throughout, including with
+`Corridor_1` at `SignificantRisk` — confirmed both in the rendered text and by
+`ASignificantRiskCorridor_DoesNotFailTheOccupiedSpaceAssessment`.
+
+**Wording discipline, on purpose.** The report states `TM59 occupied-space assessment: PASS`, never "Part O
+compliant" — passing temperatures do not establish that every Approved Document O modelling assumption behind
+the simulation was applied, and BasePassive report validation has not proved that either.
+
+**Association was complete on this run.** All 9 assessment spaces produced a result: `unassociatedCount: 0`,
+`refusalCount: 0` on the real run record. The report's "SPACES NOT ASSESSED" section correctly states "Every
+space the assessment covered produced a result" — nothing was silently dropped. (The mechanism for a real gap
+— a space present but unresolved — is separately unit-tested, since this run does not exercise it live.)
+
+**Validation counts:** `SAM.Tests` **1230/1230** passed (Release, was 1207 at PR-open, 1229 before this
+session's fix). `SAM.Analytical.Tas.TM59.Tests` **91/91** passed (SAM_Tas, unaffected). `SAM.Analytical`,
+`SAM_Tas.sln` and `SAM.Analytical.Grasshopper.Tas` all build with 0 errors.
+
+**What this closes, and what it explicitly does not.** The `report` output is now verified against the real
+Flat1 BasePassive TAS comparison and matches on every number, with one real defect found and fixed in the
+process — **Iteration 1 — BasePassive report validation: CLOSED.** This is narrower than "Iteration 1 testing
+generally": 11u's still-open gap stands exactly as it did — one flat, one iteration, no plain non-bedroom
+`natural` space exercised, no second model tried. Widening the comparison, and Iterations 2/3, remain future
+work and were **not** started in this pass.
 
 ---
 
