@@ -132,7 +132,7 @@ test failure this surfaced and its fix — nothing in the merge itself was at fa
 
 ### 0b. Latest checkpoint — what it implemented
 
-**2026-08-18 — the §11o identity defect FIXED, Option B only. Detail in 11t.**
+**2026-08-18 — the §11o identity defect FIXED and independently confirmed live, Option B CLOSED. Detail in 11t.**
 
 - SAM_Tas `d76be13` → `Convert.ToSAM(TSD.ZoneData)` stamps `SpaceParameter.ZoneGuid` from
   `zoneData.zoneGUID` explicitly, mirroring `Convert.ToSAM(TBD.zone)`. One guarded `SetValue` plus
@@ -144,9 +144,15 @@ test failure this surfaced and its fix — nothing in the merge itself was at fa
   case-insensitive match. Full trace in 11t.
 - **The generic `Create.ParameterSet` / `TypeMap` defect is NOT fixed and is now a named deferred item in
   §0e.** It is the same defect behind `ZoneNumber`, `Description`, `Volume` and `FloorArea`.
-- **Still required: the manual Flat1 BasePassive Grasshopper run.** This session has no Rhino canvas to drive.
-  The acceptance criteria and the one way this fix could make things *worse* are both in 11t — read them
-  before running it.
+- **Manual Flat1 BasePassive Grasshopper acceptance run — DONE, and it is clean.** Michal rebuilt and reran
+  after this checkpoint's fix was installed to `%APPDATA%\SAM`. Evidence: `Flat1.BasePassive.partO.20260818-122737.jsonl`
+  (run `c4aa16f2-990c-41b6-ae8f-c78eedd14294`, `runTimestampUtc 2026-08-18T12:27:37Z`) shows all 9 spaces at
+  `identityMode: "zoneGuid"` with `designZoneGuidRaw` equal to `simulatedZoneGuidRaw` on every space (e.g.
+  `{04860158-BDB1-4295-9EC6-DE80B409774D}` both sides — braces and casing identical, so the format-mismatch
+  risk 11t called out did not materialise), `simulationSpaceMapIsComplete: true`,
+  `overheatingScenarioMapIsComplete: true`, `unassociatedCount: 0`, `workflowSuccessful: true`,
+  `tM59Successful: true`. TM59 outputs unchanged from the pre-fix baseline: 8 spaces pass, `Corridor_1` still
+  fails at `hoursExceeding28: 337` vs `maxExceedableHours: 262`. The checkpoint is closed on this evidence.
 
 **2026-08-17/18 — Part O → TAS → TM59 diagnostic logging, diagnostic-only. No compliance path touched.**
 
@@ -482,13 +488,14 @@ included.
 
 ### 0f. The precise next task
 
-**FIRST, and it is the only thing gating the Option B checkpoint: rerun the Flat1 BasePassive Grasshopper
-test and confirm the identity now resolves by guid.** The criteria, and the one way this fix could make
-things worse rather than better, are in 11t. `%APPDATA%\SAM` was refreshed in the implementing session, so
-the installed assembly already carries the fix. Nothing else in this list depends on the answer, but the
-checkpoint is not closed until it is run.
+**The Option B checkpoint is closed.** The Flat1 BasePassive Grasshopper acceptance run confirmed the
+identity now resolves by guid on all 9 spaces, with TM59 outputs unchanged — evidence in 0b and 11t.
 
-**Then two things need Michal, and neither is code:**
+**What Iteration 1 needs next is a different validation, not more identity work: SAM BasePassive vs native
+TAS results, to prove the actual thermal/TM59 outputs match, not just that the identity chain resolves.**
+Michal flagged this as the next task; it has not been scoped yet.
+
+**Two things need Michal, and neither is code:**
 
 1. **Confirm the four BasePassive/AcousticRestricted assumption VALUES in 11p.** The names are permanent and
    cannot be changed without re-keying every scenario; the values are declared policy read off
@@ -2206,7 +2213,7 @@ section.
 - SPDX header on every changed `.cs`.
 - Use the SAM implementation-summary style for the final response.
 
-### 11t. The §11o identity defect — root cause and the Option B repair (DONE, SAM_Tas `d76be13`)
+### 11t. The §11o identity defect — root cause and the Option B repair (DONE and confirmed live, SAM_Tas `d76be13`)
 
 **What was actually wrong.** `Convert.ToSAM(TSD.ZoneData)` never stamped `SpaceParameter.ZoneGuid`. It left
 it to the generic `Create.ParameterSet_Space` → `SAM.Core.Create.ParameterSet` → `TypeMap` path. The mapping
@@ -2297,15 +2304,25 @@ whole TAS interop surface loaded inside a `net8.0` project built specifically to
 project's own csproj comment). That was judged not worth breaking the COM-free boundary for. **The converter
 line itself is covered by the manual acceptance run below, and by nothing else.**
 
-**Manual acceptance — still required, not done.** Rerun the existing Flat1 BasePassive Grasshopper test:
-`simulatedZoneGuidRaw` populated for every expected simulated space; `designZoneGuidRaw` and
-`simulatedZoneGuidRaw` corresponding; `identityMode = zoneGuid` for all 9; `simulationSpaceMapIsComplete` and
-`overheatingScenarioMapIsComplete` both true; `unassociatedCount = 0`; TM59 results unchanged from the
-previous run, with Corridor still `337 vs 262` fail unless the simulation itself changed for an unrelated
-reason. The logger needs no modification. **`%APPDATA%\SAM` was refreshed by a Debug
-`SAM_Tas_Grasshopper.sln` build in this session** (its post-build copies `$(TargetDir)*.dll` there), so the
-installed `SAM.Analytical.Tas.dll` carries the fix — without that the canvas would have exercised the old
-assembly and reported `uniqueName`, looking exactly like a failed fix.
+**Manual acceptance — DONE, and every criterion passed.** Michal reran the existing Flat1 BasePassive
+Grasshopper test after `%APPDATA%\SAM` picked up the fix (refreshed by a Debug `SAM_Tas_Grasshopper.sln`
+build in the implementing session, whose post-build copies `$(TargetDir)*.dll` there — without that the
+canvas would have exercised the old assembly and reported `uniqueName`, looking exactly like a failed fix).
+Evidence is `Flat1.BasePassive.partO.20260818-122737.jsonl` (run `c4aa16f2-990c-41b6-ae8f-c78eedd14294`,
+written 2026-08-18 14:27 local / 12:27:37 UTC, i.e. after the rebuild):
+
+- `simulatedZoneGuidRaw` populated for all 9 spaces, and equal to `designZoneGuidRaw` on every one — same
+  string, braces and casing included (e.g. `{04860158-BDB1-4295-9EC6-DE80B409774D}` both sides), so the
+  format-mismatch risk above did not occur;
+- `identityMode: "zoneGuid"` for all 9;
+- `simulationSpaceMapIsComplete: true`, `overheatingScenarioMapIsComplete: true`, `unassociatedCount: 0`;
+- `workflowSuccessful: true`, `tM59Successful: true`;
+- TM59 results unchanged from the pre-fix baseline: 8 spaces pass, `Corridor_1` fails with
+  `hoursExceeding28: 337` against `maxExceedableHours: 262` — the same fail shape recorded before this fix.
+
+Checked directly against the log, not just the run's own summary line — the per-space records
+(`designSpaceName`/`simulatedSpaceName`/`designZoneGuidRaw`/`simulatedZoneGuidRaw`/`identityMode`) were read
+one by one, not only the aggregate `run` record.
 
 **Related, still open and NOT addressed here:** the TPD route's identity match (11o review finding 1) — the
 TPD result reference and the TBD/TSD zone guid have still never been shown to be the same string. The
