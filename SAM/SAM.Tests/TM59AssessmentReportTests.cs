@@ -34,7 +34,7 @@ namespace SAM.Tests
         [Fact]
         public void NaturalVentilation_Passing_ReportsCriterion1AsPassWithTheRemainingAllowance()
         {
-            TM59AssessmentReport tM59AssessmentReport = Report(naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableHours: 110, pass: true)]);
+            TM59AssessmentReport tM59AssessmentReport = Report(naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)]);
 
             TM59AssessmentReportCheck check = Check(tM59AssessmentReport.NaturalVentilationChecks, "Living 1_0", TM59AssessmentReport.Check_Criterion1);
 
@@ -48,7 +48,7 @@ namespace SAM.Tests
         [Fact]
         public void NaturalVentilation_Failing_ReportsCriterion1AsFailWithANegativeMargin()
         {
-            TM59AssessmentReport tM59AssessmentReport = Report(naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 150, maxExceedableHours: 110, pass: false)]);
+            TM59AssessmentReport tM59AssessmentReport = Report(naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 150, maxExceedableSummerHours: 110, pass: false)]);
 
             TM59AssessmentReportCheck check = Check(tM59AssessmentReport.NaturalVentilationChecks, "Living 1_0", TM59AssessmentReport.Check_Criterion1);
 
@@ -67,7 +67,7 @@ namespace SAM.Tests
         [InlineData(45, 32, false)]
         public void Bedroom_ReportsCriterion2SeparatelyFromCriterion1(int nightHoursExceeding26, int maxExceedableNightHours, bool expected_Pass)
         {
-            TM59AssessmentReport tM59AssessmentReport = Report(naturalVentilation: [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableHours: 110, nightHoursNumberExceeding26: nightHoursExceeding26, maxExceedableNightHours: maxExceedableNightHours, pass: true)]);
+            TM59AssessmentReport tM59AssessmentReport = Report(naturalVentilation: [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: nightHoursExceeding26, maxExceedableNightHours: maxExceedableNightHours, pass: true)]);
 
             TM59AssessmentReportCheck check_Criterion1 = Check(tM59AssessmentReport.NaturalVentilationChecks, "Bedroom 2_3", TM59AssessmentReport.Check_Criterion1);
             TM59AssessmentReportCheck check_Criterion2 = Check(tM59AssessmentReport.NaturalVentilationChecks, "Bedroom 2_3", TM59AssessmentReport.Check_Criterion2);
@@ -92,7 +92,7 @@ namespace SAM.Tests
         [Fact]
         public void NonBedroom_ReportsCriterion2AsNotApplicableRatherThanPass()
         {
-            TM59AssessmentReport tM59AssessmentReport = Report(naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableHours: 110, pass: true)]);
+            TM59AssessmentReport tM59AssessmentReport = Report(naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)]);
 
             TM59AssessmentReportCheck check = Check(tM59AssessmentReport.NaturalVentilationChecks, "Living 1_0", TM59AssessmentReport.Check_Criterion2);
 
@@ -105,6 +105,27 @@ namespace SAM.Tests
             Assert.Equal(TM59ComplianceStatus.NotApplicable, Report(naturalVentilation: []).NaturalVentilationComplianceStatus);
 
             Assert.Contains("N/A", tM59AssessmentReport.ToString());
+        }
+
+        /// <summary>
+        /// <b>Real numbers, from the Iteration 1 BasePassive validation pass.</b> Flat1's <c>Studio 1_0</c>
+        /// against TAS's own "Domestic Overheating (CIBSE TM59)" report for the same run: Occupied Summer
+        /// Hours 3672, Max. Exceedable Hours 110, Criterion 1 exceedance 37, Pass. The annual figures this
+        /// fixture also carries (8760 occupied, 999 as a deliberately wrong-looking annual limit) exist only
+        /// to prove the row does NOT read them - it did, once: the annual <c>MaxExceedableHours</c> (262 for
+        /// this space) was shown as the Limit until this test caught it against the real TAS figures.
+        /// </summary>
+        [Fact]
+        public void NaturalVentilation_Criterion1Limit_IsTheSummerBasisTasActuallyReports()
+        {
+            TM59AssessmentReport tM59AssessmentReport = Report(naturalVentilation: [NaturalVentilation("Studio 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)]);
+
+            TM59AssessmentReportCheck check = Check(tM59AssessmentReport.NaturalVentilationChecks, "Studio 1_0", TM59AssessmentReport.Check_Criterion1);
+
+            Assert.Equal(37, check.Actual);
+            Assert.Equal(110, check.Limit);
+            Assert.Equal(73, check.Margin);
+            Assert.NotEqual(262, check.Limit);
         }
 
         // ---------------------------------------------------------------------------------------------
@@ -164,7 +185,7 @@ namespace SAM.Tests
         public void AnAncillaryRoom_IsNotPresentedAsACommunalCorridor()
         {
             TM59AssessmentReport tM59AssessmentReport = Report(
-                naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableHours: 110, pass: true)],
+                naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)],
                 corridor: [Corridor("Bathroom_2", hoursExceeding28: 2, maxExceedableHours: 262, pass: true)]);
 
             TM59AssessmentReportCheck check = Check(tM59AssessmentReport.CorridorChecks, "Bathroom_2", TM59AssessmentReport.Check_HoursExceeding28);
@@ -191,7 +212,7 @@ namespace SAM.Tests
         public void AnAncillaryRoomOverTheThreshold_StatesRiskWithoutClaimingItIsACorridor()
         {
             TM59AssessmentReport tM59AssessmentReport = Report(
-                naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableHours: 110, pass: true)],
+                naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)],
                 corridor: [Corridor("Ensuite_5", hoursExceeding28: 400, maxExceedableHours: 262, pass: false)]);
 
             Assert.Equal(TM59RiskStatus.SignificantRisk, Check(tM59AssessmentReport.CorridorChecks, "Ensuite_5", TM59AssessmentReport.Check_HoursExceeding28).RiskStatus);
@@ -211,7 +232,7 @@ namespace SAM.Tests
         public void ASignificantRiskCorridor_DoesNotFailTheOccupiedSpaceAssessment()
         {
             TM59AssessmentReport tM59AssessmentReport = Report(
-                naturalVentilation: [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true)],
+                naturalVentilation: [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true)],
                 mechanicalVentilation: [Mechanical("Kitchen_4", hoursExceeding26: 135, maxExceedableHours: 142, pass: true)],
                 corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false)]);
 
@@ -269,7 +290,7 @@ namespace SAM.Tests
             TM59AssessmentReport tM59AssessmentReport = new(
                 [space_Assessed, space_Unassessed],
                 null,
-                [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableHours: 110, pass: true, reference: space_Assessed.Guid.ToString())],
+                [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true, reference: space_Assessed.Guid.ToString())],
                 null,
                 ["No scenario covers space 'Hall_6'."]);
 
@@ -293,7 +314,7 @@ namespace SAM.Tests
         public void TheText_CarriesEverySectionAndNamesItsSource()
         {
             TM59AssessmentReport tM59AssessmentReport = Report(
-                naturalVentilation: [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true)],
+                naturalVentilation: [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true)],
                 mechanicalVentilation: [Mechanical("Kitchen_4", hoursExceeding26: 135, maxExceedableHours: 142, pass: true)],
                 corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false)]);
 
@@ -364,7 +385,7 @@ namespace SAM.Tests
         [Fact]
         public void BuildingAReport_LeavesTheAssessmentUntouched()
         {
-            List<TMResult> tMResults_Natural = [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true)];
+            List<TMResult> tMResults_Natural = [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true)];
             List<TMResult> tMResults_Mechanical = [Mechanical("Kitchen_4", hoursExceeding26: 135, maxExceedableHours: 142, pass: true)];
             List<TMResult> tMResults_Corridor = [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false)];
 
@@ -407,14 +428,20 @@ namespace SAM.Tests
             return new TM59AssessmentReport(null, mechanicalVentilation, naturalVentilation, corridor, null, source);
         }
 
-        private static TMResult NaturalVentilation(string name, int hoursExceedingComfortRange, int maxExceedableHours, bool pass, string reference = null)
+        /// <summary>
+        /// <c>maxExceedableSummerHours</c> is deliberately the only limit a caller controls: the report reads
+        /// Criterion 1's limit off the summer basis, never the annual <c>maxExceedableHours</c> field this
+        /// fixture fixes at an unrelated 999 - so a regression back to reading the annual field would show up
+        /// here as a wrong Limit, not pass by coincidence the way an equal-looking pair of test values would.
+        /// </summary>
+        private static TMResult NaturalVentilation(string name, int hoursExceedingComfortRange, int maxExceedableSummerHours, bool pass, string reference = null)
         {
-            return new TM59NaturalVentilationResult(name, source, reference, TM52BuildingCategory.CategoryII, 3672, maxExceedableHours, 3672, 110, hoursExceedingComfortRange, pass, TM59SpaceApplication.Living);
+            return new TM59NaturalVentilationResult(name, source, reference, TM52BuildingCategory.CategoryII, 8760, 999, 3672, maxExceedableSummerHours, hoursExceedingComfortRange, pass, TM59SpaceApplication.Living);
         }
 
-        private static TMResult Bedroom(string name, int hoursExceedingComfortRange, int maxExceedableHours, int nightHoursNumberExceeding26, int maxExceedableNightHours, bool pass)
+        private static TMResult Bedroom(string name, int hoursExceedingComfortRange, int maxExceedableSummerHours, int nightHoursNumberExceeding26, int maxExceedableNightHours, bool pass)
         {
-            return new TM59NaturalVentilationBedroomResult(name, source, null, TM52BuildingCategory.CategoryII, 3672, maxExceedableHours, hoursExceedingComfortRange, 3285, 3672, 110, maxExceedableNightHours, nightHoursNumberExceeding26, pass);
+            return new TM59NaturalVentilationBedroomResult(name, source, null, TM52BuildingCategory.CategoryII, 8760, 999, hoursExceedingComfortRange, 3285, 3672, maxExceedableSummerHours, maxExceedableNightHours, nightHoursNumberExceeding26, pass);
         }
 
         private static TMResult Mechanical(string name, int hoursExceeding26, int maxExceedableHours, bool pass)

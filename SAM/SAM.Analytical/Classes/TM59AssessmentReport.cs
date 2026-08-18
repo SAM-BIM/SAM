@@ -180,11 +180,21 @@ namespace SAM.Analytical
             //The extended and plain results are sibling branches, not parent and child, so both are read
             //explicitly - and the bedroom variant is tested before its non-bedroom parent on each branch,
             //since a bedroom result also matches the parent type.
+            //
+            //Limit is deliberately the SUMMER basis (MaxExceedableSummerHours / GetSummerMaxExceedableHours),
+            //not the base type's annual MaxExceedableHours - TAS's own "Max. Exceedable Hours" column is
+            //paired with "Occupied Summer Hours", not the whole-year count, and the two differ by roughly the
+            //ratio of summer to annual occupied hours (found comparing this report's Studio 1_0 row against
+            //the real Flat1 BasePassive TAS report: annual gives 262, TAS's actual figure is 110).
             int? actual_Criterion1 = tMResult is TM59NaturalVentilationExtendedResult extended
                 ? Count(extended.GetOccupiedHoursExceedingComfortRange())
                 : Count((tMResult as TM59NaturalVentilationResult)?.HoursExceedingComfortRange);
 
-            yield return new TM59AssessmentReportCheck(tMResult.Name, use, Check_Criterion1, actual_Criterion1, Count(tMResult.MaxExceedableHours), tMResult.Pass ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.Fail);
+            int? limit_Criterion1 = tMResult is TM59NaturalVentilationExtendedResult extended_ForLimit
+                ? Count(extended_ForLimit.GetSummerMaxExceedableHours())
+                : Count((tMResult as TM59NaturalVentilationResult)?.MaxExceedableSummerHours);
+
+            yield return new TM59AssessmentReportCheck(tMResult.Name, use, Check_Criterion1, actual_Criterion1, limit_Criterion1, tMResult.Pass ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.Fail);
 
             if (tMResult is TM59NaturalVentilationBedroomExtendedResult bedroom_Extended)
             {

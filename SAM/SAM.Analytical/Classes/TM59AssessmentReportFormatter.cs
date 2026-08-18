@@ -221,12 +221,11 @@ namespace SAM.Analytical
                 "        Criterion 1, >26 C and >28 C are strict, so a zero margin is a failure, while\r\n" +
                 "        Criterion 2 is inclusive, so a zero margin passes.\r\n" +
                 "\r\n" +
-                "Criterion 1     Adaptive thermal comfort. Occupied hours whose operative temperature exceeds\r\n" +
-                "                the TM52 comfort range for the stated building category, against 3% of the\r\n" +
-                "                space's annual occupied hours. Applies to naturally ventilated spaces.\r\n" +
-                "                TAS's own TM59 report states this criterion on a summer occupied-hours basis;\r\n" +
-                "                the counts here are the annual basis this assessment judges it on, so the two\r\n" +
-                "                limits are not expected to match even where the verdict does.\r\n" +
+                "Criterion 1     Adaptive thermal comfort. Occupied hours (1 May - 30 Sep) whose operative\r\n" +
+                "                temperature exceeds the TM52 comfort range for the stated building category,\r\n" +
+                "                against 3% of the space's summer occupied hours - the same \"Occupied Summer\r\n" +
+                "                Hours\" / \"Max. Exceedable Hours\" basis TAS's own TM59 report states this\r\n" +
+                "                criterion on. Applies to naturally ventilated spaces.\r\n" +
                 "Criterion 2     Bedroom night-time overheating. Night occupied hours (22:00-07:00) above 26 C,\r\n" +
                 "                against 1% of the annual night occupied hours. Bedrooms only; every other\r\n" +
                 "                space shows N/A.\r\n" +
