@@ -183,32 +183,38 @@ none was "fixed" to match TAS.
    shows; `Bathroom_2` carries `TM59_Bathroom` and reports under `SUPPLEMENTARY >28 C CHECKS` instead. The
    old `FULL-YEAR >28 C / CORRIDOR-STYLE RESULTS` heading and its ambiguity disclaimer are retired along
    with the ambiguity they existed to flag.
-4. **`Kitchen_4` / `Kitchen_7` report `TM59 Application: Sleeping, Cooking`, not `Cooking` alone — a naming
-   artifact, traced, not a defect requiring a code change.** Both are multi-bedroom-apartment kitchens, so
-   `TM59InternalConditionResolver` names their `InternalCondition` `"2 Bed Apt. Kitchen"` /
-   `"3 Bed Apt. Kitchen"` — the apartment's bedroom **count** is part of the condition's own name.
-   `TM59Manager.TM59SpaceApplications(InternalCondition, TextMap)` classifies that whole name through
-   `TextMap.GetSortedKeys`, which checks it word by word against every TM59 keyword — and "Bed" is,
-   independently, one of the literal "Sleeping" keywords. The same token that states the apartment's
-   bedroom count is read as evidence that *this* room is used for sleeping. Confirmed at the token level
-   by `TM59SpaceApplicationClassificationTests` (`SAM.Tests`), which pins the current outcome for both
-   condition names and shows a plain `"Double Bedroom"`/`"Single Bedroom"` condition (no apartment-size
-   prefix) is unaffected.
+4. **`Kitchen_4` / `Kitchen_7` reported `TM59 Application: Sleeping, Cooking`, not `Cooking` alone — traced
+   to a token collision and FIXED.** Both are multi-bedroom-apartment kitchens, so
+   `TM59InternalConditionResolver` names their `InternalCondition` `"1 Bed Apt. Kitchen"` — the apartment's
+   bedroom **count** is part of the condition's own name. `TM59Manager.TM59SpaceApplications
+   (InternalCondition, TextMap)` classified that whole name through `TextMap.GetSortedKeys`, which checks
+   it word by word against every TM59 keyword — and "Bed" is, independently, one of the literal "Sleeping"
+   keywords. The same token that stated the apartment's bedroom count was read as evidence that *this* room
+   is used for sleeping.
 
-   **Why the classification source was not changed in this pass.** `TM59Manager.IsSleeping`/`IsLiving`/
-   `IsCooking`/`TM59SpaceApplications` are shared entry points with their own explicit "stay untouched -
-   SAM_Tas depends on their exact current behaviour" guard (see `TM59InternalConditionResolver.cs`), and
-   SAM_Tas's `RoomUse.cs`, `ToSAP.cs` and the legacy `OverheatingCalculator.cs` all call the same
-   InternalCondition-based overloads directly — a fix there has a blast radius well beyond this report. It
-   is also not the whole story: `GetSortedKeys` has a separate, pre-existing "room" vs "bedroom" substring
-   collision (the reason `TM59InternalConditionResolver` built its own whole-token matcher rather than
-   reuse it for Space classification), so a narrow fix for the "N Bed Apt." prefix alone would still leave
-   a plain non-bedroom Living Room in the same apartment misclassified. **The numeric TM59 outcome is
-   unaffected either way** — `Sleeping` only changes which natural-ventilation result type a space is
-   routed to, both kitchens are mechanically ventilated, and the "SAM vs native TAS TM59 comparison" table
-   above already shows both matching TAS exactly. The new Internal Condition report column makes the real
-   condition name visible, which is what surfaced this in the first place; a real fix to the matching
-   engine is left as follow-up work, not bundled into a report-presentation task. See
+   **The fix.** `TM59Manager.RoleMatchName` strips a leading `"N Bed Apt."` qualifier from an
+   InternalCondition's name before it is matched against the Sleeping/Living/Cooking keyword lists —
+   applied only to the InternalCondition-based `IsSleeping`/`IsLiving`/`IsCooking` overloads (and therefore
+   `TM59SpaceApplications(InternalCondition, TextMap)`, which calls them). Space-name classification
+   (`IsSleeping(Space, TextMap)` and its siblings) is untouched, so `SAM_Tas`'s `RoomUse.cs`, `ToSAP.cs` and
+   the legacy `OverheatingCalculator.cs` — which call the same InternalCondition-based overloads directly —
+   now also classify a multi-bedroom apartment kitchen as `Cooking` alone, correctly. `Kitchen_4`/`Kitchen_7`
+   now report `TM59 Application: Cooking`. Pinned by `TM59SpaceApplicationClassificationTests` (`SAM.Tests`),
+   including that a plain `"Double Bedroom"`/`"Single Bedroom"` condition (no apartment-size prefix) and raw
+   Space-name classification are both unaffected.
+
+   **The mechanical `>26 °C` numbers are unchanged** — `Sleeping` only ever affected which
+   natural-ventilation result type a space would be routed to, never the mechanical criterion Kitchen_4/
+   Kitchen_7 are actually assessed under, and the "SAM vs native TAS TM59 comparison" table above still
+   matches TAS exactly (135/142 and 129/142, unchanged).
+
+   **What this does not fix.** `GetSortedKeys` has a separate, pre-existing "room" vs "bedroom" substring
+   collision (the reason `TM59InternalConditionResolver` built its own whole-token matcher for Space
+   classification rather than reuse it): a bare apartment `"N Bed Apt. Living Room"` condition (no
+   `/Kitchen` suffix) still misreads Sleeping, because "room" is its own token there and
+   `"bedroom".Contains("room")` is true. The Kitchen and combined `"N Bed Apt. Living Room/Kitchen"` cases
+   are unaffected by that separate bug — "Kitchen" alone never collides with "bedroom", and
+   `"Room/Kitchen"` (no space around the slash) is one token, not two. Left as follow-up work; see
    [Remaining validation work](#remaining-validation-work).
 
 ### Report structure (refined)
@@ -225,17 +231,22 @@ presentation, auditability and correct TM59 semantics — the validated arithmet
   against, read directly off the result (`TM59NaturalVentilationResult.SummerOccupiedHours` /
   `TM59NaturalVentilationBedroomResult.AnnualNightOccupiedHours`, or their extended-result equivalents),
   never reconstructed from a rounded `Limit`.
-- `MECHANICAL VENTILATION` gained an `Internal Condition` column and an `Occupied Hours` column (the one
-  basis this criterion has, already on `TMResult.OccupiedHours`); the ambiguous `Use` column is now headed
-  `TM59 Application`.
+- `MECHANICAL VENTILATION` gained an `Internal Condition` column and an `Annual Occupied Hours` column (the
+  one basis this criterion has, already on `TMResult.OccupiedHours`); the ambiguous `Use` column is now
+  headed `TM59 Application`.
 - The former single `FULL-YEAR >28 C / CORRIDOR-STYLE RESULTS` section is split into `COMMUNAL CORRIDOR
   RISK` (positively identified corridors only, contributing to `CorridorRiskStatus`) and
   `SUPPLEMENTARY >28 C CHECKS` (everything else the same calculation produced) — see item 3 above. Both
-  gained an `Annual Hours` column (`TM59CorridorResult.AnnualHours` / `TM59CorridorExtendedResult.
-  GetAnnualHours()`, the real annual series length, not `Limit` divided back through its exceedance
-  factor).
-- The legend was trimmed to the engineering meaning of each column and criterion; the SAM-vs-TAS
-  validation history that used to live there is this document instead.
+  gained an `Annual Hours` column (`TM59CorridorResult.AnnualHours`, the real annual series length, not
+  `Limit` divided back through its exceedance factor).
+- A new `ASSESSMENT BASIS` section states the fixed TM59:2017 assessment periods (natural ventilation
+  1 May–30 September, bedroom night-time 22:00–07:00 full year, mechanical and communal-corridor checks
+  annual) plus the one genuinely data-derived figure, the real annual series length
+  (`TM59AssessmentReport.AnnualHours`, read via the new shared `TMExtendedResult.GetAnnualHours()` — never
+  assumed to be 8760). Descriptive only; it recomputes nothing.
+- The legend was trimmed to the engineering meaning of each column and criterion — the assessment-period
+  prose it used to carry now lives in `ASSESSMENT BASIS` instead — and the SAM-vs-TAS validation history
+  that used to live there is this document.
 
 ---
 
@@ -387,10 +398,13 @@ In rough order of value:
 6. **Decide the design-side `ZoneGuid` provenance** — preserve the guid through `Modify.UpdateIds`'s
    strip, or refuse an ambiguous name match — so the whole identity chain, not just its simulated half,
    is free of a name join.
-7. **Fix the "N Bed Apt." token collision in `TM59Manager`'s Sleeping/Living/Cooking matching**, found
-   while adding the report's Internal Condition column (`Kitchen_4`/`Kitchen_7`, see [Known
-   scope/classification differences](#known-scopeclassification-differences) item 4). Scope it as its own
-   change: `TM59Manager.IsSleeping`/`IsLiving`/`IsCooking`/`TM59SpaceApplications` are shared with
-   SAM_Tas's `RoomUse.cs`, `ToSAP.cs` and `OverheatingCalculator.cs`, and `GetSortedKeys` carries a
-   separate pre-existing "room"/"bedroom" substring collision that a narrow prefix-strip would not fix -
-   both need deciding together, against `TM59SpaceApplicationClassificationTests` as the pinned baseline.
+7. **The "N Bed Apt." token collision in `TM59Manager`'s Sleeping/Living/Cooking matching is fixed** for
+   the Kitchen and Living Room/Kitchen apartment conditions (`TM59Manager.RoleMatchName`, see [Known
+   scope/classification differences](#known-scopeclassification-differences) item 4). **Still open:** the
+   separate, pre-existing "room"/"bedroom" substring collision in `TextMap.GetSortedKeys` still misreads a
+   bare apartment `"N Bed Apt. Living Room"` condition (no `/Kitchen` suffix) as Sleeping. Needs a second
+   real model containing a plain non-bedroom naturally-ventilated Living Room to exercise it (item 1 above
+   also asks for this), and a decision on whether to fix `GetSortedKeys` itself (shared with SAM_Tas's
+   `RoomUse.cs`, `ToSAP.cs` and `OverheatingCalculator.cs`) or route InternalCondition classification
+   through `TM59InternalConditionResolver`'s own whole-token matcher instead. Regress against
+   `TM59SpaceApplicationClassificationTests`.

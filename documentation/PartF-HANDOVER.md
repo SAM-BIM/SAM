@@ -30,7 +30,7 @@ PR against `sow/2026-Q3`. **`sow/2026-Q3` is never committed to directly** and i
 
 | Repo | Last CODE commit | HEAD | Cut from | PR |
 |---|---|---|---|---|
-| `SAM` | **`e05e2cdc`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
+| `SAM` | **`2887879b`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
 | `SAM_Systems` | **`4446bb8`** | `618fc74` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `d7303c2` | [SAM_Systems#14](https://github.com/SAM-BIM/SAM_Systems/pull/14) |
 | `SAM_UI` | **`fcf0ec8`** | `2a0d480` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `074f3d9` | [SAM_UI#75](https://github.com/SAM-BIM/SAM_UI/pull/75) |
 | `SAM_Tas` | **`2750a21`** | exactly `2750a21` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
@@ -54,7 +54,7 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM e05e2cdc
+SAM 2887879b
 SAM_Systems 4446bb8
 SAM_UI fcf0ec8
 SAM_Tas 2750a21
@@ -83,7 +83,7 @@ All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1241 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
+| `SAM/SAM.Tests` | **1251 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
 | `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **91 passed, 0 failed**, Debug **and** Release | build `SAM` and `SAM_Tas.sln` with **VS Framework MSBuild first** — see §6 |
 | `SAM_Systems/SAM.Analytical.Systems.Tests` | **40 passed, 0 failed** | in `SAM_Systems.sln`, executed by CI |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | — |
