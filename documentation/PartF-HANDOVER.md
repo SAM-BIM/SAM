@@ -30,11 +30,11 @@ PR against `sow/2026-Q3`. **`sow/2026-Q3` is never committed to directly** and i
 
 | Repo | Last CODE commit | HEAD | Cut from | PR |
 |---|---|---|---|---|
-| `SAM` | **`3fcfb880`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
+| `SAM` | **`e05e2cdc`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
 | `SAM_Systems` | **`4446bb8`** | `618fc74` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `d7303c2` | [SAM_Systems#14](https://github.com/SAM-BIM/SAM_Systems/pull/14) |
 | `SAM_UI` | **`fcf0ec8`** | `2a0d480` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `074f3d9` | [SAM_UI#75](https://github.com/SAM-BIM/SAM_UI/pull/75) |
 | `SAM_Tas` | **`2750a21`** | exactly `2750a21` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
-| `SAM_Tas_Grasshopper` | **`29c31db`** | exactly `29c31db` | `sow/2026-Q3` @ `9555aa1` | [SAM_Tas_Grasshopper#4](https://github.com/SAM-BIM/SAM_Tas_Grasshopper/pull/4) |
+| `SAM_Tas_Grasshopper` | **`ebdf0bcd`** | exactly `ebdf0bcd` | `sow/2026-Q3` @ `9555aa1` | [SAM_Tas_Grasshopper#4](https://github.com/SAM-BIM/SAM_Tas_Grasshopper/pull/4) |
 
 **Why a HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own hash. The
 last **code** commit is pinned instead.
@@ -54,11 +54,11 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 3fcfb880
+SAM e05e2cdc
 SAM_Systems 4446bb8
 SAM_UI fcf0ec8
 SAM_Tas 2750a21
-SAM_Tas_Grasshopper 29c31db
+SAM_Tas_Grasshopper ebdf0bcd
 EOF
 ```
 
@@ -83,7 +83,7 @@ All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1230 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
+| `SAM/SAM.Tests` | **1241 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
 | `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **91 passed, 0 failed**, Debug **and** Release | build `SAM` and `SAM_Tas.sln` with **VS Framework MSBuild first** — see §6 |
 | `SAM_Systems/SAM.Analytical.Systems.Tests` | **40 passed, 0 failed** | in `SAM_Systems.sln`, executed by CI |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | — |
@@ -117,7 +117,8 @@ All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (
 3. **Identity resolves on the real run.** `SimulationSpaceMap` resolves by TAS zone guid on all 9 spaces
    of the Flat1 model, `unassociatedCount = 0`.
 4. **TM59 numbers validated against native TAS**, plus a `TM59AssessmentReport` verification layer exposed
-   as `Tas.TSDQueryTM59Results`'s `report` output. Evidence, and the defects this exposed:
+   as `Tas.TSDQueryTM59Results`'s `report` output (also voluntary `_saveReport_`/`reportFilePath_` text-file
+   export, off by default). Evidence, and the defects this exposed:
    [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md).
 
 ### Iteration 1 — the remaining reviewer gate
@@ -185,10 +186,15 @@ Each of these has a test. Do not undo any without Michal's agreement.
     NotApplicable) and `TM59RiskStatus` (Acceptable / SignificantRisk) are separate concepts on purpose. A
     full-year >28 °C result at `SignificantRisk` does not fail the occupied-space assessment.
 13. **A TM59 result is never described as full Part O compliance.** The report states `TM59 occupied-space
-    assessment: PASS`, never "Part O compliant" — passing temperatures do not establish that the Approved
-    Document O modelling assumptions were applied. Equally, the full-year bucket is named
-    `FULL-YEAR >28 C / CORRIDOR-STYLE RESULTS`, never "COMMUNAL CORRIDORS": nothing in the domain records
-    whether a space landed there for having no TM59 application or for stating `UV`.
+    assessment: PASS`, never "Part O compliant", and prints `Part O modelling assumptions: NOT VERIFIED BY
+    THIS RESULT REPORT` near the header — passing temperatures do not establish that the Approved Document
+    O modelling assumptions were applied. Equally, the calculation still routes a space to the full-year
+    >28 °C check for having no TM59 application **or** for stating `UV`, with nothing in the domain
+    recording which reason applied — but the report now positively identifies a real communal corridor by
+    its restored/resolved `InternalCondition` (`TM59_Communal Corridor (including pipework gains)`), never
+    by Space name, and reports it under `COMMUNAL CORRIDOR RISK`; everything else the same calculation
+    produces is reported under `SUPPLEMENTARY >28 C CHECKS` instead, and never counted towards
+    `CorridorRiskStatus`.
 14. **The communal corridor is assessed with its own scenario and never attributed to a dwelling.**
 15. **`Query.PartFDwellingZones` is the single source of truth for what a dwelling is.** Part O scope
     delegates to it and only names the remainder as common space. One stricter rule on top: an **unmarked**
