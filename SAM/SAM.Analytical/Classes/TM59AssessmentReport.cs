@@ -86,6 +86,14 @@ namespace SAM.Analytical
 
             TM52BuildingCategory = tMResults_Natural.Concat(tMResults_Mechanical).Concat(tMResults_Corridors).FirstOrDefault()?.TM52BuildingCategory ?? TM52BuildingCategory.Undefined;
 
+            //The real annual series length this run used, read off whichever result carries it - never
+            //assumed to be 8760. An extended result of any of the three kinds carries its own operative-
+            //temperature series; a plain result only carries it on TM59CorridorResult, which is why the
+            //corridor/supplementary bucket is checked too, not only natural and mechanical.
+            AnnualHours = tMResults_Natural.Concat(tMResults_Mechanical).Concat(tMResults_Corridors)
+                .Select(AnnualHoursFor)
+                .FirstOrDefault(x => x.HasValue);
+
             //Keyed by the simulated space's Guid, as text - the same identity TMResult.Reference already
             //carries - never by Space.Name, which two dwellings can share. This is how a check row recovers
             //the restored/design InternalCondition the assessment actually classified it from.
@@ -141,6 +149,13 @@ namespace SAM.Analytical
 
         /// <summary>The category the comfort limits were derived for, as the results themselves report it.</summary>
         public TM52BuildingCategory TM52BuildingCategory { get; }
+
+        /// <summary>
+        /// The number of hours in the full annual series this assessment actually used (typically 8760),
+        /// read directly off a result that carries it. Null where nothing in the results states it - never
+        /// defaulted to 8760, since a partial-year series would make that a fabricated number.
+        /// </summary>
+        public int? AnnualHours { get; }
 
         /// <summary>
         /// Criterion 1 for every naturally ventilated space, and Criterion 2 alongside it - satisfied,
@@ -202,6 +217,21 @@ namespace SAM.Analytical
         private static List<TMResult> Clean(IEnumerable<TMResult> tMResults)
         {
             return [.. (tMResults ?? []).Where(x => x != null)];
+        }
+
+        /// <summary>
+        /// The real annual series length a single result carries, or null where this particular result
+        /// does not state one. An extended result of any kind carries its own operative-temperature series
+        /// (<see cref="TMExtendedResult.GetAnnualHours"/>); among plain results, only
+        /// <see cref="TM59CorridorResult"/> does.
+        /// </summary>
+        private static int? AnnualHoursFor(TMResult tMResult)
+        {
+            int value = tMResult is TMExtendedResult extended
+                ? extended.GetAnnualHours()
+                : (tMResult as TM59CorridorResult)?.AnnualHours ?? int.MinValue;
+
+            return value > 0 ? value : (int?)null;
         }
 
         /// <summary>

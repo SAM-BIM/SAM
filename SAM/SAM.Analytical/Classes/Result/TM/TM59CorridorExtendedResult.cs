@@ -33,33 +33,8 @@ namespace SAM.Analytical
 
         }
 
-        /// <summary>
-        /// The number of hours in the operative-temperature series this check was evaluated over - the
-        /// real annual basis <see cref="MaxExceedableHours"/> and <see cref="GetHoursNumberExceeding28()"/>
-        /// already derive their counts from, exposed on its own so a report can state the basis it used
-        /// rather than reconstruct it by dividing a truncated <see cref="MaxExceedableHours"/> back through
-        /// <see cref="TMExtendedResult.ExceedanceFactor"/>.
-        /// </summary>
-        public int GetAnnualHours()
-        {
-            IndexedDoubles operativeTemperatures = OperativeTemperatures;
-            if (operativeTemperatures == null)
-            {
-                return -1;
-            }
-
-            if (operativeTemperatures.Count <= 0)
-            {
-                return 0;
-            }
-
-            if (operativeTemperatures.GetMaxIndex() is not int maxIndex || operativeTemperatures.GetMinIndex() is not int minIndex)
-            {
-                return 0;
-            }
-
-            return maxIndex - minIndex + 1;
-        }
+        //GetAnnualHours() is now on the TMExtendedResult base - every TM59 extended result shares the same
+        //operative-temperature series, not only the corridor check.
 
         public int GetHoursNumberExceeding28()
         {

@@ -23,6 +23,13 @@ namespace SAM.Analytical
         /// <summary>Section headings, exposed so a caller checking for a section does not restate the string.</summary>
         public const string Heading = "CIBSE TM59:2017 OVERHEATING ASSESSMENT";
 
+        /// <summary>
+        /// Descriptive only - the fixed assessment periods this TM59:2017 implementation uses, plus the
+        /// one figure that is genuinely read off the data rather than assumed: the real annual series
+        /// length (see <see cref="TM59AssessmentReport.AnnualHours"/>). Never recomputes compliance.
+        /// </summary>
+        public const string Heading_AssessmentBasis = "ASSESSMENT BASIS";
+
         public const string Heading_NaturalVentilation = "NATURAL VENTILATION";
         public const string Heading_AssessmentHours = "ASSESSMENT HOURS";
         public const string Heading_MechanicalVentilation = "MECHANICAL VENTILATION";
@@ -82,6 +89,7 @@ namespace SAM.Analytical
             stringBuilder.AppendLine(string.Format("TM59 OCCUPIED-SPACE ASSESSMENT: {0}", Display(tM59AssessmentReport.OccupiedSpaceComplianceStatus)));
             stringBuilder.AppendLine(string.Format("TM59 COMMUNAL-CORRIDOR RISK: {0}", Display(tM59AssessmentReport.CorridorRiskStatus)));
 
+            AppendAssessmentBasisSection(stringBuilder, tM59AssessmentReport.AnnualHours);
             AppendNaturalVentilationSection(stringBuilder, tM59AssessmentReport.NaturalVentilationChecks);
             AppendAssessmentHoursSection(stringBuilder, tM59AssessmentReport.NaturalVentilationChecks);
             AppendMechanicalVentilationSection(stringBuilder, tM59AssessmentReport.MechanicalVentilationChecks);
@@ -157,6 +165,28 @@ namespace SAM.Analytical
         }
 
         /// <summary>
+        /// Descriptive only - the fixed assessment periods TM59:2017 defines for each criterion, plus the
+        /// one genuinely data-derived figure: the real annual series length this run used. Never states a
+        /// specific hour count it was not actually given, and never recomputes anything a check already
+        /// states.
+        /// </summary>
+        private static void AppendAssessmentBasisSection(StringBuilder stringBuilder, int? annualHours)
+        {
+            AppendHeading(stringBuilder, Heading_AssessmentBasis);
+
+            string simulationPeriod = annualHours.HasValue
+                ? string.Format(CultureInfo.InvariantCulture, "Full year ({0} hours)", annualHours.Value)
+                : "Full year";
+
+            stringBuilder.AppendLine(string.Format("Method:                         {0}", "CIBSE TM59:2017"));
+            stringBuilder.AppendLine(string.Format("Simulation period:              {0}", simulationPeriod));
+            stringBuilder.AppendLine("Natural ventilation study:      1 May - 30 September");
+            stringBuilder.AppendLine("Bedroom night-time period:      22:00 - 07:00, full year");
+            stringBuilder.AppendLine("Mechanical ventilation check:   Annual occupied hours");
+            stringBuilder.AppendLine("Communal corridor check:        Full year");
+        }
+
+        /// <summary>
         /// The basis hours behind Criterion 1 and Criterion 2, kept out of the main table so it stays
         /// compact - one row per space, grouped exactly as <see cref="AppendNaturalVentilationSection"/>
         /// groups them.
@@ -200,7 +230,7 @@ namespace SAM.Analytical
 
             List<string[]> rows =
             [
-                ["Space", "Internal Condition", "TM59 Application", "Occupied Hours", "Actual", "Limit", "Margin", "Status"],
+                ["Space", "Internal Condition", "TM59 Application", "Annual Occupied Hours", "Actual", "Limit", "Margin", "Status"],
                 .. tM59AssessmentReportChecks.Select(x => new[] { x.SpaceName ?? "-", x.InternalCondition ?? "-", x.Use ?? "-", Number(x.BasisHours), Number(x.Actual), Number(x.Limit), Margin(x.Margin), Display(x.ComplianceStatus) }),
             ];
 
@@ -352,15 +382,17 @@ namespace SAM.Analytical
                 "        Criterion 2 is inclusive, so a zero margin passes.\r\n" +
                 "\r\n" +
                 "Criterion 1     Adaptive thermal comfort criterion for applicable naturally ventilated\r\n" +
-                "                occupied rooms during 1 May - 30 September, against the Occupied Summer\r\n" +
-                "                Hours shown in the Assessment Hours table.\r\n" +
-                "Criterion 2     Bedroom night-time overheating criterion. Applies to bedrooms only; every\r\n" +
-                "                other space shows N/A. Assessed against Annual Night Occupied Hours.\r\n" +
+                "                occupied rooms, against Occupied Summer Hours (see Assessment Basis and\r\n" +
+                "                Assessment Hours).\r\n" +
+                "Criterion 2     Bedroom night-time overheating criterion. Applies to bedrooms only.\r\n" +
+                "                Assessed during 22:00-07:00 throughout the year against Annual Night\r\n" +
+                "                Occupied Hours.\r\n" +
                 ">26 C hours     Fixed-temperature criterion for applicable mechanically ventilated occupied\r\n" +
-                "                rooms, against Occupied Hours.\r\n" +
-                ">28 C hours     Annual communal-corridor overheating-risk criterion, against the annual\r\n" +
-                "                series length. A significant-risk result does not change the occupied-space\r\n" +
-                "                TM59 compliance result.\r\n" +
+                "                rooms, against Annual Occupied Hours.\r\n" +
+                ">28 C hours     Annual hours above 28 C.\r\n" +
+                "                For TM59 communal corridors this is the TM59 overheating-risk check.\r\n" +
+                "                For other spaces shown under Supplementary >28 C Checks it is advisory\r\n" +
+                "                engineering information only.\r\n" +
                 "\r\n" +
                 "ComplianceStatus\r\n" +
                 "    PASS  the applicable criterion was satisfied.\r\n" +

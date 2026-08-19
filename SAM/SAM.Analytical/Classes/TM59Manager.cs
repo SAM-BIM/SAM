@@ -5,6 +5,7 @@ using SAM.Core;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace SAM.Analytical
 {
@@ -186,9 +187,37 @@ namespace SAM.Analytical
             return IsSleeping(space?.Name, textMap);
         }
 
+        /// <summary>
+        /// The apartment-size qualifier SAM's own <c>TM59InternalConditionResolver</c> prefixes onto a
+        /// multi-bedroom apartment's Kitchen/Living Room condition name - e.g. <c>"1 Bed Apt. Kitchen"</c>.
+        /// It states how many bedrooms the APARTMENT has, not what this room is used for, and "Bed" is
+        /// coincidentally also a literal Sleeping keyword - see
+        /// <see cref="TM59SpaceApplicationClassificationTests"/> in <c>SAM.Tests</c> for the traced defect
+        /// this strips.
+        /// </summary>
+        private static readonly Regex ApartmentBedroomCountPrefix = new(@"^\s*\d+\s+Bed\s+Apt\.?\s*", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        /// <summary>
+        /// The name used to match Sleeping/Living/Cooking role keywords from an InternalCondition - its own
+        /// name with a leading apartment bedroom-count qualifier removed, where present. Space-name
+        /// classification (<see cref="IsSleeping(Space, TextMap)"/> and its Living/Cooking siblings) is
+        /// untouched: this normalisation applies only to the InternalCondition-based overloads, since the
+        /// apartment-size prefix is exclusively an InternalCondition naming convention, never a Space name.
+        /// </summary>
+        private static string RoleMatchName(InternalCondition internalCondition)
+        {
+            string name = internalCondition?.Name;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return name;
+            }
+
+            return ApartmentBedroomCountPrefix.Replace(name, string.Empty);
+        }
+
         public static bool IsSleeping(InternalCondition internalCondition, TextMap textMap)
         {
-            return IsSleeping(internalCondition?.Name, textMap);
+            return IsSleeping(RoleMatchName(internalCondition), textMap);
         }
 
         public static bool IsLiving(Space space, TextMap textMap)
@@ -198,7 +227,7 @@ namespace SAM.Analytical
 
         public static bool IsLiving(InternalCondition internalCondition, TextMap textMap)
         {
-            return IsLiving(internalCondition?.Name, textMap);
+            return IsLiving(RoleMatchName(internalCondition), textMap);
         }
 
         public static bool IsLiving(string name, TextMap textMap)
@@ -213,7 +242,7 @@ namespace SAM.Analytical
 
         public static bool IsCooking(InternalCondition internalCondition, TextMap textMap)
         {
-            return IsCooking(internalCondition?.Name, textMap);
+            return IsCooking(RoleMatchName(internalCondition), textMap);
         }
 
         public static bool IsCooking(string name, TextMap textMap)

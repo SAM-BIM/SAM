@@ -221,9 +221,101 @@ namespace SAM.Tests
             Assert.Contains("4740", tM59AssessmentReport.ToString());
         }
 
+        /// <summary>The mechanical basis column is headed "Annual Occupied Hours", not the ambiguous "Occupied Hours".</summary>
+        [Fact]
+        public void MechanicalVentilation_BasisColumnIsHeadedAnnualOccupiedHours()
+        {
+            string text = Report(mechanicalVentilation: [Mechanical("Kitchen_4", hoursExceeding26: 135, maxExceedableHours: 142, pass: true)]).ToString();
+
+            Assert.Contains("Annual Occupied Hours", text);
+        }
+
+        // ---------------------------------------------------------------------------------------------
+        // Assessment basis - descriptive, and never a hardcoded 8760
+        // ---------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// States the fixed TM59:2017 assessment periods, and the one genuinely data-derived figure - the
+        /// real annual series length - read off whichever result carries it, here the corridor check.
+        /// </summary>
+        [Fact]
+        public void AssessmentBasis_StatesTheFixedPeriodsAndTheRealAnnualSeriesLength()
+        {
+            Space space = new("Corridor_1") { InternalCondition = new InternalCondition(TM59InternalConditionResolver.CommunalCorridorInternalConditionName) };
+
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space],
+                corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false, reference: space.Guid.ToString(), annualHours: 8760)]);
+
+            Assert.Equal(8760, tM59AssessmentReport.AnnualHours);
+
+            string text = tM59AssessmentReport.ToString();
+
+            Assert.Contains(TM59AssessmentReportFormatter.Heading_AssessmentBasis, text);
+            Assert.Contains("CIBSE TM59:2017", text);
+            Assert.Contains("Full year (8760 hours)", text);
+            Assert.Contains("1 May - 30 September", text);
+            Assert.Contains("22:00 - 07:00", text);
+            Assert.Contains("Annual occupied hours", text);
+        }
+
+        /// <summary>
+        /// The whole point of reading this from data: an assessment whose real series is NOT 8760 hours
+        /// states the real number, not a hardcoded 8760.
+        /// </summary>
+        [Fact]
+        public void AssessmentBasis_DoesNotHardcode8760_StatesTheActualSeriesLength()
+        {
+            Space space = new("Corridor_1") { InternalCondition = new InternalCondition(TM59InternalConditionResolver.CommunalCorridorInternalConditionName) };
+
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space],
+                corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false, reference: space.Guid.ToString(), annualHours: 8784)]);
+
+            Assert.Equal(8784, tM59AssessmentReport.AnnualHours);
+
+            string text = tM59AssessmentReport.ToString();
+            Assert.Contains("Full year (8784 hours)", text);
+            Assert.DoesNotContain("8760", text);
+        }
+
+        /// <summary>Where nothing in the results states the real series length, the report says so honestly rather than assuming 8760.</summary>
+        [Fact]
+        public void AssessmentBasis_OmitsTheHourCount_WhenNoResultStatesIt()
+        {
+            //Plain (non-extended) natural/mechanical results carry no annual-series field of their own -
+            //only TM59CorridorResult and any extended result do - so with neither present here, nothing can
+            //state the real figure.
+            string text = Report(naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)]).ToString();
+
+            string assessmentBasisSection = Section(text, TM59AssessmentReportFormatter.Heading_AssessmentBasis, TM59AssessmentReportFormatter.Heading_NaturalVentilation);
+
+            Assert.Contains("Full year", assessmentBasisSection);
+            Assert.DoesNotContain("hours)", assessmentBasisSection);
+        }
+
+        /// <summary>Descriptive only - the section states the same periods regardless of the results' own numbers, and never changes any check's Actual/Limit/ComplianceStatus.</summary>
+        [Fact]
+        public void AssessmentBasis_IsDescriptiveOnly_NeverRecalculatesCompliance()
+        {
+            TM59AssessmentReportCheck check = Check(
+                Report(naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)]).NaturalVentilationChecks,
+                "Living 1_0", TM59AssessmentReport.Check_Criterion1);
+
+            Assert.Equal(37, check.Actual);
+            Assert.Equal(110, check.Limit);
+            Assert.Equal(TM59ComplianceStatus.Pass, check.ComplianceStatus);
+        }
+
         // ---------------------------------------------------------------------------------------------
         // Internal Condition and TM59 Application - two distinct, auditable columns
         // ---------------------------------------------------------------------------------------------
+        //
+        // The Kitchen classification fix itself (TM59Manager.RoleMatchName) is regressed against the real
+        // TM59Manager/TextMap pipeline in TM59SpaceApplicationClassificationTests, not here - this report's
+        // own fixtures build TMResult objects directly with a fixed TM59SpaceApplication, deliberately
+        // bypassing classification (see the class-level summary), so a fixture-level test could not
+        // exercise the fix at all.
 
         [Fact]
         public void InternalCondition_AppearsInTheReport_SeparateFromTM59Application()
@@ -497,6 +589,7 @@ namespace SAM.Tests
             foreach (string heading in new[]
             {
                 TM59AssessmentReportFormatter.Heading,
+                TM59AssessmentReportFormatter.Heading_AssessmentBasis,
                 TM59AssessmentReportFormatter.Heading_NaturalVentilation,
                 TM59AssessmentReportFormatter.Heading_AssessmentHours,
                 TM59AssessmentReportFormatter.Heading_MechanicalVentilation,
