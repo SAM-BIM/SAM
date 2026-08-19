@@ -45,7 +45,8 @@ namespace SAM.Analytical
                     tM59CorridorExtendedResult.OccupiedHours,
                     tM59CorridorExtendedResult.MaxExceedableHours,
                     tM59CorridorExtendedResult.GetHoursNumberExceeding28(),
-                    tM59CorridorExtendedResult.Pass);
+                    tM59CorridorExtendedResult.Pass,
+                    tM59CorridorExtendedResult.GetAnnualHours());
             }
 
             if (tMExtendedResult is TM59NaturalVentilationBedroomExtendedResult)

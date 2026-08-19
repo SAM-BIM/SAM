@@ -15,8 +15,9 @@ namespace SAM.Tests
     /// <b>What these tests are guarding.</b> The report exists so an engineer can check a TM59 run without
     /// re-deriving it, which only works if the report cannot disagree with the assessment. So the assertions
     /// are mostly about what the report is <i>not</i> allowed to do: invent a verdict from arithmetic, turn a
-    /// corridor's overheating risk into an occupied-space compliance failure, or quietly upgrade a criterion
-    /// that was never required of a space into a pass.
+    /// corridor's overheating risk into an occupied-space compliance failure, quietly upgrade a criterion
+    /// that was never required of a space into a pass, or identify a communal corridor by anything other
+    /// than its InternalCondition.
     /// </para>
     /// <para>
     /// The results are built directly rather than simulated. Every value below is a fixed number chosen to
@@ -28,7 +29,7 @@ namespace SAM.Tests
         private const string source = "SAM.Tests";
 
         // ---------------------------------------------------------------------------------------------
-        // Natural ventilation - Criterion 1 and Criterion 2 stay separate
+        // Natural ventilation - Criterion 1 and Criterion 2 stay separate in the data, one row in the text
         // ---------------------------------------------------------------------------------------------
 
         [Fact]
@@ -59,8 +60,9 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// Criterion 2 is a separate row with its own numbers, and it is the bedroom night-time figures that
-        /// appear on it - not Criterion 1's, which is the confusion a single merged Pass/Fail would create.
+        /// Criterion 2 is a separate row in the data with its own numbers, and it is the bedroom night-time
+        /// figures that appear on it - not Criterion 1's, which is the confusion a single merged Pass/Fail
+        /// would create.
         /// </summary>
         [Theory]
         [InlineData(11, 32, true)]
@@ -87,7 +89,8 @@ namespace SAM.Tests
 
         /// <summary>
         /// Criterion 2 is not required of a room that is not a bedroom. It is stated as N/A rather than left
-        /// off the report or folded into a pass, so a reader can see it was considered.
+        /// off the report or folded into a pass, so a reader can see it was considered - and that N/A is
+        /// what the rendered text shows on that space's row, not a blank cell.
         /// </summary>
         [Fact]
         public void NonBedroom_ReportsCriterion2AsNotApplicableRatherThanPass()
@@ -129,6 +132,64 @@ namespace SAM.Tests
         }
 
         // ---------------------------------------------------------------------------------------------
+        // Natural ventilation - one displayed row per space, and its basis hours
+        // ---------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// The text presents Criterion 1 and Criterion 2 on the SAME line for a bedroom - not as two
+        /// separate rows - and states the Overall verdict beside them.
+        /// </summary>
+        [Fact]
+        public void NaturalVentilation_RendersOneRowPerSpace_WithBothCriteriaOnIt()
+        {
+            string text = Report(naturalVentilation: [Bedroom("Studio 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true)]).ToString();
+
+            string naturalVentilationSection = Section(text, TM59AssessmentReportFormatter.Heading_NaturalVentilation, TM59AssessmentReportFormatter.Heading_AssessmentHours);
+
+            //Exactly one line carries the space name in this section - the header row does not repeat it.
+            Assert.Equal(1, naturalVentilationSection.Split('\n').Count(x => x.Contains("Studio 1_0")));
+
+            string line = naturalVentilationSection.Split('\n').Single(x => x.Contains("Studio 1_0"));
+            Assert.Contains("37/110", line);
+            Assert.Contains("11/32", line);
+            Assert.Contains("PASS", line);
+        }
+
+        /// <summary>A non-bedroom natural-ventilation row shows Criterion 2 as N/A on its single line, not FAIL or blank.</summary>
+        [Fact]
+        public void NaturalVentilation_NonBedroomRow_ShowsCriterion2AsNotApplicable()
+        {
+            string text = Report(naturalVentilation: [NaturalVentilation("Living_1", hoursExceedingComfortRange: 21, maxExceedableSummerHours: 105, pass: true)]).ToString();
+
+            string line = Section(text, TM59AssessmentReportFormatter.Heading_NaturalVentilation, TM59AssessmentReportFormatter.Heading_AssessmentHours)
+                .Split('\n').Single(x => x.Contains("Living_1"));
+
+            Assert.Contains("21/105", line);
+            Assert.Contains("N/A", line);
+            Assert.Contains("PASS", line);
+        }
+
+        /// <summary>
+        /// The exact Occupied Summer Hours and Annual Night Occupied Hours basis figures are exposed - read
+        /// off the result, not reconstructed from a rounded Limit.
+        /// </summary>
+        [Fact]
+        public void AssessmentHours_ExposesExactOccupiedSummerAndAnnualNightHours()
+        {
+            TM59AssessmentReport tM59AssessmentReport = Report(naturalVentilation: [Bedroom("Studio 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true)]);
+
+            TM59AssessmentReportCheck check_Criterion1 = Check(tM59AssessmentReport.NaturalVentilationChecks, "Studio 1_0", TM59AssessmentReport.Check_Criterion1);
+            TM59AssessmentReportCheck check_Criterion2 = Check(tM59AssessmentReport.NaturalVentilationChecks, "Studio 1_0", TM59AssessmentReport.Check_Criterion2);
+
+            Assert.Equal(3672, check_Criterion1.BasisHours);
+            Assert.Equal(3285, check_Criterion2.BasisHours);
+
+            string assessmentHoursSection = Section(tM59AssessmentReport.ToString(), TM59AssessmentReportFormatter.Heading_AssessmentHours, TM59AssessmentReportFormatter.Heading_MechanicalVentilation);
+            Assert.Contains("3672", assessmentHoursSection);
+            Assert.Contains("3285", assessmentHoursSection);
+        }
+
+        // ---------------------------------------------------------------------------------------------
         // Mechanical ventilation
         // ---------------------------------------------------------------------------------------------
 
@@ -148,93 +209,197 @@ namespace SAM.Tests
             Assert.Equal(expected, tM59AssessmentReport.MechanicalVentilationComplianceStatus);
         }
 
-        // ---------------------------------------------------------------------------------------------
-        // Corridors - risk, and only risk
-        // ---------------------------------------------------------------------------------------------
-
-        [Theory]
-        [InlineData(120, 262, true, TM59RiskStatus.Acceptable)]
-        [InlineData(337, 262, false, TM59RiskStatus.SignificantRisk)]
-        public void Corridor_IsReportedAsRiskNeverAsCompliance(int hoursExceeding28, int maxExceedableHours, bool pass, TM59RiskStatus expected)
+        /// <summary>The exact Occupied Hours basis is exposed directly on the mechanical row - there is only one denominator, so no separate table is needed.</summary>
+        [Fact]
+        public void MechanicalVentilation_ExposesExactOccupiedHours()
         {
-            TM59AssessmentReport tM59AssessmentReport = Report(corridor: [Corridor("Corridor_1", hoursExceeding28, maxExceedableHours, pass)]);
+            TM59AssessmentReport tM59AssessmentReport = Report(mechanicalVentilation: [Mechanical("Kitchen_4", hoursExceeding26: 135, maxExceedableHours: 142, pass: true)]);
 
-            TM59AssessmentReportCheck check = Check(tM59AssessmentReport.CorridorChecks, "Corridor_1", TM59AssessmentReport.Check_HoursExceeding28);
+            TM59AssessmentReportCheck check = Check(tM59AssessmentReport.MechanicalVentilationChecks, "Kitchen_4", TM59AssessmentReport.Check_HoursExceeding26);
 
-            Assert.Equal(expected, check.RiskStatus);
-            Assert.Equal(expected, tM59AssessmentReport.CorridorRiskStatus);
-
-            //The >28 C threshold is not a mandatory occupied-space test, so the row carries no Pass/Fail.
-            Assert.Equal(TM59ComplianceStatus.NotApplicable, check.ComplianceStatus);
-            Assert.DoesNotContain("Corridor = FAIL", tM59AssessmentReport.ToString());
-            Assert.DoesNotContain("Corridor = PASS", tM59AssessmentReport.ToString());
+            Assert.Equal(4740, check.BasisHours);
+            Assert.Contains("4740", tM59AssessmentReport.ToString());
         }
 
         // ---------------------------------------------------------------------------------------------
-        // The corridor bucket is a bucket, not an identification
+        // Internal Condition and TM59 Application - two distinct, auditable columns
+        // ---------------------------------------------------------------------------------------------
+
+        [Fact]
+        public void InternalCondition_AppearsInTheReport_SeparateFromTM59Application()
+        {
+            Space space = new("Bedroom 2_3") { InternalCondition = new InternalCondition("Double Bedroom") };
+
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space],
+                naturalVentilation: [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true, reference: space.Guid.ToString())]);
+
+            TM59AssessmentReportCheck check = Check(tM59AssessmentReport.NaturalVentilationChecks, "Bedroom 2_3", TM59AssessmentReport.Check_Criterion1);
+
+            Assert.Equal("Double Bedroom", check.InternalCondition);
+            Assert.Equal("Sleeping", check.Use);
+
+            string text = tM59AssessmentReport.ToString();
+            Assert.Contains("Internal Condition", text);
+            Assert.Contains("TM59 Application", text);
+            Assert.Contains("Double Bedroom", text);
+
+            string line = Section(text, TM59AssessmentReportFormatter.Heading_NaturalVentilation, TM59AssessmentReportFormatter.Heading_AssessmentHours)
+                .Split('\n').Single(x => x.Contains("Bedroom 2_3"));
+            Assert.Contains("Double Bedroom", line);
+            Assert.Contains("Sleeping", line);
+        }
+
+        // ---------------------------------------------------------------------------------------------
+        // Identity - grouping and lookup use Reference (the space Guid), never SpaceName
+        // ---------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// Two dwellings can each contain a room named "Bedroom 2". They must not be merged into one
+        /// displayed row - each keeps its own Criterion 1/2 numbers, distinguished by Reference.
+        /// </summary>
+        [Fact]
+        public void DuplicateRoomNamesInDifferentDwellings_DoNotMergeGroupedByReference()
+        {
+            Space space_FlatA = new("Bedroom 2");
+            Space space_FlatB = new("Bedroom 2");
+
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space_FlatA, space_FlatB],
+                naturalVentilation:
+                [
+                    Bedroom("Bedroom 2", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true, reference: space_FlatA.Guid.ToString()),
+                    Bedroom("Bedroom 2", hoursExceedingComfortRange: 60, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 20, maxExceedableNightHours: 32, pass: true, reference: space_FlatB.Guid.ToString()),
+                ]);
+
+            //Both rows exist in the data, each keyed by its own Reference.
+            Assert.Equal(2, tM59AssessmentReport.NaturalVentilationChecks.Count(x => x.Check == TM59AssessmentReport.Check_Criterion1 && x.SpaceName == "Bedroom 2"));
+            Assert.Equal(2, tM59AssessmentReport.NaturalVentilationChecks.Select(x => x.Reference).Distinct().Count());
+
+            //And the text shows two distinct lines, each with its own numbers - not one merged row.
+            string naturalVentilationSection = Section(tM59AssessmentReport.ToString(), TM59AssessmentReportFormatter.Heading_NaturalVentilation, TM59AssessmentReportFormatter.Heading_AssessmentHours);
+            List<string> lines = [.. naturalVentilationSection.Split('\n').Where(x => x.Contains("Bedroom 2"))];
+
+            Assert.Equal(2, lines.Count);
+            Assert.Contains(lines, x => x.Contains("37/110") && x.Contains("11/32"));
+            Assert.Contains(lines, x => x.Contains("60/110") && x.Contains("20/32"));
+        }
+
+        // ---------------------------------------------------------------------------------------------
+        // Communal corridor - positively identified by InternalCondition, never by Space name
+        // ---------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// Only a space whose restored InternalCondition is exactly the TM59 communal-corridor condition
+        /// lands in <c>CorridorChecks</c> / <c>COMMUNAL CORRIDOR RISK</c>, and it does so however the Space
+        /// happens to be named.
+        /// </summary>
+        [Fact]
+        public void CommunalCorridor_IsPositivelyIdentifiedByInternalCondition_NotBySpaceName()
+        {
+            //Named nothing like a corridor - the InternalCondition alone must still identify it.
+            Space space = new("Room_99") { InternalCondition = new InternalCondition(TM59InternalConditionResolver.CommunalCorridorInternalConditionName) };
+
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space],
+                corridor: [Corridor("Room_99", hoursExceeding28: 337, maxExceedableHours: 262, pass: false, reference: space.Guid.ToString())]);
+
+            Assert.Single(tM59AssessmentReport.CorridorChecks);
+            Assert.Empty(tM59AssessmentReport.SupplementaryChecks);
+            Assert.Equal(TM59RiskStatus.SignificantRisk, tM59AssessmentReport.CorridorRiskStatus);
+
+            string text = tM59AssessmentReport.ToString();
+            Assert.Contains(TM59AssessmentReportFormatter.Heading_CommunalCorridorRisk, text);
+            Assert.Contains(TM59InternalConditionResolver.CommunalCorridorInternalConditionName, text);
+        }
+
+        /// <summary>The converse: a Space literally named "Corridor" is NOT treated as a communal corridor without the matching InternalCondition.</summary>
+        [Fact]
+        public void ASpaceNamedCorridor_WithoutTheCommunalCorridorInternalCondition_IsNotClassifiedAsOne()
+        {
+            Space space = new("Corridor_5") { InternalCondition = new InternalCondition("TM59_Internal Corridor") };
+
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space],
+                corridor: [Corridor("Corridor_5", hoursExceeding28: 337, maxExceedableHours: 262, pass: false, reference: space.Guid.ToString())]);
+
+            Assert.Empty(tM59AssessmentReport.CorridorChecks);
+            Assert.Single(tM59AssessmentReport.SupplementaryChecks);
+            Assert.Equal(TM59RiskStatus.Undefined, tM59AssessmentReport.CorridorRiskStatus);
+        }
+
+        // ---------------------------------------------------------------------------------------------
+        // The corridor-style bucket also holds ancillary rooms - reported, never claimed as corridors
         // ---------------------------------------------------------------------------------------------
 
         /// <summary>
         /// <b>An ancillary room is never presented as a communal corridor.</b> A bathroom with no TM59 space
-        /// application reaches <c>CorridorResults</c> by exactly the same route a corridor does - see
-        /// <c>TMOverheatingCalculator.Calculate_TM59</c>, which buckets on "no space application OR strategy
-        /// 'UV'" - and nothing on the result records which of the two applied. So the report reports the
-        /// number and refuses to assert the identification.
+        /// application reaches the same &gt;28 °C calculation a communal corridor does, but its InternalCondition
+        /// is not the communal-corridor condition, so it is reported under
+        /// <see cref="TM59AssessmentReportFormatter.Heading_Supplementary"/> instead.
         /// </summary>
         [Fact]
         public void AnAncillaryRoom_IsNotPresentedAsACommunalCorridor()
         {
-            TM59AssessmentReport tM59AssessmentReport = Report(
-                naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)],
-                corridor: [Corridor("Bathroom_2", hoursExceeding28: 2, maxExceedableHours: 262, pass: true)]);
+            Space space = new("Bathroom_2") { InternalCondition = new InternalCondition("TM59_Bathroom") };
 
-            TM59AssessmentReportCheck check = Check(tM59AssessmentReport.CorridorChecks, "Bathroom_2", TM59AssessmentReport.Check_HoursExceeding28);
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space],
+                naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)],
+                corridor: [Corridor("Bathroom_2", hoursExceeding28: 2, maxExceedableHours: 262, pass: true, reference: space.Guid.ToString())]);
+
+            Assert.Empty(tM59AssessmentReport.CorridorChecks);
+
+            TM59AssessmentReportCheck check = Check(tM59AssessmentReport.SupplementaryChecks, "Bathroom_2", TM59AssessmentReport.Check_HoursExceeding28);
 
             //Not a compliance verdict, and not counted towards the occupied-space assessment either.
             Assert.Equal(TM59ComplianceStatus.NotApplicable, check.ComplianceStatus);
             Assert.Equal(TM59ComplianceStatus.Pass, tM59AssessmentReport.OccupiedSpaceComplianceStatus);
 
             string text = tM59AssessmentReport.ToString();
-
-            //The section it appears under does not call it a communal corridor, and the caveat is beside the
-            //table rather than buried in the legend.
-            Assert.Contains(TM59AssessmentReportFormatter.Heading_Corridors, text);
-            Assert.DoesNotContain("COMMUNAL CORRIDORS", text);
-            Assert.Contains(TM59AssessmentReportFormatter.Note_CorridorBucket, text);
-            Assert.Contains("does not by itself prove that the space is a TM59 communal corridor", text);
+            Assert.Contains(TM59AssessmentReportFormatter.Heading_Supplementary, text);
+            Assert.Contains("Bathroom_2", text);
         }
 
         /// <summary>
-        /// The same refusal to identify holds when the room really is over the threshold: the risk is stated
-        /// plainly, and it still does not become a corridor claim or an occupied-space failure.
+        /// The same refusal to identify holds when the room really is over the threshold, and a supplementary
+        /// row's own risk never contributes to the headline communal-corridor risk.
         /// </summary>
         [Fact]
-        public void AnAncillaryRoomOverTheThreshold_StatesRiskWithoutClaimingItIsACorridor()
+        public void SupplementaryChecks_DoNotAffectCorridorRiskStatus()
         {
-            TM59AssessmentReport tM59AssessmentReport = Report(
-                naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)],
-                corridor: [Corridor("Ensuite_5", hoursExceeding28: 400, maxExceedableHours: 262, pass: false)]);
+            Space space = new("Ensuite_5") { InternalCondition = new InternalCondition("TM59_Bathroom") };
 
-            Assert.Equal(TM59RiskStatus.SignificantRisk, Check(tM59AssessmentReport.CorridorChecks, "Ensuite_5", TM59AssessmentReport.Check_HoursExceeding28).RiskStatus);
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space],
+                naturalVentilation: [NaturalVentilation("Living 1_0", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, pass: true)],
+                corridor: [Corridor("Ensuite_5", hoursExceeding28: 400, maxExceedableHours: 262, pass: false, reference: space.Guid.ToString())]);
+
+            Assert.Equal(TM59RiskStatus.SignificantRisk, Check(tM59AssessmentReport.SupplementaryChecks, "Ensuite_5", TM59AssessmentReport.Check_HoursExceeding28).RiskStatus);
+
+            //No true communal corridor was assessed, so the headline stays Undefined - a supplementary row's
+            //own risk, however severe, does not promote it.
+            Assert.Equal(TM59RiskStatus.Undefined, tM59AssessmentReport.CorridorRiskStatus);
             Assert.Equal(TM59ComplianceStatus.Pass, tM59AssessmentReport.OccupiedSpaceComplianceStatus);
 
             string text = tM59AssessmentReport.ToString();
-
-            Assert.DoesNotContain("COMMUNAL CORRIDORS", text);
-            Assert.Contains("not a proven communal corridor", text);
+            Assert.Contains(TM59AssessmentReportFormatter.Heading_Supplementary, text);
         }
 
         /// <summary>
-        /// <b>The regulatory point of the whole separation.</b> A corridor over its threshold is highly
-        /// visible in the summary and changes nothing about whether the dwellings passed.
+        /// <b>The regulatory point of the whole separation.</b> A communal corridor over its threshold is
+        /// highly visible in the summary and changes nothing about whether the occupied spaces passed.
         /// </summary>
         [Fact]
         public void ASignificantRiskCorridor_DoesNotFailTheOccupiedSpaceAssessment()
         {
+            Space space_Corridor = new("Corridor_1") { InternalCondition = new InternalCondition(TM59InternalConditionResolver.CommunalCorridorInternalConditionName) };
+
             TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space_Corridor],
                 naturalVentilation: [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true)],
                 mechanicalVentilation: [Mechanical("Kitchen_4", hoursExceeding26: 135, maxExceedableHours: 142, pass: true)],
-                corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false)]);
+                corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false, reference: space_Corridor.Guid.ToString())]);
 
             Assert.Equal(TM59RiskStatus.SignificantRisk, tM59AssessmentReport.CorridorRiskStatus);
             Assert.Equal(TM59ComplianceStatus.Pass, tM59AssessmentReport.OccupiedSpaceComplianceStatus);
@@ -244,12 +409,10 @@ namespace SAM.Tests
             string text = tM59AssessmentReport.ToString();
 
             //Visible at the top and in the summary, and the two verdicts are stated as different things.
-            Assert.Contains("OCCUPIED SPACE ASSESSMENT: PASS", text);
-            Assert.Contains("TM59 occupied-space assessment: PASS", text);
-            Assert.Contains("SIGNIFICANT RISK", text);
-
-            //And the risk line names the bucket rather than asserting the space is a communal corridor.
-            Assert.Contains("Full-year >28 C risk (corridor-style bucket, not a proven communal corridor): SIGNIFICANT RISK", text);
+            Assert.Contains("TM59 OCCUPIED-SPACE ASSESSMENT: PASS", text);
+            Assert.Contains("TM59 COMMUNAL-CORRIDOR RISK: SIGNIFICANT RISK", text);
+            Assert.Contains("TM59 occupied-space assessment:   PASS", text);
+            Assert.Contains("TM59 communal-corridor risk:      SIGNIFICANT RISK", text);
         }
 
         // ---------------------------------------------------------------------------------------------
@@ -260,9 +423,12 @@ namespace SAM.Tests
         [Fact]
         public void Margin_IsLimitMinusActualAndIsRenderedSigned()
         {
+            Space space_Corridor = new("Corridor_1") { InternalCondition = new InternalCondition(TM59InternalConditionResolver.CommunalCorridorInternalConditionName) };
+
             TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space_Corridor],
                 mechanicalVentilation: [Mechanical("Kitchen_4", hoursExceeding26: 135, maxExceedableHours: 142, pass: true)],
-                corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false)]);
+                corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false, reference: space_Corridor.Guid.ToString())]);
 
             Assert.Equal(7, Check(tM59AssessmentReport.MechanicalVentilationChecks, "Kitchen_4", TM59AssessmentReport.Check_HoursExceeding26).Margin);
             Assert.Equal(-75, Check(tM59AssessmentReport.CorridorChecks, "Corridor_1", TM59AssessmentReport.Check_HoursExceeding28).Margin);
@@ -313,10 +479,18 @@ namespace SAM.Tests
         [Fact]
         public void TheText_CarriesEverySectionAndNamesItsSource()
         {
+            Space space_Corridor = new("Corridor_1") { InternalCondition = new InternalCondition(TM59InternalConditionResolver.CommunalCorridorInternalConditionName) };
+            Space space_Bathroom = new("Bathroom_2") { InternalCondition = new InternalCondition("TM59_Bathroom") };
+
             TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space_Corridor, space_Bathroom],
                 naturalVentilation: [Bedroom("Bedroom 2_3", hoursExceedingComfortRange: 37, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 11, maxExceedableNightHours: 32, pass: true)],
                 mechanicalVentilation: [Mechanical("Kitchen_4", hoursExceeding26: 135, maxExceedableHours: 142, pass: true)],
-                corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false)]);
+                corridor:
+                [
+                    Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false, reference: space_Corridor.Guid.ToString()),
+                    Corridor("Bathroom_2", hoursExceeding28: 2, maxExceedableHours: 262, pass: true, reference: space_Bathroom.Guid.ToString()),
+                ]);
 
             string text = tM59AssessmentReport.ToString();
 
@@ -324,8 +498,10 @@ namespace SAM.Tests
             {
                 TM59AssessmentReportFormatter.Heading,
                 TM59AssessmentReportFormatter.Heading_NaturalVentilation,
+                TM59AssessmentReportFormatter.Heading_AssessmentHours,
                 TM59AssessmentReportFormatter.Heading_MechanicalVentilation,
-                TM59AssessmentReportFormatter.Heading_Corridors,
+                TM59AssessmentReportFormatter.Heading_CommunalCorridorRisk,
+                TM59AssessmentReportFormatter.Heading_Supplementary,
                 TM59AssessmentReportFormatter.Heading_Unassessed,
                 TM59AssessmentReportFormatter.Heading_Summary,
                 TM59AssessmentReportFormatter.Heading_Legend,
@@ -336,12 +512,23 @@ namespace SAM.Tests
 
             Assert.Contains(source, text);
             Assert.Contains(TM52BuildingCategory.CategoryII.Description(), text);
+            Assert.Contains(TM59AssessmentReportFormatter.PartOModellingAssumptionsNotice, text);
 
             //Every criterion appears under its own name rather than as one merged verdict.
             Assert.Contains(TM59AssessmentReport.Check_Criterion1, text);
             Assert.Contains(TM59AssessmentReport.Check_Criterion2, text);
             Assert.Contains(TM59AssessmentReport.Check_HoursExceeding26, text);
             Assert.Contains(TM59AssessmentReport.Check_HoursExceeding28, text);
+        }
+
+        [Fact]
+        public void TheHeading_StatesTheTM59YearAndDoesNotClaimPartOCompliance()
+        {
+            string text = Report().ToString();
+
+            Assert.Contains("CIBSE TM59:2017 OVERHEATING ASSESSMENT", text);
+            Assert.DoesNotContain("PART O OVERHEATING VERIFICATION", text);
+            Assert.DoesNotContain("Part O compliant", text);
         }
 
         /// <summary>
@@ -351,7 +538,8 @@ namespace SAM.Tests
         [Fact]
         public void TheLegend_ExplainsEveryTermTheTableUses()
         {
-            string text = Report(corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false)]).ToString();
+            Space space = new("Corridor_1") { InternalCondition = new InternalCondition(TM59InternalConditionResolver.CommunalCorridorInternalConditionName) };
+            string text = Report(spaces: [space], corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false, reference: space.Guid.ToString())]).ToString();
 
             string legend = text[text.IndexOf(TM59AssessmentReportFormatter.Heading_Legend)..];
 
@@ -365,9 +553,9 @@ namespace SAM.Tests
             Assert.Contains("Limit - Actual", legend);
             Assert.Contains("inclusive", legend);
 
-            //Risk is explicitly not a compliance failure, and explicitly not a corridor identification.
-            Assert.Contains("NOT an", legend);
-            Assert.Contains("NOT, by itself, proof that the", legend);
+            //Risk is explicitly not a compliance failure.
+            Assert.Contains("NOT", legend);
+            Assert.Contains("occupied-space compliance failure", legend);
 
             //And the report never claims Part O compliance.
             Assert.Contains(TM59AssessmentReportFormatter.Caveat, text);
@@ -423,9 +611,17 @@ namespace SAM.Tests
             return tM59AssessmentReportChecks.Single(x => x.SpaceName == spaceName && x.Check == check);
         }
 
-        private static TM59AssessmentReport Report(List<TMResult> naturalVentilation = null, List<TMResult> mechanicalVentilation = null, List<TMResult> corridor = null)
+        /// <summary>The text strictly between two headings, so an assertion about one section cannot accidentally match another.</summary>
+        private static string Section(string text, string heading, string nextHeading)
         {
-            return new TM59AssessmentReport(null, mechanicalVentilation, naturalVentilation, corridor, null, source);
+            int start = text.IndexOf(heading);
+            int end = text.IndexOf(nextHeading, start);
+            return end == -1 ? text[start..] : text[start..end];
+        }
+
+        private static TM59AssessmentReport Report(List<Space> spaces = null, List<TMResult> naturalVentilation = null, List<TMResult> mechanicalVentilation = null, List<TMResult> corridor = null)
+        {
+            return new TM59AssessmentReport(spaces, mechanicalVentilation, naturalVentilation, corridor, null, source);
         }
 
         /// <summary>
@@ -439,19 +635,19 @@ namespace SAM.Tests
             return new TM59NaturalVentilationResult(name, source, reference, TM52BuildingCategory.CategoryII, 8760, 999, 3672, maxExceedableSummerHours, hoursExceedingComfortRange, pass, TM59SpaceApplication.Living);
         }
 
-        private static TMResult Bedroom(string name, int hoursExceedingComfortRange, int maxExceedableSummerHours, int nightHoursNumberExceeding26, int maxExceedableNightHours, bool pass)
+        private static TMResult Bedroom(string name, int hoursExceedingComfortRange, int maxExceedableSummerHours, int nightHoursNumberExceeding26, int maxExceedableNightHours, bool pass, string reference = null)
         {
-            return new TM59NaturalVentilationBedroomResult(name, source, null, TM52BuildingCategory.CategoryII, 8760, 999, hoursExceedingComfortRange, 3285, 3672, maxExceedableSummerHours, maxExceedableNightHours, nightHoursNumberExceeding26, pass);
+            return new TM59NaturalVentilationBedroomResult(name, source, reference, TM52BuildingCategory.CategoryII, 8760, 999, hoursExceedingComfortRange, 3285, 3672, maxExceedableSummerHours, maxExceedableNightHours, nightHoursNumberExceeding26, pass);
         }
 
-        private static TMResult Mechanical(string name, int hoursExceeding26, int maxExceedableHours, bool pass)
+        private static TMResult Mechanical(string name, int hoursExceeding26, int maxExceedableHours, bool pass, string reference = null)
         {
-            return new TM59MechanicalVentilationResult(name, source, null, TM52BuildingCategory.CategoryII, 4740, maxExceedableHours, hoursExceeding26, pass, TM59SpaceApplication.Cooking);
+            return new TM59MechanicalVentilationResult(name, source, reference, TM52BuildingCategory.CategoryII, 4740, maxExceedableHours, hoursExceeding26, pass, TM59SpaceApplication.Cooking);
         }
 
-        private static TMResult Corridor(string name, int hoursExceeding28, int maxExceedableHours, bool pass)
+        private static TMResult Corridor(string name, int hoursExceeding28, int maxExceedableHours, bool pass, string reference = null, int annualHours = 8760)
         {
-            return new TM59CorridorResult(name, source, null, TM52BuildingCategory.CategoryII, 8760, maxExceedableHours, hoursExceeding28, pass);
+            return new TM59CorridorResult(name, source, reference, TM52BuildingCategory.CategoryII, 8760, maxExceedableHours, hoursExceeding28, pass, annualHours);
         }
     }
 }

@@ -23,13 +23,15 @@ namespace SAM.Analytical
     /// design review, and stating it as a regulatory failure would claim an outcome TM59 does not reach.
     /// </para>
     /// <para>
-    /// <b>"Corridor" is this assessment's bucket name, not a proven physical identification.</b>
-    /// <c>TMOverheatingCalculator.Calculate_TM59</c> routes a space here when it carries no TM59 space
-    /// application at all, or when its ventilation strategy is the closed vocabulary's <c>"UV"</c> - which the
-    /// shipped capability index describes as "Unconditioned", not "communal corridor". A bathroom, hall,
-    /// ensuite or plant room reaches this bucket the same way a real corridor does, and nothing on the
-    /// resulting <c>TM59CorridorResult</c> records which reason applied - so this report cannot, and does not,
-    /// claim any row here is a confirmed communal corridor. See <see cref="TM59AssessmentReportFormatter.Note_CorridorBucket"/>.
+    /// <b>A communal corridor is positively identified, not merely bucketed.</b>
+    /// <c>TMOverheatingCalculator.Calculate_TM59</c> routes a space to the &gt;28 °C calculation when it
+    /// carries no TM59 space application at all, or when its ventilation strategy is the closed vocabulary's
+    /// <c>"UV"</c> - which also catches a bathroom, hall, ensuite or plant room, not only a real corridor. This
+    /// report tells the two apart by the space's restored/resolved InternalCondition: only
+    /// <see cref="TM59InternalConditionResolver.CommunalCorridorInternalConditionName"/> lands in
+    /// <see cref="CorridorChecks"/> and counts towards <see cref="CorridorRiskStatus"/>; everything else the
+    /// same calculation produced is real engineering information, kept in <see cref="SupplementaryChecks"/>
+    /// instead.
     /// </para>
     /// <para>
     /// <b>What this report does not say.</b> It is an assessment of simulated temperatures. It cannot show
@@ -84,16 +86,40 @@ namespace SAM.Analytical
 
             TM52BuildingCategory = tMResults_Natural.Concat(tMResults_Mechanical).Concat(tMResults_Corridors).FirstOrDefault()?.TM52BuildingCategory ?? TM52BuildingCategory.Undefined;
 
-            NaturalVentilationChecks = [.. tMResults_Natural.SelectMany(NaturalVentilationChecksFor)];
-            MechanicalVentilationChecks = [.. tMResults_Mechanical.Select(MechanicalVentilationCheckFor)];
-            CorridorChecks = [.. tMResults_Corridors.Select(CorridorCheckFor)];
+            //Keyed by the simulated space's Guid, as text - the same identity TMResult.Reference already
+            //carries - never by Space.Name, which two dwellings can share. This is how a check row recovers
+            //the restored/design InternalCondition the assessment actually classified it from.
+            Dictionary<string, Space> spacesByReference = [];
+            foreach (Space space in spaces ?? [])
+            {
+                if (space == null)
+                {
+                    continue;
+                }
+
+                spacesByReference[space.Guid.ToString()] = space;
+            }
+
+            NaturalVentilationChecks = [.. tMResults_Natural.SelectMany(x => NaturalVentilationChecksFor(x, spacesByReference))];
+            MechanicalVentilationChecks = [.. tMResults_Mechanical.Select(x => MechanicalVentilationCheckFor(x, spacesByReference))];
+
+            List<TM59AssessmentReportCheck> corridorBucketChecks = [.. tMResults_Corridors.Select(x => CorridorCheckFor(x, spacesByReference))];
+
+            //Only a space whose restored/resolved InternalCondition is positively the TM59 communal-corridor
+            //condition is a communal corridor. Everything else that landed in this bucket (a bathroom, a
+            //hall, an ensuite, or a space this run simply could not resolve an InternalCondition for) is real
+            //engineering information, but it is not a proven corridor, so it is kept apart rather than
+            //silently counted towards CorridorRiskStatus below.
+            CorridorChecks = [.. corridorBucketChecks.Where(x => x.InternalCondition == TM59InternalConditionResolver.CommunalCorridorInternalConditionName)];
+            SupplementaryChecks = [.. corridorBucketChecks.Where(x => x.InternalCondition != TM59InternalConditionResolver.CommunalCorridorInternalConditionName)];
 
             NaturalVentilationComplianceStatus = Combine(NaturalVentilationChecks);
             MechanicalVentilationComplianceStatus = Combine(MechanicalVentilationChecks);
             OccupiedSpaceComplianceStatus = Combine([.. NaturalVentilationChecks, .. MechanicalVentilationChecks]);
 
-            //Any corridor over its threshold makes the whole building's corridor risk significant - and that is
-            //as far as it travels. It is deliberately not folded into OccupiedSpaceComplianceStatus above.
+            //Any communal corridor over its threshold makes the whole building's corridor risk significant -
+            //and that is as far as it travels. It is deliberately not folded into OccupiedSpaceComplianceStatus
+            //above, and a supplementary (non-corridor) row over the same threshold never reaches this either.
             CorridorRiskStatus = CorridorChecks.Count == 0
                 ? TM59RiskStatus.Undefined
                 : CorridorChecks.Exists(x => x.RiskStatus == TM59RiskStatus.SignificantRisk) ? TM59RiskStatus.SignificantRisk : TM59RiskStatus.Acceptable;
@@ -126,11 +152,21 @@ namespace SAM.Analytical
         public List<TM59AssessmentReportCheck> MechanicalVentilationChecks { get; }
 
         /// <summary>
-        /// The full-year &gt;28 °C threshold, for every space the assessment put in the corridor-style bucket -
-        /// which is not the same as every communal corridor, and not only communal corridors. Every row carries
-        /// <c>ComplianceStatus.NotApplicable</c> and a real <c>RiskStatus</c>.
+        /// The &gt;28 °C communal-corridor overheating-risk threshold, for every space whose restored/resolved
+        /// InternalCondition is positively <see cref="TM59InternalConditionResolver.CommunalCorridorInternalConditionName"/>.
+        /// Every row carries <c>ComplianceStatus.NotApplicable</c> and a real <c>RiskStatus</c>. See
+        /// <see cref="SupplementaryChecks"/> for everything else the same &gt;28 °C calculation also produced.
         /// </summary>
         public List<TM59AssessmentReportCheck> CorridorChecks { get; }
+
+        /// <summary>
+        /// The same &gt;28 °C calculation, for every space the assessment put in that bucket WITHOUT a
+        /// positively identified communal-corridor InternalCondition - a bathroom, hall, ensuite, or any
+        /// other space with no assessed occupied-space use. Real engineering information, kept apart because
+        /// it is not a proven corridor: it never contributes to <see cref="CorridorRiskStatus"/> and is never
+        /// presented as a mandatory communal-corridor criterion.
+        /// </summary>
+        public List<TM59AssessmentReportCheck> SupplementaryChecks { get; }
 
         /// <summary>
         /// Spaces the assessment covered without producing a result, one sentence each, followed by the
@@ -173,9 +209,11 @@ namespace SAM.Analytical
         /// <c>NotApplicable</c> where it is not. A non-bedroom is stated rather than left off the report, so
         /// a reader can see the criterion was considered and not required.
         /// </summary>
-        private static IEnumerable<TM59AssessmentReportCheck> NaturalVentilationChecksFor(TMResult tMResult)
+        private static IEnumerable<TM59AssessmentReportCheck> NaturalVentilationChecksFor(TMResult tMResult, Dictionary<string, Space> spacesByReference)
         {
             string use = Use(tMResult);
+            string reference = tMResult.Reference;
+            string internalCondition = InternalConditionName(reference, spacesByReference);
 
             //The extended and plain results are sibling branches, not parent and child, so both are read
             //explicitly - and the bedroom variant is tested before its non-bedroom parent on each branch,
@@ -194,43 +232,74 @@ namespace SAM.Analytical
                 ? Count(extended_ForLimit.GetSummerMaxExceedableHours())
                 : Count((tMResult as TM59NaturalVentilationResult)?.MaxExceedableSummerHours);
 
-            yield return new TM59AssessmentReportCheck(tMResult.Name, use, Check_Criterion1, actual_Criterion1, limit_Criterion1, tMResult.Pass ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.Fail);
+            //The basis Criterion 1 was actually assessed against - Occupied Summer Hours - read directly off
+            //the result, the same fields Limit above already reads, never reconstructed from Limit.
+            int? basisHours_Criterion1 = tMResult is TM59NaturalVentilationExtendedResult extended_ForBasis1
+                ? Count(extended_ForBasis1.GetSummerOccupiedHours())
+                : Count((tMResult as TM59NaturalVentilationResult)?.SummerOccupiedHours);
+
+            yield return new TM59AssessmentReportCheck(tMResult.Name, use, Check_Criterion1, actual_Criterion1, limit_Criterion1, tMResult.Pass ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.Fail, reference: reference, internalCondition: internalCondition, basisHours: basisHours_Criterion1);
 
             if (tMResult is TM59NaturalVentilationBedroomExtendedResult bedroom_Extended)
             {
-                yield return new TM59AssessmentReportCheck(tMResult.Name, use, Check_Criterion2, Count(bedroom_Extended.GetNightHoursNumberExceeding26()), Count(bedroom_Extended.GetAnnualMaxExceedableNightHours()), bedroom_Extended.Criterion2 ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.Fail);
+                yield return new TM59AssessmentReportCheck(tMResult.Name, use, Check_Criterion2, Count(bedroom_Extended.GetNightHoursNumberExceeding26()), Count(bedroom_Extended.GetAnnualMaxExceedableNightHours()), bedroom_Extended.Criterion2 ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.Fail, reference: reference, internalCondition: internalCondition, basisHours: Count(bedroom_Extended.GetAnnualNightOccupiedHours()));
             }
             else if (tMResult is TM59NaturalVentilationBedroomResult bedroom)
             {
-                yield return new TM59AssessmentReportCheck(tMResult.Name, use, Check_Criterion2, Count(bedroom.NightHoursNumberExceeding26), Count(bedroom.MaxExceedableNightHours), bedroom.Criterion2 ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.Fail);
+                yield return new TM59AssessmentReportCheck(tMResult.Name, use, Check_Criterion2, Count(bedroom.NightHoursNumberExceeding26), Count(bedroom.MaxExceedableNightHours), bedroom.Criterion2 ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.Fail, reference: reference, internalCondition: internalCondition, basisHours: Count(bedroom.AnnualNightOccupiedHours));
             }
             else
             {
-                yield return new TM59AssessmentReportCheck(tMResult.Name, use, Check_Criterion2, null, null, TM59ComplianceStatus.NotApplicable);
+                yield return new TM59AssessmentReportCheck(tMResult.Name, use, Check_Criterion2, null, null, TM59ComplianceStatus.NotApplicable, reference: reference, internalCondition: internalCondition);
             }
         }
 
-        private static TM59AssessmentReportCheck MechanicalVentilationCheckFor(TMResult tMResult)
+        private static TM59AssessmentReportCheck MechanicalVentilationCheckFor(TMResult tMResult, Dictionary<string, Space> spacesByReference)
         {
             int? actual = tMResult is TM59MechanicalVentilationExtendedResult extended
                 ? Count(extended.GetHoursNumberExceeding26())
                 : Count((tMResult as TM59MechanicalVentilationResult)?.HoursExceeding26);
 
-            return new TM59AssessmentReportCheck(tMResult.Name, Use(tMResult), Check_HoursExceeding26, actual, Count(tMResult.MaxExceedableHours), tMResult.Pass ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.Fail);
+            //Occupied Hours is the one basis this criterion has, and it is already on the base TMResult -
+            //no branching between plain and extended is needed the way the natural-ventilation bases require.
+            int? basisHours = Count(tMResult.OccupiedHours);
+
+            return new TM59AssessmentReportCheck(tMResult.Name, Use(tMResult), Check_HoursExceeding26, actual, Count(tMResult.MaxExceedableHours), tMResult.Pass ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.Fail, reference: tMResult.Reference, internalCondition: InternalConditionName(tMResult.Reference, spacesByReference), basisHours: basisHours);
         }
 
         /// <summary>
-        /// The full-year &gt;28 °C row: <c>NotApplicable</c> as a compliance status - both because the threshold
-        /// is not a mandatory occupied-space test, and because the space is not positively identified as a
-        /// communal corridor - with the real answer in the risk status beside it.
+        /// The &gt;28 °C row: <c>NotApplicable</c> as a compliance status - both because the threshold is not a
+        /// mandatory occupied-space test, and because this method alone cannot tell a communal corridor apart
+        /// from any other space with no assessed occupied-space use. The caller partitions the result by
+        /// <see cref="TM59AssessmentReportCheck.InternalCondition"/> into <see cref="CorridorChecks"/> and
+        /// <see cref="SupplementaryChecks"/> - this method only ever builds the row itself.
         /// </summary>
-        private static TM59AssessmentReportCheck CorridorCheckFor(TMResult tMResult)
+        private static TM59AssessmentReportCheck CorridorCheckFor(TMResult tMResult, Dictionary<string, Space> spacesByReference)
         {
             int? actual = tMResult is TM59CorridorExtendedResult extended
                 ? Count(extended.GetHoursNumberExceeding28())
                 : Count((tMResult as TM59CorridorResult)?.HoursExceeding28);
 
-            return new TM59AssessmentReportCheck(tMResult.Name, Use(tMResult), Check_HoursExceeding28, actual, Count(tMResult.MaxExceedableHours), TM59ComplianceStatus.NotApplicable, tMResult.Pass ? TM59RiskStatus.Acceptable : TM59RiskStatus.SignificantRisk);
+            int? basisHours = tMResult is TM59CorridorExtendedResult extended_ForBasis
+                ? Count(extended_ForBasis.GetAnnualHours())
+                : Count((tMResult as TM59CorridorResult)?.AnnualHours);
+
+            return new TM59AssessmentReportCheck(tMResult.Name, Use(tMResult), Check_HoursExceeding28, actual, Count(tMResult.MaxExceedableHours), TM59ComplianceStatus.NotApplicable, tMResult.Pass ? TM59RiskStatus.Acceptable : TM59RiskStatus.SignificantRisk, reference: tMResult.Reference, internalCondition: InternalConditionName(tMResult.Reference, spacesByReference), basisHours: basisHours);
+        }
+
+        /// <summary>
+        /// The restored/design InternalCondition's name for the space this reference identifies - null where
+        /// the reference is absent, unrecognised, or the space carries no InternalCondition. Matched by Guid,
+        /// never by Space.Name.
+        /// </summary>
+        private static string InternalConditionName(string reference, Dictionary<string, Space> spacesByReference)
+        {
+            if (string.IsNullOrWhiteSpace(reference) || spacesByReference == null)
+            {
+                return null;
+            }
+
+            return spacesByReference.TryGetValue(reference, out Space space) ? space?.InternalCondition?.Name : null;
         }
 
         /// <summary>

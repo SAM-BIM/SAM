@@ -10,6 +10,10 @@ namespace SAM.Analytical
     {
         private int hoursExceeding28;
 
+        //int.MinValue - the plain results' unset marker - where a caller built this without stating the
+        //real annual series length, so a report reads it as absent rather than as a fabricated 0.
+        private int annualHours = int.MinValue;
+
         public TM59CorridorResult(
             string name,
             string source,
@@ -18,10 +22,12 @@ namespace SAM.Analytical
             int occupiedHours,
             int maxExceedableHours,
             int hoursExceeding28,
-            bool pass)
+            bool pass,
+            int annualHours = int.MinValue)
             : base(name, source, reference, tM52BuildingCategory, occupiedHours, maxExceedableHours, pass, TM59SpaceApplication.Undefined)
         {
             this.hoursExceeding28 = hoursExceeding28;
+            this.annualHours = annualHours;
         }
 
         public TM59CorridorResult(
@@ -33,10 +39,12 @@ namespace SAM.Analytical
             int occupiedHours,
             int maxExceedableHours,
             int hoursExceeding28,
-            bool pass)
+            bool pass,
+            int annualHours = int.MinValue)
             : base(guid, name, source, reference, tM52BuildingCategory, occupiedHours, maxExceedableHours, pass, TM59SpaceApplication.Undefined)
         {
             this.hoursExceeding28 = hoursExceeding28;
+            this.annualHours = annualHours;
         }
 
         public int HoursExceeding28
@@ -44,6 +52,19 @@ namespace SAM.Analytical
             get
             {
                 return hoursExceeding28;
+            }
+        }
+
+        /// <summary>
+        /// The number of hours in the annual series this check was evaluated over (typically 8760) - the
+        /// real basis behind <c>MaxExceedableHours</c>, read directly off the calculation rather than
+        /// reconstructed from it. <c>int.MinValue</c> where a caller never stated it.
+        /// </summary>
+        public int AnnualHours
+        {
+            get
+            {
+                return annualHours;
             }
         }
 
@@ -60,6 +81,11 @@ namespace SAM.Analytical
                 hoursExceeding28 = jsonObject["HoursExceeding28"]?.GetValue<int>() ?? 0;
             }
 
+            if (jsonObject.ContainsKey("AnnualHours"))
+            {
+                annualHours = jsonObject["AnnualHours"]?.GetValue<int>() ?? int.MinValue;
+            }
+
             return true;
         }
 
@@ -74,6 +100,11 @@ namespace SAM.Analytical
             if (hoursExceeding28 != int.MinValue)
             {
                 result["HoursExceeding28"] = hoursExceeding28;
+            }
+
+            if (annualHours != int.MinValue)
+            {
+                result["AnnualHours"] = annualHours;
             }
 
             return result;

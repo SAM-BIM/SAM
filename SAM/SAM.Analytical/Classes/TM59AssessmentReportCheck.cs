@@ -19,7 +19,7 @@ namespace SAM.Analytical
     /// </summary>
     public class TM59AssessmentReportCheck
     {
-        internal TM59AssessmentReportCheck(string spaceName, string use, string check, int? actual, int? limit, TM59ComplianceStatus tM59ComplianceStatus, TM59RiskStatus tM59RiskStatus = TM59RiskStatus.Undefined)
+        internal TM59AssessmentReportCheck(string spaceName, string use, string check, int? actual, int? limit, TM59ComplianceStatus tM59ComplianceStatus, TM59RiskStatus tM59RiskStatus = TM59RiskStatus.Undefined, string reference = null, string internalCondition = null, int? basisHours = null)
         {
             SpaceName = spaceName;
             Use = use;
@@ -28,10 +28,29 @@ namespace SAM.Analytical
             Limit = limit;
             ComplianceStatus = tM59ComplianceStatus;
             RiskStatus = tM59RiskStatus;
+            Reference = reference;
+            InternalCondition = internalCondition;
+            BasisHours = basisHours;
         }
 
         /// <summary>The simulated space the result was produced for.</summary>
         public string SpaceName { get; }
+
+        /// <summary>
+        /// The stable identity (the simulated space's Guid, as text) the result was produced against - never
+        /// the display name. Two spaces in different dwellings can share the same <see cref="SpaceName"/>
+        /// (e.g. "Bedroom 2"), so grouping rows for the same space (Criterion 1 beside Criterion 2, for
+        /// instance) has to key on this, not on the name. Null only where the result carried no reference at
+        /// all - a fixture built without one, never a real assessment.
+        /// </summary>
+        public string Reference { get; }
+
+        /// <summary>
+        /// The name of the restored/design SAM <c>InternalCondition</c> the assessment resolved for this
+        /// space, where the space list it was built from carries one - null otherwise. Read directly off the
+        /// <c>Space</c>, matched by <see cref="Reference"/>; never derived from <see cref="SpaceName"/>.
+        /// </summary>
+        public string InternalCondition { get; }
 
         /// <summary>
         /// The TM59 space applications the assessment read for this space - <c>Sleeping</c>, <c>Living</c>,
@@ -41,6 +60,16 @@ namespace SAM.Analytical
 
         /// <summary>Which criterion this row states.</summary>
         public string Check { get; }
+
+        /// <summary>
+        /// The denominator this criterion was actually assessed against - Occupied Summer Hours for
+        /// Criterion 1, Annual Night Occupied Hours for Criterion 2, Occupied Hours for the mechanical
+        /// &gt;26 °C check, and the annual series length for the &gt;28 °C check. Read directly off the
+        /// result the assessment produced, never reconstructed from <see cref="Limit"/> - dividing a
+        /// truncated limit back through its exceedance factor is not a reliable audit trail. Null where the
+        /// result carries no basis for this criterion.
+        /// </summary>
+        public int? BasisHours { get; }
 
         /// <summary>
         /// What the assessment counted. Null where the criterion does not apply, or where the result could

@@ -21,32 +21,33 @@ namespace SAM.Analytical
     public static class TM59AssessmentReportFormatter
     {
         /// <summary>Section headings, exposed so a caller checking for a section does not restate the string.</summary>
-        public const string Heading = "CIBSE TM59 / PART O OVERHEATING VERIFICATION";
+        public const string Heading = "CIBSE TM59:2017 OVERHEATING ASSESSMENT";
 
         public const string Heading_NaturalVentilation = "NATURAL VENTILATION";
+        public const string Heading_AssessmentHours = "ASSESSMENT HOURS";
         public const string Heading_MechanicalVentilation = "MECHANICAL VENTILATION";
 
-        /// <summary>
-        /// <b>Deliberately not "COMMUNAL CORRIDORS".</b> <c>TMOverheatingCalculator.Calculate_TM59</c> puts a
-        /// space here when it has no TM59 space application at all, OR when its stated ventilation strategy is
-        /// <c>"UV"</c> - which the shipped <c>SAM_Systems</c> capability index itself describes as
-        /// "Unconditioned. Provides nothing", not "communal corridor" - so a bathroom, hall, ensuite or plant
-        /// room lands here exactly the way a real corridor does, and nothing on the resulting
-        /// <c>TM59CorridorResult</c> records which reason applied. Calling this section "communal corridors"
-        /// would assert an identification the domain does not make.
-        /// </summary>
-        public const string Heading_Corridors = "FULL-YEAR >28 C / CORRIDOR-STYLE RESULTS";
+        /// <summary>Only a positively identified communal corridor - see <see cref="TM59AssessmentReport.CorridorChecks"/> - is presented here.</summary>
+        public const string Heading_CommunalCorridorRisk = "COMMUNAL CORRIDOR RISK";
 
-        /// <summary>The disclaimer <see cref="Heading_Corridors"/>'s ambiguity requires, shown beside the table itself and not only in the legend.</summary>
-        public const string Note_CorridorBucket =
-            "These results use the existing SAM full-year >28 C assessment bucket. A result in this section\r\n" +
-            "does not by itself prove that the space is a TM59 communal corridor - the same bucket also holds\r\n" +
-            "any space with no assessed occupied-space use. Confirm corridor applicability from the model or\r\n" +
-            "the assessment scope before treating a row here as a corridor.";
+        /// <summary>
+        /// The same &gt;28 °C calculation for every space that reached it WITHOUT a positively identified
+        /// communal-corridor InternalCondition - see <see cref="TM59AssessmentReport.SupplementaryChecks"/>.
+        /// Real engineering information, never a mandatory communal-corridor criterion.
+        /// </summary>
+        public const string Heading_Supplementary = "SUPPLEMENTARY >28 C CHECKS";
 
         public const string Heading_Unassessed = "SPACES NOT ASSESSED";
         public const string Heading_Summary = "SUMMARY";
         public const string Heading_Legend = "LEGEND";
+
+        /// <summary>
+        /// Printed near the header, beside the TM52 building category. This component assesses simulated
+        /// temperatures against TM59:2017 - it cannot itself prove that every Approved Document O modelling
+        /// assumption was applied to the simulation the results came from, so it states plainly, up front,
+        /// that it never verifies that.
+        /// </summary>
+        public const string PartOModellingAssumptionsNotice = "Part O modelling assumptions: NOT VERIFIED BY THIS RESULT REPORT";
 
         /// <summary>
         /// The one sentence the whole separation exists to allow. Passing temperatures do not establish that
@@ -54,9 +55,8 @@ namespace SAM.Analytical
         /// compliance is claimed anywhere in this report.
         /// </summary>
         public const string Caveat =
-            "This is a CIBSE TM59 assessment of simulated temperatures. It is not a statement of Approved\r\n" +
-            "Document O compliance: these results alone cannot show that every Part O modelling assumption\r\n" +
-            "was applied to the simulation they came from.";
+            "This report assesses simulated temperatures against CIBSE TM59:2017. It does not by itself\r\n" +
+            "verify that every Approved Document O modelling assumption was applied to the simulation.";
 
         public static string Text(TM59AssessmentReport tM59AssessmentReport)
         {
@@ -76,14 +76,17 @@ namespace SAM.Analytical
             }
 
             stringBuilder.AppendLine(string.Format("TM52 building category: {0}", tM59AssessmentReport.TM52BuildingCategory.Description()));
+            stringBuilder.AppendLine(PartOModellingAssumptionsNotice);
             stringBuilder.AppendLine();
 
-            stringBuilder.AppendLine(string.Format("OCCUPIED SPACE ASSESSMENT: {0}", Display(tM59AssessmentReport.OccupiedSpaceComplianceStatus)));
-            stringBuilder.AppendLine(string.Format("FULL-YEAR >28 C RISK (CORRIDOR-STYLE BUCKET): {0}", Display(tM59AssessmentReport.CorridorRiskStatus)));
+            stringBuilder.AppendLine(string.Format("TM59 OCCUPIED-SPACE ASSESSMENT: {0}", Display(tM59AssessmentReport.OccupiedSpaceComplianceStatus)));
+            stringBuilder.AppendLine(string.Format("TM59 COMMUNAL-CORRIDOR RISK: {0}", Display(tM59AssessmentReport.CorridorRiskStatus)));
 
-            AppendComplianceSection(stringBuilder, Heading_NaturalVentilation, tM59AssessmentReport.NaturalVentilationChecks);
-            AppendComplianceSection(stringBuilder, Heading_MechanicalVentilation, tM59AssessmentReport.MechanicalVentilationChecks);
-            AppendRiskSection(stringBuilder, Heading_Corridors, tM59AssessmentReport.CorridorChecks);
+            AppendNaturalVentilationSection(stringBuilder, tM59AssessmentReport.NaturalVentilationChecks);
+            AppendAssessmentHoursSection(stringBuilder, tM59AssessmentReport.NaturalVentilationChecks);
+            AppendMechanicalVentilationSection(stringBuilder, tM59AssessmentReport.MechanicalVentilationChecks);
+            AppendRiskSection(stringBuilder, Heading_CommunalCorridorRisk, tM59AssessmentReport.CorridorChecks);
+            AppendRiskSection(stringBuilder, Heading_Supplementary, tM59AssessmentReport.SupplementaryChecks);
 
             AppendHeading(stringBuilder, Heading_Unassessed);
             if (tM59AssessmentReport.UnassessedSpaces.Count == 0)
@@ -99,10 +102,10 @@ namespace SAM.Analytical
             }
 
             AppendHeading(stringBuilder, Heading_Summary);
-            stringBuilder.AppendLine(string.Format("Natural ventilation:            {0}", Display(tM59AssessmentReport.NaturalVentilationComplianceStatus)));
-            stringBuilder.AppendLine(string.Format("Mechanical ventilation:         {0}", Display(tM59AssessmentReport.MechanicalVentilationComplianceStatus)));
-            stringBuilder.AppendLine(string.Format("TM59 occupied-space assessment: {0}", Display(tM59AssessmentReport.OccupiedSpaceComplianceStatus)));
-            stringBuilder.AppendLine(string.Format("Full-year >28 C risk (corridor-style bucket, not a proven communal corridor): {0}", Display(tM59AssessmentReport.CorridorRiskStatus)));
+            stringBuilder.AppendLine(string.Format("Natural ventilation:             {0}", Display(tM59AssessmentReport.NaturalVentilationComplianceStatus)));
+            stringBuilder.AppendLine(string.Format("Mechanical ventilation:           {0}", Display(tM59AssessmentReport.MechanicalVentilationComplianceStatus)));
+            stringBuilder.AppendLine(string.Format("TM59 occupied-space assessment:   {0}", Display(tM59AssessmentReport.OccupiedSpaceComplianceStatus)));
+            stringBuilder.AppendLine(string.Format("TM59 communal-corridor risk:      {0}", Display(tM59AssessmentReport.CorridorRiskStatus)));
             stringBuilder.AppendLine();
             stringBuilder.AppendLine(Caveat);
 
@@ -112,18 +115,156 @@ namespace SAM.Analytical
             return stringBuilder.ToString();
         }
 
-        private static void AppendComplianceSection(StringBuilder stringBuilder, string heading, List<TM59AssessmentReportCheck> tM59AssessmentReportChecks)
+        /// <summary>
+        /// One row per space - Criterion 1 and Criterion 2 side by side, grouped by
+        /// <see cref="TM59AssessmentReportCheck.Reference"/> (the simulated space's Guid), never by
+        /// <see cref="TM59AssessmentReportCheck.SpaceName"/>. Two dwellings can share a room name; they
+        /// cannot share a Guid.
+        /// </summary>
+        private static void AppendNaturalVentilationSection(StringBuilder stringBuilder, List<TM59AssessmentReportCheck> tM59AssessmentReportChecks)
         {
-            AppendHeading(stringBuilder, heading);
-            AppendTable(stringBuilder, tM59AssessmentReportChecks, "Status", x => Display(x.ComplianceStatus));
+            AppendHeading(stringBuilder, Heading_NaturalVentilation);
+
+            if (tM59AssessmentReportChecks.Count == 0)
+            {
+                stringBuilder.AppendLine("No space was assessed against this criterion.");
+                return;
+            }
+
+            List<string[]> rows =
+            [
+                ["Space", "Internal Condition", "TM59 Application", "Criterion 1", "Criterion 2", "Overall"],
+            ];
+
+            foreach (IGrouping<string, TM59AssessmentReportCheck> group in GroupBySpace(tM59AssessmentReportChecks))
+            {
+                TM59AssessmentReportCheck check_Criterion1 = group.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion1);
+                TM59AssessmentReportCheck check_Criterion2 = group.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion2);
+                TM59AssessmentReportCheck any = check_Criterion1 ?? check_Criterion2 ?? group.First();
+
+                rows.Add(
+                [
+                    any.SpaceName ?? "-",
+                    any.InternalCondition ?? "-",
+                    any.Use ?? "-",
+                    CriterionCell(check_Criterion1),
+                    CriterionCell(check_Criterion2),
+                    Display(CombineForDisplay(check_Criterion1, check_Criterion2)),
+                ]);
+            }
+
+            AppendTable(stringBuilder, rows, rightAligned: [false, false, false, true, true, false]);
+        }
+
+        /// <summary>
+        /// The basis hours behind Criterion 1 and Criterion 2, kept out of the main table so it stays
+        /// compact - one row per space, grouped exactly as <see cref="AppendNaturalVentilationSection"/>
+        /// groups them.
+        /// </summary>
+        private static void AppendAssessmentHoursSection(StringBuilder stringBuilder, List<TM59AssessmentReportCheck> tM59AssessmentReportChecks)
+        {
+            AppendHeading(stringBuilder, Heading_AssessmentHours);
+
+            if (tM59AssessmentReportChecks.Count == 0)
+            {
+                stringBuilder.AppendLine("No space was assessed against this criterion.");
+                return;
+            }
+
+            List<string[]> rows =
+            [
+                ["Space", "Occupied Summer Hours", "Annual Night Occupied Hours"],
+            ];
+
+            foreach (IGrouping<string, TM59AssessmentReportCheck> group in GroupBySpace(tM59AssessmentReportChecks))
+            {
+                TM59AssessmentReportCheck check_Criterion1 = group.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion1);
+                TM59AssessmentReportCheck check_Criterion2 = group.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion2);
+                TM59AssessmentReportCheck any = check_Criterion1 ?? check_Criterion2 ?? group.First();
+
+                rows.Add([any.SpaceName ?? "-", Number(check_Criterion1?.BasisHours), Number(check_Criterion2?.BasisHours)]);
+            }
+
+            AppendTable(stringBuilder, rows, rightAligned: [false, true, true]);
+        }
+
+        private static void AppendMechanicalVentilationSection(StringBuilder stringBuilder, List<TM59AssessmentReportCheck> tM59AssessmentReportChecks)
+        {
+            AppendHeading(stringBuilder, Heading_MechanicalVentilation);
+
+            if (tM59AssessmentReportChecks.Count == 0)
+            {
+                stringBuilder.AppendLine("No space was assessed against this criterion.");
+                return;
+            }
+
+            List<string[]> rows =
+            [
+                ["Space", "Internal Condition", "TM59 Application", "Occupied Hours", "Actual", "Limit", "Margin", "Status"],
+                .. tM59AssessmentReportChecks.Select(x => new[] { x.SpaceName ?? "-", x.InternalCondition ?? "-", x.Use ?? "-", Number(x.BasisHours), Number(x.Actual), Number(x.Limit), Margin(x.Margin), Display(x.ComplianceStatus) }),
+            ];
+
+            AppendTable(stringBuilder, rows, rightAligned: [false, false, false, true, true, true, true, false]);
         }
 
         private static void AppendRiskSection(StringBuilder stringBuilder, string heading, List<TM59AssessmentReportCheck> tM59AssessmentReportChecks)
         {
             AppendHeading(stringBuilder, heading);
-            stringBuilder.AppendLine(Note_CorridorBucket);
-            stringBuilder.AppendLine();
-            AppendTable(stringBuilder, tM59AssessmentReportChecks, "Risk", x => Display(x.RiskStatus));
+
+            if (tM59AssessmentReportChecks.Count == 0)
+            {
+                stringBuilder.AppendLine("No space was assessed against this criterion.");
+                return;
+            }
+
+            List<string[]> rows =
+            [
+                ["Space", "Internal Condition", "Annual Hours", "Actual", "Limit", "Margin", "Risk"],
+                .. tM59AssessmentReportChecks.Select(x => new[] { x.SpaceName ?? "-", x.InternalCondition ?? "-", Number(x.BasisHours), Number(x.Actual), Number(x.Limit), Margin(x.Margin), Display(x.RiskStatus) }),
+            ];
+
+            AppendTable(stringBuilder, rows, rightAligned: [false, false, true, true, true, true, false]);
+        }
+
+        /// <summary>
+        /// Groups by <see cref="TM59AssessmentReportCheck.Reference"/> - the stable identity every row from
+        /// a real assessment carries - preserving first-seen order so the table reads in the same order the
+        /// assessment produced its results.
+        /// </summary>
+        private static IEnumerable<IGrouping<string, TM59AssessmentReportCheck>> GroupBySpace(List<TM59AssessmentReportCheck> tM59AssessmentReportChecks)
+        {
+            return tM59AssessmentReportChecks.GroupBy(x => x.Reference);
+        }
+
+        private static string CriterionCell(TM59AssessmentReportCheck check)
+        {
+            if (check == null || check.ComplianceStatus == TM59ComplianceStatus.NotApplicable)
+            {
+                return "N/A";
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, "{0}/{1} ({2}) {3}", Number(check.Actual), Number(check.Limit), Margin(check.Margin), Display(check.ComplianceStatus));
+        }
+
+        /// <summary>
+        /// The per-space Overall verdict: any failure fails the row; a row with nothing applicable (both
+        /// criteria N/A) is <c>NotApplicable</c> rather than a vacuous pass. The same combining rule
+        /// <see cref="TM59AssessmentReport"/> already applies across a whole section, applied here to the
+        /// one or two checks a single space carries.
+        /// </summary>
+        private static TM59ComplianceStatus CombineForDisplay(TM59AssessmentReportCheck check_Criterion1, TM59AssessmentReportCheck check_Criterion2)
+        {
+            TM59ComplianceStatus[] statuses = new[] { check_Criterion1?.ComplianceStatus, check_Criterion2?.ComplianceStatus }
+                .Where(x => x.HasValue)
+                .Select(x => x.Value)
+                .ToArray();
+
+            if (statuses.Contains(TM59ComplianceStatus.Fail))
+            {
+                return TM59ComplianceStatus.Fail;
+            }
+
+            return statuses.Contains(TM59ComplianceStatus.Pass) ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.NotApplicable;
         }
 
         private static void AppendHeading(StringBuilder stringBuilder, string heading)
@@ -133,24 +274,13 @@ namespace SAM.Analytical
             stringBuilder.AppendLine(new string('-', heading.Length));
         }
 
-        private static void AppendTable(StringBuilder stringBuilder, List<TM59AssessmentReportCheck> tM59AssessmentReportChecks, string heading_Verdict, System.Func<TM59AssessmentReportCheck, string> verdict)
+        /// <summary>
+        /// Lays out any rectangular table of already-rendered cells - the header is <c>rows[0]</c>. Column
+        /// widths are computed from the actual content, so every section shares the same automatic layout
+        /// regardless of how many columns it has.
+        /// </summary>
+        private static void AppendTable(StringBuilder stringBuilder, List<string[]> rows, bool[] rightAligned)
         {
-            if (tM59AssessmentReportChecks.Count == 0)
-            {
-                stringBuilder.AppendLine("No space was assessed against this criterion.");
-                return;
-            }
-
-            List<string[]> rows =
-            [
-                ["Space", "Use", "Check", "Actual", "Limit", "Margin", heading_Verdict],
-                .. tM59AssessmentReportChecks.Select(x => new string[] { x.SpaceName ?? "-", x.Use ?? "-", x.Check, Number(x.Actual), Number(x.Limit), Margin(x.Margin), verdict(x) }),
-            ];
-
-            //Right-aligned from the Actual column on, so the three counts and the margin line up under each
-            //other and a negative margin is visible at a glance down the column.
-            bool[] rightAligned = [false, false, false, true, true, true, false];
-
             int[] widths = new int[rows[0].Length];
             for (int i = 0; i < widths.Length; i++)
             {
@@ -207,49 +337,40 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// Short enough to stay useful in a panel. It explains the engineering meaning of each column and
-        /// each criterion as <b>this</b> implementation applies them - including the two places where the
-        /// implementation is easy to misread - and does not reproduce the publication.
+        /// Short enough to stay useful in a panel. States the engineering meaning of each column and each
+        /// criterion; the historical SAM-vs-TAS validation evidence lives in
+        /// <c>documentation/PartO-TAS-VALIDATION.md</c>, not here.
         /// </summary>
         private static string Legend()
         {
             return
-                "Actual  Hours the assessment counted for that criterion.\r\n" +
-                "Limit   Hours the criterion allows, as the assessment itself derived them.\r\n" +
-                "Margin  Limit - Actual. Positive = allowance remaining. Negative = threshold exceeded.\r\n" +
+                "Actual  Hours exceeding the relevant TM59 criterion.\r\n" +
+                "Limit   Maximum permitted hours for the criterion.\r\n" +
+                "Margin  Limit - Actual. Positive = allowance remaining, negative = threshold exceeded.\r\n" +
                 "        Status is taken from the assessment's own verdict, never re-derived from Margin:\r\n" +
                 "        Criterion 1, >26 C and >28 C are strict, so a zero margin is a failure, while\r\n" +
                 "        Criterion 2 is inclusive, so a zero margin passes.\r\n" +
                 "\r\n" +
-                "Criterion 1     Adaptive thermal comfort. Occupied hours (1 May - 30 Sep) whose operative\r\n" +
-                "                temperature exceeds the TM52 comfort range for the stated building category,\r\n" +
-                "                against 3% of the space's summer occupied hours - the same \"Occupied Summer\r\n" +
-                "                Hours\" / \"Max. Exceedable Hours\" basis TAS's own TM59 report states this\r\n" +
-                "                criterion on. Applies to naturally ventilated spaces.\r\n" +
-                "Criterion 2     Bedroom night-time overheating. Night occupied hours (22:00-07:00) above 26 C,\r\n" +
-                "                against 1% of the annual night occupied hours. Bedrooms only; every other\r\n" +
-                "                space shows N/A.\r\n" +
-                ">26 C hours     Fixed-temperature check for mechanically ventilated and restricted-opening\r\n" +
-                "                spaces: occupied hours above 26 C against 3% of the occupied hours.\r\n" +
-                ">28 C hours     Full-year overheating-risk indicator: hours above 28 C against 3% of the hours in\r\n" +
-                "                the series. Counted over the whole year regardless of occupancy, which is why\r\n" +
-                "                it can report hours for a room TAS's own canned report leaves out. Reported for\r\n" +
-                "                every space with no assessed occupied-space use - a communal corridor and an\r\n" +
-                "                unassessed bathroom, hall or ensuite reach it the same way, and this assessment\r\n" +
-                "                has nothing that tells the two apart.\r\n" +
+                "Criterion 1     Adaptive thermal comfort criterion for applicable naturally ventilated\r\n" +
+                "                occupied rooms during 1 May - 30 September, against the Occupied Summer\r\n" +
+                "                Hours shown in the Assessment Hours table.\r\n" +
+                "Criterion 2     Bedroom night-time overheating criterion. Applies to bedrooms only; every\r\n" +
+                "                other space shows N/A. Assessed against Annual Night Occupied Hours.\r\n" +
+                ">26 C hours     Fixed-temperature criterion for applicable mechanically ventilated occupied\r\n" +
+                "                rooms, against Occupied Hours.\r\n" +
+                ">28 C hours     Annual communal-corridor overheating-risk criterion, against the annual\r\n" +
+                "                series length. A significant-risk result does not change the occupied-space\r\n" +
+                "                TM59 compliance result.\r\n" +
                 "\r\n" +
                 "ComplianceStatus\r\n" +
                 "    PASS  the applicable criterion was satisfied.\r\n" +
                 "    FAIL  the applicable criterion was exceeded.\r\n" +
-                "    N/A   the criterion is not required of that space, or the space could not be positively\r\n" +
-                "          identified as a communal corridor - every row in the >28 C section is N/A for that\r\n" +
-                "          second reason. Never read as a pass.\r\n" +
+                "    N/A   the criterion is not required of that space.\r\n" +
                 "RiskStatus\r\n" +
                 "    ACCEPTABLE       the >28 C reference threshold was not exceeded.\r\n" +
-                "    SIGNIFICANT RISK the threshold was exceeded. Highlight for design review. This is NOT an\r\n" +
-                "                     occupied-space compliance failure and never changes the TM59\r\n" +
-                "                     occupied-space assessment above - and it is NOT, by itself, proof that the\r\n" +
-                "                     space is a communal corridor.\r\n";
+                "    SIGNIFICANT RISK the threshold was exceeded. Highlight for design review. This is NOT\r\n" +
+                "                     an occupied-space compliance failure and never changes the TM59\r\n" +
+                "                     occupied-space assessment above.\r\n";
         }
     }
 }
