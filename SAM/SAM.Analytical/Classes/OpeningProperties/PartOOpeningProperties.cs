@@ -17,6 +17,62 @@ namespace SAM.Analytical
 
         public double Factor { get; set; } = 1;
 
+        /// <summary>
+        /// Whether, and when, this opening may be used for overheating ventilation.
+        /// <para>
+        /// Legacy behaviour: any <c>PartOOpeningProperties</c> serialised before this member existed carries
+        /// no "OpeningRestriction" key, and deserialises to <see cref="OpeningRestriction.Unrestricted"/> -
+        /// the enum's default value - not to some other state.
+        /// </para>
+        /// </summary>
+        public OpeningRestriction OpeningRestriction { get; set; } = OpeningRestriction.Unrestricted;
+
+        /// <summary>
+        /// The hour (0-23) from which the opening becomes available under
+        /// <see cref="OpeningRestriction.NightClosed"/>. A Part O modelling preset (default 08:00), not a
+        /// regulatory constant - deliberately a plain property rather than a hard-coded value, so a future
+        /// caller can state a different availability window without changing the TAS transfer.
+        /// </summary>
+        public int NightOpenFromHour { get; set; } = 8;
+
+        /// <summary>
+        /// The hour (0-23) from which the opening becomes unavailable under
+        /// <see cref="OpeningRestriction.NightClosed"/>. See <see cref="NightOpenFromHour"/>.
+        /// </summary>
+        public int NightOpenToHour { get; set; } = 23;
+
+        /// <summary>
+        /// The daily availability profile implied by <see cref="OpeningRestriction"/>, or <c>null</c> when
+        /// none is needed (<see cref="OpeningRestriction.Unrestricted"/> and
+        /// <see cref="OpeningRestriction.AlwaysClosed"/> are both represented without a schedule - see the
+        /// TAS-side transfer). Deterministically named from the availability window, so the same window
+        /// always produces the same profile name and a TAS-side writer can reuse one schedule across every
+        /// opening that shares it.
+        /// </summary>
+        public Profile Profile
+        {
+            get
+            {
+                if (OpeningRestriction != OpeningRestriction.NightClosed)
+                {
+                    return null;
+                }
+
+                int from = ((NightOpenFromHour % 24) + 24) % 24;
+                int to = ((NightOpenToHour % 24) + 24) % 24;
+
+                double[] values = new double[24];
+                for (int hour = 0; hour < 24; hour++)
+                {
+                    bool open = from <= to ? (hour >= from && hour < to) : (hour >= from || hour < to);
+                    values[hour] = open ? 1 : 0;
+                }
+
+                string name = string.Format("PartO_DayOpen_{0:00}_{1:00}", from, to);
+                return new Profile(name, ProfileGroup.Ventilation, values);
+            }
+        }
+
         public ISingleOpeningProperties SingleOpeningProperties
         {
             get
@@ -30,11 +86,14 @@ namespace SAM.Analytical
 
         }
 
-        public PartOOpeningProperties(double width, double height, double openingAngle)
+        public PartOOpeningProperties(double width, double height, double openingAngle, OpeningRestriction openingRestriction = OpeningRestriction.Unrestricted, int nightOpenFromHour = 8, int nightOpenToHour = 23)
         {
             this.width = width;
             this.height = height;
             this.openingAngle = openingAngle;
+            OpeningRestriction = openingRestriction;
+            NightOpenFromHour = nightOpenFromHour;
+            NightOpenToHour = nightOpenToHour;
         }
         public PartOOpeningProperties(System.Text.Json.Nodes.JsonObject jsonObject)
 
@@ -53,6 +112,9 @@ namespace SAM.Analytical
                 height = partOOpeningProperties.height;
                 openingAngle = partOOpeningProperties.openingAngle;
                 Factor = partOOpeningProperties.Factor;
+                OpeningRestriction = partOOpeningProperties.OpeningRestriction;
+                NightOpenFromHour = partOOpeningProperties.NightOpenFromHour;
+                NightOpenToHour = partOOpeningProperties.NightOpenToHour;
             }
         }
 
@@ -81,6 +143,23 @@ namespace SAM.Analytical
             if (jsonObject.ContainsKey("Factor"))
             {
                 Factor = jsonObject["Factor"]?.GetValue<double>() ?? double.NaN;
+            }
+
+            //Absent on any PartOOpeningProperties serialised before this member existed - resolves to the
+            //enum's default value, Unrestricted, which is the correct legacy behaviour.
+            if (jsonObject.ContainsKey("OpeningRestriction"))
+            {
+                OpeningRestriction = Core.Query.Enum<OpeningRestriction>(jsonObject["OpeningRestriction"]?.GetValue<string>());
+            }
+
+            if (jsonObject.ContainsKey("NightOpenFromHour"))
+            {
+                NightOpenFromHour = jsonObject["NightOpenFromHour"]?.GetValue<int>() ?? NightOpenFromHour;
+            }
+
+            if (jsonObject.ContainsKey("NightOpenToHour"))
+            {
+                NightOpenToHour = jsonObject["NightOpenToHour"]?.GetValue<int>() ?? NightOpenToHour;
             }
 
             return true;
@@ -113,6 +192,10 @@ namespace SAM.Analytical
             {
                 jsonObject["Factor"] = Factor;
             }
+
+            jsonObject["OpeningRestriction"] = OpeningRestriction.ToString();
+            jsonObject["NightOpenFromHour"] = NightOpenFromHour;
+            jsonObject["NightOpenToHour"] = NightOpenToHour;
 
             return jsonObject;
         }

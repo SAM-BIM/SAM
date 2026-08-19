@@ -49,7 +49,8 @@ WHAT IT DOES
 1. Reads each space's Part F Space Data - it does NOT size anything. Run a Part F component first.
 2. Works out which Approved Document F condition the stage runs at. BasePassive is the continuous design condition, which is the Approved Document F sizing case.
 3. Writes that condition's supply and extract onto each sized space, in m3/s, so Query.CalculatedSupplyAirFlow and the TAS export can see them. Until now the Part F numbers were reporting only: the simulation never read them.
-4. States one OverheatingScenario per zone at that iteration.
+4. When the stage's 'Openings Restricted' assumption is false (BasePassive today), resets every SAM-generated PartOOpeningProperties restriction on the copy to Unrestricted, so the assumption reaches the TAS aperture-control write path instead of only being stated on the scenario. Never touches opening data this component did not generate.
+5. States one OverheatingScenario per zone at that iteration.
 
 TWO THINGS IT DOES DELIBERATELY, AND REPORTS
 - Part F becomes the AUTHORITATIVE rate. CalculatedSupplyAirFlow SUMS SupplyAirFlow with the per-person, per-area and air-changes bases, so a Part F rate written beside an existing one would ADD to it and over-ventilate the room. The other bases are cleared and every space where something was displaced is listed in notes.
@@ -64,7 +65,7 @@ ITERATIONS
 
 WHAT IT STILL DOES NOT DO
 - It does not select or apply a ventilation SYSTEM object. The capability selection exists but has no production caller yet.
-- It does not touch aperture control, so 'openings operated without restriction' is not enforced on the model.
+- It does not author a restriction (NightClosed/AlwaysClosed) onto any aperture - that stays the modeller's job, via PartOOpeningProperties.OpeningRestriction. This component only resets to Unrestricted when the stage says openings are not restricted.
 ";
 
         public SAMAnalyticalPreparePartOIteration()
@@ -175,6 +176,25 @@ WHAT IT STILL DOES NOT DO
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "No Part F rates could be applied, so there is nothing to simulate. Run a Part F component first.");
                 return;
+            }
+
+            //The join between the scenario's "Openings Restricted" assumption and the aperture-level
+            //OpeningRestriction this component can now enforce. Only BasePassive reaches here today -
+            //AcousticRestricted refuses earlier, at PartOIterationOperatingMode - so in practice this only
+            //ever resets a stage that already asserts "unrestricted". It stays keyed off the assumption
+            //rather than the iteration name so it keeps meaning the right thing once a mitigated stage's
+            //operating condition is settled and starts reaching this component.
+            OverheatingOperatingAssumptions operatingAssumptions = partOIteration.PartOOperatingAssumptions(out string refusal_Assumptions);
+            bool openingsRestricted = operatingAssumptions != null && operatingAssumptions.Value(Analytical.Query.OpeningsRestricted) == OverheatingOperatingAssumptions.Text(true);
+            if (operatingAssumptions != null && operatingAssumptions.Contains(Analytical.Query.OpeningsRestricted) && !openingsRestricted)
+            {
+                AnalyticalModel analyticalModel_Reset = analyticalModel_Applied.ResetPartOOpeningRestrictions(out List<string> notes_Reset);
+                if (notes_Reset != null && notes_Reset.Count != 0)
+                {
+                    notes.AddRange(notes_Reset);
+                }
+
+                analyticalModel_Applied = analyticalModel_Reset;
             }
 
             //Scenarios are stated over the APPLIED model, so a zone guid on a scenario and a zone guid in the model
