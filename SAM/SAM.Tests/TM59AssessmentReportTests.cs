@@ -253,15 +253,17 @@ namespace SAM.Tests
 
             Assert.Contains(TM59AssessmentReportFormatter.Heading_AssessmentBasis, text);
             Assert.Contains("CIBSE TM59:2017", text);
-            Assert.Contains("Full year (8760 hours)", text);
-            Assert.Contains("1 May - 30 September", text);
-            Assert.Contains("22:00 - 07:00", text);
-            Assert.Contains("Annual occupied hours", text);
+            Assert.Contains("1 Jan - 31 Dec (8760 hours)", text);
+            Assert.Contains("1 May - 30 Sep (3672 clock hours)", text);
+            Assert.Contains("22:00 - 07:00, full year (3285 clock hours)", text);
+            Assert.Contains("annual occupied hours are space-specific", text);
+            Assert.Contains("Communal corridor check:        Full year (8760 hours)", text);
         }
 
         /// <summary>
-        /// The whole point of reading this from data: an assessment whose real series is NOT 8760 hours
-        /// states the real number, not a hardcoded 8760.
+        /// The whole point of reading this from data: an assessment whose real series is NOT a standard
+        /// 8760-hour year states the real number and the real (leap-year) night-window figure, not a
+        /// hardcoded 8760/3285.
         /// </summary>
         [Fact]
         public void AssessmentBasis_DoesNotHardcode8760_StatesTheActualSeriesLength()
@@ -275,11 +277,20 @@ namespace SAM.Tests
             Assert.Equal(8784, tM59AssessmentReport.AnnualHours);
 
             string text = tM59AssessmentReport.ToString();
-            Assert.Contains("Full year (8784 hours)", text);
+            Assert.Contains("1 Jan - 31 Dec (8784 hours)", text);
+            Assert.Contains("Communal corridor check:        Full year (8784 hours)", text);
+
+            //The 366-day leap-year night-window figure, not the standard-year 3285 - and the summer study
+            //period is unaffected (1 May - 30 Sep never includes February).
+            Assert.Contains("22:00 - 07:00, full year (3294 clock hours)", text);
+            Assert.Contains("1 May - 30 Sep (3672 clock hours)", text);
             Assert.DoesNotContain("8760", text);
         }
 
-        /// <summary>Where nothing in the results states the real series length, the report says so honestly rather than assuming 8760.</summary>
+        /// <summary>
+        /// Where nothing in the results states the real series length, the report says so honestly rather
+        /// than assuming a standard year - no fabricated hour count and no fabricated clock-hour figure.
+        /// </summary>
         [Fact]
         public void AssessmentBasis_OmitsTheHourCount_WhenNoResultStatesIt()
         {
@@ -291,7 +302,29 @@ namespace SAM.Tests
             string assessmentBasisSection = Section(text, TM59AssessmentReportFormatter.Heading_AssessmentBasis, TM59AssessmentReportFormatter.Heading_NaturalVentilation);
 
             Assert.Contains("Full year", assessmentBasisSection);
+            Assert.Contains("1 May - 30 Sep", assessmentBasisSection);
             Assert.DoesNotContain("hours)", assessmentBasisSection);
+            Assert.DoesNotContain("clock hours", assessmentBasisSection);
+        }
+
+        /// <summary>A non-standard annual series (neither 365 nor 366 days) is not forced into a misleading clock-hour total either.</summary>
+        [Fact]
+        public void AssessmentBasis_OmitsClockHours_WhenTheSeriesIsNotAStandardYear()
+        {
+            Space space = new("Corridor_1") { InternalCondition = new InternalCondition(TM59InternalConditionResolver.CommunalCorridorInternalConditionName) };
+
+            //A partial-year run - a real annual figure, but not one that supports the 365/366-day clock-hour derivation.
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                spaces: [space],
+                corridor: [Corridor("Corridor_1", hoursExceeding28: 337, maxExceedableHours: 262, pass: false, reference: space.Guid.ToString(), annualHours: 4380)]);
+
+            string text = tM59AssessmentReport.ToString();
+
+            Assert.Contains("1 Jan - 31 Dec (4380 hours)", text);
+            Assert.Contains("Communal corridor check:        Full year (4380 hours)", text);
+
+            string assessmentBasisSection = Section(text, TM59AssessmentReportFormatter.Heading_AssessmentBasis, TM59AssessmentReportFormatter.Heading_NaturalVentilation);
+            Assert.DoesNotContain("clock hours", assessmentBasisSection);
         }
 
         /// <summary>Descriptive only - the section states the same periods regardless of the results' own numbers, and never changes any check's Actual/Limit/ComplianceStatus.</summary>
@@ -636,7 +669,7 @@ namespace SAM.Tests
 
             string legend = text[text.IndexOf(TM59AssessmentReportFormatter.Heading_Legend)..];
 
-            foreach (string term in new[] { "Actual", "Limit", "Margin", "Criterion 1", "Criterion 2", ">26 C hours", ">28 C hours", "ComplianceStatus", "RiskStatus", "N/A" })
+            foreach (string term in new[] { "Actual", "Limit", "Margin", "Criterion 1", "Criterion 2", ">26 C hours", ">28 C hours", "TM59 Application", "ComplianceStatus", "RiskStatus", "N/A" })
             {
                 Assert.Contains(term, legend);
             }
@@ -653,6 +686,35 @@ namespace SAM.Tests
             //And the report never claims Part O compliance.
             Assert.Contains(TM59AssessmentReportFormatter.Caveat, text);
             Assert.DoesNotContain("Part O compliant", text);
+        }
+
+        /// <summary>
+        /// The TM59 Application legend lists the real <see cref="TM59SpaceApplication"/> values - Sleeping,
+        /// Living, Cooking - each with a short explanation, and an example of a space carrying more than
+        /// one. <c>Undefined</c> is excluded: it can never appear in a rendered TM59 Application cell (see
+        /// <see cref="InternalCondition_AppearsInTheReport_SeparateFromTM59Application"/> and
+        /// <see cref="NaturalVentilation_NonBedroomRow_ShowsCriterion2AsNotApplicable"/> for what a cell with
+        /// no application at all shows instead: "-", never the word "Undefined"), so explaining it in the
+        /// legend would describe a value a reader cannot actually see.
+        /// </summary>
+        [Fact]
+        public void TheLegend_ListsTheRealTM59ApplicationValues()
+        {
+            string text = Report().ToString();
+            string legend = text[text.IndexOf(TM59AssessmentReportFormatter.Heading_Legend)..];
+
+            foreach (TM59SpaceApplication tM59SpaceApplication in System.Enum.GetValues(typeof(TM59SpaceApplication)))
+            {
+                if (tM59SpaceApplication == TM59SpaceApplication.Undefined)
+                {
+                    Assert.DoesNotContain("Undefined", legend);
+                    continue;
+                }
+
+                Assert.Contains(tM59SpaceApplication.ToString(), legend);
+            }
+
+            Assert.Contains("Living, Cooking", legend);
         }
 
         // ---------------------------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -40,9 +41,10 @@ namespace SAM.Analytical
         /// <summary>
         /// The same &gt;28 °C calculation for every space that reached it WITHOUT a positively identified
         /// communal-corridor InternalCondition - see <see cref="TM59AssessmentReport.SupplementaryChecks"/>.
-        /// Real engineering information, never a mandatory communal-corridor criterion.
+        /// Real engineering information, never a mandatory communal-corridor criterion - the heading says so
+        /// explicitly rather than relying on a reader to infer it from the section name alone.
         /// </summary>
-        public const string Heading_Supplementary = "SUPPLEMENTARY >28 C CHECKS";
+        public const string Heading_Supplementary = "SUPPLEMENTARY >28 C CHECKS - INFORMATION ONLY";
 
         public const string Heading_Unassessed = "SPACES NOT ASSESSED";
         public const string Heading_Summary = "SUMMARY";
@@ -166,24 +168,66 @@ namespace SAM.Analytical
 
         /// <summary>
         /// Descriptive only - the fixed assessment periods TM59:2017 defines for each criterion, plus the
-        /// one genuinely data-derived figure: the real annual series length this run used. Never states a
-        /// specific hour count it was not actually given, and never recomputes anything a check already
-        /// states.
+        /// one genuinely data-derived figure: the real annual series length this run used
+        /// (<see cref="TM59AssessmentReport.AnnualHours"/>). The two "clock hours" figures beside the
+        /// natural-ventilation study period and the bedroom night-time window are calendar constants of a
+        /// standard (365- or 366-day) year - 1 May-30 September is always 153 days regardless of a leap
+        /// year, since February never falls in that range - stated only when the real annual series
+        /// confirms the run actually covers a standard year; never printed against a partial or non-standard
+        /// series, where they would be misleading. Never recomputes anything a check already states, and
+        /// never alters compliance.
         /// </summary>
         private static void AppendAssessmentBasisSection(StringBuilder stringBuilder, int? annualHours)
         {
             AppendHeading(stringBuilder, Heading_AssessmentBasis);
 
+            int? standardYearDays = StandardYearDays(annualHours);
+
             string simulationPeriod = annualHours.HasValue
+                ? string.Format(CultureInfo.InvariantCulture, "1 Jan - 31 Dec ({0} hours)", annualHours.Value)
+                : "1 Jan - 31 Dec";
+
+            //153 days (May 31 + Jun 30 + Jul 31 + Aug 31 + Sep 30) - fixed regardless of leap year, since
+            //the range never includes February.
+            string naturalVentilationStudy = standardYearDays.HasValue
+                ? string.Format(CultureInfo.InvariantCulture, "1 May - 30 Sep ({0} clock hours)", 153 * 24)
+                : "1 May - 30 Sep";
+
+            string bedroomNightWindow = standardYearDays.HasValue
+                ? string.Format(CultureInfo.InvariantCulture, "22:00 - 07:00, full year ({0} clock hours)", 9 * standardYearDays.Value)
+                : "22:00 - 07:00, full year";
+
+            string communalCorridorCheck = annualHours.HasValue
                 ? string.Format(CultureInfo.InvariantCulture, "Full year ({0} hours)", annualHours.Value)
                 : "Full year";
 
             stringBuilder.AppendLine(string.Format("Method:                         {0}", "CIBSE TM59:2017"));
             stringBuilder.AppendLine(string.Format("Simulation period:              {0}", simulationPeriod));
-            stringBuilder.AppendLine("Natural ventilation study:      1 May - 30 September");
-            stringBuilder.AppendLine("Bedroom night-time period:      22:00 - 07:00, full year");
-            stringBuilder.AppendLine("Mechanical ventilation check:   Annual occupied hours");
-            stringBuilder.AppendLine("Communal corridor check:        Full year");
+            stringBuilder.AppendLine(string.Format("Natural ventilation study:      {0}", naturalVentilationStudy));
+            stringBuilder.AppendLine(string.Format("Bedroom night-time window:      {0}", bedroomNightWindow));
+            stringBuilder.AppendLine("Mechanical ventilation check:   Full year; annual occupied hours are space-specific");
+            stringBuilder.AppendLine(string.Format("Communal corridor check:        {0}", communalCorridorCheck));
+        }
+
+        /// <summary>
+        /// The number of days in the annual series, ONLY where that series is exactly a standard 365- or
+        /// 366-day year (8760 or 8784 hours) - null for anything else (a partial run, an unusual series
+        /// length, or no figure at all), so the calendar-derived clock-hour figures beside it are never
+        /// printed against a series that does not actually support them.
+        /// </summary>
+        private static int? StandardYearDays(int? annualHours)
+        {
+            if (annualHours == 8760)
+            {
+                return 365;
+            }
+
+            if (annualHours == 8784)
+            {
+                return 366;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -374,7 +418,7 @@ namespace SAM.Analytical
         private static string Legend()
         {
             return
-                "Actual  Hours exceeding the relevant TM59 criterion.\r\n" +
+                "Actual  Hours exceeding the stated temperature/comfort threshold.\r\n" +
                 "Limit   Maximum permitted hours for the criterion.\r\n" +
                 "Margin  Limit - Actual. Positive = allowance remaining, negative = threshold exceeded.\r\n" +
                 "        Status is taken from the assessment's own verdict, never re-derived from Margin:\r\n" +
@@ -394,6 +438,8 @@ namespace SAM.Analytical
                 "                For other spaces shown under Supplementary >28 C Checks it is advisory\r\n" +
                 "                engineering information only.\r\n" +
                 "\r\n" +
+                TM59ApplicationLegend() +
+                "\r\n" +
                 "ComplianceStatus\r\n" +
                 "    PASS  the applicable criterion was satisfied.\r\n" +
                 "    FAIL  the applicable criterion was exceeded.\r\n" +
@@ -403,6 +449,54 @@ namespace SAM.Analytical
                 "    SIGNIFICANT RISK the threshold was exceeded. Highlight for design review. This is NOT\r\n" +
                 "                     an occupied-space compliance failure and never changes the TM59\r\n" +
                 "                     occupied-space assessment above.\r\n";
+        }
+
+        /// <summary>
+        /// A short explanation of each TM59 Application a space can be assessed under - an assessment ROLE,
+        /// not necessarily the complete architectural room type (a Studio is Sleeping, Living AND Cooking at
+        /// once). The values listed are read off the real <see cref="TM59SpaceApplication"/> enum rather
+        /// than an independently typed-out list, so a future application added to the enum appears here
+        /// automatically. <c>Undefined</c> is excluded deliberately - it is never present in a check's
+        /// <see cref="TM59AssessmentReportCheck.Use"/> string (see <see cref="TM59AssessmentReport"/>'s
+        /// <c>Use</c> method, which only ever joins Sleeping/Living/Cooking), so explaining it here would
+        /// describe a value a reader can never actually see.
+        /// </summary>
+        private static string TM59ApplicationLegend()
+        {
+            StringBuilder stringBuilder = new();
+            stringBuilder.AppendLine("TM59 Application");
+
+            foreach (TM59SpaceApplication tM59SpaceApplication in Enum.GetValues(typeof(TM59SpaceApplication)))
+            {
+                if (tM59SpaceApplication == TM59SpaceApplication.Undefined)
+                {
+                    continue;
+                }
+
+                stringBuilder.AppendLine(string.Format(CultureInfo.InvariantCulture, "    {0,-9} {1}", tM59SpaceApplication, TM59ApplicationDescription(tM59SpaceApplication)));
+            }
+
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine("    Multiple applications may apply to one space, for example:");
+            stringBuilder.AppendLine("    Living, Cooking");
+
+            return stringBuilder.ToString();
+        }
+
+        /// <summary>
+        /// A one-line explanation for a known application; falls back to the enum's own
+        /// <c>[Description]</c> attribute for any value this formatter was not updated to describe by name,
+        /// so a future application still gets a line rather than being silently skipped.
+        /// </summary>
+        private static string TM59ApplicationDescription(TM59SpaceApplication tM59SpaceApplication)
+        {
+            return tM59SpaceApplication switch
+            {
+                TM59SpaceApplication.Sleeping => "Space assessed as a bedroom/sleeping space.",
+                TM59SpaceApplication.Living => "Space assessed as a living space.",
+                TM59SpaceApplication.Cooking => "Space assessed as a kitchen/cooking space.",
+                _ => tM59SpaceApplication.Description(),
+            };
         }
     }
 }

@@ -336,6 +336,55 @@ namespace SAM.Tests
             Assert.NotEmpty(tM59ExtendedResults);
         }
 
+        /// <summary>
+        /// <b>End to end, through the real engine.</b> A naturally ventilated apartment "Living Room" (no
+        /// bedroom in its name) must not be routed as a bedroom just because its InternalCondition's name
+        /// happens to contain the token "Bed" or "Room" - see the fixed "room"/"bedroom" substring collision
+        /// in <c>TM59MatcherTests</c>/<c>TM59SpaceApplicationClassificationTests</c>. Confirmed here at the
+        /// level that actually decides which result TYPE a space becomes:
+        /// <c>TM59NaturalVentilationExtendedResult</c>, not the bedroom subtype - which is what makes
+        /// Criterion 2 read N/A once the result reaches the report.
+        /// </summary>
+        [Fact]
+        public void ApartmentLivingRoomCondition_IsNotRoutedAsABedroom_SoCriterion2IsNotApplicable()
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space = Space("Living Room");
+            space.InternalCondition = new InternalCondition("2 Bed Apt. Living Room");
+
+            Zone zone = new("Flat 1");
+
+            adjacencyCluster.AddObject(space);
+            adjacencyCluster.AddObject(zone);
+            adjacencyCluster.AddRelation(zone, space);
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, adjacencyCluster);
+            analyticalModel.SetValue(AnalyticalModelParameter.WeatherData, new WeatherData("Test", "Test", 51.5, -0.1, 0, WeatherYear()));
+
+            TMOverheatingCalculator tMOverheatingCalculator = new(analyticalModel)
+            {
+                TM52BuildingCategory = TM52BuildingCategory.CategoryII,
+                OccupancySensibleGainSeriesKey = key_Tas_OccupantSensibleGain,
+            };
+
+            List<TM59ExtendedResult> tM59ExtendedResults = tMOverheatingCalculator.Calculate_TM59([space]);
+
+            TM59ExtendedResult tM59ExtendedResult = Assert.Single(tM59ExtendedResults);
+            Assert.IsType<TM59NaturalVentilationExtendedResult>(tM59ExtendedResult);
+
+            TM59AssessmentReport tM59AssessmentReport = new(null, null, [tM59ExtendedResult], null, null, "test");
+
+            TM59AssessmentReportCheck check_Criterion2 = tM59AssessmentReport.NaturalVentilationChecks.Find(x => x.Check == TM59AssessmentReport.Check_Criterion2);
+
+            Assert.NotNull(check_Criterion2);
+            Assert.Equal(TM59ComplianceStatus.NotApplicable, check_Criterion2.ComplianceStatus);
+
+            //Criterion 1 is still applicable - the space is simply not a bedroom, not unassessed.
+            TM59AssessmentReportCheck check_Criterion1 = tM59AssessmentReport.NaturalVentilationChecks.Find(x => x.Check == TM59AssessmentReport.Check_Criterion1);
+            Assert.NotEqual(TM59ComplianceStatus.NotApplicable, check_Criterion1.ComplianceStatus);
+        }
+
         // ---------------------------------------------------------------------------------------------
         // Fixture - the three-flat validation shape, TAS-free
         // ---------------------------------------------------------------------------------------------

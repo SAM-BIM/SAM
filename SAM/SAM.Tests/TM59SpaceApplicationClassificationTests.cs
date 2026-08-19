@@ -9,36 +9,35 @@ using Xunit;
 namespace SAM.Tests
 {
     /// <summary>
-    /// Fixes the TM59 space-application defect behind the Flat1 report's <c>Kitchen_4</c> / <c>Kitchen_7</c>
-    /// rows showing "Sleeping, Cooking" rather than "Cooking" alone.
+    /// Fixes two related TM59 InternalCondition space-application defects: the Flat1 report's
+    /// <c>Kitchen_4</c> / <c>Kitchen_7</c> rows showing "Sleeping, Cooking" rather than "Cooking" alone, and
+    /// a naturally ventilated apartment "Living Room" reading as Sleeping - which would wrongly subject it
+    /// to the bedroom night-time Criterion 2.
     /// <para>
-    /// <b>Root cause, traced to the token level.</b> <c>TM59InternalConditionResolver</c> names a
-    /// multi-bedroom apartment's kitchen condition <c>"{bedroomCount} Bed Apt. Kitchen"</c> (e.g.
-    /// <c>"1 Bed Apt. Kitchen"</c>) - the apartment's bedroom COUNT is part of the condition's own name.
-    /// <c>TM59Manager.TM59SpaceApplications(InternalCondition, TextMap)</c> classifies that whole name
-    /// through <c>TextMap.GetSortedKeys</c>, which splits it into words and checks each one against every
-    /// keyword in the map. The word "Bed" is both the apartment-size qualifier here AND, independently, one
-    /// of the TM59 "Sleeping" keywords - so the same token that means "this apartment has 1 bedroom" was
-    /// read as "this room is used for sleeping".
+    /// <b>Defect 1 - the apartment bedroom-count qualifier.</b> <c>TM59InternalConditionResolver</c> names a
+    /// multi-bedroom apartment's kitchen/living-room condition <c>"{bedroomCount} Bed Apt. ..."</c> (e.g.
+    /// <c>"1 Bed Apt. Kitchen"</c>) - the apartment's bedroom COUNT is part of the condition's own name, and
+    /// "Bed" is independently a literal "Sleeping" keyword. <b>Fixed</b> by
+    /// <c>TM59Manager.RoleMatchName</c>, which strips a leading <c>"N Bed Apt."</c> qualifier before an
+    /// InternalCondition's name is matched, applied only to the InternalCondition-based overloads.
     /// </para>
     /// <para>
-    /// <b>The fix.</b> <c>TM59Manager.RoleMatchName</c> strips a leading apartment bedroom-count qualifier
-    /// (<c>"N Bed Apt."</c>) before an InternalCondition's name is matched against the Sleeping/Living/
-    /// Cooking keyword lists - applied only to the InternalCondition-based
-    /// <c>IsSleeping</c>/<c>IsLiving</c>/<c>IsCooking</c> overloads (and therefore
-    /// <c>TM59SpaceApplications(InternalCondition, TextMap)</c>, which calls them), never to Space-name
-    /// classification. A plain condition name with no apartment-size qualifier - "Double Bedroom", "Single
-    /// Bedroom", "Studio" - is untouched, since it never matches the prefix.
+    /// <b>Defect 2 - the "room"/"bedroom" substring collision.</b> Once the apartment prefix is stripped, a
+    /// bare <c>"Living Room"</c> condition still read as Sleeping, because the old matching primitive,
+    /// <c>TextMap.GetSortedKeys</c>, does <c>value.Contains(token) || token.Contains(value)</c> - so the
+    /// token "room" matched the "Sleeping" alias "bedroom" as an accidental substring, even though "room" is
+    /// not "bedroom". <b>Fixed</b> by routing InternalCondition role matching
+    /// (<c>TM59Manager.IsRole</c>) through <c>Query.TM59TextMapMatches</c> instead - the same deterministic,
+    /// whole-token/whole-phrase matcher <c>TM59InternalConditionResolver</c> already uses for Space
+    /// classification, reused rather than special-cased. It requires an alias's tokens to appear as a
+    /// contiguous, exact-equality sequence in the name, so "room" can never match the alias "bedroom".
     /// </para>
     /// <para>
-    /// <b>What this does not fix.</b> <c>TextMap.GetSortedKeys</c> has a separate, pre-existing "room" vs
-    /// "bedroom" substring collision (the reason <c>TM59InternalConditionResolver</c> built its own
-    /// whole-token matcher for Space classification rather than reuse it): a bare apartment "Living Room"
-    /// condition (no "/Kitchen" suffix) still misreads Sleeping, because "room" is its own token there and
-    /// "bedroom".Contains("room") is true. Recorded as remaining follow-up work in
-    /// <c>documentation/PartO-TAS-VALIDATION.md</c>. The Kitchen and combined "Living Room/Kitchen" cases
-    /// are unaffected by that separate bug, because "Kitchen" alone never collides with "bedroom" and
-    /// "Room/Kitchen" (no space around the slash) is one token, not two.
+    /// <b>Scope.</b> Both fixes apply only to InternalCondition-based classification
+    /// (<c>IsSleeping</c>/<c>IsLiving</c>/<c>IsCooking</c>/<c>TM59SpaceApplications</c> taking an
+    /// <c>InternalCondition</c>, and therefore every caller of them - including SAM_Tas's
+    /// <c>RoomUse.cs</c>/<c>ToSAP.cs</c>/<c>OverheatingCalculator.cs</c>). Space-name classification
+    /// (<c>IsSleeping(Space, TextMap)</c> and its Living/Cooking siblings) is untouched.
     /// </para>
     /// </summary>
     public class TM59SpaceApplicationClassificationTests
@@ -54,13 +53,32 @@ namespace SAM.Tests
             List<TM59SpaceApplication> tM59SpaceApplications = TM59Manager.TM59SpaceApplications(internalCondition, TM59TestData.TextMap);
 
             Assert.Contains(TM59SpaceApplication.Cooking, tM59SpaceApplications);
-
-            //The fixed defect: the apartment-size "Bed" token no longer reads as Sleeping evidence.
             Assert.DoesNotContain(TM59SpaceApplication.Sleeping, tM59SpaceApplications);
             Assert.DoesNotContain(TM59SpaceApplication.Living, tM59SpaceApplications);
         }
 
-        /// <summary>The combined Living Room/Kitchen apartment condition is fixed the same way - "Room/Kitchen" is one token, so the separate "room" vs "bedroom" collision does not apply here.</summary>
+        /// <summary>
+        /// The defect this class is named for: a bare apartment Living Room (no Kitchen) must classify as
+        /// Living alone. Before the whole-token fix, "room" (its own token here) matched the "Sleeping"
+        /// alias "bedroom" as a substring, so this space was wrongly routed as a bedroom and subjected to
+        /// Criterion 2 - see <c>TM59AssessmentCalculatorTests.ApartmentLivingRoomCondition_IsNotRoutedAsABedroom_SoCriterion2IsNotApplicable</c>
+        /// for the end-to-end consequence.
+        /// </summary>
+        [Theory]
+        [InlineData("1 Bed Apt. Living Room")]
+        [InlineData("2 Bed Apt. Living Room")]
+        [InlineData("3 Bed Apt. Living Room")]
+        public void ApartmentLivingRoomCondition_ClassifiesAsLivingOnly_NotSleeping(string internalConditionName)
+        {
+            InternalCondition internalCondition = new(internalConditionName);
+
+            List<TM59SpaceApplication> tM59SpaceApplications = TM59Manager.TM59SpaceApplications(internalCondition, TM59TestData.TextMap);
+
+            Assert.Contains(TM59SpaceApplication.Living, tM59SpaceApplications);
+            Assert.DoesNotContain(TM59SpaceApplication.Sleeping, tM59SpaceApplications);
+            Assert.DoesNotContain(TM59SpaceApplication.Cooking, tM59SpaceApplications);
+        }
+
         [Theory]
         [InlineData("1 Bed Apt. Living Room/Kitchen")]
         [InlineData("2 Bed Apt. Living Room/Kitchen")]
@@ -78,8 +96,9 @@ namespace SAM.Tests
 
         /// <summary>
         /// A single-word condition name with no apartment-size qualifier - "Double Bedroom", "Single
-        /// Bedroom", "Studio" - is unaffected by the fix: the prefix strip only ever matches
-        /// "N Bed Apt. ...", so plain bedroom/studio conditions never engage it.
+        /// Bedroom", "Studio" - is unaffected by either fix: the prefix strip only ever matches
+        /// "N Bed Apt. ...", and "bedroom"/"double"/"single" are genuine whole-token matches on their own,
+        /// not substring artifacts.
         /// </summary>
         [Theory]
         [InlineData("Double Bedroom")]
@@ -95,15 +114,28 @@ namespace SAM.Tests
             Assert.DoesNotContain(TM59SpaceApplication.Living, tM59SpaceApplications);
         }
 
+        /// <summary>"Studio" classifies as all three roles, exactly as before either fix - "studio" is a genuine, single-token alias shared by all three keyword lists.</summary>
+        [Fact]
+        public void StudioCondition_ClassifiesAsAllThreeRoles_Unchanged()
+        {
+            InternalCondition internalCondition = new("Studio");
+
+            List<TM59SpaceApplication> tM59SpaceApplications = TM59Manager.TM59SpaceApplications(internalCondition, TM59TestData.TextMap);
+
+            Assert.Contains(TM59SpaceApplication.Sleeping, tM59SpaceApplications);
+            Assert.Contains(TM59SpaceApplication.Living, tM59SpaceApplications);
+            Assert.Contains(TM59SpaceApplication.Cooking, tM59SpaceApplications);
+        }
+
         /// <summary>
         /// The fix is scoped to InternalCondition classification only. A Space literally named
         /// "1 Bed Apt. Kitchen" (not a realistic room name, but the boundary the fix must respect) still
-        /// reads as Sleeping through the unmodified <c>IsSleeping(Space, TextMap)</c> path - proving the
-        /// apartment-prefix strip was not applied to Space-name matching, which callers elsewhere rely on
-        /// exactly as it was.
+        /// reads as Sleeping through the unmodified <c>IsSleeping(Space, TextMap)</c> path - proving neither
+        /// the apartment-prefix strip nor the whole-token matcher was applied to Space-name matching, which
+        /// callers elsewhere rely on exactly as it was.
         /// </summary>
         [Fact]
-        public void SpaceNameClassification_StillReadsTheRawBedToken_TheFixDoesNotTouchIt()
+        public void SpaceNameClassification_StillReadsTheRawBedToken_NeitherFixTouchesIt()
         {
             Space space = new("1 Bed Apt. Kitchen");
 

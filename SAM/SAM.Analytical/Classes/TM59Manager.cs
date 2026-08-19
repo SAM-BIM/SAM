@@ -215,9 +215,30 @@ namespace SAM.Analytical
             return ApartmentBedroomCountPrefix.Replace(name, string.Empty);
         }
 
+        /// <summary>
+        /// Whole-token InternalCondition role matching, reusing
+        /// <see cref="Query.TM59TextMapMatches(TextMap, string, IEnumerable{string})"/> - the same matcher
+        /// <see cref="TM59InternalConditionResolver"/> uses for Space classification - instead of
+        /// <see cref="TextMap.GetSortedKeys(string, bool)"/>'s substring search. <c>GetSortedKeys</c> does
+        /// <c>value.Contains(token) || token.Contains(value)</c>, so the "Sleeping" alias "bedroom" matches
+        /// the bare token "room" (e.g. in "N Bed Apt. Living Room") even though "room" is not "bedroom".
+        /// <c>TM59TextMapMatches</c> requires an exact, contiguous, whole-token sequence match instead, so
+        /// "room" never matches the alias "bedroom". Scoped to InternalCondition classification only -
+        /// <see cref="Is(string, TextMap, string)"/> (Space-name classification) is untouched.
+        /// </summary>
+        private static bool IsRole(string name, TextMap textMap, string key)
+        {
+            if (string.IsNullOrWhiteSpace(name) || textMap == null || string.IsNullOrEmpty(key))
+            {
+                return false;
+            }
+
+            return textMap.TM59TextMapMatches(name, [key]).Count > 0;
+        }
+
         public static bool IsSleeping(InternalCondition internalCondition, TextMap textMap)
         {
-            return IsSleeping(RoleMatchName(internalCondition), textMap);
+            return IsRole(RoleMatchName(internalCondition), textMap, "Sleeping");
         }
 
         public static bool IsLiving(Space space, TextMap textMap)
@@ -227,7 +248,7 @@ namespace SAM.Analytical
 
         public static bool IsLiving(InternalCondition internalCondition, TextMap textMap)
         {
-            return IsLiving(RoleMatchName(internalCondition), textMap);
+            return IsRole(RoleMatchName(internalCondition), textMap, "Living");
         }
 
         public static bool IsLiving(string name, TextMap textMap)
@@ -242,7 +263,7 @@ namespace SAM.Analytical
 
         public static bool IsCooking(InternalCondition internalCondition, TextMap textMap)
         {
-            return IsCooking(RoleMatchName(internalCondition), textMap);
+            return IsRole(RoleMatchName(internalCondition), textMap, "Cooking");
         }
 
         public static bool IsCooking(string name, TextMap textMap)
