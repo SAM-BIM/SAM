@@ -30,10 +30,10 @@ PR against `sow/2026-Q3`. **`sow/2026-Q3` is never committed to directly** and i
 
 | Repo | Last CODE commit | HEAD | Cut from | PR |
 |---|---|---|---|---|
-| `SAM` | **`d19b4120`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
+| `SAM` | **`8bf2cf61`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
 | `SAM_Systems` | **`4446bb8`** | `618fc74` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `d7303c2` | [SAM_Systems#14](https://github.com/SAM-BIM/SAM_Systems/pull/14) |
 | `SAM_UI` | **`fcf0ec8`** | `2a0d480` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `074f3d9` | [SAM_UI#75](https://github.com/SAM-BIM/SAM_UI/pull/75) |
-| `SAM_Tas` | **`2750a21`** | exactly `2750a21` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
+| `SAM_Tas` | **`9c822e6`** | exactly `9c822e6` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
 | `SAM_Tas_Grasshopper` | **`ebdf0bcd`** | exactly `ebdf0bcd` | `sow/2026-Q3` @ `9555aa1` | [SAM_Tas_Grasshopper#4](https://github.com/SAM-BIM/SAM_Tas_Grasshopper/pull/4) |
 
 **Why a HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own hash. The
@@ -54,10 +54,10 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM d19b4120
+SAM 8bf2cf61
 SAM_Systems 4446bb8
 SAM_UI fcf0ec8
-SAM_Tas 2750a21
+SAM_Tas 9c822e6
 SAM_Tas_Grasshopper ebdf0bcd
 EOF
 ```
@@ -83,7 +83,7 @@ All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1258 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
+| `SAM/SAM.Tests` | **1272 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
 | `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **91 passed, 0 failed**, Debug **and** Release | build `SAM` and `SAM_Tas.sln` with **VS Framework MSBuild first** — see §6 |
 | `SAM_Systems/SAM.Analytical.Systems.Tests` | **40 passed, 0 failed** | in `SAM_Systems.sln`, executed by CI |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | — |
@@ -125,10 +125,20 @@ All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (
 
 Iteration 1 is **not** accepted yet. What stands between here and acceptance:
 
-1. **The BasePassive opening assumption does not reach the simulation input.** `Openings Restricted` is
-   *stated* on the scenario and nothing writes aperture control into the TBD, so a BasePassive scenario
-   asserts the model was **assessed** as base provision, not that it was **built** that way. This is §5,
-   the next task.
+1. **DONE, code-complete — verify against a real TAS run before trusting it.** `PartOOpeningProperties`
+   gained `OpeningRestriction` (`Unrestricted`/`NightClosed`/`AlwaysClosed`, SAM `8bf2cf61`), and
+   `Modify.SetApertureType` (SAM_Tas `9c822e6`) now writes it into the TBD's aperture-control profile using
+   the same idempotent find-or-create-by-name schedule `ProfileOpeningProperties` already used, so a
+   BasePassive scenario's `Openings Restricted = false` is enforced on the copy
+   (`Modify.ResetPartOOpeningRestrictions`, called from `PreparePartOIteration`) instead of only being
+   stated. Full trace, domain model, behaviour matrix and unit-test coverage in this checkpoint's session;
+   **what is NOT covered**: no automated test exercises the real TBD/COM write (schedule creation, reuse
+   across repeated preparation, or the new refusal when a foreign schedule already sits on the aperture
+   type) — this codebase's own precedent (`TsdZoneIdentityStampTests`, see `PartO-TAS-VALIDATION.md`) is
+   that this class of COM-deep line is verified by a manual acceptance run, not a unit test. **Next:** rerun
+   the Flat1 BasePassive slice (or a small model with one `NightClosed` aperture) through the real pipeline
+   and confirm the generated `PartO_DayOpen_08_23` schedule appears on the TBD exactly once, the same way
+   Flat1's TM59 numbers were checked against native TAS.
 2. **Widen the validation beyond one flat**, in particular to a plain non-bedroom `natural` criterion. See
    `PartO-TAS-VALIDATION.md` → *Remaining validation work*.
 3. **Michal's confirmations** in §3 items 1 and 2 — neither is code.
@@ -338,38 +348,36 @@ compliance.**
 
 ## 5. The precise next task
 
-**Trace the existing aperture / `PartOOpeningProperties` / TAS opening-control-and-profile path, and
-determine the smallest correct seam that makes the BasePassive unrestricted-opening assumption actually
-affect the TAS simulation input.**
+**§1 item 1 is now code-complete (SAM `8bf2cf61`, SAM_Tas `9c822e6`) — verify it against a real TAS run,
+the same way Flat1 BasePassive was verified against native TAS.**
 
-This is the counterpart, on the opening side, of what `Modify.ApplyPartFVentilationRates` already did on
-the airflow side: `Openings Restricted` is stated on the scenario and reaches nothing the simulation reads.
-It is also what would make `AcousticRestricted` mean anything on the input side — today that iteration is
-key-distinct but behaviourally identical to BasePassive there.
+The traced seam, for reference: `PartOOpeningProperties.OpeningRestriction`
+(`Unrestricted`/`NightClosed`/`AlwaysClosed`, plus a derived `Profile` named `PartO_DayOpen_HH_HH` for
+`NightClosed`) → `Modify.SetApertureType` (SAM_Tas, the method `WorkflowCalculator`'s "Updating Aperture
+Types" step already calls for every opening) → the same idempotent find-or-create-by-name schedule
+`ProfileOpeningProperties` already used, now also triggered by `PartOOpeningProperties` → `TBD.ApertureType`
+profile+schedule. `Modify.ResetPartOOpeningRestrictions` (SAM) gives `PreparePartOIteration` a copy-only way
+to enforce `Openings Restricted = false` rather than merely stating it. Full rationale, the domain-model
+decision (a closed enum, not two booleans), the Function/schedule-coexistence fix, and the refusal-on-
+foreign-schedule precedence rule are in this checkpoint's commit messages and in the code's own doc
+comments — this section stays short on purpose.
 
-**Trace, do not design.** The deliverable is a trace and a named seam, not an implementation.
+**Not done, and the reason matters.** No automated test exercises the real TBD/COM write — this
+codebase's own precedent (`TsdZoneIdentityStampTests`, see `PartO-TAS-VALIDATION.md`) is that a line this
+deep in COM interop is verified by a manual acceptance run, not a unit test, because exercising it needs
+the whole TAS interop surface loaded inside a project built specifically to exclude it. What SAM.Tests DOES
+cover (14 new tests, `SAM.Tests/PartOOpeningPropertiesTests.cs`): legacy JSON with no `OpeningRestriction`
+key resolves to `Unrestricted`; JSON round-trip and copy-constructor preserve the new fields; the derived
+`Profile`'s name and 24 hourly values for both the default and a custom window; two `NightClosed` instances
+with the same window produce the same profile name (the reusability the TAS-side schedule lookup depends
+on); `ResetPartOOpeningRestrictions` resets only SAM-generated `PartOOpeningProperties`, leaves any other
+`IOpeningProperties` untouched, and leaves the original `AnalyticalModel` byte/semantically unchanged.
 
-**Do NOT invent a parallel opening-control framework.** The pieces already exist; the job is to find where
-they already meet.
-
-- `SAM/SAM.Analytical/Classes/OpeningProperties/PartOOpeningProperties.cs` — width, height, opening angle
-  and `Factor`; an `ISingleOpeningProperties`. Referenced from `SAM.Analytical/Create/AnalyticalModel.cs`.
-  **The real model's 20 apertures already carry it.**
-- `SAM_Tas/SAM.Analytical.Tas/Convert/ToSAM/OpeningProperties.cs` — the read direction, already working.
-- `SAM_Tas/SAM.Analytical.Tas/Modify/UpdateApertureControl.cs` — three overloads (`string path_TBD`,
-  `SAMTBDDocument`, `TBDDocument`), each taking `IEnumerable<ApertureConstruction>`. The existing TBD-side
-  aperture-control write path.
-- `SAM_Tas/SAM.Analytical.Tas/Convert/ToTBD/Building.cs:552-571` — **a commented-out block that already
-  reaches for exactly this**: `ApertureParameter.OpeningProperties`, `apertureType.GetProfile()`,
-  `TBD.ProfileTypes.ticFunctionProfile`. Start by establishing why it is commented out; it is either the
-  seam or the record of why that seam was rejected.
-- `Modify.AssignApertureTypes` / `SetApertureType(s)` / `Modify/New/AssignOpeningTypes.cs` — the
-  aperture-type assignment neighbourhood any seam has to sit consistently with.
-
-**Constraints carried in from §2.** Whatever the seam is: it writes to a **copy**, never the design model;
-it **refuses** rather than silently modelling an unstated opening regime; and an unrepresentable assumption
-is reported, not approximated. `Panel.Apertures` returns **clones** — go through the `AdjacencyCluster`
-setter.
+**The next task:** rerun the Flat1 BasePassive slice (or a small model with one aperture set to
+`NightClosed`) through the real pipeline below, open the resulting TBD, and confirm: the aperture's TBD
+profile carries a `schedule` named `PartO_DayOpen_08_23` with 1 for hours 08–22 and 0 for 23–07; running
+preparation twice does not create a second schedule of that name; and an aperture whose TBD ApertureType
+already carries a differently-named schedule is left alone (the write refuses rather than overwriting it).
 
 **The BasePassive slice as it stands, for manual testing:** `AnalyticalModel` →
 `SAMAnalytical.AddVentilationPropertiesByPartF` (or `CheckPartFCompliance`) →
@@ -377,8 +385,8 @@ setter.
 `partF l/s` → `To gbXML` → `SAMAnalytical.WorkflowgbXML` (`Simulation=true`) → `Tas.TSDQueryTM59Results`
 with `overheatingScenarios_` connected, `report` output read.
 
-**Also outstanding, in parallel, not blocking:** §3 item 8 (the two repos' reviewer findings), and widening
-the validation comparison per `PartO-TAS-VALIDATION.md`.
+**Also outstanding, in parallel, not blocking:** widening the validation beyond one flat (§1 item 2), §3
+item 8's two open reviewer findings, and §3 items 1–2 (Michal's confirmations, not code).
 
 ---
 
