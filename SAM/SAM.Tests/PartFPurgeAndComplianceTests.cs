@@ -123,6 +123,29 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>A non-finite recorded area must not pass.</b> NaN fails every comparison, so it would fall
+        /// through both area checks and pass the room - absence of evidence reading as compliance.
+        /// </summary>
+        [Fact]
+        public void NonFiniteProvidedOpeningArea_IsNotTakenAsPassing()
+        {
+            PartFModel partFModel = Model();
+
+            PartFPurgeVentilationData partFPurgeVentilationData = PartFPurgeAssessor.Assess(
+                partFModel.Get("Living Room"),
+                partFModel.AdjacencyCluster,
+                true,
+                new PartFPurgeVentilationData("Living Room")
+                {
+                    PurgeMethod = PartFPurgeMethod.Openings,
+                    OpeningType = PartFPurgeOpeningType.HingedOrPivot30DegreesOrMore,
+                    OpenableWindowArea_M2 = double.NaN,
+                });
+
+            Assert.Equal(PartFComplianceStatus.CannotBeDetermined, partFPurgeVentilationData.ComplianceStatus);
+        }
+
+        /// <summary>
         /// Table 1.4: a hinged or pivot window opening between 15 and 30 degrees needs 1/10 of the floor
         /// area, twice as much. The same 2.5 m2 that passed at 45 degrees now falls short of 4 m2.
         /// </summary>

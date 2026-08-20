@@ -83,6 +83,45 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// A PRESENT but unrecognised restriction name is corrupt or newer file data. Reading it silently as
+        /// <c>Unrestricted</c> would re-open an opening recorded as restricted, so deserialization refuses -
+        /// the same contract <c>DailyAvailabilitySchedule</c> applies to its own malformed file data. Only
+        /// the ABSENT key is legacy and means <c>Unrestricted</c>.
+        /// </summary>
+        [Fact]
+        public void Json_WithUnrecognisedOpeningRestriction_RefusesDeserialisation()
+        {
+            PartOOpeningProperties partOOpeningProperties = new(1.2, 1.0, 30.0, OpeningRestriction.NightClosed);
+
+            System.Text.Json.Nodes.JsonObject jsonObject = System.Text.Json.Nodes.JsonObject.Parse(@"{ ""OpeningRestriction"": ""NightClosedd"" }") as System.Text.Json.Nodes.JsonObject;
+
+            Assert.False(partOOpeningProperties.FromJsonObject(jsonObject), "An unrecognised restriction name deserialised, which would silently read as Unrestricted.");
+        }
+
+        /// <summary>
+        /// The Grasshopper parse path accepts lowercase text through <c>Core.Query.TryGetEnum</c>'s
+        /// case-insensitive fallback. That comparison must be culture-INVARIANT: under a Turkish culture the
+        /// culture-sensitive <c>ToUpper()</c> maps "nightclosed" to "NİGHTCLOSED" (dotless capital I) and
+        /// rejects a perfectly valid input, silently substituting <c>Unrestricted</c>.
+        /// </summary>
+        [Fact]
+        public void OpeningRestriction_LowercaseParse_IsCultureInvariant()
+        {
+            System.Globalization.CultureInfo cultureInfo = System.Globalization.CultureInfo.CurrentCulture;
+            try
+            {
+                System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+
+                Assert.True(Core.Query.TryGetEnum<OpeningRestriction>("nightclosed", out OpeningRestriction openingRestriction));
+                Assert.Equal(OpeningRestriction.NightClosed, openingRestriction);
+            }
+            finally
+            {
+                System.Globalization.CultureInfo.CurrentCulture = cultureInfo;
+            }
+        }
+
+        /// <summary>
         /// The availability schedule is DERIVED, never persisted - so a round trip must reproduce it from
         /// the restriction and the hours rather than carrying 24 values through the JSON.
         /// </summary>

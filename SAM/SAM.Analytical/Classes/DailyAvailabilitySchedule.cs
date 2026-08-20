@@ -238,6 +238,9 @@ namespace SAM.Analytical
             //A malformed or wrong-length "Values" array comes from a file, not from a caller, so it is
             //reported as a failed deserialization rather than thrown - but it is never quietly padded
             //to 24 hours, because that is indistinguishable from a schedule that really is all-zero.
+            //Each element must be a genuine JSON boolean: GetValue<bool>() would THROW on a string or
+            //number element, contradicting the failed-deserialization contract, and TryGetValue<bool>
+            //rejects non-boolean/null elements because JsonValue only converts its own backing kind.
             if (!(jsonObject["Values"] is JsonArray jsonArray) || jsonArray.Count != HourCount)
             {
                 return false;
@@ -246,13 +249,12 @@ namespace SAM.Analytical
             bool[] values_Temp = new bool[HourCount];
             for (int hour = 0; hour < HourCount; hour++)
             {
-                bool? value = jsonArray[hour]?.GetValue<bool>();
-                if (value == null)
+                if (!(jsonArray[hour] is JsonValue jsonValue) || !jsonValue.TryGetValue<bool>(out bool value))
                 {
                     return false;
                 }
 
-                values_Temp[hour] = value.Value;
+                values_Temp[hour] = value;
             }
 
             values = values_Temp;

@@ -98,6 +98,20 @@ namespace SAM.Analytical
             //original condition name is unique - three flats each have a "Bedroom 2".
             HashSet<string> names = [];
 
+            //The set is seeded from every internal-condition name ALREADY in the model, sized or not. An
+            //untouched condition whose name happens to match the generated "<condition> - <space>" pattern
+            //must reserve that name too: TAS identifies an internal condition by name, so letting a
+            //generated condition collide with an existing one would associate one room with another
+            //room's gains and airflow.
+            foreach (Space space_Existing in spaces)
+            {
+                string name_Existing = space_Existing?.InternalCondition?.Name;
+                if (!string.IsNullOrWhiteSpace(name_Existing))
+                {
+                    names.Add(name_Existing);
+                }
+            }
+
             int count = 0;
 
             foreach (Space space in spaces)

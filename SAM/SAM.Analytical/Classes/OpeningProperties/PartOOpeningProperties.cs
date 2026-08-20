@@ -158,10 +158,17 @@ namespace SAM.Analytical
             }
 
             //Absent on any PartOOpeningProperties serialised before this member existed - resolves to the
-            //enum's default value, Unrestricted, which is the correct legacy behaviour.
+            //enum's default value, Unrestricted, which is the correct legacy behaviour. A PRESENT but
+            //unrecognised name is a corrupt or newer file: silently reading it as Unrestricted would
+            //re-open an opening that was recorded as restricted, so deserialization refuses instead.
             if (jsonObject.ContainsKey("OpeningRestriction"))
             {
-                OpeningRestriction = Core.Query.Enum<OpeningRestriction>(jsonObject["OpeningRestriction"]?.GetValue<string>());
+                if (!Core.Query.TryGetEnum<OpeningRestriction>(jsonObject["OpeningRestriction"]?.GetValue<string>(), out OpeningRestriction openingRestriction))
+                {
+                    return false;
+                }
+
+                OpeningRestriction = openingRestriction;
             }
 
             if (jsonObject.ContainsKey("NightOpenFromHour"))

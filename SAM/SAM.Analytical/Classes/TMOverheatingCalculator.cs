@@ -381,8 +381,17 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                maxAcceptableTemperatures.Add(i, maxIndoorComfortTemperatures[i]);
-                minAcceptableTemperatures.Add(i, minIndoorComfortTemperatures[i]);
+                //Both comfort bounds must EXIST for the hour. IndexedDoubles returns 0 for a missing index,
+                //and the comfort series is bounded by the weather year (365 days = 8760 hours) - so a
+                //leap-year simulation's extra 24 hours would otherwise be assessed against a 0 degC comfort
+                //limit and manufacture exceedances. An hour with no comfort bounds is simply not assessed.
+                if (!maxIndoorComfortTemperatures.TryGetValue(i, out double maxIndoorComfortTemperature) || !minIndoorComfortTemperatures.TryGetValue(i, out double minIndoorComfortTemperature))
+                {
+                    continue;
+                }
+
+                maxAcceptableTemperatures.Add(i, maxIndoorComfortTemperature);
+                minAcceptableTemperatures.Add(i, minIndoorComfortTemperature);
                 operativeTemperatures.Add(i, resultantTemperature);
 
                 if (!Core.Query.TryConvert(jsonArray_OccupancySensibleGain[i], out double occupancySensibleGain) || double.IsNaN(occupancySensibleGain))

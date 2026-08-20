@@ -146,6 +146,63 @@ namespace SAM.Tests
         }
 
         // ------------------------------------------------------------------
+        // Comfort bounds
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// <b>An hour without comfort bounds is not assessed, never assessed against zero.</b>
+        /// <para>
+        /// The comfort series is bounded by the weather year (365 days = 8760 hours), while a leap-year
+        /// simulation supplies 8784 hourly values. <c>IndexedDoubles</c> reads a missing index as 0, so the
+        /// last day would be assessed against a 0 °C comfort limit and manufacture exceedances. Here those
+        /// hours carry 40 °C - under the old behaviour they add 24 false &gt;28 °C exceedances; with the
+        /// guard they are simply outside the assessed year.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void HoursBeyondTheComfortYear_AreNotAssessedAgainstZeroComfortLimits()
+        {
+            double[] resultant = new double[8784];
+            double[] occupancy = new double[8784];
+            for (int i = 0; i < 8760; i++)
+            {
+                resultant[i] = 21.0;
+                occupancy[i] = 80.0;
+            }
+
+            for (int i = 8760; i < 8784; i++)
+            {
+                resultant[i] = 40.0;
+                occupancy[i] = 80.0;
+            }
+
+            Space space = new("Bedroom 2_3");
+
+            ParameterSet parameterSet = new("SAM.Analytical.Tas.dll");
+            parameterSet.Add(key_Analytical_ResultantTemperature, Values(resultant));
+            parameterSet.Add(key_Analytical_OccupancySensibleGain, Values(occupancy));
+            space.Add(parameterSet);
+
+            AdjacencyCluster adjacencyCluster = new();
+            adjacencyCluster.AddObject(space);
+
+            AnalyticalModel analyticalModel = new("Three Flats", null, null, null, adjacencyCluster);
+            analyticalModel.SetValue(AnalyticalModelParameter.WeatherData, new WeatherData("Test", "Test", 51.5, -0.1, 0, WeatherYear()));
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+
+            TM59ExtendedResult tM59ExtendedResult = Assert.Single(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+
+            //The assessed series covers exactly the comfort year - the leap day's 24 hours were not
+            //adopted with zero limits.
+            Assert.Equal(8760, tM59ExtendedResult.GetAnnualHours());
+
+            //And the 40 °C hours beyond it manufactured no exceedances.
+            TM59CorridorExtendedResult tM59CorridorExtendedResult = Assert.IsType<TM59CorridorExtendedResult>(tM59ExtendedResult);
+            Assert.Equal(0, tM59CorridorExtendedResult.GetHoursNumberExceeding28());
+        }
+
+        // ------------------------------------------------------------------
         // Fixture
         // ------------------------------------------------------------------
 

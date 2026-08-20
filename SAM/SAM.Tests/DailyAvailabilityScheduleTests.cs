@@ -332,5 +332,36 @@ namespace SAM.Tests
 
             Assert.Equal(24, (jsonObject["Values"] as System.Text.Json.Nodes.JsonArray).Count);
         }
+
+        /// <summary>
+        /// A 24-element "Values" array whose elements are not all genuine JSON booleans is malformed file
+        /// data, exactly like a wrong-length array. <c>GetValue&lt;bool&gt;()</c> would THROW on a string or
+        /// number element - contradicting the documented failed-deserialization contract and taking down
+        /// whatever load contained the schedule - so each element must fail deserialization cleanly instead,
+        /// with nothing adopted as values.
+        /// </summary>
+        [Theory]
+        [InlineData("\"true\"")]
+        [InlineData("\"on\"")]
+        [InlineData("1")]
+        [InlineData("0.0")]
+        [InlineData("null")]
+        public void MalformedJson_WithNonBooleanValueElement_FailsDeserialisationRatherThanThrowing(string json_Element)
+        {
+            string[] elements = new string[24];
+            for (int i = 0; i < 24; i++)
+            {
+                elements[i] = "false";
+            }
+            elements[13] = json_Element;
+
+            string json = string.Format(@"{{ ""_type"": ""SAM.Analytical.DailyAvailabilitySchedule"", ""Name"": ""Broken"", ""Values"": [ {0} ] }}", string.Join(", ", elements));
+
+            DailyAvailabilitySchedule dailySchedule = SAM.Core.Create.IJSAMObject<DailyAvailabilitySchedule>(json);
+
+            //Deserialization reported failure; no element - including the eleven preceding the malformed one -
+            //is adopted, so nothing half-read pretends to be a valid day.
+            Assert.All(dailySchedule.GetValues(), value => Assert.False(value));
+        }
     }
 }

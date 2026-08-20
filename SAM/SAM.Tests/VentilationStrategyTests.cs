@@ -344,6 +344,29 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>Case-insensitive strategy matching is culture-invariant.</b> Under a Turkish culture the
+        /// culture-sensitive <c>ToUpper()</c> maps "disp" to "DİSP" (dotless capital I) and a valid strategy
+        /// would be refused as unrecognised - the same defect class as the opening-restriction parse.
+        /// </summary>
+        [Fact]
+        public void AStrategy_CaseInsensitiveMatching_IsCultureInvariant()
+        {
+            System.Globalization.CultureInfo cultureInfo = System.Globalization.CultureInfo.CurrentCulture;
+            try
+            {
+                System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+
+                AnalyticalModel analyticalModel = Model(ventilationSystemTypeName: null, zoneName: "Flat 1");
+
+                Assert.Equal("Mechanical", Criterion(analyticalModel, Map(analyticalModel, "disp")));
+            }
+            finally
+            {
+                System.Globalization.CultureInfo.CurrentCulture = cultureInfo;
+            }
+        }
+
+        /// <summary>
         /// Two scenarios stating the <i>same</i> unrecognised word are not ambiguous - one answer said twice is
         /// still one answer - so the refusal names the strategy rather than a disagreement. Stating an
         /// unrecognised word against a recognised one is a disagreement.

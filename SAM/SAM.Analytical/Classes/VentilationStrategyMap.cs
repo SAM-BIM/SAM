@@ -149,8 +149,10 @@ namespace SAM.Analytical
             //Upper-cased, not trimmed: OverheatingScenario.Normalized already rebuilt the SystemTemplate
             //through its setters, which strip EVERY space, so " uv " and "MV RE" cannot arrive here. Case is
             //the one thing those setters leave alone, and the criterion selection compares upper-case.
+            //ToUpperInvariant, not ToUpper: the current culture's casing rules (Turkish is the classic case)
+            //would otherwise map "disp" to "DİSP" and a valid strategy would read as unrecognised.
             string ventilationStrategy = overheatingScenario.HasVentilationStrategy
-                ? overheatingScenario.VentilationStrategy.ToUpper()
+                ? overheatingScenario.VentilationStrategy.ToUpperInvariant()
                 : null;
 
             //A strategy this assembly has no TM59 criterion for is not silence and not mechanical. Recorded as

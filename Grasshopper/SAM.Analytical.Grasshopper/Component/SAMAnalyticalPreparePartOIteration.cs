@@ -192,6 +192,15 @@ WHAT IT STILL DOES NOT DO
                 if (notes_Reset != null && notes_Reset.Count != 0)
                 {
                     notes.AddRange(notes_Reset);
+
+                    //Surfaced as warnings, not only on the notes output: a NightClosed restriction reset here
+                    //is exactly why an aperture in the simulated model ends up with no Part O availability
+                    //schedule downstream - the workflow writes what this model states, and this model now
+                    //states Unrestricted. Unmissable rather than buried in a list output nobody connected.
+                    foreach (string note_Reset in notes_Reset)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, note_Reset);
+                    }
                 }
 
                 analyticalModel_Applied = analyticalModel_Reset;

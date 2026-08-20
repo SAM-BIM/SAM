@@ -150,6 +150,48 @@ namespace SAM.Tests
             Assert.NotEqual(space_1.InternalCondition.Name, space_2.InternalCondition.Name);
         }
 
+        /// <summary>
+        /// <b>THE NAME-COLLISION HAZARD.</b>
+        /// <para>
+        /// TAS identifies an internal condition by its NAME, and an untouched (unsized) space keeps its
+        /// condition. If such a condition already carries a name matching the generated
+        /// "<c>&lt;condition&gt; - &lt;space&gt;</c>" pattern, the generated clone must not reuse it - two
+        /// different conditions under one name would associate one room with the other's gains and airflow.
+        /// Existing names seed the name set, so the sized room gets a disambiguated clone instead.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AnExistingConditionWithTheGeneratedName_IsNotReusedForTheClone()
+        {
+            AnalyticalModel analyticalModel = Sized();
+
+            //An untouched space whose condition happens to be named exactly what the sized Bedroom 1's
+            //clone would be generated as. Unsized - no PartFSpaceData - so it is left alone by the apply.
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            Space space_Untouched = new("Storage");
+            space_Untouched.SetValue(SpaceParameter.Area, 5.0);
+            space_Untouched.SetValue(SpaceParameter.Volume, 12.5);
+            space_Untouched.InternalCondition = new InternalCondition("Bedroom 1 IC - Bedroom 1");
+            adjacencyCluster.AddObject(space_Untouched);
+
+            AnalyticalModel analyticalModel_Applied = new AnalyticalModel(analyticalModel, adjacencyCluster)
+                .ApplyPartFVentilationRates(PartFOperatingMode.ContinuousDesign, out List<string> refusals, out List<string> _);
+
+            Assert.Empty(refusals);
+
+            Space space_Bedroom = analyticalModel_Applied.GetSpaces().Find(x => x.Name == "Bedroom 1");
+            Space space_Untouched_Applied = analyticalModel_Applied.GetSpaces().Find(x => x.Name == "Storage");
+
+            //The untouched space keeps its condition untouched...
+            Assert.Equal("Bedroom 1 IC - Bedroom 1", space_Untouched_Applied.InternalCondition.Name);
+
+            //...and the clone is disambiguated instead of colliding with it - same name is the failure mode.
+            Assert.NotEqual("Bedroom 1 IC - Bedroom 1", space_Bedroom.InternalCondition.Name);
+            Assert.StartsWith("Bedroom 1 IC - Bedroom 1 (", space_Bedroom.InternalCondition.Name);
+            Assert.NotEqual(space_Untouched_Applied.InternalCondition.Guid, space_Bedroom.InternalCondition.Guid);
+        }
+
         /// <summary>The original model is not modified - an updated copy is returned, as the Part F components do.</summary>
         [Fact]
         public void TheSuppliedModel_IsNotModified()

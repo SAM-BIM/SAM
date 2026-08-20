@@ -206,7 +206,10 @@ namespace SAM.Analytical.Grasshopper
                 string text = null;
                 if (dataAccess.GetData(index, ref text) && !string.IsNullOrWhiteSpace(text))
                 {
-                    if (Enum.TryParse(text, true, out PartFExtractAllocationStrategy partFExtractAllocationStrategy))
+                    //Enum.TryParse alone is not enough: given numeric text such as "9" it succeeds and
+                    //returns that value even though no PartFExtractAllocationStrategy member has it, so
+                    //IsDefined is checked as well (the same guard the operatingMode_ branch below uses).
+                    if (Enum.TryParse(text, true, out PartFExtractAllocationStrategy partFExtractAllocationStrategy) && Enum.IsDefined(typeof(PartFExtractAllocationStrategy), partFExtractAllocationStrategy))
                     {
                         partFCalculator.ExtractAllocationStrategy = partFExtractAllocationStrategy;
                     }

@@ -219,6 +219,16 @@ namespace SAM.Analytical
                 return;
             }
 
+            //A non-finite recorded area (NaN or infinity - an unrecorded optional double that arrived as NaN,
+            //or a hand-edited file) must not fall through the comparisons below: NaN fails every comparison
+            //and would have passed the room, which is absence of evidence reading as compliance.
+            if (double.IsNaN(provided.Value) || double.IsInfinity(provided.Value))
+            {
+                partFPurgeVentilationData.ComplianceStatus = PartFComplianceStatus.CannotBeDetermined;
+                partFPurgeVentilationData.Diagnostic = "The recorded opening area is not a finite number, so Table 1.4 could not be assessed. Enter the openable area in m2.";
+                return;
+            }
+
             if (provided.Value + Tolerance_M2 < partFPurgeVentilationData.RequiredOpeningArea_M2.Value)
             {
                 partFPurgeVentilationData.ComplianceStatus = PartFComplianceStatus.Fail;

@@ -105,6 +105,40 @@ namespace SAM.Tests
         // ------------------------------------------------------------------
 
         /// <summary>
+        /// <b>The reported door is the door the model carries.</b>
+        /// <para>
+        /// The record is persisted through a helper that creates a REPLACEMENT aperture, so the instance
+        /// created earlier is no longer the one in the returned model. <c>doors_Created</c> must return the
+        /// persisted instance - with the <c>PartFDoorTransferData</c> record attached - not a detached
+        /// original that a caller comparing against the returned model would find bare.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void NoDoor_ReportedCreatedDoor_CarriesThePersistedRecord()
+        {
+            PartFModel partFModel = new PartFModel()
+                .Space("Studio", 75, 300)
+                .Space("Bathroom", 25, 100)
+                .Partition("Studio", "Bathroom");
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, partFModel.AdjacencyCluster);
+
+            AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out List<Aperture> doors_Created, out _, out List<string> refusals);
+
+            Assert.NotNull(result);
+            Assert.Empty(refusals);
+
+            Aperture aperture = Assert.Single(doors_Created);
+
+            //The instance itself carries the record - it is the aperture the returned model holds, not the
+            //pre-persistence original.
+            PartFDoorTransferData partFDoorTransferData = aperture.GetValue<PartFDoorTransferData>(ApertureParameter.PartFDoorTransferData);
+            Assert.NotNull(partFDoorTransferData);
+            Assert.True(partFDoorTransferData.IsDoorRepresented);
+            Assert.Equal(aperture.Guid, partFDoorTransferData.ApertureGuid);
+        }
+
+        /// <summary>
         /// Two adjacent spaces that must pass 8 l/s between them and have a shared internal wall but no
         /// door get exactly one door: in that wall, of the default geometry, with the paragraph 1.25
         /// requirement recorded on it.

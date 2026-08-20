@@ -205,7 +205,14 @@ namespace SAM.Analytical
 
                     adjacencyCluster.SetPartFDoorTransferData(aperture.Guid, partFDoorTransferData);
 
-                    doors_Created.Add(aperture);
+                    //SetPartFDoorTransferData persists the record by creating a REPLACEMENT aperture (Panel.Apertures
+                    //hands out clones), so the aperture created above is no longer the one in the model. Re-reading it
+                    //means the reported door is the door the model actually carries - with the PartFDoorTransferData
+                    //record attached - rather than a detached original that a caller comparing against the returned
+                    //model would find bare.
+                    Aperture aperture_Persisted = adjacencyCluster.GetAperture(aperture.Guid) ?? aperture;
+
+                    doors_Created.Add(aperture_Persisted);
 
                     notes.Add(string.Format("{0}{1} to {2}: created a {3:0} mm x {4:0} mm internal door ({5}) in the shared wall and recorded the paragraph 1.25 requirement on it - a minimum free area of {6:0.##} mm2, equivalent to a {7:0.##} mm undercut across the {3:0} mm door width. The provided undercut is not recorded and remains to be confirmed.",
                         string.IsNullOrWhiteSpace(partFDwellingResult.Name) ? string.Empty : partFDwellingResult.Name + ": ",
