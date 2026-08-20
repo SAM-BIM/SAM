@@ -202,6 +202,41 @@ namespace SAM.Tests
             Assert.Equal(0, tM59CorridorExtendedResult.GetHoursNumberExceeding28());
         }
 
+        /// <summary>
+        /// <b>A truncated series must not lose the whole run.</b>
+        /// <para>
+        /// <c>Collect</c> walks both hourly arrays with one counter. Bounding the loop by the occupancy
+        /// length while the resultant-temperature series is shorter - a partially written or truncated
+        /// simulation result - would throw <c>ArgumentOutOfRangeException</c> out of
+        /// <c>Calculate_TM59</c>, losing every space's assessment. The loop is bounded by the SHARED range,
+        /// and hours beyond it are simply not assessed.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AResultantSeriesShorterThanTheOccupancySeries_IsAssessedOverTheSharedRange()
+        {
+            Space space = new("Bedroom 2_3");
+
+            ParameterSet parameterSet = new("SAM.Analytical.Tas.dll");
+            parameterSet.Add(key_Analytical_ResultantTemperature, Values([21.0, 24.5, 27.5, 29.0]));
+            parameterSet.Add(key_Analytical_OccupancySensibleGain, Values([0, 80.0, 80.0, 0, 80.0]));
+            space.Add(parameterSet);
+
+            AdjacencyCluster adjacencyCluster = new();
+            adjacencyCluster.AddObject(space);
+
+            AnalyticalModel analyticalModel = new("Three Flats", null, null, null, adjacencyCluster);
+            analyticalModel.SetValue(AnalyticalModelParameter.WeatherData, new WeatherData("Test", "Test", 51.5, -0.1, 0, WeatherYear()));
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+
+            TM59ExtendedResult tM59ExtendedResult = Assert.Single(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+
+            //Assessed over the four shared hours only - the fifth occupancy hour was not paired with a
+            //resultant temperature, and nothing threw.
+            Assert.Equal(4, tM59ExtendedResult.GetAnnualHours());
+        }
+
         // ------------------------------------------------------------------
         // Fixture
         // ------------------------------------------------------------------

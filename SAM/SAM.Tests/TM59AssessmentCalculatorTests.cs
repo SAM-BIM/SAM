@@ -61,6 +61,86 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>The supplied simulation model is not the assessment's scratchpad.</b>
+        /// <para>
+        /// The cluster getter hands out a shallow copy that shares <c>Space</c> instances with the supplied
+        /// model, so restoring the design condition in place would write it back into the caller's raw
+        /// simulation model. The restore works on copies: the calculator's own model carries the restored
+        /// conditions, and the supplied model keeps the spaces exactly as it handed them over.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void RestoreDesignInternalConditions_DoesNotMutateTheSuppliedModel()
+        {
+            AnalyticalModel analyticalModel_Simulation = Model_Simulation();
+            AnalyticalModel analyticalModel_Design = Model_Design();
+
+            TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(analyticalModel_Simulation, analyticalModel_Design);
+
+            Assert.True(tM59AssessmentCalculator.RestoreDesignInternalConditions());
+
+            //The assessment's own model carries the restored conditions...
+            foreach (Space space in tM59AssessmentCalculator.AnalyticalModel.GetSpaces())
+            {
+                Assert.NotNull(space.InternalCondition);
+                Assert.Equal(space.Name, space.InternalCondition.Name);
+            }
+
+            //...while the supplied raw simulation model is untouched.
+            foreach (Space space in analyticalModel_Simulation.GetSpaces())
+            {
+                Assert.Null(space.InternalCondition);
+            }
+        }
+
+        /// <summary>
+        /// <b>Explicit scope classifies by the RESTORED condition, not the stale listed instance.</b>
+        /// <para>
+        /// <c>Spaces</c> resolves a requested design space to the simulation-space instance the
+        /// <c>SimulationSpaceMap</c> retained - which predates <c>RestoreDesignInternalConditions</c> and
+        /// carries no internal condition. Classifying THAT instance would fall through to the space name:
+        /// here a design condition that is plainly not a bedroom ("2 Bed Apt. Living Room" - the qualifier
+        /// names the apartment, not the room) sits on a space whose name says "Bedroom 2", so the stale path
+        /// manufactures a bedroom result. The criterion must come from the model's own space, carrying the
+        /// restored design condition.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ExplicitlyScopedAssessment_ClassifiesByTheRestoredCondition()
+        {
+            AnalyticalModel analyticalModel_Simulation = Model_Simulation();
+            AnalyticalModel analyticalModel_Design = Model_Design();
+
+            //A living-room condition on a space whose NAME says sleeping. Written through the cluster so the
+            //design MODEL carries it - AnalyticalModel.GetSpaces() hands out clones, and mutating one of
+            //those would leave the model itself unchanged.
+            AdjacencyCluster adjacencyCluster_Design = analyticalModel_Design.AdjacencyCluster;
+            Space space_Design = adjacencyCluster_Design.GetSpaces().Find(x => x.Name == "Flat 1 Bedroom 2");
+            space_Design.InternalCondition = new InternalCondition("2 Bed Apt. Living Room");
+            analyticalModel_Design = new AnalyticalModel(analyticalModel_Design, adjacencyCluster_Design);
+
+            TM59AssessmentCalculator tM59AssessmentCalculator = Calculator(analyticalModel_Simulation, analyticalModel_Design);
+
+            Assert.True(tM59AssessmentCalculator.RestoreDesignInternalConditions());
+
+            //Control: the restored model carries the design condition on the model's own space instance.
+            Space space_Restored = tM59AssessmentCalculator.AnalyticalModel.GetSpaces().Find(x => x.Name == "Flat 1 Bedroom 2");
+            Assert.NotNull(space_Restored.InternalCondition);
+            Assert.Equal("2 Bed Apt. Living Room", space_Restored.InternalCondition.Name);
+
+            List<Space> spaces_Assessed = tM59AssessmentCalculator.Spaces([space_Design], null);
+            Assert.Single(spaces_Assessed);
+            Assert.Null(spaces_Assessed[0].InternalCondition);
+
+            TM59AssessmentResult tM59AssessmentResult = tM59AssessmentCalculator.Calculate(spaces_Assessed, true);
+
+            TMResult tMResult = Assert.Single(tM59AssessmentResult.NaturalVentilationResults);
+
+            Assert.True(tMResult is TM59NaturalVentilationExtendedResult);
+            Assert.False(tMResult is TM59NaturalVentilationBedroomExtendedResult, "The stale space's name would have classified this as a bedroom; the restored living-room condition must decide.");
+        }
+
+        /// <summary>
         /// <b>No spaces and no zones means the whole model.</b> That is the component's behaviour, preserved -
         /// and it is exactly why the real TAS run exported a communal corridor into a domestic overheating
         /// assessment as an ordinary room. Pinned, not endorsed.

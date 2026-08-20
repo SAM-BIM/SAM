@@ -231,10 +231,16 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                List<TM59SpaceApplication> tM59SpaceApplications = tM59Manager.TM59SpaceApplications(space?.InternalCondition);
+                //The applications come from the space the MODEL now holds - space_Temp - not from the space
+                //instance the caller listed. Explicitly scoped assessments receive the map's retained
+                //simulation-space instances, which predate RestoreDesignInternalConditions, so the caller's
+                //`space` can still carry no internal condition while space_Temp carries the restored design
+                //one. Classifying the stale instance would pick the wrong TM59 result type or corridor
+                //fallback.
+                List<TM59SpaceApplication> tM59SpaceApplications = tM59Manager.TM59SpaceApplications(space_Temp?.InternalCondition);
                 if (tM59SpaceApplications == null || tM59SpaceApplications.Count == 0)
                 {
-                    tM59SpaceApplications = tM59Manager.TM59SpaceApplications(space);
+                    tM59SpaceApplications = tM59Manager.TM59SpaceApplications(space_Temp);
                 }
 
                 if (!TryGetHourlyValues(space_Temp, out JsonArray jArray_OccupancySensibleGain, out JsonArray jArray_ResultantTemperature))
@@ -369,7 +375,14 @@ namespace SAM.Analytical
             maxAcceptableTemperatures = new IndexedDoubles();
             operativeTemperatures = new IndexedDoubles();
 
-            for (int i = 0; i < jsonArray_OccupancySensibleGain.Count; i++)
+            //The loop is bounded by the SHORTER of the two series. A partially written or truncated
+            //simulation result can hand over two different lengths, and the loop below indexes both arrays
+            //by one counter - so iterating the occupancy length while the resultant series is shorter
+            //would throw out of the whole TM52/TM59 run and lose every assessment in it. Hours beyond the
+            //shared range belong to whichever series is longer and are simply not assessed.
+            int count = System.Math.Min(jsonArray_OccupancySensibleGain.Count, jsonArray_ResultantTemperature.Count);
+
+            for (int i = 0; i < count; i++)
             {
                 if (i < startHourOfYear || i > endHourOfYear)
                 {

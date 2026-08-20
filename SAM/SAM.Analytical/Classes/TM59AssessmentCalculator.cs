@@ -188,8 +188,17 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                space.InternalCondition = space_Design.InternalCondition;
-                adjacencyCluster.AddObject(space);
+                //A COPY, never the caller's instance. The cluster getter hands out a shallow copy that
+                //shares Space objects with the supplied model, so assigning the condition in place would
+                //reach back through that copy and change the caller's raw simulation model - which the
+                //"restore happens on the assessment's model" contract forbids. The copy keeps its guid,
+                //so AddObject replaces rather than duplicating.
+                Space space_Restored = new(space)
+                {
+                    InternalCondition = space_Design.InternalCondition,
+                };
+
+                adjacencyCluster.AddObject(space_Restored);
 
                 result = true;
             }
