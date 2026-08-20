@@ -61,6 +61,10 @@
       <Link>Resources\SAM_PartFSpaceRulesUKDwellingsMVHR.json</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="..\..\files\resources\Analytical\SAM_ApertureConstructionLibrary.JSON">
+      <Link>Resources\SAM_ApertureConstructionLibrary.JSON</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

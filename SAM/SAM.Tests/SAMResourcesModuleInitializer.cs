@@ -60,6 +60,7 @@ namespace SAM.Tests
             Seed<SystemTypeLibrary>(setting, AnalyticalSettingParameter.DefaultSystemTypeLibrary, "SAM_SystemTypeLibrary.JSON");
             Seed<InternalConditionLibrary>(setting, AnalyticalSettingParameter.DefaultInternalConditionLibrary_TM59, "SAM_InternalConditionLibrary_TM59.JSON");
             Seed<ProfileLibrary>(setting, AnalyticalSettingParameter.DefaultProfileLibrary_TM59, "SAM_ProfileLibrary_TM59.JSON");
+            Seed<ApertureConstructionLibrary>(setting, AnalyticalSettingParameter.DefaultApertureConstructionLibrary, "SAM_ApertureConstructionLibrary.JSON");
 
             //Not a plain IJSAMObject deserialisation: PartFData is built from its path by a factory, so it gets
             //its own step rather than going through Seed.
