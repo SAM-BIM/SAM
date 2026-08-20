@@ -4,14 +4,15 @@
 `feature/partf-terminal-transfer-compliance` (PR: SAM#73 against `sow/2026-Q3`)
 
 ## Last updated
-2026-08-20 - Codex PR #73 review round 3 closed; reconciled with the licensed-PC schedule acceptance.
+2026-08-20 - final pre-merge review pass: rounds 1-2 Codex backlog re-triaged against current source;
+three further correctness fixes applied; full suites re-run.
 
 ## Current status
 Eight Codex findings implemented with regression tests. The TAS availability schedule export has PASSED
 licensed acceptance (see below), so the Part O schedule foundation is proven end to end and the earlier
 acceptance-failure hypothesis is withdrawn. Three behaviour/policy findings are explicitly DEFERRED for a
 dedicated decision and are deliberately not part of this work.
-Full `SAM.Tests`: **1341 passed, 0 failed** (Debug and Release; was 1329, +12 new).
+Full `SAM.Tests`: **1344 passed, 0 failed** (Debug and Release; was 1341, +3 new in the final pass).
 
 ## Completed (this session)
 - `Core.Query.TryGetEnum`: case-insensitive enum fallback made culture-invariant (`ToUpperInvariant`) -
@@ -44,6 +45,41 @@ Full `SAM.Tests`: **1341 passed, 0 failed** (Debug and Release; was 1329, +12 ne
 - `SAMAnalyticalPreparePartOIteration`: the BasePassive restriction-reset lines are ALSO raised as GH
   runtime warnings, not only on the `notes` output, so the reset is visible on the canvas rather than
   buried in a list output.
+
+## Final pre-merge pass (this session) - backlog triage and fixes
+
+The rounds 1-2 Codex backlog (17-19 Aug) was re-triaged against current source. Every thread now has a
+classification. Implemented in this pass:
+
+- `TMOverheatingCalculator.Collect`: the loop is bounded by the SHORTER of the two hourly series. A
+  truncated resultant-temperature series previously threw `ArgumentOutOfRangeException` out of the whole
+  TM52/TM59 run. (Codex 3796859276)
+- `TM59AssessmentCalculator.RestoreDesignInternalConditions`: the design condition is restored onto a COPY
+  of each simulated space, never onto the caller's instance - the cluster getter's shallow copy shares
+  Space objects, so the previous in-place assignment contaminated the caller's raw simulation model.
+  (Codex 3811381358)
+- `TMOverheatingCalculator.Evaluate`: TM59 space applications are classified from the model's own restored
+  space (`space_Temp`), not the stale listed instance - explicitly scoped assessments receive the map's
+  retained pre-restore spaces, which selected the wrong TM59 result type or corridor fallback.
+  (Codex 3804690049)
+- `SAMAnalyticalSetPartFCommissioningData`: a `_zoneName` matching more than one zone is refused rather
+  than resolved to the first, so commissioning evidence can no longer be written to the wrong dwelling.
+  (Codex 3796737963)
+- `SAM_PartFSpaceRulesUKDwellingsMVHR.json`: removed the stale claim that a kitchen's 13 l/s Table 1.2
+  minimum can raise the continuous design rate (the code sets it to max(bedroom-or-habitable, area) only),
+  in the migration note and the two formula strings. (Codex 3803896492)
+
+**Classified DEFERRED POLICY (next branch - behaviour/policy changes to reported outcomes):**
+imbalanced disconnected airflow components (3795669833/3814057499), reversed high-rate schematic paths
+(3795832901), zone-marking basis for scenario classification (3796737956), creation-time strategy
+vocabulary validation (3796737970), preservation of site evidence across excluded spaces (3804873037),
+clearing stale door-transfer records (3804873038), headline status when requested spaces produce no
+result (3805522563), overall compliance with unclassified rooms (3805522570), floor-finish requirement
+for undercuts (3806862925), free area proven from an upper-bound width (3806862928), opening angle vs
+purge row validation (3806914162), unreachable transfer endpoints blocking compliance (3814057488).
+
+**Confirmed already fixed by earlier commits:** 3795669854, 3795768191, 3795768196, 3795832892,
+3795832897, 3795895972, 3795895977, 3795895959/3796859273 (Solver2D budget), 3796859271, 3814305690.
 
 ## TAS availability schedule export - licensed acceptance PASSED
 The schedule foundation is proven on the licensed TAS PC against SAM_Tas `7ef2aff3`:
@@ -88,33 +124,42 @@ D3 code exists in this repository or in SAM_Tas.**
 - `SAM/SAM/SAM.Analytical/Classes/OpeningProperties/PartOOpeningProperties.cs`
 - `SAM/SAM/SAM.Analytical/Classes/PartF/PartFPurgeAssessor.cs`
 - `SAM/SAM/SAM.Analytical/Classes/TMOverheatingCalculator.cs`
+- `SAM/SAM/SAM.Analytical/Classes/TM59AssessmentCalculator.cs`
 - `SAM/SAM/SAM.Analytical/Classes/VentilationStrategyMap.cs`
 - `SAM/SAM/SAM.Analytical/Modify/AddTransferAirDoorsByPartF.cs`
 - `SAM/SAM/SAM.Analytical/Modify/ApplyPartFVentilationRates.cs`
 - `SAM/Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalCheckPartFCompliance.cs`
 - `SAM/Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalPreparePartOIteration.cs`
+- `SAM/Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalSetPartFCommissioningData.cs`
+- `files/resources/Analytical/SAM_PartFSpaceRulesUKDwellingsMVHR.json`
 - `SAM/SAM/SAM.Tests/DailyAvailabilityScheduleTests.cs` (+1 theory, 5 cases)
 - `SAM/SAM/SAM.Tests/PartOOpeningPropertiesTests.cs` (+2)
 - `SAM/SAM/SAM.Tests/PartFPurgeAndComplianceTests.cs` (+1)
 - `SAM/SAM/SAM.Tests/PartFTransferAirDoorTests.cs` (+1)
 - `SAM/SAM/SAM.Tests/PartFAirflowApplicationTests.cs` (+1)
-- `SAM/SAM/SAM.Tests/TMOverheatingCalculatorTests.cs` (+1)
+- `SAM/SAM/SAM.Tests/TMOverheatingCalculatorTests.cs` (+2)
+- `SAM/SAM/SAM.Tests/TM59AssessmentCalculatorTests.cs` (+2)
 - `SAM/SAM/SAM.Tests/VentilationStrategyTests.cs` (+1)
 - `SAM/PROJECT_PROGRESS.md` (this file)
 
 ## Validation
 - Focused runs for the retained fixes: 12/12 passed.
-- Full `SAM.Tests` Debug: **1341 passed, 0 failed**.
-- Full `SAM.Tests` Release: **1341 passed, 0 failed** (was 1329; +12 new).
-- `SAM.Analytical.Grasshopper` builds with 0 CS errors (VS Framework MSBuild).
+- Full `SAM.Tests` Debug: **1341 passed, 0 failed** (was 1329; +12 new).
+- Full `SAM.Tests` Release: **1341 passed, 0 failed**.
+- Final pass: focused TM59 runs 19/19, then full `SAM.Tests` Debug **1344 passed, 0 failed** and
+  Release **1344 passed, 0 failed**.
+- `SAM.Analytical.Grasshopper` and `SAM.Analytical` compile with 0 CS errors; `SAM.Analytical.Grasshopper`
+  post-build deploy step fails locally with the pre-existing `*Undefined*` xcopy quirk (environmental -
+  CI uses `RunPostBuildEvent=OnOutputUpdated` and is green).
 
 ## Issues / blockers
-- None blocking. The three deferred findings above are the outstanding decisions.
-- The wider Codex backlog on PR #73 (rounds 1-2, 17-18 Aug) was not re-triaged in this pass. GitHub
-  reports every Codex thread as unresolved because the bot never resolves them, so that count is not a
-  backlog measure - several are already closed by committed work. A dedicated sweep is needed to say
-  which remain.
+- None blocking. The deferred findings above are the outstanding decisions.
+- Fresh Codex review on the current head is unavailable: `@codex review` is refused by
+  `chatgpt-codex-connector[bot]` ("create a Codex account and connect to github"). The delta after the
+  latest Codex-reviewed SHA (`9b4e46fe`) was reviewed manually. GitHub reports every Codex thread as
+  unresolved because the bot never resolves them - every thread is now triaged here.
 
 ## Next step
-- Decide the three deferred findings (3815926703, 3821633849, 3802695375) as a TM59/Part O policy pass.
-- Re-triage the rounds 1-2 Codex backlog against current source.
+- Merge PR #73, then SAM_Systems #14, SAM_Tas #29, SAM_Tas_Grasshopper #4 (dependency chain).
+- Decide the deferred findings (3815926703, 3821633849, 3802695375 and the DEFERRED POLICY set above)
+  as a TM59/Part O policy pass on the NEXT branch.
