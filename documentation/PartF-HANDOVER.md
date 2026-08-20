@@ -33,7 +33,7 @@ PR against `sow/2026-Q3`. **`sow/2026-Q3` is never committed to directly** and i
 | `SAM` | **`2c7bb26f`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
 | `SAM_Systems` | **`4446bb8`** | `618fc74` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `d7303c2` | [SAM_Systems#14](https://github.com/SAM-BIM/SAM_Systems/pull/14) |
 | `SAM_UI` | **`fcf0ec8`** | `2a0d480` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `074f3d9` | [SAM_UI#75](https://github.com/SAM-BIM/SAM_UI/pull/75) |
-| `SAM_Tas` | **`2ea7b43`** | exactly `2ea7b43` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
+| `SAM_Tas` | **`5923812`** | exactly `5923812` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
 | `SAM_Tas_Grasshopper` | **`ebdf0bcd`** | exactly `ebdf0bcd` | `sow/2026-Q3` @ `9555aa1` | [SAM_Tas_Grasshopper#4](https://github.com/SAM-BIM/SAM_Tas_Grasshopper/pull/4) |
 
 **Two row corrections made in this checkpoint**, both verified against the repositories, not assumed:
@@ -68,11 +68,11 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 15f4bcdd
+SAM 2c7bb26f
 SAM_Systems 4446bb8
 SAM_UI fcf0ec8
-SAM_Tas 9c822e6
-SAM_Tas_Grasshopper 32f2763
+SAM_Tas 5923812
+SAM_Tas_Grasshopper ebdf0bcd
 EOF
 ```
 
@@ -86,15 +86,20 @@ is recorded as having earned its keep five times):
   reconcile*, not *assume*. Resolve by reading the prose, confirming the commit is accounted for, and
   correcting the pin — and bump this table in the **same commit** that lands code.
 - **Check for a merge before assuming lost work.** `git log -1 --format='%P' <head>` showing two parents is
-  the tell of a `sow/2026-Q3` base sync, not of unrecorded feature work. `SAM_Systems`, `SAM_UI` and
-  `SAM_Tas_Grasshopper` are in that state right now; `AGENTS.md` / `PROJECT_PROGRESS.md` arriving that way
-  is accepted as benign and is filtered by the command above.
-- **A pin naming no object at all is a typo in this file, not a deleted commit** — and it still has to be
-  proved, not assumed. `SAM_Tas_Grasshopper`'s pin read `ebdf0bcd`, which `cat-file` could not resolve in
-  any of the five repos. Resolved on 2026-08-20 by reading that repo's own history: the last code commit is
-  `32f2763` (the Part O diagnostic logging component), HEAD `f3ee1ba` is a base-sync merge, and
-  `git diff 32f2763 HEAD` touches only `AGENTS.md` and `PROJECT_PROGRESS.md`. No work was lost; the pin and
-  the HEAD column above are corrected.
+  the tell of a `sow/2026-Q3` base sync, not of unrecorded feature work. `SAM_Systems` and `SAM_UI` are in
+  that state right now (`SAM_Tas_Grasshopper` no longer is — its base-sync merge `f3ee1ba` has three code
+  commits on top); `AGENTS.md` / `PROJECT_PROGRESS.md` arriving that way is accepted as benign and is
+  filtered by the command above.
+- **Verify a "missing" pin in the RIGHT repository before rewriting the row.** This file briefly recorded
+  that `SAM_Tas_Grasshopper`'s pin `ebdf0bcd` "could not be resolved in any of the five repos" and rewrote
+  the row to `32f2763`/`f3ee1ba`. **That was wrong and is withdrawn.** `git cat-file -t ebdf0bcd` in
+  `SAM_Tas_Grasshopper` resolves it as
+  `ebdf0bcd490cf8c60d875cc7500fc84deb73a5f6` — "Add voluntary text-file export to
+  `Tas.TSDQueryTM59Results`" — and `git diff 32f2763 HEAD` touches
+  `Grasshopper/SAM.Analytical.Grasshopper.Tas/Component/TasTSDQueryTM59Results.cs` and
+  `.github/scripts/guid-baseline.json` as well as the two documentation files, so `32f2763` was never the
+  last code commit. No work was lost either way; the lesson is that an abbreviated SHA only resolves in the
+  repo that owns it, and a failed lookup in the wrong repo is not evidence of a typo.
 
 ### CI / test state
 
@@ -119,10 +124,11 @@ same suite was run locally in Release first (below).
 corrected here rather than rewritten: it says "1329 … up from 1275 – 33 new DailyAvailabilitySchedule
 tests … three new [PartO] cases". The 1275 baseline was stale (it was already 1289 once `15f4bcdd` landed),
 and the true per-class figures are 23 and +2, not 33 and +3. The 1329 total and the 0 failures are correct.
-`SAM_Tas` `2ea7b43`'s message is accurate as written.
+`SAM_Tas` `2ea7b43`'s and `5923812`'s messages are accurate as written.
 
 **CI read and green for this checkpoint.** `SAM#73` — `build (Release)` 1m59s, `test (Release)` 2m23s,
-`spdx` 5s. `SAM_Tas#29` — `build` 5m34s, `spdx` 4s. No new inline review comments on either PR.
+`spdx` 5s. `SAM_Tas#29` — `build` 5m34s, `spdx` 4s. No new inline review comments on either PR. **`SAM_Tas`
+`5923812` (post-review fixes) is pushed and its CI has not been read yet**; `SAM` is unchanged by it.
 
 ---
 
@@ -204,7 +210,7 @@ Iteration 1 is **not** accepted yet. What stands between here and acceptance:
    Grasshopper. `profiles_` keeps precedence over `restriction_`, warning instead of silently dropping it.
    **The GH API is unchanged by the schedule foundation** — no new user-facing input was needed.
 
-   **What the schedule foundation changed (SAM `2c7bb26f`, SAM_Tas `2ea7b43`).** A real GH → TAS run
+   **What the schedule foundation changed (SAM `2c7bb26f`, SAM_Tas `2ea7b43` + `5923812`).** A real GH → TAS run
    exposed a missing abstraction: SAM had an object for a `TBD.profile` but none for the `TBD.schedule` it
    points at, so a general `Profile` was standing in for a 24-hour availability mask. That is now
    `SAM.Analytical.DailyAvailabilitySchedule` — see §2 item 23 for the naming, binary-semantics, reuse and
@@ -348,7 +354,18 @@ Each of these has a test. Do not undo any without Michal's agreement.
       (`Modify.SetScheduleValues`), it always verifies by read-back, and **nothing is created before the
       source is validated** because `TBD.Building` has no `RemoveSchedule` — an erroneous schedule can never
       be withdrawn. `profile.schedule` is assigned **last**, after `type`/`function`/`factor`/
-      `setbackValue`.
+      `setbackValue`. A failed read-back returns **null** from both `Create.GetOrCreateSchedule` and the
+      legacy `Create.Schedule`, so no caller can assign a schedule whose values do not match the model; all
+      four legacy call sites (`AssignApertureTypes`, `New.AssignOpeningTypes`, Day and Night each) already
+      null-check.
+    - **`Modify.SetApertureType` is NOT transactional — never document it as such.** What it guarantees is
+      narrower and precise: *a failed or incompatible schedule is never assigned, and an existing
+      different-valued schedule is never overwritten.* It can already have created the aperture type and
+      written its `description` before a refusal, and the two assignment read-back refusals necessarily come
+      after the profile was written. Schedule resolution is hoisted above every profile write — it needs none
+      of them — so an unusable source, a naming collision or a failed COM write leaves the profile's mode,
+      factor and function untouched. **Keep it hoisted**, and do not complicate the method further merely to
+      make it look transaction-like.
 
 ---
 
@@ -468,7 +485,8 @@ compliance.**
 ## 5. The precise next task
 
 **§1 item 1 is code-complete and the schedule foundation under it has landed (SAM `2c7bb26f`, SAM_Tas
-`2ea7b43`). The one thing standing between here and Iteration 1 acceptance is the real TAS run below.**
+`2ea7b43`, post-review fixes in `5923812`). The one thing standing between here and Iteration 1
+acceptance is the real TAS run below.**
 
 The traced seam: `SAMAnalytical.AddOpeningPropertiesByPartO`'s `restriction_`/`openingHour_`/`closingHour_`
 (SAM `53aabf2f`) → `PartOOpeningProperties.OpeningRestriction` plus its derived
