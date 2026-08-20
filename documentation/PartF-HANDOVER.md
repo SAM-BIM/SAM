@@ -30,11 +30,11 @@ PR against `sow/2026-Q3`. **`sow/2026-Q3` is never committed to directly** and i
 
 | Repo | Last CODE commit | HEAD | Cut from | PR |
 |---|---|---|---|---|
-| `SAM` | **`46a40cee`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
+| `SAM` | **`15f4bcdd`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
 | `SAM_Systems` | **`4446bb8`** | `618fc74` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `d7303c2` | [SAM_Systems#14](https://github.com/SAM-BIM/SAM_Systems/pull/14) |
 | `SAM_UI` | **`fcf0ec8`** | `2a0d480` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `074f3d9` | [SAM_UI#75](https://github.com/SAM-BIM/SAM_UI/pull/75) |
 | `SAM_Tas` | **`9c822e6`** | exactly `9c822e6` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
-| `SAM_Tas_Grasshopper` | **`ebdf0bcd`** | exactly `ebdf0bcd` | `sow/2026-Q3` @ `9555aa1` | [SAM_Tas_Grasshopper#4](https://github.com/SAM-BIM/SAM_Tas_Grasshopper/pull/4) |
+| `SAM_Tas_Grasshopper` | **`32f2763`** | `f3ee1ba` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `9555aa1` | [SAM_Tas_Grasshopper#4](https://github.com/SAM-BIM/SAM_Tas_Grasshopper/pull/4) |
 
 **Why a HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own hash. The
 last **code** commit is pinned instead.
@@ -54,11 +54,11 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 46a40cee
+SAM 15f4bcdd
 SAM_Systems 4446bb8
 SAM_UI fcf0ec8
 SAM_Tas 9c822e6
-SAM_Tas_Grasshopper ebdf0bcd
+SAM_Tas_Grasshopper 32f2763
 EOF
 ```
 
@@ -72,18 +72,25 @@ is recorded as having earned its keep five times):
   reconcile*, not *assume*. Resolve by reading the prose, confirming the commit is accounted for, and
   correcting the pin — and bump this table in the **same commit** that lands code.
 - **Check for a merge before assuming lost work.** `git log -1 --format='%P' <head>` showing two parents is
-  the tell of a `sow/2026-Q3` base sync, not of unrecorded feature work. `SAM_Systems` and `SAM_UI` are in
-  that state right now; `AGENTS.md` / `PROJECT_PROGRESS.md` arriving that way is accepted as benign and is
-  filtered by the command above.
+  the tell of a `sow/2026-Q3` base sync, not of unrecorded feature work. `SAM_Systems`, `SAM_UI` and
+  `SAM_Tas_Grasshopper` are in that state right now; `AGENTS.md` / `PROJECT_PROGRESS.md` arriving that way
+  is accepted as benign and is filtered by the command above.
+- **A pin naming no object at all is a typo in this file, not a deleted commit** — and it still has to be
+  proved, not assumed. `SAM_Tas_Grasshopper`'s pin read `ebdf0bcd`, which `cat-file` could not resolve in
+  any of the five repos. Resolved on 2026-08-20 by reading that repo's own history: the last code commit is
+  `32f2763` (the Part O diagnostic logging component), HEAD `f3ee1ba` is a base-sync merge, and
+  `git diff 32f2763 HEAD` touches only `AGENTS.md` and `PROJECT_PROGRESS.md`. No work was lost; the pin and
+  the HEAD column above are corrected.
 
 ### CI / test state
 
 All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (Release)`, `test (Release)`,
-`spdx`; the other four: `build`, `spdx`.
+`spdx`; the other four: `build`, `spdx`. `SAM`'s checks re-run on `15f4bcdd`, pushed 2026-08-20; the same
+suite was run locally in Release first (below).
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1285 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
+| `SAM/SAM.Tests` | **1289 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
 | `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **91 passed, 0 failed**, Debug **and** Release | build `SAM` and `SAM_Tas.sln` with **VS Framework MSBuild first** — see §6 |
 | `SAM_Systems/SAM.Analytical.Systems.Tests` | **40 passed, 0 failed** | in `SAM_Systems.sln`, executed by CI |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | — |
@@ -121,7 +128,7 @@ All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (
    export, off by default). Evidence, and the defects this exposed:
    [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md).
 
-### Part F transfer-air doors (SAM `46a40cee`)
+### Part F transfer-air doors (SAM `46a40cee`, review corrections `15f4bcdd`)
 
 `SAMAnalytical.AddTransferAirDoorsByPartF` (GH) / `Modify.AddTransferAirDoorsByPartF` (SAM.Analytical) now
 close the gap the Part F assessment could only report: a dwelling transfer route that carries air but has
@@ -132,9 +139,29 @@ of the wall, centred on the clearest length. The requirement comes from re-runni
 Existing doors are never duplicated (a rerun is a no-op); a created door carries the paragraph 1.25
 requirement but **no provided undercut**, so created is not compliant (CannotBeDetermined) until a person
 records it. Unresolved topology (no shared wall, wall too small, no clear length) is refused and reported,
-never guessed. 10 tests in `SAM.Tests/PartFTransferAirDoorTests.cs`, including the duplicate-room-name
-identity regression. The aperture construction library is now seeded into `ActiveSetting` for tests per the
+never guessed. The aperture construction library is now seeded into `ActiveSetting` for tests per the
 documented pattern.
+
+**Review corrections (`15f4bcdd`) — two places the operation manufactured a fact the model does not carry.**
+
+- **Several shared walls are an ambiguity, not a tie to be broken.** Every wall panel related to both spaces
+  by guid is now tested — by reading it only — for whether it could take the 760 × 2100 mm door where it
+  stands, via `Query.ApertureHost`, the same host check `Panel.AddApertures` applies. None can: the existing
+  refusal. Exactly one can: the door is created there. **More than one can: the route is REFUSED**, naming
+  every candidate Panel Guid. The previous *largest shared wall, guid as tie-break* rule was deterministic
+  but established nothing about where the door belonged — wall area, room name, panel name, enumeration
+  order and guid order are all arbitrary with respect to that question. Guid order survives **only** so the
+  diagnostics list the same panels in the same order on every run.
+- **A missing internal-door construction is a refusal.** `Query.DefaultApertureConstruction` returning null
+  no longer causes a plain `Internal Door` `ApertureConstruction` to be manufactured and noted; that put a
+  door build-up into the model that nothing established, purely so geometry could exist.
+
+14 tests in `SAM.Tests/PartFTransferAirDoorTests.cs`, including the duplicate-room-name identity regression,
+the two-candidate ambiguity refusal **run in both panel creation orders**, a three-wall case where the only
+wall that fits is the **smallest** (so a geometrically established sole candidate cannot be mistaken for the
+largest wall being picked), and the construction refusal. That last test swaps an `ActiveSetting` default, so
+`PartFTransferAirDoorTests` and `QuadraticScanRegressionTests` — the suite's only two readers of the default
+aperture construction library — share an xUnit collection and never run at the same time.
 
 ### Iteration 1 — the remaining reviewer gate
 
