@@ -30,11 +30,25 @@ PR against `sow/2026-Q3`. **`sow/2026-Q3` is never committed to directly** and i
 
 | Repo | Last CODE commit | HEAD | Cut from | PR |
 |---|---|---|---|---|
-| `SAM` | **`15f4bcdd`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
+| `SAM` | **`2c7bb26f`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
 | `SAM_Systems` | **`4446bb8`** | `618fc74` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `d7303c2` | [SAM_Systems#14](https://github.com/SAM-BIM/SAM_Systems/pull/14) |
 | `SAM_UI` | **`fcf0ec8`** | `2a0d480` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `074f3d9` | [SAM_UI#75](https://github.com/SAM-BIM/SAM_UI/pull/75) |
-| `SAM_Tas` | **`9c822e6`** | exactly `9c822e6` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
-| `SAM_Tas_Grasshopper` | **`32f2763`** | `f3ee1ba` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `9555aa1` | [SAM_Tas_Grasshopper#4](https://github.com/SAM-BIM/SAM_Tas_Grasshopper/pull/4) |
+| `SAM_Tas` | **`2ea7b43`** | exactly `2ea7b43` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
+| `SAM_Tas_Grasshopper` | **`ebdf0bcd`** | exactly `ebdf0bcd` | `sow/2026-Q3` @ `9555aa1` | [SAM_Tas_Grasshopper#4](https://github.com/SAM-BIM/SAM_Tas_Grasshopper/pull/4) |
+
+**Two row corrections made in this checkpoint**, both verified against the repositories, not assumed:
+
+- **`SAM_Tas_Grasshopper` was a stale pin.** The table said last code `32f2763`, HEAD `f3ee1ba`. `f3ee1ba`
+  (the `sow/2026-Q3` base-sync merge) is an **ancestor** of the real HEAD `ebdf0bcd`, with three code
+  commits after it — `2bee815` (TM59 verification report on the TSD query component), `29c31db` (Part O
+  diagnostics component GUID baseline), `ebdf0bcd` (voluntary text-file export). Nothing was lost; the pin
+  had been rewritten from an older view of that repo. Local and `origin` are level at `ebdf0bcd`.
+- **A `git pull --ff` landed in `SAM` mid-checkpoint** (reflog `HEAD@{1}`), from the other laptop,
+  fast-forwarding `3093a977` → `6f77dbf7` — `15f4bcdd`'s transfer-air-door corrections plus its two
+  documentation commits. `3093a977` remains an ancestor, nothing was rewritten, and this checkpoint's `SAM`
+  commit is a clean fast-forward on top. **Every build and both suites below were re-run on the merged
+  state**, not carried over from the pre-pull run. Worth knowing for next time: a working tree here can move
+  under you mid-session, so re-verify §0 before committing as well as before starting.
 
 **Why a HEAD is not pinned to a SHA.** The commit that updates this file cannot contain its own hash. The
 last **code** commit is pinned instead.
@@ -91,12 +105,24 @@ same suite was run locally in Release first (below).
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1289 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
-| `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **91 passed, 0 failed**, Debug **and** Release | build `SAM` and `SAM_Tas.sln` with **VS Framework MSBuild first** — see §6 |
+| `SAM/SAM.Tests` | **1329 passed, 0 failed** (Release) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
+| `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **123 passed, 0 failed**, Debug **and** Release | build `SAM` and `SAM_Tas.sln` with **VS Framework MSBuild first** — see §6 |
 | `SAM_Systems/SAM.Analytical.Systems.Tests` | **40 passed, 0 failed** | in `SAM_Systems.sln`, executed by CI |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | — |
 | `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **182 passed, 0 failed** | — |
 | `SAM_Tas_Grasshopper` | no test project; builds with 0 errors under VS Framework MSBuild | equivalence pinned in `SAM.Tests` |
+
+**Where the two changed counts come from.** `SAM.Tests` 1289 → **1329** is **+40 from this checkpoint**
+(`DailyAvailabilityScheduleTests` 23, `ProfileOpeningPropertiesTests` 9, `ProfileDailyValuesTests` 6, and
+`PartOOpeningPropertiesTests` 17 → 19). `SAM_Tas` 91 → **123** is +32, all in
+`OpeningScheduleResolutionTests`. **Correction to `SAM` `2c7bb26f`'s own commit message**, which is
+corrected here rather than rewritten: it says "1329 … up from 1275 – 33 new DailyAvailabilitySchedule
+tests … three new [PartO] cases". The 1275 baseline was stale (it was already 1289 once `15f4bcdd` landed),
+and the true per-class figures are 23 and +2, not 33 and +3. The 1329 total and the 0 failures are correct.
+`SAM_Tas` `2ea7b43`'s message is accurate as written.
+
+**CI has NOT yet been read for this checkpoint.** Both code commits are pushed; the `SAM#73` and
+`SAM_Tas#29` checks and any Codex inline comments still need reading, per §6.
 
 ---
 
@@ -168,29 +194,37 @@ aperture construction library — share an xUnit collection and never run at the
 
 Iteration 1 is **not** accepted yet. What stands between here and acceptance:
 
-1. **DONE, code-complete — verify against a real TAS run before trusting it.** `PartOOpeningProperties`
-   gained `OpeningRestriction` (`Unrestricted`/`NightClosed`/`AlwaysClosed`, SAM `8bf2cf61`), and
-   `Modify.SetApertureType` (SAM_Tas `9c822e6`) now writes it into the TBD's aperture-control profile using
-   the same idempotent find-or-create-by-name schedule `ProfileOpeningProperties` already used, so a
-   BasePassive scenario's `Openings Restricted = false` is enforced on the copy
-   (`Modify.ResetPartOOpeningRestrictions`, called from `PreparePartOIteration`) instead of only being
-   stated. `SAMAnalytical.AddOpeningPropertiesByPartO` (SAM `53aabf2f`) now exposes `restriction_`
-   (default `Unrestricted`) and `openingHour_`/`closingHour_` (`NightClosed` only, default `8`/`23`) so a
-   modeller can assign the restriction directly from Grasshopper instead of it being reachable only by
-   hand-constructing `PartOOpeningProperties` — **this closes the last gap the manual acceptance run below
-   needed** (there was previously no GH-side way to author a `NightClosed`/`AlwaysClosed` aperture at all).
-   `profiles_` (pre-existing, explicit user control) keeps precedence over `restriction_`; connecting both
-   non-trivially now raises a warning instead of silently dropping the restriction. Full trace, domain
-   model, behaviour matrix and unit-test coverage in this checkpoint's session; **what is NOT covered**: no
-   automated test exercises the real TBD/COM write (schedule creation, reuse across repeated preparation, or
-   the new refusal when a foreign schedule already sits on the aperture type) — this codebase's own
-   precedent (`TsdZoneIdentityStampTests`, see `PartO-TAS-VALIDATION.md`) is that this class of COM-deep line
-   is verified by a manual acceptance run, not a unit test; the same is true of the GH component's own
-   input-wiring/precedence/warning behaviour, since `SAM.Tests` has no reference to any Grasshopper assembly.
-   **Next:** rerun the Flat1 BasePassive slice (or a small model with one `NightClosed` aperture, set via
-   `AddOpeningPropertiesByPartO`'s `restriction_`) through the real pipeline and confirm the generated
-   `PartO_DayOpen_08_23` schedule appears on the TBD exactly once, the same way Flat1's TM59 numbers were
-   checked against native TAS.
+1. **DONE, code-complete — and the schedule foundation under it is now first-class. Still unverified
+   against a real TAS run.** `PartOOpeningProperties` gained `OpeningRestriction`
+   (`Unrestricted`/`NightClosed`/`AlwaysClosed`, SAM `8bf2cf61`); `Modify.SetApertureType` writes it into
+   the TBD's aperture-control profile, so a BasePassive scenario's `Openings Restricted = false` is
+   *enforced* on the copy (`Modify.ResetPartOOpeningRestrictions`, called from `PreparePartOIteration`)
+   rather than only stated; and `SAMAnalytical.AddOpeningPropertiesByPartO` (SAM `53aabf2f`) exposes
+   `restriction_` plus `openingHour_`/`closingHour_` so a modeller can author the restriction from
+   Grasshopper. `profiles_` keeps precedence over `restriction_`, warning instead of silently dropping it.
+   **The GH API is unchanged by the schedule foundation** — no new user-facing input was needed.
+
+   **What the schedule foundation changed (SAM `2c7bb26f`, SAM_Tas `2ea7b43`).** A real GH → TAS run
+   exposed a missing abstraction: SAM had an object for a `TBD.profile` but none for the `TBD.schedule` it
+   points at, so a general `Profile` was standing in for a 24-hour availability mask. That is now
+   `SAM.Analytical.DailyAvailabilitySchedule` — see §2 item 23 for the naming, binary-semantics, reuse and
+   precedence rules, which are invariants, not implementation detail. The same run had produced a TBD
+   schedule holding 24 zeros; **the cause was not the COM write API** (`schedule.values[i] = x` and
+   `schedule.set_values(i, x)` are provably the same call — see §2 item 23) but two control-flow defects,
+   both now fixed and both now diagnosable: a schedule created and named *before* its source was validated
+   and then silently not written, and `profile.type` being set *after* `profile.schedule`. Every failure
+   now returns an actionable refusal, and the write is verified by reading all 24 values back.
+
+   **What is still NOT covered by an automated test**, and why: the COM write itself, its assignment to a
+   `TBD.profile`, and repeated-export behaviour on a real TBD. The whole resolve/reuse/name/precedence
+   algorithm *is* covered (32 tests) because it deliberately names no TAS COM type; what remains needs the
+   TAS interop loaded inside a project built specifically to exclude it. Same precedent as
+   `TsdZoneIdentityStampTests` (see `PartO-TAS-VALIDATION.md`). The GH component's own
+   input-wiring/precedence/warning behaviour is likewise untested — `SAM.Tests` references no Grasshopper
+   assembly — and is covered by the manual recipe in §5 instead.
+
+   **Next: the manual TAS acceptance run in §5.** Until it passes, the schedule foundation is code-complete
+   and locally green, and nothing more.
 2. **Widen the validation beyond one flat**, in particular to a plain non-bedroom `natural` criterion. See
    `PartO-TAS-VALIDATION.md` → *Remaining validation work*.
 3. **Michal's confirmations** in §3 items 1 and 2 — neither is code.
@@ -282,6 +316,39 @@ Each of these has a test. Do not undo any without Michal's agreement.
     settings; one renderer and one placement path for Part F presentation; a reflection test asserts it.
 22. **A calculated failure can never be overridden into a pass.** Absence of evidence is never compliance;
     the output is an assessment, never a certificate. (Full rule in the traceability document.)
+23. **A TAS schedule is a first-class SAM object, and its identity is its VALUES.** Six rules, all with
+    tests:
+    - **`DailyAvailabilitySchedule` is the SAM counterpart of a `TBD.schedule`** — one day, exactly 24
+      hourly binary values, refused at construction otherwise, never handing out its internal array. A
+      `Profile` is a general sparse curve and is **not** a schedule. Do **not** grow this into weekly,
+      yearly or calendar schedules, or a schedule library.
+    - **Not named `DailySchedule`, on purpose.** `SAM.Analytical.Systems.DailySchedule` already exists and
+      means a named collection of `ScheduleDay`s. `SAM_Systems` is downstream of `SAM.Analytical` so it is
+      not reusable and this is not a duplicate abstraction, but the homonym would mislead.
+    - **Binary is a declared design decision, not a proven COM constraint.** `TBD.ISchedule`'s accessor is
+      `int`-typed; what makes it binary is the mechanism (the schedule selects between the profile's
+      value/function and its `setbackValue`) plus the fact that no shipped SAM resource sets an aperture
+      schedule at all. A general-valued curve from a user-authored TAS model therefore stays a legacy
+      `Profile` and is never coerced. **The TAS seam is `int[24]`** so the legacy route keeps its exact
+      previous `Convert.ToInt32` rounding.
+    - **Reuse by value, create by name.** A `TBD.schedule` is building-level and shared across zones, so
+      openings with different reasons for the same window share one schedule whatever each calls it.
+      Name-based matching is what produced `PartO_DayOpen_08_23 (1)`, `(2)`, … Collision naming is
+      `<name>_<signature>` — deterministic, never a counter — and a third collision **refuses**.
+      `Signature` is the 6-hex 24-bit mask (hour 0 most significant; `00FFFE` for 08:00–23:00), computed
+      arithmetically because it reaches a persisted TBD name and `GetHashCode` is not build-stable.
+    - **`ProfileOpeningProperties.Schedule` beats legacy `Profile`; they are never merged.** `Profile` alone
+      is the state of every model saved before this existed, so those keep behaving identically. A
+      different-valued schedule already on an aperture type is **refused, never overwritten**; an
+      equal-valued one is retained.
+    - **`schedule.values[i] = x` and `schedule.set_values(i, x)` are the SAME COM call.** C# supports
+      indexed properties only for COM interop types and lowers both to
+      `TBD.ISchedule::set_values(int32, int32)` — verified by disassembling `SAM.Analytical.Tas.dll`. Never
+      describe one as correct and the other as defective. There is **one** writer
+      (`Modify.SetScheduleValues`), it always verifies by read-back, and **nothing is created before the
+      source is validated** because `TBD.Building` has no `RemoveSchedule` — an erroneous schedule can never
+      be withdrawn. `profile.schedule` is assigned **last**, after `type`/`function`/`factor`/
+      `setbackValue`.
 
 ---
 
@@ -400,54 +467,78 @@ compliance.**
 
 ## 5. The precise next task
 
-**§1 item 1 is now code-complete (SAM `53aabf2f`, SAM_Tas `9c822e6`) — verify it against a real TAS run,
-the same way Flat1 BasePassive was verified against native TAS.**
+**§1 item 1 is code-complete and the schedule foundation under it has landed (SAM `2c7bb26f`, SAM_Tas
+`2ea7b43`). The one thing standing between here and Iteration 1 acceptance is the real TAS run below.**
 
-The traced seam, for reference: `SAMAnalytical.AddOpeningPropertiesByPartO`'s `restriction_`/
-`openingHour_`/`closingHour_` (SAM `53aabf2f`, the GH-side gap that made a manual acceptance run
-impossible until now) → `PartOOpeningProperties.OpeningRestriction`
-(`Unrestricted`/`NightClosed`/`AlwaysClosed`, plus a derived `Profile` named `PartO_DayOpen_HH_HH` for
-`NightClosed`) → `Modify.SetApertureType` (SAM_Tas, the method `WorkflowCalculator`'s "Updating Aperture
-Types" step already calls for every opening) → the same idempotent find-or-create-by-name schedule
-`ProfileOpeningProperties` already used, now also triggered by `PartOOpeningProperties` → `TBD.ApertureType`
-profile+schedule. `Modify.ResetPartOOpeningRestrictions` (SAM) gives `PreparePartOIteration` a copy-only way
-to enforce `Openings Restricted = false` rather than merely stating it. Full rationale, the domain-model
-decision (a closed enum, not two booleans), the Function/schedule-coexistence fix, and the refusal-on-
-foreign-schedule precedence rule are in this checkpoint's commit messages and in the code's own doc
-comments — this section stays short on purpose.
+The traced seam: `SAMAnalytical.AddOpeningPropertiesByPartO`'s `restriction_`/`openingHour_`/`closingHour_`
+(SAM `53aabf2f`) → `PartOOpeningProperties.OpeningRestriction` plus its derived
+**`DailyAvailabilitySchedule`** named `PartO_DayOpen_HH_HH` for `NightClosed` (SAM `2c7bb26f` — this used to
+be a `Profile` pretending to be a schedule) → `Modify.SetApertureType` (SAM_Tas, the method
+`WorkflowCalculator`'s "Updating Aperture Types" step already calls for every opening) →
+`Create.GetOrCreateSchedule`, which validates 24 values, reuses any **value-identical** building schedule
+whatever its name, otherwise creates exactly one and verifies it by reading all 24 values back →
+`TBD.ApertureType` profile + schedule, schedule assigned **last**.
+`Modify.ResetPartOOpeningRestrictions` (SAM) gives `PreparePartOIteration` a copy-only way to enforce
+`Openings Restricted = false` rather than merely stating it. The rules that must not be silently revisited
+are §2 item 23; rationale is in the two commit messages and the code's own doc comments.
 
-**Not done, and the reason matters.** No automated test exercises the real TBD/COM write — this
-codebase's own precedent (`TsdZoneIdentityStampTests`, see `PartO-TAS-VALIDATION.md`) is that a line this
-deep in COM interop is verified by a manual acceptance run, not a unit test, because exercising it needs
-the whole TAS interop surface loaded inside a project built specifically to exclude it. The same applies to
-the GH component's own input-wiring/precedence/warning logic (`restriction_` parsing, the `profiles_`
-precedence warning, the equal-hour warning): `SAM.Tests` has no reference to any Grasshopper assembly, so
-none of that is exercised by an automated test either — it is covered by the manual GH recipe below instead.
-What SAM.Tests DOES cover (17 tests now, `SAM.Tests/PartOOpeningPropertiesTests.cs`): legacy JSON with no
-`OpeningRestriction` key resolves to `Unrestricted`; JSON round-trip and copy-constructor preserve the new
-fields; the derived `Profile`'s name and 24 hourly values for the default window, a custom window, an
-overnight wrap (e.g. 22→06), an equal-hour window (always unavailable), and out-of-range hours (normalised
-modulo 24); two `NightClosed` instances with the same window produce the same profile name (the reusability
-the TAS-side schedule lookup depends on); `ResetPartOOpeningRestrictions` resets only SAM-generated
-`PartOOpeningProperties`, leaves any other `IOpeningProperties` untouched, and leaves the original
-`AnalyticalModel` byte/semantically unchanged.
+**Not done, and the reason matters.** No automated test exercises the real TBD/COM write, its assignment to
+a `TBD.profile`, or repeated export on a real TBD — this codebase's own precedent
+(`TsdZoneIdentityStampTests`, see `PartO-TAS-VALIDATION.md`) is that a line this deep in COM interop is
+verified by a manual acceptance run, because exercising it needs the whole TAS interop surface loaded inside
+a project built specifically to exclude it. The same applies to the GH component's own
+input-wiring/precedence/warning logic (`restriction_` parsing, the `profiles_` precedence warning, the
+equal-hour warning): `SAM.Tests` references no Grasshopper assembly. Both are covered by the manual recipe
+below instead.
 
-**The next task:** rerun the Flat1 BasePassive slice (or a small model with one aperture set to
-`NightClosed` via `AddOpeningPropertiesByPartO`'s `restriction_`) through the real pipeline below, open the
-resulting TBD, and confirm: the aperture's TBD profile carries a `schedule` named `PartO_DayOpen_08_23` with
-1 for hours 08–22 and 0 for 23–07; running preparation twice does not create a second schedule of that name;
-and an aperture whose TBD ApertureType already carries a differently-named schedule is left alone (the write
-refuses rather than overwriting it).
+What **is** covered automatically — 40 tests in `SAM.Tests`, 32 in `SAM_Tas` — is the whole domain model and
+the whole resolve/reuse/name/precedence algorithm, the latter being testable precisely because it names no
+TAS COM type: 24-values-or-refused, no mutation through a returned array, JSON round trip, value equality
+per differing hour, build-stable signature; legacy JSON with a `Profile` key and no `Schedule` key; the
+unchanged `Convert.ToInt32` legacy conversion; reuse by value across differently named sources; naming,
+collision suffix and the refusal; `Schedule`-over-`Profile` precedence; and repeated export resolving to one
+schedule. Plus `ProfileDailyValuesTests`, which pins `Profile.GetDailyValues()` itself so the old all-zero
+failure can never be re-attributed to it.
 
-**The BasePassive slice as it stands, for manual testing:** `AnalyticalModel` →
-`SAMAnalytical.AddVentilationPropertiesByPartF` (or `CheckPartFCompliance`) →
-`SAMAnalytical.AddOpeningPropertiesByPartO` (`restriction_ = NightClosed` on the aperture(s) to restrict;
-`openingHour_`/`closingHour_` default to `8`/`23`) → `SAMAnalytical.PreparePartOIteration` (`BasePassive`) →
-inspect `supply m3/s` / `extract m3/s` / `partF l/s` → `To gbXML` → `SAMAnalytical.WorkflowgbXML`
-(`Simulation=true`) → `Tas.TSDQueryTM59Results` with `overheatingScenarios_` connected, `report` output
-read. `restriction_` is a plain text input (`Param_String`, matching `_partOIteration`'s convention on
-`PreparePartOIteration`) — type `NightClosed`/`AlwaysClosed`/`Unrestricted` directly, no GH enum-picker
-component exists or is needed.
+### The manual TAS acceptance run — the Iteration 1 gate
+
+In Grasshopper: `SAMAnalytical.AddOpeningPropertiesByPartO` with `restriction_ = NightClosed`,
+`openingHour_ = 8`, `closingHour_ = 23`, then the normal Part O/TAS workflow. `restriction_` is a plain text
+input (`Param_String`) — type `NightClosed` directly; no GH enum-picker exists or is needed.
+
+**The BasePassive slice:** `AnalyticalModel` → `SAMAnalytical.AddVentilationPropertiesByPartF` (or
+`CheckPartFCompliance`) → `SAMAnalytical.AddOpeningPropertiesByPartO` → `SAMAnalytical.PreparePartOIteration`
+(`BasePassive`) → inspect `supply m3/s` / `extract m3/s` / `partF l/s` → `To gbXML` →
+`SAMAnalytical.WorkflowgbXML` (`Simulation=true`) → `Tas.TSDQueryTM59Results` with `overheatingScenarios_`
+connected, `report` output read.
+
+Open the resulting TBD. The aperture's opening profile must read **exactly**:
+
+| Field | Required value |
+|---|---|
+| Type | `Function` |
+| Factor | `1.000` |
+| Setback | `0.000` |
+| Function | `zdwno,0,19.00,21.00,99.00` |
+| Schedule | `PartO_DayOpen_08_23`, **or** a deliberately reused existing schedule with exactly the same 24 values |
+
+And the Schedule database must show `00-01` … `07-08` = **0**, `08-09` … `22-23` = **1**, `23-24` = **0**
+(i.e. `000000001111111111111110`, signature `00FFFE` — the active interval is half-open `[08:00, 23:00)`).
+
+**Then repeat the export.** There must still be exactly **one** schedule for those values — no
+`PartO_DayOpen_08_23 (1)`.
+
+**Iteration 1 is NOT accepted until that run is done and correct.** A `DailyAvailabilitySchedule` existing
+in SAM proves nothing about what reached the TBD; that is the whole reason this gate exists. If it fails,
+the refusal message says which stage failed — unusable source, invalid length, failed creation, failed
+write, read-back mismatch, lost profile assignment, or a foreign different-valued schedule — which is the
+diagnostic the original investigation did not have.
+
+**One deliberate consequence to be aware of.** Re-exporting onto an **existing** TBD whose aperture type
+already carries a *different-valued* schedule (e.g. after changing `openingHour_`) **refuses** rather than
+updating it, and reports which schedule blocked it. That is the "never overwrite user-authored control"
+policy (§2 item 23) and matches the previous name-based behaviour; it does not arise in the normal workflow,
+where the TBD is generated fresh from gbXML each export.
 
 **Also outstanding, in parallel, not blocking:** widening the validation beyond one flat (§1 item 2), §3
 item 8's two open reviewer findings, and §3 items 1–2 (Michal's confirmations, not code).
