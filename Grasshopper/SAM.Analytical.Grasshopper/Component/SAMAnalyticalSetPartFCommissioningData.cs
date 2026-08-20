@@ -193,6 +193,16 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
+            //A name that matches MORE than one zone is refused rather than resolved to the first: the
+            //cluster order is arbitrary, and recording one dwelling's commissioning evidence on another
+            //dwelling's zone would corrupt that dwelling's compliance result. Names are valid elsewhere
+            //in the workflow (and handled by GUID there); this component keys on the name alone.
+            if (adjacencyCluster.GetZones().FindAll(x => x.Name == zoneName).Count > 1)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("More than one zone is named '{0}', so the commissioning data cannot be attributed to one dwelling. Zone names must be unique for this component.", zoneName));
+                return;
+            }
+
             //Any record already on the zone is the starting point, so a definition that sets the design
             //stage answers and a later one that adds the measured rates do not erase each other.
             PartFCommissioningData partFCommissioningData = zone.GetValue<PartFCommissioningData>(ZoneParameter.PartFCommissioningData) is PartFCommissioningData partFCommissioningData_Existing
