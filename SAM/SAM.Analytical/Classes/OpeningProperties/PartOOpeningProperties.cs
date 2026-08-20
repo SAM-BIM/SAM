@@ -42,14 +42,27 @@ namespace SAM.Analytical
         public int NightOpenToHour { get; set; } = 23;
 
         /// <summary>
-        /// The daily availability profile implied by <see cref="OpeningRestriction"/>, or <c>null</c> when
+        /// The daily availability schedule implied by <see cref="OpeningRestriction"/>, or <c>null</c> when
         /// none is needed (<see cref="OpeningRestriction.Unrestricted"/> and
         /// <see cref="OpeningRestriction.AlwaysClosed"/> are both represented without a schedule - see the
-        /// TAS-side transfer). Deterministically named from the availability window, so the same window
-        /// always produces the same profile name and a TAS-side writer can reuse one schedule across every
-        /// opening that shares it.
+        /// TAS-side transfer, where <c>AlwaysClosed</c> is expressed as an opening factor of 0 rather than
+        /// as a second, all-zero schedule).
+        /// <para>
+        /// A <see cref="DailyAvailabilitySchedule"/>, not a <see cref="Profile"/>: this is 24 hourly on/off values,
+        /// which is exactly what a <c>TBD.schedule</c> is. It was previously derived as a
+        /// <see cref="Profile"/> only because SAM had no object for the schedule concept.
+        /// </para>
+        /// <para>
+        /// Deterministically named from the availability window (<c>PartO_DayOpen_HH_HH</c>), so the same
+        /// window always produces the same name. Reuse on the TAS side is nevertheless decided by the 24
+        /// VALUES and not by that name - see <c>SAM.Analytical.Tas.Create.GetOrCreateSchedule</c>.
+        /// </para>
+        /// <para>
+        /// The active interval is half-open: <c>[NightOpenFromHour, NightOpenToHour)</c>. With the default
+        /// 8/23 window hours 08-22 are available and hour 23 is not, so 23:00-24:00 reads 0.
+        /// </para>
         /// </summary>
-        public Profile Profile
+        public DailyAvailabilitySchedule Schedule
         {
             get
             {
@@ -61,15 +74,14 @@ namespace SAM.Analytical
                 int from = ((NightOpenFromHour % 24) + 24) % 24;
                 int to = ((NightOpenToHour % 24) + 24) % 24;
 
-                double[] values = new double[24];
-                for (int hour = 0; hour < 24; hour++)
+                bool[] values = new bool[DailyAvailabilitySchedule.HourCount];
+                for (int hour = 0; hour < DailyAvailabilitySchedule.HourCount; hour++)
                 {
-                    bool open = from <= to ? (hour >= from && hour < to) : (hour >= from || hour < to);
-                    values[hour] = open ? 1 : 0;
+                    values[hour] = from <= to ? (hour >= from && hour < to) : (hour >= from || hour < to);
                 }
 
                 string name = string.Format("PartO_DayOpen_{0:00}_{1:00}", from, to);
-                return new Profile(name, ProfileGroup.Ventilation, values);
+                return new DailyAvailabilitySchedule(name, values);
             }
         }
 

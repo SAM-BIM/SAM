@@ -21,7 +21,7 @@ namespace SAM.Tests
     /// overheating ventilation - a closed <c>Unrestricted</c>/<c>NightClosed</c>/<c>AlwaysClosed</c> set
     /// rather than independent booleans, so an opening cannot state a contradictory combination. These
     /// tests cover the domain model in isolation: JSON compatibility with data serialised before this
-    /// member existed, copy/clone semantics, the derived availability <c>Profile</c>, and
+    /// member existed, copy/clone semantics, the derived availability <c>DailyAvailabilitySchedule</c>, and
     /// <c>Modify.ResetPartOOpeningRestrictions</c>, which is what lets a BasePassive ("openings operated
     /// without restriction") iteration enforce its own assumption on a copy of the model.
     /// </para>
@@ -37,12 +37,12 @@ namespace SAM.Tests
         // -------------------------------------------------------------------------------------------------
 
         [Fact]
-        public void Default_IsUnrestricted_WithNoProfile()
+        public void Default_IsUnrestricted_WithNoSchedule()
         {
             PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.0, 1.0, 30.0);
 
             Assert.Equal(OpeningRestriction.Unrestricted, partOOpeningProperties.OpeningRestriction);
-            Assert.Null(partOOpeningProperties.Profile);
+            Assert.Null(partOOpeningProperties.Schedule);
         }
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace SAM.Tests
 
             Assert.NotNull(partOOpeningProperties);
             Assert.Equal(OpeningRestriction.Unrestricted, partOOpeningProperties.OpeningRestriction);
-            Assert.Null(partOOpeningProperties.Profile);
+            Assert.Null(partOOpeningProperties.Schedule);
             Assert.Equal(1.2, partOOpeningProperties.Width);
             Assert.Equal(1.0, partOOpeningProperties.Height);
         }
@@ -82,6 +82,21 @@ namespace SAM.Tests
             Assert.Equal(22, reconstructed.NightOpenToHour);
         }
 
+        /// <summary>
+        /// The availability schedule is DERIVED, never persisted - so a round trip must reproduce it from
+        /// the restriction and the hours rather than carrying 24 values through the JSON.
+        /// </summary>
+        [Fact]
+        public void JsonRoundTrip_RederivesTheSameScheduleValues()
+        {
+            PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed, 7, 22);
+
+            PartOOpeningProperties reconstructed = RoundTrip.Once(partOOpeningProperties);
+
+            Assert.Equal(partOOpeningProperties.Schedule.Name, reconstructed.Schedule.Name);
+            Assert.True(partOOpeningProperties.Schedule.ValuesEqual(reconstructed.Schedule));
+        }
+
         [Fact]
         public void JsonRoundTrip_PreservesAlwaysClosed()
         {
@@ -90,7 +105,7 @@ namespace SAM.Tests
             PartOOpeningProperties reconstructed = RoundTrip.Once(partOOpeningProperties);
 
             Assert.Equal(OpeningRestriction.AlwaysClosed, reconstructed.OpeningRestriction);
-            Assert.Null(reconstructed.Profile);
+            Assert.Null(reconstructed.Schedule);
         }
 
         // -------------------------------------------------------------------------------------------------
@@ -107,29 +122,35 @@ namespace SAM.Tests
             Assert.Equal(OpeningRestriction.NightClosed, copy.OpeningRestriction);
             Assert.Equal(9, copy.NightOpenFromHour);
             Assert.Equal(20, copy.NightOpenToHour);
+            Assert.True(partOOpeningProperties.Schedule.ValuesEqual(copy.Schedule));
         }
 
         // -------------------------------------------------------------------------------------------------
-        // Derived availability profile
+        // Derived availability schedule
         // -------------------------------------------------------------------------------------------------
 
+        /// <summary>
+        /// The exact expectation the real TAS acceptance run checks: hours 08-22 available, 23:00-24:00 not,
+        /// under the name looked for in the TBD Schedule database.
+        /// </summary>
         [Fact]
-        public void NightClosed_DefaultWindow_ProducesDeterministicallyNamed24HourProfile()
+        public void NightClosed_DefaultWindow_ProducesDeterministicallyNamed24HourSchedule()
         {
             PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed);
 
-            Profile profile = partOOpeningProperties.Profile;
+            DailyAvailabilitySchedule schedule = partOOpeningProperties.Schedule;
 
-            Assert.NotNull(profile);
-            Assert.Equal("PartO_DayOpen_08_23", profile.Name);
+            Assert.NotNull(schedule);
+            Assert.Equal("PartO_DayOpen_08_23", schedule.Name);
+            Assert.Equal("000000001111111111111110", schedule.ValuesText);
+            Assert.Equal("00FFFE", schedule.Signature);
 
-            double[] values = profile.GetDailyValues();
+            bool[] values = schedule.GetValues();
             Assert.Equal(24, values.Length);
 
             for (int hour = 0; hour < 24; hour++)
             {
-                double expected = (hour >= 8 && hour < 23) ? 1 : 0;
-                Assert.Equal(expected, values[hour]);
+                Assert.Equal(hour >= 8 && hour < 23, values[hour]);
             }
         }
 
@@ -138,16 +159,14 @@ namespace SAM.Tests
         {
             PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed, 6, 21);
 
-            Profile profile = partOOpeningProperties.Profile;
+            DailyAvailabilitySchedule schedule = partOOpeningProperties.Schedule;
 
-            Assert.NotNull(profile);
-            Assert.Equal("PartO_DayOpen_06_21", profile.Name);
+            Assert.NotNull(schedule);
+            Assert.Equal("PartO_DayOpen_06_21", schedule.Name);
 
-            double[] values = profile.GetDailyValues();
             for (int hour = 0; hour < 24; hour++)
             {
-                double expected = (hour >= 6 && hour < 21) ? 1 : 0;
-                Assert.Equal(expected, values[hour]);
+                Assert.Equal(hour >= 6 && hour < 21, schedule[hour]);
             }
         }
 
@@ -160,33 +179,32 @@ namespace SAM.Tests
         {
             PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed, 22, 6);
 
-            Profile profile = partOOpeningProperties.Profile;
+            DailyAvailabilitySchedule schedule = partOOpeningProperties.Schedule;
 
-            Assert.NotNull(profile);
-            Assert.Equal("PartO_DayOpen_22_06", profile.Name);
+            Assert.NotNull(schedule);
+            Assert.Equal("PartO_DayOpen_22_06", schedule.Name);
 
-            double[] values = profile.GetDailyValues();
             for (int hour = 0; hour < 24; hour++)
             {
-                double expected = (hour >= 22 || hour < 6) ? 1 : 0;
-                Assert.Equal(expected, values[hour]);
+                Assert.Equal(hour >= 22 || hour < 6, schedule[hour]);
             }
         }
 
         /// <summary>
         /// An equal opening/closing hour is not refused by the domain object - it deterministically produces
-        /// an always-unavailable (all-zero) profile. Grasshopper flags this combination with a warning rather
+        /// an always-unavailable (all-zero) schedule. Grasshopper flags this combination with a warning rather
         /// than silently accepting it, but the underlying domain behaviour this pins is what that warning
-        /// describes.
+        /// describes - unchanged by the move from Profile to DailyAvailabilitySchedule.
         /// </summary>
         [Fact]
-        public void NightClosed_EqualOpeningAndClosingHour_ProducesAlwaysUnavailableProfile()
+        public void NightClosed_EqualOpeningAndClosingHour_ProducesAlwaysUnavailableSchedule()
         {
             PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed, 8, 8);
 
-            double[] values = partOOpeningProperties.Profile.GetDailyValues();
+            DailyAvailabilitySchedule schedule = partOOpeningProperties.Schedule;
 
-            Assert.All(values, value => Assert.Equal(0, value));
+            Assert.All(schedule.GetValues(), value => Assert.False(value));
+            Assert.Equal("000000", schedule.Signature);
         }
 
         /// <summary>
@@ -198,43 +216,61 @@ namespace SAM.Tests
         {
             PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed, 32, -1);
 
-            Profile profile = partOOpeningProperties.Profile;
+            DailyAvailabilitySchedule schedule = partOOpeningProperties.Schedule;
 
-            Assert.Equal("PartO_DayOpen_08_23", profile.Name);
+            Assert.Equal("PartO_DayOpen_08_23", schedule.Name);
 
-            double[] values = profile.GetDailyValues();
             for (int hour = 0; hour < 24; hour++)
             {
-                double expected = (hour >= 8 && hour < 23) ? 1 : 0;
-                Assert.Equal(expected, values[hour]);
+                Assert.Equal(hour >= 8 && hour < 23, schedule[hour]);
             }
         }
 
         [Fact]
-        public void TwoNightClosedInstances_WithTheSameWindow_ProduceTheSameProfileName()
+        public void TwoNightClosedInstances_WithTheSameWindow_ProduceTheSameScheduleNameAndValues()
         {
-            //Reusability across apertures depends on this: the TAS-side writer looks the schedule up by
-            //name before creating one, so the same window must always name the same profile.
+            //Reuse across apertures depends on the VALUES matching - that is what the TAS-side writer
+            //compares. The name matching too is what keeps a newly created schedule's name stable.
             PartOOpeningProperties a = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed);
             PartOOpeningProperties b = new PartOOpeningProperties(0.6, 1.4, 90.0, OpeningRestriction.NightClosed);
 
-            Assert.Equal(a.Profile.Name, b.Profile.Name);
+            Assert.Equal(a.Schedule.Name, b.Schedule.Name);
+            Assert.Equal(a.Schedule.Signature, b.Schedule.Signature);
+            Assert.True(a.Schedule.ValuesEqual(b.Schedule));
         }
 
+        /// <summary>
+        /// A different window is a different schedule by value, so the TAS side must not reuse one for the
+        /// other however similar the names look.
+        /// </summary>
         [Fact]
-        public void AlwaysClosed_HasNoProfile()
+        public void NightClosed_DifferentWindows_AreNotValueEqual()
+        {
+            PartOOpeningProperties a = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed, 8, 23);
+            PartOOpeningProperties b = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed, 8, 22);
+
+            Assert.False(a.Schedule.ValuesEqual(b.Schedule));
+            Assert.NotEqual(a.Schedule.Signature, b.Schedule.Signature);
+        }
+
+        /// <summary>
+        /// AlwaysClosed carries no availability schedule at all: the TAS transfer expresses it as an opening
+        /// factor of 0, not as a second, all-zero schedule.
+        /// </summary>
+        [Fact]
+        public void AlwaysClosed_HasNoSchedule()
         {
             PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.AlwaysClosed);
 
-            Assert.Null(partOOpeningProperties.Profile);
+            Assert.Null(partOOpeningProperties.Schedule);
         }
 
         [Fact]
-        public void Unrestricted_HasNoProfile()
+        public void Unrestricted_HasNoSchedule()
         {
             PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.Unrestricted);
 
-            Assert.Null(partOOpeningProperties.Profile);
+            Assert.Null(partOOpeningProperties.Schedule);
         }
 
         // -------------------------------------------------------------------------------------------------
