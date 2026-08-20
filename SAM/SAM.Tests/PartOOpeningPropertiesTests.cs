@@ -151,6 +151,65 @@ namespace SAM.Tests
             }
         }
 
+        /// <summary>
+        /// Grasshopper's openingHour_/closingHour_ allow closingHour_ &lt; openingHour_ (e.g. available
+        /// 22:00-06:00) - the window must wrap across midnight rather than producing an inverted/empty range.
+        /// </summary>
+        [Fact]
+        public void NightClosed_OvernightWindow_WrapsAcrossMidnight()
+        {
+            PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed, 22, 6);
+
+            Profile profile = partOOpeningProperties.Profile;
+
+            Assert.NotNull(profile);
+            Assert.Equal("PartO_DayOpen_22_06", profile.Name);
+
+            double[] values = profile.GetDailyValues();
+            for (int hour = 0; hour < 24; hour++)
+            {
+                double expected = (hour >= 22 || hour < 6) ? 1 : 0;
+                Assert.Equal(expected, values[hour]);
+            }
+        }
+
+        /// <summary>
+        /// An equal opening/closing hour is not refused by the domain object - it deterministically produces
+        /// an always-unavailable (all-zero) profile. Grasshopper flags this combination with a warning rather
+        /// than silently accepting it, but the underlying domain behaviour this pins is what that warning
+        /// describes.
+        /// </summary>
+        [Fact]
+        public void NightClosed_EqualOpeningAndClosingHour_ProducesAlwaysUnavailableProfile()
+        {
+            PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed, 8, 8);
+
+            double[] values = partOOpeningProperties.Profile.GetDailyValues();
+
+            Assert.All(values, value => Assert.Equal(0, value));
+        }
+
+        /// <summary>
+        /// Hours outside 0-23 (as could arrive from a Grasshopper Param_Integer wired to an arbitrary
+        /// integer) are normalised modulo 24 rather than throwing or producing an out-of-range window.
+        /// </summary>
+        [Fact]
+        public void NightClosed_OutOfRangeHours_AreNormalisedModulo24()
+        {
+            PartOOpeningProperties partOOpeningProperties = new PartOOpeningProperties(1.2, 1.0, 30.0, OpeningRestriction.NightClosed, 32, -1);
+
+            Profile profile = partOOpeningProperties.Profile;
+
+            Assert.Equal("PartO_DayOpen_08_23", profile.Name);
+
+            double[] values = profile.GetDailyValues();
+            for (int hour = 0; hour < 24; hour++)
+            {
+                double expected = (hour >= 8 && hour < 23) ? 1 : 0;
+                Assert.Equal(expected, values[hour]);
+            }
+        }
+
         [Fact]
         public void TwoNightClosedInstances_WithTheSameWindow_ProduceTheSameProfileName()
         {
