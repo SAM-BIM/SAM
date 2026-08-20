@@ -121,8 +121,8 @@ tests … three new [PartO] cases". The 1275 baseline was stale (it was already 
 and the true per-class figures are 23 and +2, not 33 and +3. The 1329 total and the 0 failures are correct.
 `SAM_Tas` `2ea7b43`'s message is accurate as written.
 
-**CI has NOT yet been read for this checkpoint.** Both code commits are pushed; the `SAM#73` and
-`SAM_Tas#29` checks and any Codex inline comments still need reading, per §6.
+**CI read and green for this checkpoint.** `SAM#73` — `build (Release)` 1m59s, `test (Release)` 2m23s,
+`spdx` 5s. `SAM_Tas#29` — `build` 5m34s, `spdx` 4s. No new inline review comments on either PR.
 
 ---
 
