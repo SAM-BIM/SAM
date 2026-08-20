@@ -85,8 +85,9 @@ is recorded as having earned its keep five times):
 ### CI / test state
 
 All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (Release)`, `test (Release)`,
-`spdx`; the other four: `build`, `spdx`. `SAM`'s checks re-run on `15f4bcdd`, pushed 2026-08-20; the same
-suite was run locally in Release first (below).
+`spdx`; the other four: `build`, `spdx`. `SAM`'s three checks ran **green again on 2026-08-20** on the
+pushed head carrying `15f4bcdd` — `build (Release)` 1m56s, `test (Release)` 2m24s, `spdx` 5s — after the
+same suite was run locally in Release first (below).
 
 | Suite | Result | How |
 |---|---|---|
