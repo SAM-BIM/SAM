@@ -17,6 +17,10 @@ namespace SAM.Tests
     /// afterwards - the optimisations are broad-phase filtering and indexing only, they are
     /// not allowed to move a single result.
     /// </summary>
+    //MergeOverlapPanels_KeepsApertureFromRedundantPanel reads ActiveSetting's default aperture construction
+    //library, and PartFTransferAirDoorTests temporarily replaces it to prove a refusal. Sharing a collection
+    //keeps the two classes from running at the same time; nothing else in the suite reads that library.
+    [Collection("SAM.Analytical.ActiveSetting default aperture construction library")]
     public class QuadraticScanRegressionTests
     {
         // --- Modify.SplitFace3Ds(List<Shell>) -------------------------------------------------

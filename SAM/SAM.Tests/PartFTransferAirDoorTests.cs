@@ -25,6 +25,11 @@ namespace SAM.Tests
     /// sharing, not a second copy of it.
     /// </para>
     /// </summary>
+    //One test below temporarily replaces ActiveSetting's default aperture construction library to prove
+    //the refusal it drives, so every test class that reads that library names this collection: xUnit runs
+    //collections in parallel and the classes within one collection in sequence, and the swap must never be
+    //observable from another test. QuadraticScanRegressionTests is the only other reader.
+    [Collection("SAM.Analytical.ActiveSetting default aperture construction library")]
     public class PartFTransferAirDoorTests
     {
         private const double tolerance = 1e-6;
@@ -411,6 +416,174 @@ namespace SAM.Tests
             Panel panel_2_Result = result.AdjacencyCluster.GetObject<Panel>(panel_2.Guid);
             Assert.Single(panel_2_Result.Apertures);
             Assert.Equal("D01", panel_2_Result.Apertures[0].Name);
+        }
+
+        // ------------------------------------------------------------------
+        // G - several shared walls
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Two spaces separated by TWO internal wall panels, each of which could take the standard
+        /// transfer door. Which of them the door belongs in is an architectural fact the model does not
+        /// carry, so the route is refused as ambiguous and both panels are named. Nothing is decided by
+        /// wall area, panel name, enumeration order or guid order - a defensible location is not a tie to
+        /// be broken.
+        /// <para>
+        /// Run twice with the two panels created in opposite orders, because a resolution that depended on
+        /// creation order would still look deterministic from a single run.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TwoSharedWallsCanBothTakeTheDoor_RefusedAsAmbiguous(bool reverseCreationOrder)
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space_Studio = Space(adjacencyCluster, "Studio", 75, 300);
+            Space space_Bathroom = Space(adjacencyCluster, "Bathroom", 25, 100);
+
+            //Two partitions between the same two spaces, both 4m x 3m: the door fits either one.
+            Panel panel_1 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 4, 3));
+            Panel panel_2 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(10, 4, 3));
+
+            foreach (Panel panel in reverseCreationOrder ? new Panel[] { panel_2, panel_1 } : new Panel[] { panel_1, panel_2 })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Studio, panel);
+                adjacencyCluster.AddRelation(space_Bathroom, panel);
+            }
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, adjacencyCluster);
+
+            AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out List<Aperture> doors_Created, out _, out List<string> refusals);
+
+            Assert.NotNull(result);
+
+            //No door created, and neither the returned model nor the supplied one carries a generated one.
+            Assert.Empty(doors_Created);
+            Assert.Empty(Doors(result.AdjacencyCluster));
+            Assert.Empty(Doors(adjacencyCluster));
+
+            //Both candidate walls are untouched - the candidates were tested, not modified.
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_1.Guid).Apertures);
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_2.Guid).Apertures);
+
+            //One actionable refusal, naming both candidate panels by guid and saying what to do.
+            string refusal = Assert.Single(refusals);
+            Assert.Contains("Studio to Bathroom", refusal);
+            Assert.Contains("2 shared wall panels can each take the transfer door", refusal);
+            Assert.Contains("does not establish which of them it belongs in", refusal);
+            Assert.Contains("model the door in the intended wall", refusal);
+            Assert.Contains(panel_1.Guid.ToString(), refusal);
+            Assert.Contains(panel_2.Guid.ToString(), refusal);
+
+            //The panels are listed in guid order whichever order they were created in: the diagnostics are
+            //stable, which is the ONLY thing guid ordering is used for.
+            bool panel_1_First = panel_1.Guid.CompareTo(panel_2.Guid) < 0;
+            Assert.True(refusal.IndexOf((panel_1_First ? panel_1 : panel_2).Guid.ToString()) < refusal.IndexOf((panel_1_First ? panel_2 : panel_1).Guid.ToString()),
+                "The candidate panels are not listed in guid order.");
+        }
+
+        /// <summary>
+        /// Three internal wall panels separate the two spaces and exactly ONE of them can take the standard
+        /// door - the other two are too low for it. The door is created in that one, and in nothing else.
+        /// <para>
+        /// The panel that fits is the SMALLEST of the three, so a sole candidate established geometrically
+        /// cannot be confused with the largest shared wall being picked.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void SeveralSharedWalls_OnlyOneCanTakeTheDoor_DoorCreatedThere()
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space_Studio = Space(adjacencyCluster, "Studio", 75, 300);
+            Space space_Bathroom = Space(adjacencyCluster, "Bathroom", 25, 100);
+
+            //15m2 and 12m2 of wall, both only 1.5m high - the 2.1m door fits in neither.
+            Panel panel_Low_1 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 10, 1.5));
+            Panel panel_Low_2 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(20, 8, 1.5));
+
+            //3m2 of wall, and the only one the 0.76m x 2.1m door fits in.
+            Panel panel_Fits = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(40, 1, 3));
+
+            foreach (Panel panel in new Panel[] { panel_Low_1, panel_Low_2, panel_Fits })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Studio, panel);
+                adjacencyCluster.AddRelation(space_Bathroom, panel);
+            }
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, adjacencyCluster);
+
+            AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out List<Aperture> doors_Created, out _, out List<string> refusals);
+
+            Assert.Empty(refusals);
+            Aperture aperture = Assert.Single(doors_Created);
+
+            //In the one wall that can hold it.
+            Panel panel_Created = result.AdjacencyCluster.GetPanel(aperture);
+            Assert.Equal(panel_Fits.Guid, panel_Created.Guid);
+
+            //And in nothing else: the two walls that cannot take the door are untouched.
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_Low_1.Guid).Apertures);
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_Low_2.Guid).Apertures);
+
+            //The chosen wall really is the smallest of the three.
+            Assert.True(panel_Fits.GetArea() < panel_Low_1.GetArea(), "The wall that fits is not smaller than the first wall that does not.");
+            Assert.True(panel_Fits.GetArea() < panel_Low_2.GetArea(), "The wall that fits is not smaller than the second wall that does not.");
+        }
+
+        // ------------------------------------------------------------------
+        // H - no established door construction
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// With no internal-door construction in the active aperture construction library, the route is
+        /// refused. A construction is a real specification of a real building element, and one is not
+        /// manufactured here merely so the geometry could be created - the model would then carry a door
+        /// build-up that no library, no specification and no engineer ever established.
+        /// <para>
+        /// The library is swapped for an empty one and restored, which is why this class and the only other
+        /// reader of that library share an xUnit collection - see the note on the class.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void NoDefaultInternalDoorConstruction_Refused()
+        {
+            PartFModel partFModel = new PartFModel()
+                .Space("Studio", 75, 300)
+                .Space("Bathroom", 25, 100)
+                .Partition("Studio", "Bathroom");
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, partFModel.AdjacencyCluster);
+
+            Core.Setting setting = Analytical.ActiveSetting.Setting;
+            ApertureConstructionLibrary apertureConstructionLibrary = setting.GetValue<ApertureConstructionLibrary>(AnalyticalSettingParameter.DefaultApertureConstructionLibrary);
+
+            AnalyticalModel result;
+            List<Aperture> doors_Created;
+            List<string> refusals;
+            try
+            {
+                setting.SetValue(AnalyticalSettingParameter.DefaultApertureConstructionLibrary, new ApertureConstructionLibrary("Empty"));
+
+                result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out doors_Created, out _, out refusals);
+            }
+            finally
+            {
+                setting.SetValue(AnalyticalSettingParameter.DefaultApertureConstructionLibrary, apertureConstructionLibrary);
+            }
+
+            Assert.NotNull(result);
+            Assert.Empty(doors_Created);
+            Assert.Empty(Doors(result.AdjacencyCluster));
+
+            string refusal = Assert.Single(refusals);
+            Assert.Contains("Studio to Bathroom", refusal);
+            Assert.Contains("no default internal door construction could be resolved", refusal);
+            Assert.DoesNotContain("Internal Door", refusal);
         }
 
         // ------------------------------------------------------------------

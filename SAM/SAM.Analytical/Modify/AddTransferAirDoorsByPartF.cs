@@ -50,10 +50,11 @@ namespace SAM.Analytical
         /// run of this method a no-op.
         /// </para>
         /// <para>
-        /// <b>The door.</b> The default internal-door construction from the active
-        /// <see cref="ApertureConstructionLibrary"/> is used where it provides one (a plain
-        /// <c>Internal Door</c> construction is substituted where it does not, and the substitution is
-        /// noted); the door is <see cref="DefaultTransferAirDoorWidth_M"/> wide and
+        /// <b>The door.</b> The door carries the default internal-door construction of the active
+        /// <see cref="ApertureConstructionLibrary"/>. Where that library establishes none, the route is
+        /// REFUSED rather than given an invented one - a door is a real building element, and
+        /// manufacturing a construction merely to let the geometry exist would put into the model a
+        /// build-up nothing supports. The door is <see cref="DefaultTransferAirDoorWidth_M"/> wide and
         /// <see cref="DefaultTransferAirDoorHeight_M"/> high, sits on the bottom edge of the wall, and is
         /// centred on the clearest horizontal position of the panel - the panel centre where it is free,
         /// otherwise as close to it as the existing apertures allow.
@@ -68,10 +69,13 @@ namespace SAM.Analytical
         /// the engineer records what is actually provided, exactly as a hand-modelled door does.
         /// </para>
         /// <para>
-        /// <b>Refuse, never guess.</b> Where the two spaces share no internal wall, or none of the
-        /// candidate walls can geometrically fit the door, no door is created and the route is returned in
-        /// <paramref name="refusals"/> with the reason. The supplied model is never modified; an updated
-        /// copy is returned.
+        /// <b>Refuse, never guess.</b> No door is created - and the route is returned in
+        /// <paramref name="refusals"/> with the reason - where the two spaces share no internal wall,
+        /// where none of the shared walls can geometrically take the door, where MORE THAN ONE of them
+        /// can (the model does not establish which wall the door belongs in, and neither room name, panel
+        /// name, wall area nor guid order is evidence of it), or where no default internal-door
+        /// construction is established. The supplied model is never modified; an updated copy is
+        /// returned.
         /// </para>
         /// </summary>
         /// <param name="analyticalModel">
@@ -176,7 +180,7 @@ namespace SAM.Analytical
                         continue;
                     }
 
-                    Aperture aperture = AddTransferAirDoor(adjacencyCluster, partFDoorTransferData, notes, out string refusal);
+                    Aperture aperture = AddTransferAirDoor(adjacencyCluster, partFDoorTransferData, out string refusal);
                     if (aperture == null)
                     {
                         refusals.Add(string.Format("{0}{1} to {2}: a transfer path is required ({3:0.##} l/s at the continuous design condition) but no internal door could be created - {4}.",
@@ -229,12 +233,22 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// Creates the single internal door for one unrepresented transfer route: finds the shared internal
-        /// wall between the two spaces, places the default door on it and writes the panel back to the
-        /// cluster. Null - with the reason in <paramref name="refusal"/> - where no defensible door can be
-        /// produced.
+        /// Creates the single internal door for one unrepresented transfer route: resolves the internal
+        /// wall panels the two spaces share, keeps the ones that can geometrically take the standard
+        /// transfer door exactly as they stand, and places the door where exactly one of them can. Null -
+        /// with the reason in <paramref name="refusal"/> - where none can, where MORE than one can, or
+        /// where no default internal-door construction is established.
+        /// <para>
+        /// <b>Where several shared walls could each take the door, the model does not establish where the
+        /// door belongs, and this method does not invent it.</b> Room name, panel name, wall area,
+        /// enumeration order and guid ordering are all arbitrary with respect to where a door
+        /// architecturally or analytically belongs; selecting on any of them would manufacture a fact the
+        /// model does not carry. The route is refused as ambiguous instead, naming the candidate panels so
+        /// the engineer can model the door in the intended wall. Guid order is used ONLY to make the
+        /// diagnostics read the same on every run.
+        /// </para>
         /// </summary>
-        private static Aperture AddTransferAirDoor(AdjacencyCluster adjacencyCluster, PartFDoorTransferData partFDoorTransferData, List<string> notes, out string refusal)
+        private static Aperture AddTransferAirDoor(AdjacencyCluster adjacencyCluster, PartFDoorTransferData partFDoorTransferData, out string refusal)
         {
             refusal = null;
 
@@ -257,53 +271,95 @@ namespace SAM.Analytical
                 return null;
             }
 
-            //Deterministic order: the largest wall first, guids as the tie-break, so several candidate
-            //panels resolve the same way on every run rather than being refused as ambiguous.
-            panels = [.. panels.OrderByDescending(x => x.GetArea()).ThenBy(x => x.Guid)];
+            //Guid order, and ONLY so that the diagnostics below name the same panels in the same order on
+            //every run. Nothing is SELECTED by this order: a guid says nothing about where a door belongs,
+            //and neither does the order the panels happen to have been created in.
+            panels = [.. panels.OrderBy(x => x.Guid)];
 
+            //Which panels could take the standard door as they stand. The test only READS each panel - the
+            //placement is computed and offered to the same host check Panel.AddApertures applies - so every
+            //candidate of the route is interrogated before any one of them is committed to.
+            List<Tuple<Panel, Polygon3D>> candidates = [];
             List<string> reasons = [];
             foreach (Panel panel in panels)
             {
-                Aperture aperture = AddTransferAirDoor(panel, notes, out string reason);
-                if (aperture != null)
+                if (TryTransferAirDoorGeometry(panel, out Polygon3D polygon3D_Candidate, out string reason))
                 {
-                    //The panel returned by GetPanels is the cluster's own object; AddObject puts it back so
-                    //the change is persisted, the same path SetPartFDoorTransferData takes.
-                    adjacencyCluster.AddObject(panel);
-                    return aperture;
+                    candidates.Add(new Tuple<Panel, Polygon3D>(panel, polygon3D_Candidate));
+                    continue;
                 }
 
-                reasons.Add(reason);
+                reasons.Add(string.Format("panel {0}: {1}", panel.Guid, reason));
             }
 
-            refusal = string.Format("{0} candidate shared wall(s) could not take the door ({1})", panels.Count, string.Join("; ", reasons));
-            return null;
+            if (candidates.Count == 0)
+            {
+                refusal = string.Format("none of the {0} shared wall panel(s) can take the door ({1})", panels.Count, string.Join("; ", reasons));
+                return null;
+            }
+
+            if (candidates.Count > 1)
+            {
+                //Two defensible locations are not a tie to be broken. Which partition a transfer door
+                //belongs in is an architectural fact, and a model carrying more than one wall that could
+                //hold it has not recorded that fact - so the panels are named and the engineer decides.
+                refusal = string.Format("{0} shared wall panels can each take the transfer door and the model does not establish which of them it belongs in ({1}) - model the door in the intended wall, or resolve the partition so the two spaces share a single wall panel, and run again",
+                    candidates.Count,
+                    string.Join("; ", candidates.ConvertAll(x => string.Format("panel {0}", x.Item1.Guid))));
+                return null;
+            }
+
+            Panel panel_Selected = candidates[0].Item1;
+
+            //An established construction or nothing. Substituting a manufactured one here would put a door
+            //build-up into the model that no library, no specification and no engineer ever established,
+            //purely so the geometry could be created - the operation refuses instead.
+            ApertureConstruction apertureConstruction = Query.DefaultApertureConstruction(panel_Selected, ApertureType.Door);
+            if (apertureConstruction == null)
+            {
+                refusal = "no default internal door construction could be resolved from the active aperture construction library, and one is not invented here - load an aperture construction library that carries an internal door construction and run again";
+                return null;
+            }
+
+            //trimGeometry false: the rectangle was built to fit the wall, and trimming a misfit would
+            //silently shrink the door below the width the undercut requirement is read against. A door the
+            //panel rejects is refused rather than adjusted.
+            List<Aperture> apertures = panel_Selected.AddApertures(apertureConstruction, candidates[0].Item2, false);
+            if (apertures == null || apertures.Count == 0)
+            {
+                refusal = string.Format("panel {0} rejected the door geometry", panel_Selected.Guid);
+                return null;
+            }
+
+            //The panel returned by GetPanels is the cluster's own object; AddObject puts it back so the
+            //change is persisted, the same path SetPartFDoorTransferData takes.
+            adjacencyCluster.AddObject(panel_Selected);
+
+            return apertures[0];
         }
 
         /// <summary>
-        /// Places the default door on one wall panel: on the panel's bottom edge, as close to the panel's
-        /// horizontal centre as the existing apertures allow. All placement is computed in the panel's own
-        /// plane, so a wall of any orientation behaves the same.
+        /// Works out where the standard transfer door would sit on one wall panel - on the panel's bottom
+        /// edge, as close to the panel's horizontal centre as the existing apertures allow - and reports
+        /// whether the panel can take it there. All placement is computed in the panel's own plane, so a
+        /// wall of any orientation behaves the same.
+        /// <para>
+        /// <b>The panel is only read, never modified.</b> That is what lets every shared wall of a route
+        /// be tested before one of them is chosen - and what makes "could more than one wall take this
+        /// door?" a question this operation can ask at all.
+        /// </para>
         /// </summary>
-        private static Aperture AddTransferAirDoor(Panel panel, List<string> notes, out string refusal)
+        private static bool TryTransferAirDoorGeometry(Panel panel, out Polygon3D polygon3D, out string refusal)
         {
+            polygon3D = null;
             refusal = null;
-
-            ApertureConstruction apertureConstruction = Query.DefaultApertureConstruction(panel, ApertureType.Door);
-            if (apertureConstruction == null)
-            {
-                //The active library carries no internal-door construction (an unpopulated environment, not
-                //a model defect), so a plain construction is substituted and the substitution is recorded.
-                apertureConstruction = new ApertureConstruction("Internal Door", ApertureType.Door);
-                notes.Add("The default aperture construction library has no internal door construction, so a plain 'Internal Door' construction was used. Review the door construction.");
-            }
 
             Face3D face3D_Panel = panel.GetFace3D();
             Plane plane = face3D_Panel?.GetPlane();
             if (plane == null)
             {
                 refusal = "the panel has no valid planar geometry";
-                return null;
+                return false;
             }
 
             Face2D face2D_Panel = plane.Convert(face3D_Panel);
@@ -311,7 +367,7 @@ namespace SAM.Analytical
             if (boundingBox2D_Panel == null)
             {
                 refusal = "the panel has no valid planar geometry";
-                return null;
+                return false;
             }
 
             //Which way is up in the panel's plane. A wall has the world vertical lying in its plane; where
@@ -320,7 +376,7 @@ namespace SAM.Analytical
             if (vector2D_Up == null || vector2D_Up.Length < 0.5)
             {
                 refusal = "the shared panel is not vertical";
-                return null;
+                return false;
             }
 
             bool verticalIsY = System.Math.Abs(vector2D_Up.Y) >= System.Math.Abs(vector2D_Up.X);
@@ -337,13 +393,13 @@ namespace SAM.Analytical
             if (hMax - hMin < width - Core.Tolerance.MacroDistance)
             {
                 refusal = string.Format("the wall is {0:0.###} m wide and the {1:0.###} m door does not fit", hMax - hMin, width);
-                return null;
+                return false;
             }
 
             if (vMax - vMin < height - Core.Tolerance.MacroDistance)
             {
                 refusal = string.Format("the wall is {0:0.###} m high and the {1:0.###} m door does not fit", vMax - vMin, height);
-                return null;
+                return false;
             }
 
             //The door stands on the bottom edge of the wall. Where the plane's vertical axis points down,
@@ -405,7 +461,7 @@ namespace SAM.Analytical
             if (double.IsNaN(h0))
             {
                 refusal = "no clear length of the wall remains for the door alongside its existing apertures";
-                return null;
+                return false;
             }
 
             double h1 = h0 + width;
@@ -417,24 +473,23 @@ namespace SAM.Analytical
 
             Polygon2D polygon2D = new([Point(h0, v0), Point(h1, v0), Point(h1, v1), Point(h0, v1)]);
 
-            Polygon3D polygon3D = plane.Convert(polygon2D);
+            polygon3D = plane.Convert(polygon2D);
             if (polygon3D == null)
             {
                 refusal = "the door geometry could not be constructed";
-                return null;
+                return false;
             }
 
-            //trimGeometry false: the rectangle was built to fit the wall, and trimming a misfit would
-            //silently shrink the door below the width the undercut requirement is read against. A door the
-            //panel rejects is refused rather than adjusted.
-            List<Aperture> apertures = panel.AddApertures(apertureConstruction, polygon3D, false);
-            if (apertures == null || apertures.Count == 0)
+            //The same host check Panel.AddApertures makes before it accepts an aperture, applied here
+            //without touching the panel: a candidate the panel would reject is not a candidate.
+            if (!Query.ApertureHost(panel, polygon3D))
             {
-                refusal = "the panel rejected the door geometry";
-                return null;
+                polygon3D = null;
+                refusal = "the panel cannot host the door geometry";
+                return false;
             }
 
-            return apertures[0];
+            return true;
         }
 
         /// <summary>
