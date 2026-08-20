@@ -30,7 +30,7 @@ PR against `sow/2026-Q3`. **`sow/2026-Q3` is never committed to directly** and i
 
 | Repo | Last CODE commit | HEAD | Cut from | PR |
 |---|---|---|---|---|
-| `SAM` | **`53aabf2f`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
+| `SAM` | **`46a40cee`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
 | `SAM_Systems` | **`4446bb8`** | `618fc74` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `d7303c2` | [SAM_Systems#14](https://github.com/SAM-BIM/SAM_Systems/pull/14) |
 | `SAM_UI` | **`fcf0ec8`** | `2a0d480` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `074f3d9` | [SAM_UI#75](https://github.com/SAM-BIM/SAM_UI/pull/75) |
 | `SAM_Tas` | **`9c822e6`** | exactly `9c822e6` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
@@ -54,7 +54,7 @@ for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ===
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 53aabf2f
+SAM 46a40cee
 SAM_Systems 4446bb8
 SAM_UI fcf0ec8
 SAM_Tas 9c822e6
@@ -83,11 +83,11 @@ All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (
 
 | Suite | Result | How |
 |---|---|---|
-| `SAM/SAM.Tests` | **1275 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
+| `SAM/SAM.Tests` | **1285 passed, 0 failed** (Release, matching CI) | `dotnet test SAM/SAM/SAM.Tests/SAM.Tests.csproj -c Release` |
 | `SAM_Tas/SAM.Analytical.Tas.TM59.Tests` | **91 passed, 0 failed**, Debug **and** Release | build `SAM` and `SAM_Tas.sln` with **VS Framework MSBuild first** — see §6 |
 | `SAM_Systems/SAM.Analytical.Systems.Tests` | **40 passed, 0 failed** | in `SAM_Systems.sln`, executed by CI |
 | `SAM_Systems/SAM.Analytical.Systems.Mollier.Tests` | **123 passed, 0 failed** | — |
-| `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **180 passed, 0 failed** | — |
+| `SAM_UI/WPF/SAM.Analytical.UI.WPF.Tests` | **182 passed, 0 failed** | — |
 | `SAM_Tas_Grasshopper` | no test project; builds with 0 errors under VS Framework MSBuild | equivalence pinned in `SAM.Tests` |
 
 ---
@@ -120,6 +120,21 @@ All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (
    as `Tas.TSDQueryTM59Results`'s `report` output (also voluntary `_saveReport_`/`reportFilePath_` text-file
    export, off by default). Evidence, and the defects this exposed:
    [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md).
+
+### Part F transfer-air doors (SAM `46a40cee`)
+
+`SAMAnalytical.AddTransferAirDoorsByPartF` (GH) / `Modify.AddTransferAirDoorsByPartF` (SAM.Analytical) now
+close the gap the Part F assessment could only report: a dwelling transfer route that carries air but has
+no modelled door gets ONE default internal door created in the shared internal wall - `SIM_INT_SLD`,
+760 x 2100 mm (the paragraph 1.25 reference width and the documented default height, archive §6a), bottom
+of the wall, centred on the clearest length. The requirement comes from re-running the SAME
+`PartFCalculator`, not a second algorithm; SAM_UI was untouched because it already delegates to it.
+Existing doors are never duplicated (a rerun is a no-op); a created door carries the paragraph 1.25
+requirement but **no provided undercut**, so created is not compliant (CannotBeDetermined) until a person
+records it. Unresolved topology (no shared wall, wall too small, no clear length) is refused and reported,
+never guessed. 10 tests in `SAM.Tests/PartFTransferAirDoorTests.cs`, including the duplicate-room-name
+identity regression. The aperture construction library is now seeded into `ActiveSetting` for tests per the
+documented pattern.
 
 ### Iteration 1 — the remaining reviewer gate
 
