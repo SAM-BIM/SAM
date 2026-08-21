@@ -22,6 +22,14 @@ namespace SAM.Analytical
     {
         private enum BedroomKeyword { None, Single, Double }
 
+        /// <summary>
+        /// The one authoritative TM59 InternalCondition name that means a real communal corridor - the
+        /// only positive identification the domain has. A report or any other caller that needs to tell a
+        /// communal corridor apart from an ancillary space with no occupied TM59 use (bathroom, hall,
+        /// ensuite, ...) compares against this name, never against the Space name.
+        /// </summary>
+        public const string CommunalCorridorInternalConditionName = "TM59_Communal Corridor (including pipework gains)";
+
         //"TM59_Bathroom" and "TM59_Internal Corridor" were previously one combined condition,
         //"TM59_Bathroom/internal corridors". They carry identical profiles and gains, so TM59 results are
         //unchanged, but a single condition whose NAME meant two different room uses could not be read
@@ -32,7 +40,7 @@ namespace SAM.Analytical
         {
             "TM59_Bathroom",
             "TM59_Internal Corridor",
-            "TM59_Communal Corridor (including pipework gains)",
+            CommunalCorridorInternalConditionName,
             "TM59_Stairs",
             "TM59_Cupboard/riser/lift/void",
             "TM59_Cupboard with HIU",

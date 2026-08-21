@@ -3,10 +3,35 @@
 
 using SAM.Analytical.Enums;
 using SAM.Core;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Nodes;
 
 namespace SAM.Analytical
 {
+    /// <summary>
+    /// The Approved Document F result for one space: what the room is, which terminals it needs, the
+    /// rates for each of them, and its purge ventilation assessment.
+    /// <para>
+    /// <b>One space, several terminals.</b> A room can require more than one ventilation terminal.
+    /// Approved Document F, Volume 1: Dwellings (2021 edition, England) Appendix A (page 36) makes a
+    /// studio and an open plan living kitchen habitable rooms, because neither is <i>solely</i> a
+    /// kitchen, so paragraph 1.67 (page 16) requires mechanical supply to them; and both contain the
+    /// cooking function, so paragraph 1.17a (page 8) and Table 1.2 (page 10) require kitchen extract
+    /// from them too. <see cref="Terminals"/> holds them all.
+    /// </para>
+    /// <para>
+    /// <b>Backward compatibility.</b> <see cref="CalculatedFlowRate_Lps"/>,
+    /// <see cref="ContinuousDesignFlowRate_Lps"/>, <see cref="SetbackFlowRate_Lps"/> and
+    /// <see cref="PartFVentilationType"/> keep their original meaning: they describe the space's PRIMARY
+    /// terminal, which is the supply terminal of a habitable room and the extract terminal of a wet room.
+    /// A consumer written before terminal-level sizing therefore reads exactly the rate it always read.
+    /// The secondary terminal of a multi-terminal space - the local kitchen extract of a studio or living
+    /// kitchen - is not visible through those scalars, but it is never discarded: it is serialised in
+    /// <see cref="Terminals"/> and exposed through <see cref="LocalKitchenExtractFlowRate_Lps"/>. New
+    /// work should read <see cref="Terminals"/>.
+    /// </para>
+    /// </summary>
     public class PartFSpaceData : SAMObject
     {
         public PartFSpaceData(
@@ -59,6 +84,16 @@ namespace SAM.Analytical
                 ScaleSupplyWithVolume = partFSpaceData.ScaleSupplyWithVolume;
                 IsCookingSpace = partFSpaceData.IsCookingSpace;
                 SpaceUse = partFSpaceData.SpaceUse;
+
+                foreach (PartFVentilationTerminalRequirement terminal in partFSpaceData.Terminals ?? [])
+                {
+                    Terminals.Add(new PartFVentilationTerminalRequirement(terminal));
+                }
+
+                if (partFSpaceData.Purge is not null)
+                {
+                    Purge = new PartFPurgeVentilationData(partFSpaceData.Purge);
+                }
             }
         }
 
@@ -170,6 +205,155 @@ namespace SAM.Analytical
         /// </summary>
         public SpaceUse SpaceUse { get; private set; }
 
+        // ------------------------------------------------------------------
+        // Terminal collection
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Every ventilation terminal this space requires. A habitable room with the cooking function
+        /// carries two: a supply terminal under paragraph 1.67 and a local kitchen extract terminal under
+        /// paragraph 1.17a. This is the authoritative representation; the scalar rate properties above
+        /// describe only the primary terminal and exist for consumers written before this collection did.
+        /// </summary>
+        public List<PartFVentilationTerminalRequirement> Terminals { get; set; } = [];
+
+        /// <summary>
+        /// The purge ventilation assessment of this room, per paragraphs 1.26 to 1.31 (page 11). Null
+        /// where the room is not habitable, since paragraph 1.26 requires purge ventilation in habitable
+        /// rooms only.
+        /// </summary>
+        public PartFPurgeVentilationData Purge { get; set; }
+
+        /// <summary>
+        /// The terminal the scalar rate properties describe: the supply terminal of a habitable room, the
+        /// extract terminal of a wet room. Null where the space has no terminal at all.
+        /// </summary>
+        public PartFVentilationTerminalRequirement PrimaryTerminal()
+        {
+            if (Terminals is null || Terminals.Count == 0)
+            {
+                return null;
+            }
+
+            PartFTerminalRole role_Primary = PartFVentilationType == Enums.PartFVentilationType.supply
+                ? PartFTerminalRole.Supply
+                : PartFTerminalRole.GeneralExtract;
+
+            PartFVentilationTerminalRequirement result = Terminals.Find(x => x is not null && x.TerminalRole == role_Primary);
+
+            //A room that is solely a kitchen carries its extract as LOCAL kitchen extract rather than
+            //general extract, so it has no GeneralExtract terminal to be its primary one. Its extract
+            //terminal is still what the legacy scalar has always reported.
+            result ??= Terminals.Find(x => x is not null && x.TerminalRole == PartFTerminalRole.LocalKitchenExtract && x.IsInBalancedFlow);
+
+            return result ?? Terminals[0];
+        }
+
+        /// <summary>Continuous design supply into this space [l/s], or null where it has no supply terminal.</summary>
+        public double? ContinuousSupplyFlowRate_Lps
+        {
+            get { return Sum(PartFTerminalRole.Supply, x => x.ContinuousDesignFlowRate_Lps); }
+        }
+
+        /// <summary>
+        /// Continuous design extract out of this space [l/s], general and local kitchen extract together,
+        /// or null where it has no extract terminal that runs continuously.
+        /// </summary>
+        public double? ContinuousExtractFlowRate_Lps
+        {
+            get
+            {
+                double? general = Sum(PartFTerminalRole.GeneralExtract, x => x.ContinuousDesignFlowRate_Lps);
+                double? local = Sum(PartFTerminalRole.LocalKitchenExtract, x => x.ContinuousDesignFlowRate_Lps);
+
+                return general is null && local is null ? null : (general ?? 0) + (local ?? 0);
+            }
+        }
+
+        /// <summary>
+        /// Continuous design extract local to the cooking function [l/s], held separately from general
+        /// wet room extract because extract from a bathroom or ensuite is not local kitchen extract.
+        /// </summary>
+        public double? LocalKitchenExtractFlowRate_Lps
+        {
+            get { return Sum(PartFTerminalRole.LocalKitchenExtract, x => x.ContinuousDesignFlowRate_Lps); }
+        }
+
+        /// <summary>High rate supply into this space [l/s].</summary>
+        public double? HighSupplyFlowRate_Lps
+        {
+            get { return Sum(PartFTerminalRole.Supply, x => x.HighFlowRate_Lps); }
+        }
+
+        /// <summary>High rate extract out of this space [l/s], general and local kitchen extract together.</summary>
+        public double? HighExtractFlowRate_Lps
+        {
+            get
+            {
+                double? general = Sum(PartFTerminalRole.GeneralExtract, x => x.HighFlowRate_Lps);
+                double? local = Sum(PartFTerminalRole.LocalKitchenExtract, x => x.HighFlowRate_Lps);
+
+                return general is null && local is null ? null : (general ?? 0) + (local ?? 0);
+            }
+        }
+
+        /// <summary>Setback supply into this space [l/s].</summary>
+        public double? SetbackSupplyFlowRate_Lps
+        {
+            get { return Sum(PartFTerminalRole.Supply, x => x.SetbackFlowRate_Lps); }
+        }
+
+        /// <summary>Setback extract out of this space [l/s], general and local kitchen extract together.</summary>
+        public double? SetbackExtractFlowRate_Lps
+        {
+            get
+            {
+                double? general = Sum(PartFTerminalRole.GeneralExtract, x => x.SetbackFlowRate_Lps);
+                double? local = Sum(PartFTerminalRole.LocalKitchenExtract, x => x.SetbackFlowRate_Lps);
+
+                return general is null && local is null ? null : (general ?? 0) + (local ?? 0);
+            }
+        }
+
+        /// <summary>
+        /// Net continuous design airflow [l/s] into this space: supply less all extract. Positive where
+        /// the space must pass air on to somewhere else, negative where it must draw air in.
+        /// <para>
+        /// Only terminals in the balanced mechanical ventilation with heat recovery flow are counted. An
+        /// intermittent cooker hood does not run at the continuous design condition, so counting it here
+        /// would make the dwelling's transfer air balance describe a condition that never occurs.
+        /// </para>
+        /// </summary>
+        public double NetContinuousFlowRate_Lps
+        {
+            get
+            {
+                double result = 0;
+
+                foreach (PartFVentilationTerminalRequirement terminal in Terminals ?? [])
+                {
+                    if (terminal is null || !terminal.IsInBalancedFlow || terminal.ContinuousDesignFlowRate_Lps is null)
+                    {
+                        continue;
+                    }
+
+                    result += terminal.IsExtract ? -terminal.ContinuousDesignFlowRate_Lps.Value : terminal.ContinuousDesignFlowRate_Lps.Value;
+                }
+
+                return result;
+            }
+        }
+
+        private double? Sum(PartFTerminalRole partFTerminalRole, System.Func<PartFVentilationTerminalRequirement, double?> func)
+        {
+            List<PartFVentilationTerminalRequirement> terminals = (Terminals ?? []).FindAll(x => x is not null && x.TerminalRole == partFTerminalRole && func(x) is not null);
+
+            //Null rather than zero where there is no such terminal: "this space has no supply" and "this
+            //space is supplied 0 l/s" are different answers and a schedule must be able to tell them
+            //apart.
+            return terminals.Count == 0 ? null : terminals.Sum(x => func(x).Value);
+        }
+
         public override bool FromJsonObject(JsonObject jsonObject)
         {
             bool result = base.FromJsonObject(jsonObject);
@@ -259,6 +443,27 @@ namespace SAM.Analytical
                 SpaceUse = Core.Query.Enum<SpaceUse>(jsonObject["SpaceUse"]?.GetValue<string>());
             }
 
+            //A model written before terminal-level sizing carries no Terminals array. It is left empty
+            //rather than reconstructed from the scalar rate: the scalar cannot say whether a studio's
+            //33 l/s was supply with a separate local kitchen extract or supply alone, and inventing a
+            //terminal that the original calculation never established would be worse than having none.
+            Terminals = [];
+            if (jsonObject["Terminals"] is JsonArray jsonArray)
+            {
+                foreach (JsonNode jsonNode in jsonArray)
+                {
+                    if (jsonNode is JsonObject jsonObject_Terminal)
+                    {
+                        Terminals.Add(new PartFVentilationTerminalRequirement(jsonObject_Terminal));
+                    }
+                }
+            }
+
+            if (jsonObject["Purge"] is JsonObject jsonObject_Purge)
+            {
+                Purge = new PartFPurgeVentilationData(jsonObject_Purge);
+            }
+
             return result;
         }
 
@@ -311,6 +516,30 @@ namespace SAM.Analytical
             result["ScaleSupplyWithVolume"] = ScaleSupplyWithVolume;
 
             result["SpaceUse"] = SpaceUse.ToString();
+
+            //Written whenever the space has any terminal at all, including the secondary local kitchen
+            //extract terminal that the legacy scalar rate above cannot express. A secondary terminal is
+            //never dropped on the way to file.
+            if (Terminals is not null && Terminals.Count != 0)
+            {
+                JsonArray jsonArray = [];
+                foreach (PartFVentilationTerminalRequirement terminal in Terminals)
+                {
+                    JsonObject jsonObject_Terminal = terminal?.ToJsonObject();
+                    if (jsonObject_Terminal is not null)
+                    {
+                        jsonArray.Add(jsonObject_Terminal);
+                    }
+                }
+
+                result["Terminals"] = jsonArray;
+            }
+
+            JsonObject jsonObject_Purge = Purge?.ToJsonObject();
+            if (jsonObject_Purge is not null)
+            {
+                result["Purge"] = jsonObject_Purge;
+            }
 
             return result;
         }

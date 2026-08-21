@@ -291,11 +291,12 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// The living-kitchen carries a positive supply rate and no extract rate, so a downstream system
-        /// build cannot pick it up as an extract terminal.
+        /// The living-kitchen's PRIMARY terminal is still supply, and the scalar rate a downstream system
+        /// build reads is still that supply rate, unchanged in meaning. Its local kitchen extract is a
+        /// second terminal on the same space, visible through the terminal collection.
         /// </summary>
         [Fact]
-        public void LivingKitchen_CarriesASupplyRateAndIsNotAnExtractTerminal()
+        public void LivingKitchen_CarriesASupplyRateAsItsPrimaryTerminal()
         {
             PartFCalculator partFCalculator = Calculate(DataFile(),
                 ("Living Kitchen", 30, 75),
@@ -306,17 +307,27 @@ namespace SAM.Tests
                 .Find(x => x.Name == "Living Kitchen")!
                 .GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData)!;
 
+            //Unchanged for a consumer written before terminal-level sizing.
             Assert.Equal(PartFVentilationType.supply, partFSpaceData.PartFVentilationType);
             Assert.True(partFSpaceData.ContinuousDesignFlowRate_Lps > 0);
             Assert.True(partFSpaceData.IsTerminalSpace);
+            Assert.Equal(PartFTerminalRole.Supply, partFSpaceData.PrimaryTerminal()!.TerminalRole);
+            Assert.Equal(partFSpaceData.ContinuousSupplyFlowRate_Lps, partFSpaceData.ContinuousDesignFlowRate_Lps);
 
-            //All extract is carried by the bathroom.
+            //And the local kitchen extract paragraph 1.17a requires of the same room is now represented,
+            //where before it could not be. It is reachable through the terminal collection and through the
+            //aggregate, but deliberately not through the legacy scalar above.
+            Assert.Equal(2, partFSpaceData.Terminals.Count);
+            Assert.True(partFSpaceData.LocalKitchenExtractFlowRate_Lps > 0);
+
+            //Extract is now shared between the living kitchen's local extract and the bathroom.
             PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
+
             double rate_Bathroom = partFCalculator.AdjacencyCluster.GetSpaces()
                 .Find(x => x.Name == "Bathroom")!
                 .GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData)!.ContinuousDesignFlowRate_Lps!.Value;
 
-            Assert.Equal(dwellingResult.TotalExtract_Lps, rate_Bathroom, tolerance);
+            Assert.Equal(dwellingResult.TotalExtract_Lps, rate_Bathroom + partFSpaceData.LocalKitchenExtractFlowRate_Lps!.Value, tolerance);
         }
 
         // ------------------------------------------------------------------

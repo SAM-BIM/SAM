@@ -45,7 +45,8 @@ namespace SAM.Analytical
                     tM59CorridorExtendedResult.OccupiedHours,
                     tM59CorridorExtendedResult.MaxExceedableHours,
                     tM59CorridorExtendedResult.GetHoursNumberExceeding28(),
-                    tM59CorridorExtendedResult.Pass);
+                    tM59CorridorExtendedResult.Pass,
+                    tM59CorridorExtendedResult.GetAnnualHours());
             }
 
             if (tMExtendedResult is TM59NaturalVentilationBedroomExtendedResult)
@@ -72,15 +73,21 @@ namespace SAM.Analytical
             {
                 TM59NaturalVentilationExtendedResult tM59NaturalVentilationExtendedResult = (TM59NaturalVentilationExtendedResult)tMExtendedResult;
 
+                //Constructor order is (occupiedHours, maxExceedableHours, summerOccupiedHours,
+                //maxExceedableSummerHours, hoursExceedingComfortRange, pass) - the three middle values were
+                //previously passed rotated by one position, so a simplified (non-extended) plain natural-
+                //ventilation result reported SummerOccupiedHours/MaxExceedableSummerHours that were not what
+                //their names said (Pass/Fail was unaffected, since it is read from Pass directly). Found while
+                //building the TM59 verification report, which reads these two fields for its Criterion 1 rows.
                 return new TM59NaturalVentilationResult(
                     tM59NaturalVentilationExtendedResult.Name,
                     tM59NaturalVentilationExtendedResult.Source,
                     tM59NaturalVentilationExtendedResult.Reference,
                     tM59NaturalVentilationExtendedResult.TM52BuildingCategory,
                     tM59NaturalVentilationExtendedResult.OccupiedHours,
+                    tM59NaturalVentilationExtendedResult.MaxExceedableHours,
                     tM59NaturalVentilationExtendedResult.GetSummerOccupiedHours(),
                     tM59NaturalVentilationExtendedResult.GetSummerMaxExceedableHours(),
-                    tM59NaturalVentilationExtendedResult.MaxExceedableHours,
                     tM59NaturalVentilationExtendedResult.GetOccupiedHoursExceedingComfortRange(),
                     tM59NaturalVentilationExtendedResult.Pass);
             }

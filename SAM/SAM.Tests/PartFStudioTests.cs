@@ -16,10 +16,15 @@ namespace SAM.Tests
     /// Approved Document F, Volume 1: Dwellings (2021 edition, for use in England).
     /// </summary>
     /// <remarks>
-    /// Both rooms are habitable under Appendix A, because neither is <i>solely</i> a kitchen, and both
-    /// contain the cooking function that paragraph 1.17a requires extract from. SAM assigns one terminal
-    /// role per space, so by deliberate design convention both receive the supply role only and their
-    /// kitchen extract is reported rather than assigned. These tests lock that convention.
+    /// Both rooms are habitable under Appendix A, because neither is <i>solely</i> a kitchen, so
+    /// paragraph 1.67 requires mechanical supply to them; and both contain the cooking function, so
+    /// paragraph 1.17a and Table 1.2 require kitchen extract from them as well. Both requirements now
+    /// produce a terminal on the same space, and these tests lock that.
+    /// <para>
+    /// Earlier versions of the calculation could assign only one terminal role per space, so both rooms
+    /// took the supply role alone and their kitchen extract was raised as an ENGINEERING CHECK REQUIRED
+    /// warning rather than modelled. That limitation, and the tests that locked it, are superseded.
+    /// </para>
     /// </remarks>
     public class PartFStudioTests
     {
@@ -70,11 +75,12 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// A living kitchen must receive supply and no extract. It previously received extract only,
-        /// which left the dwelling's habitable rooms with no supply provision at all.
+        /// A living kitchen receives supply as a habitable room AND its own local kitchen extract. The
+        /// bathroom's extract is general extract, held separately, and the two together make up the
+        /// dwelling's continuous extract.
         /// </summary>
         [Fact]
-        public void LivingKitchen_ReceivesSupplyAndNoExtract()
+        public void LivingKitchen_ReceivesSupplyAndItsOwnLocalKitchenExtract()
         {
             PartFCalculator partFCalculator = Calculate(
                 ("Living Kitchen", 30, 75),
@@ -82,28 +88,67 @@ namespace SAM.Tests
                 ("Bathroom", 6, 15));
 
             PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
+            PartFComplianceResult complianceResult = dwellingResult.ComplianceResult;
 
             Assert.True(Rate(partFCalculator, "Living Kitchen") > 0);
 
-            //Total supply is carried by the living kitchen and the bedroom; the bathroom carries all the
-            //extract. Supply and extract each equal the design system rate.
+            Assert.Contains(complianceResult.SupplyTerminals, x => x.SpaceName == "Living Kitchen");
+            Assert.Contains(complianceResult.LocalKitchenExtractTerminals, x => x.SpaceName == "Living Kitchen");
+            Assert.Contains(complianceResult.GeneralExtractTerminals, x => x.SpaceName == "Bathroom");
+
+            //Supply and extract each equal the design system rate.
             Assert.Equal(dwellingResult.ContinuousDesignSystemRate_Lps, dwellingResult.TotalSupply_Lps, tolerance);
             Assert.Equal(dwellingResult.ContinuousDesignSystemRate_Lps, dwellingResult.TotalExtract_Lps, tolerance);
-            Assert.Equal(dwellingResult.TotalExtract_Lps, Rate(partFCalculator, "Bathroom"), tolerance);
+
+            //Extract is now shared between the living kitchen and the bathroom rather than carried by the
+            //bathroom alone.
+            Assert.Equal(
+                dwellingResult.TotalExtract_Lps,
+                complianceResult.LocalKitchenExtractTerminals.Sum(x => x.ContinuousDesignFlowRate_Lps!.Value) + Rate(partFCalculator, "Bathroom"),
+                tolerance);
         }
 
-        /// <summary>A studio receives supply and no extract, with the bathroom providing the extract.</summary>
+        /// <summary>
+        /// A studio receives supply as a habitable room and its own local kitchen extract, with the
+        /// bathroom providing the general extract. Every Table 1.2 minimum is met AT THE HIGH RATE, which
+        /// is the condition Table 1.2's per-room figures apply to, and the totals balance.
+        /// <para>
+        /// The dwelling here is 46 m2, so the whole dwelling rate is 13.8 l/s, below the 21 l/s total of
+        /// the two rooms' Table 1.2 minimum high rates. That is a normal outcome, not a failure: nothing
+        /// in the Approved Document requires the continuous dwelling rate to reach the sum of the
+        /// per-room high-rate minimums.
+        /// </para>
+        /// </summary>
         [Fact]
-        public void Studio_ReceivesSupplyAndTheBathroomProvidesTheExtract()
+        public void Studio_ReceivesSupplyAndItsOwnLocalKitchenExtract()
         {
             PartFCalculator partFCalculator = Calculate(
                 ("Studio", 40, 100),
                 ("Bathroom", 6, 15));
 
             PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
+            PartFComplianceResult complianceResult = dwellingResult.ComplianceResult;
 
+            //The studio takes the whole dwelling supply, being the only habitable room.
             Assert.Equal(dwellingResult.ContinuousDesignSystemRate_Lps, Rate(partFCalculator, "Studio"), tolerance);
-            Assert.Equal(dwellingResult.ContinuousDesignSystemRate_Lps, Rate(partFCalculator, "Bathroom"), tolerance);
+
+            PartFVentilationTerminalRequirement terminal_Kitchen = Assert.Single(complianceResult.LocalKitchenExtractTerminals);
+            PartFVentilationTerminalRequirement terminal_Bathroom = Assert.Single(complianceResult.GeneralExtractTerminals);
+
+            Assert.Equal("Studio", terminal_Kitchen.SpaceName);
+
+            //Each room reaches its own Table 1.2 minimum at the high rate, by boosting.
+            Assert.Equal(13, terminal_Kitchen.HighFlowRate_Lps!.Value, tolerance);
+            Assert.Equal(8, terminal_Bathroom.HighFlowRate_Lps!.Value, tolerance);
+            Assert.True(terminal_Kitchen.HighRateIncreaseRequired);
+            Assert.True(terminal_Bathroom.HighRateIncreaseRequired);
+
+            //The continuous total is the whole dwelling rate and is not raised to the sum of those two.
+            Assert.Equal(13.8, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+            Assert.Equal(21, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+            Assert.Equal(dwellingResult.ContinuousDesignSystemRate_Lps, dwellingResult.TotalExtract_Lps, tolerance);
+
+            Assert.Equal(dwellingResult.TotalSupply_Lps, dwellingResult.TotalExtract_Lps, tolerance);
         }
 
         // ------------------------------------------------------------------
@@ -140,9 +185,9 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// The previous SAM convention of a fixed 19 l/s studio minimum is removed. A studio flat whose
-        /// floor area and wet room minimums are both small now sizes at the Table 1.3 note 1 rate of
-        /// 13 l/s, not 19 l/s.
+        /// The previous SAM convention of a fixed 19 l/s studio minimum is removed: the rate set by the
+        /// dwelling's rooms is the Table 1.3 note 1 figure of 13 l/s, not 19 l/s, and that is also the
+        /// continuous design rate here because the 24 m2 floor area rate of 7.2 l/s is lower.
         /// </summary>
         [Fact]
         public void Studio_NoLongerUsesTheFixedNineteenLitrePerSecondMinimum()
@@ -154,8 +199,9 @@ namespace SAM.Tests
             PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
 
             Assert.Equal(13, dwellingResult.BedroomOrHabitableRate_Lps, tolerance);
+            Assert.NotEqual(19, dwellingResult.BedroomOrHabitableRate_Lps);
+
             Assert.Equal(13, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
-            Assert.NotEqual(19, dwellingResult.ContinuousDesignSystemRate_Lps);
         }
 
         /// <summary>
@@ -177,7 +223,12 @@ namespace SAM.Tests
             Assert.Equal(2, dwellingResult.HabitableRoomCount);
             Assert.False(dwellingResult.OneHabitableRoomRuleApplied);
             Assert.Equal(19, dwellingResult.BedroomOrHabitableRate_Lps, tolerance);
+
+            //The Table 1.3 one bedroom rate of 19 l/s governs, above the floor area rate of
+            //0.3 x 34 = 10.2 l/s. The 21 l/s total of the Table 1.2 per-room minimum HIGH rates is
+            //reported but does not raise it.
             Assert.Equal(19, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+            Assert.Equal(21, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
         }
 
         /// <summary>
@@ -200,11 +251,18 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// The total of the wet room minimums governs where it exceeds both the note 1 rate and the floor
-        /// area rate: bathroom 8 + WC 6 + utility 8 = 22 l/s beats 13 l/s.
+        /// The total of the Table 1.2 per-room minimum HIGH rates does NOT govern the continuous design
+        /// rate, even where it is far above it. Here studio kitchen 13 + bathroom 8 + WC 6 + utility 8 =
+        /// 35 l/s against a whole dwelling rate of 13 l/s, and the continuous rate stays at 13 l/s.
+        /// <para>
+        /// Table 1.2 requires the TOTAL of continuous extract to reach the whole dwelling rate, and EACH
+        /// room to reach its own figure at the HIGH rate. Summing the per-room high-rate minimums into
+        /// the continuous rate would size this small flat's normal continuous operation at nearly three
+        /// times what the Approved Document asks of it.
+        /// </para>
         /// </summary>
         [Fact]
-        public void Studio_WetRoomMinimumsGovernAboveTheNote1Rate()
+        public void WetRoomHighRateMinimums_DoNotGovernTheContinuousRate()
         {
             PartFCalculator partFCalculator = Calculate(
                 ("Studio", 20, 50),
@@ -214,18 +272,28 @@ namespace SAM.Tests
 
             PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
 
-            Assert.Equal(22, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+            Assert.Equal(35, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
             Assert.Equal(13, dwellingResult.BedroomOrHabitableRate_Lps, tolerance);
-            Assert.True(dwellingResult.AreaBasedRate_Lps < 22);
-            Assert.Equal(22, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+            Assert.True(dwellingResult.AreaBasedRate_Lps < 13);
+
+            Assert.Equal(13, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+            Assert.Equal(13, dwellingResult.TotalExtract_Lps, tolerance);
+
+            //Every room still reaches its own Table 1.2 minimum, by boosting to its high rate.
+            List<PartFVentilationTerminalRequirement> terminals = [.. dwellingResult.ComplianceResult.Terminals.Where(x => x.IsExtract)];
+
+            Assert.Equal(4, terminals.Count);
+            Assert.All(terminals, x => Assert.Equal(x.MinimumRequiredFlowRate_Lps!.Value, x.HighFlowRate_Lps!.Value, tolerance));
+            Assert.All(terminals, x => Assert.True(x.HighRateIncreaseRequired));
+            Assert.Equal(35, dwellingResult.TotalHighExtract_Lps, tolerance);
         }
 
         /// <summary>
-        /// The governing continuous design rate is the greatest of every applicable minimum, whichever
-        /// that happens to be.
+        /// The governing continuous design rate is the greater of the bedroom or one-habitable-room rate
+        /// and the paragraph 1.24a floor area rate, whichever that happens to be - and nothing else.
         /// </summary>
         [Fact]
-        public void ContinuousDesignRate_IsTheGreatestApplicableMinimum()
+        public void ContinuousDesignRate_IsTheGreaterOfTheTwoWholeDwellingRates()
         {
             PartFCalculator partFCalculator = Calculate(
                 ("Studio", 96, 240),
@@ -234,30 +302,27 @@ namespace SAM.Tests
 
             PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
 
-            double expected = System.Math.Max(
-                System.Math.Max(dwellingResult.BedroomOrHabitableRate_Lps, dwellingResult.AreaBasedRate_Lps),
-                dwellingResult.WetRoomMinimumTotal_Lps);
+            double expected = System.Math.Max(dwellingResult.BedroomOrHabitableRate_Lps, dwellingResult.AreaBasedRate_Lps);
 
             Assert.Equal(expected, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+            Assert.Equal(dwellingResult.WholeDwellingRate_Lps, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
         }
 
         // ------------------------------------------------------------------
-        // The LOCAL kitchen extract limitation
+        // LOCAL kitchen extract as a terminal of its own
         // ------------------------------------------------------------------
         //
-        // The limitation is the absence of an explicitly modelled LOCAL kitchen or cooker extract, NOT
-        // the absence of general dwelling extract. A cooking space counts as having explicit local
-        // kitchen extract only where that space itself takes an extract terminal. Wet-room extract may
-        // balance the dwelling airflow but is not evidence of local kitchen extract, so it must not
-        // suppress the warning.
+        // Local kitchen extract and general wet-room extract are different terminal roles with different
+        // source paragraphs. Extract from a bathroom or ensuite may balance the dwelling airflow, but it
+        // is not local kitchen extract and never satisfies paragraph 1.17a. What has changed is that the
+        // cooking space's own extract is now modelled rather than reported as unrepresentable.
 
         /// <summary>
-        /// A studio with a separate bathroom is the normal design arrangement: supply and extract balance,
-        /// yet the local kitchen extract warning MUST remain, because no local kitchen or cooker extract
-        /// is represented for the studio itself.
+        /// A studio with a separate bathroom: supply and extract balance, and the studio now carries its
+        /// own local kitchen extract terminal, held separately from the bathroom's general extract.
         /// </summary>
         [Fact]
-        public void StudioPlusBathroom_BalancesButStillRaisesTheLocalKitchenExtractWarning()
+        public void StudioPlusBathroom_BalancesAndCarriesItsOwnLocalKitchenExtract()
         {
             PartFCalculator partFCalculator = Calculate(
                 ("Studio", 40, 100),
@@ -265,21 +330,21 @@ namespace SAM.Tests
 
             PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
 
-            //Balanced at both conditions - the bathroom extract does provide the dwelling's general extract.
+            //Balanced at both conditions.
             Assert.True(dwellingResult.TotalExtract_Lps > 0);
             Assert.Equal(dwellingResult.TotalSupply_Lps, dwellingResult.TotalExtract_Lps, tolerance);
             Assert.Equal(dwellingResult.TotalSetbackSupply_Lps, dwellingResult.TotalSetbackExtract_Lps, tolerance);
 
-            //...but that is not local kitchen extract, so the warning stands.
-            Assert.Contains(partFCalculator.Warnings, x =>
-                x.Contains("ENGINEERING CHECK REQUIRED") &&
-                x.Contains("no explicit local kitchen or cooker extract is represented") &&
-                x.Contains("Studio"));
+            //The two extract roles are separate and both present.
+            Assert.Contains(dwellingResult.ComplianceResult.LocalKitchenExtractTerminals, x => x.SpaceName == "Studio");
+            Assert.Contains(dwellingResult.ComplianceResult.GeneralExtractTerminals, x => x.SpaceName == "Bathroom");
+
+            Assert.DoesNotContain(partFCalculator.Warnings, x => x.Contains("ENGINEERING CHECK REQUIRED"));
         }
 
         /// <summary>The same applies to an open plan living kitchen with an ensuite.</summary>
         [Fact]
-        public void LivingKitchenPlusEnsuite_BalancesButStillRaisesTheLocalKitchenExtractWarning()
+        public void LivingKitchenPlusEnsuite_BalancesAndCarriesItsOwnLocalKitchenExtract()
         {
             PartFCalculator partFCalculator = Calculate(
                 ("Living Kitchen", 30, 75),
@@ -292,10 +357,10 @@ namespace SAM.Tests
             Assert.Equal(dwellingResult.TotalSupply_Lps, dwellingResult.TotalExtract_Lps, tolerance);
             Assert.Equal(dwellingResult.TotalSetbackSupply_Lps, dwellingResult.TotalSetbackExtract_Lps, tolerance);
 
-            Assert.Contains(partFCalculator.Warnings, x =>
-                x.Contains("ENGINEERING CHECK REQUIRED") &&
-                x.Contains("no explicit local kitchen or cooker extract is represented") &&
-                x.Contains("Living Kitchen"));
+            Assert.Contains(dwellingResult.ComplianceResult.LocalKitchenExtractTerminals, x => x.SpaceName == "Living Kitchen");
+            Assert.Contains(dwellingResult.ComplianceResult.GeneralExtractTerminals, x => x.SpaceName == "Ensuite");
+
+            Assert.DoesNotContain(partFCalculator.Warnings, x => x.Contains("ENGINEERING CHECK REQUIRED"));
         }
 
         /// <summary>
@@ -330,25 +395,37 @@ namespace SAM.Tests
             Assert.DoesNotContain(partFCalculator.Warnings, x => x.Contains("ENGINEERING CHECK REQUIRED"));
             Assert.DoesNotContain(partFCalculator.Warnings, x => x.Contains("local kitchen or cooker extract"));
 
-            //And it holds at least its Table 1.2 kitchen minimum.
-            Assert.True(Rate(partFCalculator, "Kitchen") >= 13 - tolerance);
+            //And it reaches its Table 1.2 kitchen minimum at the high rate, which is the condition that
+            //figure applies to. The whole dwelling rate here is 19 l/s against a 21 l/s total of the two
+            //rooms' high-rate minimums, so the kitchen sits below 13 l/s continuously and boosts.
+            PartFVentilationTerminalRequirement terminal_Kitchen = Assert.Single(Assert.Single(partFCalculator.DwellingResults).ComplianceResult.LocalKitchenExtractTerminals);
+
+            Assert.Equal(13, terminal_Kitchen.HighFlowRate_Lps!.Value, tolerance);
+            Assert.True(terminal_Kitchen.HighRateIncreaseRequired);
         }
 
         /// <summary>
-        /// A dwelling with a cooking space and NO extract terminal at all gets BOTH warnings: the local
-        /// kitchen extract warning, and the separate paragraph 1.17 no-extract-terminal warning. The two
-        /// are independent conditions and are reported independently.
+        /// A studio on its own is now a complete little dwelling: it takes supply as its only habitable
+        /// room and its own local kitchen extract as the room holding the cooking function, and the two
+        /// balance. Nothing about it needs an engineering check for a missing terminal, because none is
+        /// missing.
         /// </summary>
         [Fact]
-        public void CookingSpaceAndNoExtractTerminal_RaisesBothWarnings()
+        public void StudioAlone_SuppliesAndExtractsItselfWithoutAnyWetRoom()
         {
             PartFCalculator partFCalculator = Calculate(("Studio", 40, 100));
 
-            Assert.Contains(partFCalculator.Warnings, x =>
-                x.Contains("ENGINEERING CHECK REQUIRED") &&
-                x.Contains("no explicit local kitchen or cooker extract is represented"));
+            PartFDwellingResult dwellingResult = Assert.Single(partFCalculator.DwellingResults);
 
-            Assert.Contains(partFCalculator.Warnings, x => x.Contains("no wet room that takes an extract terminal"));
+            //Note 1 gives 13 l/s and the floor area rate 0.3 x 40 = 12 l/s, so the dwelling sizes at
+            //13 l/s. The studio's own Table 1.2 kitchen high-rate minimum is also 13 l/s, so the single
+            //extract terminal happens to meet it continuously and needs no boost (Table 1.2 note 1).
+            Assert.Equal(13, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+            Assert.Equal(13, dwellingResult.TotalSupply_Lps, tolerance);
+            Assert.Equal(13, dwellingResult.TotalExtract_Lps, tolerance);
+
+            Assert.DoesNotContain(partFCalculator.Warnings, x => x.Contains("ENGINEERING CHECK REQUIRED"));
+            Assert.DoesNotContain(partFCalculator.Warnings, x => x.Contains("no extract terminal that forms part of the balanced continuous system"));
         }
 
         /// <summary>

@@ -192,18 +192,50 @@ namespace SAM.Tests
 
         /// <summary>
         /// Floor-area rate BELOW 13 l/s: the note 1 rate governs. 24 m2 gives 0.3 x 24 = 7.2 l/s, and the
-        /// single bathroom minimum is 8 l/s, so 13 l/s is the greatest.
+        /// only extract minimum is the WC's 6 l/s, so 13 l/s is the greatest.
         /// </summary>
+        /// <remarks>
+        /// A living room rather than a studio, because a studio contains the cooking function and so
+        /// carries a local kitchen extract terminal of its own at the Table 1.2 kitchen rate of 13 l/s.
+        /// Adding that to a wet room's minimum always takes the extract total above 13, so no dwelling
+        /// containing a cooking space can demonstrate note 1 governing on its own.
+        /// </remarks>
         [Fact]
         public void FloorAreaRateBelowThirteen_TheNote1RateGoverns()
+        {
+            PartFDwellingResult dwellingResult = Calculate(
+                ("Living Room", 20, 50),
+                ("WC", 4, 10));
+
+            Assert.Equal(1, dwellingResult.HabitableRoomCount);
+            Assert.Equal(7.2, dwellingResult.AreaBasedRate_Lps, tolerance);
+            Assert.Equal(6, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+            Assert.Equal(13, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+        }
+
+        /// <summary>
+        /// A cooking space carries the Table 1.2 kitchen minimum HIGH rate of 13 l/s on its own local
+        /// kitchen extract terminal, so a studio flat's reported high-rate minimum total is that 13 plus
+        /// every wet room's. Before terminal-level sizing, the studio's kitchen extract was not modelled
+        /// at all and only the bathroom's 8 l/s counted.
+        /// <para>
+        /// That total is reported and applies room by room at the high condition. It does not raise the
+        /// continuous design rate, which stays at the whole dwelling rate of 13 l/s.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void CookingSpace_ContributesTheTable1_2KitchenMinimum()
         {
             PartFDwellingResult dwellingResult = Calculate(
                 ("Studio", 20, 50),
                 ("Bathroom", 4, 10));
 
             Assert.Equal(7.2, dwellingResult.AreaBasedRate_Lps, tolerance);
-            Assert.Equal(8, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+            Assert.Equal(13, dwellingResult.BedroomOrHabitableRate_Lps, tolerance);
+            Assert.Equal(21, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+
             Assert.Equal(13, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+            Assert.Equal(21, dwellingResult.TotalHighExtract_Lps, tolerance);
         }
 
         /// <summary>
@@ -214,11 +246,12 @@ namespace SAM.Tests
         public void FloorAreaRateEqualToThirteen_GivesThirteen()
         {
             PartFDwellingResult dwellingResult = Calculate(
-                ("Studio", 40, 100),
-                ("Bathroom", 10.0 / 3.0, 8));
+                ("Living Room", 40, 100),
+                ("WC", 10.0 / 3.0, 8));
 
             Assert.Equal(13, dwellingResult.AreaBasedRate_Lps, tolerance);
             Assert.Equal(13, dwellingResult.BedroomOrHabitableRate_Lps, tolerance);
+            Assert.Equal(6, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
             Assert.Equal(13, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
         }
 
@@ -238,41 +271,43 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// Wet-room minimum total ABOVE 13 l/s: the wet-room total governs. Bathroom 8 + WC 6 = 14 l/s,
-        /// against a note 1 rate of 13 l/s and a floor-area rate of 0.3 x 26 = 7.8 l/s.
+        /// High-rate minimum total ABOVE 13 l/s: it still does not govern the continuous rate. Studio
+        /// kitchen 13 + bathroom 8 + WC 6 = 27 l/s, against a note 1 rate of 13 l/s and a floor-area rate
+        /// of 0.3 x 26 = 7.8 l/s, and the continuous design rate stays at 13 l/s.
         /// </summary>
         [Fact]
-        public void WetRoomMinimumAboveThirteen_TheWetRoomMinimumGoverns()
+        public void WetRoomHighRateMinimumAboveThirteen_StillDoesNotGovern()
         {
             PartFDwellingResult dwellingResult = Calculate(
                 ("Studio", 20, 50),
                 ("Bathroom", 4, 10),
                 ("WC", 2, 5));
 
-            Assert.Equal(14, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+            Assert.Equal(27, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
             Assert.Equal(13, dwellingResult.BedroomOrHabitableRate_Lps, tolerance);
             Assert.True(dwellingResult.AreaBasedRate_Lps < 13);
-            Assert.Equal(14, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+
+            Assert.Equal(13, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
+            Assert.Equal(27, dwellingResult.TotalHighExtract_Lps, tolerance);
         }
 
         /// <summary>
-        /// Note 1 applying never lowers the final rate below the other minimums: the continuous design
-        /// rate is always the greatest of the three, whichever it is.
+        /// Note 1 applying never lowers the continuous design rate below the paragraph 1.24a floor area
+        /// rate: it is always the greater of the two whole dwelling rates, whichever that is, and never
+        /// the sum of the Table 1.2 per-room high-rate minimums.
         /// </summary>
         [Theory]
         [InlineData(20, 4)]
         [InlineData(40, 10)]
         [InlineData(96, 4)]
         [InlineData(200, 20)]
-        public void Note1_NeverLowersTheRateBelowTheOtherMinimums(double area_Studio, double area_Bathroom)
+        public void Note1_NeverLowersTheRateBelowTheFloorAreaRate(double area_Studio, double area_Bathroom)
         {
             PartFDwellingResult dwellingResult = Calculate(
                 ("Studio", area_Studio, area_Studio * 2.5),
                 ("Bathroom", area_Bathroom, area_Bathroom * 2.5));
 
-            double expected = System.Math.Max(
-                System.Math.Max(dwellingResult.BedroomOrHabitableRate_Lps, dwellingResult.AreaBasedRate_Lps),
-                dwellingResult.WetRoomMinimumTotal_Lps);
+            double expected = System.Math.Max(dwellingResult.BedroomOrHabitableRate_Lps, dwellingResult.AreaBasedRate_Lps);
 
             Assert.Equal(expected, dwellingResult.ContinuousDesignSystemRate_Lps, tolerance);
             Assert.True(dwellingResult.ContinuousDesignSystemRate_Lps >= 13 - tolerance);

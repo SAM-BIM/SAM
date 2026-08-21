@@ -427,8 +427,10 @@ namespace SAM.Tests
 
             PartFDwellingResult dwellingResult = Dwelling(partFCalculator, "Flat 1");
 
-            //The bathroom keeps its Table 1.2 minimum and takes the extract.
-            Assert.Equal(8, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
+            //The bathroom keeps its Table 1.2 minimum and takes the general extract. The studio's own local
+            //kitchen extract carries the 13 l/s kitchen minimum, so the per-room high-rate minimum total
+            //is 21 l/s.
+            Assert.Equal(21, dwellingResult.WetRoomMinimumTotal_Lps, tolerance);
             Assert.True(SpaceData(partFCalculator, "Bathroom_2")!.ContinuousDesignFlowRate_Lps > 0);
             Assert.Equal(Analytical.Enums.PartFVentilationType.extract, SpaceData(partFCalculator, "Bathroom_2")!.PartFVentilationType);
             Assert.Equal(Analytical.Enums.PartFVentilationType.supply, SpaceData(partFCalculator, "Studio 1_0")!.PartFVentilationType);

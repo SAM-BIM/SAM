@@ -74,6 +74,38 @@ namespace SAM.Analytical
         public double OneHabitableRoomRate_Lps { get; set; } = DefaultOneHabitableRoomRate_Lps;
 
         /// <summary>
+        /// Minimum kitchen extract rate [l/s] for an INTERMITTENT extract system where a cooker hood
+        /// extracts to the outside. Approved Document F, Volume 1: Dwellings (2021 edition, England)
+        /// Table 1.1 (page 8) and Diagram 1.1 (page 9): 30 l/s.
+        /// </summary>
+        public double IntermittentKitchenRateWithCookerHood_Lps { get; set; } = 30;
+
+        /// <summary>
+        /// Minimum kitchen extract rate [l/s] for an INTERMITTENT extract system where there is no cooker
+        /// hood, or the cooker hood does not extract to the outside. Table 1.1 (page 8) and Diagram 1.2
+        /// (page 9): 60 l/s.
+        /// <para>
+        /// Diagram 1.2 note 1 also states that a recirculating cooker hood on its own does not provide a
+        /// means of ventilation that complies with Part F, so a recirculating hood does not reduce this
+        /// figure and does not satisfy the requirement by itself.
+        /// </para>
+        /// </summary>
+        public double IntermittentKitchenRateWithoutCookerHood_Lps { get; set; } = 60;
+
+        /// <summary>
+        /// How continuous extract above the Table 1.2 minimums is shared between the dwelling's extract
+        /// terminals.
+        /// <para>
+        /// Approved Document F prescribes only two things about extract totals: each wet room reaches at
+        /// least its Table 1.2 minimum high rate (paragraph 1.70), and the sum of all extract on its
+        /// continuous rate is at least the whole dwelling ventilation rate (Table 1.2, continuous rate
+        /// column). The split of the surplus between terminals is an engineering strategy, so it is named
+        /// on the rule set, recorded on every result, and can be changed.
+        /// </para>
+        /// </summary>
+        public Enums.PartFExtractAllocationStrategy ExtractAllocationStrategy { get; set; } = Enums.PartFExtractAllocationStrategy.MinimumFirstCookingPriority;
+
+        /// <summary>
         /// Reduced-operation factor applied to every continuous design flow rate to obtain the setback
         /// flow rate, so setback = continuous design x factor. Defaults to
         /// <see cref="DefaultSetbackFlowRateFactor"/> (0.30), i.e. the setback rate is 30% of the
@@ -116,6 +148,25 @@ namespace SAM.Analytical
 
         public PartFData()
         {
+        }
+
+        /// <summary>
+        /// Minimum extract rate [l/s] for the room containing the cooking function on a CONTINUOUS
+        /// system, i.e. the kitchen high rate of Approved Document F, Volume 1: Dwellings (2021 edition,
+        /// England) Table 1.2 (page 10).
+        /// <para>
+        /// Read from the rule set's own kitchen category so that an edited rule set is honoured, and
+        /// falling back to the tabulated 13 l/s where the rule set describes no kitchen. Needed as a
+        /// standalone lookup because a studio and an open plan living kitchen also contain the cooking
+        /// function and are habitable rooms, so they carry no kitchen category of their own but still need
+        /// the kitchen rate for their local kitchen extract terminal.
+        /// </para>
+        /// </summary>
+        public double GetKitchenExtractHighRate_Lps()
+        {
+            double? result = GetPartFCategory(SpaceUse.Kitchen)?.MinFlowRate_Lps;
+
+            return result is null || double.IsNaN(result.Value) || result.Value <= 0 ? 13 : result.Value;
         }
 
         /// <summary>
