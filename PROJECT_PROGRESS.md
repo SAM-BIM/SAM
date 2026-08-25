@@ -17,7 +17,7 @@ from the guid-sorted list (equal lengths within `Core.Tolerance.Distance`). A ro
 because two candidates are equal; a space with no valid location (`Space.IsPlaced()` false - missing or
 NaN) still refuses cleanly because there is no valid primary geometric ranking. Selection is independent of
 candidate creation/enumeration order; guid order is the absolute final deterministic fallback only.
-Full `SAM.Tests`: **1352 passed, 0 failed** (Debug and Release; was 1344, +8 net).
+Full `SAM.Tests`: **1354 passed, 0 failed** (Debug and Release; was 1344, +10 net).
 
 ## Real-model acceptance run (SAM_zoningAM_v1.sam, 2026-08-05-PartO)
 Ran `AddTransferAirDoorsByPartF("Flats", ...)` against the ACTUAL model (9 spaces, 50 panels): **5 doors
@@ -49,7 +49,16 @@ created, 0 refusals**, exactly one door per route, no duplicates.
   space that is not `Space.IsPlaced()` (missing or NaN location) - no valid primary geometric ranking, so
   no winner is ever manufactured from invalid geometry.
 - `SAMAnalyticalAddTransferAirDoorsByPartF` (GH): component description documents the selection hierarchy.
-- Tests (`PartFTransferAirDoorTests`, 23 total):
+- Codex review fixes (PR #74, both accepted):
+  - **P1 - no NaN refusal for walls beyond the segment.** A candidate whose plane the direct line crosses
+    only BEYOND the bounded segment used to score NaN and refuse the whole route. It now scores the finite
+    distance from its nearer endpoint to the panel region (`DistanceToPanel`) and simply loses.
+  - **P2 - coincident locations scored against the panel region.** A point facing the middle of a large
+    wall was scored by its distance to the wall's EDGES, overstating the offset; the score is now the
+    perpendicular offset where the projection falls inside the panel, edge distance only otherwise.
+    `DistanceToPanel(Face3D, Point3D)` is the single helper for both; the NaN guard in the selection block
+    is now truly defensive-only.
+- Tests (`PartFTransferAirDoorTests`, 25 total):
   - `SplitWall_DirectLineCrossesOnePanel_DoorCreatedThere` [Theory, both creation orders]: door in the
     crossed panel, other panel untouched, selection note present.
   - `TwoParallelWalls_DifferentLengths_ShorterWallSelected` [Theory, both creation orders]: geometric tie,
@@ -60,6 +69,10 @@ created, 0 refusals**, exactly one door per route, no duplicates.
     equal 5 m lengths -> guid-first panel selected.
   - `TwoSharedWalls_SpaceLocationInvalid_RefusedCleanly` [Theory, missing and NaN location]: still refused
     with "no valid location", candidates untouched, no winner manufactured.
+  - `SplitWall_SecondCandidateBeyondTheLocations_DoorStillCreated` [Codex P1]: crossed wall wins, the
+    beyond-the-segment wall scores 2 m and loses, no refusal.
+  - `CoincidentLocations_ProjectionInsidePanel_ShorterPerpendicularWallWins` [Codex P2]: the wall whose
+    interior faces the point wins over a narrower wall whose edges are nearer.
   - `ExampleModelFlatPairs_SplitSharedWalls_DoorLandsOnTheCrossedPanel`: reproduces the three reported pairs
     (Flat 1 Studio 1_0->Bathroom_2, Flat 2 Kitchen_4->Ensuite_5, Flat 3 Kitchen_7->Ensuite_8) as split
     walls; all 5 routes' doors land on the crossed panel.
@@ -75,13 +88,12 @@ created, 0 refusals**, exactly one door per route, no duplicates.
 
 ## Validation
 - `SAM.Analytical` Debug build: 0 errors.
-- Focused `PartFTransferAirDoorTests`: 23/23 passed.
-- Full `SAM.Tests` Debug: **1352 passed, 0 failed**. Full `SAM.Tests` Release: **1352 passed, 0 failed**.
+- Focused `PartFTransferAirDoorTests`: 25/25 passed.
+- Full `SAM.Tests` Debug: **1354 passed, 0 failed**. Full `SAM.Tests` Release: **1354 passed, 0 failed**.
 - `SAM.Analytical.Grasshopper` compiles with 0 CS errors; its post-build deploy step fails locally with the
   pre-existing `::erase` quirk (environmental - CI uses `RunPostBuildEvent=OnOutputUpdated` and is green).
-- Real-model acceptance run above: 5 doors created, 0 refusals; Kitchen->Ensuite in Flats 2 and 3 land on
-  the horizontal partitions (geometric winners); Flat 1's equal-length L-corner pair resolves to the stable
-  first candidate `3e01ed80`.
+- Real-model acceptance run re-checked after the Codex fixes: 5 doors, 0 refusals, same panel selections
+  as before.
 
 ## Remaining ambiguity / open items
 - Flat 1's Studio->Bathroom pair is a true geometric AND dimensional tie (two identical 5 m legs of the

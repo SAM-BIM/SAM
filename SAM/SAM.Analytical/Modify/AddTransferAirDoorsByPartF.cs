@@ -627,15 +627,12 @@ namespace SAM.Analytical
             }
 
             //Degenerate segment: the two space locations coincide. The score is the distance of that
-            //single point from the panel.
+            //single point from the panel REGION - the perpendicular offset where the point's projection
+            //onto the panel plane falls inside the panel, the distance to the panel's edge otherwise -
+            //so a point facing the middle of a large wall is not scored by how far the wall's edges are.
             if (segment3D.GetLength() < Core.Tolerance.Distance)
             {
-                if (face3D.Inside(segment3D[0]))
-                {
-                    return 0;
-                }
-
-                return (face3D.GetExternalEdge3D() as ISegmentable3D)?.Distance(segment3D[0]) ?? double.NaN;
+                return DistanceToPanel(face3D, segment3D[0]);
             }
 
             //The direct line between the spaces passes THROUGH the panel: that panel is the wall the two
@@ -685,10 +682,60 @@ namespace SAM.Analytical
             Point3D point3D_Intersection = Geometry.Spatial.Create.PlanarIntersectionResult(plane, segment3D)?.GetGeometry3D<Point3D>();
             if (point3D_Intersection == null)
             {
+                //The line crosses the panel plane BEYOND the bounded segment: the panel does not stand
+                //between the two locations, and the closest the segment comes to it is at its nearer
+                //endpoint. That stays a finite, rankable score - such a wall simply loses to any wall
+                //the direct line actually reaches.
+                return plane.Distance(segment3D[0]) <= plane.Distance(segment3D[1])
+                    ? DistanceToPanel(face3D, segment3D[0])
+                    : DistanceToPanel(face3D, segment3D[1]);
+            }
+
+            return DistanceToPanel(face3D, point3D_Intersection);
+        }
+
+        /// <summary>
+        /// The distance from a point to a wall panel region: the perpendicular offset where the point's
+        /// projection onto the panel plane falls inside the panel, the distance to the panel's edge
+        /// otherwise. 0 where the point lies on the panel itself. The panel is only read, never modified.
+        /// </summary>
+        private static double DistanceToPanel(Face3D face3D, Point3D point3D)
+        {
+            if (face3D == null || point3D == null)
+            {
                 return double.NaN;
             }
 
-            return (face3D.GetExternalEdge3D() as ISegmentable3D)?.Distance(point3D_Intersection) ?? double.NaN;
+            Plane plane = face3D.GetPlane();
+            if (plane == null)
+            {
+                return double.NaN;
+            }
+
+            double distance_Perpendicular = plane.Distance(point3D);
+            if (double.IsNaN(distance_Perpendicular))
+            {
+                return double.NaN;
+            }
+
+            if (distance_Perpendicular <= Core.Tolerance.Distance)
+            {
+                //On the panel plane: the point is either inside the panel (0) or off to its side (the
+                //distance to the edge, which for a point on the plane is the exact region distance).
+                return face3D.Inside(point3D) ? 0 : (face3D.GetExternalEdge3D() as ISegmentable3D)?.Distance(point3D) ?? double.NaN;
+            }
+
+            //Off the panel plane: where the point faces the panel interior, the perpendicular offset IS
+            //the region distance - measuring to the edge instead would score a point facing the middle of
+            //a large wall by how far its edges are. Only where the projection falls outside the panel is
+            //the nearest region point on the edge.
+            Point3D point3D_Projected = plane.Project(point3D);
+            if (point3D_Projected != null && face3D.Inside(point3D_Projected))
+            {
+                return distance_Perpendicular;
+            }
+
+            return (face3D.GetExternalEdge3D() as ISegmentable3D)?.Distance(point3D) ?? double.NaN;
         }
 
         /// <summary>

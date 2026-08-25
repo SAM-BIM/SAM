@@ -210,12 +210,14 @@ documented pattern.
   no longer causes a plain `Internal Door` `ApertureConstruction` to be manufactured and noted; that put a
   door build-up into the model that nothing established, purely so geometry could exist.
 
-23 tests in `SAM.Tests/PartFTransferAirDoorTests.cs`, including the duplicate-room-name identity regression,
+25 tests in `SAM.Tests/PartFTransferAirDoorTests.cs`, including the duplicate-room-name identity regression,
 the two-candidate geometric-tie resolutions (shorter wall wins **and** equal-length stable-first wins, each
 **run in both panel creation orders**), a split wall whose crossed panel takes the door **in both panel
 creation orders**, a split wall where the direct line hits the joint (geometric tie, equal lengths -> stable
 first candidate), a two-candidate case with a missing/NaN space location (refused cleanly, no winner
-manufactured), a three-wall case where the only wall that fits is the **smallest** (so a geometrically
+manufactured), the two Codex regressions (a wall beyond the bounded segment scores a finite distance and
+loses instead of NaN-refusing the route; coincident locations score against the panel REGION, not the
+panel's edges), a three-wall case where the only wall that fits is the **smallest** (so a geometrically
 established sole candidate cannot be mistaken for the largest wall being picked), the three-flat
 example-model reproduction (Studio 1_0→Bathroom_2, Kitchen_4→Ensuite_5, Kitchen_7→Ensuite_8 — each split
 wall's door lands on the crossed panel), and the construction refusal. That last test swaps an
