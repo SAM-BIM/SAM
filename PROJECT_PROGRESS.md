@@ -1,13 +1,152 @@
 # Project Progress
 
 ## Branch
+`feature/parto-nv-workflow` (off `sow/2026-Q3` at merge commit `907c0441`, PR #75 already merged).
+
+## Last updated
+2026-08-25 - the first complete truthful Natural Ventilation Part O workflow, proven end to end against
+licensed TAS.
+
+## Current status (this session)
+`PreparePartOIteration` no longer carries Approved Document F **continuous mechanical** supply and extract
+onto a naturally ventilated dwelling. The ventilation strategy the assessed zones state now gates the
+airflow application, and the whole preparation has moved into the library so the component and the tests
+run the same code.
+
+Full `SAM.Tests`: **1397 passed, 0 failed** (was 1354, +43). `SAM.Analytical.Tas.TM59.Tests`:
+**620 passed, 0 failed** (was 613, +7).
+
+**Licensed TAS acceptance: PASSED.** See
+[`documentation/PartO-TAS-VALIDATION.md`](documentation/PartO-TAS-VALIDATION.md) §"Natural-ventilation Part
+O workflow" for the full evidence.
+
+### The defect, independently verified before any edit
+- `SAMAnalyticalPreparePartOIteration.SolveInstance` called `Modify.ApplyPartFVentilationRates`
+  **unconditionally, and before `_ventilationStrategies` was read at all**.
+- `PartFCalculator` is unconditionally System 4 shaped - paragraph 1.67 gives every habitable room a
+  mechanical supply terminal, and nothing in `SAM.Analytical/Classes/PartF/` takes a ventilation strategy.
+- So an NV dwelling was simulated with mechanical supply/extract it does not have, **successfully**, with
+  nothing in the result saying the system was invented. Mirror failure: an NV dwelling with no
+  `PartFSpaceData` was refused outright with "run a Part F component first".
+- Wet-room INTERMITTENT extract was checked and left alone: `PartFCalculator` already sets
+  `IsInBalancedFlow = false` and leaves `ContinuousDesignFlowRate_Lps` null for `CookerHoodExtractingOutside`
+  and `SeparateIntermittentExtract`, so it was never part of what is applied.
+
+## Completed (this session)
+- **`Enums.PartOPartFAirflowApplication`** (new): `Apply` / `SkipNaturalVentilation` / `RefuseMixed`.
+- **`Query.PartOPartFAirflowApplication(zones, dictionary_VentilationStrategy, out diagnostic)`** (new): the
+  decision, over the **same** strategy dictionary `Create.OverheatingScenarios` is given, so the airflow
+  decision and the TM59 criterion can never read different answers. Only `NV` skips (read trimmed and
+  `ToUpperInvariant`, matching `VentilationStrategyMap`); `UV` and everything else keep the existing
+  behaviour; no assessed zones keeps the existing behaviour, because an absence is not a statement.
+- **`Modify.PreparePartOIteration`** (new) + **`PartOIterationPreparation`** (new result class): the whole
+  preparation, in the library. Operating mode -> strategy gate -> airflow (or not) -> opening compatibility
+  -> scenarios. A refusal returns **no model and no scenarios** - a half-prepared model handed back beside a
+  refusal is a model somebody simulates.
+- **`SAMAnalyticalPreparePartOIteration`** reduced to parameter reading and Grasshopper message levels;
+  version `1.0.1` -> `1.0.2`. Zone resolution and strategy reading moved ahead of the airflow application,
+  which is what lets the gate see the strategy. Message levels, the connected-but-unresolved-zones error and
+  every output are unchanged.
+- Component documentation states plainly that zero continuous mechanical airflow means **SAM has not
+  invented an MVHR/MVRE system**, and NOT that the natural-ventilation Part F design has been sized.
+
+## Files changed
+- `SAM/SAM/SAM.Analytical/Enums/PartOPartFAirflowApplication.cs` (new)
+- `SAM/SAM/SAM.Analytical/Query/PartOPartFAirflowApplication.cs` (new)
+- `SAM/SAM/SAM.Analytical/Classes/PartOIterationPreparation.cs` (new)
+- `SAM/SAM/SAM.Analytical/Modify/PreparePartOIteration.cs` (new)
+- `SAM/Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalPreparePartOIteration.cs`
+- `SAM/SAM/SAM.Tests/PartOIterationPreparationTests.cs`
+- `SAM/documentation/PartO-TAS-VALIDATION.md`
+- `SAM/PROJECT_PROGRESS.md` (this file)
+- `SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/PartONaturalVentilationWorkflowTests.cs` (new, separate repo)
+
+## Tests
+`PartOIterationPreparationTests` now calls `Modify.PreparePartOIteration` directly instead of mirroring
+`SolveInstance` step by step - the previous helper was a hand-maintained copy of the component's sequence,
+which is exactly what a gate must not be tested against. All pre-existing opening/idempotency/airflow tests
+pass unchanged on the real path.
+
+New, sections H and I of that file (the mechanical fixture reused, so the Part F sizing being skipped is
+provably present):
+- `NVDwelling_InventsNoContinuousMechanicalSupplyOrExtract` - one model prepared twice, MVRE then NV; the
+  MVRE control proves the fixture is one that COULD have had an MVHR system invented for it.
+- `NVDwelling_LeavesTheInternalConditionsExactlyAsAuthored` - no per-space clone, no rename, no cleared
+  summing bases.
+- `NVDwelling_NightClosedAperture_SurvivesWithItsAvailabilitySchedule` - restriction, hours, schedule name,
+  all 24 values, function and factor.
+- `NVDwelling_StatesAnNVScenario`, `NVDwelling_WithNoPartFDataAtAll_StillPrepares` (with the MVRE control
+  refusing the same model), `NVDwelling_SaysWhyNoMechanicalAirflowWasApplied_WithoutClaimingItSizedAnything`,
+  `NVPreparation_LeavesTheSuppliedModelUnchanged`, `NVPreparation_IsIdempotent`.
+- `MixedStrategies_RefuseAndNameEveryZoneWithItsStrategy`, `MixedStrategies_ReturnNoModelAndMutateNothing`,
+  `NVBesideAZoneStatingNothing_Refuses`.
+- `EveryStrategyThatIsNotNV_KeepsTheExistingApplication` [Theory: MV, MVRE, UV] - the mechanical-path guard.
+- `TheNVStatement_IsReadCaseInsensitivelyAndTrimmed` [Theory], `NoAssessedZones_KeepTheExistingApplication`.
+
+`SAM_Tas` - `PartONaturalVentilationWorkflowTests` (7, COM-free): the same semantic case carried from the
+production preparation to the export, the aperture-definition write path and the TM59 route. The fixture's
+internal condition deliberately states `MVRE`, so every assertion has a control showing the pre-scenario
+derivation answering "mechanical" for the same model.
+
+## Validation
+- `SAM.Analytical` Debug build: 0 errors, no new warnings from the new files.
+- `SAM.Analytical.Grasshopper`: 0 CS errors (the post-build deploy step fails locally with the pre-existing
+  environmental `*Undefined*` path quirk; CI is green).
+- Full `SAM.Tests` Debug: **1397 passed, 0 failed**.
+- `SAM.Analytical.Tas.TM59.Tests` Debug: **620 passed, 0 failed**.
+- Licensed headless TAS acceptance (TAS 9.5.7.0, `CIBSE Weather 2021.twd`, `Sizing = true`,
+  `Simulate = true`, days 1..365), base model `C:\TasOut\v40\A0.sam` with ONE aperture authored
+  `NightClosed` 08-23:
+  - TBD aperture profile: `ticFunctionProfile`, `function=zdwno,0,19.00,21.00,99.00`,
+    `schedule=PartO_DayOpen_08_23`, `values=000000001111111111111110`. The other 19 Unrestricted openings
+    carry the same function and no schedule.
+  - TBD zone description (`SAM_META_V1`), `Bedroom 2_3`: NV run `{"ventilation":{"profile":false},...}` with
+    the authored `freshAirRate` 8 l/s/p intact; MVRE control `{"ventilation":{"flow":0.0455,...}}` with
+    `freshAirRate` zeroed. No continuous mechanical airflow was invented for the NV dwelling.
+  - TM59 from the produced TSD: **5 natural-ventilation results, 0 mechanical, 4 corridor**, no strategy or
+    association refusals.
+
+## Fixture decision
+`build_tests/Fixtures/original_v1.sam` was examined and **rejected**: a 3-storey, 5-per-floor office massing
+with 0 `Zone` objects, 0 `InternalCondition` objects and 0 of its 66 apertures carrying any
+`OpeningProperties`. It can state neither a dwelling, nor a ventilation strategy, nor a restriction without
+being rebuilt rather than adapted, and it lives in a build **output** directory. The acceptance instead
+adapts `C:\TasOut\v40\A0.sam` (the 9-space TM59 residential model) minimally, through SAM APIs.
+
+## Remaining ambiguity / open items
+- **Mixed NV + mechanical models refuse.** `ApplyPartFVentilationRates` is whole-model; a per-zone
+  application is a separate change with its own transfer-air and balance consequences.
+- **System 1 sizing is not implemented.** Zero continuous mechanical airflow means no MVHR/MVRE system was
+  invented; it does NOT mean the dwelling's natural-ventilation Part F design has been sized. Do not report
+  the NV result as "Part F NV sizing".
+- **`OverheatingScenario:v2` remains deferred.** The stage still asserts `Openings Restricted`, so a
+  `NightClosed` opening under `BasePassive` is still reported `Incompatible` and still only warned about.
+- The TM59 assessment must be given the **workflow output** model, not the pre-workflow one -
+  `SimulationSpaceMap` resolves on the `ZoneGuid` that `Modify.UpdateIds` stamps during the workflow.
+  Pre-existing behaviour, recorded because it silently produces zero results.
+
+
+## Next step
+1. Push `feature/parto-nv-workflow` and open the PR into `sow/2026-Q3` (SAM), plus the companion PR in
+   SAM_Tas for `PartONaturalVentilationWorkflowTests`. Request Codex review; do NOT merge.
+2. After review, the next piece of the workflow is the **per-zone Part F airflow application**, which is
+   what turns today's mixed NV + mechanical refusal into a real answer. It needs a decision on transfer air
+   and dwelling balance across a strategy boundary before any code.
+3. `OverheatingScenario:v2` (moving `Openings Restricted` from the stage to the model) remains the separate
+   piece that would turn today's opening-compatibility WARNING into either silence or a correct statement.
+
+---
+
+## Historical session notes (previous branch `feature/partf-transfer-door-panel-selection`, merged as PR #74)
+
+### Branch
 `feature/partf-transfer-door-panel-selection` (off `sow/2026-Q3`; PR #73 already merged). UNCOMMITTED —
 implementation and tests complete and reviewed-pending; do not push until reviewed.
 
-## Last updated
+### Last updated
 2026-08-25 - transfer-door panel selection for split shared walls implemented, tested, ready for review.
 
-## Current status (this session)
+### Status at the time
 `Modify.AddTransferAirDoorsByPartF` no longer refuses a route just because two shared wall panels can each
 take the generated door. The host panel is resolved by a fixed selection hierarchy: host validity
 (`TryTransferAirDoorGeometry`, unchanged, always first) -> geometric relevance (the panel the direct line
@@ -19,7 +158,7 @@ NaN) still refuses cleanly because there is no valid primary geometric ranking. 
 candidate creation/enumeration order; guid order is the absolute final deterministic fallback only.
 Full `SAM.Tests`: **1354 passed, 0 failed** (Debug and Release; was 1344, +10 net).
 
-## Real-model acceptance run (SAM_zoningAM_v1.sam, 2026-08-05-PartO)
+### Real-model acceptance run (SAM_zoningAM_v1.sam, 2026-08-05-PartO)
 Ran `AddTransferAirDoorsByPartF("Flats", ...)` against the ACTUAL model (9 spaces, 50 panels): **5 doors
 created, 0 refusals**, exactly one door per route, no duplicates.
 
@@ -36,7 +175,7 @@ created, 0 refusals**, exactly one door per route, no duplicates.
   other `b154e0b7` 0.833 m off). Door `d75ec2e5` centred at x=49.
 - Bedroom 2_3 -> Kitchen_4 and Bedroom 2_6 -> Kitchen_7 (single candidates) created as before.
 
-## Completed (this session)
+### Completed then
 - `Modify.AddTransferAirDoorsByPartF`: the `candidates.Count > 1` refusal was replaced by the selection
   hierarchy: host validity (`TryTransferAirDoorGeometry` / `Query.ApertureHost`, always first, unchanged) ->
   geometric relevance (`TransferAirDoorPanelScore`: 0 where the centre segment passes through the panel,
@@ -79,14 +218,14 @@ created, 0 refusals**, exactly one door per route, no duplicates.
   - The previous "two walls both fit -> refuse" behaviour is gone by design; single-candidate behaviour is
     unchanged.
 
-## Files changed
+### Files changed then
 - `SAM/SAM/SAM.Analytical/Modify/AddTransferAirDoorsByPartF.cs`
 - `SAM/SAM/SAM.Tests/PartFTransferAirDoorTests.cs`
 - `SAM/Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalAddTransferAirDoorsByPartF.cs`
 - `SAM/documentation/PartF-HANDOVER.md`
 - `SAM/PROJECT_PROGRESS.md` (this file)
 
-## Validation
+### Validation then
 - `SAM.Analytical` Debug build: 0 errors.
 - Focused `PartFTransferAirDoorTests`: 25/25 passed.
 - Full `SAM.Tests` Debug: **1354 passed, 0 failed**. Full `SAM.Tests` Release: **1354 passed, 0 failed**.
@@ -95,7 +234,7 @@ created, 0 refusals**, exactly one door per route, no duplicates.
 - Real-model acceptance run re-checked after the Codex fixes: 5 doors, 0 refusals, same panel selections
   as before.
 
-## Remaining ambiguity / open items
+### Open items then
 - Flat 1's Studio->Bathroom pair is a true geometric AND dimensional tie (two identical 5 m legs of the
   L-shaped partition, the centroid diagonal passing exactly through their corner): it is resolved only by
   the documented final fallback (stable first candidate `3e01ed80`). Recorded here so it is not mistaken
@@ -103,6 +242,8 @@ created, 0 refusals**, exactly one door per route, no duplicates.
 - A space with no valid location (missing/NaN) still refuses cleanly in the multi-candidate branch; covered
   by `TwoSharedWalls_SpaceLocationInvalid_RefusedCleanly`.
 - No commit/push yet - awaiting review.
+
+---
 
 ## Historical session notes (previous branch, merged as PR #73)
 `feature/partf-terminal-transfer-compliance` (PR: SAM#73 against `sow/2026-Q3`)

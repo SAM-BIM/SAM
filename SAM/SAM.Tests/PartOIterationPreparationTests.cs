@@ -65,7 +65,7 @@ namespace SAM.Tests
         [Fact]
         public void NightClosedAperture_SurvivesPreparation_WithItsAvailabilitySchedule()
         {
-            Preparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive);
 
             PartOOpeningProperties partOOpeningProperties = PartO(preparation.AnalyticalModel);
 
@@ -94,9 +94,9 @@ namespace SAM.Tests
         [Fact]
         public void NightClosedAperture_UnderBasePassive_IsReportedWithoutBlocking()
         {
-            Preparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive);
 
-            Assert.Equal(PartOOpeningCompatibility.Incompatible, preparation.Compatibility);
+            Assert.Equal(PartOOpeningCompatibility.Incompatible, preparation.OpeningCompatibility);
 
             Assert.True(preparation.Successful);
             Assert.Empty(preparation.Refusals);
@@ -117,7 +117,7 @@ namespace SAM.Tests
         [Fact]
         public void NightClosedAperture_CustomWindow_SurvivesPreparationUnchanged()
         {
-            Preparation preparation = Prepared(Model(OpeningRestriction.NightClosed, 7, 22), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.NightClosed, 7, 22), PartOIteration.BasePassive);
 
             PartOOpeningProperties partOOpeningProperties = PartO(preparation.AnalyticalModel);
 
@@ -134,10 +134,10 @@ namespace SAM.Tests
         [Fact]
         public void AlwaysClosedAperture_SurvivesPreparation()
         {
-            Preparation preparation = Prepared(Model(OpeningRestriction.AlwaysClosed), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.AlwaysClosed), PartOIteration.BasePassive);
 
             Assert.Equal(OpeningRestriction.AlwaysClosed, PartO(preparation.AnalyticalModel).OpeningRestriction);
-            Assert.Equal(PartOOpeningCompatibility.Incompatible, preparation.Compatibility);
+            Assert.Equal(PartOOpeningCompatibility.Incompatible, preparation.OpeningCompatibility);
             Assert.True(preparation.Successful);
         }
 
@@ -174,9 +174,9 @@ namespace SAM.Tests
         [Fact]
         public void UnrestrictedAperture_UnderBasePassive_ProceedsAndStatesItsScenario()
         {
-            Preparation preparation = Prepared(Model(OpeningRestriction.Unrestricted), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.Unrestricted), PartOIteration.BasePassive);
 
-            Assert.Equal(PartOOpeningCompatibility.Compatible, preparation.Compatibility);
+            Assert.Equal(PartOOpeningCompatibility.Compatible, preparation.OpeningCompatibility);
             Assert.Empty(preparation.Refusals);
             Assert.True(preparation.Successful);
             Assert.Single(preparation.OverheatingScenarios);
@@ -254,9 +254,9 @@ namespace SAM.Tests
         [Fact]
         public void ProfileOpeningProperties_WithAnAllAvailableSchedule_IsPositivelyUnrestricted()
         {
-            Preparation preparation = Prepared(Model(OpeningRestriction.Unrestricted, openingProperties: OpeningPropertiesKind.ScheduleAlwaysAvailable), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.Unrestricted, openingProperties: OpeningPropertiesKind.ScheduleAlwaysAvailable), PartOIteration.BasePassive);
 
-            Assert.Equal(PartOOpeningCompatibility.Compatible, preparation.Compatibility);
+            Assert.Equal(PartOOpeningCompatibility.Compatible, preparation.OpeningCompatibility);
             Assert.True(preparation.Successful);
             Assert.Single(preparation.OverheatingScenarios);
         }
@@ -270,9 +270,9 @@ namespace SAM.Tests
         [Fact]
         public void ProfileOpeningProperties_WithARestrictingSchedule_IsReportedUnderBasePassive()
         {
-            Preparation preparation = Prepared(Model(OpeningRestriction.Unrestricted, openingProperties: OpeningPropertiesKind.ScheduleNightShut), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.Unrestricted, openingProperties: OpeningPropertiesKind.ScheduleNightShut), PartOIteration.BasePassive);
 
-            Assert.Equal(PartOOpeningCompatibility.Incompatible, preparation.Compatibility);
+            Assert.Equal(PartOOpeningCompatibility.Incompatible, preparation.OpeningCompatibility);
             Assert.True(preparation.Successful);
             Assert.Contains(preparation.Notes, x => x.Contains("Night Shut"));
 
@@ -290,9 +290,9 @@ namespace SAM.Tests
         [Fact]
         public void ProfileOpeningProperties_WithOnlyALegacyProfile_IsReportedAsUnknown()
         {
-            Preparation preparation = Prepared(Model(OpeningRestriction.Unrestricted, openingProperties: OpeningPropertiesKind.LegacyProfile), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.Unrestricted, openingProperties: OpeningPropertiesKind.LegacyProfile), PartOIteration.BasePassive);
 
-            Assert.Equal(PartOOpeningCompatibility.Unknown, preparation.Compatibility);
+            Assert.Equal(PartOOpeningCompatibility.Unknown, preparation.OpeningCompatibility);
             Assert.True(preparation.Successful);
 
             string summary = Assert.Single(preparation.Notes.FindAll(x => x.Contains("cannot classify")));
@@ -407,7 +407,7 @@ namespace SAM.Tests
         [Fact]
         public void Preparation_PreservesSystemTypeNames()
         {
-            Preparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive);
 
             foreach (Space space in preparation.AnalyticalModel.GetSpaces())
             {
@@ -481,7 +481,7 @@ namespace SAM.Tests
 
             Assert.True(space_Before.InternalCondition.TryGetValue(InternalConditionParameter.SupplyAirFlowPerArea, out double perArea_Before) && perArea_Before > 0, "The fixture did not seed a competing per-area rate, so this test would prove nothing.");
 
-            Preparation preparation = Prepared(analyticalModel, PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(analyticalModel, PartOIteration.BasePassive);
 
             Space space = preparation.AnalyticalModel.GetSpaces().Find(x => x.Name == "Bedroom 1");
             PartFSpaceData partFSpaceData = space.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData);
@@ -503,7 +503,7 @@ namespace SAM.Tests
         [Fact]
         public void AReportedOpeningDisagreement_StillAppliesThePartFRates()
         {
-            Preparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive);
 
             Assert.True(preparation.Successful);
 
@@ -527,12 +527,12 @@ namespace SAM.Tests
         [Fact]
         public void PreparingTwice_LosesNoRestrictionScheduleOrProfileReference()
         {
-            Preparation preparation_Once = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive);
-            Preparation preparation_Twice = Prepared(preparation_Once.AnalyticalModel, PartOIteration.BasePassive);
+            PartOIterationPreparation preparation_Once = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation_Twice = Prepared(preparation_Once.AnalyticalModel, PartOIteration.BasePassive);
 
             Assert.Equal(OpeningRestriction.NightClosed, PartO(preparation_Twice.AnalyticalModel).OpeningRestriction);
             Assert.Equal("PartO_DayOpen_08_23", PartO(preparation_Twice.AnalyticalModel).Schedule.Name);
-            Assert.Equal(preparation_Once.Compatibility, preparation_Twice.Compatibility);
+            Assert.Equal(preparation_Once.OpeningCompatibility, preparation_Twice.OpeningCompatibility);
 
             Dictionary<string, Dictionary<ProfileType, string>> once = ProfileNames(preparation_Once.AnalyticalModel);
             Dictionary<string, Dictionary<ProfileType, string>> twice = ProfileNames(preparation_Twice.AnalyticalModel);
@@ -549,80 +549,469 @@ namespace SAM.Tests
         [Fact]
         public void PreparingTwice_OnACompatibleModel_StatesTheSameScenario()
         {
-            Preparation preparation_Once = Prepared(Model(OpeningRestriction.Unrestricted), PartOIteration.BasePassive);
-            Preparation preparation_Twice = Prepared(preparation_Once.AnalyticalModel, PartOIteration.BasePassive);
+            PartOIterationPreparation preparation_Once = Prepared(Model(OpeningRestriction.Unrestricted), PartOIteration.BasePassive);
+            PartOIterationPreparation preparation_Twice = Prepared(preparation_Once.AnalyticalModel, PartOIteration.BasePassive);
 
             Assert.True(preparation_Twice.Successful);
             Assert.Equal(preparation_Once.OverheatingScenarios[0].Key, preparation_Twice.OverheatingScenarios[0].Key);
         }
 
         // -------------------------------------------------------------------------------------------------
-        // Fixture
+        // H. The natural-ventilation path
+        //
+        // PartFCalculator is unconditionally System 4 shaped: paragraph 1.67 gives every habitable room a
+        // mechanical supply terminal and every wet room a continuous extract terminal, with no input anywhere
+        // for how the dwelling is actually ventilated. Carrying those rates onto a naturally ventilated
+        // dwelling simulates an MVHR system nobody described - and does it SUCCESSFULLY, which is worse than
+        // refusing, because nothing in the result says the system was invented.
+        //
+        // These tests use the SAME fixture as the mechanical tests above - the real Part F calculator over the
+        // shipped rule set - so the sizing being skipped is provably present and provably not applied.
         // -------------------------------------------------------------------------------------------------
 
-        /// <summary>What one run of <c>SAMAnalytical.PreparePartOIteration</c> produced.</summary>
-        private sealed class Preparation
+        /// <summary>
+        /// <b>The blocker, closed.</b> One model, prepared twice: once stating MVRE and once stating NV. The
+        /// mechanical statement applies the Part F continuous supply, the natural-ventilation statement
+        /// applies nothing - so what the simulation reads back through
+        /// <c>Query.CalculatedSupplyAirFlow</c> is zero for every space, while the Part F sizing that would
+        /// have been applied is still sitting on the model, unread.
+        /// </summary>
+        [Fact]
+        public void NVDwelling_InventsNoContinuousMechanicalSupplyOrExtract()
         {
-            public AnalyticalModel AnalyticalModel;
-            public PartOOpeningCompatibility Compatibility;
-            public List<string> Refusals = new List<string>();
-            public List<string> Notes = new List<string>();
-            public List<OverheatingScenario> OverheatingScenarios = new List<OverheatingScenario>();
+            AnalyticalModel analyticalModel = Model(OpeningRestriction.NightClosed);
 
-            /// <summary>The component's own definition: nothing was refused.</summary>
-            public bool Successful => Refusals.Count == 0;
+            //The control. Same model, stated mechanical: the rates ARE applied, so this fixture is one that
+            //could have had an MVHR system invented for it.
+            PartOIterationPreparation preparation_Mechanical = Prepared(analyticalModel, PartOIteration.BasePassive, "MVRE");
+
+            Assert.Equal(PartOPartFAirflowApplication.Apply, preparation_Mechanical.AirflowApplication);
+            Assert.Contains(preparation_Mechanical.AnalyticalModel.GetSpaces(), x => x.CalculatedSupplyAirFlow() > 0);
+            Assert.Contains(preparation_Mechanical.AnalyticalModel.GetSpaces(), x => x.CalculatedExhaustAirFlow() > 0);
+
+            PartOIterationPreparation preparation = Prepared(analyticalModel, PartOIteration.BasePassive, "NV");
+
+            Assert.Equal(PartOPartFAirflowApplication.SkipNaturalVentilation, preparation.AirflowApplication);
+            Assert.True(preparation.Successful);
+            Assert.Empty(preparation.Refusals);
+
+            foreach (Space space in preparation.AnalyticalModel.GetSpaces())
+            {
+                AssertNoContinuousMechanicalAirflow(space);
+            }
+
+            //And the Part F sizing that was NOT applied is still there, so this is a decision not to use it
+            //rather than an absence of anything to use.
+            PartFSpaceData partFSpaceData = preparation.AnalyticalModel.GetSpaces().Find(x => x.Name == "Bedroom 1").GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData);
+
+            Assert.NotNull(partFSpaceData);
+            Assert.True(partFSpaceData.ContinuousSupplyFlowRate_Lps > 0, "The fixture did not size a supply rate, so this test would prove nothing.");
         }
 
         /// <summary>
-        /// The library steps <c>SAMAnalytical.PreparePartOIteration</c> performs, in the order it performs
-        /// them and with the same gating - including that an incompatible or unclassifiable model states no
-        /// scenario.
+        /// The internal conditions themselves are untouched on this path - no per-space clone, no renaming,
+        /// no cleared summing bases. Nothing was applied, so nothing needed rewriting.
         /// </summary>
-        private static Preparation Prepared(AnalyticalModel analyticalModel, PartOIteration partOIteration)
+        [Fact]
+        public void NVDwelling_LeavesTheInternalConditionsExactlyAsAuthored()
         {
-            Preparation result = new Preparation();
+            AnalyticalModel analyticalModel = Model(OpeningRestriction.NightClosed, supplyAirFlowPerArea: 0.005);
 
-            PartFOperatingMode? partFOperatingMode = partOIteration.PartOIterationOperatingMode(out string refusal_OperatingMode);
+            PartOIterationPreparation preparation = Prepared(analyticalModel, PartOIteration.BasePassive, "NV");
 
-            Assert.True(partFOperatingMode.HasValue, refusal_OperatingMode);
-
-            result.AnalyticalModel = analyticalModel.ApplyPartFVentilationRates(partFOperatingMode.Value, out List<string> refusals_Airflow, out List<string> notes);
-
-            Assert.NotNull(result.AnalyticalModel);
-
-            result.Refusals.AddRange(refusals_Airflow);
-            result.Notes.AddRange(notes);
-
-            result.Compatibility = result.AnalyticalModel.PartOIterationOpeningCompatibility(partOIteration, out string summary_Openings, out List<string> evidence);
-
-            result.Notes.AddRange(evidence);
-
-            //A note and a warning, never a refusal - see the class remarks. The verdict never gates the
-            //scenario, because opening behaviour is orthogonal to the mitigation stage.
-            if (summary_Openings != null)
+            foreach (Space space in preparation.AnalyticalModel.GetSpaces())
             {
-                result.Notes.Add(summary_Openings);
+                Assert.Equal(space.Name + " IC", space.InternalCondition.Name);
+
+                //The competing per-area rate is authored building data on this path, not something that would
+                //double-count against a Part F rate, because there is no Part F rate beside it.
+                Assert.True(space.InternalCondition.TryGetValue(InternalConditionParameter.SupplyAirFlowPerArea, out double perArea));
+                Assert.Equal(0.005, perArea);
             }
 
-            result.OverheatingScenarios = Scenarios(result.AnalyticalModel, partOIteration);
+            AssertSameProfileNames(analyticalModel, preparation.AnalyticalModel);
+        }
+
+        /// <summary>
+        /// The whole point of the workflow: the authored opening data reaches the far side of the
+        /// natural-ventilation path intact, schedule and all. This is the aperture control the TAS write
+        /// looks for.
+        /// </summary>
+        [Fact]
+        public void NVDwelling_NightClosedAperture_SurvivesWithItsAvailabilitySchedule()
+        {
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive, "NV");
+
+            PartOOpeningProperties partOOpeningProperties = PartO(preparation.AnalyticalModel);
+
+            Assert.Equal(OpeningRestriction.NightClosed, partOOpeningProperties.OpeningRestriction);
+            Assert.Equal(8, partOOpeningProperties.NightOpenFromHour);
+            Assert.Equal(23, partOOpeningProperties.NightOpenToHour);
+
+            DailyAvailabilitySchedule schedule = partOOpeningProperties.Schedule;
+
+            Assert.NotNull(schedule);
+            Assert.Equal("PartO_DayOpen_08_23", schedule.Name);
+            Assert.Equal("000000001111111111111110", schedule.ValuesText);
+
+            for (int hour = 0; hour < 24; hour++)
+            {
+                Assert.Equal(hour >= 8 && hour < 23, schedule[hour]);
+            }
+
+            //And the parameters carried beside it, which the TAS aperture control also reads.
+            Assert.True(partOOpeningProperties.TryGetValue(OpeningPropertiesParameter.Function, out string function));
+            Assert.Equal("zdwno,0,19.00,21.00,99.00", function);
+            Assert.Equal(0.75, partOOpeningProperties.Factor);
+        }
+
+        /// <summary>The scenario is still stated, and it states the strategy that was asked for.</summary>
+        [Fact]
+        public void NVDwelling_StatesAnNVScenario()
+        {
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive, "NV");
+
+            OverheatingScenario overheatingScenario = Assert.Single(preparation.OverheatingScenarios);
+
+            Assert.Equal("NV", overheatingScenario.VentilationStrategy);
+            Assert.Equal(PartOAssessmentScope.Dwelling, overheatingScenario.Scope);
+            Assert.Equal(PartOIteration.BasePassive, overheatingScenario.Iteration);
+        }
+
+        /// <summary>
+        /// <b>Absence of Part F data is not an error on this path.</b> A naturally ventilated dwelling that
+        /// was never run through a Part F component has nothing to apply and needs nothing to apply - where
+        /// the mechanical path rightly refuses with "run a Part F component first", this one prepares.
+        /// </summary>
+        [Fact]
+        public void NVDwelling_WithNoPartFDataAtAll_StillPrepares()
+        {
+            AnalyticalModel analyticalModel = Model(OpeningRestriction.NightClosed, partF: false);
+
+            Assert.All(analyticalModel.GetSpaces(), x => Assert.Null(x.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData)));
+
+            //The control: stated mechanical, the same model refuses outright.
+            PartOIterationPreparation preparation_Mechanical = analyticalModel.PreparePartOIteration(PartOIteration.BasePassive, null, Strategies(analyticalModel, "MVRE"));
+
+            Assert.NotNull(preparation_Mechanical.Refusal);
+            Assert.Null(preparation_Mechanical.AnalyticalModel);
+
+            PartOIterationPreparation preparation = Prepared(analyticalModel, PartOIteration.BasePassive, "NV");
+
+            Assert.True(preparation.Successful);
+            Assert.Equal("NV", Assert.Single(preparation.OverheatingScenarios).VentilationStrategy);
+            Assert.Equal(OpeningRestriction.NightClosed, PartO(preparation.AnalyticalModel).OpeningRestriction);
+            Assert.Equal("PartO_DayOpen_08_23", PartO(preparation.AnalyticalModel).Schedule.Name);
+        }
+
+        /// <summary>
+        /// The note says what was not done and why, and is explicit that this is NOT a natural-ventilation
+        /// Part F sizing - because "SAM applied no mechanical airflow" and "SAM sized the dwelling's System 1
+        /// provision" are very different claims and only the first one is true.
+        /// </summary>
+        [Fact]
+        public void NVDwelling_SaysWhyNoMechanicalAirflowWasApplied_WithoutClaimingItSizedAnything()
+        {
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive, "NV");
+
+            string note = Assert.Single(preparation.Notes.FindAll(x => x.Contains("Natural Ventilation")));
+
+            Assert.Contains("NOT applied", note);
+            Assert.Contains("Flat 1", note);
+            Assert.Contains("does not have", note);
+
+            //The claim it must never make.
+            Assert.Contains("does NOT mean", note);
+            Assert.Contains("background ventilator", note);
+
+            //Raised to the user, not merely recorded.
+            Assert.Contains(note, preparation.Warnings);
+        }
+
+        /// <summary>The supplied model is not touched on this path either.</summary>
+        [Fact]
+        public void NVPreparation_LeavesTheSuppliedModelUnchanged()
+        {
+            AnalyticalModel analyticalModel = Model(OpeningRestriction.NightClosed);
+
+            string json_Before = SAM.Core.Convert.ToString(analyticalModel);
+
+            Prepared(analyticalModel, PartOIteration.BasePassive, "NV");
+
+            Assert.Equal(json_Before, SAM.Core.Convert.ToString(analyticalModel));
+        }
+
+        /// <summary>
+        /// Preparing an already-prepared NV model changes nothing - the restriction, the schedule, the
+        /// scenario identity and the absence of mechanical airflow all hold on the second pass.
+        /// </summary>
+        [Fact]
+        public void NVPreparation_IsIdempotent()
+        {
+            PartOIterationPreparation preparation_Once = Prepared(Model(OpeningRestriction.NightClosed), PartOIteration.BasePassive, "NV");
+            PartOIterationPreparation preparation_Twice = Prepared(preparation_Once.AnalyticalModel, PartOIteration.BasePassive, "NV");
+
+            Assert.True(preparation_Twice.Successful);
+            Assert.Equal(PartOPartFAirflowApplication.SkipNaturalVentilation, preparation_Twice.AirflowApplication);
+
+            Assert.Equal(OpeningRestriction.NightClosed, PartO(preparation_Twice.AnalyticalModel).OpeningRestriction);
+            Assert.Equal("PartO_DayOpen_08_23", PartO(preparation_Twice.AnalyticalModel).Schedule.Name);
+            Assert.Equal(preparation_Once.OpeningCompatibility, preparation_Twice.OpeningCompatibility);
+            Assert.Equal(preparation_Once.OverheatingScenarios[0].Key, preparation_Twice.OverheatingScenarios[0].Key);
+
+            AssertSameProfileNames(preparation_Once.AnalyticalModel, preparation_Twice.AnalyticalModel);
+
+            foreach (Space space in preparation_Twice.AnalyticalModel.GetSpaces())
+            {
+                AssertNoContinuousMechanicalAirflow(space);
+            }
+        }
+
+        // -------------------------------------------------------------------------------------------------
+        // I. Mixed strategies refuse
+        //
+        // ApplyPartFVentilationRates is whole-model. With NV and mechanical zones side by side, applying puts
+        // continuous mechanical supply and extract into the naturally ventilated zones and skipping strips
+        // the mechanically ventilated ones of the rates they are sized for. Neither is done. This is a
+        // refusal and not a warning - unlike the opening-restriction disagreement, which only mislabels the
+        // assumption a true result was obtained under.
+        // -------------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// The refusal, and the diagnostic that makes it actionable: every affected zone is named beside the
+        /// strategy it states.
+        /// </summary>
+        [Fact]
+        public void MixedStrategies_RefuseAndNameEveryZoneWithItsStrategy()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoZones(out Zone zone_NaturalVentilation, out Zone zone_Mechanical);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                null,
+                new Dictionary<Guid, string>
+                {
+                    { zone_NaturalVentilation.Guid, "NV" },
+                    { zone_Mechanical.Guid, "MVRE" },
+                });
+
+            Assert.False(preparation.Successful);
+            Assert.NotNull(preparation.Refusal);
+
+            Assert.Contains("Flat 1", preparation.Refusal);
+            Assert.Contains("NV", preparation.Refusal);
+            Assert.Contains("Flat 2", preparation.Refusal);
+            Assert.Contains("MVRE", preparation.Refusal);
+        }
+
+        /// <summary>
+        /// <b>No half-prepared model comes back.</b> A refusal that still handed a model out is a model
+        /// somebody simulates - so the refusal returns none, states no scenario, and leaves the supplied
+        /// model exactly as it found it.
+        /// </summary>
+        [Fact]
+        public void MixedStrategies_ReturnNoModelAndMutateNothing()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoZones(out Zone zone_NaturalVentilation, out Zone zone_Mechanical);
+
+            string json_Before = SAM.Core.Convert.ToString(analyticalModel);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                null,
+                new Dictionary<Guid, string>
+                {
+                    { zone_NaturalVentilation.Guid, "NV" },
+                    { zone_Mechanical.Guid, "MVRE" },
+                });
+
+            Assert.Equal(PartOPartFAirflowApplication.RefuseMixed, preparation.AirflowApplication);
+            Assert.Null(preparation.AnalyticalModel);
+            Assert.Empty(preparation.OverheatingScenarios);
+
+            Assert.Equal(json_Before, SAM.Core.Convert.ToString(analyticalModel));
+        }
+
+        /// <summary>
+        /// A zone stating NV beside a zone stating nothing at all is the same refusal. Silence is not a
+        /// statement that the zone is naturally ventilated, so the airflow question is just as unanswerable.
+        /// </summary>
+        [Fact]
+        public void NVBesideAZoneStatingNothing_Refuses()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoZones(out Zone zone_NaturalVentilation, out Zone _);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                null,
+                new Dictionary<Guid, string> { { zone_NaturalVentilation.Guid, "NV" } });
+
+            Assert.Equal(PartOPartFAirflowApplication.RefuseMixed, preparation.AirflowApplication);
+            Assert.Null(preparation.AnalyticalModel);
+            Assert.Contains("no strategy", preparation.Refusal);
+        }
+
+        /// <summary>
+        /// <b>Only NV skips, and nothing else changes.</b> The mechanical path is what this iteration has
+        /// always done, and every strategy that is not NV keeps it - including <c>UV</c>, which is not
+        /// mechanical either but selects the corridor criterion rather than the natural-ventilation one and
+        /// has never been the subject of this gate.
+        /// </summary>
+        [Theory]
+        [InlineData("MV")]
+        [InlineData("MVRE")]
+        [InlineData("UV")]
+        public void EveryStrategyThatIsNotNV_KeepsTheExistingApplication(string ventilationStrategy)
+        {
+            PartOIterationPreparation preparation = Prepared(Model(OpeningRestriction.Unrestricted), PartOIteration.BasePassive, ventilationStrategy);
+
+            Assert.Equal(PartOPartFAirflowApplication.Apply, preparation.AirflowApplication);
+
+            Space space = preparation.AnalyticalModel.GetSpaces().Find(x => x.Name == "Bedroom 1");
+            PartFSpaceData partFSpaceData = space.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData);
+
+            Assert.Equal(partFSpaceData.ContinuousSupplyFlowRate_Lps.Value / 1000.0, space.CalculatedSupplyAirFlow(), 9);
+        }
+
+        /// <summary>
+        /// The strategy is read the same way <c>VentilationStrategyMap</c> reads it, so a value typed into a
+        /// Grasshopper panel with different casing or stray whitespace is the same statement.
+        /// </summary>
+        [Theory]
+        [InlineData("nv")]
+        [InlineData(" NV ")]
+        [InlineData("Nv")]
+        public void TheNVStatement_IsReadCaseInsensitivelyAndTrimmed(string ventilationStrategy)
+        {
+            AnalyticalModel analyticalModel = Model(OpeningRestriction.NightClosed);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(PartOIteration.BasePassive, null, Strategies(analyticalModel, ventilationStrategy));
+
+            Assert.Equal(PartOPartFAirflowApplication.SkipNaturalVentilation, preparation.AirflowApplication);
+        }
+
+        /// <summary>
+        /// No assessed zone means no stated strategy, and an absence is not a statement that the dwelling is
+        /// naturally ventilated. The long-standing application is kept, so a model with no zones prepares
+        /// exactly as it did before this gate existed.
+        /// </summary>
+        [Fact]
+        public void NoAssessedZones_KeepTheExistingApplication()
+        {
+            Assert.Equal(PartOPartFAirflowApplication.Apply, Analytical.Query.PartOPartFAirflowApplication(null, null, out string diagnostic));
+            Assert.Null(diagnostic);
+
+            Assert.Equal(PartOPartFAirflowApplication.Apply, Analytical.Query.PartOPartFAirflowApplication(new List<Zone>(), new Dictionary<Guid, string>(), out diagnostic));
+            Assert.Null(diagnostic);
+        }
+
+        // -------------------------------------------------------------------------------------------------
+        // Fixture
+        // -------------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// <b>The production preparation, called directly.</b> <c>Modify.PreparePartOIteration</c> is what
+        /// <c>SAMAnalytical.PreparePartOIteration</c> calls for every decision it makes, so this exercises
+        /// the shipped path rather than a copy of it - the component contributes only Grasshopper parameter
+        /// reading and message levels on top.
+        /// </summary>
+        /// <param name="ventilationStrategy">
+        /// Stated for every zone. <c>MVRE</c> by default, which is the mechanical path the opening tests
+        /// above have always run on - the Part F airflow application is only reached on that path.
+        /// </param>
+        private static PartOIterationPreparation Prepared(AnalyticalModel analyticalModel, PartOIteration partOIteration, string ventilationStrategy = "MVRE")
+        {
+            PartOIterationPreparation result = analyticalModel.PreparePartOIteration(partOIteration, null, Strategies(analyticalModel, ventilationStrategy));
+
+            Assert.Null(result.Refusal);
+            Assert.NotNull(result.AnalyticalModel);
 
             return result;
         }
 
-        /// <summary>The component's scenario half. Ungated: the opening verdict is advisory.</summary>
-        private static List<OverheatingScenario> Scenarios(AnalyticalModel analyticalModel, PartOIteration partOIteration)
+        /// <summary>One stated strategy for every zone the model carries.</summary>
+        private static Dictionary<Guid, string> Strategies(AnalyticalModel analyticalModel, string ventilationStrategy)
         {
             List<Zone> zones = analyticalModel.GetZones() ?? new List<Zone>();
 
             Assert.NotEmpty(zones);
 
-            Dictionary<Guid, string> dictionary = new Dictionary<Guid, string>();
+            Dictionary<Guid, string> result = new Dictionary<Guid, string>();
             foreach (Zone zone in zones)
             {
-                dictionary[zone.Guid] = "MVRE";
+                result[zone.Guid] = ventilationStrategy;
             }
 
-            return AnalyticalCreate.OverheatingScenarios(zones, partOIteration, dictionary, out List<string> _);
+            return result;
+        }
+
+        /// <summary>
+        /// The same dwelling with a SECOND zone beside "Flat 1", so a model can state two different
+        /// ventilation strategies at once. Neither zone holds spaces - the airflow decision is taken from
+        /// what the zones STATE, and adding rooms to them would prove nothing extra about that.
+        /// </summary>
+        private static AnalyticalModel ModelWithTwoZones(out Zone zone_NaturalVentilation, out Zone zone_Mechanical)
+        {
+            AnalyticalModel analyticalModel = Model(OpeningRestriction.NightClosed);
+
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            adjacencyCluster.AddObject(new Zone("Flat 2"));
+
+            AnalyticalModel result = new AnalyticalModel(analyticalModel, adjacencyCluster);
+
+            List<Zone> zones = result.GetZones();
+
+            zone_NaturalVentilation = zones.Find(x => x.Name == "Flat 1");
+            zone_Mechanical = zones.Find(x => x.Name == "Flat 2");
+
+            Assert.NotNull(zone_NaturalVentilation);
+            Assert.NotNull(zone_Mechanical);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Nothing the simulation could read as continuous mechanical supply or extract reached this space.
+        /// <para>
+        /// <c>CalculatedSupplyAirFlow</c> answers <c>NaN</c> where no rate is stated on any of its four
+        /// summing bases, and that is the honest answer here rather than a defect: a stated ZERO is what the
+        /// mechanical path writes onto a wet room to say "no supply here, make-up air arrives as transfer
+        /// air", which is a different fact from "nobody stated a supply rate at all". Either value is
+        /// accepted; a positive one is not.
+        /// </para>
+        /// <para>
+        /// The parameter checks are the stronger half: the two values the TAS export reads were never
+        /// written, so no mechanical system was invented rather than one being written and then zeroed.
+        /// </para>
+        /// </summary>
+        private static void AssertNoContinuousMechanicalAirflow(Space space)
+        {
+            double supply = space.CalculatedSupplyAirFlow();
+            double extract = space.CalculatedExhaustAirFlow();
+
+            Assert.True(double.IsNaN(supply) || supply == 0, string.Format("Space '{0}' was given a continuous mechanical supply of {1} m3/s that its dwelling does not have.", space.Name, supply));
+            Assert.True(double.IsNaN(extract) || extract == 0, string.Format("Space '{0}' was given a continuous mechanical extract of {1} m3/s that its dwelling does not have.", space.Name, extract));
+
+            Assert.False(space.InternalCondition.TryGetValue(InternalConditionParameter.SupplyAirFlow, out double _));
+            Assert.False(space.InternalCondition.TryGetValue(InternalConditionParameter.ExhaustAirFlow, out double _));
+        }
+
+        /// <summary>
+        /// Compared entry by entry rather than as nested dictionaries, because the inner dictionaries compare
+        /// by reference and a nested Assert.Equal would pass for the wrong reason.
+        /// </summary>
+        private static void AssertSameProfileNames(AnalyticalModel analyticalModel_Expected, AnalyticalModel analyticalModel)
+        {
+            Dictionary<string, Dictionary<ProfileType, string>> expected = ProfileNames(analyticalModel_Expected);
+            Dictionary<string, Dictionary<ProfileType, string>> actual = ProfileNames(analyticalModel);
+
+            Assert.Equal(expected.Count, actual.Count);
+
+            foreach (KeyValuePair<string, Dictionary<ProfileType, string>> keyValuePair in expected)
+            {
+                Assert.Equal(keyValuePair.Value, actual[keyValuePair.Key]);
+            }
         }
 
         private static readonly Construction wallConstruction = new Construction(Guid.NewGuid(), "Wall");
@@ -723,7 +1112,7 @@ namespace SAM.Tests
         /// sizing is the real calculator over the shipped rule set - nothing is stubbed, so what the tests
         /// read back is what the production path produces.
         /// </summary>
-        private static AnalyticalModel Model(OpeningRestriction openingRestriction, int nightOpenFromHour = 8, int nightOpenToHour = 23, double? supplyAirFlowPerArea = null, OpeningPropertiesKind openingProperties = OpeningPropertiesKind.PartO, OpeningRestriction? second = null)
+        private static AnalyticalModel Model(OpeningRestriction openingRestriction, int nightOpenFromHour = 8, int nightOpenToHour = 23, double? supplyAirFlowPerArea = null, OpeningPropertiesKind openingProperties = OpeningPropertiesKind.PartO, OpeningRestriction? second = null, bool partF = true)
         {
             AdjacencyCluster adjacencyCluster = new AdjacencyCluster();
 
@@ -781,17 +1170,29 @@ namespace SAM.Tests
 
             AnalyticalModel analyticalModel = new AnalyticalModel("Part O Dwelling", null, null, null, adjacencyCluster, null, profileLibrary);
 
-            PartFCalculator partFCalculator = Analytical.Query.DefaultPartFCalculator();
+            //partF: false gives the same dwelling with no PartFSpaceData on any space - a model that was never
+            //run through a Part F component, which is a legitimate starting point for a naturally ventilated
+            //dwelling and an outright refusal for a mechanical one.
+            AdjacencyCluster adjacencyCluster_Sized;
 
-            Assert.NotNull(partFCalculator);
+            if (partF)
+            {
+                PartFCalculator partFCalculator = Analytical.Query.DefaultPartFCalculator();
 
-            partFCalculator.AdjacencyCluster = analyticalModel.AdjacencyCluster;
+                Assert.NotNull(partFCalculator);
 
-            Assert.True(partFCalculator.Calculate(), "The Part F calculation did not run, so every test resting on it would be meaningless.");
+                partFCalculator.AdjacencyCluster = analyticalModel.AdjacencyCluster;
 
-            //The wall and the zone are added AFTER the sizing, so the fixture states exactly the openings under
-            //test and the Part F calculation is the same one PartFAirflowApplicationTests exercises.
-            AdjacencyCluster adjacencyCluster_Sized = partFCalculator.AdjacencyCluster;
+                Assert.True(partFCalculator.Calculate(), "The Part F calculation did not run, so every test resting on it would be meaningless.");
+
+                //The wall and the zone are added AFTER the sizing, so the fixture states exactly the openings
+                //under test and the Part F calculation is the same one PartFAirflowApplicationTests exercises.
+                adjacencyCluster_Sized = partFCalculator.AdjacencyCluster;
+            }
+            else
+            {
+                adjacencyCluster_Sized = analyticalModel.AdjacencyCluster;
+            }
 
             adjacencyCluster_Sized.AddObject(new Zone("Flat 1"));
 

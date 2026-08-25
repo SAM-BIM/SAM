@@ -15,6 +15,11 @@ namespace SAM.Analytical.Grasshopper
     /// Prepares a Part-F-sized <c>AnalyticalModel</c> for one Approved Document O mitigation stage: carries the
     /// Part F airflows onto the internal conditions the simulation reads, and states the scenarios the assessment
     /// will be attributed to.
+    /// <para>
+    /// Parameter reading and Grasshopper messaging only. Every decision is
+    /// <c>SAM.Analytical.Modify.PreparePartOIteration</c>'s, so what this component does is what
+    /// <c>SAM.Tests</c> exercises.
+    /// </para>
     /// </summary>
     public class SAMAnalyticalPreparePartOIteration : GH_SAMVariableOutputParameterComponent
     {
@@ -26,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.1";
+        public override string LatestComponentVersion => "1.0.2";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -46,6 +51,7 @@ AnalyticalModel
   -> Tas.TSDQueryTM59Results, with overheatingScenarios_ connected              [TM59 assessment]
 
 WHAT IT DOES
+0. Reads the ventilation strategy the assessed zones state, and decides from it whether the Part F CONTINUOUS MECHANICAL airflows belong on this model at all. Every assessed zone NV: nothing is applied, and that is said in notes. Every assessed zone mechanical: applied, exactly as before. A mix of the two: REFUSED, naming each zone and its strategy - the airflow application is whole-model, so applying would put mechanical supply and extract into the naturally ventilated zones and skipping would strip the mechanically ventilated ones of the rates they are sized for.
 1. Reads each space's Part F Space Data - it does NOT size anything. Run a Part F component first.
 2. Works out which Approved Document F condition the stage runs at. BasePassive is the continuous design condition, which is the Approved Document F sizing case.
 3. Writes that condition's supply and extract onto each sized space, in m3/s, so Query.CalculatedSupplyAirFlow and the TAS export can see them. Until now the Part F numbers were reporting only: the simulation never read them.
@@ -58,12 +64,19 @@ TWO THINGS IT DOES DELIBERATELY, AND REPORTS
 
 A wet room receives its extract and an explicit ZERO supply: under the balanced MVHR arrangement Part F sizes, its make-up air is transfer air through the internal door.
 
+WHAT 'NO MECHANICAL AIRFLOW APPLIED' MEANS FOR AN NV DWELLING
+It means SAM has NOT invented an MVHR/MVRE system for a dwelling nobody said had one. Part F sizing is unconditionally System 4 shaped - paragraph 1.67 gives every habitable room a mechanical supply terminal whatever the dwelling's actual strategy - so carrying those rates onto an NV dwelling simulates a building that does not exist, successfully and with no diagnostic. That is the failure this gate closes.
+It does NOT mean the dwelling's natural-ventilation Part F design has been sized. System 1 background/trickle ventilator sizing and purge provision are NOT calculated here. Do not report this as 'Part F NV sizing'.
+Wet room INTERMITTENT extract is untouched either way: it is already outside the balanced continuous totals, so it was never part of what is applied.
+
 ITERATIONS
 - BasePassive        - continuous design condition. Available.
 - AcousticRestricted - REFUSED. Its assumptions say boost is AVAILABLE, not continuous, and simulating a whole season at the Table 1.2 high rate is a much more favourable claim than making boost available to a control strategy. That is an engineering decision, not a mapping.
 - ActiveTrimCooling  - REFUSED, not characterised yet.
 
 WHAT IT STILL DOES NOT DO
+- It does not size natural ventilation. See above.
+- It does not apply Part F airflow per zone. A model mixing NV and mechanical zones is refused rather than half-applied; a per-zone application is a separate change with its own transfer-air and balance consequences.
 - It does not select or apply a ventilation SYSTEM object. The capability selection exists but has no production caller yet.
 - It does not author, reset or otherwise change a restriction (Unrestricted/NightClosed/AlwaysClosed) on any aperture - that stays the modeller's job, via SAMAnalytical.AddOpeningPropertiesByPartO's restriction_. It only reports.
 - It does not guess at opening behaviour it cannot classify. An opening authored through the legacy general-valued profiles_ carrier states availability in a form that has no deterministic reading as restricted or unrestricted; that is reported as UNKNOWN rather than assumed unrestricted, because assuming is how a restricted opening ends up labelled as an unrestricted one.
@@ -154,62 +167,10 @@ WHAT IT STILL DOES NOT DO
                 return;
             }
 
-            //The join between the two documents: which Approved Document F condition this stage runs at. A stage
-            //with no settled condition refuses rather than being simulated at whichever rate happens to be handy.
-            PartFOperatingMode? partFOperatingMode = partOIteration.PartOIterationOperatingMode(out string refusal_OperatingMode);
-            if (!partFOperatingMode.HasValue)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, refusal_OperatingMode);
-                return;
-            }
-
-            List<string> refusals = [];
-
-            AnalyticalModel analyticalModel_Applied = analyticalModel.ApplyPartFVentilationRates(partFOperatingMode.Value, out List<string> refusals_Airflow, out List<string> notes);
-
-            refusals.AddRange(refusals_Airflow);
-
-            foreach (string refusal in refusals_Airflow)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, refusal);
-            }
-
-            if (analyticalModel_Applied == null)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "No Part F rates could be applied, so there is nothing to simulate. Run a Part F component first.");
-                return;
-            }
-
-            //The join between the scenario's "Openings Restricted" assumption and the opening behaviour the
-            //model carries. The model is REPORTED ON, never rewritten to fit the stage: an opening restriction
-            //is authored building data - AddOpeningPropertiesByPartO records only THAT an opening is
-            //restricted, never WHY - while the assumption is a label the result is attributed under. This
-            //component used to reset every restriction to Unrestricted here, which silently deleted the
-            //aperture's availability schedule from the simulated model, because PartOOpeningProperties.Schedule
-            //is DERIVED from OpeningRestriction rather than stored beside it.
-            //
-            //A WARNING and not a refusal, deliberately. Opening behaviour is orthogonal to the mitigation
-            //stage - a base case may legitimately mix restricted and unrestricted openings, because a window
-            //shut for noise or security is a fact about the building and not a mitigation anybody added. The
-            //stage-asserted "Openings Restricted" assumption is the thing that is wrong here, and moving it
-            //from the stage to the model is a separate change with its own scenario-identity consequences.
-            //Blocking on it meanwhile would refuse exactly the models this component exists to prepare.
-            PartOOpeningCompatibility partOOpeningCompatibility = analyticalModel_Applied.PartOIterationOpeningCompatibility(partOIteration, out string summary_Openings, out List<string> evidence_Openings);
-            if (evidence_Openings != null && evidence_Openings.Count != 0)
-            {
-                notes.AddRange(evidence_Openings);
-            }
-
-            if (summary_Openings != null)
-            {
-                notes.Add(summary_Openings);
-
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, summary_Openings);
-            }
-
-            //Scenarios are stated over the APPLIED model, so a zone guid on a scenario and a zone guid in the model
-            //that will be simulated are the same identity.
-            List<Zone> zones_Model = analyticalModel_Applied.GetZones() ?? [];
+            //Zones are resolved against the SUPPLIED model. The airflow application never adds, removes or
+            //re-guids a zone, so this is the same set the prepared model carries - and the ventilation
+            //strategy has to be known BEFORE the airflow decision, which is what this ordering buys.
+            List<Zone> zones_Model = analyticalModel.GetZones() ?? [];
 
             //Connected-but-every-guid-invalid is NOT the same statement as "unconnected", and must not
             //collapse to the same behaviour. Only an UNCONNECTED port means "assess the whole model" - once
@@ -246,19 +207,17 @@ WHAT IT STILL DOES NOT DO
                 zones = zones_Model;
             }
 
-            List<OverheatingScenario> overheatingScenarios = [];
-
             if (zonesConnected && zones.Count == 0)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "None of the zones supplied to zones_ are in the model, so no scenarios were stated. Correct the selection, or disconnect zones_ to assess the whole model.");
             }
-            else if (zones.Count == 0)
-            {
-                //Not fatal: a single-house model may carry no zones at all, and the airflow application above is
-                //still the useful half of this component.
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "The model carries no zones, so no scenarios were stated. The Part F rates were still applied.");
-            }
-            else
+
+            //Read before the preparation, not after it. The strategy is what decides whether the Approved
+            //Document F continuous mechanical airflows belong on this model at all, so a run that cannot
+            //establish one must not reach the airflow application.
+            Dictionary<Guid, string> dictionary_VentilationStrategy = [];
+
+            if (zones.Count != 0)
             {
                 List<string> ventilationStrategies = [];
                 index = Params.IndexOfInputParam("_ventilationStrategies");
@@ -274,7 +233,6 @@ WHAT IT STILL DOES NOT DO
                     return;
                 }
 
-                Dictionary<Guid, string> dictionary_VentilationStrategy = [];
                 for (int i = 0; i < zones.Count; i++)
                 {
                     if (zones[i] != null)
@@ -282,17 +240,34 @@ WHAT IT STILL DOES NOT DO
                         dictionary_VentilationStrategy[zones[i].Guid] = ventilationStrategies.Count == 1 ? ventilationStrategies[0] : ventilationStrategies[i];
                     }
                 }
-
-                overheatingScenarios = Create.OverheatingScenarios(zones, partOIteration, dictionary_VentilationStrategy, out List<string> refusals_Scenarios);
-
-                refusals.AddRange(refusals_Scenarios);
-
-                foreach (string refusal in refusals_Scenarios)
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, refusal);
-                }
             }
 
+            //Every decision below this line is the library's, so what this component does and what
+            //SAM.Tests exercises cannot drift apart.
+            PartOIterationPreparation partOIterationPreparation = analyticalModel.PreparePartOIteration(partOIteration, zones, dictionary_VentilationStrategy);
+
+            if (partOIterationPreparation.Refusal != null)
+            {
+                //Nothing prepared and no model returned - deliberately, so a half-prepared model cannot be
+                //picked up off the output and simulated.
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, partOIterationPreparation.Refusal);
+                return;
+            }
+
+            foreach (string warning in partOIterationPreparation.Warnings)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+            }
+
+            foreach (string refusal in partOIterationPreparation.Refusals)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, refusal);
+            }
+
+            AnalyticalModel analyticalModel_Applied = partOIterationPreparation.AnalyticalModel;
+            List<OverheatingScenario> overheatingScenarios = partOIterationPreparation.OverheatingScenarios;
+            List<string> notes = partOIterationPreparation.Notes;
+            List<string> refusals = partOIterationPreparation.Refusals;
             List<Space> spaces = analyticalModel_Applied.GetSpaces() ?? [];
 
             index = Params.IndexOfOutputParam("analyticalModel");

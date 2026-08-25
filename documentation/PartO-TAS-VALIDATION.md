@@ -401,6 +401,174 @@ boundary for. **That converter line is covered by the manual acceptance run abov
 
 ---
 
+## Natural-ventilation Part O workflow — end-to-end licensed acceptance (2026-08-25)
+
+**What this section establishes:** one naturally ventilated dwelling can now be carried from an authored SAM
+model to a TM59 natural-ventilation result without SAM inventing a mechanical ventilation system for it, and
+with the authored opening operation reaching the TAS aperture control intact.
+
+**What it does NOT establish.** Zero continuous mechanical supply and extract means **SAM has not invented an
+MVHR/MVRE system**. It does **not** mean the dwelling's natural-ventilation Approved Document F design has
+been sized: System 1 background/trickle ventilator sizing and purge provision are not calculated anywhere in
+this path. Do not report this as "Part F NV sizing". A TM59 pass is still not Part O compliance, for all the
+reasons stated at the top of this document.
+
+### The defect this closes
+
+`PartFCalculator` is unconditionally System 4 shaped. Paragraph 1.67 gives **every** habitable room a
+mechanical supply terminal and every wet room a continuous extract terminal, and nothing in
+`SAM.Analytical/Classes/PartF/` takes a ventilation strategy as an input.
+`SAMAnalytical.PreparePartOIteration` then called `Modify.ApplyPartFVentilationRates` **unconditionally, and
+before `_ventilationStrategies` was read at all**, writing those rates onto `InternalConditionParameter.
+SupplyAirFlow` / `ExhaustAirFlow` — the values `Query.CalculatedSupplyAirFlow` and the TAS export read.
+
+A naturally ventilated dwelling was therefore simulated with mechanical supply and extract it does not have,
+and the run reported `successful = true`. That is worse than a refusal: nothing in the result says the system
+was invented. The second failure mode was the mirror image — an NV dwelling never run through a Part F
+component hit `count == 0` in `ApplyPartFVentilationRates`, got `null` back, and was refused with "run a Part
+F component first" for airflow it does not need.
+
+### The gate
+
+`Query.PartOPartFAirflowApplication` reads the strategy the assessed zones state — the **same** dictionary
+`Create.OverheatingScenarios` is given, so the airflow decision and the TM59 criterion can never read
+different answers — and returns one of three answers, which `Modify.PreparePartOIteration` acts on **before**
+anything is applied:
+
+| Assessed zones | Answer | Behaviour |
+|---|---|---|
+| every zone states `NV` | `SkipNaturalVentilation` | nothing applied; absence of `PartFSpaceData` is not an error; a note and a warning state what was not applied and why |
+| no zone states `NV` (`MV`, `MVRE`, `UV`, or no zones at all) | `Apply` | unchanged — the behaviour this preparation has always had |
+| `NV` beside anything else, silence included | `RefuseMixed` | **no model returned**, no scenarios stated, every zone named beside its strategy |
+
+Only `NV` skips. `UV` is not mechanical either, but it selects the corridor criterion rather than the
+natural-ventilation one and has never been the subject of this gate, so it keeps the existing behaviour.
+
+The mixed case refuses rather than warning — unlike the opening-restriction disagreement, which only
+mislabels which assumption a true result was obtained under. Here continuing would put continuous mechanical
+supply and extract into the naturally ventilated half of the building, or strip the mechanically ventilated
+half of the rates it is sized for. `ApplyPartFVentilationRates` is whole-model, so a per-zone application is
+the real fix and is a separate change.
+
+### Acceptance run
+
+| | |
+|---|---|
+| Base model | `C:\TasOut\v40\A0.sam` — the 9-space TM59 residential model (Flat 1 / Flat 2 / Flat 3 / Corridor, 20 apertures each already carrying an **Unrestricted** `PartOOpeningProperties`) |
+| Authored | Part F sized with the shipped rule set (8 of 9 spaces sized), then **one** aperture — `SIM_EXT_GLZ` on `Bedroom 2_3`, guid `956264f2` — re-authored `NightClosed`, hours 08–23, exactly as `SAMAnalytical.AddOpeningPropertiesByPartO` builds it. The other 19 openings are left Unrestricted and act as the control. |
+| Prepared | `Modify.PreparePartOIteration(BasePassive, all zones, "NV")` — the production path |
+| Weather | `C:\Users\Public\Documents\Tas Data\Databases\CIBSE Weather 2021.twd` |
+| Run | `AnalyticalModel -> ToGbXML -> WorkflowCalculator`, `Sizing = true`, `Simulate = true`, days 1..365 |
+| Produced | `nv.tbd` (414 KB), `nv.tsd` (4.8 MB) |
+| Control | the identical model prepared as `MVRE`, sizing only, into `mv.tbd` |
+
+**`build_tests/Fixtures/original_v1.sam` was examined and rejected as the fixture.** It is a 3-storey,
+5-per-floor office massing: 15 spaces named `Floor_0_Zone_NORTH` …, **0 `Zone` objects, 0 `InternalCondition`
+objects, and 0 of its 66 apertures carry any `OpeningProperties`**. It can state neither a dwelling, nor a
+ventilation strategy, nor a restriction without being rebuilt rather than adapted, and it sits in a build
+**output** directory rather than a curated fixture library.
+
+#### Preparation, before TAS
+
+```
+PREPARE|airflowApplication=SkipNaturalVentilation|successful=True|openingCompatibility=Incompatible|scenarios=4
+SCENARIO|Flat 1 - BasePassive - NV|strategy=NV|scope=Dwelling
+SCENARIO|Corridor - BasePassive - NV|strategy=NV|scope=CommonSpace
+SCENARIO|Flat 2 - BasePassive - NV|strategy=NV|scope=Dwelling
+SCENARIO|Flat 3 - BasePassive - NV|strategy=NV|scope=Dwelling
+APERTURE|956264f2-…|restriction=NightClosed|from=8|to=23|schedule=PartO_DayOpen_08_23|values=000000001111111111111110
+```
+
+Every space came out with `supplyAirFlowStated=False`, `exhaustAirFlowStated=False`. The Part F sizing it
+declined to use is still on the model — `Bedroom 2_3` carries `continuousSupply_lps=45.5`, `Studio 1_0`
+`32.5 / 44`, and so on for all eight sized spaces — so this is a decision not to apply it, not an absence of
+anything to apply.
+
+Prepared as `MVRE` instead, the same model gives `airflowApplication=Apply` and eight spaces with
+per-space cloned internal conditions carrying the Part F rates (`Bedroom 2_3`: `calculatedSupply_m3s=0.0455`).
+
+#### The opening profile in the produced TBD
+
+Read back through Tas's own 0-based accessors, independently of the code that wrote it:
+
+```
+APERTURETYPE|element=Windows: SIM_EXT_GLZ_E67C225E -pane|name=Opening Cd0.411 F1 S00FFFE|Cd=0.410591
+             |profileType=ticFunctionProfile
+             |function=zdwno,0,19.00,21.00,99.00
+             |factor=1
+             |schedule=PartO_DayOpen_08_23
+             |values=000000001111111111111110
+```
+
+The two other shared aperture definitions in the same TBD carry the same function and **no schedule** — the
+19 Unrestricted openings — so the schedule reached exactly the one opening that asked for it. The workflow's
+own note agrees: *"1 opening(s) requested an availability schedule, 1 of those read a schedule back off the
+TBD profile."*
+
+The 24 values are read SAM-hour-ordered (SAM hour `h` is TBD slot `h + 1`, because TBD's 24-slot hourly
+indexed properties are 1-based hour-**ending**), so the string is directly comparable with
+`DailyAvailabilitySchedule.ValuesText`.
+
+#### No continuous mechanical airflow in the produced TBD
+
+`SAMZoneMetadata` is written into the TBD zone description, because TAS has no field for SAM's airflow
+decomposition. That is where "was a Part F continuous mechanical supply carried onto this zone" is readable
+straight out of the file. Same zone, same model, two preparations:
+
+| | NV run (`nv.tbd`) | MVRE control (`mv.tbd`) |
+|---|---|---|
+| `Bedroom 2_3` description | `{"ventilation":{"profile":false},"native":{"freshAirRate":8}}` | `{"ventilation":{"flow":0.0455,"flowPerArea":0,"flowPerPerson":0,"airChangesPerHour":0,"profile":false},"native":{"freshAirRate":0}}` |
+| every zone `freshAirRate` | `8` l/s/p — the authored value, untouched | `0` — cleared by the Part F application (only the unsized `Corridor_1` kept its `8`) |
+
+In the NV run the zone carries **no supply-air statement at all**. In the control it carries the Part F
+0.0455 m³/s and its authored per-person outside-air rate has been zeroed.
+
+`ticV.factor` is `1` ACH in both, and is not evidence either way: `"profile":false` — no SAM Ventilation
+profile is assigned on this model, so TBD Building Simulator mechanical ventilation is not activated in
+either run and `Query.VentilationAirChangesPerHour`'s value is never written. See
+`Modify.UpdateInternalCondition` for why the presence of airflow data must not switch it on by itself.
+
+#### TM59, from the produced TSD
+
+`Tas.TSDQueryTM59Results`' own sequence — `Convert.ToSAM(tsd)`, `Create.TM59AssessmentCalculator`,
+`OverheatingScenarioMap` → `VentilationStrategyMap`, `RestoreDesignInternalConditions`, `Calculate`:
+
+```
+COUNTS|naturalVentilation=5|mechanicalVentilation=0|corridor=4
+NATURALVENTILATION|Studio 1_0        |type=TM59NaturalVentilationBedroomExtendedResult
+NATURALVENTILATION|Bedroom 2_3       |type=TM59NaturalVentilationBedroomExtendedResult
+NATURALVENTILATION|Living Kitchen_4  |type=TM59NaturalVentilationExtendedResult
+NATURALVENTILATION|Bedroom 2_6       |type=TM59NaturalVentilationBedroomExtendedResult
+NATURALVENTILATION|Kitchen_7         |type=TM59NaturalVentilationExtendedResult
+CORRIDOR|Corridor_1, Bathroom_2, Ensuite_5, Ensuite_8|type=TM59CorridorExtendedResult
+```
+
+No ventilation-strategy refusals, no association refusals. **Zero mechanical results** — the NV route was
+taken for every occupied space. The four corridor-criterion results are the communal corridor plus the three
+wet rooms, which carry no TM59 space application; that is the documented pre-existing classification, not
+something this change introduced. Pass/fail is not the point and is not claimed as compliance: what is
+proven is that the correct NV model, with the correct opening operation, was simulated and assessed through
+the natural-ventilation route.
+
+**One trap worth recording.** The design model handed to the TM59 assessment must be the **workflow output**
+model, not the pre-workflow one. `SimulationSpaceMap` resolves on the `ZoneGuid` that `Modify.UpdateIds`
+stamps during the workflow; passing the pre-workflow model produced *"does not resolve to exactly one
+simulated space"* for every space and zero results. Pre-existing identity behaviour, unchanged here.
+
+### What is still not covered
+
+- **Mixed NV + mechanical models refuse.** Per-zone airflow application is not implemented; a building with
+  naturally and mechanically ventilated zones side by side must be prepared as separate iterations.
+- **System 1 sizing.** Background/trickle ventilator and purge provision for a naturally ventilated dwelling
+  are not calculated. `PartFCalculator` remains System 4 shaped for every strategy.
+- **Wet-room intermittent extract.** Untouched, and confirmed already outside the balanced continuous totals
+  (`PartFCalculator` sets `IsInBalancedFlow = false` and leaves `ContinuousDesignFlowRate_Lps` null for
+  `CookerHoodExtractingOutside` and `SeparateIntermittentExtract`), so it was never part of what is applied.
+- **`OverheatingScenario:v2`.** The stage still asserts `Openings Restricted`, so a NightClosed opening under
+  `BasePassive` is still reported as `Incompatible` and still only warned about. Deliberately deferred.
+
+---
+
 ## Remaining validation work
 
 In rough order of value:
