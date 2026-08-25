@@ -23,6 +23,11 @@ namespace SAM.Tests
     /// query, and shared internal conditions.
     /// </para>
     /// </summary>
+    /// <remarks>
+    /// Shares a collection with <c>PartOIterationPreparationTests</c> - see that class for why the two
+    /// readers of the default Part F rule set must not run at the same time.
+    /// </remarks>
+    [Collection("SAM.Analytical.ActiveSetting default Part F data")]
     public class PartFAirflowApplicationTests
     {
         /// <summary>
