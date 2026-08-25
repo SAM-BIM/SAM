@@ -26,7 +26,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.0";
+        public override string LatestComponentVersion => "1.0.1";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -49,7 +49,7 @@ WHAT IT DOES
 1. Reads each space's Part F Space Data - it does NOT size anything. Run a Part F component first.
 2. Works out which Approved Document F condition the stage runs at. BasePassive is the continuous design condition, which is the Approved Document F sizing case.
 3. Writes that condition's supply and extract onto each sized space, in m3/s, so Query.CalculatedSupplyAirFlow and the TAS export can see them. Until now the Part F numbers were reporting only: the simulation never read them.
-4. When the stage's 'Openings Restricted' assumption is false (BasePassive today), resets every SAM-generated PartOOpeningProperties restriction on the copy to Unrestricted, so the assumption reaches the TAS aperture-control write path instead of only being stated on the scenario. Never touches opening data this component did not generate.
+4. REPORTS how the model's opening behaviour compares with the stage's 'Openings Restricted' assumption. It changes no opening data, and it does not block: opening restriction is authored building data (AddOpeningPropertiesByPartO records only THAT an opening is restricted, never WHY), so a base case may legitimately mix restricted and unrestricted openings. Rewriting a restriction to match the stage would simulate a building nobody described AND delete that aperture's availability schedule downstream, because PartOOpeningProperties.Schedule is DERIVED from the restriction rather than stored beside it. A NightClosed aperture therefore reaches the TAS aperture-control write with its PartO_DayOpen_HH_HH schedule intact.
 5. States one OverheatingScenario per zone at that iteration.
 
 TWO THINGS IT DOES DELIBERATELY, AND REPORTS
@@ -65,7 +65,9 @@ ITERATIONS
 
 WHAT IT STILL DOES NOT DO
 - It does not select or apply a ventilation SYSTEM object. The capability selection exists but has no production caller yet.
-- It does not author a restriction (NightClosed/AlwaysClosed) onto any aperture - that stays the modeller's job, via PartOOpeningProperties.OpeningRestriction. This component only resets to Unrestricted when the stage says openings are not restricted.
+- It does not author, reset or otherwise change a restriction (Unrestricted/NightClosed/AlwaysClosed) on any aperture - that stays the modeller's job, via SAMAnalytical.AddOpeningPropertiesByPartO's restriction_. It only reports.
+- It does not guess at opening behaviour it cannot classify. An opening authored through the legacy general-valued profiles_ carrier states availability in a form that has no deterministic reading as restricted or unrestricted; that is reported as UNKNOWN rather than assumed unrestricted, because assuming is how a restricted opening ends up labelled as an unrestricted one.
+- KNOWN LIMITATION, being fixed separately: the 'Openings Restricted' assumption is stated by the STAGE, when opening behaviour is really a property of the MODEL and orthogonal to the mitigation stage. That is why a disagreement is a warning here rather than a refusal - blocking on an assumption that is itself wrong would refuse exactly the models this component exists to prepare.
 ";
 
         public SAMAnalyticalPreparePartOIteration()
@@ -178,32 +180,31 @@ WHAT IT STILL DOES NOT DO
                 return;
             }
 
-            //The join between the scenario's "Openings Restricted" assumption and the aperture-level
-            //OpeningRestriction this component can now enforce. Only BasePassive reaches here today -
-            //AcousticRestricted refuses earlier, at PartOIterationOperatingMode - so in practice this only
-            //ever resets a stage that already asserts "unrestricted". It stays keyed off the assumption
-            //rather than the iteration name so it keeps meaning the right thing once a mitigated stage's
-            //operating condition is settled and starts reaching this component.
-            OverheatingOperatingAssumptions operatingAssumptions = partOIteration.PartOOperatingAssumptions(out string refusal_Assumptions);
-            bool openingsRestricted = operatingAssumptions != null && operatingAssumptions.Value(Analytical.Query.OpeningsRestricted) == OverheatingOperatingAssumptions.Text(true);
-            if (operatingAssumptions != null && operatingAssumptions.Contains(Analytical.Query.OpeningsRestricted) && !openingsRestricted)
+            //The join between the scenario's "Openings Restricted" assumption and the opening behaviour the
+            //model carries. The model is REPORTED ON, never rewritten to fit the stage: an opening restriction
+            //is authored building data - AddOpeningPropertiesByPartO records only THAT an opening is
+            //restricted, never WHY - while the assumption is a label the result is attributed under. This
+            //component used to reset every restriction to Unrestricted here, which silently deleted the
+            //aperture's availability schedule from the simulated model, because PartOOpeningProperties.Schedule
+            //is DERIVED from OpeningRestriction rather than stored beside it.
+            //
+            //A WARNING and not a refusal, deliberately. Opening behaviour is orthogonal to the mitigation
+            //stage - a base case may legitimately mix restricted and unrestricted openings, because a window
+            //shut for noise or security is a fact about the building and not a mitigation anybody added. The
+            //stage-asserted "Openings Restricted" assumption is the thing that is wrong here, and moving it
+            //from the stage to the model is a separate change with its own scenario-identity consequences.
+            //Blocking on it meanwhile would refuse exactly the models this component exists to prepare.
+            PartOOpeningCompatibility partOOpeningCompatibility = analyticalModel_Applied.PartOIterationOpeningCompatibility(partOIteration, out string summary_Openings, out List<string> evidence_Openings);
+            if (evidence_Openings != null && evidence_Openings.Count != 0)
             {
-                AnalyticalModel analyticalModel_Reset = analyticalModel_Applied.ResetPartOOpeningRestrictions(out List<string> notes_Reset);
-                if (notes_Reset != null && notes_Reset.Count != 0)
-                {
-                    notes.AddRange(notes_Reset);
+                notes.AddRange(evidence_Openings);
+            }
 
-                    //Surfaced as warnings, not only on the notes output: a NightClosed restriction reset here
-                    //is exactly why an aperture in the simulated model ends up with no Part O availability
-                    //schedule downstream - the workflow writes what this model states, and this model now
-                    //states Unrestricted. Unmissable rather than buried in a list output nobody connected.
-                    foreach (string note_Reset in notes_Reset)
-                    {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, note_Reset);
-                    }
-                }
+            if (summary_Openings != null)
+            {
+                notes.Add(summary_Openings);
 
-                analyticalModel_Applied = analyticalModel_Reset;
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, summary_Openings);
             }
 
             //Scenarios are stated over the APPLIED model, so a zone guid on a scenario and a zone guid in the model

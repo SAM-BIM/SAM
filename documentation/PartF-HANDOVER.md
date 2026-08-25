@@ -232,9 +232,7 @@ Iteration 1 is **not** accepted yet. What stands between here and acceptance:
 1. **DONE, code-complete — and the schedule foundation under it is now first-class. Still unverified
    against a real TAS run.** `PartOOpeningProperties` gained `OpeningRestriction`
    (`Unrestricted`/`NightClosed`/`AlwaysClosed`, SAM `8bf2cf61`); `Modify.SetApertureType` writes it into
-   the TBD's aperture-control profile, so a BasePassive scenario's `Openings Restricted = false` is
-   *enforced* on the copy (`Modify.ResetPartOOpeningRestrictions`, called from `PreparePartOIteration`)
-   rather than only stated; and `SAMAnalytical.AddOpeningPropertiesByPartO` (SAM `53aabf2f`) exposes
+   the TBD's aperture-control profile; and `SAMAnalytical.AddOpeningPropertiesByPartO` (SAM `53aabf2f`) exposes
    `restriction_` plus `openingHour_`/`closingHour_` so a modeller can author the restriction from
    Grasshopper. `profiles_` keeps precedence over `restriction_`, warning instead of silently dropping it.
    **The GH API is unchanged by the schedule foundation** — no new user-facing input was needed.
@@ -525,9 +523,51 @@ be a `Profile` pretending to be a schedule) → `Modify.SetApertureType` (SAM_Ta
 `Create.GetOrCreateSchedule`, which validates 24 values, reuses any **value-identical** building schedule
 whatever its name, otherwise creates exactly one and verifies it by reading all 24 values back →
 `TBD.ApertureType` profile + schedule, schedule assigned **last**.
-`Modify.ResetPartOOpeningRestrictions` (SAM) gives `PreparePartOIteration` a copy-only way to enforce
-`Openings Restricted = false` rather than merely stating it. The rules that must not be silently revisited
-are §2 item 23; rationale is in the two commit messages and the code's own doc comments.
+**`PreparePartOIteration` does not rewrite authored opening availability to make it fit an iteration.** It
+REPORTS how the model's opening behaviour compares with the stage's assumption, and changes nothing. That is
+a contract, not an implementation detail. Concretely (`Query.PartOIterationOpeningCompatibility`, returning
+`PartOOpeningCompatibility.Compatible` / `Incompatible` / `Unknown`):
+
+| Model vs the stage's `Openings Restricted` | What happens |
+|---|---|
+| agrees | continue; scenarios stated |
+| demonstrably disagrees (`Incompatible`) | model preserved untouched, **warning** naming the aperture(s) and what they state; scenarios still stated |
+| cannot be classified (`Unknown`) | same treatment, with a message that says *unknown* rather than *wrong* |
+
+**Why a warning and not a refusal.** Opening restriction is authored building behaviour and is **orthogonal
+to the mitigation stage** — a base case may legitimately mix `NightClosed` and `Unrestricted` openings,
+because a window shut for noise or security is a fact about the building, not a mitigation anybody added.
+The defect is therefore that `Openings Restricted` is asserted by the STAGE at all; it belongs on the model.
+Moving it is a separate change with scenario-identity consequences (it re-keys every scenario, so it needs
+an `OverheatingScenario:v2` bump) and is **not** part of this change. Blocking on an assumption that is
+itself wrong would refuse exactly the models this component exists to prepare.
+
+It briefly did the opposite — enforcing `Openings Restricted = false` by calling
+`Modify.ResetPartOOpeningRestrictions` (SAM `8bf2cf61`) — and that silently defeated the acceptance gate
+below: `PartOOpeningProperties.Schedule` is **derived** from `OpeningRestriction`, so resetting the
+restriction deleted the `PartO_DayOpen_HH_HH` schedule from the model that reached TAS. An
+`OpeningRestriction` is authored building data — `AddOpeningPropertiesByPartO` records only *that* an
+opening is restricted, never *why* — so SAM cannot know whether a `NightClosed` aperture is the Part O
+mitigation a stage wants stripped, an acoustic restriction, a security one, or an internal door. Preserving
+the model while still stating the scenario would only move the defect: a model TAS simulates with night
+closure must not be reported as `Openings Restricted = false`. So it does neither, and refuses.
+
+**Both authoring paths are classified the same way, and an unknown is never read as unrestricted**
+(`Query.PartOOpeningRestricted`, which classifies off what the TAS write will be given, not off the
+authoring vocabulary). A `PartOOpeningProperties` restriction and a `ProfileOpeningProperties` carrying a
+`DailyAvailabilitySchedule` are both decidable — the schedule is binary and exactly 24 hours, so "available
+every hour" is unrestricted and "any hour off" is restricted, with no reverse-engineering back into a
+`NightClosed` window. The legacy general-valued `ProfileOpeningProperties.Profile` is **not** decidable: the
+TAS write rounds it through `Convert.ToInt32`, but those values were never authored as an availability mask,
+so reading a compliance assumption off them would be inference. It is reported `Unknown` and refused. An
+`IOpeningProperties` stating no availability at all (a plain `OpeningProperties`, or the profile carrier
+with neither field) is positively *unrestricted*, because `TryGetOpeningScheduleSource` finds no source and
+the aperture control is written without a schedule — **a new opening-properties type that CAN carry a
+schedule must be added to both that query and `PartOOpeningRestricted`.**
+
+`Modify.ResetPartOOpeningRestrictions` remains as an explicit library operation for callers who do intend
+to drop the restrictions *and the schedules derived from them*. The rules that must not be silently
+revisited are §2 item 23; rationale is in the commit messages and the code's own doc comments.
 
 **Not done, and the reason matters.** No automated test exercises the real TBD/COM write, its assignment to
 a `TBD.profile`, or repeated export on a real TBD — this codebase's own precedent
@@ -554,10 +594,15 @@ In Grasshopper: `SAMAnalytical.AddOpeningPropertiesByPartO` with `restriction_ =
 input (`Param_String`) — type `NightClosed` directly; no GH enum-picker exists or is needed.
 
 **The BasePassive slice:** `AnalyticalModel` → `SAMAnalytical.AddVentilationPropertiesByPartF` (or
-`CheckPartFCompliance`) → `SAMAnalytical.AddOpeningPropertiesByPartO` → `SAMAnalytical.PreparePartOIteration`
-(`BasePassive`) → inspect `supply m3/s` / `extract m3/s` / `partF l/s` → `To gbXML` →
-`SAMAnalytical.WorkflowgbXML` (`Simulation=true`) → `Tas.TSDQueryTM59Results` with `overheatingScenarios_`
-connected, `report` output read.
+`CheckPartFCompliance`) → `SAMAnalytical.AddOpeningPropertiesByPartO` (`restriction_ = NightClosed`) →
+`SAMAnalytical.PreparePartOIteration` (`BasePassive`) → inspect `supply m3/s` / `extract m3/s` /
+`partF l/s` → `To gbXML` → `SAMAnalytical.WorkflowgbXML` (`Simulation=true`) →
+`Tas.TSDQueryTM59Results` with `overheatingScenarios_` connected, `report` output read.
+
+`PreparePartOIteration` raises a **warning** that the `NightClosed` openings disagree with `BasePassive`'s
+`Openings Restricted = false`, names the apertures, and changes nothing — the restriction and its schedule
+reach the TBD intact, which is what the table below checks. That warning is the stage-asserted assumption
+showing through; see the contract above.
 
 Open the resulting TBD. The aperture's opening profile must read **exactly**:
 

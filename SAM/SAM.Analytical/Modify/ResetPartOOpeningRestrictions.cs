@@ -12,9 +12,21 @@ namespace SAM.Analytical
         /// to <see cref="OpeningRestriction.Unrestricted"/>, on a copy - the original
         /// <paramref name="analyticalModel"/> is never modified.
         /// <para>
-        /// This is what makes a <c>BasePassive</c> ("openings operated without restriction") iteration
-        /// enforce its own assumption on the copy that gets simulated, rather than merely stating it on the
-        /// scenario. Only <see cref="PartOOpeningProperties"/> is touched - any other
+        /// <b>Explicit callers only, and deliberately not part of preparing a Part O iteration.</b> It was
+        /// once called from <c>SAMAnalytical.PreparePartOIteration</c> to make a <c>BasePassive</c>
+        /// ("openings operated without restriction") stage enforce its own assumption on the copy that gets
+        /// simulated. That is no longer done, because it was not a change of restriction state alone:
+        /// <see cref="PartOOpeningProperties.Schedule"/> is <b>derived</b> from
+        /// <see cref="PartOOpeningProperties.OpeningRestriction"/>, so resetting the restriction also deleted
+        /// the aperture's <c>PartO_DayOpen_HH_HH</c> availability schedule from the model that reached TAS -
+        /// silently, and for restrictions authored for reasons (noise, security, an internal door) that the
+        /// stage's assumption says nothing about. <c>PreparePartOIteration</c> now compares the two and
+        /// refuses instead; see <see cref="Query.PartOIterationOpeningCompatibility"/>. Call
+        /// this only where dropping the restrictions - and the schedules derived from them - is the actual
+        /// intent.
+        /// </para>
+        /// <para>
+        /// Only <see cref="PartOOpeningProperties"/> is touched - any other
         /// <see cref="IOpeningProperties"/> (a plain <see cref="OpeningProperties"/>, a
         /// <see cref="ProfileOpeningProperties"/>, or anything else not produced by SAM's own Part O
         /// authoring) is left exactly as found, because it is not this method's data to change.

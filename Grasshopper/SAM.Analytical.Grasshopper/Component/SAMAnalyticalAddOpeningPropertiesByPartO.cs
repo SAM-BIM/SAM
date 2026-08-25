@@ -98,8 +98,16 @@ Sources (BB101 discharge coefficient only)
 EXAMPLE
 Aperture -> SAMAnalytical.AddOpeningPropertiesByPartO (restriction_ = NightClosed, openingHour_ = 8,
 closingHour_ = 23) -> SAMAnalytical.PreparePartOIteration -> To gbXML -> SAMAnalytical.WorkflowgbXML
-(Simulation = true) -> Tas.TSDQueryTM59Results -> open the exported TBD in TAS and inspect the aperture's
-Opening profile for the 'PartO_DayOpen_08_23' schedule.
+(Simulation = true) -> open the exported TBD in TAS and inspect the aperture's Opening profile for the
+'PartO_DayOpen_08_23' schedule.
+
+A RESTRICTION AUTHORED HERE SURVIVES PREPARATION
+SAMAnalytical.PreparePartOIteration never rewrites opening data to fit the stage it is asked to state - it
+once reset restrictions to Unrestricted, which silently deleted this schedule from the model that reached
+TAS. It now reports the comparison and changes nothing. Where the stage's 'Openings Restricted' assumption
+disagrees with what you authored here, you get a WARNING naming the aperture, not a refusal: a restriction
+records a fact about the building (noise, security, an internal door) and is orthogonal to which mitigation
+stage is being assessed.
 ";
 
 
