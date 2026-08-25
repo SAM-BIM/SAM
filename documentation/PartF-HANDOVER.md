@@ -163,6 +163,20 @@ and the true per-class figures are 23 and +2, not 33 and +3. The 1329 total and 
 
 ### Part F transfer-air doors (SAM `46a40cee`, review corrections `15f4bcdd`)
 
+**Follow-up (new work, branch `feature/partf-transfer-door-panel-selection` off `sow/2026-Q3`, SAM repo only;
+uncommitted at the time of writing, to be committed after review).** Where several shared wall panels could
+take the door, the host panel is now resolved by the selection hierarchy below instead of being refused.
+
+**Real-model acceptance run (2026-08-25, against the actual `SAM_zoningAM_v1.sam`): 5 doors created, 0
+refusals.** Kitchen_4→Ensuite_5 selected `fe27dac4` (the horizontal partition, direct line crosses it;
+`69de3fb5` stands 0.833 m off) and Kitchen_7→Ensuite_8 selected `ab1b0798` (same shape; `b154e0b7` 0.833 m
+off) - both doors land on the horizontal partitions. Studio 1_0→Bathroom_2 resolved through the FULL
+fallback chain: the two candidate panels (`7e09a798` vertical, `3e01ed80` horizontal) are the two legs of
+the L-shaped partition meeting at (5,5), the centroid diagonal (4.1667, 4.1667)→(7.5, 7.5) passes exactly
+through the corner (geometric tie), and both legs are the SAME length (5 m) - so the stable first candidate
+`3e01ed80` was selected and door `b9517704` created there. That pair is a true geometric AND dimensional
+tie, resolved only by the documented final fallback; do not describe it as a geometric choice.
+
 `SAMAnalytical.AddTransferAirDoorsByPartF` (GH) / `Modify.AddTransferAirDoorsByPartF` (SAM.Analytical) now
 close the gap the Part F assessment could only report: a dwelling transfer route that carries air but has
 no modelled door gets ONE default internal door created in the shared internal wall - `SIM_INT_SLD`,
@@ -177,24 +191,37 @@ documented pattern.
 
 **Review corrections (`15f4bcdd`) — two places the operation manufactured a fact the model does not carry.**
 
-- **Several shared walls are an ambiguity, not a tie to be broken.** Every wall panel related to both spaces
-  by guid is now tested — by reading it only — for whether it could take the 760 × 2100 mm door where it
-  stands, via `Query.ApertureHost`, the same host check `Panel.AddApertures` applies. None can: the existing
-  refusal. Exactly one can: the door is created there. **More than one can: the route is REFUSED**, naming
-  every candidate Panel Guid. The previous *largest shared wall, guid as tie-break* rule was deterministic
-  but established nothing about where the door belonged — wall area, room name, panel name, enumeration
-  order and guid order are all arbitrary with respect to that question. Guid order survives **only** so the
-  diagnostics list the same panels in the same order on every run.
+- **Several shared walls are resolved by a fixed selection hierarchy, never refused merely for being
+  equal.** Every wall panel related to both spaces by guid is tested — by reading it only — for whether it
+  could take the 760 × 2100 mm door where it stands, via `Query.ApertureHost`, the same host check
+  `Panel.AddApertures` applies. None can: the existing refusal. Exactly one can: the door is created there.
+  **More than one can: host validity first (always), then geometric relevance — the panel the segment
+  joining the two space locations passes through scores 0, the others score the distance from that segment
+  — then the SHORTER valid shared wall for geometric ties within `Core.Tolerance.Distance`, then the stable
+  first candidate from the guid-sorted list for equal lengths within `Core.Tolerance.Distance`.** The
+  previous *largest shared wall, guid as tie-break* rule was deterministic but established nothing about
+  where the door belonged — wall area, room name, panel name, enumeration order and guid VALUE are all
+  arbitrary with respect to that question, and none of them is consulted before the final fallback; guid
+  order is the absolute last arbiter only, and it is deterministic because candidates are guid-sorted
+  before ranking. A route is refused only where the candidates cannot be ranked at all — one of the two
+  spaces carries no valid location (`Space.IsPlaced()` false) — never merely because candidates tie. A
+  selection among several candidates is reported in `notes` with the chosen panel and the reason.
 - **A missing internal-door construction is a refusal.** `Query.DefaultApertureConstruction` returning null
   no longer causes a plain `Internal Door` `ApertureConstruction` to be manufactured and noted; that put a
   door build-up into the model that nothing established, purely so geometry could exist.
 
-14 tests in `SAM.Tests/PartFTransferAirDoorTests.cs`, including the duplicate-room-name identity regression,
-the two-candidate ambiguity refusal **run in both panel creation orders**, a three-wall case where the only
-wall that fits is the **smallest** (so a geometrically established sole candidate cannot be mistaken for the
-largest wall being picked), and the construction refusal. That last test swaps an `ActiveSetting` default, so
-`PartFTransferAirDoorTests` and `QuadraticScanRegressionTests` — the suite's only two readers of the default
-aperture construction library — share an xUnit collection and never run at the same time.
+23 tests in `SAM.Tests/PartFTransferAirDoorTests.cs`, including the duplicate-room-name identity regression,
+the two-candidate geometric-tie resolutions (shorter wall wins **and** equal-length stable-first wins, each
+**run in both panel creation orders**), a split wall whose crossed panel takes the door **in both panel
+creation orders**, a split wall where the direct line hits the joint (geometric tie, equal lengths -> stable
+first candidate), a two-candidate case with a missing/NaN space location (refused cleanly, no winner
+manufactured), a three-wall case where the only wall that fits is the **smallest** (so a geometrically
+established sole candidate cannot be mistaken for the largest wall being picked), the three-flat
+example-model reproduction (Studio 1_0→Bathroom_2, Kitchen_4→Ensuite_5, Kitchen_7→Ensuite_8 — each split
+wall's door lands on the crossed panel), and the construction refusal. That last test swaps an
+`ActiveSetting` default, so `PartFTransferAirDoorTests` and `QuadraticScanRegressionTests` — the suite's
+only two readers of the default aperture construction library — share an xUnit collection and never run at
+the same time.
 
 ### Iteration 1 — the remaining reviewer gate
 
