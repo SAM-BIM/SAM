@@ -457,11 +457,11 @@ namespace SAM.Tests
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Two spaces separated by TWO internal wall panels, each of which could take the standard
-        /// transfer door. Which of them the door belongs in is an architectural fact the model does not
-        /// carry, so the route is refused as ambiguous and both panels are named. Nothing is decided by
-        /// wall area, panel name, enumeration order or guid order - a defensible location is not a tie to
-        /// be broken.
+        /// Two spaces separated by a wall that is split into TWO collinear internal wall panels, each of
+        /// which could take the standard transfer door. The direct line between the two space locations
+        /// passes through ONE of them, so that panel is the wall the door belongs in: the door is created
+        /// there, in the other nothing, and no refusal is raised. Nothing is decided by wall area, panel
+        /// name, enumeration order or guid order.
         /// <para>
         /// Run twice with the two panels created in opposite orders, because a resolution that depended on
         /// creation order would still look deterministic from a single run.
@@ -470,18 +470,180 @@ namespace SAM.Tests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void TwoSharedWallsCanBothTakeTheDoor_RefusedAsAmbiguous(bool reverseCreationOrder)
+        public void SplitWall_DirectLineCrossesOnePanel_DoorCreatedThere(bool reverseCreationOrder)
         {
             AdjacencyCluster adjacencyCluster = new();
 
-            Space space_Studio = Space(adjacencyCluster, "Studio", 75, 300);
-            Space space_Bathroom = Space(adjacencyCluster, "Bathroom", 25, 100);
+            Space space_Studio = Space(adjacencyCluster, "Studio", 75, 300, new Point3D(2, 2, 1.5));
+            Space space_Bathroom = Space(adjacencyCluster, "Bathroom", 25, 100, new Point3D(2, 8, 1.5));
 
-            //Two partitions between the same two spaces, both 4m x 3m: the door fits either one.
-            Panel panel_1 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 4, 3));
-            Panel panel_2 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(10, 4, 3));
+            //The shared wall, split along its length at x = 5: the direct line between the two space
+            //locations crosses it at x = 2, inside panel_1.
+            Panel panel_1 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 4, 5, 3));
+            Panel panel_2 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(5, 4, 5, 3));
 
             foreach (Panel panel in reverseCreationOrder ? new Panel[] { panel_2, panel_1 } : new Panel[] { panel_1, panel_2 })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Studio, panel);
+                adjacencyCluster.AddRelation(space_Bathroom, panel);
+            }
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, adjacencyCluster);
+
+            AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out List<Aperture> doors_Created, out List<string> notes, out List<string> refusals);
+
+            Assert.NotNull(result);
+            Assert.Empty(refusals);
+
+            Aperture aperture = Assert.Single(doors_Created);
+
+            //In the panel the direct line passes through, whichever order the panels were created in.
+            Panel panel_Created = result.AdjacencyCluster.GetPanel(aperture);
+            Assert.Equal(panel_1.Guid, panel_Created.Guid);
+
+            //The other panel takes no door.
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_2.Guid).Apertures);
+
+            //The selection is reported, with the reason and the rejected candidate's distance from the
+            //direct line.
+            string note_Selection = Assert.Single(notes, x => x.Contains("shared wall panels could take the transfer door"));
+            Assert.Contains("was created in panel", note_Selection);
+            Assert.Contains(panel_1.Guid.ToString(), note_Selection);
+            Assert.Contains("the direct line between the two spaces passes through it", note_Selection);
+            Assert.Contains(panel_2.Guid.ToString(), note_Selection);
+        }
+
+        /// <summary>
+        /// Two spaces separated by TWO PARALLEL internal wall panels of EQUAL length, and the direct line
+        /// between the two space locations passes through BOTH: geometry ties them and their lengths are
+        /// the same, so the door goes into the stable first candidate - the panel first in guid order.
+        /// Nothing is decided by wall area, panel name, enumeration order or guid VALUE beyond that final
+        /// deterministic fallback.
+        /// <para>
+        /// Run twice with the two panels created in opposite orders, because a resolution that depended on
+        /// creation order would still look deterministic from a single run.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TwoParallelWalls_EqualLengths_StableFirstCandidateSelected(bool reverseCreationOrder)
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space_Studio = Space(adjacencyCluster, "Studio", 75, 300, new Point3D(2, 0, 1.5));
+            Space space_Bathroom = Space(adjacencyCluster, "Bathroom", 25, 100, new Point3D(2, 6, 1.5));
+
+            //Two parallel partitions between the same two spaces, both 10 m long. The direct line between
+            //the space locations runs along y and passes through both, so both score the same: a geometric
+            //tie. Equal lengths too, so the stable first candidate (guid order) is taken.
+            Panel panel_1 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 2, 10, 3));
+            Panel panel_2 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 4, 10, 3));
+
+            foreach (Panel panel in reverseCreationOrder ? new Panel[] { panel_2, panel_1 } : new Panel[] { panel_1, panel_2 })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Studio, panel);
+                adjacencyCluster.AddRelation(space_Bathroom, panel);
+            }
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, adjacencyCluster);
+
+            AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out List<Aperture> doors_Created, out List<string> notes, out List<string> refusals);
+
+            Assert.NotNull(result);
+            Assert.Empty(refusals);
+
+            Aperture aperture = Assert.Single(doors_Created);
+
+            //The stable first candidate: the panel first in guid order, whichever order they were created
+            //in.
+            Panel panel_First = panel_1.Guid.CompareTo(panel_2.Guid) < 0 ? panel_1 : panel_2;
+            Panel panel_Created = result.AdjacencyCluster.GetPanel(aperture);
+            Assert.Equal(panel_First.Guid, panel_Created.Guid);
+
+            //The other panel takes no door.
+            Panel panel_Other = panel_First == panel_1 ? panel_2 : panel_1;
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_Other.Guid).Apertures);
+
+            //The selection is reported as the documented fallback.
+            string note_Selection = Assert.Single(notes, x => x.Contains("shared wall panels could take the transfer door"));
+            Assert.Contains("stable first candidate", note_Selection);
+            Assert.Contains(panel_First.Guid.ToString(), note_Selection);
+        }
+
+        /// <summary>
+        /// Two spaces separated by TWO PARALLEL internal wall panels, both crossed by the direct line
+        /// (geometric tie), but of DIFFERENT lengths: the SHORTER valid shared wall wins - the wall the
+        /// door fits more closely. The result must not depend on creation order.
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TwoParallelWalls_DifferentLengths_ShorterWallSelected(bool reverseCreationOrder)
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space_Studio = Space(adjacencyCluster, "Studio", 75, 300, new Point3D(2, 0, 1.5));
+            Space space_Bathroom = Space(adjacencyCluster, "Bathroom", 25, 100, new Point3D(2, 6, 1.5));
+
+            //Both crossed by the direct line (geometric tie): 10 m against 4 m, the 4 m wall wins.
+            Panel panel_Long = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 2, 10, 3));
+            Panel panel_Short = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 4, 4, 3));
+
+            foreach (Panel panel in reverseCreationOrder ? new Panel[] { panel_Short, panel_Long } : new Panel[] { panel_Long, panel_Short })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Studio, panel);
+                adjacencyCluster.AddRelation(space_Bathroom, panel);
+            }
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, adjacencyCluster);
+
+            AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out List<Aperture> doors_Created, out List<string> notes, out List<string> refusals);
+
+            Assert.NotNull(result);
+            Assert.Empty(refusals);
+
+            Aperture aperture = Assert.Single(doors_Created);
+
+            //In the shorter wall, whichever order the panels were created in.
+            Panel panel_Created = result.AdjacencyCluster.GetPanel(aperture);
+            Assert.Equal(panel_Short.Guid, panel_Created.Guid);
+
+            //The longer wall takes no door.
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_Long.Guid).Apertures);
+
+            //The selection is reported as the shorter-wall tie-break.
+            string note_Selection = Assert.Single(notes, x => x.Contains("shared wall panels could take the transfer door"));
+            Assert.Contains("shorter of them", note_Selection);
+            Assert.Contains(panel_Short.Guid.ToString(), note_Selection);
+        }
+
+        /// <summary>
+        /// Two candidate panels and a space with NO valid location (missing or NaN): nothing geometric can
+        /// rank the candidates, so the route is refused cleanly - no winner is ever manufactured from NaN
+        /// geometry. Both a missing and a NaN location read the same, and the candidates are untouched.
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TwoSharedWalls_SpaceLocationInvalid_RefusedCleanly(bool nanLocation)
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space_Studio = nanLocation ? new Space("Studio", new Point3D(double.NaN, double.NaN, double.NaN)) : new Space("Studio", (Point3D)null);
+            space_Studio.SetValue(SpaceParameter.Area, 75.0);
+            space_Studio.SetValue(SpaceParameter.Volume, 300.0);
+            adjacencyCluster.AddObject(space_Studio);
+
+            Space space_Bathroom = Space(adjacencyCluster, "Bathroom", 25, 100, new Point3D(2, 6, 1.5));
+
+            Panel panel_1 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 2, 10, 3));
+            Panel panel_2 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 4, 10, 3));
+
+            foreach (Panel panel in new Panel[] { panel_1, panel_2 })
             {
                 adjacencyCluster.AddObject(panel);
                 adjacencyCluster.AddRelation(space_Studio, panel);
@@ -493,30 +655,152 @@ namespace SAM.Tests
             AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out List<Aperture> doors_Created, out _, out List<string> refusals);
 
             Assert.NotNull(result);
-
-            //No door created, and neither the returned model nor the supplied one carries a generated one.
             Assert.Empty(doors_Created);
             Assert.Empty(Doors(result.AdjacencyCluster));
-            Assert.Empty(Doors(adjacencyCluster));
-
-            //Both candidate walls are untouched - the candidates were tested, not modified.
             Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_1.Guid).Apertures);
             Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_2.Guid).Apertures);
 
-            //One actionable refusal, naming both candidate panels by guid and saying what to do.
             string refusal = Assert.Single(refusals);
-            Assert.Contains("Studio to Bathroom", refusal);
             Assert.Contains("2 shared wall panels can each take the transfer door", refusal);
-            Assert.Contains("does not establish which of them it belongs in", refusal);
-            Assert.Contains("model the door in the intended wall", refusal);
+            Assert.Contains("could not be distinguished geometrically", refusal);
+            Assert.Contains("no valid location", refusal);
             Assert.Contains(panel_1.Guid.ToString(), refusal);
             Assert.Contains(panel_2.Guid.ToString(), refusal);
+        }
 
-            //The panels are listed in guid order whichever order they were created in: the diagnostics are
-            //stable, which is the ONLY thing guid ordering is used for.
-            bool panel_1_First = panel_1.Guid.CompareTo(panel_2.Guid) < 0;
-            Assert.True(refusal.IndexOf((panel_1_First ? panel_1 : panel_2).Guid.ToString()) < refusal.IndexOf((panel_1_First ? panel_2 : panel_1).Guid.ToString()),
-                "The candidate panels are not listed in guid order.");
+        /// <summary>
+        /// One shared wall is crossed by the direct line, and a second shared wall's plane is crossed by
+        /// that line only BEYOND the bounded segment - the wall lies past the downstream space. The second
+        /// wall scores a finite distance and simply loses: the route is not refused because of it, and the
+        /// door lands in the crossed wall.
+        /// </summary>
+        [Fact]
+        public void SplitWall_SecondCandidateBeyondTheLocations_DoorStillCreated()
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space_Studio = Space(adjacencyCluster, "Studio", 75, 300, new Point3D(2, 2, 1.5));
+            Space space_Bathroom = Space(adjacencyCluster, "Bathroom", 25, 100, new Point3D(2, 8, 1.5));
+
+            //Crossed by the direct line at (2, 4).
+            Panel panel_Crossed = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 4, 5, 3));
+
+            //Its plane (y = 10) is crossed by the line only beyond the bathroom centroid (y = 8): the
+            //wall is past the spaces, not between them.
+            Panel panel_Beyond = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 10, 5, 3));
+
+            foreach (Panel panel in new Panel[] { panel_Crossed, panel_Beyond })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Studio, panel);
+                adjacencyCluster.AddRelation(space_Bathroom, panel);
+            }
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, adjacencyCluster);
+
+            AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out List<Aperture> doors_Created, out List<string> notes, out List<string> refusals);
+
+            Assert.NotNull(result);
+            Assert.Empty(refusals);
+
+            Aperture aperture = Assert.Single(doors_Created);
+            Panel panel_Created = result.AdjacencyCluster.GetPanel(aperture);
+            Assert.Equal(panel_Crossed.Guid, panel_Created.Guid);
+
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_Beyond.Guid).Apertures);
+
+            //The beyond-the-segment wall is reported with its finite distance from the direct path.
+            string note_Selection = Assert.Single(notes, x => x.Contains("shared wall panels could take the transfer door"));
+            Assert.Contains("passes through it", note_Selection);
+            Assert.Contains("stands 2 m from that line", note_Selection);
+        }
+
+        /// <summary>
+        /// Coincident space locations: a point facing the MIDDLE of a large wall is closer to it than to a
+        /// narrower wall further away, even though the narrow wall's EDGES are nearer. The perpendicular
+        /// region distance decides, not the distance to the wall's edges - the edge distance would
+        /// overstate the offset for the large wall and pick the wrong host.
+        /// </summary>
+        [Fact]
+        public void CoincidentLocations_ProjectionInsidePanel_ShorterPerpendicularWallWins()
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space_Studio = Space(adjacencyCluster, "Studio", 75, 300, new Point3D(5, 2, 1.5));
+            Space space_Bathroom = Space(adjacencyCluster, "Bathroom", 25, 100, new Point3D(5, 2, 1.5));
+
+            //2 m off the point, its projection inside: region distance 2. Its nearest EDGE is 2.5 m away.
+            Panel panel_Wide = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 0, 10, 3));
+
+            //2.4 m off the point, its projection inside: region distance 2.4 - but its EDGES are only
+            //about 2.43 m away, so an edge-based metric would wrongly prefer it.
+            Panel panel_Narrow = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(4.6, 4.4, 0.8, 3));
+
+            foreach (Panel panel in new Panel[] { panel_Wide, panel_Narrow })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Studio, panel);
+                adjacencyCluster.AddRelation(space_Bathroom, panel);
+            }
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, adjacencyCluster);
+
+            AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out List<Aperture> doors_Created, out _, out List<string> refusals);
+
+            Assert.NotNull(result);
+            Assert.Empty(refusals);
+
+            Aperture aperture = Assert.Single(doors_Created);
+            Panel panel_Created = result.AdjacencyCluster.GetPanel(aperture);
+            Assert.Equal(panel_Wide.Guid, panel_Created.Guid);
+
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_Narrow.Guid).Apertures);
+        }
+
+        /// <summary>
+        /// Two collinear panels where the direct line between the spaces passes through the JOINT between
+        /// them: both panels are scored equally (the line touches both at the same point) and they are the
+        /// same length, so the stable first candidate - guid order - is taken. The door is created there
+        /// and in nothing else.
+        /// </summary>
+        [Fact]
+        public void SplitWall_DirectLineHitsTheJoint_StableFirstCandidateSelected()
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space_Studio = Space(adjacencyCluster, "Studio", 75, 300, new Point3D(5, 2, 1.5));
+            Space space_Bathroom = Space(adjacencyCluster, "Bathroom", 25, 100, new Point3D(5, 8, 1.5));
+
+            //The wall is split exactly where the direct line crosses it (x = 5): a geometric tie, and
+            //both panels are 5 m long, so the stable first candidate wins.
+            Panel panel_1 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 4, 5, 3));
+            Panel panel_2 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(5, 4, 5, 3));
+
+            foreach (Panel panel in new Panel[] { panel_1, panel_2 })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Studio, panel);
+                adjacencyCluster.AddRelation(space_Bathroom, panel);
+            }
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, adjacencyCluster);
+
+            AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF(null, null, out List<Aperture> doors_Created, out List<string> notes, out List<string> refusals);
+
+            Assert.NotNull(result);
+            Assert.Empty(refusals);
+
+            Aperture aperture = Assert.Single(doors_Created);
+
+            Panel panel_First = panel_1.Guid.CompareTo(panel_2.Guid) < 0 ? panel_1 : panel_2;
+            Panel panel_Created = result.AdjacencyCluster.GetPanel(aperture);
+            Assert.Equal(panel_First.Guid, panel_Created.Guid);
+
+            Panel panel_Other = panel_First == panel_1 ? panel_2 : panel_1;
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_Other.Guid).Apertures);
+
+            string note_Selection = Assert.Single(notes, x => x.Contains("shared wall panels could take the transfer door"));
+            Assert.Contains("stable first candidate", note_Selection);
         }
 
         /// <summary>
@@ -570,7 +854,112 @@ namespace SAM.Tests
         }
 
         // ------------------------------------------------------------------
-        // H - no established door construction
+        // H - the example-model flat pairs
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// The three reported room pairs whose shared walls resolve to two panels in the example model,
+        /// reproduced synthetically: Flat 1 Studio 1_0 -> Bathroom_2, Flat 2 Kitchen_4 -> Ensuite_5 and
+        /// Flat 3 Kitchen_7 -> Ensuite_8. Each shared wall is split along its length, and in every pair the
+        /// direct line between the two space locations passes through exactly one of the two panels. The
+        /// door must land on that panel - the one the rooms actually meet through - and nowhere else.
+        /// </summary>
+        [Fact]
+        public void ExampleModelFlatPairs_SplitSharedWalls_DoorLandsOnTheCrossedPanel()
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            //Flat 1: the shared wall of Studio 1_0 and Bathroom_2, split at x = 5. The direct line
+            //between the two spaces crosses it at x = 2: panel_11.
+            Space space_Studio = Space(adjacencyCluster, "Studio 1_0", 75, 300, new Point3D(2, 2, 1.5));
+            Space space_Bathroom = Space(adjacencyCluster, "Bathroom_2", 25, 100, new Point3D(2, 8, 1.5));
+            Panel panel_11 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(0, 4, 5, 3));
+            Panel panel_12 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(5, 4, 5, 3));
+
+            //Flat 2: the bedroom/kitchen wall, then the kitchen/ensuite wall split at x = 8. The direct
+            //line Kitchen_4 -> Ensuite_5 crosses the split at x = 7: panel_21.
+            Space space_Bedroom_3 = Space(adjacencyCluster, "Bedroom 2_3", 105, 420, new Point3D(2, 12, 1.5));
+            Space space_Kitchen_4 = Space(adjacencyCluster, "Kitchen_4", 75, 300, new Point3D(7, 12, 1.5));
+            Space space_Ensuite_5 = Space(adjacencyCluster, "Ensuite_5", 30, 120, new Point3D(7, 18, 1.5));
+            Panel panel_BK_2 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, WallAlongY(5, 10, 6, 3));
+            Panel panel_21 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(5, 16, 3, 3));
+            Panel panel_22 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(8, 16, 3, 3));
+
+            //Flat 3: the same arrangement, shifted. The direct line Kitchen_7 -> Ensuite_8 crosses the
+            //split wall at x = 17: panel_32.
+            Space space_Bedroom_6 = Space(adjacencyCluster, "Bedroom 2_6", 105, 420, new Point3D(12, 12, 1.5));
+            Space space_Kitchen_7 = Space(adjacencyCluster, "Kitchen_7", 75, 300, new Point3D(17, 12, 1.5));
+            Space space_Ensuite_8 = Space(adjacencyCluster, "Ensuite_8", 30, 120, new Point3D(17, 18, 1.5));
+            Panel panel_BK_3 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, WallAlongY(15, 10, 6, 3));
+            Panel panel_31 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(12, 16, 3, 3));
+            Panel panel_32 = AnalyticalCreate.Panel(new Construction(Guid.NewGuid(), "Internal Partition"), PanelType.WallInternal, Wall(15, 16, 3, 3));
+
+            //Flat 1.
+            foreach (Panel panel in new Panel[] { panel_11, panel_12 })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Studio, panel);
+                adjacencyCluster.AddRelation(space_Bathroom, panel);
+            }
+
+            //Flat 2.
+            foreach (Panel panel in new Panel[] { panel_BK_2, panel_21, panel_22 })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Kitchen_4, panel);
+            }
+
+            adjacencyCluster.AddRelation(space_Bedroom_3, panel_BK_2);
+            adjacencyCluster.AddRelation(space_Ensuite_5, panel_21);
+            adjacencyCluster.AddRelation(space_Ensuite_5, panel_22);
+
+            //Flat 3.
+            foreach (Panel panel in new Panel[] { panel_BK_3, panel_31, panel_32 })
+            {
+                adjacencyCluster.AddObject(panel);
+                adjacencyCluster.AddRelation(space_Kitchen_7, panel);
+            }
+
+            adjacencyCluster.AddRelation(space_Bedroom_6, panel_BK_3);
+            adjacencyCluster.AddRelation(space_Ensuite_8, panel_31);
+            adjacencyCluster.AddRelation(space_Ensuite_8, panel_32);
+
+            Zone(adjacencyCluster, "Flat 1", space_Studio, space_Bathroom);
+            Zone(adjacencyCluster, "Flat 2", space_Bedroom_3, space_Kitchen_4, space_Ensuite_5);
+            Zone(adjacencyCluster, "Flat 3", space_Bedroom_6, space_Kitchen_7, space_Ensuite_8);
+
+            AnalyticalModel analyticalModel = new("Test", null, null, null, adjacencyCluster);
+
+            AnalyticalModel result = analyticalModel.AddTransferAirDoorsByPartF("Flats", null, out List<Aperture> doors_Created, out List<string> notes, out List<string> refusals);
+
+            Assert.NotNull(result);
+            Assert.Empty(refusals);
+
+            //Five routes, five doors: Studio -> Bathroom, Bedroom -> Kitchen, Kitchen -> Ensuite in
+            //Flats 2 and 3, and nothing else.
+            Assert.Equal(5, doors_Created.Count);
+
+            //Every door lands on the panel its route's direct line crosses, and nowhere else.
+            Assert.Single(Doors(result.AdjacencyCluster, panel_11));
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_12.Guid).Apertures);
+
+            Assert.Single(Doors(result.AdjacencyCluster, panel_BK_2));
+            Assert.Single(Doors(result.AdjacencyCluster, panel_21));
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_22.Guid).Apertures);
+
+            Assert.Single(Doors(result.AdjacencyCluster, panel_BK_3));
+            Assert.Single(Doors(result.AdjacencyCluster, panel_32));
+            Assert.Null(result.AdjacencyCluster.GetObject<Panel>(panel_31.Guid).Apertures);
+
+            //Each split-wall selection is reported with the chosen panel and the reason.
+            Assert.Equal(3, notes.Count(x => x.Contains("shared wall panels could take the transfer door")));
+            Assert.Contains(notes, x => x.Contains("Studio 1_0 to Bathroom_2") && x.Contains(panel_11.Guid.ToString()) && x.Contains("passes through it"));
+            Assert.Contains(notes, x => x.Contains("Kitchen_4 to Ensuite_5") && x.Contains(panel_21.Guid.ToString()) && x.Contains("passes through it"));
+            Assert.Contains(notes, x => x.Contains("Kitchen_7 to Ensuite_8") && x.Contains(panel_32.Guid.ToString()) && x.Contains("passes through it"));
+        }
+
+        // ------------------------------------------------------------------
+        // I - no established door construction
         // ------------------------------------------------------------------
 
         /// <summary>
@@ -626,7 +1015,12 @@ namespace SAM.Tests
 
         private static Space Space(AdjacencyCluster adjacencyCluster, string name, double area_M2, double volume_M3)
         {
-            Space space = new(name, new Point3D(0, 0, 1.5));
+            return Space(adjacencyCluster, name, area_M2, volume_M3, new Point3D(0, 0, 1.5));
+        }
+
+        private static Space Space(AdjacencyCluster adjacencyCluster, string name, double area_M2, double volume_M3, Point3D location)
+        {
+            Space space = new(name, location);
             space.SetValue(SpaceParameter.Area, area_M2);
             space.SetValue(SpaceParameter.Volume, volume_M3);
             adjacencyCluster.AddObject(space);
@@ -651,12 +1045,30 @@ namespace SAM.Tests
         /// <summary>A vertical wall of the given width and height along X, standing at the origin.</summary>
         private static Face3D Wall(double x, double width, double height)
         {
+            return Wall(x, 0, width, height);
+        }
+
+        /// <summary>A vertical wall of the given width and height along X, standing at (x, y).</summary>
+        private static Face3D Wall(double x, double y, double width, double height)
+        {
             return new Face3D(new Polygon3D(
             [
-                new Point3D(x, 0, 0),
-                new Point3D(x + width, 0, 0),
-                new Point3D(x + width, 0, height),
-                new Point3D(x, 0, height),
+                new Point3D(x, y, 0),
+                new Point3D(x + width, y, 0),
+                new Point3D(x + width, y, height),
+                new Point3D(x, y, height),
+            ]));
+        }
+
+        /// <summary>A vertical wall of the given width and height along Y, standing at (x, y).</summary>
+        private static Face3D WallAlongY(double x, double y, double width, double height)
+        {
+            return new Face3D(new Polygon3D(
+            [
+                new Point3D(x, y, 0),
+                new Point3D(x, y + width, 0),
+                new Point3D(x, y + width, height),
+                new Point3D(x, y, height),
             ]));
         }
 
@@ -675,6 +1087,11 @@ namespace SAM.Tests
         private static List<Aperture> Doors(AdjacencyCluster adjacencyCluster)
         {
             return [.. (adjacencyCluster.GetPanels() ?? []).SelectMany(x => x.Apertures ?? []).Where(x => x is not null && x.ApertureType == ApertureType.Door)];
+        }
+
+        private static List<Aperture> Doors(AdjacencyCluster adjacencyCluster, Panel panel)
+        {
+            return [.. (adjacencyCluster.GetObject<Panel>(panel.Guid)?.Apertures ?? []).Where(x => x is not null && x.ApertureType == ApertureType.Door)];
         }
 
         private static List<Guid> DoorGuids(AdjacencyCluster adjacencyCluster)

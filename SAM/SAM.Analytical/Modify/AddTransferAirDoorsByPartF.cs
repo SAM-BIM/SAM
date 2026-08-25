@@ -71,11 +71,14 @@ namespace SAM.Analytical
         /// <para>
         /// <b>Refuse, never guess.</b> No door is created - and the route is returned in
         /// <paramref name="refusals"/> with the reason - where the two spaces share no internal wall,
-        /// where none of the shared walls can geometrically take the door, where MORE THAN ONE of them
-        /// can (the model does not establish which wall the door belongs in, and neither room name, panel
-        /// name, wall area nor guid order is evidence of it), or where no default internal-door
-        /// construction is established. The supplied model is never modified; an updated copy is
-        /// returned.
+        /// where none of the shared walls can geometrically take the door, where the candidates cannot be
+        /// ranked at all (a space with no valid location), or where no default internal-door construction
+        /// is established. Where several shared walls could each take the door, the host panel is resolved
+        /// by the selection hierarchy - host validity, geometric relevance, shorter wall, then the stable
+        /// first candidate (see
+        /// <see cref="AddTransferAirDoor(AdjacencyCluster, PartFDoorTransferData, out string, out string)"/>)
+        /// - so a route is never refused merely because two candidate walls are equal. The supplied model
+        /// is never modified; an updated copy is returned.
         /// </para>
         /// </summary>
         /// <param name="analyticalModel">
@@ -180,7 +183,7 @@ namespace SAM.Analytical
                         continue;
                     }
 
-                    Aperture aperture = AddTransferAirDoor(adjacencyCluster, partFDoorTransferData, out string refusal);
+                    Aperture aperture = AddTransferAirDoor(adjacencyCluster, partFDoorTransferData, out string refusal, out string note_Selection);
                     if (aperture == null)
                     {
                         refusals.Add(string.Format("{0}{1} to {2}: a transfer path is required ({3:0.##} l/s at the continuous design condition) but no internal door could be created - {4}.",
@@ -190,6 +193,15 @@ namespace SAM.Analytical
                             flow_Continuous,
                             refusal));
                         continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(note_Selection))
+                    {
+                        notes.Add(string.Format("{0}{1} to {2}: {3}",
+                            string.IsNullOrWhiteSpace(partFDwellingResult.Name) ? string.Empty : partFDwellingResult.Name + ": ",
+                            partFDoorTransferData.UpstreamSpaceName,
+                            partFDoorTransferData.DownstreamSpaceName,
+                            note_Selection));
                     }
 
                     //The route record itself is updated and written onto the new aperture through the shared
@@ -242,22 +254,30 @@ namespace SAM.Analytical
         /// <summary>
         /// Creates the single internal door for one unrepresented transfer route: resolves the internal
         /// wall panels the two spaces share, keeps the ones that can geometrically take the standard
-        /// transfer door exactly as they stand, and places the door where exactly one of them can. Null -
-        /// with the reason in <paramref name="refusal"/> - where none can, where MORE than one can, or
-        /// where no default internal-door construction is established.
+        /// transfer door exactly as they stand, and places the door in the best of them. Null - with the
+        /// reason in <paramref name="refusal"/> - where none can, where no candidate can be ranked
+        /// (missing/invalid space location), or where no default internal-door construction is
+        /// established.
         /// <para>
-        /// <b>Where several shared walls could each take the door, the model does not establish where the
-        /// door belongs, and this method does not invent it.</b> Room name, panel name, wall area,
-        /// enumeration order and guid ordering are all arbitrary with respect to where a door
-        /// architecturally or analytically belongs; selecting on any of them would manufacture a fact the
-        /// model does not carry. The route is refused as ambiguous instead, naming the candidate panels so
-        /// the engineer can model the door in the intended wall. Guid order is used ONLY to make the
-        /// diagnostics read the same on every run.
+        /// <b>Where several shared walls could each take the door, the host panel is resolved by the
+        /// selection hierarchy: host validity, then geometric relevance, then shorter wall, then the
+        /// stable first candidate.</b> First, the wall most directly between the two spaces - the one the
+        /// segment joining the two space locations passes through, or of the walls it does not pass
+        /// through, the one it passes closest to - wins. Where the geometry ties two candidates (within
+        /// <see cref="Core.Tolerance.Distance"/>), the SHORTER valid shared wall is preferred - the wall
+        /// the door fits more closely. Only where the tied walls are also the same length (within
+        /// <see cref="Core.Tolerance.Distance"/>) is the first of the stable guid-sorted candidates
+        /// taken. Room name, panel name, wall area and creation/enumeration order remain arbitrary with
+        /// respect to where a door belongs, and none of them is consulted; guid order is the absolute
+        /// final deterministic fallback only, never the first arbiter. A route is refused only where the
+        /// candidates cannot be ranked at all - one of the two spaces carries no valid location - never
+        /// merely because two candidates are equal.
         /// </para>
         /// </summary>
-        private static Aperture AddTransferAirDoor(AdjacencyCluster adjacencyCluster, PartFDoorTransferData partFDoorTransferData, out string refusal)
+        private static Aperture AddTransferAirDoor(AdjacencyCluster adjacencyCluster, PartFDoorTransferData partFDoorTransferData, out string refusal, out string note_Selection)
         {
             refusal = null;
+            note_Selection = null;
 
             Space space_1 = adjacencyCluster.GetObject<Space>(partFDoorTransferData.UpstreamSpaceGuid);
             Space space_2 = adjacencyCluster.GetObject<Space>(partFDoorTransferData.DownstreamSpaceGuid);
@@ -305,18 +325,112 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (candidates.Count > 1)
-            {
-                //Two defensible locations are not a tie to be broken. Which partition a transfer door
-                //belongs in is an architectural fact, and a model carrying more than one wall that could
-                //hold it has not recorded that fact - so the panels are named and the engineer decides.
-                refusal = string.Format("{0} shared wall panels can each take the transfer door and the model does not establish which of them it belongs in ({1}) - model the door in the intended wall, or resolve the partition so the two spaces share a single wall panel, and run again",
-                    candidates.Count,
-                    string.Join("; ", candidates.ConvertAll(x => string.Format("panel {0}", x.Item1.Guid))));
-                return null;
-            }
+            Panel panel_Selected;
+            Polygon3D polygon3D_Door;
 
-            Panel panel_Selected = candidates[0].Item1;
+            if (candidates.Count == 1)
+            {
+                panel_Selected = candidates[0].Item1;
+                polygon3D_Door = candidates[0].Item2;
+            }
+            else
+            {
+                //More than one wall could take the door: rank the candidates by how directly each one
+                //lies between the two spaces and take the single best. A geometric tie is broken by the
+                //shorter valid shared wall, and an equal-length tie by the stable guid-sorted order -
+                //nothing here reads candidate creation order, name or area.
+                //The ranking reads the two space locations. A space carrying no valid location
+                //(IsPlaced false - missing or NaN) establishes nothing geometric, so the candidates
+                //cannot be ranked from it and the route is refused rather than scored from invalid
+                //geometry: no winner is ever manufactured from NaN distances.
+                if (!space_1.IsPlaced() || !space_2.IsPlaced())
+                {
+                    refusal = string.Format("{0} shared wall panels can each take the transfer door and the candidates could not be distinguished geometrically - one of the two spaces carries no valid location, so no wall can be established as the one between them ({1}) - model the door in the intended wall, or resolve the partition so the two spaces share a single wall panel, and run again",
+                        candidates.Count,
+                        string.Join("; ", candidates.ConvertAll(x => string.Format("panel {0}", x.Item1.Guid))));
+                    return null;
+                }
+
+                Segment3D segment3D = new(space_1.Location, space_2.Location);
+
+                List<Tuple<Panel, double>> tuples_Score = candidates.ConvertAll(x => new Tuple<Panel, double>(x.Item1, TransferAirDoorPanelScore(x.Item1.GetFace3D(), segment3D)));
+
+                if (tuples_Score.Exists(x => double.IsNaN(x.Item2)))
+                {
+                    //Defensive only - every candidate passed TryTransferAirDoorGeometry, which already
+                    //established valid planar geometry. A panel that cannot be scored cannot be ranked.
+                    refusal = string.Format("{0} shared wall panels can each take the transfer door and the candidates could not be distinguished geometrically ({1}) - model the door in the intended wall, or resolve the partition so the two spaces share a single wall panel, and run again",
+                        candidates.Count,
+                        string.Join("; ", candidates.ConvertAll(x => string.Format("panel {0}", x.Item1.Guid))));
+                    return null;
+                }
+
+                double score_Min = tuples_Score.Min(x => x.Item2);
+                List<Tuple<Panel, double>> tuples_Best = tuples_Score.FindAll(x => System.Math.Abs(x.Item2 - score_Min) <= Core.Tolerance.Distance);
+
+                if (tuples_Best.Count == 1)
+                {
+                    panel_Selected = tuples_Best[0].Item1;
+                }
+                else
+                {
+                    //Geometric tie: prefer the SHORTER valid shared wall - the wall the door physically
+                    //fits more closely - and only where those are also the same length, the first of the
+                    //stable guid-sorted candidates. Both fallbacks are deterministic and independent of
+                    //creation and enumeration order; guid order is never consulted before host validity,
+                    //geometric relevance and wall length have all failed to distinguish.
+                    double length_Min = double.NaN;
+                    foreach (Tuple<Panel, double> tuple_Best in tuples_Best)
+                    {
+                        double length = WallLength(tuple_Best.Item1);
+                        if (double.IsNaN(length))
+                        {
+                            continue;
+                        }
+
+                        if (double.IsNaN(length_Min) || length < length_Min)
+                        {
+                            length_Min = length;
+                        }
+                    }
+
+                    List<Tuple<Panel, double>> tuples_Shortest = double.IsNaN(length_Min)
+                        ? tuples_Best
+                        : tuples_Best.FindAll(x => System.Math.Abs(WallLength(x.Item1) - length_Min) <= Core.Tolerance.Distance);
+
+                    panel_Selected = tuples_Shortest[0].Item1;
+                }
+
+                polygon3D_Door = candidates.Find(x => x.Item1.Guid == panel_Selected.Guid).Item2;
+
+                List<Tuple<Panel, double>> tuples_Other = tuples_Score.FindAll(x => x.Item1.Guid != panel_Selected.Guid);
+
+                string note_Reason;
+                if (tuples_Best.Count == 1)
+                {
+                    note_Reason = score_Min <= Core.Tolerance.Distance
+                        ? "the direct line between the two spaces passes through it"
+                        : string.Format("it lies closest to the direct line between the two spaces ({0:0.###} m away)", score_Min);
+                }
+                else
+                {
+                    double length_Selected = WallLength(panel_Selected);
+                    if (!double.IsNaN(length_Selected) && tuples_Best.Exists(x => x.Item1.Guid != panel_Selected.Guid && System.Math.Abs(WallLength(x.Item1) - length_Selected) > Core.Tolerance.Distance))
+                    {
+                        note_Reason = string.Format("the direct line between the two spaces passes the {0} candidate walls equally closely, and it is the shorter of them ({1:0.###} m)", tuples_Best.Count, length_Selected);
+                    }
+                    else
+                    {
+                        note_Reason = string.Format("the direct line between the two spaces passes the {0} candidate walls equally closely and they are the same length; panel {1} was selected as the stable first candidate", tuples_Best.Count, panel_Selected.Guid);
+                    }
+                }
+
+                note_Selection = string.Format("{0} shared wall panels could take the transfer door; it was created in panel {1} because {2}{3}",
+                    candidates.Count,
+                    panel_Selected.Guid,
+                    note_Reason,
+                    tuples_Other.Count == 0 ? string.Empty : string.Format(" ({0})", string.Join("; ", tuples_Other.ConvertAll(x => string.Format("panel {0} stands {1:0.###} m from that line", x.Item1.Guid, x.Item2)))));
+            }
 
             //An established construction or nothing. Substituting a manufactured one here would put a door
             //build-up into the model that no library, no specification and no engineer ever established,
@@ -331,7 +445,7 @@ namespace SAM.Analytical
             //trimGeometry false: the rectangle was built to fit the wall, and trimming a misfit would
             //silently shrink the door below the width the undercut requirement is read against. A door the
             //panel rejects is refused rather than adjusted.
-            List<Aperture> apertures = panel_Selected.AddApertures(apertureConstruction, candidates[0].Item2, false);
+            List<Aperture> apertures = panel_Selected.AddApertures(apertureConstruction, polygon3D_Door, false);
             if (apertures == null || apertures.Count == 0)
             {
                 refusal = string.Format("panel {0} rejected the door geometry", panel_Selected.Guid);
@@ -497,6 +611,171 @@ namespace SAM.Analytical
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// How directly a wall panel lies between two spaces: 0 where the segment joining the two space
+        /// locations passes through the panel, otherwise the distance between that segment and the panel.
+        /// Lower means the panel separates the spaces more directly, so the smallest score is the wall the
+        /// missing internal door belongs in. The panel is only read, never modified.
+        /// </summary>
+        private static double TransferAirDoorPanelScore(Face3D face3D, Segment3D segment3D)
+        {
+            if (face3D == null || segment3D == null)
+            {
+                return double.NaN;
+            }
+
+            //Degenerate segment: the two space locations coincide. The score is the distance of that
+            //single point from the panel REGION - the perpendicular offset where the point's projection
+            //onto the panel plane falls inside the panel, the distance to the panel's edge otherwise -
+            //so a point facing the middle of a large wall is not scored by how far the wall's edges are.
+            if (segment3D.GetLength() < Core.Tolerance.Distance)
+            {
+                return DistanceToPanel(face3D, segment3D[0]);
+            }
+
+            //The direct line between the spaces passes THROUGH the panel: that panel is the wall the two
+            //spaces meet through, and nothing can score lower than 0.
+            PlanarIntersectionResult planarIntersectionResult = Geometry.Spatial.Create.PlanarIntersectionResult(face3D, segment3D);
+            if (planarIntersectionResult != null && planarIntersectionResult.Intersecting)
+            {
+                return 0;
+            }
+
+            Plane plane = face3D.GetPlane();
+            if (plane == null)
+            {
+                return double.NaN;
+            }
+
+            //A wall genuinely between two spaces is crossed by the line joining their locations. Where
+            //that line runs parallel to the panel plane, the panel does not separate the two locations
+            //(they stand at the same perpendicular offset); such a panel can still take the door, so it
+            //is scored by how far it stands off the line - the perpendicular offset where the line's
+            //projection overlaps the panel, the distance to the panel's edge otherwise.
+            if (System.Math.Abs(plane.Normal.DotProduct(segment3D.Direction)) < Core.Tolerance.Distance)
+            {
+                double distance_Perpendicular = plane.Distance(segment3D[0]);
+                if (double.IsNaN(distance_Perpendicular))
+                {
+                    return double.NaN;
+                }
+
+                Segment3D segment3D_Projected = plane.Project(segment3D);
+                Face2D face2D = segment3D_Projected == null ? null : plane.Convert(face3D);
+                Segment2D segment2D = segment3D_Projected == null ? null : plane.Convert(segment3D_Projected);
+                if (face2D != null && segment2D != null)
+                {
+                    List<ISAMGeometry2D> geometry2Ds = Geometry.Planar.Query.Intersection<ISAMGeometry2D>(face2D, segment2D, Core.Tolerance.Distance);
+                    if (geometry2Ds != null && geometry2Ds.Count != 0)
+                    {
+                        return distance_Perpendicular;
+                    }
+                }
+
+                return (face3D.GetExternalEdge3D() as ISegmentable3D)?.Distance(segment3D) ?? double.NaN;
+            }
+
+            //The line crosses the panel plane at a point outside the panel: the panel stands as far off
+            //the direct path as that crossing point stands from the panel.
+            Point3D point3D_Intersection = Geometry.Spatial.Create.PlanarIntersectionResult(plane, segment3D)?.GetGeometry3D<Point3D>();
+            if (point3D_Intersection == null)
+            {
+                //The line crosses the panel plane BEYOND the bounded segment: the panel does not stand
+                //between the two locations, and the closest the segment comes to it is at its nearer
+                //endpoint. That stays a finite, rankable score - such a wall simply loses to any wall
+                //the direct line actually reaches.
+                return plane.Distance(segment3D[0]) <= plane.Distance(segment3D[1])
+                    ? DistanceToPanel(face3D, segment3D[0])
+                    : DistanceToPanel(face3D, segment3D[1]);
+            }
+
+            return DistanceToPanel(face3D, point3D_Intersection);
+        }
+
+        /// <summary>
+        /// The distance from a point to a wall panel region: the perpendicular offset where the point's
+        /// projection onto the panel plane falls inside the panel, the distance to the panel's edge
+        /// otherwise. 0 where the point lies on the panel itself. The panel is only read, never modified.
+        /// </summary>
+        private static double DistanceToPanel(Face3D face3D, Point3D point3D)
+        {
+            if (face3D == null || point3D == null)
+            {
+                return double.NaN;
+            }
+
+            Plane plane = face3D.GetPlane();
+            if (plane == null)
+            {
+                return double.NaN;
+            }
+
+            double distance_Perpendicular = plane.Distance(point3D);
+            if (double.IsNaN(distance_Perpendicular))
+            {
+                return double.NaN;
+            }
+
+            if (distance_Perpendicular <= Core.Tolerance.Distance)
+            {
+                //On the panel plane: the point is either inside the panel (0) or off to its side (the
+                //distance to the edge, which for a point on the plane is the exact region distance).
+                return face3D.Inside(point3D) ? 0 : (face3D.GetExternalEdge3D() as ISegmentable3D)?.Distance(point3D) ?? double.NaN;
+            }
+
+            //Off the panel plane: where the point faces the panel interior, the perpendicular offset IS
+            //the region distance - measuring to the edge instead would score a point facing the middle of
+            //a large wall by how far its edges are. Only where the projection falls outside the panel is
+            //the nearest region point on the edge.
+            Point3D point3D_Projected = plane.Project(point3D);
+            if (point3D_Projected != null && face3D.Inside(point3D_Projected))
+            {
+                return distance_Perpendicular;
+            }
+
+            return (face3D.GetExternalEdge3D() as ISegmentable3D)?.Distance(point3D) ?? double.NaN;
+        }
+
+        /// <summary>
+        /// The horizontal length [m] of a wall panel - the length of its bottom edge, the span the door's
+        /// sill sits along. NaN where the panel carries no usable geometry. Used only to break a geometric
+        /// tie between candidate walls: the shorter wall is the one the door fits more closely.
+        /// </summary>
+        private static double WallLength(Panel panel)
+        {
+            IClosedPlanar3D closedPlanar3D = panel?.GetFace3D()?.GetExternalEdge3D();
+            if (closedPlanar3D == null)
+            {
+                return double.NaN;
+            }
+
+            List<Point3D> point3Ds = (closedPlanar3D as ISegmentable3D)?.GetPoints();
+            if (point3Ds == null || point3Ds.Count == 0)
+            {
+                return double.NaN;
+            }
+
+            //The bottom edge of the wall: the edge the door stands on. Its length is the horizontal
+            //span of the panel.
+            double z_Min = point3Ds.Min(x => x.Z);
+            List<Point3D> point3Ds_Bottom = point3Ds.FindAll(x => System.Math.Abs(x.Z - z_Min) <= Core.Tolerance.Distance);
+
+            double result = 0;
+            for (int i = 0; i < point3Ds_Bottom.Count; i++)
+            {
+                for (int j = i + 1; j < point3Ds_Bottom.Count; j++)
+                {
+                    double distance = point3Ds_Bottom[i].Distance(point3Ds_Bottom[j]);
+                    if (distance > result)
+                    {
+                        result = distance;
+                    }
+                }
+            }
+
+            return result;
         }
 
         /// <summary>

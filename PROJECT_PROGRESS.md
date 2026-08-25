@@ -1,13 +1,113 @@
 # Project Progress
 
 ## Branch
-`feature/partf-terminal-transfer-compliance` (PR: SAM#73 against `sow/2026-Q3`)
+`feature/partf-transfer-door-panel-selection` (off `sow/2026-Q3`; PR #73 already merged). UNCOMMITTED —
+implementation and tests complete and reviewed-pending; do not push until reviewed.
 
 ## Last updated
-2026-08-20 - final pre-merge review pass: rounds 1-2 Codex backlog re-triaged against current source;
-three further correctness fixes applied; full suites re-run.
+2026-08-25 - transfer-door panel selection for split shared walls implemented, tested, ready for review.
 
-## Current status
+## Current status (this session)
+`Modify.AddTransferAirDoorsByPartF` no longer refuses a route just because two shared wall panels can each
+take the generated door. The host panel is resolved by a fixed selection hierarchy: host validity
+(`TryTransferAirDoorGeometry`, unchanged, always first) -> geometric relevance (the panel the direct line
+between the two space locations passes through scores 0, the others score the distance from that line) ->
+shorter valid shared wall (geometric ties within `Core.Tolerance.Distance`) -> the stable first candidate
+from the guid-sorted list (equal lengths within `Core.Tolerance.Distance`). A route is never refused merely
+because two candidates are equal; a space with no valid location (`Space.IsPlaced()` false - missing or
+NaN) still refuses cleanly because there is no valid primary geometric ranking. Selection is independent of
+candidate creation/enumeration order; guid order is the absolute final deterministic fallback only.
+Full `SAM.Tests`: **1354 passed, 0 failed** (Debug and Release; was 1344, +10 net).
+
+## Real-model acceptance run (SAM_zoningAM_v1.sam, 2026-08-05-PartO)
+Ran `AddTransferAirDoorsByPartF("Flats", ...)` against the ACTUAL model (9 spaces, 50 panels): **5 doors
+created, 0 refusals**, exactly one door per route, no duplicates.
+
+- **Studio 1_0 -> Bathroom_2**: candidates `7e09a798` (vertical, x=5, y in [5,10], 5 m) and `3e01ed80`
+  (horizontal, y=5, x in [5,10], 5 m) - the two legs of the L-shaped partition meeting at (5,5). The
+  centroid diagonal passes exactly through the corner: GEOMETRIC TIE, and both legs are the SAME length
+  (5 m), so the stable first candidate won: `3e01ed80` (horizontal partition). Door `b9517704` created,
+  centred at x=7.5. (The two legs are genuinely identical - only the documented final fallback separates
+  them.)
+- **Kitchen_4 -> Ensuite_5**: candidates `69de3fb5` (vertical, 5 m) and `fe27dac4` (horizontal, y=5,
+  x in [25,31], 6 m). Geometric winner `fe27dac4` (score 0 - crossed at x=25.75; the other stands 0.833 m
+  off). Door `80cd38c7` centred at x=28 - the horizontal partition from the screenshot.
+- **Kitchen_7 -> Ensuite_8**: same shape: geometric winner `ab1b0798` (horizontal, y=5, x in [46,52], 6 m;
+  other `b154e0b7` 0.833 m off). Door `d75ec2e5` centred at x=49.
+- Bedroom 2_3 -> Kitchen_4 and Bedroom 2_6 -> Kitchen_7 (single candidates) created as before.
+
+## Completed (this session)
+- `Modify.AddTransferAirDoorsByPartF`: the `candidates.Count > 1` refusal was replaced by the selection
+  hierarchy: host validity (`TryTransferAirDoorGeometry` / `Query.ApertureHost`, always first, unchanged) ->
+  geometric relevance (`TransferAirDoorPanelScore`: 0 where the centre segment passes through the panel,
+  otherwise the distance from the segment to the panel, with exact handling for degenerate segments and
+  segments parallel to the panel plane) -> shorter valid shared wall (`WallLength`, the bottom-edge length,
+  for geometric ties within `Core.Tolerance.Distance`) -> the stable first candidate from the guid-sorted
+  list (equal lengths within `Core.Tolerance.Distance`). A route is never refused merely because candidates
+  are geometrically and dimensionally equal. A concise `notes` entry names the chosen panel, the reason and
+  the rejected candidates' distances. Remaining refusals: unscoreable panel geometry (defensive), and a
+  space that is not `Space.IsPlaced()` (missing or NaN location) - no valid primary geometric ranking, so
+  no winner is ever manufactured from invalid geometry.
+- `SAMAnalyticalAddTransferAirDoorsByPartF` (GH): component description documents the selection hierarchy.
+- Codex review fixes (PR #74, both accepted):
+  - **P1 - no NaN refusal for walls beyond the segment.** A candidate whose plane the direct line crosses
+    only BEYOND the bounded segment used to score NaN and refuse the whole route. It now scores the finite
+    distance from its nearer endpoint to the panel region (`DistanceToPanel`) and simply loses.
+  - **P2 - coincident locations scored against the panel region.** A point facing the middle of a large
+    wall was scored by its distance to the wall's EDGES, overstating the offset; the score is now the
+    perpendicular offset where the projection falls inside the panel, edge distance only otherwise.
+    `DistanceToPanel(Face3D, Point3D)` is the single helper for both; the NaN guard in the selection block
+    is now truly defensive-only.
+- Tests (`PartFTransferAirDoorTests`, 25 total):
+  - `SplitWall_DirectLineCrossesOnePanel_DoorCreatedThere` [Theory, both creation orders]: door in the
+    crossed panel, other panel untouched, selection note present.
+  - `TwoParallelWalls_DifferentLengths_ShorterWallSelected` [Theory, both creation orders]: geometric tie,
+    10 m vs 4 m -> the 4 m wall wins in both orders.
+  - `TwoParallelWalls_EqualLengths_StableFirstCandidateSelected` [Theory, both creation orders]: geometric
+    tie, both 10 m -> the guid-first panel wins in both orders, "stable first candidate" reported.
+  - `SplitWall_DirectLineHitsTheJoint_StableFirstCandidateSelected`: joint crossing is a geometric tie,
+    equal 5 m lengths -> guid-first panel selected.
+  - `TwoSharedWalls_SpaceLocationInvalid_RefusedCleanly` [Theory, missing and NaN location]: still refused
+    with "no valid location", candidates untouched, no winner manufactured.
+  - `SplitWall_SecondCandidateBeyondTheLocations_DoorStillCreated` [Codex P1]: crossed wall wins, the
+    beyond-the-segment wall scores 2 m and loses, no refusal.
+  - `CoincidentLocations_ProjectionInsidePanel_ShorterPerpendicularWallWins` [Codex P2]: the wall whose
+    interior faces the point wins over a narrower wall whose edges are nearer.
+  - `ExampleModelFlatPairs_SplitSharedWalls_DoorLandsOnTheCrossedPanel`: reproduces the three reported pairs
+    (Flat 1 Studio 1_0->Bathroom_2, Flat 2 Kitchen_4->Ensuite_5, Flat 3 Kitchen_7->Ensuite_8) as split
+    walls; all 5 routes' doors land on the crossed panel.
+  - The previous "two walls both fit -> refuse" behaviour is gone by design; single-candidate behaviour is
+    unchanged.
+
+## Files changed
+- `SAM/SAM/SAM.Analytical/Modify/AddTransferAirDoorsByPartF.cs`
+- `SAM/SAM/SAM.Tests/PartFTransferAirDoorTests.cs`
+- `SAM/Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalAddTransferAirDoorsByPartF.cs`
+- `SAM/documentation/PartF-HANDOVER.md`
+- `SAM/PROJECT_PROGRESS.md` (this file)
+
+## Validation
+- `SAM.Analytical` Debug build: 0 errors.
+- Focused `PartFTransferAirDoorTests`: 25/25 passed.
+- Full `SAM.Tests` Debug: **1354 passed, 0 failed**. Full `SAM.Tests` Release: **1354 passed, 0 failed**.
+- `SAM.Analytical.Grasshopper` compiles with 0 CS errors; its post-build deploy step fails locally with the
+  pre-existing `::erase` quirk (environmental - CI uses `RunPostBuildEvent=OnOutputUpdated` and is green).
+- Real-model acceptance run re-checked after the Codex fixes: 5 doors, 0 refusals, same panel selections
+  as before.
+
+## Remaining ambiguity / open items
+- Flat 1's Studio->Bathroom pair is a true geometric AND dimensional tie (two identical 5 m legs of the
+  L-shaped partition, the centroid diagonal passing exactly through their corner): it is resolved only by
+  the documented final fallback (stable first candidate `3e01ed80`). Recorded here so it is not mistaken
+  for a geometric choice.
+- A space with no valid location (missing/NaN) still refuses cleanly in the multi-candidate branch; covered
+  by `TwoSharedWalls_SpaceLocationInvalid_RefusedCleanly`.
+- No commit/push yet - awaiting review.
+
+## Historical session notes (previous branch, merged as PR #73)
+`feature/partf-terminal-transfer-compliance` (PR: SAM#73 against `sow/2026-Q3`)
+
+## Current status (previous session - merged as PR #73)
 Eight Codex findings implemented with regression tests. The TAS availability schedule export has PASSED
 licensed acceptance (see below), so the Part O schedule foundation is proven end to end and the earlier
 acceptance-failure hypothesis is withdrawn. Three behaviour/policy findings are explicitly DEFERRED for a
