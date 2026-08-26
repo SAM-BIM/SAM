@@ -11,6 +11,7 @@ an unpushed local commit. Read §0 first, reconcile, then §1 and §5.
 |---|---|
 | Repos, branches, SHAs, PRs, what to do next | **this file** |
 | Approved Document F regulatory / calculation rules | [`PartF-ADF-Volume1-2021-Traceability.md`](PartF-ADF-Volume1-2021-Traceability.md) |
+| **Part O target architecture, iteration algorithms, what is and is not implemented** | [`PartO-ARCHITECTURE.md`](PartO-ARCHITECTURE.md) |
 | Real TAS / Part O / TM59 validation evidence | [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) |
 | Implementation history, closed findings, superseded designs | [`PartF-HANDOVER-ARCHIVE.md`](PartF-HANDOVER-ARCHIVE.md) — **history only, never state** |
 
