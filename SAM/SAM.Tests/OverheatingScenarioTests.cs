@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-or-later
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Analytical;
@@ -747,7 +747,12 @@ namespace SAM.Tests
         {
             //The exact membership, not a substring rule: "no member contains a zero" would also forbid a
             //perfectly good name and would still miss "Foundation".
-            Assert.Equal(["Undefined", "BasePassive", "AcousticRestricted", "ActiveTrimCooling"], Enum.GetNames(typeof(PartOIteration)));
+            //
+            //BaseNaturalVentilation is LAST rather than beside BasePassive, and this test is where that
+            //shows. Inserting it in reading order would renumber AcousticRestricted and ActiveTrimCooling,
+            //which are persisted; the key derives from the NAME, so the ordinal carries no engineering
+            //meaning and the two base configurations being far apart in this list means nothing about them.
+            Assert.Equal(["Undefined", "BasePassive", "AcousticRestricted", "ActiveTrimCooling", "BaseNaturalVentilation"], Enum.GetNames(typeof(PartOIteration)));
             Assert.Equal(["Undefined", "Dwelling", "CommonSpace"], Enum.GetNames(typeof(PartOAssessmentScope)));
 
             //Undefined is the default, so a scenario nobody filled in states no iteration rather than the

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-or-later
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Analytical.Enums;
@@ -84,6 +84,21 @@ namespace SAM.Analytical
                     //rate. Nothing has been added to mitigate overheating."
                     result.Set(OpeningsRestricted, false);
                     result.Set(MechanicalVentilationAtDesignRate, true);
+                    result.Set(BoostAvailable, false);
+                    result.Set(SummerBypassAvailable, false);
+
+                    return result;
+
+                case PartOIteration.BaseNaturalVentilation:
+                    //Iteration 1b. The same base provision as BasePassive on the opening side, and its
+                    //opposite on the mechanical side: there is no continuous mechanical supply or extract
+                    //to run at a design rate, because the route says the dwelling has none.
+                    //
+                    //MechanicalVentilationAtDesignRate = FALSE is the whole reason this member exists. It
+                    //is part of the derived scenario key, so it is not a display detail: it is the sentence
+                    //every result attributed to this iteration permanently asserts about the building.
+                    result.Set(OpeningsRestricted, false);
+                    result.Set(MechanicalVentilationAtDesignRate, false);
                     result.Set(BoostAvailable, false);
                     result.Set(SummerBypassAvailable, false);
 

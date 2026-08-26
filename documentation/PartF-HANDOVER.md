@@ -11,6 +11,7 @@ an unpushed local commit. Read §0 first, reconcile, then §1 and §5.
 |---|---|
 | Repos, branches, SHAs, PRs, what to do next | **this file** |
 | Approved Document F regulatory / calculation rules | [`PartF-ADF-Volume1-2021-Traceability.md`](PartF-ADF-Volume1-2021-Traceability.md) |
+| **Part O target architecture, iteration algorithms, what is and is not implemented** | [`PartO-ARCHITECTURE.md`](PartO-ARCHITECTURE.md) |
 | Real TAS / Part O / TM59 validation evidence | [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) |
 | Implementation history, closed findings, superseded designs | [`PartF-HANDOVER-ARCHIVE.md`](PartF-HANDOVER-ARCHIVE.md) — **history only, never state** |
 
@@ -22,21 +23,31 @@ finished while this file is behind the repositories.
 
 ## 0. Current repository state
 
-*Verified 2026-08-20. This table is the single authoritative record of repository state; nothing else in
+*Verified 2026-08-26. This table is the single authoritative record of repository state; nothing else in
 this file or the archive supersedes it.*
 
-**FIVE repos are in the workstream**, all on `feature/partf-terminal-transfer-compliance`, all with an open
-PR against `sow/2026-Q3`. **`sow/2026-Q3` is never committed to directly** and is untouched everywhere.
+**TWO repos are in flight.** The Part F terminal/transfer work merged everywhere; the live work is Part O.
+**`sow/2026-Q3` is never committed to directly** and is untouched everywhere.
 
-| Repo | Last CODE commit | HEAD | Cut from | PR |
+| Repo | Branch | Last CODE commit | Cut from | PR |
 |---|---|---|---|---|
-| `SAM` | **`2c7bb26f`** | that, plus documentation commit(s) on top | `sow/2026-Q3` @ `34dea440` | [SAM#73](https://github.com/SAM-BIM/SAM/pull/73) |
-| `SAM_Systems` | **`4446bb8`** | `618fc74` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `d7303c2` | [SAM_Systems#14](https://github.com/SAM-BIM/SAM_Systems/pull/14) |
-| `SAM_UI` | **`fcf0ec8`** | `2a0d480` — base-sync merge, first parent is the pin | `sow/2026-Q3` @ `074f3d9` | [SAM_UI#75](https://github.com/SAM-BIM/SAM_UI/pull/75) |
-| `SAM_Tas` | **`5923812`** | exactly `5923812` | `sow/2026-Q3` @ `3d58bfe` | [SAM_Tas#29](https://github.com/SAM-BIM/SAM_Tas/pull/29) |
-| `SAM_Tas_Grasshopper` | **`ebdf0bcd`** | exactly `ebdf0bcd` | `sow/2026-Q3` @ `9555aa1` | [SAM_Tas_Grasshopper#4](https://github.com/SAM-BIM/SAM_Tas_Grasshopper/pull/4) |
+| `SAM` | `feature/parto-nv-workflow` | **`d161024a`** | `sow/2026-Q3` @ `907c0441` | [SAM#76](https://github.com/SAM-BIM/SAM/pull/76) |
+| `SAM_Tas` | `feature/parto-nv-workflow` | **`edcccc94`** | `sow/2026-Q3` @ `ab5525c6` | [SAM_Tas#43](https://github.com/SAM-BIM/SAM_Tas/pull/43) |
 
-**Two row corrections made in this checkpoint**, both verified against the repositories, not assumed:
+The other three are **idle on `sow/2026-Q3` with nothing in flight**, their Part F PRs merged:
+`SAM_Systems` @ `208379d` (PR #14 merged), `SAM_UI` @ `43564e6` (PR #75 merged),
+`SAM_Tas_Grasshopper` @ `01508b8` (PR #4 merged). Nothing this session touched them.
+
+**Where to start reading for the Part O work:**
+[`PartO-ARCHITECTURE.md`](PartO-ARCHITECTURE.md) for what is being built and what is deliberately not,
+then `SAM/PROJECT_PROGRESS.md` for this checkpoint, then
+[`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) §"Iteration 1b" for the licensed evidence.
+
+### Superseded row corrections, kept for the record
+
+The 2026-08-20 checkpoint recorded two corrections against the then-live
+`feature/partf-terminal-transfer-compliance` rows, which that table has since outlived. Both were verified
+against the repositories at the time, not assumed:
 
 - **`SAM_Tas_Grasshopper` was a stale pin.** The table said last code `32f2763`, HEAD `f3ee1ba`. `f3ee1ba`
   (the `sow/2026-Q3` base-sync merge) is an **ancestor** of the real HEAD `ebdf0bcd`, with three code
@@ -63,20 +74,18 @@ exactly the state this file exists to prevent. Verify all three:
 3. **every change between that SHA and HEAD touches only documentation.**
 
 ```bash
-for r in SAM SAM_Systems SAM_UI SAM_Tas SAM_Tas_Grasshopper; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/partf-terminal-transfer-compliance; done
+for r in SAM SAM_Tas; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/parto-nv-workflow; done
 ```
 
 ```bash
-while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 2c7bb26f
-SAM_Systems 4446bb8
-SAM_UI fcf0ec8
-SAM_Tas 5923812
-SAM_Tas_Grasshopper ebdf0bcd
+while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|documentation/PartO-ARCHITECTURE\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
+SAM d161024a
+SAM_Tas edcccc94
 EOF
 ```
 
-That must print exactly **five** `descends from` lines and nothing else. **Any `UNRECORDED CODE:` or
+That must print exactly **two** `descends from` lines and nothing else. The three idle repos are checked by
+confirming they are still on `sow/2026-Q3` and clean; there is nothing in flight in them to lose. **Any `UNRECORDED CODE:` or
 `DOES NOT CONTAIN` line means stop and reconcile before changing any code.**
 
 **Two reconciliation lessons worth keeping** (the incidents themselves are in the archive, where the check
