@@ -31,8 +31,20 @@ this file or the archive supersedes it.*
 
 | Repo | Branch | Last CODE commit | Cut from | PR |
 |---|---|---|---|---|
-| `SAM` | `feature/parto-nv-workflow` | **`d161024a`** | `sow/2026-Q3` @ `907c0441` | [SAM#76](https://github.com/SAM-BIM/SAM/pull/76) |
-| `SAM_Tas` | `feature/parto-nv-workflow` | **`edcccc94`** | `sow/2026-Q3` @ `ab5525c6` | [SAM_Tas#43](https://github.com/SAM-BIM/SAM_Tas/pull/43) |
+| `SAM` | `feature/parto-base-mvhr` | **`492f1c84`** | `sow/2026-Q3` @ `1db06e83` | not opened |
+| `SAM_Tas` | `feature/parto-base-mvhr` | **`4f70f08d`** | `sow/2026-Q3` @ `1b3add6a` | not opened |
+
+The previous Part O branches merged: `SAM` [#76](https://github.com/SAM-BIM/SAM/pull/76) and `SAM_Tas`
+[#43](https://github.com/SAM-BIM/SAM_Tas/pull/43), both `feature/parto-nv-workflow`, both Iteration 1b.
+
+**Iteration 1a is committed and NOT accepted.** The design chain is proven end to end into the TBD and the
+annual simulation of that TBD is blocked. Read
+[`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) § *Iteration 1a / Base MVHR — licensed acceptance
+(2026-08-26): PARTIAL* before doing anything with it. The block is isolated to
+`SAM.Analytical.Tas.Modify.UpdateIZAMs`: TAS refuses to simulate a file containing the zone-to-zone
+inter-zone air movements it writes, while the same file with those movements removed simulates the full
+year. That path had never run before — `Modify.AddAirMovementObjects(AnalyticalModel)` works on a *copy* of
+the adjacency cluster, so no SAM model has ever carried a `SpaceAirMovement` into a workflow.
 
 The other three are **idle on `sow/2026-Q3` with nothing in flight**, their Part F PRs merged:
 `SAM_Systems` @ `208379d` (PR #14 merged), `SAM_UI` @ `43564e6` (PR #75 merged),
