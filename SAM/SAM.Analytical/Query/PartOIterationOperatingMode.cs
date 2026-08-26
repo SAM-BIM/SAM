@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-or-later
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Analytical.Enums;
@@ -47,6 +47,15 @@ namespace SAM.Analytical
             {
                 case PartOIteration.BasePassive:
                     return PartFOperatingMode.ContinuousDesign;
+
+                case PartOIteration.BaseNaturalVentilation:
+                    //Not a refusal that anything is wrong - a statement that the question does not apply.
+                    //An Approved Document F operating condition says which continuous mechanical rate to
+                    //simulate at, and Iteration 1b simulates no continuous mechanical rate at all. The
+                    //preparation never asks on this route; a direct caller that does gets told why rather
+                    //than being handed ContinuousDesign, which would read as "apply the System 4 rates".
+                    refusal = "The BaseNaturalVentilation iteration applies no continuous mechanical supply or extract, so it has no Approved Document F operating condition to be simulated at. Ask Query.PartOIterationVentilationMode instead - the answer there is NaturalVentilation.";
+                    return null;
 
                 case PartOIteration.AcousticRestricted:
                     refusal = "The AcousticRestricted iteration states that boost is AVAILABLE, not that it runs continuously, so which Approved Document F condition it should be simulated at is not settled. Simulating a whole season at the Table 1.2 high rate is a much more favourable claim than making boost available to a control strategy, and the difference is an engineering decision rather than a mapping. Confirm it before assessing this stage.";

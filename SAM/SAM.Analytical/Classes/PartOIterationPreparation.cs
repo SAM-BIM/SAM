@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-or-later
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Analytical.Enums;
@@ -39,8 +39,20 @@ namespace SAM.Analytical
         public PartOOpeningCompatibility OpeningCompatibility { get; internal set; }
 
         /// <summary>
+        /// The Approved Document O ventilation route the assessment settled on, or
+        /// <see cref="PartOVentilationMode.Undefined"/> where it settled on none - in which case
+        /// <see cref="Refusal"/> is set and nothing was prepared.
+        /// <para>
+        /// <b>This is the fact every other decision on this result follows from</b>, and it is on the
+        /// result so a caller can see what was believed rather than inferring it from the airflow answer.
+        /// It is what the assessment STATED, never what any system object on the model says.
+        /// </para>
+        /// </summary>
+        public PartOVentilationMode VentilationMode { get; internal set; }
+
+        /// <summary>
         /// Whether the Approved Document F continuous mechanical airflows were carried onto the model, and
-        /// why not where they were not.
+        /// why not where they were not. A function of <see cref="VentilationMode"/> alone.
         /// </summary>
         public PartOPartFAirflowApplication AirflowApplication { get; internal set; }
 

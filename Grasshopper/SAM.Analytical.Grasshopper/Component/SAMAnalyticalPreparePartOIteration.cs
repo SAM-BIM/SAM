@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-or-later
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using Grasshopper.Kernel;
@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.2";
+        public override string LatestComponentVersion => "1.0.3";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -41,43 +41,54 @@ namespace SAM.Analytical.Grasshopper
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
         private const string description = @"
-Prepares a Part-F-sized AnalyticalModel for one Approved Document O mitigation stage (iteration), and states the overheating scenarios for it.
+Prepares a Part-F-sized AnalyticalModel for one Approved Document O BASE iteration, and states the overheating scenarios for it.
 
 WHERE THIS SITS
 AnalyticalModel
   -> SAMAnalytical.AddVentilationPropertiesByPartF (or CheckPartFCompliance)   [sizes the dwelling]
-  -> THIS COMPONENT                                                            [applies the rates, states the stage]
+  -> THIS COMPONENT                                                            [settles the route, applies the rates, states the stage]
   -> To gbXML -> SAMAnalytical.WorkflowgbXML (Simulation = true)                [existing TSD simulation]
   -> Tas.TSDQueryTM59Results, with overheatingScenarios_ connected              [TM59 assessment]
 
+THE TWO BASE ITERATIONS ARE ALTERNATIVES, NOT STEPS
+- BasePassive             = Iteration 1a, the base MVHR configuration.
+- BaseNaturalVentilation  = Iteration 1b, the base natural ventilation configuration.
+A dwelling is assessed at ONE OR THE OTHER according to its ventilation route. Only AcousticRestricted onwards is further mitigation. (BasePassive is the historical name for what the architecture calls BaseMVHR; it is not renamed because the name is inside the permanent scenario key.)
+
+THE VENTILATION ROUTE IS EXPLICIT, AND IT IS THE AUTHORITY
+_ventilationStrategies states the Part O route per zone. Two routes exist: NV / NaturalVentilation, and MVHR / MVRE. Anything else REFUSES - MV (mechanical, but which mechanical?), UV (a corridor criterion, not a dwelling route), an unrecognised word, an empty panel, and zones that disagree with each other. There is deliberately no fallback: the rule 'anything that is not NV is mechanical' is what wrote Approved Document F System 4 supply and extract into naturally ventilated dwellings.
+Nothing on the model decides the route, and nothing on the model is rewritten to force it. A SAM_System, a SystemTemplate or an InternalCondition.VentilationSystemTypeName is metadata that may be stale, may predate the assessment and may describe a different design stage. It is evidence, never authority.
+
 WHAT IT DOES
-0. Reads the ventilation strategy the assessed zones state, and decides from it whether the Part F CONTINUOUS MECHANICAL airflows belong on this model at all. Every assessed zone NV: nothing is applied, and that is said in notes. Every assessed zone mechanical: applied, exactly as before. A mix of the two: REFUSED, naming each zone and its strategy - the airflow application is whole-model, so applying would put mechanical supply and extract into the naturally ventilated zones and skipping would strip the mechanically ventilated ones of the rates they are sized for.
-1. Reads each space's Part F Space Data - it does NOT size anything. Run a Part F component first.
-2. Works out which Approved Document F condition the stage runs at. BasePassive is the continuous design condition, which is the Approved Document F sizing case.
-3. Writes that condition's supply and extract onto each sized space, in m3/s, so Query.CalculatedSupplyAirFlow and the TAS export can see them. Until now the Part F numbers were reporting only: the simulation never read them.
-4. REPORTS how the model's opening behaviour compares with the stage's 'Openings Restricted' assumption. It changes no opening data, and it does not block: opening restriction is authored building data (AddOpeningPropertiesByPartO records only THAT an opening is restricted, never WHY), so a base case may legitimately mix restricted and unrestricted openings. Rewriting a restriction to match the stage would simulate a building nobody described AND delete that aperture's availability schedule downstream, because PartOOpeningProperties.Schedule is DERIVED from the restriction rather than stored beside it. A NightClosed aperture therefore reaches the TAS aperture-control write with its PartO_DayOpen_HH_HH schedule intact.
+0. Settles the Part O ventilation route from what the assessed zones state, and refuses if they do not settle on exactly one.
+1. Checks that route against the iteration. BasePassive is defined over MVHR and BaseNaturalVentilation over NaturalVentilation; a mismatch REFUSES, because an iteration's operating assumptions are part of the permanent scenario identity and the pairing would file a true result under a false claim.
+2. On the NaturalVentilation route: applies NOTHING. No continuous mechanical supply, no continuous mechanical extract. The Part F sizing stays on the model, unread.
+3. On the MVHR route: reads each space's Part F Space Data - it does NOT size anything - works out which Approved Document F condition the stage runs at, and writes that condition's supply and extract onto each sized space in m3/s, so Query.CalculatedSupplyAirFlow and the TAS export can see them.
+4. REPORTS how the model's opening behaviour compares with the stage's 'Openings Restricted' assumption. It changes no opening data and it does not block: opening restriction is authored building data, and rewriting a restriction to match the stage would simulate a building nobody described AND delete that aperture's availability schedule downstream, because PartOOpeningProperties.Schedule is DERIVED from the restriction rather than stored beside it. A NightClosed aperture therefore reaches the TAS aperture-control write with its PartO_DayOpen_HH_HH schedule intact.
 5. States one OverheatingScenario per zone at that iteration.
 
-TWO THINGS IT DOES DELIBERATELY, AND REPORTS
+TWO THINGS THE MVHR ROUTE DOES DELIBERATELY, AND REPORTS
 - Part F becomes the AUTHORITATIVE rate. CalculatedSupplyAirFlow SUMS SupplyAirFlow with the per-person, per-area and air-changes bases, so a Part F rate written beside an existing one would ADD to it and over-ventilate the room. The other bases are cleared and every space where something was displaced is listed in notes.
 - Each sized space gets its OWN internal condition. Part F rates are per room but internal conditions are routinely shared, so writing in place would let one bedroom's rate overwrite another's. Clones are named after the space.
-
 A wet room receives its extract and an explicit ZERO supply: under the balanced MVHR arrangement Part F sizes, its make-up air is transfer air through the internal door.
 
-WHAT 'NO MECHANICAL AIRFLOW APPLIED' MEANS FOR AN NV DWELLING
-It means SAM has NOT invented an MVHR/MVRE system for a dwelling nobody said had one. Part F sizing is unconditionally System 4 shaped - paragraph 1.67 gives every habitable room a mechanical supply terminal whatever the dwelling's actual strategy - so carrying those rates onto an NV dwelling simulates a building that does not exist, successfully and with no diagnostic. That is the failure this gate closes.
-It does NOT mean the dwelling's natural-ventilation Part F design has been sized. System 1 background/trickle ventilator sizing and purge provision are NOT calculated here. Do not report this as 'Part F NV sizing'.
-Wet room INTERMITTENT extract is untouched either way: it is already outside the balanced continuous totals, so it was never part of what is applied.
+WHAT 'NO MECHANICAL AIRFLOW APPLIED' MEANS ON THE NV ROUTE
+It means SAM has NOT invented an MVHR/MVRE system for a dwelling nobody said had one. Part F sizing is unconditionally System 4 shaped - paragraph 1.67 gives every habitable room a mechanical supply terminal whatever the dwelling's actual route - so carrying those rates onto an NV dwelling simulates a building that does not exist, successfully and with no diagnostic. That is the failure this gate closes.
+It does NOT mean the dwelling's natural-ventilation Part F design has been sized. System 1 background/trickle ventilator sizing and purge provision are NOT calculated here or anywhere. Do not report this as 'Part F NV sizing'.
+
+WET-ROOM INTERMITTENT EXTRACT
+Untouched on both routes, and deliberately not modelled as runtime behaviour. SAM carries the Table 1.1 rate on PartFCategory but reads it nowhere; the kitchen intermittent terminal is already outside the balanced continuous totals; nothing anywhere carries a schedule or control saying WHEN an intermittent extract runs; and the TAS export has no exhaust write path at all. The rate is preserved as data. Turning an intermittent design rate into a continuous 24/7 extract flow is exactly the failure this component exists to prevent.
 
 ITERATIONS
-- BasePassive        - continuous design condition. Available.
-- AcousticRestricted - REFUSED. Its assumptions say boost is AVAILABLE, not continuous, and simulating a whole season at the Table 1.2 high rate is a much more favourable claim than making boost available to a control strategy. That is an engineering decision, not a mapping.
-- ActiveTrimCooling  - REFUSED, not characterised yet.
+- BasePassive             - Iteration 1a. Continuous design condition. Requires the MVHR route.
+- BaseNaturalVentilation  - Iteration 1b. No continuous mechanical airflow. Requires the NaturalVentilation route.
+- AcousticRestricted      - REFUSED. Its assumptions say boost is AVAILABLE, not continuous, and simulating a whole season at the Table 1.2 high rate is a much more favourable claim than making boost available to a control strategy. That is an engineering decision, not a mapping.
+- ActiveTrimCooling       - REFUSED, not characterised yet.
 
 WHAT IT STILL DOES NOT DO
 - It does not size natural ventilation. See above.
-- It does not apply Part F airflow per zone. A model mixing NV and mechanical zones is refused rather than half-applied; a per-zone application is a separate change with its own transfer-air and balance consequences.
-- It does not select or apply a ventilation SYSTEM object. The capability selection exists but has no production caller yet.
+- It does not select an MVHR unit. Iteration 1a's equipment selection is not implemented: the Part F requirement is applied, but no physical unit is chosen against it, and a unit's capacity would never be the source of that requirement.
+- It does not apply Part F airflow per zone. A model mixing routes is refused rather than half-applied; a per-zone application is a separate change with its own transfer-air and balance consequences.
 - It does not author, reset or otherwise change a restriction (Unrestricted/NightClosed/AlwaysClosed) on any aperture - that stays the modeller's job, via SAMAnalytical.AddOpeningPropertiesByPartO's restriction_. It only reports.
 - It does not guess at opening behaviour it cannot classify. An opening authored through the legacy general-valued profiles_ carrier states availability in a form that has no deterministic reading as restricted or unrestricted; that is reported as UNKNOWN rather than assumed unrestricted, because assuming is how a restricted opening ends up labelled as an unrestricted one.
 - KNOWN LIMITATION, being fixed separately: the 'Openings Restricted' assumption is stated by the STAGE, when opening behaviour is really a property of the MODEL and orthogonal to the mitigation stage. That is why a disagreement is a warning here rather than a refusal - blocking on an assumption that is itself wrong would refuse exactly the models this component exists to prepare.
@@ -100,13 +111,13 @@ WHAT IT STILL DOES NOT DO
                 List<GH_SAMParam> result = [];
                 result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "_analyticalModel", NickName = "_analyticalModel", Description = "SAM AnalyticalModel whose spaces already carry Part F Space Data. Run SAMAnalytical.AddVentilationPropertiesByPartF or SAMAnalytical.CheckPartFCompliance first.\n\nThe model you supply is not modified; an updated copy is returned.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
 
-                global::Grasshopper.Kernel.Parameters.Param_String @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_partOIteration", NickName = "_partOIteration", Description = "Part O mitigation stage. BasePassive is the only stage with a settled operating condition.", Access = GH_ParamAccess.item };
+                global::Grasshopper.Kernel.Parameters.Param_String @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_partOIteration", NickName = "_partOIteration", Description = "Part O base iteration. BasePassive (1a) requires the MVHR route; BaseNaturalVentilation (1b) requires the NaturalVentilation route. They are alternatives, not successive stages. AcousticRestricted and ActiveTrimCooling are not characterised yet and refuse.", Access = GH_ParamAccess.item };
                 @string.SetPersistentData(PartOIteration.BasePassive.ToString());
                 result.Add(new GH_SAMParam(@string, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "zones_", NickName = "zones_", Description = "Zones to state scenarios for. Leave unconnected to use every zone in the model.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
 
-                @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_ventilationStrategies", NickName = "_ventilationStrategies", Description = "Ventilation strategy per zone: NV, MV, MVRE or UV. One value applies to every zone. Required - never defaulted.", Access = GH_ParamAccess.list };
+                @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_ventilationStrategies", NickName = "_ventilationStrategies", Description = "Part O ventilation route per zone: NV / NaturalVentilation, or MVHR / MVRE. One value applies to every zone. Required - never defaulted, and never inferred from a system object on the model.\n\nAnything else REFUSES, including MV and UV. There is no fallback: an unstated route read as mechanical writes Approved Document F System 4 supply and extract into a dwelling that may have none.", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(@string, ParamVisibility.Binding));
 
                 return [.. result];
@@ -122,6 +133,7 @@ WHAT IT STILL DOES NOT DO
             {
                 List<GH_SAMParam> result = [];
                 result.Add(new GH_SAMParam(new GooAnalyticalModelParam() { Name = "analyticalModel", NickName = "analyticalModel", Description = "Updated copy with the Part F rates on each sized space's own internal condition. Feed this to To gbXML.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "ventilationMode", NickName = "ventilationMode", Description = "The Part O ventilation route the assessed zones settled on - NaturalVentilation or MVHR. Every other output follows from it, and it is what the assessment STATED, not what any system object on the model says.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "overheatingScenarios", NickName = "overheatingScenarios", Description = "Scenarios for this iteration. Feed into Tas.TSDQueryTM59Results overheatingScenarios_.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "spaces", NickName = "spaces", Description = "Every space of the updated model, to align the airflow outputs against.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "supply m3/s", NickName = "supply m3/s", Description = "APPLIED supply air flow per space [m3/s], read back through Query.CalculatedSupplyAirFlow - the value the simulation will actually use. Matches the spaces output item for item.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
@@ -223,13 +235,13 @@ WHAT IT STILL DOES NOT DO
                 index = Params.IndexOfInputParam("_ventilationStrategies");
                 if (index == -1 || !dataAccess.GetDataList(index, ventilationStrategies) || ventilationStrategies.Count == 0)
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "A ventilation strategy is required for every zone - NV, MV, MVRE or UV. It is not defaulted, because a silent default assessed a mechanically ventilated dwelling against the natural-ventilation criterion.");
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "A Part O ventilation route is required for every zone - NV / NaturalVentilation, or MVHR / MVRE. It is not defaulted: a silent default assessed a mechanically ventilated dwelling against the natural-ventilation criterion, and an unstated route read as mechanical writes Approved Document F System 4 airflow into a dwelling that may have none.");
                     return;
                 }
 
                 if (ventilationStrategies.Count != 1 && ventilationStrategies.Count != zones.Count)
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("{0} ventilation strategies were supplied for {1} zones. Supply one value to apply to every zone, or exactly one per zone.", ventilationStrategies.Count, zones.Count));
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("{0} ventilation routes were supplied for {1} zones. Supply one value to apply to every zone, or exactly one per zone.", ventilationStrategies.Count, zones.Count));
                     return;
                 }
 
@@ -274,6 +286,12 @@ WHAT IT STILL DOES NOT DO
             if (index != -1)
             {
                 dataAccess.SetData(index, new GooAnalyticalModel(analyticalModel_Applied));
+            }
+
+            index = Params.IndexOfOutputParam("ventilationMode");
+            if (index != -1)
+            {
+                dataAccess.SetData(index, partOIterationPreparation.VentilationMode.ToString());
             }
 
             index = Params.IndexOfOutputParam("overheatingScenarios");

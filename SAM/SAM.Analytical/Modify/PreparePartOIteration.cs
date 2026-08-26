@@ -10,22 +10,46 @@ namespace SAM.Analytical
     public static partial class Modify
     {
         /// <summary>
-        /// Prepares a model for one Approved Document O mitigation stage: decides whether the Approved
-        /// Document F airflows belong on it, carries them where they do, reports how the model's authored
-        /// opening behaviour compares with the stage, and states the scenarios the results are attributed to.
+        /// Prepares a model for one Approved Document O base iteration: settles the ventilation route the
+        /// assessment is being made over, decides from that route whether the Approved Document F airflows
+        /// belong on the model, carries them where they do, reports how the model's authored opening
+        /// behaviour compares with the stage, and states the scenarios the results are attributed to.
         /// <para>
         /// <b>This is the whole preparation, in the library.</b>
         /// <c>SAMAnalytical.PreparePartOIteration</c> reads Grasshopper parameters and raises Grasshopper
         /// messages; every decision it used to make inline is made here, so the decisions are testable
         /// without a Grasshopper assembly and the component and the tests cannot drift apart.
         /// </para>
+        ///
+        /// <para><b>The order of the four gates, and why it is that order</b></para>
+        /// <list type="number">
+        /// <item>
+        /// <b>The route the assessment states.</b> <see cref="Enums.PartOVentilationMode"/>, resolved from
+        /// what the assessed zones state and from nothing else. Settled first because it is the fact every
+        /// later decision depends on, and because reaching the airflow application without it is the defect
+        /// this whole design closes.
+        /// </item>
+        /// <item>
+        /// <b>The route the iteration is defined over.</b> An iteration is not neutral about how the
+        /// dwelling is ventilated - its operating assumptions go into the permanent scenario key - so a
+        /// stage and a route that disagree produce a true simulation filed under a false claim.
+        /// </item>
+        /// <item>
+        /// <b>Whether the Part F airflows belong on the model</b>, which on the MVHR route additionally
+        /// needs the Approved Document F condition the stage runs at.
+        /// </item>
+        /// <item>
+        /// <b>How the authored openings compare with the stage.</b> Reported, never acted on.
+        /// </item>
+        /// </list>
+        ///
         /// <para>
-        /// <b>The ventilation strategy gates the airflow.</b> <c>PartFCalculator</c> is unconditionally
-        /// System 4 shaped - paragraph 1.67 gives every habitable room a mechanical supply terminal, with no
-        /// input for how the dwelling is actually ventilated - so applying its rates to a naturally
-        /// ventilated dwelling simulates an MVHR system nobody described, successfully and silently. See
-        /// <see cref="Query.PartOPartFAirflowApplication(IEnumerable{Zone}, Dictionary{Guid, string}, out string)"/>
-        /// for the decision and <see cref="PartOPartFAirflowApplication"/> for what each answer means.
+        /// <b>The route is stated, never inferred, and never written.</b> No <c>SAM_System</c>,
+        /// <c>SystemTemplate</c> or <c>InternalCondition.VentilationSystemTypeName</c> on the model is read
+        /// to decide what is simulated - they are metadata that may be stale, may predate the assessment,
+        /// and may describe a different design stage. Nor is any of them mutated to force a route: that
+        /// would put the decision straight back into the metadata it was taken out of, and would make the
+        /// model on disk a lie about the building. See <c>documentation/PartO-ARCHITECTURE.md</c>.
         /// </para>
         /// <para>
         /// <b>The model is never rewritten to fit the stage.</b> An <c>OpeningRestriction</c> is authored
@@ -37,16 +61,18 @@ namespace SAM.Analytical
         /// <param name="analyticalModel">
         /// The model to prepare. <b>Not modified</b> - a prepared copy is returned on the result.
         /// </param>
-        /// <param name="partOIteration">The mitigation stage being prepared.</param>
+        /// <param name="partOIteration">
+        /// The base iteration being prepared - <c>BasePassive</c> (1a, MVHR) or
+        /// <c>BaseNaturalVentilation</c> (1b). These are alternatives, not successive stages.
+        /// </param>
         /// <param name="zones">
         /// The zones to assess, already resolved against <paramref name="analyticalModel"/>. Null means
         /// every zone the model carries; an empty sequence means the caller named zones and none of them
-        /// resolved, which states no scenarios rather than quietly assessing the whole building.
+        /// resolved. Either way, no assessed zone means no stated route, which refuses.
         /// </param>
         /// <param name="dictionary_VentilationStrategy">
-        /// The strategy each assessed zone states, by zone guid - <c>NV</c>, <c>MV</c>, <c>MVRE</c>,
-        /// <c>UV</c>. Required, never defaulted: a silent default assessed a mechanically ventilated
-        /// dwelling against the natural-ventilation criterion.
+        /// The Part O ventilation route each assessed zone states, by zone guid - <c>NV</c> /
+        /// <c>NaturalVentilation</c>, or <c>MVHR</c> / <c>MVRE</c>. Required, never defaulted.
         /// </param>
         public static PartOIterationPreparation PreparePartOIteration(this AnalyticalModel analyticalModel, PartOIteration partOIteration, IEnumerable<Zone> zones, Dictionary<Guid, string> dictionary_VentilationStrategy)
         {
@@ -59,21 +85,10 @@ namespace SAM.Analytical
                 return result;
             }
 
-            //The join between the two documents: which Approved Document F condition this stage runs at. A
-            //stage with no settled condition refuses rather than being simulated at whichever rate happens
-            //to be handy.
-            PartFOperatingMode? partFOperatingMode = partOIteration.PartOIterationOperatingMode(out string refusal_OperatingMode);
-            if (!partFOperatingMode.HasValue)
-            {
-                result.Refusal = refusal_OperatingMode;
-
-                return result;
-            }
-
-            //Resolved off the SUPPLIED model rather than the applied one, because the airflow decision needs
-            //the strategies before the airflow is applied. The airflow application never adds, removes or
-            //re-guids a zone - it only replaces spaces - so the two sets are the same set, and the scenarios
-            //below are still stated over zone objects taken from the model that will be simulated.
+            //Resolved off the SUPPLIED model rather than the applied one, because the route has to be known
+            //before anything is applied. The airflow application never adds, removes or re-guids a zone -
+            //it only replaces spaces - so the two sets are the same set, and the scenarios below are still
+            //stated over zone objects taken from the model that will be simulated.
             List<Zone> zones_Assessed = [];
             if (zones == null)
             {
@@ -90,18 +105,51 @@ namespace SAM.Analytical
                 }
             }
 
-            result.AirflowApplication = Query.PartOPartFAirflowApplication(zones_Assessed, dictionary_VentilationStrategy, out string diagnostic_Airflow);
+            // ---- 1. The route the assessment states -----------------------------------------------------
 
-            //Refused BEFORE anything is applied, and with no model on the result. Continuing here is
-            //materially different from continuing past an opening-restriction disagreement: that one only
-            //mislabels which assumption a true result was obtained under, while this one would put
-            //continuous mechanical supply and extract into a dwelling that has none.
-            if (result.AirflowApplication == PartOPartFAirflowApplication.RefuseMixed)
+            result.VentilationMode = Query.PartOVentilationMode(zones_Assessed, dictionary_VentilationStrategy, out string refusal_VentilationMode);
+
+            result.AirflowApplication = Query.PartOPartFAirflowApplication(result.VentilationMode, out string diagnostic_Airflow);
+
+            if (result.VentilationMode == Enums.PartOVentilationMode.Undefined)
             {
-                result.Refusal = diagnostic_Airflow;
+                //Refused BEFORE anything is applied, and with no model on the result. Continuing here is
+                //materially different from continuing past an opening-restriction disagreement: that one
+                //only mislabels which assumption a true result was obtained under, while this one would put
+                //continuous mechanical supply and extract into a dwelling that may have none.
+                result.Refusal = refusal_VentilationMode;
 
                 return result;
             }
+
+            // ---- 2. The route the iteration is defined over ---------------------------------------------
+
+            PartOVentilationMode partOVentilationMode_Iteration = partOIteration.PartOIterationVentilationMode(out string refusal_Iteration);
+
+            if (partOVentilationMode_Iteration == Enums.PartOVentilationMode.Undefined)
+            {
+                result.Refusal = refusal_Iteration;
+
+                return result;
+            }
+
+            if (partOVentilationMode_Iteration != result.VentilationMode)
+            {
+                //Not a formality. The iteration's operating assumptions are part of the derived
+                //OverheatingScenario.Key, so this pairing would not merely be confusing - it would mint a
+                //permanent identity asserting something false about the building, and every result ever
+                //attributed to that key would carry the assertion with it.
+                result.Refusal = string.Format(
+                    "The {0} iteration is the base configuration for the {1} route, but the assessed zones state {2}. These are alternative base configurations of the same dwelling, not successive stages, so one of the two statements is wrong. Assess a {2} dwelling at {3}. Preparing it here would attribute a true {2} result to a scenario whose permanent identity asserts the {1} route's operating assumptions.",
+                    partOIteration,
+                    partOVentilationMode_Iteration,
+                    result.VentilationMode,
+                    result.VentilationMode == Enums.PartOVentilationMode.NaturalVentilation ? PartOIteration.BaseNaturalVentilation : PartOIteration.BasePassive);
+
+                return result;
+            }
+
+            // ---- 3. The Approved Document F airflows ----------------------------------------------------
 
             AnalyticalModel analyticalModel_Applied;
 
@@ -118,6 +166,18 @@ namespace SAM.Analytical
             }
             else
             {
+                //The join between the two documents: which Approved Document F condition this stage runs at.
+                //Asked only on the MVHR route, because it is the only route with a continuous mechanical
+                //rate to have a condition for. A stage with no settled condition refuses rather than being
+                //simulated at whichever rate happens to be handy.
+                PartFOperatingMode? partFOperatingMode = partOIteration.PartOIterationOperatingMode(out string refusal_OperatingMode);
+                if (!partFOperatingMode.HasValue)
+                {
+                    result.Refusal = refusal_OperatingMode;
+
+                    return result;
+                }
+
                 analyticalModel_Applied = analyticalModel.ApplyPartFVentilationRates(partFOperatingMode.Value, out List<string> refusals_Airflow, out List<string> notes_Airflow);
 
                 result.Refusals.AddRange(refusals_Airflow);
@@ -131,7 +191,9 @@ namespace SAM.Analytical
                 }
             }
 
-            //The join between the scenario's "Openings Restricted" assumption and the opening behaviour the
+            // ---- 4. The authored openings, reported ------------------------------------------------------
+
+            //The join between the stage's "Openings Restricted" assumption and the opening behaviour the
             //model carries. The model is REPORTED ON, never rewritten to fit the stage.
             result.OpeningCompatibility = analyticalModel_Applied.PartOIterationOpeningCompatibility(partOIteration, out string summary_Openings, out List<string> evidence_Openings);
 
@@ -148,16 +210,7 @@ namespace SAM.Analytical
 
             result.AnalyticalModel = analyticalModel_Applied;
 
-            if (zones_Assessed.Count == 0)
-            {
-                //Not fatal: a single-house model may carry no zones at all, and the airflow half above is
-                //still the useful part. Worded for both reasons a caller reaches this - a model with no
-                //zones, and a caller that named zones none of which resolved - because only the caller
-                //knows which of the two it is.
-                result.Warnings.Add("No zones were assessed, so no scenarios were stated.");
-
-                return result;
-            }
+            // ---- 5. The scenarios the results are attributed to ------------------------------------------
 
             //Stated over zone objects taken from the APPLIED model, so a zone guid on a scenario and a zone
             //guid in the model that will be simulated are the same identity.
