@@ -819,3 +819,160 @@ In rough order of value:
    confirmed end to end against a synthetic fixture by
    `TM59AssessmentCalculatorTests.ApartmentLivingRoomCondition_IsNotRoutedAsABedroom_SoCriterion2IsNotApplicable`
    and pinned by `TM59SpaceApplicationClassificationTests`.
+
+---
+
+## Iteration 1a / Base MVHR — licensed acceptance (2026-08-26): PARTIAL
+
+**Read this section's verdict first: the design chain is proven end to end into the TBD, and the annual
+simulation of that TBD is BLOCKED.** The block is not in the Iteration 1a chain; it is a pre-existing
+property of `SAM.Analytical.Tas.Modify.UpdateIZAMs`, and the evidence below isolates it to one line of the
+topology.
+
+| | Value |
+|---|---|
+| Base model | `C:\TasOut\v40\A0.sam` — the same 9-space TM59 residential model the Iteration 1b acceptance used |
+| Weather | `C:\Users\Public\Documents\Tas Data\Databases\CIBSE Weather 2021.twd` |
+| Outputs | `C:\TasOut\p1a` |
+| A | `partoauthor … MVRE "Bedroom 2_3" OPEN` → `PreparePartOIteration(BasePassive)` |
+| B | `partoauthor … NV "Bedroom 2_3" OPEN` → `PreparePartOIteration(BaseNaturalVentilation)` — the accepted 1b baseline |
+
+### What the preparation produced — the directional realization
+
+Ten design terminals across eight sized spaces, one generic system, one generic unit, and a system duty
+that agrees with the Approved Document F requirement:
+
+```text
+DESIGN|terminals=10|system=MVHR 1|ahu=MVHR-01|supplyDuty_lps=156|extractDuty_lps=156
+
+SPACEDUTY|Bathroom_2        |supply_lps=-    |extract_lps=8
+SPACEDUTY|Bedroom 2_3       |supply_lps=45.5 |extract_lps=-
+SPACEDUTY|Bedroom 2_6       |supply_lps=45.5 |extract_lps=-
+SPACEDUTY|Ensuite_5         |supply_lps=-    |extract_lps=8
+SPACEDUTY|Ensuite_8         |supply_lps=-    |extract_lps=8
+SPACEDUTY|Kitchen_7         |supply_lps=-    |extract_lps=44
+SPACEDUTY|Living Kitchen_4  |supply_lps=32.5 |extract_lps=44
+SPACEDUTY|Studio 1_0        |supply_lps=32.5 |extract_lps=44
+```
+
+**A supplied room is not extracted and an extracted room is not supplied.** 45.5 + 45.5 + 32.5 + 32.5 = 156
+l/s supply; 8 + 8 + 8 + 44 + 44 + 44 = 156 l/s extract. The system balances; the rooms do not, and the two
+rooms that carry both roles — the studio and the open plan living kitchen — carry both because Approved
+Document F gives them both. Before this milestone every direction was derived from the space's supply
+figure, so each of those six wet rooms would have been *supplied* and each bedroom *extracted*.
+
+### What reached the TBD — read back through Tas's own accessors
+
+`partoizam` walks `Building.GetIZAM(i)`, `IZAM.GetSourceZone()` and `IZAM.GetTargetZone(j)`, so it observes
+the file independently of the code that wrote it:
+
+```text
+ZONES|10|… , MVHR-01, …                       <- the unit has its own TAS zone
+IZAMS|11
+
+IZAM|IZAM MVHR-01 FROM OUTSIDE  |fromOutside=-1|source=-              |targets=MVHR-01       |airFlow_m3s=0.156
+IZAM|IZAM MVHR-01 TO Bedroom 2_3|fromOutside=0 |source=MVHR-01        |targets=Bedroom 2_3   |airFlow_m3s=0.0455
+IZAM|IZAM MVHR-01 TO Bedroom 2_6|fromOutside=0 |source=MVHR-01        |targets=Bedroom 2_6   |airFlow_m3s=0.0455
+IZAM|IZAM MVHR-01 TO Living Kitchen_4         |source=MVHR-01         |targets=Living Kitchen_4|airFlow_m3s=0.0325
+IZAM|IZAM MVHR-01 TO Studio 1_0               |source=MVHR-01         |targets=Studio 1_0    |airFlow_m3s=0.0325
+IZAM|IZAM Bathroom_2 TO MVHR-01 |fromOutside=0 |source=Bathroom_2     |targets=MVHR-01       |airFlow_m3s=0.008
+IZAM|IZAM Ensuite_5 TO MVHR-01                |source=Ensuite_5       |targets=MVHR-01       |airFlow_m3s=0.008
+IZAM|IZAM Ensuite_8 TO MVHR-01                |source=Ensuite_8       |targets=MVHR-01       |airFlow_m3s=0.008
+IZAM|IZAM Kitchen_7 TO MVHR-01                |source=Kitchen_7       |targets=MVHR-01       |airFlow_m3s=0.044
+IZAM|IZAM Living Kitchen_4 TO MVHR-01         |source=Living Kitchen_4|targets=MVHR-01       |airFlow_m3s=0.044
+IZAM|IZAM Studio 1_0 TO MVHR-01               |source=Studio 1_0      |targets=MVHR-01       |airFlow_m3s=0.044
+```
+
+Every airflow equals that room's design-terminal duty ÷ 1000, the unit draws its whole 156 l/s supply duty
+from outside, and no room carries a movement in a direction it has no terminal for. **The design chain is
+proven into the file.**
+
+`freshAirRate` is 0 on every sized zone, as it was in the 2026-08-25 MVRE control — the Part F application
+clears the per-person basis. What is different is that the air the cleared basis used to represent is now
+actually delivered, as inter-zone air movements, rather than being absent from the simulation entirely.
+
+### What is blocked — the annual simulation
+
+`Simulation Failed`, at every simulated day range including 1..2. Four causes were ruled out by experiment,
+each on the same built file:
+
+| Experiment | Result |
+|---|---|
+| Same prepared model, `AddIZAMs = false` | **Simulates** — full year, 4.8 MB TSD |
+| Unit states no supply temperature, so no NaN thermostat setpoint is written | Still fails |
+| Unit's zone excluded from sizing (`tbdNoSizing`) | Still fails |
+| Day range 1..2 instead of 1..365 | Still fails |
+| **Unit's zone present, every IZAM removed** | **Simulates** — full year, 5.0 MB TSD |
+| Only the outside-air IZAM removed | Still fails |
+
+So the unit's zone is fine and **the zone-to-zone inter-zone air movements are what TAS refuses**. The
+supply half alone fails, so it is not the extract direction this milestone added.
+
+**Why this was never seen before.** `Modify.AddAirMovementObjects(AnalyticalModel)` reads
+`AnalyticalModel.AdjacencyCluster`, which returns a **copy** — so the objects and relations it creates have
+never reached a caller's model, and `Modify.UpdateIZAMs` has therefore never had anything to write. No SAM
+model has previously carried a `SpaceAirMovement` into a workflow. Iteration 1a is the first work to
+exercise that path, and it has found it non-functional. The two overloads are documented accordingly and
+the in-place `AdjacencyCluster` overload is what the Part O preparation calls.
+
+**Next step for this block**, in order of expected value: compare the IZAM records SAM writes against one
+TAS itself authors in the Building Simulator on the same file — profile type, day-type assignment, and
+whether the flow belongs in `profile.factor` (where `Modify.Update` puts it, leaving `profile.value` at 1)
+or in `profile.value`. Every SAM-written IZAM here is `ticValueProfile`, `value = 1`, `factor = the flow`,
+and is assigned the calendar day types only, `HDD`/`CDD` removed.
+
+### Regression: Iteration 1b is untouched
+
+`partoauthor … NV … OPEN` on the same base model reports `DESIGN|terminals=0|system=-|ahu=-`, no air
+movements, `airflowApplication=SkipNaturalVentilation`, four scenarios — the Iteration 1b behaviour
+recorded above, unchanged. The natural ventilation route builds none of the Base MVHR topology, so nothing
+in that path can reach `UpdateIZAMs`.
+
+### Harness additions
+
+`partoizam <tbd> <out.txt>` — every zone's volume, floor area, surface count, sizing flags and internal
+conditions, and every inter-zone air movement with its source, targets and flow.
+`partosim <tbd> <tsd> <dayFrom> <dayTo> [stripIZAMsContaining]` — simulate an already-built file, optionally
+removing matching air movements first; `INV_NOSIZE_ZONE` clears one zone's sizing flags and `INV_NO_IZAM=1`
+turns the workflow's IZAM step off. These are the bisect tools the table above was produced with.
+
+### TM59 takes the mechanical route
+
+Evidenced on the IZAM-free simulation of the **1a-prepared** model, because the criterion is selected from
+the scenario and not from the air movements:
+
+```text
+1b (NV) : COUNTS|naturalVentilation=5|mechanicalVentilation=0|corridor=4
+1a (MVRE): COUNTS|naturalVentilation=0|mechanicalVentilation=5|corridor=4
+
+MECHANICALVENTILATION|Studio 1_0      |type=TM59MechanicalVentilationExtendedResult|pass=True
+MECHANICALVENTILATION|Bedroom 2_3     |type=TM59MechanicalVentilationExtendedResult|pass=True
+MECHANICALVENTILATION|Bedroom 2_6     |type=TM59MechanicalVentilationExtendedResult|pass=True
+MECHANICALVENTILATION|Living Kitchen_4|type=TM59MechanicalVentilationExtendedResult|pass=True
+MECHANICALVENTILATION|Kitchen_7       |type=TM59MechanicalVentilationExtendedResult|pass=True
+```
+
+All five assessed dwelling spaces flip from the natural-ventilation criterion to the mechanical one, the
+four corridor results are unchanged, and **no space was refused**. The 1b column is the Iteration 1b
+acceptance figure, unchanged.
+
+### The finding that justifies the whole milestone
+
+`tsdcompare` over the 1b run and the IZAM-free 1a run, on the same resultant-temperature series the
+assessment reads:
+
+```text
+TOTAL|values=78840|differing=0
+```
+
+**Zero.** Not one of 78 840 hourly temperatures differs between a dwelling prepared as Base MVHR and the
+same dwelling prepared as naturally ventilated — once the inter-zone air movements are taken away. The
+Approved Document F rate written onto the internal conditions changes nothing thermally: TAS's
+`freshAirRate` is the Outside Air field and does not itself supply the zone, and no SAM Ventilation profile
+is assigned so no `ticV` rate is written either.
+
+So before Iteration 1a, **`MVHR + BasePassive` and `NV + BaseNaturalVentilation` produced numerically
+identical simulations of the same building** — the mechanical route was a thermal no-op that reported
+success, while the cleared per-person basis quietly removed the authored 8 l/s/person outside-air rate. The
+inter-zone air movements are the only thing that makes the two routes differ, which is precisely what the
+block above prevents from being demonstrated.

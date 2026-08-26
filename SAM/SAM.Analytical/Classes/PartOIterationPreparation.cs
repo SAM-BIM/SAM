@@ -56,6 +56,53 @@ namespace SAM.Analytical
         /// </summary>
         public PartOPartFAirflowApplication AirflowApplication { get; internal set; }
 
+        /// <summary>
+        /// The design ventilation terminals realized for this iteration, or empty where the route has none.
+        /// <para>
+        /// Realized only on the MVHR route, and only because the Base MVHR operating scenario asks for
+        /// design-rate operation - never because a space happens to carry an airflow. On the natural
+        /// ventilation route this is empty, which is the honest answer: Iteration 1b has no continuous
+        /// mechanical terminals to realize.
+        /// </para>
+        /// <para>
+        /// <b>Zero, one or many per space per direction.</b> Read the sum, never the count.
+        /// </para>
+        /// </summary>
+        public List<VentilationTerminal> VentilationTerminals { get; } = [];
+
+        /// <summary>
+        /// The generic ventilation system the design terminals were connected to, or null where the route
+        /// has none. No manufacturer unit is selected at this iteration.
+        /// </summary>
+        public VentilationSystem VentilationSystem { get; internal set; }
+
+        /// <summary>
+        /// The generic air handling unit that system supplies from, or null where the route has none.
+        /// </summary>
+        public AirHandlingUnit AirHandlingUnit { get; internal set; }
+
+        /// <summary>
+        /// The system's total design supply duty [l/s], summed from its connected supply terminals.
+        /// <see cref="double.NaN"/> where no system was built.
+        /// <para>
+        /// This is the figure a real unit will have to meet at Iteration 2. It is derived on demand from
+        /// the terminals and never stored on the system, so it cannot go stale when a terminal is added,
+        /// removed or re-balanced - see <c>Query.VentilationSystemDesignDuty</c>.
+        /// </para>
+        /// </summary>
+        public double DesignSupplyDuty_Lps { get; internal set; } = double.NaN;
+
+        /// <summary>
+        /// The system's total design extract duty [l/s], summed from its connected extract terminals.
+        /// <see cref="double.NaN"/> where no system was built.
+        /// <para>
+        /// Reported separately from <see cref="DesignSupplyDuty_Lps"/> and not required to equal it in any
+        /// one room: a balanced heat recovery system balances at the system, with transfer air moving
+        /// between the supplied and the extracted rooms.
+        /// </para>
+        /// </summary>
+        public double DesignExtractDuty_Lps { get; internal set; } = double.NaN;
+
         /// <summary>What was applied to each space, what it displaced, and what was deliberately not applied.</summary>
         public List<string> Notes { get; } = [];
 

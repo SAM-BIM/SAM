@@ -189,9 +189,27 @@ namespace SAM.Analytical
 
                     return result;
                 }
+
+                // ---- 4. The Base MVHR design realization ------------------------------------------------
+
+                //This is what makes the stage's own assertion true. BasePassive states "Mechanical
+                //Ventilation At Design Rate = True" and that claim is inside the permanent scenario key -
+                //but until now nothing made a simulation obey it. Applying the rates above put the
+                //requirement onto each space's internal condition; only the chain below turns that
+                //requirement into air the simulation actually moves.
+                //
+                //It runs HERE, on the MVHR branch, and nowhere else. A Part F calculation on its own
+                //creates requirements and nothing more. The trigger is the Base MVHR operating scenario
+                //asking for design-rate operation, never the presence of an airflow on a space.
+                analyticalModel_Applied = PrepareBaseMVHR(analyticalModel_Applied, result);
+
+                if (result.Refusal != null)
+                {
+                    return result;
+                }
             }
 
-            // ---- 4. The authored openings, reported ------------------------------------------------------
+            // ---- 5. The authored openings, reported ------------------------------------------------------
 
             //The join between the stage's "Openings Restricted" assumption and the opening behaviour the
             //model carries. The model is REPORTED ON, never rewritten to fit the stage.
@@ -210,7 +228,7 @@ namespace SAM.Analytical
 
             result.AnalyticalModel = analyticalModel_Applied;
 
-            // ---- 5. The scenarios the results are attributed to ------------------------------------------
+            // ---- 6. The scenarios the results are attributed to ------------------------------------------
 
             //Stated over zone objects taken from the APPLIED model, so a zone guid on a scenario and a zone
             //guid in the model that will be simulated are the same identity.
@@ -227,6 +245,158 @@ namespace SAM.Analytical
             result.Refusals.AddRange(refusals_Scenarios);
 
             return result;
+        }
+
+        /// <summary>
+        /// Turns the applied Approved Document F requirement into a Base MVHR design the simulation can
+        /// actually run: design terminals, one generic system and unit, a derived duty checked against the
+        /// requirement, and the directional air movements that carry it into TAS.
+        /// <para>
+        /// <b>Every step refuses rather than half-completing.</b> A model that reached the export with
+        /// terminals but no system, or a system but no air movements, would simulate a dwelling whose
+        /// mechanical ventilation is partly there - and would do it successfully, which is the failure mode
+        /// this whole design exists to prevent.
+        /// </para>
+        /// </summary>
+        private static AnalyticalModel PrepareBaseMVHR(AnalyticalModel analyticalModel, PartOIterationPreparation result)
+        {
+            //ONE cluster instance, taken once and put back once. AnalyticalModel.AdjacencyCluster returns a
+            //fresh copy on every read, so reading it twice would silently discard the first half of this.
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            // ---- Design terminals --------------------------------------------------------------------
+
+            //Every space, not only the assessed zones' spaces: Modify.ApplyPartFVentilationRates is a
+            //whole-model write and the route resolution refuses a mixed model, so the sized spaces and the
+            //assessed spaces are the same set. Realizing a subset would leave the applied airflow of the
+            //rest with no terminal behind it.
+            List<VentilationTerminal> ventilationTerminals = adjacencyCluster.RealizePartFVentilationTerminals(null, out List<string> notes_Terminals, out List<string> refusals_Terminals);
+
+            result.Notes.AddRange(notes_Terminals);
+
+            if (refusals_Terminals.Count != 0)
+            {
+                result.Refusal = string.Join(" ", refusals_Terminals);
+
+                return analyticalModel;
+            }
+
+            if (ventilationTerminals == null || ventilationTerminals.Count == 0)
+            {
+                result.Refusal = "The MVHR route was stated and the Approved Document F rates were applied, but no space carries a continuous requirement that could be realized as a design ventilation terminal, so there is no mechanical ventilation for this iteration to simulate. Run the Part F calculation before preparing the iteration.";
+
+                return analyticalModel;
+            }
+
+            // ---- The generic system and unit ----------------------------------------------------------
+
+            VentilationSystem ventilationSystem = adjacencyCluster.AddPartOBaseMVHRSystem(null, out AirHandlingUnit airHandlingUnit, out List<string> notes_System, out List<string> warnings_System, out List<string> refusals_System);
+
+            result.Notes.AddRange(notes_System);
+            result.Notes.AddRange(warnings_System);
+            result.Warnings.AddRange(warnings_System);
+
+            if (ventilationSystem == null || airHandlingUnit == null)
+            {
+                result.Refusal = refusals_System.Count != 0
+                    ? string.Join(" ", refusals_System)
+                    : "The Base MVHR ventilation system could not be established, so there is nothing to move the design airflow.";
+
+                return analyticalModel;
+            }
+
+            // ---- The derived duty, checked against the requirement -------------------------------------
+
+            bool reconciled = adjacencyCluster.ReconcileVentilationSystemDesignDuty(ventilationSystem, out List<string> notes_Duty, out List<string> warnings_Duty, out List<string> refusals_Duty);
+
+            result.Notes.AddRange(notes_Duty);
+            result.Warnings.AddRange(warnings_Duty);
+
+            if (!reconciled)
+            {
+                result.Refusal = string.Join(" ", refusals_Duty);
+
+                return analyticalModel;
+            }
+
+            adjacencyCluster.VentilationSystemDesignDuty(ventilationSystem, out double supplyDuty_Lps, out double extractDuty_Lps);
+
+            // ---- The runtime realization ---------------------------------------------------------------
+
+            //Stale movements first, whatever built them. Preparing the same model twice must produce the same
+            //model, not two sets of air movements that a TBD would write as two sets of inter-zone air
+            //movements - and a model arriving with its own system-template air movements on these rooms
+            //would otherwise add its supply to this design's.
+            RemoveBaseMVHRAirMovementObjects(adjacencyCluster, ventilationSystem, airHandlingUnit);
+
+            //SCOPED to the system this iteration built. The model's own ventilation systems are left exactly
+            //as authored and are not realized here: they may serve the same rooms, and walking them too would
+            //ventilate every shared room twice.
+            List<IAirMovementObject> airMovementObjects = adjacencyCluster.AddAirMovementObjects(analyticalModel.ProfileLibrary, ventilationSystem);
+
+            if (airMovementObjects == null || airMovementObjects.Count == 0)
+            {
+                result.Refusal = string.Format("Ventilation system '{0}' was built with a design duty of {1:0.###} l/s supply and {2:0.###} l/s extract, but no air movement could be realized from it, so nothing would reach the simulation.", ventilationSystem.FullName, supplyDuty_Lps, extractDuty_Lps);
+
+                return analyticalModel;
+            }
+
+            result.Notes.Add(string.Format(
+                "Realized {0} air movement object(s) for the Base MVHR design-rate operating state: supply into each space from '{1}' and extract from each space back to it, each direction sized from that space's own design terminals.",
+                airMovementObjects.Count,
+                airHandlingUnit.Name));
+
+            result.VentilationTerminals.AddRange(ventilationTerminals);
+            result.VentilationSystem = ventilationSystem;
+            result.AirHandlingUnit = airHandlingUnit;
+            result.DesignSupplyDuty_Lps = supplyDuty_Lps;
+            result.DesignExtractDuty_Lps = extractDuty_Lps;
+
+            return new AnalyticalModel(analyticalModel, adjacencyCluster);
+        }
+
+        /// <summary>
+        /// Removes the air movement objects belonging to this system and unit, so that re-preparing a model
+        /// replaces them rather than adding a second set beside them.
+        /// <para>
+        /// Scoped to the system's own unit and served spaces on purpose: an inter-zone air movement a
+        /// modeller created by hand elsewhere in the building is not this iteration's to delete.
+        /// </para>
+        /// </summary>
+        private static void RemoveBaseMVHRAirMovementObjects(AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem, AirHandlingUnit airHandlingUnit)
+        {
+            List<Core.SAMObject> sAMObjects = [];
+
+            void Collect(Core.IJSAMObject jSAMObject)
+            {
+                foreach (SpaceAirMovement spaceAirMovement in adjacencyCluster.GetRelatedObjects<SpaceAirMovement>(jSAMObject) ?? [])
+                {
+                    if (spaceAirMovement != null && sAMObjects.Find(x => x.Guid == spaceAirMovement.Guid) == null)
+                    {
+                        sAMObjects.Add(spaceAirMovement);
+                    }
+                }
+            }
+
+            Collect(airHandlingUnit);
+
+            foreach (Space space in adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? [])
+            {
+                Collect(space);
+            }
+
+            foreach (AirHandlingUnitAirMovement airHandlingUnitAirMovement in adjacencyCluster.GetRelatedObjects<AirHandlingUnitAirMovement>(airHandlingUnit) ?? [])
+            {
+                if (airHandlingUnitAirMovement != null && sAMObjects.Find(x => x.Guid == airHandlingUnitAirMovement.Guid) == null)
+                {
+                    sAMObjects.Add(airHandlingUnitAirMovement);
+                }
+            }
+
+            if (sAMObjects.Count != 0)
+            {
+                adjacencyCluster.Remove(sAMObjects);
+            }
         }
     }
 }
