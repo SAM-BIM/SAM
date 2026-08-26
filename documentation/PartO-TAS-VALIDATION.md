@@ -403,6 +403,12 @@ boundary for. **That converter line is covered by the manual acceptance run abov
 
 ## Natural-ventilation Part O workflow — end-to-end licensed acceptance (2026-08-25)
 
+> **Superseded in its mechanics, not in its findings.** This run stated the strategy as the string
+> `"NV"` at `PartOIteration.BasePassive`. That pairing now REFUSES: the route is explicit
+> (`PartOVentilationMode`) and Iteration 1b is `BaseNaturalVentilation`. Everything this section
+> establishes still holds and is re-established, in both opening cases, by the 2026-08-26 A/B
+> acceptance below. Reproduce that one.
+
 **What this section establishes:** one naturally ventilated dwelling can now be carried from an authored SAM
 model to a TM59 natural-ventilation result without SAM inventing a mechanical ventilation system for it, and
 with the authored opening operation reaching the TAS aperture control intact.
@@ -566,6 +572,218 @@ simulated space"* for every space and zero results. Pre-existing identity behavi
   `CookerHoodExtractingOutside` and `SeparateIntermittentExtract`), so it was never part of what is applied.
 - **`OverheatingScenario:v2`.** The stage still asserts `Openings Restricted`, so a NightClosed opening under
   `BasePassive` is still reported as `Incompatible` and still only warned about. Deliberately deferred.
+
+---
+
+## Iteration 1b / Base Natural Ventilation — licensed A/B acceptance (2026-08-26)
+
+**The milestone:** *Iteration 1b / Base Natural Ventilation is proven end to end from an explicitly
+prepared SAM dwelling, through authored opening behaviour, TAS simulation and comparable Part O / TM59
+results, without inventing an MVHR system.*
+
+The 2026-08-25 acceptance below proved one NV case. This one proves **two cases off one dwelling**, so a
+result difference is attributable to the authored opening availability and to nothing else — and it runs
+them through the explicit `PartOVentilationMode` route and `PartOIteration.BaseNaturalVentilation` rather
+than the string gate and `BasePassive`. See [`PartO-ARCHITECTURE.md`](PartO-ARCHITECTURE.md) for the design
+this validates.
+
+### The two cases
+
+| | NV-OPEN | NV-NIGHT |
+|---|---|---|
+| Base model | `C:\TasOut\v40\A0.sam` — 9-space TM59 residential, Flat 1/2/3 + Corridor | same |
+| Part O route (stated) | `NV` → `PartOVentilationMode.NaturalVentilation` | same |
+| Iteration | `BaseNaturalVentilation` | same |
+| Authored opening | `Unrestricted` | `NightClosed`, openingHour 08, closingHour 23 |
+| Aperture authored on | `SIM_EXT_GLZ` of `Bedroom 2_3`, guid `956264f2-…` | same aperture, same guid |
+| Weather | `CIBSE Weather 2021.twd` | same |
+| Run | `Sizing = true`, `Simulate = true`, days 1..365 | same |
+
+Both cases are authored through **one code path** — the same `PartOOpeningProperties` constructor on the
+same aperture, given the same 08/23 hours, differing only in the `OpeningRestriction`. Authoring one case
+and leaving the other alone would have made this a comparison of two authoring routes rather than of two
+opening availabilities.
+
+Harness: `C:\TasOut\inv`, modes `partoauthor <in> <out> <report> NV "Bedroom 2_3" <OPEN|NIGHT>` →
+`togbxml` → `workflowsim` → `partodump` → `partotm59` → `tsdcompare`. Outputs in `C:\TasOut\p1b`.
+
+### Preparation, before TAS
+
+Both cases:
+
+```text
+PREPARE|ventilationMode=NaturalVentilation|airflowApplication=SkipNaturalVentilation|successful=True|scenarios=4
+SCENARIO|Flat 1 - BaseNaturalVentilation - NV   |scope=Dwelling   |key=6dfe14cb-6cf3-8798-a61a-d337dbc40878
+SCENARIO|Corridor - BaseNaturalVentilation - NV |scope=CommonSpace|key=37242d48-94e8-8f66-9949-1746c7e5de04
+SCENARIO|Flat 2 - BaseNaturalVentilation - NV   |scope=Dwelling   |key=1d7b7a5b-ca5b-8830-8a15-1904b8b99463
+SCENARIO|Flat 3 - BaseNaturalVentilation - NV   |scope=Dwelling   |key=ae358ba0-3ad0-8637-a233-6bd199998654
+```
+
+Real Part F sizing ran first and sized 8 spaces on both, so there **was** something a mechanical
+preparation would have applied. `SkipNaturalVentilation` is a decision not to use it, not an absence of
+anything to use.
+
+Diffing the two authoring reports gives exactly four differences, all of them the one aperture and its
+consequences:
+
+- `openingCompatibility` `Compatible` → `Incompatible`;
+- two `NOTE` lines and one `WARNING` reporting that 1 of the model's 20 operable openings restricts while
+  the stage assumes unrestricted operation — **reported, nothing changed**;
+- `APERTURE|956264f2-…|restriction=Unrestricted|schedule=-` →
+  `restriction=NightClosed|from=8|to=23|schedule=PartO_DayOpen_08_23|values=000000001111111111111110`.
+
+Every Part F rate, every space's airflow state and all four scenario keys are byte-identical. **The
+scenario keys being equal is correct, not an oversight**: opening behaviour is a property of the model, not
+of the stage, so both cases are the same assessment of the same zones at the same iteration.
+
+### Geometry reaching TAS
+
+Both gbXML exports are 303 200 bytes and identical apart from the per-run `BuildingStorey` GUID and the
+export timestamp. Opening availability does not travel through gbXML — it is applied to the TBD afterwards
+by `Modify.SetApertureType` — so identical geometry is the expected result and confirms the two runs
+simulate the same building.
+
+### The opening profile in the produced TBDs
+
+**NV-OPEN** — 2 shared aperture types across the model's 20 openings, neither carrying an availability
+schedule:
+
+```text
+APERTURETYPE|element=Windows: SIM_EXT_GLZ -pane          |Cd=0.410591|profileType=ticFunctionProfile|function=zdwno,0,19.00,21.00,99.00|factor=1|schedule=-|values=-
+APERTURETYPE|element=Windows: SIM_EXT_GLZ_AAF00869 -pane |Cd=0.477327|profileType=ticFunctionProfile|function=zdwno,0,19.00,21.00,99.00|factor=1|schedule=-|values=-
+```
+
+**NV-NIGHT** — the same two, plus one:
+
+```text
+APERTURETYPE|element=Windows: SIM_EXT_GLZ_E67C225E -pane |Cd=0.410591|profileType=ticFunctionProfile|function=zdwno,0,19.00,21.00,99.00|factor=1|schedule=PartO_DayOpen_08_23|values=000000001111111111111110
+```
+
+which is the required shape exactly: `profileType = ticFunctionProfile`,
+`function = zdwno,0,19.00,21.00,99.00`, `schedule = PartO_DayOpen_08_23`,
+`values = 000000001111111111111110`. Read out of the TBD through Tas's own 0-based accessors, so it
+observes the file independently of the code that wrote it.
+
+**The two TBD dumps differ by exactly that one line.** Every zone, internal condition, fresh-air rate,
+ventilation profile factor and zone description is identical.
+
+### No invented continuous MVHR supply or extract, in either case
+
+The evidence a Part F continuous mechanical supply was carried onto a zone is the `SAMZoneMetadata`
+decomposition in the TBD zone description, because TAS has no field of its own for it:
+
+```text
+NV-OPEN  / NV-NIGHT, every zone:
+   DESC|[LevelName]=Level 0; [SAM_META_V1]={"ventilation":{"profile":false},"native":{"freshAirRate":8}}
+
+CONTROL — the MVRE run of the same model (2026-08-25):
+   DESC|[LevelName]=Level 0; [SAM_META_V1]={"ventilation":{"flow":0.0455,"flowPerArea":0,"flowPerPerson":0,"airChangesPerHour":0,"profile":false},"native":{"freshAirRate":0}}
+```
+
+Count of `"flow"` keys: **NV-OPEN 0, NV-NIGHT 0, MVRE control 8.** No `SupplyAirFlow`,
+`SupplyAirFlowPerArea`, `SupplyAirFlowPerPerson` or `SupplyAirChangesPerHour` was stated on any zone in
+either NV case.
+
+`freshAirRate = 8` l/s/person is the **model's own authored TM59 outside-air rate**, preserved untouched —
+and the control shows what applying the Part F rates does to it: the mechanical run drives it to 0 and
+replaces it with `flow = 0.0455 m³/s`. Both NV cases keep the authored value.
+
+Continuous mechanical extract: `InternalConditionParameter.ExhaustAirFlow` was never stated on any space
+(`exhaustAirFlowStated=False` for all nine, both cases), and in any event `SAM.Analytical.Tas` has no TBD
+write path for exhaust at all — see [`PartO-ARCHITECTURE.md`](PartO-ARCHITECTURE.md) §6.
+
+### The two simulations genuinely differ
+
+The TM59 verdicts agree (below), so this had to be checked rather than assumed: *"the two cases agree"* and
+*"the opening schedule did nothing"* are very different findings. `tsdcompare` reads the same
+resultant-temperature series the TM59 assessment reads, out of both TSDs:
+
+| Space | Differing hours / 8760 | Max delta (K) | Mean open → night (°C) |
+|---|---:|---:|---|
+| **Bedroom 2_3** ← the authored space | 2 334 | **0.674** | 18.9723 → 18.9736 |
+| Studio 1_0 | 4 633 | 0.142 | 18.8813 → 18.8813 |
+| Kitchen_7 | 643 | 0.121 | 18.6995 → 18.6996 |
+| Living Kitchen_4 | 2 137 | 0.069 | 19.0336 → 19.0340 |
+| Bathroom_2 | 4 550 | 0.056 | 19.2985 → 19.2987 |
+| Bedroom 2_6 | 443 | 0.040 | 18.9433 → 18.9433 |
+| Ensuite_5 | 1 335 | 0.012 | 19.3607 → 19.3610 |
+| Corridor_1 | 385 | 0.008 | 22.4341 → 22.4342 |
+| Ensuite_8 | 230 | 0.006 | 19.2725 → 19.2726 |
+| **Total** | **16 690 / 78 840** | | |
+
+The largest single-hour difference in the whole model, by a factor of nearly five, is on **the one space
+whose window was restricted**, and the night case is very slightly warmer there — the expected direction
+for losing night purge. Every other space shows a small knock-on through inter-zone air movement. The
+effect is small because only 1 of the flat's 20 openings was restricted and the `zdwno` function opens a
+window only above 19–21 °C in any case.
+
+### TM59 results
+
+Both cases, from their own TSD, through `Tas.TSDQueryTM59Results`' sequence:
+
+```text
+COUNTS|naturalVentilation=5|mechanicalVentilation=0|corridor=4
+```
+
+No ventilation-strategy refusals, no association refusals, no map refusals, **zero mechanical results** —
+the NV route was taken for every occupied space in both cases.
+
+| | NV-OPEN | NV-NIGHT |
+|---|---|---|
+| Ventilation route | NaturalVentilation | NaturalVentilation |
+| Iteration | BaseNaturalVentilation | BaseNaturalVentilation |
+| Opening restriction | Unrestricted | NightClosed 08–23 |
+| Mechanical supply | 0 | 0 |
+| Continuous MVHR extract | 0 | 0 |
+| NV results / mechanical / corridor | 5 / 0 / 4 | 5 / 0 / 4 |
+| Bedrooms assessed (`…BedroomExtendedResult`) | Studio 1_0, Bedroom 2_3, Bedroom 2_6 | same three |
+| Living spaces (`TM59NaturalVentilationExtendedResult`) | Living Kitchen_4, Kitchen_7 | same two |
+| Corridor-criterion spaces | Corridor_1, Bathroom_2, Ensuite_5, Ensuite_8 | same four |
+| Outcome | every space passes | every space passes |
+
+Key metrics, `OccupiedHoursExceedingComfortRange` against `MaxExceedableHours` (criterion 1) and
+`NightHoursNumberExceeding26` against `AnnualMaxExceedableNightHours` (criterion 2):
+
+| Space | Criterion 1, open | Criterion 1, night | Criterion 2, open | Criterion 2, night |
+|---|---|---|---|---|
+| Studio 1_0 | 4 / 262 | 4 / 262 | 0 / 32 | 0 / 32 |
+| Bedroom 2_3 | 0 / 262 | 0 / 262 | 0 / 32 | 0 / 32 |
+| Bedroom 2_6 | 0 / 262 | 0 / 262 | 0 / 32 | 0 / 32 |
+| Living Kitchen_4 | 2 / 142 | 2 / 142 | n/a | n/a |
+| Kitchen_7 | 0 / 142 | 0 / 142 | n/a | n/a |
+
+**The two cases produce the same verdicts, and that is a truthful result rather than a null one.** This
+dwelling is nowhere near its comfort limits under Leeds TRY — 0–4 exceeding hours against allowances of
+110–262 — so a 0.67 K night-time change on one room does not move any criterion. No expected numerical
+delta was manufactured; what is claimed is what the acceptance was defined to claim: the two simulations
+are identical except for the authored opening availability, both are assessed as Natural Ventilation, and
+the result pipeline returns truthful comparable results for both.
+
+### What changed between the two cases, in full
+
+1. The `OpeningRestriction` on one aperture, and the `PartO_DayOpen_08_23` schedule derived from it.
+2. The opening-compatibility report about (1) — a warning, acted on by nothing.
+3. One additional TBD `ApertureType` carrying that schedule.
+4. Consequently, the simulated hourly temperatures.
+
+Nothing else. Same base model, same Part F sizing, same route, same iteration, same scenario keys, same
+weather, same simulation period, same geometry, same internal conditions, same zone ventilation.
+
+### What this acceptance does not cover
+
+- **Iteration 1a (`BaseMVHR`) equipment selection.** The Part F requirement is applied on the MVHR route,
+  but no physical MVHR unit is selected against it. Not implemented.
+- **Iterations 2 and 3.** Acoustic restriction, summer bypass, boost, active cooling, manufacturer supply
+  temperature and larger-unit selection are recorded in the architecture and not implemented.
+- **Mixed-route models refuse.** Per-zone airflow application is not implemented.
+- **System 1 sizing.** Background/trickle ventilator and purge provision for a naturally ventilated
+  dwelling are calculated nowhere. `PartFCalculator` remains System 4 shaped for every route.
+- **Wet-room intermittent extract runtime behaviour.** Preserved as data, deliberately not modelled — SAM
+  has the Table 1.1 rate but no operating schedule, and TAS has no exhaust write path. Architecture §6.
+- **A case that actually fails.** Both cases pass comfortably on this model and this weather, so the
+  result pipeline has been shown to report a pass truthfully and has not been shown to report a fail.
+- **`OverheatingScenario:v2`.** The stage still asserts `Openings Restricted`, so NV-NIGHT is still
+  reported `Incompatible` and still only warned about, and the two cases still share a scenario key.
 
 ---
 

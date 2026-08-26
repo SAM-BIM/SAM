@@ -2,25 +2,216 @@
 
 ## Branch
 `feature/parto-nv-workflow` (off `sow/2026-Q3` at merge commit `907c0441`, PR #75 already merged).
+PR [SAM#76](https://github.com/SAM-BIM/SAM/pull/76), companion [SAM_Tas#43](https://github.com/SAM-BIM/SAM_Tas/pull/43).
 
 ## Last updated
-2026-08-25 - the first complete truthful Natural Ventilation Part O workflow, proven end to end against
-licensed TAS.
+2026-08-26 - the Part O ventilation route made explicit, Iteration 1b added, and both opening cases proven
+against licensed TAS.
 
 ## Current status (this session)
-`PreparePartOIteration` no longer carries Approved Document F **continuous mechanical** supply and extract
-onto a naturally ventilated dwelling. The ventilation strategy the assessed zones state now gates the
-airflow application, and the whole preparation has moved into the library so the component and the tests
-run the same code.
+**Milestone: Iteration 1b / Base Natural Ventilation is proven end to end** from an explicitly prepared SAM
+dwelling, through authored opening behaviour, TAS simulation and comparable Part O / TM59 results, without
+inventing an MVHR system.
 
-Full `SAM.Tests`: **1397 passed, 0 failed** (was 1354, +43). `SAM.Analytical.Tas.TM59.Tests`:
-**620 passed, 0 failed** (was 613, +7).
+The target architecture is now recorded durably in
+[`documentation/PartO-ARCHITECTURE.md`](documentation/PartO-ARCHITECTURE.md) - the five-box separation
+(requirement -> route -> equipment -> operating scenario -> simulation -> result), the full iteration
+algorithm including the unimplemented 1a/2/3, and the wet-room investigation. It is indexed from
+`PartF-HANDOVER.md`.
 
-**Licensed TAS acceptance: PASSED.** See
-[`documentation/PartO-TAS-VALIDATION.md`](documentation/PartO-TAS-VALIDATION.md) §"Natural-ventilation Part
-O workflow" for the full evidence.
+Full `SAM.Tests`: **1425 passed, 0 failed** (was 1397, +28). `SAM.Analytical.Tas.TM59.Tests`:
+**624 passed, 0 failed** (was 620, +4).
 
-### The defect, independently verified before any edit
+**Licensed TAS A/B acceptance: PASSED.** See
+[`documentation/PartO-TAS-VALIDATION.md`](documentation/PartO-TAS-VALIDATION.md) §"Iteration 1b / Base
+Natural Ventilation - licensed A/B acceptance (2026-08-26)".
+
+### What was wrong with the gate this replaces
+The NV gate asked one question of a string - is it `"NV"`? - and treated **every other answer as a
+mechanical dwelling**. `UV`, an empty Grasshopper panel, a typo, a stale word and a model with no zones all
+reached `ApplyPartFVentilationRates` and wrote Approved Document F System 4 supply and extract onto every
+sized space, successfully, with nothing downstream saying an MVHR system had been invented. It closed the
+NV hole and left the rule that caused it in place.
+
+Separately, `PartOIteration.BasePassive` asserts `Mechanical Ventilation At Design Rate = True`, and that
+assumption is **inside the derived `OverheatingScenario.Key`**. Preparing an NV dwelling there produced a
+true simulation filed permanently under a false claim.
+
+## Completed (this session)
+- **`Enums.PartOVentilationMode`** (new): `Undefined` / `NaturalVentilation` / `MVHR`. The stated Part O
+  route. No fallback member, deliberately.
+- **`Query.PartOVentilationMode(string, out refusal)`** (new): a total, explicit mapping.
+  `NV`/`NaturalVentilation`/`Natural Ventilation`/`BaseNaturalVentilation` and
+  `MVHR`/`MVRE`/`BaseMVHR` resolve; everything else refuses **with the reason**. `MV` refuses because
+  "mechanical" is not a route - Part F System 3 (continuous extract) and System 4 (supply and extract with
+  heat recovery) are different buildings and only System 4 is what `PartFCalculator` sizes. `UV` refuses
+  because it selects the TM59 corridor criterion for a common space and says nothing about a dwelling.
+- **`Query.PartOVentilationMode(zones, dictionary, out refusal)`** (new): the one route the assessed zones
+  state, naming every zone that does not settle one. Mixed routes refuse; **no assessed zones refuses**,
+  where the old gate kept applying.
+- **`PartOIteration.BaseNaturalVentilation`** (new member, appended so nothing is renumbered) with its
+  operating assumptions: `Openings Restricted = False`, **`Mechanical Ventilation At Design Rate = False`**,
+  no boost, no summer bypass. `BasePassive` is documented as the historical name for `BaseMVHR` and
+  deliberately **not** renamed - the member name is inside the key, so renaming is a migration.
+- **`Query.PartOIterationVentilationMode`** (new): the route each iteration is defined over. `BasePassive`
+  -> MVHR, `BaseNaturalVentilation` -> NaturalVentilation, everything else refuses (delegating to
+  `PartOIterationOperatingMode` so the two cannot drift).
+- **`Query.PartOPartFAirflowApplication`** rewritten as a total function of the route alone - no string, no
+  model, no `SystemTemplate`. `RefuseMixed` becomes `RefuseUnstatedRoute`, which covers every way a route
+  fails to settle.
+- **`Modify.PreparePartOIteration`** restructured into four ordered gates: the stated route, the
+  iteration's route (a mismatch refuses in **both** directions), the airflow (the Approved Document F
+  operating condition is now asked for **only** on the MVHR route), the authored openings (reported, never
+  acted on). `PartOIterationPreparation.VentilationMode` is on the result.
+- **`SAMAnalyticalPreparePartOIteration`** `1.0.2` -> `1.0.3`: new `ventilationMode` output, rewritten
+  documentation, route-aware messages. No decision moved back into the component.
+
+### The route is stated, never inferred, and never written
+No `SAM_System`, `SystemTemplate` or `InternalCondition.VentilationSystemTypeName` is read to decide what is
+simulated - and none is **mutated to force it**, which would put the decision back into the metadata it was
+taken out of. `AStaleMVREOnTheModel_DoesNotOverrideAnExplicitNVRoute_AndIsNotRewritten` prepares a dwelling
+carrying `VentilationSystemTypeName = "MVRE"` on an explicit NaturalVentilation route and asserts both
+halves.
+
+## Deliberate behaviour changes (each reported, none accidental)
+| Input | Before | Now |
+|---|---|---|
+| `UV` | Applied System 4 airflow | Refuses, naming the corridor criterion |
+| `MV` | Applied System 4 airflow | Refuses, naming Systems 3 and 4 |
+| Unrecognised word / empty panel | Applied System 4 airflow | Refuses, quoting the word |
+| No assessed zones | Applied System 4 airflow | Refuses |
+| `NV` at `BasePassive` | Skipped, prepared | Refuses; use `BaseNaturalVentilation` |
+| `MVRE` at `BaseNaturalVentilation` | n/a (member is new) | Refuses; use `BasePassive` |
+| `MVRE` / `MVHR` at `BasePassive` | Applied | Unchanged |
+| `NV` at `BaseNaturalVentilation` | n/a (member is new) | Skips, prepares |
+
+## Files changed
+- `SAM/SAM/SAM.Analytical/Enums/PartOVentilationMode.cs` (new)
+- `SAM/SAM/SAM.Analytical/Query/PartOVentilationMode.cs` (new)
+- `SAM/SAM/SAM.Analytical/Query/PartOIterationVentilationMode.cs` (new)
+- `SAM/SAM/SAM.Analytical/Enums/PartOIteration.cs`
+- `SAM/SAM/SAM.Analytical/Enums/PartOPartFAirflowApplication.cs`
+- `SAM/SAM/SAM.Analytical/Query/PartOPartFAirflowApplication.cs`
+- `SAM/SAM/SAM.Analytical/Query/PartOOperatingAssumptions.cs`
+- `SAM/SAM/SAM.Analytical/Query/PartOIterationOperatingMode.cs`
+- `SAM/SAM/SAM.Analytical/Modify/PreparePartOIteration.cs`
+- `SAM/SAM/SAM.Analytical/Classes/PartOIterationPreparation.cs`
+- `SAM/Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalPreparePartOIteration.cs`
+- `SAM/SAM/SAM.Tests/PartOIterationPreparationTests.cs`
+- `SAM/SAM/SAM.Tests/OverheatingScenarioTests.cs`
+- `SAM/documentation/PartO-ARCHITECTURE.md` (new)
+- `SAM/documentation/PartO-TAS-VALIDATION.md`
+- `SAM/documentation/PartF-HANDOVER.md`
+- `SAM/PROJECT_PROGRESS.md` (this file)
+- `SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/PartONaturalVentilationWorkflowTests.cs` (separate repo)
+
+## Tests
+Section I of `PartOIterationPreparationTests` was rewritten - the cases it has to cover are different cases
+now - and sections J and K added:
+
+- `AStatedRoute_ResolvesToItsMode` [Theory x8], `AnythingElse_IsNoRouteAtAll` [Theory x9, including `MV`,
+  `UV`, `EOL`, `CAV`, `MVHRR`, empty and null], `MVAndUV_AreRefusedWithTheReasonTheyAreNotRoutes`.
+- `AnUnstatedRoute_RefusesAndAppliesNothing` [Theory x4] - on the production path, asserting no model, no
+  scenarios and the supplied model unmutated.
+- `AZoneStatingNothing_IsNamedInTheRefusal`, `NoAssessedZones_Refuse`, `MixedRoutes_*`,
+  `NVBesideAZoneStatingNothing_Refuses`.
+- `TheMVHRRoute_KeepsTheExistingApplication` [Theory: MVRE, MVHR] - the mechanical-path guard, proving both
+  spellings are one route.
+- `EachBaseIteration_StatesItsRoute`, `AnNVDwellingAtTheMVHRIteration_Refuses`,
+  `AnMVHRDwellingAtTheNVIteration_Refuses`,
+  `TheTwoBaseIterations_AssertOppositeMechanicalVentilationAssumptions`,
+  `TheTwoBaseIterations_KeyDifferentlyOverTheSameZone`.
+- `AStaleMVREOnTheModel_DoesNotOverrideAnExplicitNVRoute_AndIsNotRewritten`.
+- `Iteration1b_Open_LeavesTheOpeningUnrestrictedAndCompatible`,
+  `Iteration1b_Night_KeepsTheAuthoredRestrictionAndItsSchedule`,
+  `Iteration1b_OpenAndNight_DifferOnlyInTheOpeningAvailability`.
+
+Every pre-existing opening / idempotency / airflow test still passes; the NV ones now state
+`BaseNaturalVentilation`.
+
+`SAM_Tas` - `PartONaturalVentilationWorkflowTests` (11, COM-free): the fixture is parameterised by
+`OpeningRestriction`, so it builds both acceptance cases. Added
+`TheUnrestrictedAperture_ResolvesTheApertureControlWithNoAvailabilityRestriction`,
+`BothCases_ExportAsNaturalVentilation`, `BothCases_SelectTheSameNaturalVentilationTM59Route`,
+`TheTwoCases_DifferOnlyInTheOpeningAvailability`.
+
+## Validation
+- `SAM.Analytical` Debug build: 0 errors, no new warnings from the new files.
+- `SAM.Analytical.Grasshopper`: 0 CS errors (the post-build deploy step fails locally with the pre-existing
+  environmental `*Undefined*` path quirk; CI is green).
+- Full `SAM.Tests` Debug: **1425 passed, 0 failed**.
+- `SAM.Analytical.Tas.TM59.Tests` Debug: **624 passed, 0 failed**.
+- Licensed headless TAS, both cases (`CIBSE Weather 2021.twd`, `Sizing = true`, `Simulate = true`,
+  days 1..365), base model `C:\TasOut\v40\A0.sam`, outputs in `C:\TasOut\p1b`:
+  - The two produced **TBDs differ by exactly one line** - the extra `ApertureType` carrying
+    `schedule=PartO_DayOpen_08_23`, `values=000000001111111111111110`.
+  - `"flow"` keys in the TBD zone descriptions: **NV-OPEN 0, NV-NIGHT 0, MVRE control 8.** No continuous
+    mechanical supply was invented in either case; the authored `freshAirRate` 8 l/s/p survives, where the
+    mechanical control zeroes it and writes `flow = 0.0455`.
+  - TM59 from each produced TSD: **5 natural-ventilation, 0 mechanical, 4 corridor** in both, no refusals
+    of any kind, every space passing.
+  - **The two simulations genuinely differ**: 16 690 of 78 840 hourly resultant temperatures, with the
+    largest delta in the whole model - 0.674 K - on `Bedroom 2_3`, the one space whose window was
+    restricted, and in the expected direction.
+
+## Acceptance-model decision
+The **fallback** in the brief was taken deliberately: the licensed A/B adapts `C:\TasOut\v40\A0.sam` (the
+9-space TM59 residential model already proven by the 2026-08-25 acceptance) rather than constructing TAS
+geometry from scratch. Building a simulatable dwelling through SAM APIs means closed shells, constructions
+and adjacency the TAS importer accepts - unrelated complexity that would put the acceptance's own
+correctness in question. The **preferred** option is used where it costs nothing: both COM-free suites build
+their dwellings from scratch through normal SAM APIs. `build_tests/Fixtures/original_v1.sam` remains
+rejected (office massing, 0 zones, 0 internal conditions, 0 opening properties, in a build output
+directory).
+
+## Remaining ambiguity / open items
+- **Iteration 1a (`BaseMVHR`) is not implemented.** The Part F requirement is applied on the MVHR route,
+  but no physical unit is selected against it. The algorithm is recorded in `PartO-ARCHITECTURE.md` §5 and
+  is the next piece.
+- **Iterations 2 and 3 are not implemented** - recorded in `PartO-ARCHITECTURE.md` §2.
+- **Mixed-route models refuse.** `ApplyPartFVentilationRates` is whole-model; a per-zone application is a
+  separate change with its own transfer-air and balance consequences.
+- **System 1 sizing is not implemented anywhere.** Zero continuous mechanical airflow means no MVHR/MVRE
+  system was invented; it does NOT mean the dwelling's natural-ventilation Part F design has been sized. Do
+  not report the NV result as "Part F NV sizing".
+- **Wet-room intermittent extract has no runtime behaviour, deliberately.** SAM parses
+  `PartFCategory.IntermittentExtractRate_Lps` from the rule set and reads it nowhere; a wet room actually
+  receives a *continuous* balanced extract because `PartFCalculator` is System 4 shaped for every route;
+  nothing carries an operating schedule or control for an intermittent extract; and `SAM.Analytical.Tas`
+  has **no TBD write path for exhaust at all** (`ExhaustAirFlow` is read only by `PartODiagnosticLog`).
+  The rate is preserved as data. Full write-up in `PartO-ARCHITECTURE.md` §6.
+- **`OverheatingScenario:v2` remains deferred.** The stage still asserts `Openings Restricted`, so NV-NIGHT
+  is still reported `Incompatible` and still only warned about, and the two acceptance cases still share a
+  scenario key - correctly, since opening behaviour is a property of the model rather than of the stage.
+- **Neither acceptance case fails.** The result pipeline has been shown to report a pass truthfully; it has
+  not been shown on this model and weather to report a fail.
+- The TM59 assessment must be given the **workflow output** model, not the pre-workflow one -
+  `SimulationSpaceMap` resolves on the `ZoneGuid` that `Modify.UpdateIds` stamps during the workflow.
+  Pre-existing behaviour, recorded because it silently produces zero results.
+
+## Next step
+1. Push, update PR [SAM#76](https://github.com/SAM-BIM/SAM/pull/76) and
+   [SAM_Tas#43](https://github.com/SAM-BIM/SAM_Tas/pull/43), run CI. **Do not merge.**
+2. **Iteration 1a / `BaseMVHR`**: apply the Part F continuous requirement on the explicit MVHR route and
+   select the minimum compliant unit from `MVHR_Template`. The unit's capacity is equipment capability and
+   must never become the source of the requirement.
+3. Per-zone Part F airflow application, which is what turns today's mixed-route refusal into a real answer.
+   It needs a decision on transfer air and dwelling balance across a route boundary before any code.
+4. `OverheatingScenario:v2` - moving `Openings Restricted` from the stage to the model.
+
+---
+
+## Historical session note - the first NV gate (same branch, commit `0c8a04eb`)
+
+The commit that closed the NV hole. `PreparePartOIteration` stopped carrying Approved Document F continuous
+mechanical supply and extract onto a naturally ventilated dwelling, and the whole preparation moved into the
+library so the component and the tests run the same code. `SAM.Tests` 1397, `SAM.Analytical.Tas.TM59.Tests`
+620; licensed acceptance recorded in `PartO-TAS-VALIDATION.md` §"Natural-ventilation Part O workflow".
+
+Its mechanics are superseded by the work above - the gate was `Query.PartOPartFAirflowApplication(zones,
+dictionary, out diagnostic)` reading the string `"NV"`, at `PartOIteration.BasePassive`, and both of those
+now refuse - but the defect it identified and the wording it pinned are unchanged:
+
 - `SAMAnalyticalPreparePartOIteration.SolveInstance` called `Modify.ApplyPartFVentilationRates`
   **unconditionally, and before `_ventilationStrategies` was read at all**.
 - `PartFCalculator` is unconditionally System 4 shaped - paragraph 1.67 gives every habitable room a
@@ -28,112 +219,6 @@ O workflow" for the full evidence.
 - So an NV dwelling was simulated with mechanical supply/extract it does not have, **successfully**, with
   nothing in the result saying the system was invented. Mirror failure: an NV dwelling with no
   `PartFSpaceData` was refused outright with "run a Part F component first".
-- Wet-room INTERMITTENT extract was checked and left alone: `PartFCalculator` already sets
-  `IsInBalancedFlow = false` and leaves `ContinuousDesignFlowRate_Lps` null for `CookerHoodExtractingOutside`
-  and `SeparateIntermittentExtract`, so it was never part of what is applied.
-
-## Completed (this session)
-- **`Enums.PartOPartFAirflowApplication`** (new): `Apply` / `SkipNaturalVentilation` / `RefuseMixed`.
-- **`Query.PartOPartFAirflowApplication(zones, dictionary_VentilationStrategy, out diagnostic)`** (new): the
-  decision, over the **same** strategy dictionary `Create.OverheatingScenarios` is given, so the airflow
-  decision and the TM59 criterion can never read different answers. Only `NV` skips (read trimmed and
-  `ToUpperInvariant`, matching `VentilationStrategyMap`); `UV` and everything else keep the existing
-  behaviour; no assessed zones keeps the existing behaviour, because an absence is not a statement.
-- **`Modify.PreparePartOIteration`** (new) + **`PartOIterationPreparation`** (new result class): the whole
-  preparation, in the library. Operating mode -> strategy gate -> airflow (or not) -> opening compatibility
-  -> scenarios. A refusal returns **no model and no scenarios** - a half-prepared model handed back beside a
-  refusal is a model somebody simulates.
-- **`SAMAnalyticalPreparePartOIteration`** reduced to parameter reading and Grasshopper message levels;
-  version `1.0.1` -> `1.0.2`. Zone resolution and strategy reading moved ahead of the airflow application,
-  which is what lets the gate see the strategy. Message levels, the connected-but-unresolved-zones error and
-  every output are unchanged.
-- Component documentation states plainly that zero continuous mechanical airflow means **SAM has not
-  invented an MVHR/MVRE system**, and NOT that the natural-ventilation Part F design has been sized.
-
-## Files changed
-- `SAM/SAM/SAM.Analytical/Enums/PartOPartFAirflowApplication.cs` (new)
-- `SAM/SAM/SAM.Analytical/Query/PartOPartFAirflowApplication.cs` (new)
-- `SAM/SAM/SAM.Analytical/Classes/PartOIterationPreparation.cs` (new)
-- `SAM/SAM/SAM.Analytical/Modify/PreparePartOIteration.cs` (new)
-- `SAM/Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalPreparePartOIteration.cs`
-- `SAM/SAM/SAM.Tests/PartOIterationPreparationTests.cs`
-- `SAM/documentation/PartO-TAS-VALIDATION.md`
-- `SAM/PROJECT_PROGRESS.md` (this file)
-- `SAM_Tas/SAM_Tas/SAM.Analytical.Tas.TM59.Tests/PartONaturalVentilationWorkflowTests.cs` (new, separate repo)
-
-## Tests
-`PartOIterationPreparationTests` now calls `Modify.PreparePartOIteration` directly instead of mirroring
-`SolveInstance` step by step - the previous helper was a hand-maintained copy of the component's sequence,
-which is exactly what a gate must not be tested against. All pre-existing opening/idempotency/airflow tests
-pass unchanged on the real path.
-
-New, sections H and I of that file (the mechanical fixture reused, so the Part F sizing being skipped is
-provably present):
-- `NVDwelling_InventsNoContinuousMechanicalSupplyOrExtract` - one model prepared twice, MVRE then NV; the
-  MVRE control proves the fixture is one that COULD have had an MVHR system invented for it.
-- `NVDwelling_LeavesTheInternalConditionsExactlyAsAuthored` - no per-space clone, no rename, no cleared
-  summing bases.
-- `NVDwelling_NightClosedAperture_SurvivesWithItsAvailabilitySchedule` - restriction, hours, schedule name,
-  all 24 values, function and factor.
-- `NVDwelling_StatesAnNVScenario`, `NVDwelling_WithNoPartFDataAtAll_StillPrepares` (with the MVRE control
-  refusing the same model), `NVDwelling_SaysWhyNoMechanicalAirflowWasApplied_WithoutClaimingItSizedAnything`,
-  `NVPreparation_LeavesTheSuppliedModelUnchanged`, `NVPreparation_IsIdempotent`.
-- `MixedStrategies_RefuseAndNameEveryZoneWithItsStrategy`, `MixedStrategies_ReturnNoModelAndMutateNothing`,
-  `NVBesideAZoneStatingNothing_Refuses`.
-- `EveryStrategyThatIsNotNV_KeepsTheExistingApplication` [Theory: MV, MVRE, UV] - the mechanical-path guard.
-- `TheNVStatement_IsReadCaseInsensitivelyAndTrimmed` [Theory], `NoAssessedZones_KeepTheExistingApplication`.
-
-`SAM_Tas` - `PartONaturalVentilationWorkflowTests` (7, COM-free): the same semantic case carried from the
-production preparation to the export, the aperture-definition write path and the TM59 route. The fixture's
-internal condition deliberately states `MVRE`, so every assertion has a control showing the pre-scenario
-derivation answering "mechanical" for the same model.
-
-## Validation
-- `SAM.Analytical` Debug build: 0 errors, no new warnings from the new files.
-- `SAM.Analytical.Grasshopper`: 0 CS errors (the post-build deploy step fails locally with the pre-existing
-  environmental `*Undefined*` path quirk; CI is green).
-- Full `SAM.Tests` Debug: **1397 passed, 0 failed**.
-- `SAM.Analytical.Tas.TM59.Tests` Debug: **620 passed, 0 failed**.
-- Licensed headless TAS acceptance (TAS 9.5.7.0, `CIBSE Weather 2021.twd`, `Sizing = true`,
-  `Simulate = true`, days 1..365), base model `C:\TasOut\v40\A0.sam` with ONE aperture authored
-  `NightClosed` 08-23:
-  - TBD aperture profile: `ticFunctionProfile`, `function=zdwno,0,19.00,21.00,99.00`,
-    `schedule=PartO_DayOpen_08_23`, `values=000000001111111111111110`. The other 19 Unrestricted openings
-    carry the same function and no schedule.
-  - TBD zone description (`SAM_META_V1`), `Bedroom 2_3`: NV run `{"ventilation":{"profile":false},...}` with
-    the authored `freshAirRate` 8 l/s/p intact; MVRE control `{"ventilation":{"flow":0.0455,...}}` with
-    `freshAirRate` zeroed. No continuous mechanical airflow was invented for the NV dwelling.
-  - TM59 from the produced TSD: **5 natural-ventilation results, 0 mechanical, 4 corridor**, no strategy or
-    association refusals.
-
-## Fixture decision
-`build_tests/Fixtures/original_v1.sam` was examined and **rejected**: a 3-storey, 5-per-floor office massing
-with 0 `Zone` objects, 0 `InternalCondition` objects and 0 of its 66 apertures carrying any
-`OpeningProperties`. It can state neither a dwelling, nor a ventilation strategy, nor a restriction without
-being rebuilt rather than adapted, and it lives in a build **output** directory. The acceptance instead
-adapts `C:\TasOut\v40\A0.sam` (the 9-space TM59 residential model) minimally, through SAM APIs.
-
-## Remaining ambiguity / open items
-- **Mixed NV + mechanical models refuse.** `ApplyPartFVentilationRates` is whole-model; a per-zone
-  application is a separate change with its own transfer-air and balance consequences.
-- **System 1 sizing is not implemented.** Zero continuous mechanical airflow means no MVHR/MVRE system was
-  invented; it does NOT mean the dwelling's natural-ventilation Part F design has been sized. Do not report
-  the NV result as "Part F NV sizing".
-- **`OverheatingScenario:v2` remains deferred.** The stage still asserts `Openings Restricted`, so a
-  `NightClosed` opening under `BasePassive` is still reported `Incompatible` and still only warned about.
-- The TM59 assessment must be given the **workflow output** model, not the pre-workflow one -
-  `SimulationSpaceMap` resolves on the `ZoneGuid` that `Modify.UpdateIds` stamps during the workflow.
-  Pre-existing behaviour, recorded because it silently produces zero results.
-
-
-## Next step
-1. Push `feature/parto-nv-workflow` and open the PR into `sow/2026-Q3` (SAM), plus the companion PR in
-   SAM_Tas for `PartONaturalVentilationWorkflowTests`. Request Codex review; do NOT merge.
-2. After review, the next piece of the workflow is the **per-zone Part F airflow application**, which is
-   what turns today's mixed NV + mechanical refusal into a real answer. It needs a decision on transfer air
-   and dwelling balance across a strategy boundary before any code.
-3. `OverheatingScenario:v2` (moving `Openings Restricted` from the stage to the model) remains the separate
-   piece that would turn today's opening-compatibility WARNING into either silence or a correct statement.
 
 ---
 
