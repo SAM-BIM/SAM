@@ -323,11 +323,24 @@ namespace SAM.Analytical
 
             // ---- The runtime realization ---------------------------------------------------------------
 
+            //The dwelling the transfer air is routed over, settled ONCE and used by everything below.
+            //
+            //Wider than the system's served spaces on purpose. The ventilation system is related only to the
+            //rooms carrying a design terminal, which is correct - it moves no air into an internal hall - but
+            //that hall is the room the dwelling's transfer air crosses and divides at, and a network solved
+            //without it reports a supplied bedroom and an extracted bathroom as having no connection. Narrower
+            //than the model on purpose too: a communal corridor belongs to no dwelling and must never become a
+            //shortcut between two of them. Query.PartFTransferAirSpaces asks the Part F calculation's own
+            //dwelling rule where the boundary is.
+            List<Space> spaces_Dwelling = adjacencyCluster.PartFTransferAirSpaces(adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem), out List<string> notes_Scope);
+
+            result.Notes.AddRange(notes_Scope ?? []);
+
             //Stale movements first, whatever built them. Preparing the same model twice must produce the same
             //model, not two sets of air movements that a TBD would write as two sets of inter-zone air
             //movements - and a model arriving with its own system-template air movements on these rooms
             //would otherwise add its supply to this design's.
-            RemoveBaseMVHRAirMovementObjects(adjacencyCluster, ventilationSystem, airHandlingUnit);
+            RemoveBaseMVHRAirMovementObjects(adjacencyCluster, ventilationSystem, airHandlingUnit, spaces_Dwelling);
 
             //SCOPED to the system this iteration built. The model's own ventilation systems are left exactly
             //as authored and are not realized here: they may serve the same rooms, and walking them too would
@@ -353,7 +366,7 @@ namespace SAM.Analytical
             //balance. The air that closes each room is transfer air, routed by the Approved Document F
             //airflow network over the model's own internal adjacencies. Nothing is invented: where the
             //network cannot route a room's net, this refuses rather than making a route up.
-            List<SpaceAirMovement> spaceAirMovements_Transfer = adjacencyCluster.AddPartFTransferAirMovements(analyticalModel.ProfileLibrary, ventilationSystem, out List<string> notes_Transfer, out List<string> refusals_Transfer);
+            List<SpaceAirMovement> spaceAirMovements_Transfer = adjacencyCluster.AddPartFTransferAirMovements(analyticalModel.ProfileLibrary, spaces_Dwelling, out List<string> notes_Transfer, out List<string> refusals_Transfer);
 
             result.Notes.AddRange(notes_Transfer);
 
@@ -368,7 +381,10 @@ namespace SAM.Analytical
 
             // ---- Conservation, checked at every node ----------------------------------------------------
 
-            string refusal_Balance = RefuseUnbalancedAirMovement(adjacencyCluster, ventilationSystem, airHandlingUnit);
+            //Checked over the DWELLING, not over the served spaces: a zero-terminal hall that passes air on
+            //is a TAS zone carrying inter-zone air movements like any other, and one that gained more than it
+            //passed on would be refused by TAS while every served room balanced perfectly.
+            string refusal_Balance = RefuseUnbalancedAirMovement(adjacencyCluster, spaces_Dwelling, airHandlingUnit);
 
             if (refusal_Balance != null)
             {
@@ -405,8 +421,15 @@ namespace SAM.Analytical
         /// a refusal an engineer can act on and a simulation that reports success having produced nothing.
         /// </para>
         /// </summary>
+        /// <param name="adjacencyCluster">The model the air movements are read from.</param>
+        /// <param name="spaces">
+        /// Every space of the dwelling, terminal or no terminal - the same scope the transfer air was routed
+        /// over. An intermediate space left out of this would be a zone TAS refused while this reported the
+        /// model balanced.
+        /// </param>
+        /// <param name="airHandlingUnit">The unit, which is a node of the network like any room.</param>
         /// <returns><b>Null</b> where every node balances; the refusal otherwise.</returns>
-        private static string RefuseUnbalancedAirMovement(AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem, AirHandlingUnit airHandlingUnit)
+        private static string RefuseUnbalancedAirMovement(AdjacencyCluster adjacencyCluster, List<Space> spaces, AirHandlingUnit airHandlingUnit)
         {
             List<SpaceAirMovement> spaceAirMovements = [];
 
@@ -423,9 +446,7 @@ namespace SAM.Analytical
 
             Collect(airHandlingUnit);
 
-            List<Space> spaces = adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? [];
-
-            foreach (Space space in spaces)
+            foreach (Space space in spaces ?? [])
             {
                 Collect(space);
             }
@@ -449,7 +470,7 @@ namespace SAM.Analytical
                 diagnostics.Add(string.Format("{0} {1} {2:0.###} l/s", sAMObject.Name, residual > 0 ? "gains" : "loses", System.Math.Abs(residual) * 1000));
             }
 
-            foreach (Space space in spaces)
+            foreach (Space space in spaces ?? [])
             {
                 Check(space);
             }
@@ -470,11 +491,17 @@ namespace SAM.Analytical
         /// Removes the air movement objects belonging to this system and unit, so that re-preparing a model
         /// replaces them rather than adding a second set beside them.
         /// <para>
-        /// Scoped to the system's own unit and served spaces on purpose: an inter-zone air movement a
-        /// modeller created by hand elsewhere in the building is not this iteration's to delete.
+        /// Scoped to the system's own unit and to the dwelling it serves on purpose: an inter-zone air
+        /// movement a modeller created by hand elsewhere in the building is not this iteration's to delete.
+        /// </para>
+        /// <para>
+        /// The dwelling rather than the served spaces, because a transfer movement is related to the space it
+        /// ARRIVES in - so the one arriving in a zero-terminal hall is related to that hall alone. Collecting
+        /// only the served spaces would leave it behind, and re-preparing the model would write a second
+        /// transfer beside it.
         /// </para>
         /// </summary>
-        private static void RemoveBaseMVHRAirMovementObjects(AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem, AirHandlingUnit airHandlingUnit)
+        private static void RemoveBaseMVHRAirMovementObjects(AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem, AirHandlingUnit airHandlingUnit, List<Space> spaces)
         {
             List<Core.SAMObject> sAMObjects = [];
 
@@ -491,7 +518,7 @@ namespace SAM.Analytical
 
             Collect(airHandlingUnit);
 
-            foreach (Space space in adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? [])
+            foreach (Space space in spaces ?? adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? [])
             {
                 Collect(space);
             }

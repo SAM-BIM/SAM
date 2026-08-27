@@ -1168,3 +1168,242 @@ normally. Nothing in SAM reads it, and the diagnosis did not need it.
 
 A TBD is a binary document with no XML or text serialization reachable from the automation interface, so
 every field above is read through the COM accessors rather than off the file.
+
+---
+
+## Iteration 1a / Base MVHR — the two magnitude and scope corrections (2026-08-27)
+
+The section above stands: the topology, the balance rule and the acceptance it records are unchanged. Two
+things in it were wrong in ways that did not stop a simulation, and it named both as deferred defects.
+Both are corrected here.
+
+### Correction 1 — the transfer network was solved over the served spaces, not over the dwelling
+
+`Modify.AddPartFTransferAirMovements` took its space set from the `VentilationSystem` → `Space` relation.
+That relation is right about what it says: it holds the spaces that carry a **design ventilation
+terminal**, and an air handling unit that moves no air into a hall does not serve that hall. It is the
+wrong answer to a different question.
+
+Approved Document F sizes no terminal for circulation, so the internal hall of a real flat is a
+zero-terminal space — and paragraph 1.25's transfer air crosses it. A bedroom supplied with 20 l/s passes
+its air into the hall, and the hall divides it between the bathroom and the kitchen that are extracted:
+
+```text
+AHU → Bedroom A     20        Bedroom:  20 in = 20 out
+Bedroom A → Hall    20        Hall:     20 in = 8 + 12 out
+Hall → Bathroom      8        Bathroom:  8 in =  8 out
+Hall → Kitchen      12        Kitchen:  12 in = 12 out
+Bathroom → AHU       8
+Kitchen  → AHU      12
+```
+
+Solved over the served spaces alone the hall is not in the graph, the middle of every route through it is
+deleted, and the preparation **refuses** — *"The design airflow of Bathroom, Bedroom 1, Kitchen cannot
+reach anywhere it could come from or go to"* — on a dwelling that is modelled perfectly correctly. That is
+the failure `PartFTransferAirDwellingScopeTests` reproduces with the fix removed: 5 of its 6 tests fail.
+
+**The boundary is asked for, never guessed at.** The fix is not "add every space in the model": a communal
+corridor belongs to no dwelling, and letting the solver route through one would carry a flat's supply air
+into the common parts, or use the corridor as a shortcut between two flats that share nothing but a wall.
+
+`Query.PartFTransferAirSpaces` (new) settles it from the **existing** authority —
+`Query.PartFDwellingZones`, which is the single source of the dwelling-selection policy and what
+`PartFCalculator` itself sizes with. The scope is the served spaces plus every other space of the
+**dwelling zones those served spaces belong to**; membership is the model's own `Zone` → `Space` relation,
+and nothing is inferred from geometry. A zone marked `Is Dwelling = No` — a communal corridor, a stair, a
+landlord area — contributes nothing. A model with no zones at all is one dwelling, which is exactly what
+`PartFCalculator.Calculate()` does with a zone-less model, and a note says so.
+
+Two consequences, both deliberate:
+
+- **The system relation is unchanged.** The hall is still not related to the `VentilationSystem`, still
+  carries no terminal, and is still not claimed as mechanically served. It is a transfer node, and being a
+  transfer node is not being served.
+- **The balance check and the stale-movement removal now run over the dwelling too.** A transfer movement
+  is related to the space it *arrives* in, so the one arriving in a zero-terminal hall is related to that
+  hall alone: checking only the served spaces would pass a model TAS refuses, and removing only the served
+  spaces' movements would write a second transfer beside the first on the next preparation.
+
+### Correction 2 — a TBD inter-zone air movement is a mass flow, and SAM was writing a volume flow
+
+The previous section recorded this as a defect found and not fixed. The EDSL Building Simulator
+documentation states the Inter-Zone Air Movement flow rate as a time-varying **mass flow rate**, and its
+Inter-Zone Air Movement table gives the unit explicitly as **kg/s**. A licensed TBD agrees: read back
+through Tas's own accessors, the profile SAM writes reports `units=kg/s`.
+
+SAM is volumetric all the way down — Approved Document F sizes a terminal in l/s and
+`SpaceAirMovement.AirFlow` carries m³/s — and neither type says which it is. So the m³/s number went
+straight into the kg/s field. Nothing failed: the model still balanced, still simulated and still produced
+a full year of results, for a dwelling ventilated about 21% below its design.
+
+```text
+Approved Document F duty      45.5 l/s
+SpaceAirMovement.AirFlow      0.0455 m3/s        (unchanged - SAM stays volumetric)
+TBD IZAM profile              0.055055 kg/s      (0.0455 x 1.21)
+```
+
+**Where the conversion is.** In `SAM_Tas`, at the one seam where a SAM movement becomes a TBD profile:
+`Modify.UpdateIZAMProfile`, which every inter-zone air movement `Modify.UpdateIZAMs` writes now goes
+through — outside → unit, unit → space, space → space transfer, space → unit extract, and the unit's
+exhaust. Nothing in `SAM` changed, and no Part F requirement or design terminal duty is restated in kg/s.
+
+**The density is SAM's own.** `Query.IZAMAirDensity_KgPerM3` is `Core.FluidProperty.Air.Density`, which is
+**1.210 kg/m³** — the value `Modify.AddAirMovementObjects` already writes as an air handling unit's density
+profile and `SAMAnalyticalCreateIZAMBySetPoint` already offers as its default. A second constant was
+deliberately *not* minted to obtain the 1.204 kg/m³ of dry air at 20 °C and sea level: the two would then
+disagree by half a percent about the same air, for no reason anybody could later reconstruct.
+
+**One density for the whole network, and that is not an approximation of convenience.** Air expands as it
+warms, so a physically exact conversion would use each movement's own air temperature — and the movements
+would then no longer balance by mass at any node, which is precisely what TAS refuses. Scaling every term
+of every node's sum by the same factor turns a balanced volumetric network into a balanced mass network
+exactly.
+
+### The corrected licensed acceptance (2026-08-27)
+
+Outputs in `C:\TasOut\p1a3`. Same base model, weather, gains and period as before: `C:\TasOut\v40\A0.sam`,
+`CIBSE Weather 2021.twd`, days 1..365.
+
+| | A — Iteration 1a | B — Iteration 1b |
+|---|---|---|
+| Authored | `partoauthor … MVRE "Bedroom 2_3" OPEN` | `partoauthor … NV "Bedroom 2_3" OPEN` |
+| Iteration | `BasePassive` | `BaseNaturalVentilation` |
+| Simulation | **Full year, 5 594 029 byte TSD, no error log** | Full year, 4 816 394 byte TSD |
+
+**The dwelling scope, reported by the preparation itself:**
+
+```text
+NOTE|The dwelling transfer air is routed over the 8 space(s) the system serves. No further internal
+     space belongs to the dwelling(s) they are in, so nothing was added to the network.
+```
+
+A0's three dwelling zones — `Flat 1`, `Flat 2`, `Flat 3` — contain only rooms that Approved Document F
+sized, so this model has no zero-terminal internal space to add. Its one zero-terminal space,
+`Corridor_1`, is in the `Corridor` zone, which the model marks `Is Dwelling = No`; it is a TAS zone in the
+file and **carries no inter-zone air movement at all**. The hall case is proven separately — by
+`PartFTransferAirDwellingScopeTests`, and on this same licensed model by the `INV_HALLDEMO` probe below.
+
+**Every flow is now written in kg/s, and converts back to the design duty:**
+
+```text
+IZAM MVHR-01 FROM OUTSIDE     |fromOutside=-1|source=-             |massFlow_kgs=0.18876 |= 0.156  m3/s = 156.0 l/s
+IZAM MVHR-01 TO Bedroom 2_3   |source=MVHR-01|targets=Bedroom 2_3  |massFlow_kgs=0.055055|= 0.0455 m3/s =  45.5 l/s
+IZAM MVHR-01 TO Studio 1_0    |source=MVHR-01|targets=Studio 1_0   |massFlow_kgs=0.039325|= 0.0325 m3/s =  32.5 l/s
+IZAM Studio 1_0 TO MVHR-01    |source=Studio 1_0|targets=MVHR-01   |massFlow_kgs=0.05324 |= 0.044  m3/s =  44.0 l/s
+IZAM Bedroom 2_3 TO Bathroom_2|source=Bedroom 2_3|targets=Bathroom_2|massFlow_kgs=0.00968|= 0.008  m3/s =   8.0 l/s
+IZAM MVHR-01 TO OUTSIDE       |fromOutside=0 |source=-             |massFlow_kgs=0.18876 |= 0.156  m3/s = 156.0 l/s
+                                                                    profileUnits=kg/s  (TAS's own declaration)
+```
+
+Twenty movements — one intake, four supply, six extract, one exhaust, eight transfer. Every supply
+movement converts back to that room's Supply terminal duty and every extract to its Extract duty; **no
+bedroom is extracted and no wet room is supplied**; the system totals are still **156 l/s supply and
+156 l/s extract** volumetrically, which is 0.18876 kg/s each way.
+
+**Every node conserves MASS**, read off the file rather than asserted — summed over every movement
+touching the zone, never paired route against route:
+
+```text
+NODE|Bathroom_2      |in_kgs=0.00968 |out_kgs=0.00968 |residual_kgs=0
+NODE|Bedroom 2_3     |in_kgs=0.055055|out_kgs=0.055055|residual_kgs=0
+NODE|Bedroom 2_6     |in_kgs=0.06776 |out_kgs=0.06776 |residual_kgs=0
+NODE|Ensuite_5       |in_kgs=0.00968 |out_kgs=0.00968 |residual_kgs=0
+NODE|Ensuite_8       |in_kgs=0.00968 |out_kgs=0.00968 |residual_kgs=0
+NODE|Kitchen_7       |in_kgs=0.06292 |out_kgs=0.06292 |residual_kgs=-0
+NODE|Living Kitchen_4|in_kgs=0.070785|out_kgs=0.070785|residual_kgs=-0
+NODE|MVHR-01         |in_kgs=0.37752 |out_kgs=0.37752 |residual_kgs=0
+NODE|Studio 1_0      |in_kgs=0.05324 |out_kgs=0.05324 |residual_kgs=-0
+CONSERVATION|nodes=9|density_kgm3=1.21|maxResidual_kgs=0|maxResidual_lps=0.000005
+```
+
+Nine nodes; `Corridor_1` is a tenth zone and is absent, which is the scope boundary holding. The largest
+residual anywhere is 5 × 10⁻⁶ l/s, which is the single-precision rounding of the TBD profile field.
+`Bedroom 2_3` still divides its supply three ways, `Ensuite_5` still draws from two rooms, and
+`Living Kitchen_4` still receives transfer air, passes transfer air on and extracts at once.
+
+**Unchanged from the accepted run**: every sized space reads `freshAirRate_lsp=0` (only `Corridor_1`, which
+is outside the dwelling, keeps its authored 8 l/s/person), and TM59 takes the mechanical route with no
+strategy refusals:
+
+```text
+1a (MVRE): COUNTS|naturalVentilation=0|mechanicalVentilation=5|corridor=4
+1b (NV)  : COUNTS|naturalVentilation=5|mechanicalVentilation=0|corridor=4
+```
+
+### The zero-terminal transfer node, on the licensed model (`INV_HALLDEMO` probe)
+
+A0.sam has no zero-terminal space *inside* a dwelling, so the acceptance run above cannot show one. Its one
+zero-terminal space, `Corridor_1`, is in a zone the model marks `Is Dwelling = No` — which is exactly why
+the acceptance run routes nothing through it. The `INV_HALLDEMO` harness probe relates `Corridor_1` to the
+`Flat 1` dwelling zone and changes nothing else, so both halves of the scope rule can be read off the same
+licensed model and the same production code. **A probe, not part of the acceptance**: it alters what the
+model says about the building. Sizing only — the question is what is written into the TBD.
+
+```text
+hall_out (stock A0)
+NOTE|The dwelling transfer air is routed over the 8 space(s) the system serves. No further internal
+     space belongs to the dwelling(s) they are in, so nothing was added to the network.
+     -> Corridor_1 is a zone in the TBD and carries NO inter-zone air movement at all.
+
+hall_in (Corridor_1 related to the Flat 1 dwelling zone)
+NOTE|The dwelling transfer air is routed over the 8 space(s) the system serves and 1 further internal
+     space(s) of the same dwelling(s) (Flat 1, Flat 2, Flat 3): Corridor_1. These carry no design
+     ventilation terminal and are NOT served by the system - they are the rooms the dwelling's
+     transfer air passes through.
+NOTE|Ventilation system 'MVHR 1' serves 8 space(s) through 10 design terminal(s).
+```
+
+`serves 8 space(s)` — unchanged. The corridor joined the **network** and nothing else: no design terminal,
+no relation to the ventilation system, no claim that the unit ventilates it. And it carries the dwelling's
+transfer air, arriving from two rooms and dividing five ways:
+
+```text
+IZAM Bedroom 2_3 TO Corridor_1 |source=Bedroom 2_3|massFlow_kgs=0.0363   |= 30.00 l/s
+IZAM Bedroom 2_6 TO Corridor_1 |source=Bedroom 2_6|massFlow_kgs=0.016638 |= 13.75 l/s
+IZAM Corridor_1 TO Bathroom_2  |source=Corridor_1 |massFlow_kgs=0.00484  |=  4.00 l/s
+IZAM Corridor_1 TO Ensuite_5   |source=Corridor_1 |massFlow_kgs=0.00484  |=  4.00 l/s
+IZAM Corridor_1 TO Ensuite_8   |source=Corridor_1 |massFlow_kgs=0.00968  |=  8.00 l/s
+IZAM Corridor_1 TO Kitchen_7   |source=Corridor_1 |massFlow_kgs=0.02662  |= 22.00 l/s
+IZAM Corridor_1 TO Studio 1_0  |source=Corridor_1 |massFlow_kgs=0.006957 |=  5.75 l/s
+
+NODE|Corridor_1|in_kgs=0.052938|out_kgs=0.052938|residual_kgs=-0|in_lps=43.75|out_lps=43.750001
+CONSERVATION|nodes=10|density_kgm3=1.21|maxResidual_kgs=0|maxResidual_lps=0.000005
+```
+
+43.75 l/s in, 43.75 l/s out, at a room with no terminal of its own — the `20 -> 8 + 12` hall of the diagram
+above, at the scale of a real plan and written into a real TBD. Ten conserving nodes rather than nine, and
+the whole-system totals are untouched at 156 l/s each way, because a transfer node changes where the air
+goes and never how much of it there is.
+
+### The number
+
+```text
+TOTAL|values=78840|differing=78838
+```
+
+**78 838 of 78 840**, against 78 835 before the density correction. The count was never the point — the
+gate is `differing > 0`, and correcting the physical magnitude of every inter-zone air movement is
+entitled to move it. The dwelling now runs 0.2–1.0 K cooler in the mean than the naturally ventilated
+alternative, up to 3.0 K at an individual hour.
+
+### Regression: the Iteration 1b OPEN / NIGHT A/B is unchanged
+
+```text
+RESULT|1b OPEN |SIMULATED
+RESULT|1b NIGHT|SIMULATED
+TOTAL|values=78840|differing=16690
+```
+
+**16 690** — the accepted count. Neither correction can reach the natural ventilation route: it builds no
+design terminals, no system and no air movements, so it never reaches the transfer-air scope or the
+inter-zone air movement writer.
+
+### Still deliberately not fixed
+
+`SAM.Analytical.Tas.Modify.Simulate` still reports a refused simulation as a success. It is recorded in
+the section above and is not this change's to fix.
+
+The legacy `Create.IZAM` / `Modify.UpdateIZAMsBySpaceParameter` route, which builds an inter-zone air
+movement from `SAM_IZAM_*` space parameters a modeller authors by hand, is **not** converted. Those values
+are whatever the modeller typed, in whatever unit they meant; converting them would silently rescale
+existing models. Only the Part O runtime realization, which knows its own values are m³/s, is converted.

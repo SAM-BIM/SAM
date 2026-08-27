@@ -4,10 +4,71 @@
 `feature/parto-base-mvhr` (off `sow/2026-Q3` at `1db06e83`, i.e. with PR #76 merged). No PR opened yet.
 
 ## Last updated
-2026-08-27 - Iteration 1a / Base MVHR **accepted**: the licensed annual simulation that was blocked now
-runs, and the two Part O routes no longer produce identical results.
+2026-08-27 - Iteration 1a / Base MVHR: the two corrections that follow the acceptance - the dwelling the
+transfer air is routed over, and the unit an inter-zone air movement is written in.
 
 ## Current status (this session)
+Two things the accepted Iteration 1a recorded as wrong-but-not-fatal are now corrected. Neither changes
+the topology, the balance rule or the design duties; both change what reaches TAS.
+
+**1. The transfer network is solved over the DWELLING, not over the served spaces.** The
+`VentilationSystem` relation holds only the spaces carrying a design ventilation terminal, which is
+correct - an air handling unit moves no air into a hall. But Approved Document F sizes no terminal for
+circulation, so a real flat's internal hall is a zero-terminal space *and* the room paragraph 1.25's
+transfer air crosses and divides at. Solved without it, a supplied bedroom and an extracted bathroom that
+open off the same hall are reported as having no internal connection, and the preparation refuses a
+dwelling that is modelled correctly.
+
+`Query.PartFTransferAirSpaces` (new) settles the boundary from the **existing** authority,
+`Query.PartFDwellingZones` - the single source of the dwelling-selection policy and what `PartFCalculator`
+itself sizes with. Scope = the served spaces plus every other space of the dwelling zones they belong to.
+A zone marked `Is Dwelling = No` contributes nothing, so a communal corridor can never carry a flat's air
+or become a shortcut between two flats. The hall is added to the **network** and to nothing else: it is
+still not related to the ventilation system and still carries no terminal, because being a transfer node
+is not being served.
+
+**2. A TBD inter-zone air movement is a MASS flow in kg/s; SAM was writing m3/s into it.** Confirmed by
+the EDSL Building Simulator documentation and by the licensed file itself, whose profile reports
+`units=kg/s`. Nothing failed - the model balanced, simulated and produced a year of results for a dwelling
+ventilated about 21% below its design. The conversion is in `SAM_Tas` only, at one named seam
+(`Modify.UpdateIZAMProfile`), at SAM's own `Core.FluidProperty.Air.Density` = 1.210 kg/m3. **No SAM type
+changed**: `SpaceAirMovement.AirFlow`, the Part F requirement and the design terminal duties all stay
+volumetric.
+
+Licensed acceptance re-run in `C:\TasOut\p1a3`, same dwelling / weather / period: full-year TSD, every
+IZAM in kg/s converting back exactly to its l/s design duty, **every node conserving mass** to 5e-6 l/s,
+`Corridor_1` carrying none of the dwelling's air, `freshAirRate=0` on every sized space, TM59 on the
+mechanical route with zero strategy refusals, and `differing=78838` of 78 840 against Iteration 1b. The
+Iteration 1b OPEN/NIGHT regression is unchanged at **16 690**. Evidence in
+[`documentation/PartO-TAS-VALIDATION.md`](documentation/PartO-TAS-VALIDATION.md) §"Iteration 1a / Base
+MVHR - the two magnitude and scope corrections (2026-08-27)".
+
+Full `SAM.Tests`: **1470 passed, 0 failed** (was 1464, +6). `SAM.Analytical.Tas.TM59.Tests`: **642 passed,
+0 failed** (was 633, +9).
+
+Still deliberately **not** fixed: `SAM.Analytical.Tas.Modify.Simulate` reports a refused simulation as a
+success.
+
+### Files changed (this session)
+`SAM`
+- `SAM/SAM/SAM.Analytical/Query/PartFTransferAirSpaces.cs` (new) - the dwelling scope, from
+  `Query.PartFDwellingZones`.
+- `SAM/SAM/SAM.Analytical/Modify/AddPartFTransferAirMovements.cs` - new primary overload taking an explicit
+  scoped space collection; the `VentilationSystem` overload resolves the dwelling and delegates.
+- `SAM/SAM/SAM.Analytical/Modify/PreparePartOIteration.cs` - resolves the dwelling once and uses it for the
+  transfer air, the per-node balance refusal and the stale-movement removal.
+- `SAM/SAM/SAM.Tests/PartFTransferAirDwellingScopeTests.cs` (new) - 6 tests.
+- `SAM/documentation/PartO-TAS-VALIDATION.md`, `SAM/PROJECT_PROGRESS.md` (this file).
+
+`SAM_Tas`
+- `SAM_Tas/SAM.Analytical.Tas/Query/IZAMMassFlow.cs` (new) - the reference density and both conversions.
+- `SAM_Tas/SAM.Analytical.Tas/Modify/UpdateIZAMProfile.cs` (new) - the one write seam.
+- `SAM_Tas/SAM.Analytical.Tas/Modify/UpdateIZAMs.cs` - all three profile writes go through it.
+- `SAM_Tas/SAM.Analytical.Tas.TM59.Tests/IZAMMassFlowTests.cs` (new) - 9 tests.
+
+---
+
+## Previous session (2026-08-27, Iteration 1a accepted)
 **The block was conservation, not the inter-zone air movement record.** TAS refuses to simulate a TBD in
 which any one zone's air movements do not balance - building-wide balance is not enough - and every room
 of a balanced heat recovery dwelling is individually out of balance by design. Two objects close it, and

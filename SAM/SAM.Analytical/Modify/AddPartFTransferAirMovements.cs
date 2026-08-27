@@ -34,6 +34,17 @@ namespace SAM.Analytical
         /// sign - this refuses rather than making a route up.
         /// </para>
         ///
+        /// <para><b>Which spaces the network is solved over</b></para>
+        /// <para>
+        /// The <b>dwelling</b>, not the spaces the ventilation system serves. Approved Document F sizes no
+        /// terminal for circulation, so an internal hall is not a served space - and it is the room the
+        /// transfer air crosses and divides at, so a network without it has no route through the flat at
+        /// all. It is equally not every space in the model: a communal corridor belongs to no dwelling and
+        /// must never carry a flat's air or join two flats together.
+        /// <see cref="Query.PartFTransferAirSpaces"/> settles the boundary from the Part F calculation's own
+        /// dwelling rule.
+        /// </para>
+        ///
         /// <para><b>A network, not a set of journeys</b></para>
         /// <para>
         /// One movement per connection, carrying that connection's net flow in the direction it actually
@@ -56,7 +67,9 @@ namespace SAM.Analytical
         /// the profile of the space it arrives in, which is the profile of the extract it is feeding.
         /// </param>
         /// <param name="ventilationSystem">
-        /// The system whose spaces form the dwelling. <b>Null means every space in the model.</b>
+        /// The system whose <b>served</b> spaces seed the dwelling. <b>Null means every space in the
+        /// model.</b> The network is solved over the dwelling those spaces sit in, not over the served
+        /// spaces alone - see <see cref="Query.PartFTransferAirSpaces"/>.
         /// </param>
         /// <param name="notes">What was routed, and where the routing was a design choice rather than forced.</param>
         /// <param name="refusals">
@@ -75,13 +88,69 @@ namespace SAM.Analytical
                 return null;
             }
 
-            List<Space> spaces = ventilationSystem is null
-                ? adjacencyCluster.GetSpaces()
-                : adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem);
+            List<Space> spaces;
+
+            if (ventilationSystem is null)
+            {
+                spaces = adjacencyCluster.GetSpaces();
+            }
+            else
+            {
+                //The system's relation names the SERVED spaces - the ones carrying a design terminal - and
+                //that is the right thing for it to name. The dwelling those rooms sit in is wider: an
+                //internal hall has no terminal and is not served, and it is exactly the space the dwelling's
+                //transfer air passes through. The scope is therefore asked for rather than taken from the
+                //relation.
+                spaces = adjacencyCluster.PartFTransferAirSpaces(adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem), out List<string> notes_Scope);
+
+                notes.AddRange(notes_Scope ?? []);
+            }
+
+            return AddPartFTransferAirMovements(adjacencyCluster, profileLibrary, spaces, notes, refusals);
+        }
+
+        /// <summary>
+        /// Realizes the internal transfer air of one <b>explicitly scoped</b> set of spaces.
+        /// <para>
+        /// This is the primary form, and the scope is an input rather than something derived here: the
+        /// spaces a ventilation system serves and the spaces of the dwelling it serves them in are two
+        /// different sets. A zero-terminal internal hall is in the second and not the first, and it is the
+        /// space the transfer air passes through and divides at.
+        /// <see cref="Query.PartFTransferAirSpaces"/> is what turns one set into the other; a caller that
+        /// already knows the dwelling states it here instead.
+        /// </para>
+        /// <para>See the <see cref="VentilationSystem"/> overload for what this does and why.</para>
+        /// </summary>
+        /// <param name="adjacencyCluster">The model. <b>Modified in place.</b></param>
+        /// <param name="profileLibrary">The library a space's ventilation profile name is resolved through.</param>
+        /// <param name="spaces">
+        /// Every space of the dwelling the transfer air may route through - the ones with a design terminal
+        /// and the ones without.
+        /// </param>
+        /// <param name="notes">What was routed, and where the routing was a design choice rather than forced.</param>
+        /// <param name="refusals">Non-empty where the transfer air could not be established.</param>
+        public static List<SpaceAirMovement> AddPartFTransferAirMovements(this AdjacencyCluster adjacencyCluster, ProfileLibrary profileLibrary, IEnumerable<Space> spaces, out List<string> notes, out List<string> refusals)
+        {
+            notes = [];
+            refusals = [];
+
+            return AddPartFTransferAirMovements(adjacencyCluster, profileLibrary, spaces, notes, refusals);
+        }
+
+        private static List<SpaceAirMovement> AddPartFTransferAirMovements(AdjacencyCluster adjacencyCluster, ProfileLibrary profileLibrary, IEnumerable<Space> spaces_Scope, List<string> notes, List<string> refusals)
+        {
+            if (adjacencyCluster is null)
+            {
+                refusals.Add("No model was supplied, so no transfer air could be established.");
+
+                return null;
+            }
+
+            List<Space> spaces = spaces_Scope is null ? null : [.. spaces_Scope];
 
             if (spaces is null || spaces.Count == 0)
             {
-                refusals.Add("No space was found for the ventilation system, so there is no dwelling to route transfer air through.");
+                refusals.Add("No space was resolved for the dwelling, so there is nothing to route transfer air through.");
 
                 return null;
             }
