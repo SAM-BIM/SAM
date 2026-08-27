@@ -348,12 +348,17 @@ a correct model. `Query.AirMovementResidual` sums every movement at each node �
 outside intake on the same terms the TBD writer derives it — and `Modify.PreparePartOIteration` refuses on
 any node that does not come out at zero.
 
-**Known limitation.** The network is built over the spaces the ventilation system serves, which are the
-spaces carrying design terminals. A space with neither a supply nor an extract terminal — an internal hall
-— is therefore not a transfer route, and the air is routed around it through whatever direct adjacency
-exists instead. The totals are unaffected. The narrow reading is also the safe one: it cannot route a
-dwelling's transfer air through a communal corridor into another dwelling, which Approved Document F
-forbids.
+**The network is not built over the served spaces alone.** A `VentilationSystem` relates only to the spaces
+carrying a design terminal, but paragraph 1.25's transfer air crosses a space with none — a hall, a
+landing, a lobby — on its way between a supplied room and an extracted one. `Query.PartFTransferAirSpaces`
+widens the served spaces out to every other space of the *same dwelling*, read from the model's own `Zone`
+membership via `Query.PartFDwellingZones` — the same authority `PartFCalculator` sizes with, so a space this
+calls part of a dwelling is exactly a space Part F sized as part of it — so a zero-terminal internal hall
+stays in scope as a transfer node and is not routed around. It is
+not simply every space in the model, either: a communal corridor, stair or landlord area is excluded by the
+same widening, so the network can never carry one dwelling's transfer air through a common part into
+another dwelling, which Approved Document F forbids. Pinned by
+`SAM.Tests/PartFTransferAirDwellingScopeTests.cs`.
 
 ### Requirement lineage across a Part F recalculation
 
@@ -508,7 +513,7 @@ ventilation system; that dependency is what `PartOVentilationMode` removes.
 | Internal transfer air, routed by the Part F airflow network | **Implemented** — §5 |
 | Air handling unit exhaust to outside | **Implemented** — §5 |
 | Conservation refused per zone, summed over every movement | **Implemented** — §5 |
-| Transfer air through a space with no design terminal (an internal hall) | Not routed — §5, known limitation |
+| Transfer air through a space with no design terminal (an internal hall) | **Implemented** — §5, `Query.PartFTransferAirSpaces` |
 | MVHR unit **selection** against the derived duty | Not implemented — Iteration 2, §5 |
 | Design terminal physical placement (`Location`) | Seam present, unused — §5 |
 | Reconciling the model's own ventilation systems with the stated route | Not implemented — reported only, §5 |
