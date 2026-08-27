@@ -23,7 +23,7 @@ finished while this file is behind the repositories.
 
 ## 0. Current repository state
 
-*Verified 2026-08-26. This table is the single authoritative record of repository state; nothing else in
+*Verified 2026-08-27. This table is the single authoritative record of repository state; nothing else in
 this file or the archive supersedes it.*
 
 **TWO repos are in flight.** The Part F terminal/transfer work merged everywhere; the live work is Part O.
@@ -31,20 +31,39 @@ this file or the archive supersedes it.*
 
 | Repo | Branch | Last CODE commit | Cut from | PR |
 |---|---|---|---|---|
-| `SAM` | `feature/parto-base-mvhr` | **`492f1c84`** | `sow/2026-Q3` @ `1db06e83` | not opened |
-| `SAM_Tas` | `feature/parto-base-mvhr` | **`4f70f08d`** | `sow/2026-Q3` @ `1b3add6a` | not opened |
+| `SAM` | `feature/parto-base-mvhr` | **`98d37adc`** | `sow/2026-Q3` @ `1db06e83` | not opened |
+| `SAM_Tas` | `feature/parto-base-mvhr` | **`2caa2f05`** | `sow/2026-Q3` @ `1b3add6a` | not opened |
 
 The previous Part O branches merged: `SAM` [#76](https://github.com/SAM-BIM/SAM/pull/76) and `SAM_Tas`
 [#43](https://github.com/SAM-BIM/SAM_Tas/pull/43), both `feature/parto-nv-workflow`, both Iteration 1b.
 
-**Iteration 1a is committed and NOT accepted.** The design chain is proven end to end into the TBD and the
-annual simulation of that TBD is blocked. Read
-[`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) § *Iteration 1a / Base MVHR — licensed acceptance
-(2026-08-26): PARTIAL* before doing anything with it. The block is isolated to
-`SAM.Analytical.Tas.Modify.UpdateIZAMs`: TAS refuses to simulate a file containing the zone-to-zone
-inter-zone air movements it writes, while the same file with those movements removed simulates the full
-year. That path had never run before — `Modify.AddAirMovementObjects(AnalyticalModel)` works on a *copy* of
-the adjacency cluster, so no SAM model has ever carried a `SpaceAirMovement` into a workflow.
+**Iteration 1a is committed, licensed-accepted, and has no PR open.** Suites at these commits: `SAM`
+1470/1470, `SAM_Tas` 642/642.
+
+Read [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) from § *Iteration 1a / Base MVHR — the block
+resolved (2026-08-27)* onwards before touching any of it. The four things that section settles, none of
+which was visible from the analytical side:
+
+1. **TAS refuses a TBD in which any ONE zone's inter-zone air movements do not balance** — reported by the
+   Building Simulator as a pressure error and by SAM as a bare `Simulation Failed`. Every room of a
+   balanced heat-recovery dwelling is individually out of balance, which is why Iteration 1a's first
+   licensed run produced nothing. Closed by routing each room's net through `PartFAirflowNetwork` — the
+   same paragraph 1.25 network the Part F door schedule is solved over — and by writing the unit's exhaust.
+2. **A TBD inter-zone air movement carries MASS flow in kg/s**; SAM states air volumetrically in m³/s and
+   neither type says which. The unconverted number simulated a full year without complaint, about 21 %
+   under design. One seam, `Modify.UpdateIZAMProfile`, one density.
+3. **The transfer network is scoped to the dwelling zones, not to the served spaces**, so a zero-terminal
+   hall can carry and divide transfer air without being claimed as served.
+4. `Modify.AddAirMovementObjects(AnalyticalModel)` works on a *copy* of the adjacency cluster, so no SAM
+   model had ever carried a `SpaceAirMovement` into a workflow — the whole IZAM path was unexercised.
+
+Acceptance figure: `tsdcompare` 1a against 1b gives **78 835 of 78 840** hourly temperatures differing,
+where the same comparison before this work gave **0**. The Iteration 1b OPEN/NIGHT A/B is unchanged at
+**16 690**.
+
+Still open and deliberately not this branch's: `Modify.Simulate` reports a refused simulation as success;
+the legacy `Create.IZAM` / `UpdateIZAMsBySpaceParameter` route is not unit-converted; MVHR **unit
+selection** against the derived duty is Iteration 2.
 
 The other three are **idle on `sow/2026-Q3` with nothing in flight**, their Part F PRs merged:
 `SAM_Systems` @ `208379d` (PR #14 merged), `SAM_UI` @ `43564e6` (PR #75 merged),
