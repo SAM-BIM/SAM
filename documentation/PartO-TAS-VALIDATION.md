@@ -1784,3 +1784,81 @@ because the flattening is gated on design ventilation terminals that only the Pa
 means. A later iteration modelling a real unit will add recovery explicitly — where it can be seen,
 parameterised and switched off — and it will need the SAM model's `extract room -> AHU` leg, which is why
 that leg stays.
+
+---
+
+## Original A0 Final Acceptance (2026-08-27)
+
+Run on the original laptop, against the original licensed fixture and harness the reconstructed laptop did
+not have: `C:\TasOut\v40\A0.sam` and `C:\TasOut\inv\Inv.exe`. This closes the one gate the reconstructed
+laptop's section above explicitly left open — the historic **`1b OPEN/NIGHT = 16690`** figure — and repeats
+the corrected-topology production acceptance on the real fixture rather than the reconstruction.
+
+```text
+Original fixture:        C:\TasOut\v40\A0.sam
+SAM SHA:                 3be1f645e9dcb5ed23dbeedbc0fec18bfbfc5471
+SAM_Tas SHA:              e228098e4697078ebaf11f8a27e968f82e55dbaf
+TAS:                     9.5.7.0
+Sizing:                  false
+Simulation:              full year (days 1..365)
+
+SAM.Tests:                1471/1471
+SAM.Analytical.Tas.TM59.Tests: 645/645
+
+supply/extract:          156/156 l/s
+MVHR node:               in=155.999998 l/s | out=155.999998 l/s  (was the accidental 312/312)
+max conservation residual: -0.000004 l/s (nodes=9, density=1.21 kg/m3)
+MVHR Air Movement Gain:  0 W in every one of the 8760 hours (sum=0 kWh)
+MVHR mean dry bulb:      9.9993 C (min -5.0477, max 29.1252)
+strategy refusals:       0 (only the expected ASSOCREFUSAL on MVHR-01 itself, which is plant, not a room)
+TSD size:                5 546 109 bytes (TBD 426 523 bytes, gbXML 303 200 bytes, no error log beside the TBD)
+
+1a vs 1b:                78840/78840 differing (both runs Sizing=false, same base model/weather/period)
+1b OPEN/NIGHT:           16690/78840  <- exact match to the historic accepted figure
+```
+
+**The harness needed one change to run this, not production code.** `C:\TasOut\inv`'s `Pipeline.Workflow`
+hardcoded `Sizing = true`; a `workflowfinal` mode was added alongside the existing `workflowsim` (left
+unchanged at `Sizing = true`, which is what the 16690 historic gate below still needs) so the corrected
+Iteration 1a acceptance could run at `Sizing = false` as this section requires. A second addition,
+`partozonestat`, reads the TSD's per-zone `Air Movement Gain` / `Dry Bulb Temperature` series the same way
+`TsdCompare` already read `Resultant Temperature`, to produce the `ZONESTAT` evidence below. Neither
+`SAM` nor `SAM_Tas` production code changed for this acceptance.
+
+**Topology, read back from the real `.tbd`, confirms the corrected shape exactly**: 19 inter-zone air
+movements — one intake, four supplies, six room-to-outside extracts, eight Part F transfers — and **no**
+`extract-space -> MVHR` movement and **no** `MVHR -> Outside` exhaust:
+
+```text
+IZAM MVHR-01 FROM OUTSIDE  fromOutside=-1  source=-         targets=MVHR-01     0.18876 kg/s = 156 l/s
+IZAM MVHR-01 TO <room>     fromOutside=0   source=MVHR-01   targets=<room>      x4, sum 0.18876 kg/s
+IZAM <room> TO OUTSIDE     fromOutside=0   source=-         targets=<room>      x6, sum 0.18876 kg/s
+IZAM <room> TO <room>      fromOutside=0   source=<room>    targets=<room>      x8, transfer air
+(no IZAM MVHR-01 TO OUTSIDE)
+
+NODE|MVHR-01|in_kgs=0.18876|out_kgs=0.18876|residual_kgs=0|in_lps=155.999998|out_lps=155.999998
+```
+
+The eight-transfer count (against the reconstructed laptop's nine) is not a discrepancy: that section's
+`P`/`B` figures were run on a different, reconstructed fixture, and A0's own eight-transfer topology matches
+this section's own earlier `Iteration 1a vs Iteration 1b (2026-08-27)` table above, room for room.
+
+**The hall probe still works, unchanged**, and shows both sides of the dwelling-scope boundary on the real
+fixture: `INV_HALLDEMO="Corridor_1|Flat 1"` relates the model's own zero-terminal space into a dwelling zone
+and it immediately carries seven transfer-air movements and no design terminal of its own; the unmodified
+model — where `Corridor_1` sits in a zone marked `Is Dwelling = No` — carries zero. Bedroom/habitable spaces
+and wet rooms keep their proper one-directional duties in both cases (`SPACE|Bedroom 2_3|...` supply-only,
+`SPACE|Bathroom_2|...` extract-only, from `partoauthor`'s own report).
+
+**TM59 route**: Iteration 1a takes the mechanical route (`COUNTS|naturalVentilation=0|mechanicalVentilation=5|corridor=4`);
+Iteration 1b OPEN and NIGHT both take the natural route (`COUNTS|naturalVentilation=5|mechanicalVentilation=0|corridor=4`).
+Zero strategy refusals in every run. No 23 C MVHR supply setpoint, no heat-recovery efficiency, no cooling,
+no tempering, no summer bypass, no manufacturer MVHR behaviour — confirmed off `partodump`'s zone profiles
+(`freshAirRate_lsp=0` on every sized space, `ticVfactor_ach=1` unchanged, no SAM Ventilation profile
+assigned).
+
+**The historic gate is closed.** `tsdcompare` between a freshly authored-and-simulated `1b OPEN` and
+`1b NIGHT`, both at the original `Sizing = true` / `Simulate = true`, days 1..365 recipe the 2026-08-26
+acceptance used, gives exactly `TOTAL|values=78840|differing=16690` on the original `A0.sam` — the one
+figure the reconstructed laptop could not prove, now confirmed unchanged by the production topology
+correction.
