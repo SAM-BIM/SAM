@@ -201,7 +201,12 @@ namespace SAM.Analytical
                 //It runs HERE, on the MVHR branch, and nowhere else. A Part F calculation on its own
                 //creates requirements and nothing more. The trigger is the Base MVHR operating scenario
                 //asking for design-rate operation, never the presence of an airflow on a space.
-                analyticalModel_Applied = PrepareBaseMVHR(analyticalModel_Applied, result);
+                //
+                //Null where the caller assessed the whole model - every test, the licensed acceptance run
+                //and a Grasshopper zones_ left unconnected all pass null here, and PrepareBaseMVHR keeps
+                //exactly its previous whole-model behaviour for them. A caller-named subset is carried
+                //through instead of discarded: see PrepareBaseMVHR for why a subset cannot be ignored.
+                analyticalModel_Applied = PrepareBaseMVHR(analyticalModel_Applied, zones == null ? null : zones_Assessed, result);
 
                 if (result.Refusal != null)
                 {
@@ -257,19 +262,62 @@ namespace SAM.Analytical
         /// mechanical ventilation is partly there - and would do it successfully, which is the failure mode
         /// this whole design exists to prevent.
         /// </para>
+        /// <para>
+        /// <b>Why an assessed subset has to be carried in.</b> <c>Query.PartOVentilationMode(zones, ...)</c>
+        /// settles the route from the ASSESSED zones alone - it has no way to know that a caller-named
+        /// subset does not cover the whole model. A Grasshopper <c>zones_</c> input is explicitly built to
+        /// take a subset ("leave unconnected to use every zone"), so a model can genuinely carry an
+        /// assessed dwelling and an unassessed one side by side, and the unassessed one may state a
+        /// different route or none at all - the mixed-route refusal never sees it. Terminal realization
+        /// stays whole-model, because <c>Modify.ApplyPartFVentilationRates</c> already wrote every sized
+        /// space and a terminal is inert until something connects it - but the system and its air handling
+        /// unit must serve only the assessed spaces, or an unassessed dwelling would be pulled onto the
+        /// same generic unit as the assessed one and thermally coupled to it through one shared TAS zone
+        /// while preparation still reported success.
+        /// </para>
         /// </summary>
-        private static AnalyticalModel PrepareBaseMVHR(AnalyticalModel analyticalModel, PartOIterationPreparation result)
+        private static AnalyticalModel PrepareBaseMVHR(AnalyticalModel analyticalModel, List<Zone> zones_Assessed, PartOIterationPreparation result)
         {
             //ONE cluster instance, taken once and put back once. AnalyticalModel.AdjacencyCluster returns a
             //fresh copy on every read, so reading it twice would silently discard the first half of this.
             AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
 
+            // ---- The assessed dwelling scope -----------------------------------------------------------
+
+            //Null where the caller assessed the whole model, which keeps every existing caller's behaviour
+            //unchanged below. Where a subset was named, resolved to spaces through the CURRENT cluster's
+            //own zones - zone guids survive Modify.ApplyPartFVentilationRates, which only replaces spaces,
+            //but the zone objects the caller handed in may predate it.
+            List<Space> spaces_Assessed = null;
+            if (zones_Assessed != null)
+            {
+                List<Zone> zones_Cluster = adjacencyCluster.GetZones() ?? new List<Zone>();
+                HashSet<Guid> guids_Space_Assessed = new HashSet<Guid>();
+                spaces_Assessed = new List<Space>();
+
+                foreach (Zone zone in zones_Assessed)
+                {
+                    if (zone == null)
+                        continue;
+
+                    Zone zone_Cluster = zones_Cluster.Find(x => x != null && x.Guid == zone.Guid) ?? zone;
+
+                    foreach (Space space in adjacencyCluster.GetRelatedObjects<Space>(zone_Cluster) ?? new List<Space>())
+                    {
+                        if (space != null && guids_Space_Assessed.Add(space.Guid))
+                            spaces_Assessed.Add(space);
+                    }
+                }
+            }
+
             // ---- Design terminals --------------------------------------------------------------------
 
             //Every space, not only the assessed zones' spaces: Modify.ApplyPartFVentilationRates is a
-            //whole-model write and the route resolution refuses a mixed model, so the sized spaces and the
-            //assessed spaces are the same set. Realizing a subset would leave the applied airflow of the
-            //rest with no terminal behind it.
+            //whole-model write, so the sized spaces may be wider than the assessed ones. Realizing a subset
+            //would leave the applied airflow of the rest with no terminal behind it. A design terminal by
+            //itself moves no air and connects to nothing - it is the system connection below, not this
+            //realization, that has to be scoped to keep an unassessed dwelling out of the assessed one's
+            //simulation.
             List<VentilationTerminal> ventilationTerminals = adjacencyCluster.RealizePartFVentilationTerminals(null, out List<string> notes_Terminals, out List<string> refusals_Terminals);
 
             result.Notes.AddRange(notes_Terminals);
@@ -290,7 +338,9 @@ namespace SAM.Analytical
 
             // ---- The generic system and unit ----------------------------------------------------------
 
-            VentilationSystem ventilationSystem = adjacencyCluster.AddPartOBaseMVHRSystem(null, out AirHandlingUnit airHandlingUnit, out List<string> notes_System, out List<string> warnings_System, out List<string> refusals_System);
+            //spaces_Assessed - null for the whole model, exactly as before; the assessed dwelling's spaces
+            //otherwise, so the unit this iteration builds serves only the dwelling it was asked to assess.
+            VentilationSystem ventilationSystem = adjacencyCluster.AddPartOBaseMVHRSystem(spaces_Assessed, out AirHandlingUnit airHandlingUnit, out List<string> notes_System, out List<string> warnings_System, out List<string> refusals_System);
 
             result.Notes.AddRange(notes_System);
             result.Notes.AddRange(warnings_System);

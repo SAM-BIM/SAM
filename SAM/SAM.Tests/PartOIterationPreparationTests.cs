@@ -982,6 +982,41 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>An assessed dwelling must not be thermally coupled to an unassessed one through a shared
+        /// generic unit.</b>
+        /// <para>
+        /// <c>Query.PartOVentilationMode(zones, ...)</c> settles the route from the ASSESSED zones alone,
+        /// so a caller naming a subset - a Grasshopper <c>zones_</c> input is explicitly built to take one
+        /// ("leave unconnected to use every zone") - can genuinely leave a second, unassessed dwelling in
+        /// the same model unseen by the mixed-route check. Terminal realization stays whole-model because
+        /// <c>Modify.ApplyPartFVentilationRates</c> already wrote every sized space, but the system and its
+        /// air handling unit must serve only the assessed dwelling, or the unassessed one would be pulled
+        /// onto the same unit and thermally coupled to it while preparation still reported success.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AssessingOneDwelling_LeavesAnUnassessedDwellingsSpaceOffTheSharedUnit()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoSizedDwellings(out Zone zone_Assessed, out Space space_Unassessed);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_Assessed },
+                new Dictionary<Guid, string> { { zone_Assessed.Guid, "MVRE" } });
+
+            Assert.Null(preparation.Refusal);
+            Assert.NotNull(preparation.AnalyticalModel);
+            Assert.NotNull(preparation.VentilationSystem);
+            Assert.NotNull(preparation.AirHandlingUnit);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            List<Space> spaces_Served = adjacencyCluster.GetRelatedObjects<Space>(preparation.VentilationSystem) ?? new List<Space>();
+
+            Assert.DoesNotContain(spaces_Served, x => x.Guid == space_Unassessed.Guid);
+        }
+
+        /// <summary>
         /// The MVHR route still applies, exactly as it always has. Both spellings reach it, so the licensed
         /// acceptance model's <c>MVRE</c> and the architecture's <c>MVHR</c> are provably one route.
         /// </summary>
@@ -1319,6 +1354,74 @@ namespace SAM.Tests
             Assert.NotNull(zone_Mechanical);
 
             return result;
+        }
+
+        /// <summary>
+        /// One properly Part-F-sized and zoned dwelling ("Flat 1", from <see cref="Model"/>), plus a second,
+        /// independent space carrying its own directly-authored Part F requirement in a SEPARATE zone
+        /// ("Flat 2") that the test does not assess. The second space is deliberately given no transfer-air
+        /// partition - scoped out of the assessed dwelling, it is never meant to reach the balance or
+        /// transfer-air steps at all, only to prove it is kept off the assessed dwelling's shared unit.
+        /// </summary>
+        private static AnalyticalModel ModelWithTwoSizedDwellings(out Zone zone_Assessed, out Space space_Unassessed)
+        {
+            AnalyticalModel analyticalModel = Model(OpeningRestriction.Unrestricted);
+
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            zone_Assessed = adjacencyCluster.GetObjects<Zone>()?.Find(x => x.Name == "Flat 1");
+            Assert.NotNull(zone_Assessed);
+
+            //Model() never relates "Flat 1" to its own spaces - no existing test needs that relation, since
+            //every one of them assesses the whole model. This test's scoping does need it, exactly as a
+            //real model's own zoning would provide it.
+            foreach (Space space_Existing in adjacencyCluster.GetSpaces())
+            {
+                adjacencyCluster.AddRelation(zone_Assessed, space_Existing);
+            }
+
+            Space space = new Space("Flat 2 Bedroom");
+            space.SetValue(SpaceParameter.Area, 12.0);
+            space.SetValue(SpaceParameter.Volume, 30.0);
+
+            InternalCondition internalCondition = new InternalCondition("Flat 2 Bedroom IC");
+            internalCondition.SetValue(InternalConditionParameter.VentilationSystemTypeName, "Ventilation System");
+            space.InternalCondition = internalCondition;
+
+            PartFSpaceData partFSpaceData = new PartFSpaceData(
+                "Flat 2 Bedroom",
+                PartFType.Habitable,
+                PartFVentilationType.supply,
+                true,
+                null,
+                true,
+                true,
+                true,
+                false,
+                "Volume",
+                8.0);
+
+            partFSpaceData.Terminals.Add(new PartFVentilationTerminalRequirement("Flat 2 Bedroom - Supply", space.Guid, PartFTerminalRole.Supply)
+            {
+                SpaceName = space.Name,
+                OperatingMode = PartFOperatingMode.ContinuousDesign,
+                ContinuousDesignFlowRate_Lps = 8.0,
+                IsInBalancedFlow = true,
+                IsRequired = true,
+                SourceReference = "Approved Document F, Volume 1: Dwellings (2021 edition), paragraph 1.67 (page 16)",
+            });
+
+            space.SetValue(SpaceParameter.PartFSpaceData, partFSpaceData);
+
+            adjacencyCluster.AddObject(space);
+
+            Zone zone_Unassessed = new Zone("Flat 2");
+            adjacencyCluster.AddObject(zone_Unassessed);
+            adjacencyCluster.AddRelation(zone_Unassessed, space);
+
+            space_Unassessed = space;
+
+            return new AnalyticalModel(analyticalModel, adjacencyCluster);
         }
 
         /// <summary>
