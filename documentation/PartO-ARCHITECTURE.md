@@ -274,6 +274,14 @@ derive system design duty, check against Part F     Query.ReconcileVentilationSy
        |
        v
 directional air movements, per room per direction   Modify.AddAirMovementObjects
+  + the unit's own exhaust, to outside
+       |
+       v
+internal transfer air, routed by the Part F         Modify.AddPartFTransferAirMovements
+airflow network over the model's own adjacencies
+       |
+       v
+conservation checked at every node                  Query.AirMovementResidual
        |
        v
 TAS inter-zone air movements                        Modify.UpdateIZAMs  (SAM_Tas)
@@ -311,6 +319,41 @@ SpaceAirMovement                           what the simulation moves, this stage
   them as transfer air. Deriving both directions from one figure — which is what the generic air-movement
   builder did before, having nothing better to read — moves roughly the right total amount of air through
   the wrong rooms.
+
+### The air movements are a network, and it must conserve
+
+TAS will not simulate a building in which **any one zone's** inter-zone air movements do not balance. A
+zone that gains air it never loses is refused outright — the EDSL documentation states the rule as *"any
+air flow imbalance will be reported as a Max Pressure Exceeded error"*, and SAM sees it only as
+`Simulation Failed`. Balance over the building as a whole is **not** enough; it is checked zone by zone.
+
+That is not a formality for this design, it is the design: a balanced heat recovery dwelling balances at
+the system, so almost every room is individually out of balance and the air that closes each of them is
+transfer air. Two objects carry it, and neither adjusts a design duty to get there:
+
+- **`Modify.AddPartFTransferAirMovements`** routes each space's net — supply less extract — through the
+  dwelling using `PartFAirflowNetwork`, the same network Approved Document F paragraph 1.25 is assessed
+  over. The connections are the model's own internal adjacencies. Where the network cannot route a space's
+  net, the preparation **refuses and names the room**; it does not invent a route, and it does not quietly
+  connect the room to outside, which would put untempered outside air into the wet rooms of a heat
+  recovery dwelling and flatter the overheating result the assessment turns on.
+- **The unit's exhaust**, built by `Modify.AddAirMovementObjects` as a `SpaceAirMovement` from the unit to
+  a destination of **null**. Null is how outside is said. Its flow is the sum of the extract movements, so
+  the unit's zone loses exactly the extract air it gained.
+
+**Conservation is summed per node, never matched per route.** These movements form a directed network: one
+unit feeds several rooms, a room may draw from several rooms and pass air on to several more, and flows
+split and recombine along the way. No movement has a partner, and a check that looked for one would reject
+a correct model. `Query.AirMovementResidual` sums every movement at each node — counting the unit's
+outside intake on the same terms the TBD writer derives it — and `Modify.PreparePartOIteration` refuses on
+any node that does not come out at zero.
+
+**Known limitation.** The network is built over the spaces the ventilation system serves, which are the
+spaces carrying design terminals. A space with neither a supply nor an extract terminal — an internal hall
+— is therefore not a transfer route, and the air is routed around it through whatever direct adjacency
+exists instead. The totals are unaffected. The narrow reading is also the safe one: it cannot route a
+dwelling's transfer air through a communal corridor into another dwelling, which Approved Document F
+forbids.
 
 ### Requirement lineage across a Part F recalculation
 
@@ -462,6 +505,10 @@ ventilation system; that dependency is what `PartOVentilationMode` removes.
 | Iteration 1a `BasePassive` — design terminals, generic system, design duty, directional runtime | **Implemented** — §5 |
 | Design terminal `0..N` per requirement, per space, per direction | **Implemented** — §5 |
 | Requirement lineage re-linked explicitly across a Part F recalculation | **Implemented** — §5 |
+| Internal transfer air, routed by the Part F airflow network | **Implemented** — §5 |
+| Air handling unit exhaust to outside | **Implemented** — §5 |
+| Conservation refused per zone, summed over every movement | **Implemented** — §5 |
+| Transfer air through a space with no design terminal (an internal hall) | Not routed — §5, known limitation |
 | MVHR unit **selection** against the derived duty | Not implemented — Iteration 2, §5 |
 | Design terminal physical placement (`Location`) | Seam present, unused — §5 |
 | Reconciling the model's own ventilation systems with the stated route | Not implemented — reported only, §5 |

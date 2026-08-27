@@ -346,6 +346,39 @@ namespace SAM.Analytical
                 airMovementObjects.Count,
                 airHandlingUnit.Name));
 
+            // ---- The internal transfer air that closes each room -----------------------------------------
+
+            //A balanced heat recovery dwelling balances at the SYSTEM, so almost every room is individually
+            //out of balance - and TAS refuses to simulate a zone whose inter-zone air movements do not
+            //balance. The air that closes each room is transfer air, routed by the Approved Document F
+            //airflow network over the model's own internal adjacencies. Nothing is invented: where the
+            //network cannot route a room's net, this refuses rather than making a route up.
+            List<SpaceAirMovement> spaceAirMovements_Transfer = adjacencyCluster.AddPartFTransferAirMovements(analyticalModel.ProfileLibrary, ventilationSystem, out List<string> notes_Transfer, out List<string> refusals_Transfer);
+
+            result.Notes.AddRange(notes_Transfer);
+
+            if (spaceAirMovements_Transfer == null || refusals_Transfer.Count != 0)
+            {
+                result.Refusal = refusals_Transfer.Count != 0
+                    ? string.Join(" ", refusals_Transfer)
+                    : "The dwelling's internal transfer air could not be established, so its rooms would not balance and TAS would refuse to simulate the model.";
+
+                return analyticalModel;
+            }
+
+            // ---- Conservation, checked at every node ----------------------------------------------------
+
+            string refusal_Balance = RefuseUnbalancedAirMovement(adjacencyCluster, ventilationSystem, airHandlingUnit);
+
+            if (refusal_Balance != null)
+            {
+                result.Refusal = refusal_Balance;
+
+                return analyticalModel;
+            }
+
+            result.Notes.Add("Every space and the air handling unit balance: each passes on exactly what it receives, which is what TAS requires of a zone carrying inter-zone air movements.");
+
             result.VentilationTerminals.AddRange(ventilationTerminals);
             result.VentilationSystem = ventilationSystem;
             result.AirHandlingUnit = airHandlingUnit;
@@ -353,6 +386,84 @@ namespace SAM.Analytical
             result.DesignExtractDuty_Lps = extractDuty_Lps;
 
             return new AnalyticalModel(analyticalModel, adjacencyCluster);
+        }
+
+        /// <summary>
+        /// Checks that every node the system's air movements touch passes on exactly what it receives, and
+        /// states what is wrong where one does not.
+        ///
+        /// <para>
+        /// <b>Summed per node, never matched per route.</b> These movements form a directed network: the
+        /// unit feeds several rooms, a room may draw from several rooms and pass air on to several more, and
+        /// flows split and recombine along the way - a bedroom of the acceptance dwelling divides its supply
+        /// between three rooms, and one of its ensuites draws from two. No movement has a partner.
+        /// Conservation, and TAS, ask only that the sums agree at each zone.
+        /// </para>
+        /// <para>
+        /// This is a check, not a correction: nothing is rescaled to make it pass. A model that fails it is
+        /// one TAS would refuse with <c>Simulation Failed</c>, and saying so here is the difference between
+        /// a refusal an engineer can act on and a simulation that reports success having produced nothing.
+        /// </para>
+        /// </summary>
+        /// <returns><b>Null</b> where every node balances; the refusal otherwise.</returns>
+        private static string RefuseUnbalancedAirMovement(AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem, AirHandlingUnit airHandlingUnit)
+        {
+            List<SpaceAirMovement> spaceAirMovements = [];
+
+            void Collect(Core.IJSAMObject jSAMObject)
+            {
+                foreach (SpaceAirMovement spaceAirMovement in adjacencyCluster.GetRelatedObjects<SpaceAirMovement>(jSAMObject) ?? [])
+                {
+                    if (spaceAirMovement != null && spaceAirMovements.Find(x => x.Guid == spaceAirMovement.Guid) == null)
+                    {
+                        spaceAirMovements.Add(spaceAirMovement);
+                    }
+                }
+            }
+
+            Collect(airHandlingUnit);
+
+            List<Space> spaces = adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? [];
+
+            foreach (Space space in spaces)
+            {
+                Collect(space);
+            }
+
+            Dictionary<Guid, double> dictionary_Residual = adjacencyCluster.AirMovementResidual(spaceAirMovements, [airHandlingUnit]);
+
+            List<string> diagnostics = [];
+
+            void Check(Core.SAMObject sAMObject)
+            {
+                if (sAMObject == null || !dictionary_Residual.TryGetValue(sAMObject.Guid, out double residual))
+                {
+                    return;
+                }
+
+                if (System.Math.Abs(residual) <= Query.AirMovementResidualTolerance)
+                {
+                    return;
+                }
+
+                diagnostics.Add(string.Format("{0} {1} {2:0.###} l/s", sAMObject.Name, residual > 0 ? "gains" : "loses", System.Math.Abs(residual) * 1000));
+            }
+
+            foreach (Space space in spaces)
+            {
+                Check(space);
+            }
+
+            Check(airHandlingUnit);
+
+            if (diagnostics.Count == 0)
+            {
+                return null;
+            }
+
+            diagnostics.Sort(StringComparer.Ordinal);
+
+            return string.Format("The air movements do not balance: {0}. TAS refuses to simulate a zone that gains air it never loses, so this model would fail rather than produce a result. The design terminal duties are authoritative and are not adjusted to close the difference - correct the design, or the internal adjacencies the transfer air is routed over.", string.Join(", ", diagnostics));
         }
 
         /// <summary>

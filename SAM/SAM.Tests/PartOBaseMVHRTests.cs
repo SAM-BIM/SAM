@@ -935,6 +935,12 @@ namespace SAM.Tests
                 adjacencyCluster.AddObject(space);
             }
 
+            //A flat, not a bag of loose rooms: every room opens off the living room. Without internal
+            //partitions the dwelling has no transfer air network, so the air supplied into the bedroom has
+            //nowhere to go and the air extracted from the bathroom has nowhere to come from - and the
+            //preparation refuses, exactly as TAS refuses a zone whose air movements do not balance.
+            Helpers.DwellingPartitions.Star(adjacencyCluster, name_LivingRoom, name_Bedroom, name_Kitchen, name_Bathroom);
+
             AnalyticalModel analyticalModel = new AnalyticalModel("Part O Base MVHR Dwelling", null, null, null, adjacencyCluster, null, new ProfileLibrary("Part O Base MVHR Fixture"));
 
             PartFCalculator partFCalculator = Analytical.Query.DefaultPartFCalculator();

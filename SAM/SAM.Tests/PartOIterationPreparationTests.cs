@@ -1521,6 +1521,11 @@ namespace SAM.Tests
                 adjacencyCluster.AddObject(space);
             }
 
+            //A flat whose rooms all open off the living room. A dwelling with no internal partitions has no
+            //transfer air network, and the Base MVHR preparation refuses one - a supplied bedroom whose air
+            //cannot reach an extract is a building TAS will not simulate.
+            Helpers.DwellingPartitions.Star(adjacencyCluster, "Living Room", "Bedroom 1", "Bedroom 2", "Kitchen", "Bathroom");
+
             ProfileLibrary profileLibrary = new ProfileLibrary("Part O Fixture");
 
             profileLibrary.Add(new Profile("Occupancy 24h", ProfileType.Occupancy, Values(1)));

@@ -1,14 +1,44 @@
 # Project Progress
 
 ## Branch
-`feature/parto-nv-workflow` (off `sow/2026-Q3` at merge commit `907c0441`, PR #75 already merged).
-PR [SAM#76](https://github.com/SAM-BIM/SAM/pull/76), companion [SAM_Tas#43](https://github.com/SAM-BIM/SAM_Tas/pull/43).
+`feature/parto-base-mvhr` (off `sow/2026-Q3` at `1db06e83`, i.e. with PR #76 merged). No PR opened yet.
 
 ## Last updated
-2026-08-26 - the Part O ventilation route made explicit, Iteration 1b added, and both opening cases proven
-against licensed TAS.
+2026-08-27 - Iteration 1a / Base MVHR **accepted**: the licensed annual simulation that was blocked now
+runs, and the two Part O routes no longer produce identical results.
 
 ## Current status (this session)
+**The block was conservation, not the inter-zone air movement record.** TAS refuses to simulate a TBD in
+which any one zone's air movements do not balance - building-wide balance is not enough - and every room
+of a balanced heat recovery dwelling is individually out of balance by design. Two objects close it, and
+neither adjusts a design duty:
+
+- `Modify.AddPartFTransferAirMovements` routes each space's net through `PartFAirflowNetwork`, the same
+  network Approved Document F paragraph 1.25 is assessed over. Where a net cannot be routed it **refuses
+  and names the room** rather than inventing a route or connecting the room to outside.
+- The unit's exhaust, added by `Modify.AddAirMovementObjects` as a movement to a destination of `null`.
+
+`Query.AirMovementResidual` then sums every movement at each node - never matching route against route,
+because these flows split and recombine - and `Modify.PreparePartOIteration` refuses on any node that does
+not come out at zero.
+
+Licensed acceptance, same dwelling / weather / period as Iteration 1b: **`differing=78835` of 78 840**
+hourly temperatures, against `differing=0` before this work. TM59 takes the mechanical route with zero
+strategy refusals, and every sized space reads `freshAirRate=0`, so the mechanical ventilation is the air
+movements and nothing else. Evidence in
+[`documentation/PartO-TAS-VALIDATION.md`](documentation/PartO-TAS-VALIDATION.md) §"Iteration 1a / Base
+MVHR - the block resolved (2026-08-27)".
+
+Full `SAM.Tests`: **1464 passed, 0 failed** (was 1455, +9). `SAM.Analytical.Tas.TM59.Tests`: **633
+passed, 0 failed**, unchanged.
+
+Two pre-existing defects were found and deliberately **not** fixed here: TAS reads an air movement's
+stored flow as a mass flow in kg/s while SAM writes m3/s, and `SAM.Analytical.Tas.Modify.Simulate` reports
+a refused simulation as a success.
+
+---
+
+## Previous session (2026-08-26, Iteration 1b)
 **Milestone: Iteration 1b / Base Natural Ventilation is proven end to end** from an explicitly prepared SAM
 dwelling, through authored opening behaviour, TAS simulation and comparable Part O / TM59 results, without
 inventing an MVHR system.

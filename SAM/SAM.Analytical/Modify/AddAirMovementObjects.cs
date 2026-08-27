@@ -127,6 +127,11 @@ namespace SAM.Analytical
 
                         ObjectReference objectReference_AirHandlingUnit = new ObjectReference(airHandlingUnit);
 
+                        //The extract movements built below, so the unit's exhaust can be sized from them
+                        //after the loop. Collected rather than summed because the exhaust runs on the same
+                        //profile as the extract it carries away.
+                        List<SpaceAirMovement> spaceAirMovements_Extract = new List<SpaceAirMovement>();
+
                         foreach (Space space in spaces)
                         {
                             Profile profile = space.InternalCondition?.GetProfile(ProfileType.Ventilation, profileLibrary);
@@ -207,8 +212,12 @@ namespace SAM.Analytical
 
                                 adjacencyCluster.AddRelation(spaceAirMovement, airHandlingUnit);
                                 adjacencyCluster.AddRelation(spaceAirMovement, space);
+
+                                spaceAirMovements_Extract.Add(spaceAirMovement);
                             }
                         }
+
+                        AddAirHandlingUnitExhaust(adjacencyCluster, airHandlingUnit, objectReference_AirHandlingUnit, spaceAirMovements_Extract, result);
                     }
                 }
             }
@@ -248,6 +257,80 @@ namespace SAM.Analytical
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Adds the air handling unit's exhaust: the extract air it has drawn out of the rooms, leaving the
+        /// building.
+        ///
+        /// <para>
+        /// The unit's TAS zone receives its outside intake and every room's extract, and delivers the supply.
+        /// Without the exhaust it gains the whole extract duty and never loses it, and TAS refuses to
+        /// simulate a zone whose air movements do not balance. The exhaust is the object that says where
+        /// that air goes; a destination of <b>null</b> is how "outside" is said, and the TBD writer turns it
+        /// into an inter-zone air movement on the unit's zone with no source zone and no from-outside flag,
+        /// which is exactly the shape TAS itself authors for a zone that discharges to outside.
+        /// </para>
+        /// <para>
+        /// <b>Nothing is added where there is no extract</b>, so a model whose spaces carry no design
+        /// terminals - which produces no extract back to the unit - reaches this and leaves with the air
+        /// movements it has always had.
+        /// </para>
+        /// </summary>
+        private static void AddAirHandlingUnitExhaust(AdjacencyCluster adjacencyCluster, AirHandlingUnit airHandlingUnit, ObjectReference objectReference_AirHandlingUnit, List<SpaceAirMovement> spaceAirMovements_Extract, List<IAirMovementObject> result)
+        {
+            if (spaceAirMovements_Extract == null || spaceAirMovements_Extract.Count == 0)
+            {
+                return;
+            }
+
+            //Summed the same way Query.AirFlow sums the intake, so the exhaust follows the extract hour by
+            //hour rather than only at the design condition.
+            Profile profile = null;
+
+            foreach (SpaceAirMovement spaceAirMovement in spaceAirMovements_Extract)
+            {
+                Profile profile_Temp = spaceAirMovement.Profile;
+                if (profile_Temp == null)
+                {
+                    continue;
+                }
+
+                profile_Temp.Multiply(spaceAirMovement.AirFlow);
+
+                if (profile == null)
+                {
+                    profile = profile_Temp;
+                }
+                else
+                {
+                    profile.Sum(profile_Temp);
+                }
+            }
+
+            if (profile == null)
+            {
+                return;
+            }
+
+            double airFlow = profile.MaxValue;
+            if (double.IsNaN(airFlow) || airFlow <= 0)
+            {
+                return;
+            }
+
+            profile.Divide(airFlow);
+
+            string name = string.Format("{0} exhaust", airHandlingUnit.Name);
+
+            SpaceAirMovement spaceAirMovement_Exhaust = new SpaceAirMovement(name, airFlow, profile, objectReference_AirHandlingUnit.ToString(), null);
+
+            adjacencyCluster.AddObject(spaceAirMovement_Exhaust);
+            result.Add(spaceAirMovement_Exhaust);
+
+            //Related to the unit and to no space: it is the unit's own movement, and relating it to a space
+            //would have the TBD writer look for the space's zone to put it on.
+            adjacencyCluster.AddRelation(spaceAirMovement_Exhaust, airHandlingUnit);
         }
     }
 }
