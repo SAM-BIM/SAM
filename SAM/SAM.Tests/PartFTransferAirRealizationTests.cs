@@ -230,6 +230,86 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>All four legs of the physical MVHR route, asserted together, because something now depends on
+        /// them being here.</b>
+        /// <para>
+        /// <c>Outside -&gt; unit</c>, <c>unit -&gt; supplied room</c>, <c>extracted room -&gt; unit</c>,
+        /// <c>unit -&gt; Outside</c>. That is what an MVHR unit does, and this model says so.
+        /// </para>
+        /// <para>
+        /// <b>The TAS export deliberately writes something else</b> - it flattens the last two into
+        /// <c>extracted room -&gt; Outside</c>, because TAS represents the unit as one well-mixed thermal
+        /// zone and would otherwise recover heat nobody specified (see <c>SAM_Tas</c>
+        /// <c>Query.DesignTerminalExtractFlattening</c> and
+        /// <c>documentation/PartO-TAS-VALIDATION.md</c>). That is a limitation of the target format, and it
+        /// is handled at the boundary, on the way out. It must never be solved by making this model less
+        /// true: the physical topology is what every other consumer reads, and a later iteration modelling a
+        /// real unit with real heat recovery needs the extract to arrive at the unit.
+        /// </para>
+        /// <para>
+        /// So this test exists to fail if the flattening is ever pushed back up into SAM.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void TheModel_StatesAllFourLegsOfThePhysicalMVHRRoute()
+        {
+            PartOIterationPreparation preparation = Prepared();
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            ObjectReference objectReference_Unit = new(preparation.AirHandlingUnit);
+
+            // 1. Outside -> unit. The intake is an AirHandlingUnitAirMovement, and its flow is derived from
+            //    what the unit delivers.
+            AirHandlingUnitAirMovement airHandlingUnitAirMovement = Assert.Single(adjacencyCluster.GetRelatedObjects<AirHandlingUnitAirMovement>(preparation.AirHandlingUnit));
+
+            Assert.Equal(preparation.DesignSupplyDuty_Lps / 1000.0, Analytical.Query.AirFlow(adjacencyCluster, airHandlingUnitAirMovement, out Profile _), 9);
+
+            double supply = 0;
+            double extract = 0;
+            double exhaust_Unit = 0;
+
+            foreach (SpaceAirMovement spaceAirMovement in adjacencyCluster.GetObjects<SpaceAirMovement>())
+            {
+                ObjectReference objectReference_From = Core.Convert.ComplexReference<ObjectReference>(spaceAirMovement.From);
+                ObjectReference objectReference_To = Core.Convert.ComplexReference<ObjectReference>(spaceAirMovement.To);
+
+                // 2. unit -> supplied room.
+                if (objectReference_Unit == objectReference_From && !string.IsNullOrWhiteSpace(spaceAirMovement.To))
+                {
+                    Assert.IsType<Space>(adjacencyCluster.AirMovementEndpoint(spaceAirMovement.To));
+
+                    supply += spaceAirMovement.AirFlow;
+                }
+                // 3. extracted room -> unit. THE LEG THE TAS EXPORT FLATTENS, and it is here.
+                else if (objectReference_Unit == objectReference_To)
+                {
+                    Assert.IsType<Space>(adjacencyCluster.AirMovementEndpoint(spaceAirMovement.From));
+
+                    extract += spaceAirMovement.AirFlow;
+                }
+                // 4. unit -> Outside. THE OTHER LEG THE TAS EXPORT FLATTENS, and it is here too.
+                else if (objectReference_Unit == objectReference_From)
+                {
+                    exhaust_Unit += spaceAirMovement.AirFlow;
+                }
+            }
+
+            Assert.Equal(preparation.DesignSupplyDuty_Lps / 1000.0, supply, 9);
+            Assert.Equal(preparation.DesignExtractDuty_Lps / 1000.0, extract, 9);
+            Assert.Equal(preparation.DesignExtractDuty_Lps / 1000.0, exhaust_Unit, 9);
+
+            //No room takes its extract straight outside: in the physical model that air goes to the unit.
+            foreach (SpaceAirMovement spaceAirMovement in adjacencyCluster.GetObjects<SpaceAirMovement>())
+            {
+                if (string.IsNullOrWhiteSpace(spaceAirMovement.To))
+                {
+                    Assert.Equal(objectReference_Unit, Core.Convert.ComplexReference<ObjectReference>(spaceAirMovement.From));
+                }
+            }
+        }
+
+        /// <summary>
         /// A model whose spaces carry no design terminals produces no extract back to the unit, so it gets no
         /// exhaust either - the branch that predates all of this is left exactly as it was.
         /// </summary>
