@@ -747,38 +747,88 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// <b>No valid balancing consequence means a refusal, not an unbalanced model.</b>
+        /// <b>A targeted change is reversible, and reversing it restores the original design exactly.</b>
         /// <para>
-        /// The bedroom is raised by 10 l/s, which the cooking-priority strategy balances by putting 10 l/s
-        /// of extract in the kitchen. Taking that 10 l/s of kitchen extract back out is a legal change to
-        /// the kitchen - it lands exactly on its own Table 1.2 floor - but balancing it needs 10 l/s off
-        /// the supply side, and the living room's share of that would take it below what Approved Document
-        /// F requires of the room. The dwelling therefore cannot be balanced at the requested figure, and
-        /// nothing at all is written - the targeted room included.
+        /// The bedroom is raised by 10 l/s and the cooking-priority strategy balances it with 10 l/s of
+        /// kitchen extract. Taking that kitchen extract back to its Approved Document F requirement has an
+        /// obvious valid answer - remove the 10 l/s from the bedroom, which is holding exactly that much
+        /// design headroom - and the operation must find it.
+        /// </para>
+        /// <para>
+        /// <b>This is the defect Codex found, and it was a real one.</b> An earlier revision shared a
+        /// reduction in proportion to each room's total duty, which handed a share to the living room
+        /// sitting exactly on its own floor, saw that share breach it, and refused the whole reversal as
+        /// impossible. A reduction can only come out of headroom that is there to remove, so it is now
+        /// shared in proportion to <c>max(0, duty - requirement)</c> and a room at its floor is never
+        /// asked.
         /// </para>
         /// </summary>
         [Fact]
-        public void ATargetedChangeThatCannotBeBalanced_RefusesAndWritesNothing()
+        public void AReductionConsumesAvailableHeadroom_AndReversesATargetedChangeExactly()
         {
             PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
 
             AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
 
+            Dictionary<string, double> design_Original = Designs(adjacencyCluster);
+            Dictionary<string, string> requirements_Original = Requirements(adjacencyCluster);
+
+            double design_LivingRoom_Floor_Lps = Design(adjacencyCluster, adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom), FlowClassification.Supply);
+
+            //Out: the bedroom gains 10 l/s and the kitchen derives the matching extract.
             Retarget(adjacencyCluster, name_Bedroom, FlowClassification.Supply, 10);
 
-            Dictionary<string, double> design_Before = Designs(adjacencyCluster);
-
+            //And back: the kitchen returns to its Approved Document F requirement.
             Space space_Kitchen = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Kitchen);
 
-            //Down to the kitchen's own Part F floor: legal for the kitchen, impossible for the dwelling.
             double requirement_Kitchen_Lps = adjacencyCluster.PartFRequiredFlowRate_Lps(space_Kitchen, FlowClassification.Extract).Value;
 
             DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Kitchen, FlowClassification.Extract, requirement_Kitchen_Lps);
 
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+
+            //The bedroom's headroom is what paid for it, and it is the only room that moved.
+            DesignAirFlowAdjustment adjustment = Assert.Single(change.DerivedAdjustments);
+
+            Assert.Equal(name_Bedroom, adjustment.SpaceName);
+            Assert.Equal(FlowClassification.Supply, adjustment.FlowClassification);
+            Assert.Equal(-10, adjustment.Change_Lps, 6);
+
+            //The living room sat exactly on its Part F floor throughout and was never asked to give up air
+            //it did not have.
+            Assert.Equal(design_LivingRoom_Floor_Lps, Design(adjacencyCluster, adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom), FlowClassification.Supply), 6);
+
+            //The whole dwelling is back where it started, still balanced, with every requirement untouched.
+            Assert.Equal(design_Original, Designs(adjacencyCluster));
+            Assert.Equal(requirements_Original, Requirements(adjacencyCluster));
+            Assert.Equal(change.SupplyDuty_Lps, change.ExtractDuty_Lps, 6);
+        }
+
+        /// <summary>
+        /// <b>A reduction larger than all the headroom there is refuses, and writes nothing.</b>
+        /// <para>
+        /// <b>Built by hand, and that is the honest way to build it.</b> On a dwelling the real
+        /// <c>PartFCalculator</c> sized, the two sides have equal requirement totals and equal design
+        /// totals, so each side always holds exactly the same removable headroom as the other and a
+        /// reduction can always be balanced - which is the point of the fix above. Reaching the refusal at
+        /// all needs a system whose extract requirement floor sits close under its design while the supply
+        /// side has slack, so the fixture states that directly rather than pretending a Part F run
+        /// produced it.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AReductionBeyondAllAvailableHeadroom_RefusesAndWritesNothing()
+        {
+            AdjacencyCluster adjacencyCluster = HeadroomFixture(out Space space_Supply, out _);
+
+            Dictionary<string, double> design_Before = Designs(adjacencyCluster);
+
+            //Supply 30 -> 10 needs 20 l/s off the extract side, which holds only 2 l/s above its floor.
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Supply, FlowClassification.Supply, 10);
+
             Assert.False(change.Successful);
             Assert.NotEmpty(change.Refusals);
-            Assert.Contains("Approved Document F", change.Refusals[0]);
-            Assert.Contains(name_LivingRoom, change.Refusals[0]);
+            Assert.Contains("headroom", change.Refusals[0]);
 
             //Nothing written: not the derived rooms, and not the targeted one either.
             Assert.Null(change.TargetedAdjustment);
@@ -787,36 +837,206 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// A dwelling with nothing on the other side to balance against is refused rather than left
-        /// gaining air it never loses.
+        /// <b>A reduction the headroom can just cover succeeds</b> - the boundary of the test above, so
+        /// the refusal is known to be about the shortfall and not about reductions in general.
         /// </summary>
         [Fact]
-        public void ATargetedChangeWithNothingToBalanceAgainst_Refuses()
+        public void AReductionExactlyAtAvailableHeadroom_Succeeds()
+        {
+            AdjacencyCluster adjacencyCluster = HeadroomFixture(out Space space_Supply, out Space space_Extract);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Supply, FlowClassification.Supply, 28);
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+
+            Assert.Equal(28, Design(adjacencyCluster, space_Supply, FlowClassification.Supply), 6);
+            Assert.Equal(28, Design(adjacencyCluster, space_Extract, FlowClassification.Extract), 6);
+            Assert.Equal(change.SupplyDuty_Lps, change.ExtractDuty_Lps, 6);
+        }
+
+        /// <summary>
+        /// <b>A targeted change never reaches across into another ventilation system.</b>
+        /// <para>
+        /// <b>The second defect Codex found.</b> A duty is summed per room and per direction, and
+        /// <c>Modify.SetSpaceDesignFlowRate</c> writes every terminal of that room and direction - so a
+        /// room holding terminals from this Part O system and from another one would have had both
+        /// rewritten, silently moving the other system's design duty while the result claimed the change
+        /// belonged to this one.
+        /// </para>
+        /// <para>
+        /// Refused rather than filtered: writing only the subset that belongs here needs a system-scoped
+        /// setter that does not exist, and inventing one would be a multi-system allocation architecture
+        /// Iteration 2 has no business introducing.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ASpaceSharedWithAnotherVentilationSystem_RefusesAndTouchesNeitherSystem()
         {
             PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
 
             AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
 
-            //Every extract terminal removed, so the dwelling has no other side at all.
-            foreach (Space space in adjacencyCluster.GetSpaces())
-            {
-                foreach (VentilationTerminal ventilationTerminal in Analytical.Query.VentilationTerminals(adjacencyCluster.VentilationTerminals(space), FlowClassification.Extract) ?? [])
-                {
-                    adjacencyCluster.RemoveObject(ventilationTerminal.GetType(), ventilationTerminal.Guid);
-                }
-            }
+            //A second, unrelated ventilation system with an extract terminal of its own in the kitchen -
+            //the room the Part O system's balancing consequence would otherwise land in.
+            VentilationSystem ventilationSystem_Other = new("Other", new VentilationSystemType("Other MV", "Fixture other system"));
+
+            Space space_Kitchen = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Kitchen);
+
+            VentilationTerminal ventilationTerminal_Other = new("Other extract", FlowClassification.Extract, 7);
+
+            adjacencyCluster.AddObject(ventilationSystem_Other);
+            adjacencyCluster.AddObject(ventilationTerminal_Other);
+            adjacencyCluster.AddRelation(ventilationTerminal_Other, space_Kitchen);
+            adjacencyCluster.AddRelation(ventilationTerminal_Other, ventilationSystem_Other);
+
+            Dictionary<string, double> design_Before = Designs(adjacencyCluster);
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(adjacencyCluster);
 
             Space space_Bedroom = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Bedroom);
 
-            double design_Before = Design(adjacencyCluster, space_Bedroom, FlowClassification.Supply);
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Bedroom, FlowClassification.Supply, Design(adjacencyCluster, space_Bedroom, FlowClassification.Supply) + 4);
 
-            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Bedroom, FlowClassification.Supply, design_Before + 4);
+            Assert.False(change.Successful);
+            Assert.NotEmpty(change.Refusals);
+            Assert.Contains(name_Kitchen, change.Refusals[0]);
+            Assert.Contains("not all part of ventilation system", change.Refusals[0]);
+
+            //Every terminal in BOTH systems is value-identical, and neither system's duty moved.
+            Assert.Equal(terminals_Before, TerminalDesigns(adjacencyCluster));
+            Assert.Equal(design_Before, Designs(adjacencyCluster));
+
+            Assert.Null(change.TargetedAdjustment);
+            Assert.Empty(change.DerivedAdjustments);
+        }
+
+        /// <summary>
+        /// The same validation catches a terminal belonging to no ventilation system at all - nothing says
+        /// it is part of this dwelling, so writing it would be a guess.
+        /// </summary>
+        [Fact]
+        public void ASpaceHoldingAnOrphanTerminal_Refuses()
+        {
+            PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            Space space_Bedroom = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Bedroom);
+
+            VentilationTerminal ventilationTerminal_Orphan = new("Orphan supply", FlowClassification.Supply, 3);
+
+            adjacencyCluster.AddObject(ventilationTerminal_Orphan);
+            adjacencyCluster.AddRelation(ventilationTerminal_Orphan, space_Bedroom);
+
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(adjacencyCluster);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Bedroom, FlowClassification.Supply, Design(adjacencyCluster, space_Bedroom, FlowClassification.Supply) + 4);
+
+            Assert.False(change.Successful);
+            Assert.NotEmpty(change.Refusals);
+            Assert.Contains("belongs to no ventilation system", change.Refusals[0]);
+
+            Assert.Equal(terminals_Before, TerminalDesigns(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// <b>An already-unbalanced dwelling is refused before anything is written, not reported as a
+        /// success with a warning.</b>
+        /// <para>
+        /// A targeted change and its derived consequence move both sides by the same amount, so they
+        /// preserve a pre-existing residual rather than closing it. An earlier revision noticed the
+        /// residual after writing and only warned, leaving <c>Successful</c> true - a result claiming a
+        /// valid balanced design for a dwelling that gains air it never loses.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AnAlreadyUnbalancedDwelling_RefusesBeforeWritingAnything()
+        {
+            PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            //The low-level primitive writes exactly what it is told and does not rebalance, which is how an
+            //unbalanced dwelling gets created in the first place.
+            Space space_LivingRoom = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            Assert.NotNull(adjacencyCluster.SetSpaceDesignFlowRate(space_LivingRoom, FlowClassification.Supply, Design(adjacencyCluster, space_LivingRoom, FlowClassification.Supply) + 6, out _, out List<string> refusals_Setup));
+            Assert.Empty(refusals_Setup);
+
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(adjacencyCluster);
+
+            Space space_Bedroom = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Bedroom);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Bedroom, FlowClassification.Supply, Design(adjacencyCluster, space_Bedroom, FlowClassification.Supply) + 4);
+
+            Assert.False(change.Successful);
+            Assert.NotEmpty(change.Refusals);
+            Assert.Contains("already designs", change.Refusals[0]);
+
+            Assert.Null(change.TargetedAdjustment);
+            Assert.Empty(change.DerivedAdjustments);
+            Assert.Equal(terminals_Before, TerminalDesigns(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// Every successful transaction leaves the dwelling balanced, and says nothing to the contrary.
+        /// Stated as its own fact, because "balanced afterwards" is the contract rather than an incidental
+        /// property of one scenario.
+        /// </summary>
+        [Fact]
+        public void EverySuccessfulTransaction_LeavesTheDwellingBalanced()
+        {
+            PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            foreach ((string name_Space, FlowClassification flowClassification, double change_Lps) in new[]
+            {
+                (name_Bedroom, FlowClassification.Supply, 6.0),
+                (name_Bathroom, FlowClassification.Extract, 3.0),
+                (name_Bedroom, FlowClassification.Supply, -2.0),
+            })
+            {
+                DwellingDesignAirFlowChange change = Retarget(adjacencyCluster, name_Space, flowClassification, change_Lps);
+
+                Assert.Equal(change.SupplyDuty_Lps, change.ExtractDuty_Lps, 6);
+                Assert.Empty(change.Warnings);
+            }
+        }
+
+        /// <summary>
+        /// A dwelling with nothing on the other side to balance against is refused rather than left
+        /// gaining air it never loses.
+        /// <para>
+        /// <b>Built at zero on both sides, so the dwelling starts balanced.</b> Stripping the extract
+        /// terminals out of a sized dwelling instead would leave supply against no extract at all, and the
+        /// pre-write balance check would - correctly - refuse that for being unbalanced before this rule
+        /// was ever reached. Starting from nothing isolates the rule under test.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ATargetedChangeWithNothingToBalanceAgainst_Refuses()
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space = Room(adjacencyCluster, "Supply Room", PartFTerminalRole.Supply, 0);
+
+            VentilationSystem ventilationSystem = new("Fixture", new VentilationSystemType("Fixture MVHR", "Fixture"));
+
+            adjacencyCluster.AddObject(ventilationSystem);
+
+            Terminal(adjacencyCluster, ventilationSystem, space, FlowClassification.Supply, 0);
+
+            adjacencyCluster.AddRelation(ventilationSystem, space);
+
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(adjacencyCluster);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space, FlowClassification.Supply, 4);
 
             Assert.False(change.Successful);
             Assert.NotEmpty(change.Refusals);
             Assert.Contains("gain air it never loses", change.Refusals[0]);
 
-            Assert.Equal(design_Before, Design(adjacencyCluster, space_Bedroom, FlowClassification.Supply), 6);
+            Assert.Equal(terminals_Before, TerminalDesigns(adjacencyCluster));
         }
 
         /// <summary>
@@ -1421,6 +1641,87 @@ namespace SAM.Tests
         private static double Design(AdjacencyCluster adjacencyCluster, Space space, FlowClassification flowClassification)
         {
             return adjacencyCluster.VentilationTerminals(space).VentilationTerminalDesignDuty_Lps(flowClassification) ?? 0;
+        }
+
+        /// <summary>
+        /// Every design terminal in the model by guid, so "nothing at all was written" can be asserted
+        /// value by value rather than only at the room totals - including terminals belonging to another
+        /// ventilation system, which a room total would never show.
+        /// </summary>
+        private static Dictionary<Guid, double> TerminalDesigns(AdjacencyCluster adjacencyCluster)
+        {
+            Dictionary<Guid, double> result = [];
+
+            foreach (VentilationTerminal ventilationTerminal in adjacencyCluster.GetObjects<VentilationTerminal>() ?? [])
+            {
+                result[ventilationTerminal.Guid] = ventilationTerminal.DesignFlowRate_Lps ?? double.NaN;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// A minimal one-system dwelling stated directly: 30 l/s of supply against a 10 l/s requirement
+        /// (20 l/s of headroom), and 30 l/s of extract against a 28 l/s requirement (2 l/s of headroom).
+        /// <para>
+        /// <b>Hand-built on purpose.</b> A dwelling the real <see cref="PartFCalculator"/> sized has equal
+        /// requirement totals on the two sides and equal design totals, so its removable headroom is
+        /// symmetric and a reduction can always be balanced. Asymmetric headroom is the only condition
+        /// under which the allocator's shortfall refusal is reachable at all, so the fixture states it
+        /// rather than pretending a Part F run produced it.
+        /// </para>
+        /// </summary>
+        private static AdjacencyCluster HeadroomFixture(out Space space_Supply, out Space space_Extract)
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            space_Supply = Room(adjacencyCluster, "Supply Room", PartFTerminalRole.Supply, 10);
+            space_Extract = Room(adjacencyCluster, "Extract Room", PartFTerminalRole.GeneralExtract, 28);
+
+            VentilationSystem ventilationSystem = new("Fixture", new VentilationSystemType("Fixture MVHR", "Fixture"));
+
+            adjacencyCluster.AddObject(ventilationSystem);
+
+            Terminal(adjacencyCluster, ventilationSystem, space_Supply, FlowClassification.Supply, 30);
+            Terminal(adjacencyCluster, ventilationSystem, space_Extract, FlowClassification.Extract, 30);
+
+            adjacencyCluster.AddRelation(ventilationSystem, space_Supply);
+            adjacencyCluster.AddRelation(ventilationSystem, space_Extract);
+
+            return adjacencyCluster;
+        }
+
+        /// <summary>One room of <see cref="HeadroomFixture"/>, carrying a stated Approved Document F requirement.</summary>
+        private static Space Room(AdjacencyCluster adjacencyCluster, string name, PartFTerminalRole partFTerminalRole, double requirement_Lps)
+        {
+            Space result = new(name);
+
+            PartFVentilationTerminalRequirement partFVentilationTerminalRequirement = new(name + " requirement", result.Guid, partFTerminalRole)
+            {
+                ContinuousDesignFlowRate_Lps = requirement_Lps,
+            };
+
+            PartFSpaceData partFSpaceData = new();
+            partFSpaceData.Terminals.Add(partFVentilationTerminalRequirement);
+
+            result.SetValue(SpaceParameter.PartFSpaceData, partFSpaceData);
+
+            adjacencyCluster.AddObject(result);
+
+            return result;
+        }
+
+        /// <summary>One design terminal of <see cref="HeadroomFixture"/>, related to its room and its system.</summary>
+        private static void Terminal(AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem, Space space, FlowClassification flowClassification, double designFlowRate_Lps)
+        {
+            PartFVentilationTerminalRequirement partFVentilationTerminalRequirement = space.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData).Terminals[0];
+
+            VentilationTerminal ventilationTerminal = new(space.Name + " terminal", flowClassification, designFlowRate_Lps);
+            ventilationTerminal.SetValue(VentilationTerminalParameter.PartFTerminalReference, new PartFTerminalReference(partFVentilationTerminalRequirement));
+
+            adjacencyCluster.AddObject(ventilationTerminal);
+            adjacencyCluster.AddRelation(ventilationTerminal, space);
+            adjacencyCluster.AddRelation(ventilationTerminal, ventilationSystem);
         }
 
         /// <summary>Every room's design airflow on both sides, so a whole model can be compared before and after.</summary>

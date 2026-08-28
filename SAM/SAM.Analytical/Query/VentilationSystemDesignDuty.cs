@@ -71,11 +71,18 @@ namespace SAM.Analytical
         /// <see cref="Refuse"/>.
         /// </para>
         /// <para>
-        /// <b>A room-level difference is reported either way.</b> Two terminals of 10 l/s realizing a
-        /// 20 l/s requirement agree; two of 15 do not, and the design may still be deliberate. Naming the
-        /// room and both numbers puts that in front of the engineer without deciding it for them - and a
-        /// shortfall that is not cancelled out elsewhere reaches the system total anyway, where it does
-        /// refuse.
+        /// <b>And the floor is checked per ROOM as well as at the total.</b> Approved Document F requires
+        /// a rate of each room, not an average over the dwelling, so a room below its own requirement
+        /// refuses even where another room's surplus makes the system total agree exactly. Surplus is not
+        /// tradeable between rooms: an earlier revision only warned here, and passed a model that
+        /// simulated a bedroom ventilated below its Approved Document rate while reporting compliance.
+        /// Two terminals of 10 l/s realizing a 20 l/s requirement agree; two of 15 are headroom and are
+        /// reported; two of 8 are a shortfall and refuse.
+        /// </para>
+        /// <para>
+        /// This is the <b>terminal/space</b> half of the Iteration 2 invariant. The capacity ceiling is
+        /// the other half and is asked at the air handling unit's duty, where the equipment is - see
+        /// <c>Query.IsVentilationUnitSufficient</c>. Neither check substitutes for the other.
         /// </para>
         /// </summary>
         /// <param name="tolerance_Lps">
@@ -125,9 +132,24 @@ namespace SAM.Analytical
 
                 Note(notes, warnings, space, "supply", space_Duty_Supply_Lps, space_Requirement_Supply_Lps, tolerance_Lps);
                 Note(notes, warnings, space, "extract", space_Duty_Extract_Lps, space_Requirement_Extract_Lps, tolerance_Lps);
+
+                //THE FLOOR IS PER ROOM, and checking it only at the system total is not the same check.
+                //
+                //Approved Document F requires a rate of each room, not an average over the dwelling. A
+                //bedroom 5 l/s under its requirement and a living room 5 l/s over it sum to a system total
+                //that agrees exactly, and an earlier revision passed that model - simulating a bedroom
+                //ventilated below the rate the Approved Document requires of it while reporting compliance.
+                //Surplus in one room does not discharge another room's requirement and cannot be traded
+                //against it.
+                //
+                //Above the requirement stays legal here, exactly as it is at the system total: it is design
+                //headroom, it is what an Approved Document O iteration spends, and Note() has already
+                //reported it.
+                RefuseSpace(refusals, space, "supply", space_Duty_Supply_Lps, space_Requirement_Supply_Lps, tolerance_Lps);
+                RefuseSpace(refusals, space, "extract", space_Duty_Extract_Lps, space_Requirement_Extract_Lps, tolerance_Lps);
             }
 
-            bool result = true;
+            bool result = refusals.Count == 0;
 
             result &= Refuse(refusals, ventilationSystem, "supply", supplyDuty_Lps, requirement_Supply_Lps, tolerance_Lps);
             result &= Refuse(refusals, ventilationSystem, "extract", extractDuty_Lps, requirement_Extract_Lps, tolerance_Lps);
@@ -174,7 +196,7 @@ namespace SAM.Analytical
                     requirement_Lps,
                     duty_Lps - requirement_Lps)
                 : string.Format(
-                    "Space '{0}': the design {1} terminals total {2:0.###} l/s but Approved Document F sized {3:0.###} l/s. The design terminals are what will be simulated; this is reported so the difference is a decision rather than a surprise.",
+                    "Space '{0}': the design {1} terminals total {2:0.###} l/s but Approved Document F sized {3:0.###} l/s, so that room is designed below its regulatory minimum.",
                     space.Name,
                     direction,
                     duty_Lps,
@@ -203,6 +225,30 @@ namespace SAM.Analytical
         /// room and at the system total, and never silently accepted either.
         /// </para>
         /// </summary>
+        /// <summary>
+        /// Refuses one room designed below its own Approved Document F requirement.
+        /// <para>
+        /// The room-level half of the Iteration 2 invariant. The floor is enforced here, at the
+        /// terminal/space level where the Approved Document states it; the capacity ceiling is a different
+        /// question asked at the air handling unit's duty, where the equipment actually is. Neither
+        /// substitutes for the other, and a system total is not a substitute for either.
+        /// </para>
+        /// </summary>
+        private static void RefuseSpace(List<string> refusals, Space space, string direction, double duty_Lps, double requirement_Lps, double tolerance_Lps)
+        {
+            if (duty_Lps + tolerance_Lps >= requirement_Lps)
+            {
+                return;
+            }
+
+            refusals.Add(string.Format(
+                "Space '{0}' has a design {1} airflow of {2:0.###} l/s, below the {3:0.###} l/s Approved Document F requires of that room. A shortfall in one room is not discharged by surplus in another, so nothing was prepared. Raise that room's design terminals to at least its requirement, or re-run the Part F calculation if the requirement itself is wrong.",
+                space.Name,
+                direction,
+                duty_Lps,
+                requirement_Lps));
+        }
+
         private static bool Refuse(List<string> refusals, VentilationSystem ventilationSystem, string direction, double duty_Lps, double requirement_Lps, double tolerance_Lps)
         {
             if (duty_Lps + tolerance_Lps >= requirement_Lps)

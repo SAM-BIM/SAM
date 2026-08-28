@@ -708,6 +708,40 @@ namespace SAM.Tests
             Assert.Contains(preparation_After.Warnings, x => x.Contains(name_Bedroom) && x.Contains("design headroom"));
         }
 
+        /// <summary>
+        /// <b>The Approved Document F floor is per ROOM, and a system total that agrees does not discharge
+        /// it.</b>
+        /// <para>
+        /// One bedroom is designed 2.5 l/s below its requirement and the living room is raised by the same
+        /// 2.5 l/s, so the system total matches the requirement total exactly. An earlier revision checked
+        /// only that total and passed this model - simulating a bedroom ventilated below the rate the
+        /// Approved Document requires of it while reporting compliance. Surplus in one room is not
+        /// tradeable against a shortfall in another, and the refusal names the deficient room.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ARoomBelowItsRequirement_RefusesEvenWhereTheSystemTotalAgrees()
+        {
+            PartOIterationPreparation preparation = Prepared();
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            AddDuty(adjacencyCluster, preparation.AnalyticalModel, name_Bedroom, FlowClassification.Supply, -2.5);
+            AddDuty(adjacencyCluster, preparation.AnalyticalModel, name_LivingRoom, FlowClassification.Supply, 2.5);
+
+            PartOIterationPreparation preparation_After = Prepare(new AnalyticalModel(preparation.AnalyticalModel, adjacencyCluster), PartOIteration.BasePassive, "MVRE");
+
+            Assert.NotNull(preparation_After.Refusal);
+            Assert.Null(preparation_After.AnalyticalModel);
+
+            //Named, so an engineer is told which room to fix rather than that "something" disagrees.
+            Assert.Contains(name_Bedroom, preparation_After.Refusal);
+            Assert.Contains("below the", preparation_After.Refusal);
+
+            //And it is the ROOM that is named, not the system total - which still agrees exactly.
+            Assert.DoesNotContain("design supply duty", preparation_After.Refusal);
+        }
+
         private static void AddDuty(AdjacencyCluster adjacencyCluster, AnalyticalModel analyticalModel, string name_Space, FlowClassification flowClassification, double increase_Lps)
         {
             VentilationTerminal ventilationTerminal = Analytical.Query.VentilationTerminals(Analytical.Query.VentilationTerminals(adjacencyCluster, Space(analyticalModel, name_Space)), flowClassification)[0];

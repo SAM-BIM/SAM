@@ -125,7 +125,36 @@ namespace SAM.Analytical
 
             result.VentilationSystem = ventilationSystem;
 
-            double duty_Target_Before_Lps = adjacencyCluster.VentilationTerminals(space_Target).VentilationTerminalDesignDuty_Lps(flowClassification) ?? 0;
+            //A balanced dwelling is the PRECONDITION, checked before anything is written.
+            //
+            //This transaction adds a targeted change and the matching derived change, which preserves
+            //whatever residual the dwelling already had - it cannot repair one. Reporting success while
+            //leaving supply and extract disagreeing would hand back a model the preparation is going to
+            //refuse anyway, with a transaction that claims it produced a valid design. An earlier revision
+            //only warned here; that was wrong, and the contract is now: validate feasibility, then write.
+            adjacencyCluster.VentilationSystemDesignDuty(ventilationSystem, out double supplyDuty_Before_Lps, out double extractDuty_Before_Lps);
+
+            if (System.Math.Abs(supplyDuty_Before_Lps - extractDuty_Before_Lps) > tolerance_Lps)
+            {
+                result.Refusals.Add(string.Format(
+                    "Ventilation system '{0}' already designs {1:0.###} l/s of supply against {2:0.###} l/s of extract, so the dwelling is not a valid balanced design to change. A targeted change and its balancing consequence move both sides together and cannot close a residual that was there first. Return the dwelling to a balanced design - or re-run the Approved Document F calculation and the iteration preparation - before targeting a room. Nothing was changed.",
+                    ventilationSystem.FullName,
+                    supplyDuty_Before_Lps,
+                    extractDuty_Before_Lps));
+
+                return result;
+            }
+
+            //Every terminal this transaction would read or write has to be unambiguously part of THIS
+            //system before any of it is trusted - see TerminalsOfSystem.
+            if (!TerminalsOfSystem(adjacencyCluster, space_Target, flowClassification, ventilationSystem, out List<VentilationTerminal> ventilationTerminals_Target, out string refusal_Target))
+            {
+                result.Refusals.Add(refusal_Target);
+
+                return result;
+            }
+
+            double duty_Target_Before_Lps = ventilationTerminals_Target.VentilationTerminalDesignDuty_Lps(flowClassification) ?? 0;
 
             //The regulatory floor, read and never written. The targeted room may be raised as far as anyone
             //likes and lowered only as far as Approved Document F allows.
@@ -158,7 +187,18 @@ namespace SAM.Analytical
 
             foreach (Space space_Related in adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? [])
             {
-                List<VentilationTerminal> ventilationTerminals = Query.VentilationTerminals(adjacencyCluster.VentilationTerminals(space_Related), flowClassification_Opposite) ?? [];
+                //Attribution is checked for EVERY candidate room before any of them is written, not only
+                //for the rooms that end up moving. A room this transaction would have to leave alone
+                //because its terminals are shared with another system is a room whose duty cannot be read
+                //honestly either, so the whole transaction is refused rather than quietly re-planned around
+                //it - re-planning would balance the dwelling using a subset of its rooms without saying so.
+                if (!TerminalsOfSystem(adjacencyCluster, space_Related, flowClassification_Opposite, ventilationSystem, out List<VentilationTerminal> ventilationTerminals, out string refusal_Opposite))
+                {
+                    result.Refusals.Add(refusal_Opposite);
+
+                    return result;
+                }
+
                 if (ventilationTerminals.Count == 0)
                 {
                     continue;
@@ -201,11 +241,11 @@ namespace SAM.Analytical
 
             List<string> refusals = [];
 
-            List<VentilationTerminal> ventilationTerminals_Target = adjacencyCluster.SetSpaceDesignFlowRate(space_Target, flowClassification, designFlowRate_Lps, out List<string> notes_Target, out List<string> refusals_Target, tolerance_Lps);
+            List<VentilationTerminal> ventilationTerminals_Written = adjacencyCluster.SetSpaceDesignFlowRate(space_Target, flowClassification, designFlowRate_Lps, out List<string> notes_Target, out List<string> refusals_Target, tolerance_Lps);
 
             refusals.AddRange(refusals_Target);
 
-            if (ventilationTerminals_Target is not null)
+            if (ventilationTerminals_Written is not null)
             {
                 result.Notes.AddRange(notes_Target);
 
@@ -273,15 +313,20 @@ namespace SAM.Analytical
 
             if (System.Math.Abs(supplyDuty_Lps - extractDuty_Lps) > tolerance_Lps)
             {
-                //The dwelling did not balance even after the derived allocation - it was already out of
-                //balance before this call. Reported, not refused: this call did not cause it, the change it
-                //made is correct in itself, and Modify.PreparePartOIteration refuses the model that reaches
-                //a simulation.
-                result.Warnings.Add(string.Format(
-                    "Ventilation system '{0}' now designs {1:0.###} l/s of supply against {2:0.###} l/s of extract. The targeted change was balanced, so the dwelling was already out of balance before it - the preparation will refuse to simulate this model until that is resolved.",
+                //A REFUSAL, never a warning. A successful transaction means a valid balanced design, and a
+                //result that says "successful" beside a dwelling gaining air it never loses is the exact
+                //claim this operation exists to make impossible.
+                //
+                //Unreachable by design: the dwelling was checked balanced before anything was written, and
+                //the targeted and derived changes move both sides by the same amount. Reaching it means the
+                //allocation and the duty derivation have drifted apart, which is worth saying loudly.
+                result.Refusals.Add(string.Format(
+                    "Ventilation system '{0}' designs {1:0.###} l/s of supply against {2:0.###} l/s of extract after a change that was balanced when it was planned, which should not be possible. The model may now hold a partly applied change - re-run the Approved Document F calculation and the iteration preparation before trusting it.",
                     ventilationSystem.FullName,
                     supplyDuty_Lps,
                     extractDuty_Lps));
+
+                return result;
             }
 
             result.Notes.Add(string.Format(
@@ -356,12 +401,97 @@ namespace SAM.Analytical
         }
 
         /// <summary>
+        /// The design terminals of one room and one direction, <b>only</b> where every one of them is
+        /// unambiguously part of <paramref name="ventilationSystem"/>.
+        /// <para>
+        /// <b>Why this gate exists.</b> A duty is summed per room and per direction, and
+        /// <see cref="SetSpaceDesignFlowRate"/> writes every terminal of that room and direction. Where a
+        /// room holds terminals belonging to this Part O system <i>and</i> to another ventilation system -
+        /// a dwelling served by a second unit, a model still carrying the systems it was authored with -
+        /// both the sum and the write would silently reach across the boundary, and a targeted change to
+        /// one dwelling would move another system's design duty while reporting itself as belonging to
+        /// this one.
+        /// </para>
+        /// <para>
+        /// <b>Refused rather than filtered, deliberately.</b> Writing only the subset that belongs here
+        /// needs a system-scoped setter that does not exist, and inventing one would be a multi-system
+        /// allocation architecture Iteration 2 has no business introducing. Refusing is the smallest safe
+        /// answer: it changes nothing, and it names the condition an engineer has to resolve.
+        /// </para>
+        /// <para>
+        /// A terminal related to <b>no</b> system at all is caught by the same rule and for the same
+        /// reason - nothing says it belongs to this dwelling, so writing it would be a guess.
+        /// </para>
+        /// </summary>
+        /// <returns>False where the room cannot be attributed, with <paramref name="refusal"/> set.</returns>
+        private static bool TerminalsOfSystem(AdjacencyCluster adjacencyCluster, Space space, FlowClassification flowClassification, VentilationSystem ventilationSystem, out List<VentilationTerminal> ventilationTerminals, out string refusal)
+        {
+            ventilationTerminals = Query.VentilationTerminals(adjacencyCluster.VentilationTerminals(space), flowClassification) ?? [];
+            refusal = null;
+
+            List<string> names_Foreign = [];
+            bool unattributed = false;
+
+            foreach (VentilationTerminal ventilationTerminal in ventilationTerminals)
+            {
+                List<VentilationSystem> ventilationSystems = adjacencyCluster.GetRelatedObjects<VentilationSystem>(ventilationTerminal) ?? [];
+
+                if (ventilationSystems.Count == 0)
+                {
+                    unattributed = true;
+
+                    continue;
+                }
+
+                foreach (VentilationSystem ventilationSystem_Related in ventilationSystems)
+                {
+                    if (ventilationSystem_Related is not null && ventilationSystem_Related.Guid != ventilationSystem.Guid && !names_Foreign.Contains(ventilationSystem_Related.FullName))
+                    {
+                        names_Foreign.Add(ventilationSystem_Related.FullName);
+                    }
+                }
+            }
+
+            if (names_Foreign.Count == 0 && !unattributed)
+            {
+                return true;
+            }
+
+            names_Foreign.Sort(StringComparer.Ordinal);
+
+            string reason = names_Foreign.Count == 0
+                ? "at least one of them belongs to no ventilation system at all"
+                : string.Format("some of them belong to {0}", string.Join(", ", names_Foreign.ConvertAll(x => string.Format("'{0}'", x))));
+
+            refusal = string.Format(
+                "Space '{0}' holds design {1} terminals that are not all part of ventilation system '{2}' - {3}. A room's design airflow is set across every terminal of that direction, so changing this room would move a duty that does not belong to this dwelling. Nothing was changed. Separate the terminals onto the systems that own them, or target a room whose terminals are unambiguous.",
+                space.Name,
+                Core.Query.Description(flowClassification),
+                ventilationSystem.FullName,
+                reason);
+
+            ventilationTerminals = [];
+
+            return false;
+        }
+
+        /// <summary>
         /// Shares <paramref name="change_Lps"/> across the rooms on the other side of the system, and says
         /// whether it can be done without taking any of them below what Approved Document F requires.
         /// <para>
         /// <b>Applied to the change, never recomputed from scratch.</b> Re-deriving every room's share from
         /// its requirement would silently undo any imbalance a designer had deliberately authored between
         /// them, which is a design decision this has no business overwriting.
+        /// </para>
+        /// <para>
+        /// <b>An increase and a reduction are not the same problem, and are not shared the same way.</b>
+        /// An increase can go anywhere, so it follows the allocation strategy. A reduction can only come
+        /// out of design airflow that is actually <i>there to remove</i> - the headroom a room has above
+        /// its own Approved Document F requirement, <c>max(0, duty - requirement)</c> - and a room sitting
+        /// exactly on its floor has none. Sharing a reduction in proportion to total duty, as an earlier
+        /// revision did, hands a share to a room that cannot give it up and then refuses the whole change
+        /// as impossible while another room was holding all the headroom needed. That made reversing a
+        /// previous targeted change - the most ordinary thing an optimisation does - fail.
         /// </para>
         /// </summary>
         private static bool Allocate(
@@ -381,13 +511,12 @@ namespace SAM.Analytical
             note = null;
             refusal = null;
 
-            //Cooking priority, exactly as PartFCalculator.AllocateContinuousExtract applies it to the
-            //surplus above the Table 1.2 minimums: extract beyond what the Approved Document requires
-            //belongs at the cooking function, the dwelling's largest single source of moisture and cooking
-            //pollutants. It applies only to extract, and only where the dwelling actually has a local
-            //kitchen extract terminal to put the air in.
-            List<Space> spaces_Target = [];
-            string basis;
+            //The rooms the cooking-priority strategy prefers, where it applies at all. Exactly as
+            //PartFCalculator.AllocateContinuousExtract uses it for the surplus above the Table 1.2
+            //minimums: extract beyond what the Approved Document requires belongs at the cooking function,
+            //the dwelling's largest single source of moisture and cooking pollutants. It applies only to
+            //extract, and only where the dwelling actually has a local kitchen extract terminal.
+            List<Space> spaces_Preferred = [];
 
             if (flowClassification == FlowClassification.Extract && partFExtractAllocationStrategy == PartFExtractAllocationStrategy.MinimumFirstCookingPriority)
             {
@@ -395,77 +524,201 @@ namespace SAM.Analytical
                 {
                     if (IsLocalKitchenExtract(adjacencyCluster, space))
                     {
-                        spaces_Target.Add(space);
+                        spaces_Preferred.Add(space);
                     }
                 }
             }
 
-            if (spaces_Target.Count != 0)
+            string basis;
+
+            if (change_Lps >= 0)
             {
-                basis = "the minimum-first, cooking-priority strategy, which puts extract above the Approved Document F requirement at the cooking function";
+                // ---- An increase can go anywhere, so the strategy decides where -------------------------
+
+                List<Space> spaces_Target;
+
+                if (spaces_Preferred.Count != 0)
+                {
+                    spaces_Target = spaces_Preferred;
+                    basis = "the minimum-first, cooking-priority strategy, which puts extract above the Approved Document F requirement at the cooking function";
+                }
+                else
+                {
+                    //Either the strategy is volume weighted, or the side being balanced is supply, or the
+                    //dwelling has no local kitchen extract. Sharing in proportion to what the rooms already
+                    //carry is the neutral rule: it is independent of the order the rooms are listed in, and
+                    //it preserves whatever proportion the design already had between them.
+                    spaces_Target = spaces;
+                    basis = "sharing in proportion to the design airflow those rooms already carry";
+                }
+
+                double weight_Total = 0;
+                foreach (Space space in spaces_Target)
+                {
+                    weight_Total += dictionary_Duty[space.Guid];
+                }
+
+                foreach (Space space in spaces_Target)
+                {
+                    double share_Lps = weight_Total > tolerance_Lps
+                        ? change_Lps * (dictionary_Duty[space.Guid] / weight_Total)
+                        : change_Lps / spaces_Target.Count;
+
+                    dictionary_Planned[space.Guid] = dictionary_Duty[space.Guid] + share_Lps;
+                }
+
+                Note(spaces_Target, change_Lps, flowClassification, basis, out note);
+
+                return true;
+            }
+
+            // ---- A reduction can only come out of headroom that is there to remove ----------------------
+
+            //What each room can actually give up: its design airflow above its own Approved Document F
+            //requirement, and never a litre more. A room sitting exactly on its floor offers nothing and is
+            //simply not asked - which is the whole fix. Handing it a proportional share and then refusing
+            //the change as impossible was a false refusal, and it made reversing a previous targeted change
+            //fail even though the dwelling could plainly absorb it.
+            Dictionary<Guid, double> dictionary_Removable = [];
+
+            foreach (Space space in spaces)
+            {
+                dictionary_Removable[space.Guid] = System.Math.Max(0, dictionary_Duty[space.Guid] - dictionary_Requirement[space.Guid]);
+                dictionary_Planned[space.Guid] = dictionary_Duty[space.Guid];
+            }
+
+            //Preferred rooms first, then the rest. On the cooking-priority strategy that removes the
+            //surplus from where the strategy put it, so a reduction retraces the increase that created it
+            //and a reversal lands exactly back where it started. Rooms with no headroom drop out of both
+            //tiers on their own, because their removable is zero.
+            List<List<Space>> tiers = [];
+
+            if (spaces_Preferred.Count != 0)
+            {
+                tiers.Add(spaces_Preferred);
+
+                List<Space> spaces_Rest = [];
+                foreach (Space space in spaces)
+                {
+                    if (spaces_Preferred.Find(x => x.Guid == space.Guid) is null)
+                    {
+                        spaces_Rest.Add(space);
+                    }
+                }
+
+                tiers.Add(spaces_Rest);
+
+                basis = "the minimum-first, cooking-priority strategy, which takes extract back from the cooking function first and only then from the other rooms with design headroom";
             }
             else
             {
-                //Either the strategy is volume weighted, or the side being balanced is supply, or the
-                //dwelling has no local kitchen extract. Sharing in proportion to what the rooms already
-                //carry is the neutral rule: it is independent of the order the rooms are listed in, and it
-                //preserves whatever proportion the design already had between them.
-                spaces_Target = spaces;
-                basis = "sharing in proportion to the design airflow those rooms already carry";
+                tiers.Add(spaces);
+                basis = "sharing in proportion to the design headroom those rooms hold above their Approved Document F requirement";
             }
 
-            double weight_Total = 0;
-            foreach (Space space in spaces_Target)
+            double remaining_Lps = -change_Lps;
+
+            List<Space> spaces_Reduced = [];
+
+            foreach (List<Space> tier in tiers)
             {
-                weight_Total += dictionary_Duty[space.Guid];
-            }
-
-            foreach (Space space in spaces_Target)
-            {
-                double share_Lps = weight_Total > tolerance_Lps
-                    ? change_Lps * (dictionary_Duty[space.Guid] / weight_Total)
-                    : change_Lps / spaces_Target.Count;
-
-                dictionary_Planned[space.Guid] = dictionary_Duty[space.Guid] + share_Lps;
-            }
-
-            //Every floor checked before anything is written. Only a reduction can breach one, and when it
-            //does the dwelling simply cannot be balanced at the requested figure - which is an answer, and
-            //a better one than a model that is quietly non-compliant.
-            List<string> breaches = [];
-
-            foreach (Space space in spaces_Target)
-            {
-                double requirement_Lps = dictionary_Requirement[space.Guid];
-
-                if (dictionary_Planned[space.Guid] + tolerance_Lps < requirement_Lps)
+                if (remaining_Lps <= tolerance_Lps)
                 {
-                    breaches.Add(string.Format("'{0}' would fall to {1:0.###} l/s against the {2:0.###} l/s Approved Document F requires of it", space.Name, dictionary_Planned[space.Guid], requirement_Lps));
+                    break;
                 }
+
+                double removable_Tier_Lps = 0;
+                foreach (Space space in tier)
+                {
+                    removable_Tier_Lps += dictionary_Removable[space.Guid];
+                }
+
+                if (removable_Tier_Lps <= tolerance_Lps)
+                {
+                    continue;
+                }
+
+                //Never more than the tier holds, so a share can never exceed a room's own headroom and no
+                //floor can be breached by construction.
+                double take_Lps = System.Math.Min(remaining_Lps, removable_Tier_Lps);
+
+                foreach (Space space in tier)
+                {
+                    double removable_Lps = dictionary_Removable[space.Guid];
+                    if (removable_Lps <= 0)
+                    {
+                        continue;
+                    }
+
+                    double share_Lps = take_Lps * (removable_Lps / removable_Tier_Lps);
+
+                    dictionary_Planned[space.Guid] = dictionary_Duty[space.Guid] - share_Lps;
+
+                    spaces_Reduced.Add(space);
+                }
+
+                remaining_Lps -= take_Lps;
             }
 
-            if (breaches.Count != 0)
+            if (remaining_Lps > tolerance_Lps)
             {
+                //Genuinely impossible: the rooms on this side are holding less design headroom between them
+                //than the change needs to give up, so balancing it would have to reduce at least one of
+                //them below what the Approved Document requires. Requirements are never lowered to make a
+                //design balance.
+                double removable_Total_Lps = 0;
+                foreach (Space space in spaces)
+                {
+                    removable_Total_Lps += dictionary_Removable[space.Guid];
+                }
+
                 refusal = string.Format(
-                    "Balancing the change would need {0:0.###} l/s less {1} than the dwelling can give up: {2}. Approved Document F requirements are not reduced to make a design balance, so nothing was changed.",
-                    System.Math.Abs(change_Lps),
+                    "Balancing the change needs {0:0.###} l/s less {1}, and the rooms on that side of ventilation system's design hold only {2:0.###} l/s of headroom above what Approved Document F requires of them. Reducing them further would take a room below its regulatory minimum, which is never done to make a design balance, so nothing was changed.",
+                    -change_Lps,
                     Core.Query.Description(flowClassification),
-                    string.Join("; ", breaches));
+                    removable_Total_Lps);
 
                 return false;
             }
 
-            List<string> names = spaces_Target.ConvertAll(x => x.Name);
+            //Belt and braces: the tier arithmetic cannot breach a floor, and this says so out loud rather
+            //than trusting it silently. A breach here would mean the removable figures and the planned
+            //figures have drifted apart.
+            foreach (Space space in spaces)
+            {
+                if (dictionary_Planned[space.Guid] + tolerance_Lps < dictionary_Requirement[space.Guid])
+                {
+                    refusal = string.Format(
+                        "Balancing the change would take space '{0}' to {1:0.###} l/s against the {2:0.###} l/s Approved Document F requires of it. Nothing was changed.",
+                        space.Name,
+                        dictionary_Planned[space.Guid],
+                        dictionary_Requirement[space.Guid]);
+
+                    return false;
+                }
+            }
+
+            Note(spaces_Reduced, change_Lps, flowClassification, basis, out note);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Says which rooms absorbed the balancing consequence and on what basis - and says, every time,
+        /// that they were not chosen for optimisation.
+        /// </summary>
+        private static void Note(List<Space> spaces, double change_Lps, FlowClassification flowClassification, string basis, out string note)
+        {
+            List<string> names = spaces.ConvertAll(x => x.Name);
             names.Sort(StringComparer.Ordinal);
 
             note = string.Format(
-                "The {0:0.###} l/s of {1} needed to keep the dwelling balanced was allocated across {2} by {3}. This is a derived consequence of the targeted change, not a room selected for optimisation.",
+                "The {0:0.###} l/s of {1} {2} to keep the dwelling balanced was allocated across {3} by {4}. This is a derived consequence of the targeted change, not a room selected for optimisation.",
                 System.Math.Abs(change_Lps),
                 Core.Query.Description(flowClassification),
-                string.Join(", ", names.ConvertAll(x => string.Format("'{0}'", x))),
+                change_Lps >= 0 ? "needed" : "given up",
+                names.Count == 0 ? "no room" : string.Join(", ", names.ConvertAll(x => string.Format("'{0}'", x))),
                 basis);
-
-            return true;
         }
 
         /// <summary>
