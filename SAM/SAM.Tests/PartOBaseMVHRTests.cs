@@ -869,6 +869,126 @@ namespace SAM.Tests
         }
 
         // =================================================================================================
+        // I. Reuse reconciles to the current scope - second-round Codex P2
+        // =================================================================================================
+
+        /// <summary>
+        /// <b>Reproduces Codex's literal sequence: prepare a wider scope, then re-prepare a narrower one
+        /// over the same system.</b>
+        /// <para>
+        /// <c>AddPartOBaseMVHRSystem</c> recognises an existing system by relation to the design terminals
+        /// of the spaces it is CALLED with - so a first call naming two served spaces and a second, later
+        /// call naming only one of them still finds and reuses the very same system (its design terminals
+        /// belong to it regardless of which caller passed them in). Before this fix, the "Connect" step
+        /// only ADDED the narrower call's relations; it never removed what the wider call had left, so the
+        /// reused system's membership was the accumulated union of both scopes rather than the current one.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ReusingTheSystemWithANarrowerSpaceScope_RemovesTheStaleOutOfScopeRelations()
+        {
+            AnalyticalModel analyticalModel = Model();
+
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            List<VentilationTerminal> ventilationTerminals = adjacencyCluster.RealizePartFVentilationTerminals(null, out List<string> _, out List<string> refusals_Terminals);
+
+            Assert.Empty(refusals_Terminals);
+            Assert.NotEmpty(ventilationTerminals);
+
+            List<Space> spaces = adjacencyCluster.GetSpaces();
+
+            Space space_Bedroom = spaces.Find(x => x.Name == name_Bedroom);
+            Space space_Bathroom = spaces.Find(x => x.Name == name_Bathroom);
+
+            Assert.NotEmpty(Analytical.Query.VentilationTerminals(adjacencyCluster, space_Bedroom));
+            Assert.NotEmpty(Analytical.Query.VentilationTerminals(adjacencyCluster, space_Bathroom));
+
+            //The wider, "whole model" call: both served spaces in scope.
+            VentilationSystem ventilationSystem = adjacencyCluster.AddPartOBaseMVHRSystem(
+                new List<Space> { space_Bedroom, space_Bathroom },
+                out AirHandlingUnit airHandlingUnit,
+                out List<string> _,
+                out List<string> _,
+                out List<string> refusals_1);
+
+            Assert.NotNull(ventilationSystem);
+            Assert.Empty(refusals_1);
+
+            List<Space> spaces_Served_Before = adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? new List<Space>();
+
+            Assert.Contains(spaces_Served_Before, x => x.Guid == space_Bathroom.Guid);
+            Assert.Contains(spaces_Served_Before, x => x.Guid == space_Bedroom.Guid);
+
+            //The narrower, "subset" re-prepare: only Bedroom named this time.
+            VentilationSystem ventilationSystem_After = adjacencyCluster.AddPartOBaseMVHRSystem(
+                new List<Space> { space_Bedroom },
+                out AirHandlingUnit airHandlingUnit_After,
+                out List<string> notes_After,
+                out List<string> _,
+                out List<string> refusals_2);
+
+            Assert.Empty(refusals_2);
+
+            //The SAME system and unit, reused rather than a second one being built.
+            Assert.Equal(ventilationSystem.Guid, ventilationSystem_After.Guid);
+            Assert.Equal(airHandlingUnit.Guid, airHandlingUnit_After.Guid);
+
+            List<Space> spaces_Served_After = adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem_After) ?? new List<Space>();
+
+            //No stale out-of-scope served-space relation.
+            Assert.DoesNotContain(spaces_Served_After, x => x.Guid == space_Bathroom.Guid);
+            Assert.Contains(spaces_Served_After, x => x.Guid == space_Bedroom.Guid);
+
+            //No stale terminal relation: none of Bathroom's own terminals are still related to the system.
+            List<VentilationTerminal> terminals_Bathroom = Analytical.Query.VentilationTerminals(adjacencyCluster, space_Bathroom);
+            List<VentilationTerminal> terminals_System_After = adjacencyCluster.GetRelatedObjects<VentilationTerminal>(ventilationSystem_After) ?? new List<VentilationTerminal>();
+
+            foreach (VentilationTerminal ventilationTerminal_Bathroom in terminals_Bathroom)
+            {
+                Assert.DoesNotContain(terminals_System_After, x => x.Guid == ventilationTerminal_Bathroom.Guid);
+            }
+
+            //And it is on the record, not a silent removal.
+            Assert.Contains(notes_After, x => x.Contains(space_Bathroom.Name) && x.Contains("removed"));
+        }
+
+        /// <summary>
+        /// Idempotence: re-preparing the SAME scope a second time removes nothing and adds nothing beside
+        /// it - the reconciliation is a no-op when the scope has not actually narrowed.
+        /// </summary>
+        [Fact]
+        public void ReusingTheSystemWithTheSameSpaceScope_ChangesNoRelation()
+        {
+            AnalyticalModel analyticalModel = Model();
+
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            adjacencyCluster.RealizePartFVentilationTerminals(null, out List<string> _, out List<string> _);
+
+            List<Space> spaces = adjacencyCluster.GetSpaces();
+
+            Space space_Bedroom = spaces.Find(x => x.Name == name_Bedroom);
+            Space space_Bathroom = spaces.Find(x => x.Name == name_Bathroom);
+
+            List<Space> scope = new List<Space> { space_Bedroom, space_Bathroom };
+
+            VentilationSystem ventilationSystem = adjacencyCluster.AddPartOBaseMVHRSystem(scope, out AirHandlingUnit _, out List<string> _, out List<string> _, out List<string> _);
+
+            List<Space> spaces_Served_Before = adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? new List<Space>();
+
+            VentilationSystem ventilationSystem_After = adjacencyCluster.AddPartOBaseMVHRSystem(scope, out AirHandlingUnit _, out List<string> notes_After, out List<string> _, out List<string> refusals_After);
+
+            Assert.Empty(refusals_After);
+            Assert.Equal(ventilationSystem.Guid, ventilationSystem_After.Guid);
+
+            List<Space> spaces_Served_After = adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem_After) ?? new List<Space>();
+
+            Assert.Equal(spaces_Served_Before.Count, spaces_Served_After.Count);
+            Assert.DoesNotContain(notes_After, x => x.Contains("removed"));
+        }
+
+        // =================================================================================================
         // Fixture
         // =================================================================================================
 
@@ -953,7 +1073,16 @@ namespace SAM.Tests
 
             AdjacencyCluster adjacencyCluster_Sized = partFCalculator.AdjacencyCluster;
 
-            adjacencyCluster_Sized.AddObject(new Zone(name_Zone));
+            Zone zone = new Zone(name_Zone);
+            adjacencyCluster_Sized.AddObject(zone);
+
+            //Related to every space this fixture builds, matching how a real model's own zoning relates a
+            //dwelling zone to its rooms - Modify.PrepareBaseMVHR partitions the assessed scope by exactly
+            //this relation (Query.PartFDwellingZones plus the zone -> space relation).
+            foreach (Space space_Existing in adjacencyCluster_Sized.GetSpaces())
+            {
+                adjacencyCluster_Sized.AddRelation(zone, space_Existing);
+            }
 
             return new AnalyticalModel(analyticalModel, adjacencyCluster_Sized);
         }

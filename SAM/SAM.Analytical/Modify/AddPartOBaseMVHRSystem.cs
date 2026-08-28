@@ -40,6 +40,14 @@ namespace SAM.Analytical
         /// thing. Two candidate systems refuse rather than one being picked.
         /// </para>
         /// <para>
+        /// <b>Reuse reconciles membership to the current call's scope, not merely adds to it.</b> A system
+        /// found this way may carry relations to spaces or terminals a WIDER or DIFFERENT earlier
+        /// preparation gave it - a whole-model run followed by one naming a narrower <c>zones_</c> subset,
+        /// for instance. Those out-of-scope relations are removed before the current scope is connected, so
+        /// re-preparing the same model twice leaves the system's membership exactly what this call states
+        /// rather than the accumulated union of every scope it was ever prepared over.
+        /// </para>
+        /// <para>
         /// <b>No ventilation metadata is written onto the model.</b> <c>Modify.AssignMechanicalSystem</c>
         /// is deliberately not used: it sets <c>InternalConditionParameter.VentilationSystemTypeName</c>
         /// on every space it touches, and mutating the metadata the Part O route was taken out of would
@@ -193,6 +201,47 @@ namespace SAM.Analytical
                         result.FullName));
 
                     return null;
+                }
+
+                //Reconciled to EXACTLY this call's scope before anything is added, not merely added to.
+                //
+                //A system reused across two preparations of the same model - a whole-model run followed by
+                //one naming a narrower zones_ subset, or simply a re-run after the served spaces changed -
+                //keeps every relation it was ever given: the "Connect" step below only ADDS the current
+                //spaces_Served and ventilationTerminals, it never removed what an earlier, wider preparation
+                //left behind. ReconcileVentilationSystemDesignDuty, PartFTransferAirSpaces and
+                //AddAirMovementObjects all read the system's relations afterwards, so a stale out-of-scope
+                //space or terminal would still be realized and balanced as if it were served here - the
+                //model would report success while carrying the accumulated union of every scope it was ever
+                //prepared over, not the current one.
+                List<string> names_Removed = [];
+
+                foreach (Space space_Related in adjacencyCluster.GetRelatedObjects<Space>(result) ?? [])
+                {
+                    if (space_Related is not null && spaces_Served.Find(x => x.Guid == space_Related.Guid) is null)
+                    {
+                        adjacencyCluster.RemoveRelation(result, space_Related);
+                        names_Removed.Add(space_Related.Name);
+                    }
+                }
+
+                foreach (VentilationTerminal ventilationTerminal_Related in adjacencyCluster.GetRelatedObjects<VentilationTerminal>(result) ?? [])
+                {
+                    if (ventilationTerminal_Related is not null && ventilationTerminals.Find(x => x.Guid == ventilationTerminal_Related.Guid) is null)
+                    {
+                        adjacencyCluster.RemoveRelation(result, ventilationTerminal_Related);
+                    }
+                }
+
+                if (names_Removed.Count != 0)
+                {
+                    names_Removed.Sort(StringComparer.Ordinal);
+
+                    notes.Add(string.Format(
+                        "Ventilation system '{0}' was related to {1} space(s) outside this call's scope, left over from a wider or different previous preparation ({2}); those relations were removed so the system's membership reflects only what is being prepared now.",
+                        result.FullName,
+                        names_Removed.Count,
+                        string.Join(", ", names_Removed)));
                 }
 
                 notes.Add(string.Format(

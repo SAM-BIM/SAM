@@ -501,7 +501,16 @@ namespace SAM.Tests
 
             AdjacencyCluster adjacencyCluster_Sized = partFCalculator.AdjacencyCluster;
 
-            adjacencyCluster_Sized.AddObject(new Zone(name_Zone));
+            Zone zone = new(name_Zone);
+            adjacencyCluster_Sized.AddObject(zone);
+
+            //Related to every space this fixture builds, matching how a real model's own zoning relates a
+            //dwelling zone to its rooms - Modify.PrepareBaseMVHR partitions the assessed scope by exactly
+            //this relation (Query.PartFDwellingZones plus the zone -> space relation).
+            foreach (Space space_Existing in adjacencyCluster_Sized.GetSpaces())
+            {
+                adjacencyCluster_Sized.AddRelation(zone, space_Existing);
+            }
 
             return new AnalyticalModel(analyticalModel, adjacencyCluster_Sized);
         }
