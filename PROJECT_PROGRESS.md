@@ -1,70 +1,447 @@
 # Project Progress
 
 ## Branch
-`feature/parto-base-mvhr` (off `sow/2026-Q3` at `1db06e83`, i.e. with PR #76 merged). No PR opened yet.
+`feature/parto-iteration2-mvhr-selection` (off `sow/2026-Q3` at `b8fb0c0f`, i.e. with Iteration 1a PR #77
+merged as `7fb04ed9`). Open as **PR #79**, base `sow/2026-Q3`. **Not merged.**
 
 ## Last updated
-2026-08-27 - Iteration 1a / Base MVHR: the two corrections that follow the acceptance - the dwelling the
-transfer air is routed over, and the unit an inter-zone air movement is written in.
+2026-08-28 - Iteration 2 / MVHR selection and independently adjustable design airflows, plus fifteen
+correctness fixes across five review rounds on PR #79 (thirteen raised by Codex, two found in review of
+the PR itself).
 
 ## Current status (this session)
-Two things the accepted Iteration 1a recorded as wrong-but-not-fatal are now corrected. Neither changes
-the topology, the balance rule or the design duties; both change what reaches TAS.
 
-**1. The transfer network is solved over the DWELLING, not over the served spaces.** The
-`VentilationSystem` relation holds only the spaces carrying a design ventilation terminal, which is
-correct - an air handling unit moves no air into a hall. But Approved Document F sizes no terminal for
-circulation, so a real flat's internal hall is a zero-terminal space *and* the room paragraph 1.25's
-transfer air crosses and divides at. Solved without it, a supplied bedroom and an extracted bathroom that
-open off the same hall are reported as having no internal connection, and the preparation refuses a
-dwelling that is modelled correctly.
+Iteration 2 is implemented and under review on PR #79. Iteration 1a shipped a design that realized the
+Approved Document F requirement *exactly*, on generic plant. Iteration 2 puts a real product behind the
+plant and lets the design move above the requirement - which means **four quantities now exist where one
+used to serve**, and the whole iteration is about not letting them collapse into each other.
 
-`Query.PartFTransferAirSpaces` (new) settles the boundary from the **existing** authority,
-`Query.PartFDwellingZones` - the single source of the dwelling-selection policy and what `PartFCalculator`
-itself sizes with. Scope = the served spaces plus every other space of the dwelling zones they belong to.
-A zone marked `Is Dwelling = No` contributes nothing, so a communal corridor can never carry a flat's air
-or become a shortcut between two flats. The hall is added to the **network** and to nothing else: it is
-still not related to the ventilation system and still carries no terminal, because being a transfer node
-is not being served.
+### The authority separation - requirement != design != equipment capability != operating airflow
 
-**2. A TBD inter-zone air movement is a MASS flow in kg/s; SAM was writing m3/s into it.** Confirmed by
-the EDSL Building Simulator documentation and by the licensed file itself, whose profile reports
-`units=kg/s`. Nothing failed - the model balanced, simulated and produced a year of results for a dwelling
-ventilated about 21% below its design. The conversion is in `SAM_Tas` only, at one named seam
-(`Modify.UpdateIZAMProfile`), at SAM's own `Core.FluidProperty.Air.Density` = 1.210 kg/m3. **No SAM type
-changed**: `SpaceAirMovement.AirFlow`, the Part F requirement and the design terminal duties all stay
-volumetric.
+| Authority | Lives in | Written by |
+|---|---|---|
+| Part F requirement | `PartFSpaceData.Terminals[].ContinuousDesignFlowRate_Lps` | `PartFCalculator` **only** - immutable to everything in Iteration 2 |
+| Equipment capability | `VentilationUnitCapacityDescriptor` (the catalogue, outside the model) | never written into the model at all |
+| Design airflow | `VentilationTerminal.DesignFlowRate_Lps` | the design / Part O optimisation path |
+| Operating airflow | `InternalCondition`, profiles, TAS `ticV`, IZAM state | **untouched** - a later iteration |
 
-Licensed acceptance re-run in `C:\TasOut\p1a3`, same dwelling / weather / period: full-year TSD, every
-IZAM in kg/s converting back exactly to its l/s design duty, **every node conserving mass** to 5e-6 l/s,
-`Corridor_1` carrying none of the dwelling's air, `freshAirRate=0` on every sized space, TM59 on the
-mechanical route with zero strategy refusals, and `differing=78838` of 78 840 against Iteration 1b. The
-Iteration 1b OPEN/NIGHT regression is unchanged at **16 690**. Evidence in
-[`documentation/PartO-TAS-VALIDATION.md`](documentation/PartO-TAS-VALIDATION.md) §"Iteration 1a / Base
-MVHR - the two magnitude and scope corrections (2026-08-27)".
+The invariant:
 
-Full `SAM.Tests`: **1470 passed, 0 failed** (was 1464, +6). `SAM.Analytical.Tas.TM59.Tests`: **642 passed,
-0 failed** (was 633, +9).
+```
+PartFRequiredAirFlow  <=  DesignAirFlow  <=  SelectedMVHRCapacity
+```
 
-Still deliberately **not** fixed: `SAM.Analytical.Tas.Modify.Simulate` reports a refused simulation as a
-success.
+**The two constraints are enforced at different levels, deliberately.** The Part F floor is enforced at the
+applicable **terminal/space** level - a room's design may never fall below what the Approved Document
+requires *of that room*. The capacity ceiling is evaluated at the **AHU/system duty** - equipment serves a
+dwelling, not a room, so "does it fit?" is only meaningful about the summed duty. Neither check substitutes
+for the other, and a system total substitutes for neither (see fix 3 below, which is exactly that mistake).
+
+### Targeted vs derived
+
+`Modify.ApplyTargetedDesignAirFlow` sets **one** room's design airflow and rebalances the dwelling around
+it, as a single all-or-nothing transaction.
+
+> **Targeted adjustment = explicit design decision.**
+> **Derived adjustment = consequence required to restore a valid balanced dwelling network.**
+
+```
+targeted:   Bedroom 1 supply 20 -> 24        <- the only room anyone selected
+derived:    extract +4, allocated across the dwelling's extract terminals
+            transfer paths recalculated on the next preparation
+            AHU design duty follows
+unchanged:  Bedroom 2, Living Room, and every Part F requirement
+```
+
+A Part O iteration targets the room that *failed*. The wet room whose extract rises by the matching 4 l/s
+was never selected for optimisation, and reporting the two the same way would make it impossible to say
+afterwards which rooms were engineering decisions. `DesignAirFlowAdjustment.IsDerived` carries the
+distinction **on the report only** - it is not stored on the model and is not a fifth authority.
+
+The allocation rule is **borrowed, not invented**: `PartFExtractAllocationStrategy.MinimumFirstCookingPriority`,
+the same strategy `PartFCalculator.AllocateContinuousExtract` used to size the dwelling. It is applied to
+the *change*, never recomputed from scratch, so a deliberate imbalance a designer authored survives.
+
+### The MVHR descriptor / reference selection seam
+
+`SAM.Analytical` **cannot** depend on `SAM_Systems`, and Iteration 2 adds no such dependency. It reuses the
+seam Iteration 1a established for system templates rather than inventing a second one:
+
+| Iteration 1a (settled) | Iteration 2 (mirror) |
+|---|---|
+| `SystemCapabilityDescriptor` - identity + capability bits + `Rank`, plain class, **handed in** | `VentilationUnitCapacityDescriptor` - identity + max supply/extract + `Rank` |
+| `SystemCapabilitySelection` - Selected or Refused, no third answer | `VentilationUnitSelection` |
+| `Query.CapableSystems` / `SelectPreferredCapableSystem` - pure, open no file | `Query.CapableVentilationUnits` / `SelectSmallestCapableVentilationUnit` |
+| `SAM_Systems.Query.SystemCapabilityDescriptors(dir, app)` supplies values | catalogue stays an **argument** - see open items |
+| `SpaceParameter.PartFSpaceData`, `VentilationTerminalParameter.PartFTerminalReference` | `AirHandlingUnitParameter.VentilationUnitReference` |
+
+Only the product's **identity** is stored on the model; capacities stay in the catalogue. Duties stay
+**derived, never stored** - `Query.AirHandlingUnitDesignDuty` sums over every system a unit supplies, so
+the general `AHU-01 -> Zone A/B/C` arrangement stays open even though the Part O workflow is one dwelling
+per unit.
+
+Selection rule: **smallest compliant, never nearest**; both sides checked independently; nothing compliant
+is an explained refusal, never an undersized fallback; two products tied on size *and* rank refuse as
+ambiguous.
+
+## Review round 1 - the four correctness fixes at `c67cf5d4`
+
+Applied on top of the first Iteration 2 commit `41a02d4e`. Two were found by Codex, two in review of the
+PR itself.
+
+**1. Reductions consume available design headroom, not proportional total duty.** *(Codex P1)*
+`Allocate` shared a negative change in proportion to each room's *total duty*, which handed a share to a
+room sitting exactly on its Part F floor, saw that share breach it, and refused the whole change as
+impossible - while another room held all the headroom needed. Reversing a previous targeted change, the
+most ordinary thing an optimisation does, therefore failed. A reduction is now shared in proportion to
+`max(0, duty - requirement)`, in tiers (cooking-priority rooms first on the extract side, then the rest),
+capped at each room's own headroom, and only refuses when the total removable headroom genuinely falls
+short. **Note for the next agent:** on a dwelling the real `PartFCalculator` sized, both sides hold equal
+removable headroom, so a reduction can *always* be balanced - the shortfall refusal is only reachable on a
+model with asymmetric requirement totals, which is why its test builds one by hand.
+
+**2. A targeted change never touches another ventilation system's terminals.** *(Codex P1)*
+A duty is summed per room and per direction, and `Modify.SetSpaceDesignFlowRate` writes *every* terminal of
+that room and direction. A room holding terminals from this Part O system and from another one would have
+had both rewritten - silently moving the other system's design duty while the result claimed the change
+belonged to this one. New `TerminalsOfSystem` validates attribution for the targeted room **and every
+candidate derived room** before anything is written, and **refuses** where a room is shared or where a
+terminal belongs to no system at all. Refused rather than filtered: writing only the subset that belongs
+here needs a system-scoped setter that does not exist, and inventing one would be a multi-system allocation
+architecture Iteration 2 has no business introducing.
+
+**3. The Part F floor is enforced at ROOM level, not only at the system total.** *(found in PR review)*
+`ReconcileVentilationSystemDesignDuty` warned about a room below its requirement but only *refused* on the
+system total. A bedroom 2.5 l/s under its requirement and a living room 2.5 l/s over it summed to a total
+that agreed exactly, and the preparation passed - simulating a bedroom ventilated below its Approved
+Document rate while reporting compliance. Surplus in one room is not tradeable against a shortfall in
+another. New `RefuseSpace` refuses per room; above-requirement stays valid headroom and is still only
+reported. This did **not** restore `Design == Required`.
+
+**4. `ApplyTargetedDesignAirFlow` refuses an already-unbalanced dwelling before writing.** *(found in PR review)*
+It previously checked balance *after* mutating and only added a warning, leaving `Successful` true - a
+result claiming a valid balanced design for a dwelling that gains air it never loses. A targeted change and
+its derived consequence move both sides equally and cannot close a pre-existing residual anyway. The check
+is now a **pre-write refusal**, and the post-write balance assertion is a refusal rather than a warning.
+
+## Review round 2 - the three further fixes on top of `c67cf5d4`
+
+Codex did not re-raise fixes 1 or 2 above; it found three more. All three were verified independently
+before being accepted.
+
+**5. Every served room's Part F floor is validated before any mutation.** *(Codex P1)*
+Fix 4 made a *balanced* dwelling the precondition, but balance is a property of the totals and the
+Approved Document F floor is a property of each room, and one is not evidence of the other. A bathroom at
+5 l/s against a 10 l/s requirement, offset by a kitchen at 15 against 10, totals 20 either way and
+balances perfectly against 20 l/s of supply - so a +1 l/s bedroom target derived 1 l/s of kitchen extract,
+never touched the bathroom, and reported success on a dwelling that was never compliant. The reduction
+path already checked every candidate room; the **increase** path returned without any floor check, which
+is why only increases were exposed.
+
+The precondition now runs `Query.ReconcileVentilationSystemDesignDuty` over the whole served system and
+refuses on its refusals - **reusing the one definition of compliant** rather than adding a second, so this
+can never drift from what `Modify.PreparePartOIteration` refuses to simulate. Only its refusals are read;
+its notes and warnings are about design headroom, which is legal. An already-invalid dwelling is refused,
+**never repaired** - quietly fixing a room nobody targeted would be an unrequested design decision.
+
+**6. A product identity that means two things is refused.** *(Codex P2)*
+The model stores only `VentilationUnitReference` and looks capability up again by that identity, so a
+catalogue with two entries sharing manufacturer/model/reference but rated 100/100 and 200/200 leaves no
+single answer to "what did we select" - `SelectedVentilationUnitCapacityDescriptor` returned whichever came
+first, making a unit's adequacy depend on catalogue order. `SelectSmallestCapableVentilationUnit` now scans
+the whole valid catalogue for identity collisions before choosing anything and refuses a conflicting one,
+so an ambiguous identity is never written onto an air handling unit. The refusal names the pair in a fixed
+ordinal order, so the same broken catalogue produces the same sentence however it was read. The lookup is
+independently defensive and returns null on a conflict, for a unit selected from one catalogue and later
+checked against another.
+
+*Classification, stated deliberately:* an exact repeat (same identity, same capacities, same rank) is a
+duplicated line in a hand-edited file and stays **harmless**, matching how `SelectPreferredCapableSystem`
+already treats a duplicated template entry. Conflicting **rank** on one identity is treated as
+**conflicting**, because rank decides selections and two answers for it is the same defect as two answers
+for a capacity. The invariant: *stored product identity -> exactly one capability meaning.*
+
+**7. A tolerance that cannot be compared against is refused.** *(Codex P2)*
+Every Iteration 2 safety rule is a comparison against `tolerance_Lps`, so `double.NaN` made the derived
+allocation, the imbalance refusal and the capacity check all evaluate false at once and the transaction
+reported success on an unbalanced dwelling; an infinity is the same failure wearing the opposite mask.
+New `Query.IsValidFlowRateTolerance` / `Query.FlowRateToleranceRefusal` define one rule (finite, `>= 0`,
+zero meaning exact) and one sentence, applied at every Iteration 2 public entry point that takes a
+tolerance:
+
+| Entry point | Behaviour on an invalid tolerance |
+|---|---|
+| `ApplyTargetedDesignAirFlow` | refusal, zero writes |
+| `SetSpaceDesignFlowRate` | refusal, zero writes |
+| `SelectVentilationUnit` | refusal, nothing written to the unit |
+| `SelectSmallestCapableVentilationUnit` | `VentilationUnitSelection.Refused` |
+| `ReconcileVentilationSystemDesignDuty` | refusal |
+| `IsVentilationUnitSufficient` | false, with the reason |
+| `CapableVentilationUnits` | empty list - the return type carries no reason, and empty can never approve an undersized unit |
+| `VentilationUnitCapacityDescriptor.IsSufficientFor` | false - a predicate that cannot show sufficiency does not |
+
+Refused, never clamped: substituting a default would hide the caller's mistake behind an answer that looks
+right, and the answer is a compliance statement.
+
+## Review round 3 - two further guards on top of the round 2 head
+
+Codex's third pass raised no P1 and did not re-raise anything. Two P2s, both verified and both real.
+
+**8. A negative or infinite design duty is met by nothing, not by everything.** *(Codex P2)*
+A capacity check is `maximum >= duty`, so a negative duty was satisfied by every non-negative capacity and
+`SelectSmallestCapableVentilationUnit` returned the smallest product on the shelf as a successful answer to
+a physically impossible design. Reachable through the public selector, or from a terminal deserialized with
+a negative `DesignFlowRate_Lps`. A duty must now be finite and `>= 0` - zero stays valid, because a system
+with no terminal of that direction really does move nothing - checked in the selector, in
+`CapableVentilationUnits`, and in `IsSufficientFor` underneath both.
+
+**9. An air handling unit the model does not hold is refused, not inserted.** *(Codex P2)*
+`SelectVentilationUnit` resolved the unit by GUID and **fell back to the caller's object** when that failed.
+The duty above it is resolved by the unit's *name*, which is how a ventilation system names its plant - so
+a detached unit merely sharing a name with one in the model got a duty, looked selectable, and was written
+to and added. The cluster would then hold two units of that name with the product reference on the wrong
+one, and every name-based lookup afterwards - `Query.VentilationSystems` and the TAS export among them -
+could resolve the original, unselected unit. It now refuses: a selection nothing can find again is worse
+than no selection.
+
+## Review round 4 - scoping the compliance read, and two more guards
+
+**10. The room-level Part F check is scoped to THIS ventilation system.** *(Codex P1)*
+Fixes 3 and 5 put the compliance decision on `ReconcileVentilationSystemDesignDuty`'s per-room duty, which
+was summed from **every** terminal in the room regardless of system - pre-existing Iteration 1a code, but
+newly load-bearing. A room holding a foreign system's terminal therefore had that air counted towards this
+system's Approved Document F floor: the room check passed while this system's own terminal stayed short,
+and a little headroom in a neighbouring room carried the system total too, so both halves of the check
+rested on air this system does not move. The per-room duty is now filtered to the system being reconciled.
+
+*Filtered rather than refused, deliberately:* this is a **read**, and the honest answer to "what does this
+system put into this room" is available exactly. **Writes** stay conservative -
+`ApplyTargetedDesignAirFlow` still refuses outright to touch a room it cannot attribute unambiguously,
+because a write cannot be filtered the same way. For the single-system dwelling the Part O workflow builds
+the filtered set is identical, so Iteration 1a behaviour is unchanged.
+
+**11. Adequacy is resolved from the cluster's own unit.** *(Codex P2)*
+`IsVentilationUnitSufficient` read the product reference off the **caller's** object while
+`AirHandlingUnitDesignDuty` derived the duty from the model by name, so a detached same-named unit - or a
+stale copy kept from before a re-selection - could report adequate on a selection the model does not hold,
+suppressing the escalation an outgrown unit needs. Both halves of the comparison now come from the same
+object, resolved by GUID, and a unit the model does not hold refuses.
+
+**12. A terminal carrying an impossible duty refuses before redistribution.** *(Codex P2)*
+`DesignFlowRate_Lps` is publicly settable and deserialized without a range check, so an infinite one is
+reachable. `SetSpaceDesignFlowRate` shares a room total in proportion to what each terminal already
+carries, and `finite * Infinity / Infinity` is `NaN` - which would have been written and reported as the
+requested total while `VentilationTerminalDesignDuty_Lps` afterwards skipped it and read a silently wrong
+duty. Every existing terminal duty is validated finite and non-negative before anything is written.
+
+## Review round 5 - closing the all-or-nothing gaps fix 12 opened
+
+No P1. Three P2s, two of which regressed the transaction's headline contract - worth noting that a
+guard added in one round can break a promise made in another.
+
+**13. Every room the transaction will write is preflighted, not just the target.** *(Codex P2)*
+Fix 12 put the terminal-validity check inside the setter, and `ApplyTargetedDesignAirFlow` writes the
+target first. A derived room holding a NaN terminal beside healthy ones sums to a room total that meets
+its requirement - `VentilationTerminalDesignDuty_Lps` skips NaN - so every plan check passed, the target
+was written, and only then did the derived write refuse. All-or-nothing, broken by the guard meant to
+protect it. The check is now shared (`Modify.IsRedistributable`) and asked of the target **and every
+planned derived room before the first write**.
+
+**14. A share smaller than the tolerance is still applied.** *(Codex P2)*
+The apply loop skipped a derived room whose share was within tolerance. A change well above tolerance can
+divide into shares that are each below it - 1.5 l/s across two rooms against a 1 l/s tolerance gives two
+0.75 l/s shares - so all of them were skipped, the target was written, nothing balanced, and the post-write
+check refused a change already made. The tolerance decides whether a *change* is worth making, which is
+settled before planning; it does not get to veto the pieces that change is made of. A room is now skipped
+only where it genuinely does not move.
+
+**15. A unit with no design duty is unknown, not adequate.** *(Codex P2)*
+`IsVentilationUnitSufficient` ignored `AirHandlingUnitDesignDuty`'s return value, so a unit whose systems
+or terminals had been removed derived 0/0 - which every non-negative capacity satisfies - and was reported
+adequate. `Modify.SelectVentilationUnit` already refuses that case; adequacy now agrees with it.
+
+## Deliberate behaviour change carried from the first commit
+
+`Query.ReconcileVentilationSystemDesignDuty` compared design duty and requirement with an **absolute**
+difference, hard-coding `Design == Required` and making the Iteration 2 invariant impossible to express.
+It is now **one-sided**: below the requirement refuses (at room level *and* system level, per fix 3), above
+it is design headroom and is reported. `PartOBaseMVHRTests.ADutyThatDisagreesWithTheRequirement_Refuses`
+was split into `ADutyBelowTheRequirement_Refuses` and
+`ADutyAboveTheRequirement_IsReportedAsHeadroomAndNotRefused`. This is the only Iteration 1a behaviour change
+in the PR.
 
 ### Files changed (this session)
-`SAM`
-- `SAM/SAM/SAM.Analytical/Query/PartFTransferAirSpaces.cs` (new) - the dwelling scope, from
-  `Query.PartFDwellingZones`.
-- `SAM/SAM/SAM.Analytical/Modify/AddPartFTransferAirMovements.cs` - new primary overload taking an explicit
-  scoped space collection; the `VentilationSystem` overload resolves the dwelling and delegates.
-- `SAM/SAM/SAM.Analytical/Modify/PreparePartOIteration.cs` - resolves the dwelling once and uses it for the
-  transfer air, the per-node balance refusal and the stale-movement removal.
-- `SAM/SAM/SAM.Tests/PartFTransferAirDwellingScopeTests.cs` (new) - 6 tests.
-- `SAM/documentation/PartO-TAS-VALIDATION.md`, `SAM/PROJECT_PROGRESS.md` (this file).
 
-`SAM_Tas`
-- `SAM_Tas/SAM.Analytical.Tas/Query/IZAMMassFlow.cs` (new) - the reference density and both conversions.
-- `SAM_Tas/SAM.Analytical.Tas/Modify/UpdateIZAMProfile.cs` (new) - the one write seam.
-- `SAM_Tas/SAM.Analytical.Tas/Modify/UpdateIZAMs.cs` - all three profile writes go through it.
-- `SAM_Tas/SAM.Analytical.Tas.TM59.Tests/IZAMMassFlowTests.cs` (new) - 9 tests.
+`SAM` - **all Iteration 2 production changes are in `SAM.Analytical` alone.**
+- `SAM/SAM/SAM.Analytical/Classes/System/VentilationUnitReference.cs` (new) - the product identity stored on the unit.
+- `SAM/SAM/SAM.Analytical/Classes/System/VentilationUnitCapacityDescriptor.cs` (new) - the catalogue entry; capability only.
+- `SAM/SAM/SAM.Analytical/Classes/System/VentilationUnitSelection.cs` (new) - Selected or Refused, plus headroom.
+- `SAM/SAM/SAM.Analytical/Classes/System/DesignAirFlowAdjustment.cs` (new) - one room's move, carrying `IsDerived`.
+- `SAM/SAM/SAM.Analytical/Classes/System/DwellingDesignAirFlowChange.cs` (new) - targeted + derived + duties, all-or-nothing.
+- `SAM/SAM/SAM.Analytical/Query/CapableVentilationUnits.cs` (new) - the pure selection rule.
+- `SAM/SAM/SAM.Analytical/Query/PartFRequiredFlowRate.cs` (new) - the immutable floor, per terminal / space / system.
+- `SAM/SAM/SAM.Analytical/Query/AirHandlingUnitDesignDuty.cs` (new) - AHU<->system resolution, derived duty, capacity check;
+  the identity lookup is conflict-defensive (fix 6).
+- `SAM/SAM/SAM.Analytical/Query/IsValidFlowRateTolerance.cs` (new) - the one tolerance rule and the one refusal sentence (fix 7).
+- `SAM/SAM/SAM.Analytical/Modify/SelectVentilationUnit.cs` (new) - binds a selection to one unit.
+- `SAM/SAM/SAM.Analytical/Modify/SetSpaceDesignFlowRate.cs` (new) - the primitive; writes what it is told, does **not** rebalance.
+- `SAM/SAM/SAM.Analytical/Modify/ApplyTargetedDesignAirFlow.cs` (new) - the transaction; fixes 1, 2 and 4 live here.
+- `SAM/SAM/SAM.Analytical/Query/VentilationSystemDesignDuty.cs` - one-sided reconciliation; fix 3 (`RefuseSpace`) here.
+- `SAM/SAM/SAM.Analytical/Enums/Parameter/AirHandlingUnitParameter.cs` - `VentilationUnitReference` member (enum was empty).
+- `SAM/SAM/SAM.Analytical/Classes/PartOIterationPreparation.cs` - `VentilationUnitSelections`.
+- `SAM/SAM/SAM.Analytical/Modify/PreparePartOIteration.cs` - optional catalogue threaded into the per-dwelling loop.
+- `SAM/SAM/SAM.Tests/PartOVentilationUnitSelectionTests.cs` (new) - the Iteration 2 suite.
+- `SAM/SAM/SAM.Tests/PartOBaseMVHRTests.cs` - the split reconciliation tests plus the room-level floor regression.
+- `SAM/PROJECT_PROGRESS.md` (this file).
+
+**No `SAM_Systems` and no `SAM_Tas` production changes in Iteration 2.**
+
+*Not part of this PR:* diagnosing why `SAM_Tas` would not compile produced
+`SAM_SolarCalculator/build/SAM.{Core,Geometry}.SolarCalculator.dll` as local build artefacts. They are
+untracked deployment output, they belong to no repository's source, and BuildAlls regenerates them.
+
+## Tests
+
+`PartOVentilationUnitSelectionTests` - **67 facts** (37 at `41a02d4e`, and one replaced and thirty added
+across five review rounds - eight of them `[Theory]` cases):
+- Selection: smallest compliant, exact match, undersized rejected, supply/extract independent, refusal
+  determinism, rank ties, catalogue-order independence.
+- Authority separation: capacity never written into a requirement, capacity never taken up as design,
+  design changes write no runtime airflow.
+- Dwelling isolation: two dwellings select independently and pick different products; changing one does
+  not touch the other.
+- Targeted vs derived: exactly one targeted room; derived movements flagged and totalling the balancing
+  delta; derived extract follows the existing allocation strategy.
+- Network recalculation: re-preparation rebuilds transfer paths and air movements; supply == extract
+  afterwards; AHU duty follows.
+- Capacity: below rating keeps the unit; exactly at rating valid; above rating exhausts and escalates.
+- Identity: product survives serialization on the unit and through the cluster; two units share a product
+  with independent duties.
+
+New with the review fixes:
+- `AReductionConsumesAvailableHeadroom_AndReversesATargetedChangeExactly` (replaces the test that pinned
+  the wrong behaviour, `ATargetedChangeThatCannotBeBalanced_RefusesAndWritesNothing`)
+- `AReductionBeyondAllAvailableHeadroom_RefusesAndWritesNothing`
+- `AReductionExactlyAtAvailableHeadroom_Succeeds`
+- `ASpaceSharedWithAnotherVentilationSystem_RefusesAndTouchesNeitherSystem`
+- `ASpaceHoldingAnOrphanTerminal_Refuses`
+- `AnAlreadyUnbalancedDwelling_RefusesBeforeWritingAnything`
+- `EverySuccessfulTransaction_LeavesTheDwellingBalanced`
+
+`PartOBaseMVHRTests` - **34 facts**, including the new
+`ARoomBelowItsRequirement_RefusesEvenWhereTheSystemTotalAgrees` (fix 3).
+
+## Validation
+
+- **`SAM.Tests`: 1551 passed, 0 failed** (1548 / 1545 / 1541 / 1527 after rounds 4/3/2/1; 1513 at Iteration 1a).
+- **`SAM.Analytical.Systems.Tests`: 40 passed, 0 failed.**
+- **`SAM.Analytical.Tas.TM59.Tests`: 649 passed, 0 failed** - run against the deployed Iteration 2 DLL
+  after a BuildAll, with the new guards confirmed present in it, so genuinely against this work. No `SAM_Tas` production code calls any changed API; its only touchpoint is
+  `PreparePartOIteration`'s four-argument form, which is source-compatible and defaults to Iteration 1a
+  behaviour.
+- Release build clean; PR #79 CI green at `41a02d4e` and `c67cf5d4` (`build (Release)`, `test (Release)`,
+  `spdx`).
+
+**Trap worth knowing.** `SAM_Tas` references **deployed** DLLs by `HintPath`
+(`..\..\..\SAM\build\SAM.Analytical.dll`), not project references, so running its suite without a BuildAll
+silently tests whatever was last deployed rather than your working tree - an earlier "649 passed" in this
+session was exactly that and meant nothing. Rebuilding it also needs
+`SAM_SolarCalculator\build\SAM.{Core,Geometry}.SolarCalculator.dll` present, and the COM-interop projects
+need **.NET Framework MSBuild** (`dotnet build` fails with MSB4803 on `ResolveComReference`). Deploy first,
+confirm `SAM\build\SAM.Analytical.dll` is newer than your changes, then run the suite.
+
+## Codex reviews of PR #79
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| Allocate reductions from available headroom before refusing | P1 | Fixed - fix 1 above; the test that pinned the wrong behaviour was replaced with a reversibility test |
+| Scope balancing terminals to the selected ventilation system | P1 | Fixed - fix 2 above; refuses on a shared or unattributed room, with a regression asserting zero writes in both systems |
+| Record Iteration 2 in `PROJECT_PROGRESS.md` | - | Fixed - this update |
+
+Fixes 3 and 4 were **not** found by Codex; they came out of reviewing the PR against the agreed invariant.
+
+**Round 2, at `c67cf5d4`.** Codex did not re-raise round 1's findings (GitHub re-anchors old comment
+bodies to the new head - check `original_commit_id`, not `commit_id`, to tell an old comment from a new
+one). Three new findings, all verified independently and all real:
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| Refuse balanced dwellings with room-level shortfalls | P1 | Fixed - fix 5 |
+| Reject duplicate identities with conflicting capacities | P2 | Fixed - fix 6 |
+| Reject NaN tolerances before balancing | P2 | Fixed - fix 7 |
+
+**Round 3.** No P1, nothing re-raised. Two new findings, both verified and both real:
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| Reject negative design duties before selecting | P2 | Fixed - fix 8 |
+| Refuse air handling units outside the cluster | P2 | Fixed - fix 9 |
+
+**Round 4.** One P1 and two P2s, all verified and all real:
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| Scope room-floor checks to this ventilation system | P1 | Fixed - fix 10 |
+| Resolve adequacy from the cluster-owned unit | P2 | Fixed - fix 11 |
+| Reject non-finite existing terminal duties | P2 | Fixed - fix 12 |
+
+**Round 5.** No P1. Three P2s, all verified and all real:
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| Preflight derived-room duties before mutating the target | P2 | Fixed - fix 13 |
+| Apply shares whose aggregate exceeds the tolerance | P2 | Fixed - fix 14 |
+| Refuse adequacy when no design duty exists | P2 | Fixed - fix 15 |
+
+**Trend worth reading before commissioning a sixth round.** Rounds 1-4 each found a P1; round 5 found
+none, and its three P2s were all consequences of round 4's own guards rather than defects in the Iteration
+2 design. The findings are converging on input-hardening against states the Part O workflow does not
+produce (detached objects, infinite property values, disconnected systems). That is worth having, and it
+is no longer telling us anything about the architecture.
+
+## Remaining ambiguity / open items
+
+- **The deliberate deferred seam: no shipped product catalogue.** Selection is a pure function over supplied
+  descriptors, and the `SAM_Systems` reader mirroring `Query.SystemCapabilityDescriptors` /
+  `CapabilityIndex.JSON` is what would make it reachable from Grasshopper. The Grasshopper component still
+  calls the four-argument `PreparePartOIteration`; no input is exposed until there is a catalogue to feed
+  it. **This is deferred on purpose, not missing by accident.**
+- `SAM_Tas` validation outstanding - see Validation above.
+- Out of scope and untouched: heat-recovery efficiency, `HeatRecoveryUnit` -> `SystemExchanger`,
+  `AirSystem` materialisation, runtime/`ticV` mapping, fan curves, pressure/duct/SFP/acoustics, the direct
+  Part O/TBD route, and any broad Part O optimisation search. Iteration 2 adds the architectural operation
+  that turns one targeted room change into a valid rebalanced design - **not** an algorithm that decides
+  which room to target.
+
+## Next step
+
+**Final review and merge decision on PR #79.** Everything is committed and pushed; the working tree is
+clean and the branch is `feature/parto-iteration2-mvhr-selection` at **`ff967766`**.
+
+Picking this up in a fresh session, in order:
+
+1. **Confirm CI on `ff967766`** - `gh pr checks 79`. At handover `spdx` was green with `build (Release)`
+   and `test (Release)` still running; every prior head passed all three.
+2. **Read the round-6 Codex review**, requested on `ff967766`:
+   `gh api repos/SAM-BIM/SAM/pulls/79/comments --jq '.[] | select(.original_commit_id=="ff9677662133b0e84eb945facb3442d2d0ae1375")'`
+   Filter on **`original_commit_id`**, not `commit_id` - GitHub re-anchors older comment bodies to the new
+   head and they then read as if freshly raised.
+3. **Verify every finding independently before accepting it.** All five rounds so far have been genuine,
+   but classification matters more than count now - see the trend note under "Review round 5".
+4. **Then decide: merge, or one more round.** Rounds 1-4 each found a P1; round 5 found none, and its three
+   P2s were consequences of round 4's own guards. **If round 6 raises no P1, the recommendation is merge** -
+   past that point the findings are input-hardening against states the Part O workflow does not produce,
+   and recent rounds have introduced roughly as many regressions as they removed.
+
+**Do not merge without a human decision. Iteration 3 is not started and must not be started as part of this
+PR.** The one deliberate deferred seam remains the `SAM_Systems` catalogue reader - see "Remaining
+ambiguity / open items".
+
+**Validation shortcut.** `SAM_Tas` compiles against the *deployed* `SAM\build\SAM.Analytical.dll`, so its
+suite means nothing until a BuildAlls has run after your last edit. Check that DLL's timestamp against your
+newest source edit, confirm a symbol you just added is actually in it, then build the test project with
+**.NET Framework MSBuild** (`dotnet build` fails MSB4803 on the COM projects) and run
+`dotnet test --no-build`. Do not build sibling repositories yourself - Michal runs BuildAlls.
 
 ---
 

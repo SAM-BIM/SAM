@@ -74,7 +74,23 @@ namespace SAM.Analytical
         /// The Part O ventilation route each assessed zone states, by zone guid - <c>NV</c> /
         /// <c>NaturalVentilation</c>, or <c>MVHR</c> / <c>MVRE</c>. Required, never defaulted.
         /// </param>
-        public static PartOIterationPreparation PreparePartOIteration(this AnalyticalModel analyticalModel, PartOIteration partOIteration, IEnumerable<Zone> zones, Dictionary<Guid, string> dictionary_VentilationStrategy)
+        /// <param name="ventilationUnitCapacityDescriptors">
+        /// The reusable ventilation unit products each dwelling may be fitted with. <b>Optional, and null
+        /// keeps Iteration 1a's behaviour exactly</b>: the generic unit is built, its design duty is
+        /// derived, and no product is selected - which is the honest state of a model nobody has offered a
+        /// catalogue to.
+        /// <para>
+        /// Where a catalogue is supplied, each dwelling selects <b>its own</b> smallest compliant unit
+        /// from its own duty. Nothing is aggregated across dwellings, nothing is balanced between them,
+        /// and one dwelling's answer cannot move another's. A dwelling for which nothing is compliant is
+        /// refused by name while the others still select - see <c>Modify.SelectVentilationUnit</c>.
+        /// </para>
+        /// <para>
+        /// An argument rather than a library read, because which products exist is a fact about whoever is
+        /// asking - the same boundary <c>Query.CapableSystems</c> draws for system templates.
+        /// </para>
+        /// </param>
+        public static PartOIterationPreparation PreparePartOIteration(this AnalyticalModel analyticalModel, PartOIteration partOIteration, IEnumerable<Zone> zones, Dictionary<Guid, string> dictionary_VentilationStrategy, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors = null)
         {
             PartOIterationPreparation result = new();
 
@@ -206,7 +222,7 @@ namespace SAM.Analytical
                 //and a Grasshopper zones_ left unconnected all pass null here, and PrepareBaseMVHR keeps
                 //exactly its previous whole-model behaviour for them. A caller-named subset is carried
                 //through instead of discarded: see PrepareBaseMVHR for why a subset cannot be ignored.
-                analyticalModel_Applied = PrepareBaseMVHR(analyticalModel_Applied, zones == null ? null : zones_Assessed, result);
+                analyticalModel_Applied = PrepareBaseMVHR(analyticalModel_Applied, zones == null ? null : zones_Assessed, ventilationUnitCapacityDescriptors, result);
 
                 if (result.Refusal != null)
                 {
@@ -289,7 +305,7 @@ namespace SAM.Analytical
         /// <c>PartFCalculator</c>'s own whole-model sizing mode - see <c>Query.PartFTransferAirSpaces</c>.
         /// </para>
         /// </summary>
-        private static AnalyticalModel PrepareBaseMVHR(AnalyticalModel analyticalModel, List<Zone> zones_Assessed, PartOIterationPreparation result)
+        private static AnalyticalModel PrepareBaseMVHR(AnalyticalModel analyticalModel, List<Zone> zones_Assessed, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, PartOIterationPreparation result)
         {
             //ONE cluster instance, taken once and put back once. AnalyticalModel.AdjacencyCluster returns a
             //fresh copy on every read, so reading it twice would silently discard the first half of this.
@@ -493,6 +509,33 @@ namespace SAM.Analytical
                 result.Notes.Add(string.Format(
                     "Every space and the air handling unit of '{0}' balance: each passes on exactly what it receives, which is what TAS requires of a zone carrying inter-zone air movements.",
                     ventilationSystem.FullName));
+
+                // ---- The unit this dwelling is fitted with ---------------------------------------------
+
+                //Iteration 2, and only where a catalogue was offered. With none, the unit stays generic and
+                //this dwelling's answer is exactly Iteration 1a's.
+                //
+                //THIS dwelling's own duty and no other's. The selection sits inside the per-dwelling loop
+                //deliberately: aggregating the duties first and choosing one unit for the assessment would
+                //size a block of flats as though the air moved between them, and letting one dwelling's
+                //shortfall abandon the run would make the answer depend on which dwelling was processed
+                //first. A dwelling nothing can serve is refused by name and the loop continues.
+                //
+                //It runs AFTER the network is realized and balanced, because the duty it selects against is
+                //the duty of the network as built - not the one the terminals happened to carry before the
+                //transfer air was routed.
+                if (ventilationUnitCapacityDescriptors is not null)
+                {
+                    VentilationUnitSelection ventilationUnitSelection = adjacencyCluster.SelectVentilationUnit(airHandlingUnit, ventilationUnitCapacityDescriptors, out List<string> notes_Unit, out List<string> refusals_Unit);
+
+                    result.Notes.AddRange(notes_Unit);
+                    result.Refusals.AddRange(refusals_Unit);
+
+                    if (ventilationUnitSelection.IsSelected)
+                    {
+                        result.VentilationUnitSelections.Add(ventilationUnitSelection);
+                    }
+                }
 
                 result.VentilationSystems.Add(ventilationSystem);
                 result.AirHandlingUnits.Add(airHandlingUnit);
