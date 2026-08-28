@@ -415,9 +415,33 @@ is no longer telling us anything about the architecture.
 
 ## Next step
 
-**Final review and merge decision on PR #79.** All five suites are green and `SAM_Tas` has been validated
-against a deployed build. What remains is the fresh Codex review on the new head, then the merge decision.
-**Iteration 3 is not started and must not be started as part of this PR.**
+**Final review and merge decision on PR #79.** Everything is committed and pushed; the working tree is
+clean and the branch is `feature/parto-iteration2-mvhr-selection` at **`ff967766`**.
+
+Picking this up in a fresh session, in order:
+
+1. **Confirm CI on `ff967766`** - `gh pr checks 79`. At handover `spdx` was green with `build (Release)`
+   and `test (Release)` still running; every prior head passed all three.
+2. **Read the round-6 Codex review**, requested on `ff967766`:
+   `gh api repos/SAM-BIM/SAM/pulls/79/comments --jq '.[] | select(.original_commit_id=="ff9677662133b0e84eb945facb3442d2d0ae1375")'`
+   Filter on **`original_commit_id`**, not `commit_id` - GitHub re-anchors older comment bodies to the new
+   head and they then read as if freshly raised.
+3. **Verify every finding independently before accepting it.** All five rounds so far have been genuine,
+   but classification matters more than count now - see the trend note under "Review round 5".
+4. **Then decide: merge, or one more round.** Rounds 1-4 each found a P1; round 5 found none, and its three
+   P2s were consequences of round 4's own guards. **If round 6 raises no P1, the recommendation is merge** -
+   past that point the findings are input-hardening against states the Part O workflow does not produce,
+   and recent rounds have introduced roughly as many regressions as they removed.
+
+**Do not merge without a human decision. Iteration 3 is not started and must not be started as part of this
+PR.** The one deliberate deferred seam remains the `SAM_Systems` catalogue reader - see "Remaining
+ambiguity / open items".
+
+**Validation shortcut.** `SAM_Tas` compiles against the *deployed* `SAM\build\SAM.Analytical.dll`, so its
+suite means nothing until a BuildAlls has run after your last edit. Check that DLL's timestamp against your
+newest source edit, confirm a symbol you just added is actually in it, then build the test project with
+**.NET Framework MSBuild** (`dotnet build` fails MSB4803 on the COM projects) and run
+`dotnet test --no-build`. Do not build sibling repositories yourself - Michal runs BuildAlls.
 
 ---
 
