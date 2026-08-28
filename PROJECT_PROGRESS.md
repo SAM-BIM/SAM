@@ -1,20 +1,46 @@
 # Project Progress
 
 ## Branch
-`feature/parto-iteration2-mvhr-selection` (off `sow/2026-Q3` at `b8fb0c0f`, i.e. with Iteration 1a PR #77
-merged as `7fb04ed9`). Open as **PR #79**, base `sow/2026-Q3`. **Not merged.**
+`sow/2026-Q3`. Iteration 2 was developed on `feature/parto-iteration2-mvhr-selection` (off `sow/2026-Q3`
+at `b8fb0c0f`, i.e. with Iteration 1a PR #77 merged as `7fb04ed9`) and shipped as **PR #79**, base
+`sow/2026-Q3`. **MERGED** as merge commit **`fafed15f`**; the feature branch is deleted on the remote and
+locally.
 
 ## Last updated
-2026-08-28 - Iteration 2 / MVHR selection and independently adjustable design airflows, plus fifteen
-correctness fixes across five review rounds on PR #79 (thirteen raised by Codex, two found in review of
-the PR itself).
+2026-08-28 - **Part F / Part O Iteration 2 complete and merged** (`SAM-BIM/SAM` #79, merge commit
+`fafed15f`): MVHR selection and independently adjustable design airflows, plus fifteen correctness fixes
+across five review rounds (thirteen raised by Codex, two found in review of the PR itself), and a sixth
+review round that raised no P1.
 
-## Current status (this session)
+## Current status
 
-Iteration 2 is implemented and under review on PR #79. Iteration 1a shipped a design that realized the
-Approved Document F requirement *exactly*, on generic plant. Iteration 2 puts a real product behind the
-plant and lets the design move above the requirement - which means **four quantities now exist where one
-used to serve**, and the whole iteration is about not letting them collapse into each other.
+**Part F / Part O Iteration 2 is COMPLETE and MERGED into `sow/2026-Q3`.**
+
+```
+SAM-BIM/SAM #79
+merge commit fafed15f
+```
+
+Iteration 1a shipped a design that realized the Approved Document F requirement *exactly*, on generic
+plant. Iteration 2 puts a real product behind the plant and lets the design move above the requirement -
+which means **four quantities now exist where one used to serve**, and the whole iteration is about not
+letting them collapse into each other.
+
+The merged implementation provides:
+
+- the authority separation `PartFRequiredAirFlow != DesignAirFlow != SelectedMVHRCapacity !=
+  OperatingAirFlow`;
+- **room-level** Approved Document F floors (not a dwelling average);
+- design airflow held on `VentilationTerminal.DesignFlowRate_Lps`;
+- a per-dwelling `VentilationSystem` + `AirHandlingUnit`;
+- system and air handling unit duties **derived, never stored**;
+- a reusable `VentilationUnitCapacityDescriptor`;
+- **smallest-capable** MVHR selection (never nearest-by-distance);
+- the selected product **identity** persisted on the analytical air handling unit, capacity left in the
+  catalogue;
+- transactional targeted-vs-derived design airflow adjustment (all-or-nothing);
+- dwelling balance preservation across every successful transaction;
+- **no runtime / profile / TAS airflow coupling** - Iteration 2 writes no operating airflow.
 
 ### The authority separation - requirement != design != equipment capability != operating airflow
 
@@ -333,14 +359,27 @@ New with the review fixes:
 
 ## Validation
 
+**Final validation at merge:**
+
+```
+PartOVentilationUnitSelectionTests   67 / 67
+PartOBaseMVHRTests                   34 / 34
+SAM.Tests                          1551 / 1551
+SAM.Analytical.Systems.Tests         40 / 40
+SAM.Analytical.Tas.TM59.Tests       649 / 649
+Release build                         PASS
+PR CI                                 PASS
+```
+
 - **`SAM.Tests`: 1551 passed, 0 failed** (1548 / 1545 / 1541 / 1527 after rounds 4/3/2/1; 1513 at Iteration 1a).
 - **`SAM.Analytical.Systems.Tests`: 40 passed, 0 failed.**
-- **`SAM.Analytical.Tas.TM59.Tests`: 649 passed, 0 failed** - run against the deployed Iteration 2 DLL
-  after a BuildAll, with the new guards confirmed present in it, so genuinely against this work. No `SAM_Tas` production code calls any changed API; its only touchpoint is
-  `PreparePartOIteration`'s four-argument form, which is source-compatible and defaults to Iteration 1a
-  behaviour.
-- Release build clean; PR #79 CI green at `41a02d4e` and `c67cf5d4` (`build (Release)`, `test (Release)`,
-  `spdx`).
+- **`SAM.Analytical.Tas.TM59.Tests`: 649 passed, 0 failed** - **run against the deployed Iteration 2
+  `SAM.Analytical.dll`** after a BuildAll, with **symbol/type presence verified in that deployed DLL**, so
+  the result is genuinely against this work and not against a stale deployment. No `SAM_Tas` production
+  code calls any changed API; its only touchpoint is `PreparePartOIteration`'s four-argument form, which is
+  source-compatible and defaults to Iteration 1a behaviour.
+- Release build clean. PR #79 CI green (`build (Release)`, `test (Release)`, `spdx`) at every head,
+  including the final code head **`ff967766`** and the documentation head **`d15a55cd`**.
 
 **Trap worth knowing.** `SAM_Tas` references **deployed** DLLs by `HintPath`
 (`..\..\..\SAM\build\SAM.Analytical.dll`), not project references, so running its suite without a BuildAll
@@ -399,6 +438,40 @@ none, and its three P2s were all consequences of round 4's own guards rather tha
 produce (detached objects, infinite property values, disconnected systems). That is worth having, and it
 is no longer telling us anything about the architecture.
 
+**Round 6, reviewed at `ff967766`** (submitted against `d15a55cd`, which is documentation-only over
+`ff967766`, so the production code reviewed is `ff967766`). **No P1.** Two P2s, both verified
+independently and both **deliberately accepted as non-blocking for this merge**:
+
+| Finding | Severity | Disposition |
+|---|---|---|
+| Refuse terminals whose design duty is not established (`Query.VentilationSystemDesignDuty`) | P2 | **Accepted, not fixed** - see below |
+| Reject `Undefined` flow classifications in `Modify.SetSpaceDesignFlowRate` | P2 | **Accepted, not fixed** - see below |
+
+Both mechanisms are real and were traced through the code, not dismissed:
+
+1. A `VentilationTerminal` whose `DesignFlowRate_Lps` is null makes
+   `Query.VentilationTerminalDesignDuty_Lps` return null, which `VentilationSystemDesignDuty` coerces to
+   `0` while still returning `true`. `AirHandlingUnitDesignDuty` then reports an established duty of 0/0,
+   `IsValidDesignDuty(0)` passes, and `SelectVentilationUnit` would select and persist the smallest
+   catalogue product for an unsized system. **Would only bite if such terminals were introduced through a
+   future external or manual terminal-authoring path.**
+2. `Modify.SetSpaceDesignFlowRate` does not independently reject `FlowClassification.Undefined`; given an
+   `Undefined` terminal it would write shares that no supply/extract duty sum ever reads.
+
+**These are NOT current Iteration 2 blockers.** The only production path that creates
+`VentilationTerminal` objects is `Modify.RealizePartFVentilationTerminals`, which `continue`s on any
+requirement without a finite `ContinuousDesignFlowRate_Lps` before passing `continuous_Lps.Value`, and
+which sets the classification from a strict `IsExtract ? Extract : Supply` ternary. It therefore cannot
+produce either state. For (2), the guard Codex asks for **already exists at the Iteration 2 entry point** -
+`Modify.ApplyTargetedDesignAirFlow` refuses anything that is not Supply or Extract before doing anything
+else - and `SetSpaceDesignFlowRate` is an internal primitive whose only production callers are inside that
+guarded transaction. No Iteration 2 entry point is exposed to Grasshopper.
+
+> **Revisit these guards if/when another production path begins creating `VentilationTerminal` objects,
+> such as an importer, a Grasshopper authoring component, or a future `SAM_Systems` materialisation path.**
+
+Do not reopen them before that happens.
+
 ## Remaining ambiguity / open items
 
 - **The deliberate deferred seam: no shipped product catalogue.** Selection is a pure function over supplied
@@ -406,7 +479,13 @@ is no longer telling us anything about the architecture.
   `CapabilityIndex.JSON` is what would make it reachable from Grasshopper. The Grasshopper component still
   calls the four-argument `PreparePartOIteration`; no input is exposed until there is a catalogue to feed
   it. **This is deferred on purpose, not missing by accident.**
-- `SAM_Tas` validation outstanding - see Validation above.
+- **Two accepted round-6 P2 guards**, merged unfixed on purpose: a null `DesignFlowRate_Lps` producing a
+  0/0 design duty, and `SetSpaceDesignFlowRate` not independently rejecting `Undefined`. Neither is
+  reachable through `RealizePartFVentilationTerminals`. **Revisit both when another production path starts
+  creating `VentilationTerminal` objects** - an importer, a Grasshopper authoring component, or a future
+  `SAM_Systems` materialisation path. Full reasoning under "Round 6" above.
+- `SAM_Tas` validation complete - 649/649 against the deployed Iteration 2 DLL with symbol presence
+  verified; see Validation above.
 - Out of scope and untouched: heat-recovery efficiency, `HeatRecoveryUnit` -> `SystemExchanger`,
   `AirSystem` materialisation, runtime/`ticV` mapping, fan curves, pressure/duct/SFP/acoustics, the direct
   Part O/TBD route, and any broad Part O optimisation search. Iteration 2 adds the architectural operation
@@ -415,27 +494,42 @@ is no longer telling us anything about the architecture.
 
 ## Next step
 
-**Final review and merge decision on PR #79.** Everything is committed and pushed; the working tree is
-clean and the branch is `feature/parto-iteration2-mvhr-selection` at **`ff967766`**.
+Iteration 2 is merged; nothing on PR #79 remains open. **The immediate next seam is the `SAM_Systems` MVHR
+catalogue reader:**
 
-Picking this up in a fresh session, in order:
+```
+SAM_Systems MVHR catalogue reader
+        ↓
+VentilationUnitCapacityDescriptor list
+        ↓
+SAM.Analytical selection seam
+        ↓
+Grasshopper exposure
+```
 
-1. **Confirm CI on `ff967766`** - `gh pr checks 79`. At handover `spdx` was green with `build (Release)`
-   and `test (Release)` still running; every prior head passed all three.
-2. **Read the round-6 Codex review**, requested on `ff967766`:
-   `gh api repos/SAM-BIM/SAM/pulls/79/comments --jq '.[] | select(.original_commit_id=="ff9677662133b0e84eb945facb3442d2d0ae1375")'`
-   Filter on **`original_commit_id`**, not `commit_id` - GitHub re-anchors older comment bodies to the new
-   head and they then read as if freshly raised.
-3. **Verify every finding independently before accepting it.** All five rounds so far have been genuine,
-   but classification matters more than count now - see the trend note under "Review round 5".
-4. **Then decide: merge, or one more round.** Rounds 1-4 each found a P1; round 5 found none, and its three
-   P2s were consequences of round 4's own guards. **If round 6 raises no P1, the recommendation is merge** -
-   past that point the findings are input-hardening against states the Part O workflow does not produce,
-   and recent rounds have introduced roughly as many regressions as they removed.
+**Goal: make the already-merged Iteration 2 equipment-selection logic reachable from normal Grasshopper
+without introducing a `SAM` -> `SAM_Systems` dependency.** Selection is already a pure function over
+supplied descriptors, so the seam is a reader that produces a `VentilationUnitCapacityDescriptor` list -
+mirroring `Query.SystemCapabilityDescriptors` / `CapabilityIndex.JSON` - and a Grasshopper input that feeds
+it. The direction of the dependency is the whole point: `SAM.Analytical` must not learn about
+`SAM_Systems`.
 
-**Do not merge without a human decision. Iteration 3 is not started and must not be started as part of this
-PR.** The one deliberate deferred seam remains the `SAM_Systems` catalogue reader - see "Remaining
-ambiguity / open items".
+**Do NOT start Iteration 3 materialisation yet.**
+
+**Longer-term direction (later work, not now):**
+
+```
+SAM analytical model
+    -> explicit materialisation
+    -> SAM_Systems
+    -> SAM_Tas adapter
+    -> TAS TPD
+```
+
+This remains the intended eventual route and is recorded here so it is not rediscovered, but it is
+explicitly **later work**: heat-recovery efficiency, `HeatRecoveryUnit` -> `SystemExchanger`, `AirSystem`
+materialisation, runtime/`ticV` mapping, fan curves, pressure/duct/SFP/acoustics, and any broad Part O
+optimisation search all stay out until the catalogue seam above is in.
 
 **Validation shortcut.** `SAM_Tas` compiles against the *deployed* `SAM\build\SAM.Analytical.dll`, so its
 suite means nothing until a BuildAlls has run after your last edit. Check that DLL's timestamp against your
