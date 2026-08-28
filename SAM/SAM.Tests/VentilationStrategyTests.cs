@@ -286,12 +286,20 @@ namespace SAM.Tests
         /// "Mixed Mode", or a one-character typo like "N-V" would have been assessed against the mechanical
         /// criterion and reported as a result, with no refusal and no diagnostic.
         /// </para>
+        /// <para>
+        /// <b><c>MVHR</c> was one of these cases and no longer is</b> - the reasoning behind including it was
+        /// wrong, not the rule. <c>Query.PartOVentilationMode</c> takes <c>MVHR</c> and <c>MVRE</c> as two
+        /// spellings of the one Approved Document O route, so an assessment could state the word the
+        /// regulation itself uses, be accepted upstream, simulate for an hour, and then be refused here -
+        /// producing no assessment at all for a route SAM had already agreed to. It is a recognised identity
+        /// now; see <see cref="EveryRecognisedStrategy_IsAccepted"/>. Nothing else is relaxed: a word outside
+        /// the vocabulary is still refused rather than assumed mechanical.
+        /// </para>
         /// </summary>
         [Theory]
         [InlineData("Natural")]
         [InlineData("Mixed Mode")]
         [InlineData("N-V")]
-        [InlineData("MVHR")]
         public void AnUnrecognisedStrategy_RefusesAndIsNotAssumedMechanical(string ventilationStrategy)
         {
             AnalyticalModel analyticalModel = Model(ventilationSystemTypeName: null, zoneName: "Flat 1");
@@ -317,20 +325,24 @@ namespace SAM.Tests
             Assert.Empty(tM59AssessmentResult.CorridorResults);
             Assert.Single(tM59AssessmentResult.VentilationStrategyRefusals);
 
-            //"MVHR" specifically: MVRE is SAM's heat-recovery ventilation and there is no MVHR identity, so a
-            //scenario reaching for that name is refused rather than quietly treated as some other system.
         }
 
         /// <summary>
-        /// All nine ventilation identities the shipped system-type library defines are accepted, so the closed
-        /// vocabulary above does not refuse a legitimate dwelling or commercial system. <c>NV</c> and <c>UV</c>
-        /// keep their own criteria; the other seven are mechanical.
+        /// The nine ventilation identities the shipped system-type library defines, plus <c>MVHR</c>, are
+        /// accepted, so the closed vocabulary above does not refuse a legitimate dwelling or commercial
+        /// system. <c>NV</c> and <c>UV</c> keep their own criteria; the other eight are mechanical.
+        /// <para>
+        /// <c>MVHR</c> and <c>MVRE</c> both select the mechanical criterion and both stay the word the
+        /// assessment stated - neither is rewritten into the other, because a scenario has to keep saying
+        /// what was said.
+        /// </para>
         /// </summary>
         [Theory]
         [InlineData("NV", "Natural")]
         [InlineData("UV", "Corridor")]
         [InlineData("MV", "Mechanical")]
         [InlineData("MVRE", "Mechanical")]
+        [InlineData("MVHR", "Mechanical")]
         [InlineData("EOL", "Mechanical")]
         [InlineData("EOC", "Mechanical")]
         [InlineData("CAV", "Mechanical")]

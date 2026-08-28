@@ -58,12 +58,22 @@ namespace SAM.Analytical
         /// </para>
         /// <para>
         /// These are the nine ventilation identities the shipped <c>SAM_SystemTypeLibrary</c> defines, which are
-        /// also the nine <c>SAM_Systems</c> keys its capability index on. It is a list of <b>names</b>, which is
-        /// vocabulary and belongs here - <c>Query.IsMechanicalVentilation</c> already names <c>UV</c> and
-        /// <c>NV</c> in this assembly. It is deliberately <b>not</b> read from
+        /// also the nine <c>SAM_Systems</c> keys its capability index on, plus <c>MVHR</c>. It is a list of
+        /// <b>names</b>, which is vocabulary and belongs here - <c>Query.IsMechanicalVentilation</c> already
+        /// names <c>UV</c> and <c>NV</c> in this assembly. It is deliberately <b>not</b> read from
         /// <c>Query.DefaultSystemTypeLibrary()</c>: that comes from <c>ActiveSetting</c> and can be absent, and
         /// making the authoritative path depend on the same installed resource the defective derivation used
         /// would trade one silent failure for another.
+        /// </para>
+        /// <para>
+        /// <b><c>MVHR</c> is here because <c>Query.PartOVentilationMode</c> accepts it.</b> That mapping takes
+        /// <c>MVHR</c> and <c>MVRE</c> as two spellings of the one Approved Document O route, so an assessment
+        /// could state the word the regulation itself uses, prepare successfully, simulate, and then produce
+        /// <b>no assessment at all</b> - every space refused here, for a strategy that had already been
+        /// accepted upstream. The word is added rather than rewritten to <c>MVRE</c> on the way in: a scenario
+        /// has to keep saying what the assessment said, and quietly substituting one identity for another is
+        /// the class of change this map exists to stop. The criterion selection needs nothing further -
+        /// <c>MVHR</c> is neither <c>NV</c> nor <c>UV</c>, so it already selects the mechanical criterion.
         /// </para>
         /// <para>
         /// <b>A project with a custom system-type library needs this extended</b>, and the accepted set is
@@ -72,7 +82,7 @@ namespace SAM.Analytical
         /// </summary>
         private static readonly HashSet<string> ventilationStrategies_Recognised = new(StringComparer.Ordinal)
         {
-            "NV", "MV", "MVRE", "UV", "EOL", "EOC", "CAV", "VAV", "DISP"
+            "NV", "MV", "MVRE", "MVHR", "UV", "EOL", "EOC", "CAV", "VAV", "DISP"
         };
 
         /// <summary>What one scenario said about one space.</summary>

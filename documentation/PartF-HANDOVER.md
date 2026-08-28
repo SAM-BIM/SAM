@@ -23,7 +23,7 @@ finished while this file is behind the repositories.
 
 ## 0. Current repository state
 
-*Verified 2026-08-26. This table is the single authoritative record of repository state; nothing else in
+*Verified 2026-08-27. This table is the single authoritative record of repository state; nothing else in
 this file or the archive supersedes it.*
 
 **TWO repos are in flight.** The Part F terminal/transfer work merged everywhere; the live work is Part O.
@@ -31,8 +31,39 @@ this file or the archive supersedes it.*
 
 | Repo | Branch | Last CODE commit | Cut from | PR |
 |---|---|---|---|---|
-| `SAM` | `feature/parto-nv-workflow` | **`d161024a`** | `sow/2026-Q3` @ `907c0441` | [SAM#76](https://github.com/SAM-BIM/SAM/pull/76) |
-| `SAM_Tas` | `feature/parto-nv-workflow` | **`edcccc94`** | `sow/2026-Q3` @ `ab5525c6` | [SAM_Tas#43](https://github.com/SAM-BIM/SAM_Tas/pull/43) |
+| `SAM` | `feature/parto-base-mvhr` | **`98d37adc`** | `sow/2026-Q3` @ `1db06e83` | not opened |
+| `SAM_Tas` | `feature/parto-base-mvhr` | **`2caa2f05`** | `sow/2026-Q3` @ `1b3add6a` | not opened |
+
+The previous Part O branches merged: `SAM` [#76](https://github.com/SAM-BIM/SAM/pull/76) and `SAM_Tas`
+[#43](https://github.com/SAM-BIM/SAM_Tas/pull/43), both `feature/parto-nv-workflow`, both Iteration 1b.
+
+**Iteration 1a is committed, licensed-accepted, and has no PR open.** Suites at these commits: `SAM`
+1470/1470, `SAM_Tas` 642/642.
+
+Read [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) from § *Iteration 1a / Base MVHR — the block
+resolved (2026-08-27)* onwards before touching any of it. The four things that section settles, none of
+which was visible from the analytical side:
+
+1. **TAS refuses a TBD in which any ONE zone's inter-zone air movements do not balance** — reported by the
+   Building Simulator as a pressure error and by SAM as a bare `Simulation Failed`. Every room of a
+   balanced heat-recovery dwelling is individually out of balance, which is why Iteration 1a's first
+   licensed run produced nothing. Closed by routing each room's net through `PartFAirflowNetwork` — the
+   same paragraph 1.25 network the Part F door schedule is solved over — and by writing the unit's exhaust.
+2. **A TBD inter-zone air movement carries MASS flow in kg/s**; SAM states air volumetrically in m³/s and
+   neither type says which. The unconverted number simulated a full year without complaint, about 21 %
+   under design. One seam, `Modify.UpdateIZAMProfile`, one density.
+3. **The transfer network is scoped to the dwelling zones, not to the served spaces**, so a zero-terminal
+   hall can carry and divide transfer air without being claimed as served.
+4. `Modify.AddAirMovementObjects(AnalyticalModel)` works on a *copy* of the adjacency cluster, so no SAM
+   model had ever carried a `SpaceAirMovement` into a workflow — the whole IZAM path was unexercised.
+
+Acceptance figure: `tsdcompare` 1a against 1b gives **78 835 of 78 840** hourly temperatures differing,
+where the same comparison before this work gave **0**. The Iteration 1b OPEN/NIGHT A/B is unchanged at
+**16 690**.
+
+Still open and deliberately not this branch's: `Modify.Simulate` reports a refused simulation as success;
+the legacy `Create.IZAM` / `UpdateIZAMsBySpaceParameter` route is not unit-converted; MVHR **unit
+selection** against the derived duty is Iteration 2.
 
 The other three are **idle on `sow/2026-Q3` with nothing in flight**, their Part F PRs merged:
 `SAM_Systems` @ `208379d` (PR #14 merged), `SAM_UI` @ `43564e6` (PR #75 merged),
@@ -74,13 +105,13 @@ exactly the state this file exists to prevent. Verify all three:
 3. **every change between that SHA and HEAD touches only documentation.**
 
 ```bash
-for r in SAM SAM_Tas; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/parto-nv-workflow; done
+for r in SAM SAM_Tas; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/parto-base-mvhr; done
 ```
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|documentation/PartO-ARCHITECTURE\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM d161024a
-SAM_Tas edcccc94
+SAM 98d37adc
+SAM_Tas 2caa2f05
 EOF
 ```
 

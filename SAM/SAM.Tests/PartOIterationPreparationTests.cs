@@ -401,6 +401,55 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>Previous-round Codex P1: a legacy Ventilation profile that actually resolves would activate
+        /// TBD's own mechanical ventilation (ticV) alongside this iteration's directional inter-zone air
+        /// movements - the same space's design airflow reaching the simulation twice.</b>
+        /// <para>
+        /// <c>Model()</c> gives every space <c>InternalCondition.VentilationProfileName = "Ventilation
+        /// Continuous"</c>, but the fixture's own <c>ProfileLibrary</c> never carries a profile by that
+        /// name - which is exactly why <see cref="Preparation_PreservesEveryProfileNameOnEveryInternalCondition"/>
+        /// can assert this iteration is prepared successfully over it: the name never RESOLVES, so SAM_Tas's
+        /// <c>Modify.UpdateInternalCondition</c> - gated on <c>InternalCondition.GetProfile(ProfileType.Ventilation,
+        /// profileLibrary)</c> returning non-null, exactly the test this iteration now runs itself - would
+        /// never have activated <c>ticV</c> from it in the first place. Adding the profile here is the one
+        /// change that turns "a name is on the internal condition" into a genuine double-count risk, and
+        /// preparation must refuse rather than silently carry both runtime representations forward.
+        /// </para>
+        /// <para>
+        /// The smallest safe correction: nothing is cleared or rewritten on the way to the refusal, so this
+        /// does not conflict with <see cref="Preparation_PreservesEveryProfileNameOnEveryInternalCondition"/>
+        /// - that test's profile never resolves, so it never reaches this gate.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ALegacyVentilationProfileThatResolves_RefusesRatherThanRiskingADoubleCount()
+        {
+            AnalyticalModel analyticalModel = Model(OpeningRestriction.Unrestricted);
+
+            //The one change: the name every space's internal condition already carries now resolves in the
+            //model's own library, exactly the test SAM_Tas's ticV gate itself runs. AnalyticalModel.ProfileLibrary
+            //returns a COPY on every read - the same trap AdjacencyCluster has - so the augmented library has
+            //to be put back onto a new model rather than mutated in place.
+            ProfileLibrary profileLibrary = analyticalModel.ProfileLibrary;
+            profileLibrary.Add(new Profile("Ventilation Continuous", ProfileType.Ventilation, Values(1)));
+            analyticalModel = new AnalyticalModel(analyticalModel, analyticalModel.AdjacencyCluster, null, profileLibrary);
+
+            string json_Before = SAM.Core.Convert.ToString(analyticalModel);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(PartOIteration.BasePassive, null, Strategies(analyticalModel, "MVRE"));
+
+            Assert.NotNull(preparation.Refusal);
+            Assert.Null(preparation.AnalyticalModel);
+
+            //Named, so the refusal is actionable rather than a generic failure.
+            Assert.Contains("Ventilation profile", preparation.Refusal);
+            Assert.Contains("ticV", preparation.Refusal);
+
+            //Nothing was rewritten on the way to the refusal - VentilationProfileName is read, never cleared.
+            Assert.Equal(json_Before, SAM.Core.Convert.ToString(analyticalModel));
+        }
+
+        /// <summary>
         /// The system-type references beside the profile references, which are the other named lookup an
         /// internal condition carries into TAS.
         /// </summary>
@@ -982,6 +1031,249 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>An assessed dwelling must not be thermally coupled to an unassessed one through a shared
+        /// generic unit.</b>
+        /// <para>
+        /// <c>Query.PartOVentilationMode(zones, ...)</c> settles the route from the ASSESSED zones alone,
+        /// so a caller naming a subset - a Grasshopper <c>zones_</c> input is explicitly built to take one
+        /// ("leave unconnected to use every zone") - can genuinely leave a second, unassessed dwelling in
+        /// the same model unseen by the mixed-route check. Terminal realization stays whole-model because
+        /// <c>Modify.ApplyPartFVentilationRates</c> already wrote every sized space, but the system and its
+        /// air handling unit must serve only the assessed dwelling, or the unassessed one would be pulled
+        /// onto the same unit and thermally coupled to it while preparation still reported success.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AssessingOneDwelling_LeavesAnUnassessedDwellingsSpaceOffTheSharedUnit()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoSizedDwellings(out Zone zone_Assessed, out Space space_Unassessed);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_Assessed },
+                new Dictionary<Guid, string> { { zone_Assessed.Guid, "MVRE" } });
+
+            Assert.Null(preparation.Refusal);
+            Assert.NotNull(preparation.AnalyticalModel);
+            Assert.NotNull(preparation.VentilationSystem);
+            Assert.NotNull(preparation.AirHandlingUnit);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            List<Space> spaces_Served = adjacencyCluster.GetRelatedObjects<Space>(preparation.VentilationSystem) ?? new List<Space>();
+
+            Assert.DoesNotContain(spaces_Served, x => x.Guid == space_Unassessed.Guid);
+        }
+
+        // -------------------------------------------------------------------------------------------------
+        // I.5. One Base MVHR system per assessed dwelling - second-round Codex P1
+        //
+        // PartFCalculator sizes each dwelling zone independently, so combining two assessed dwellings onto
+        // one shared generic AHU would route separate flats through plant neither dwelling's Part F sizing
+        // describes. These pin the four things a second, independently assessed dwelling must never do to
+        // the first: share its system, its unit, its duty or its transfer air.
+        // -------------------------------------------------------------------------------------------------
+
+        [Fact]
+        public void TwoAssessedDwellings_EachGetsItsOwnVentilationSystemAndAirHandlingUnit()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone zone_2);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1, zone_2 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" }, { zone_2.Guid, "MVRE" } });
+
+            Assert.Null(preparation.Refusal);
+            Assert.NotNull(preparation.AnalyticalModel);
+
+            Assert.Equal(2, preparation.VentilationSystems.Count);
+            Assert.Equal(2, preparation.AirHandlingUnits.Count);
+
+            Assert.NotEqual(preparation.VentilationSystems[0].Guid, preparation.VentilationSystems[1].Guid);
+            Assert.NotEqual(preparation.AirHandlingUnits[0].Guid, preparation.AirHandlingUnits[1].Guid);
+
+            //The singular convenience properties agree with the first entry of the plural ones - they never
+            //disagree, so a caller built before a model could carry more than one dwelling still sees a
+            //consistent answer.
+            Assert.Equal(preparation.VentilationSystems[0].Guid, preparation.VentilationSystem.Guid);
+            Assert.Equal(preparation.AirHandlingUnits[0].Guid, preparation.AirHandlingUnit.Guid);
+        }
+
+        [Fact]
+        public void TwoAssessedDwellings_DutiesDoNotCrossTheDwellingBoundary()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone zone_2);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1, zone_2 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" }, { zone_2.Guid, "MVRE" } });
+
+            Assert.Null(preparation.Refusal);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            VentilationSystem system_Flat2 = SystemServing(adjacencyCluster, preparation.VentilationSystems, "Flat 2 Bedroom");
+            VentilationSystem system_Flat1 = preparation.VentilationSystems.Find(x => x.Guid != system_Flat2.Guid);
+
+            Assert.NotNull(system_Flat1);
+
+            adjacencyCluster.VentilationSystemDesignDuty(system_Flat2, out double supply_Flat2, out double extract_Flat2);
+            adjacencyCluster.VentilationSystemDesignDuty(system_Flat1, out double supply_Flat1, out double extract_Flat1);
+
+            //Flat 2's own system carries only its own 8 l/s supply and 8 l/s extract - never Flat 1's duty,
+            //and never the sum of both, which is what one shared system would have reported.
+            Assert.Equal(8.0, supply_Flat2, 6);
+            Assert.Equal(8.0, extract_Flat2, 6);
+
+            Assert.NotEqual(supply_Flat1, supply_Flat2);
+
+            //The total reported on the preparation is the SUM across both dwellings' own systems.
+            Assert.Equal(supply_Flat1 + supply_Flat2, preparation.DesignSupplyDuty_Lps, 6);
+            Assert.Equal(extract_Flat1 + extract_Flat2, preparation.DesignExtractDuty_Lps, 6);
+        }
+
+        [Fact]
+        public void TwoAssessedDwellings_TerminalRelationsStayWithTheirOwnSystem()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone zone_2);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1, zone_2 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" }, { zone_2.Guid, "MVRE" } });
+
+            Assert.Null(preparation.Refusal);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            HashSet<Guid> guids_Space_Flat1 = SpaceGuids(adjacencyCluster.GetRelatedObjects<Space>(zone_1));
+            HashSet<Guid> guids_Space_Flat2 = SpaceGuids(adjacencyCluster.GetRelatedObjects<Space>(zone_2));
+
+            Assert.NotEmpty(guids_Space_Flat1);
+            Assert.NotEmpty(guids_Space_Flat2);
+
+            int count_TerminalsChecked = 0;
+
+            foreach (VentilationSystem ventilationSystem in preparation.VentilationSystems)
+            {
+                List<Space> spaces_System = adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? new List<Space>();
+
+                bool servesFlat1 = spaces_System.Exists(s => guids_Space_Flat1.Contains(s.Guid));
+                bool servesFlat2 = spaces_System.Exists(s => guids_Space_Flat2.Contains(s.Guid));
+
+                //A system serves exactly one dwelling's spaces, never both and never neither.
+                Assert.True(servesFlat1 ^ servesFlat2, "One system serves spaces of both dwellings, or of neither.");
+
+                List<VentilationTerminal> terminals_System = adjacencyCluster.GetRelatedObjects<VentilationTerminal>(ventilationSystem) ?? new List<VentilationTerminal>();
+
+                Assert.NotEmpty(terminals_System);
+
+                foreach (VentilationTerminal ventilationTerminal in terminals_System)
+                {
+                    List<Space> spaces_Terminal = adjacencyCluster.GetRelatedObjects<Space>(ventilationTerminal) ?? new List<Space>();
+
+                    HashSet<Guid> guids_Own = servesFlat1 ? guids_Space_Flat1 : guids_Space_Flat2;
+
+                    Assert.True(spaces_Terminal.TrueForAll(s => guids_Own.Contains(s.Guid)),
+                        string.Format("A terminal owned by {0}'s system belongs to the other dwelling's space.", servesFlat1 ? "Flat 1" : "Flat 2"));
+
+                    count_TerminalsChecked++;
+                }
+            }
+
+            Assert.True(count_TerminalsChecked > 0, "No terminal was found on either system, so nothing was actually checked.");
+        }
+
+        [Fact]
+        public void TwoAssessedDwellings_TransferMovementsDoNotCrossTheDwellingBoundary()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone zone_2);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1, zone_2 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" }, { zone_2.Guid, "MVRE" } });
+
+            Assert.Null(preparation.Refusal);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            HashSet<string> references_Flat1 = SpaceReferences(adjacencyCluster.GetRelatedObjects<Space>(zone_1));
+            HashSet<string> references_Flat2 = SpaceReferences(adjacencyCluster.GetRelatedObjects<Space>(zone_2));
+
+            Assert.NotEmpty(references_Flat1);
+            Assert.NotEmpty(references_Flat2);
+
+            int count_Checked = 0;
+
+            foreach (SpaceAirMovement spaceAirMovement in adjacencyCluster.GetObjects<SpaceAirMovement>() ?? new List<SpaceAirMovement>())
+            {
+                bool fromFlat1 = spaceAirMovement.From != null && references_Flat1.Contains(spaceAirMovement.From);
+                bool fromFlat2 = spaceAirMovement.From != null && references_Flat2.Contains(spaceAirMovement.From);
+                bool toFlat1 = spaceAirMovement.To != null && references_Flat1.Contains(spaceAirMovement.To);
+                bool toFlat2 = spaceAirMovement.To != null && references_Flat2.Contains(spaceAirMovement.To);
+
+                Assert.False(fromFlat1 && toFlat2, "A transfer movement crosses from Flat 1 into Flat 2.");
+                Assert.False(fromFlat2 && toFlat1, "A transfer movement crosses from Flat 2 into Flat 1.");
+
+                if (fromFlat1 || fromFlat2 || toFlat1 || toFlat2)
+                {
+                    count_Checked++;
+                }
+            }
+
+            Assert.True(count_Checked > 0, "No air movement touching either dwelling's spaces was found, so nothing was actually checked.");
+        }
+
+        /// <summary>The ventilation system, among <paramref name="ventilationSystems"/>, related to the named space.</summary>
+        private static VentilationSystem SystemServing(AdjacencyCluster adjacencyCluster, List<VentilationSystem> ventilationSystems, string name_Space)
+        {
+            foreach (VentilationSystem ventilationSystem in ventilationSystems)
+            {
+                List<Space> spaces = adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? new List<Space>();
+
+                if (spaces.Exists(x => x.Name == name_Space))
+                {
+                    return ventilationSystem;
+                }
+            }
+
+            return null;
+        }
+
+        private static HashSet<Guid> SpaceGuids(List<Space> spaces)
+        {
+            HashSet<Guid> result = new HashSet<Guid>();
+
+            foreach (Space space in spaces ?? new List<Space>())
+            {
+                if (space != null)
+                {
+                    result.Add(space.Guid);
+                }
+            }
+
+            return result;
+        }
+
+        private static HashSet<string> SpaceReferences(List<Space> spaces)
+        {
+            HashSet<string> result = new HashSet<string>();
+
+            foreach (Space space in spaces ?? new List<Space>())
+            {
+                if (space != null)
+                {
+                    result.Add(new SAM.Core.ObjectReference(space).ToString());
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// The MVHR route still applies, exactly as it always has. Both spellings reach it, so the licensed
         /// acceptance model's <c>MVRE</c> and the architecture's <c>MVHR</c> are provably one route.
         /// </summary>
@@ -1322,6 +1614,175 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// One properly Part-F-sized and zoned dwelling ("Flat 1", from <see cref="Model"/>), plus a second,
+        /// independent space carrying its own directly-authored Part F requirement in a SEPARATE zone
+        /// ("Flat 2") that the test does not assess. The second space is deliberately given no transfer-air
+        /// partition - scoped out of the assessed dwelling, it is never meant to reach the balance or
+        /// transfer-air steps at all, only to prove it is kept off the assessed dwelling's shared unit.
+        /// </summary>
+        private static AnalyticalModel ModelWithTwoSizedDwellings(out Zone zone_Assessed, out Space space_Unassessed)
+        {
+            AnalyticalModel analyticalModel = Model(OpeningRestriction.Unrestricted);
+
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            zone_Assessed = adjacencyCluster.GetObjects<Zone>()?.Find(x => x.Name == "Flat 1");
+            Assert.NotNull(zone_Assessed);
+
+            //Model() already relates "Flat 1" to every space it builds.
+
+            Space space = new Space("Flat 2 Bedroom");
+            space.SetValue(SpaceParameter.Area, 12.0);
+            space.SetValue(SpaceParameter.Volume, 30.0);
+
+            InternalCondition internalCondition = new InternalCondition("Flat 2 Bedroom IC");
+            internalCondition.SetValue(InternalConditionParameter.VentilationSystemTypeName, "Ventilation System");
+            space.InternalCondition = internalCondition;
+
+            PartFSpaceData partFSpaceData = new PartFSpaceData(
+                "Flat 2 Bedroom",
+                PartFType.Habitable,
+                PartFVentilationType.supply,
+                true,
+                null,
+                true,
+                true,
+                true,
+                false,
+                "Volume",
+                8.0);
+
+            partFSpaceData.Terminals.Add(new PartFVentilationTerminalRequirement("Flat 2 Bedroom - Supply", space.Guid, PartFTerminalRole.Supply)
+            {
+                SpaceName = space.Name,
+                OperatingMode = PartFOperatingMode.ContinuousDesign,
+                ContinuousDesignFlowRate_Lps = 8.0,
+                IsInBalancedFlow = true,
+                IsRequired = true,
+                SourceReference = "Approved Document F, Volume 1: Dwellings (2021 edition), paragraph 1.67 (page 16)",
+            });
+
+            space.SetValue(SpaceParameter.PartFSpaceData, partFSpaceData);
+
+            adjacencyCluster.AddObject(space);
+
+            Zone zone_Unassessed = new Zone("Flat 2");
+            adjacencyCluster.AddObject(zone_Unassessed);
+            adjacencyCluster.AddRelation(zone_Unassessed, space);
+
+            space_Unassessed = space;
+
+            return new AnalyticalModel(analyticalModel, adjacencyCluster);
+        }
+
+        /// <summary>
+        /// Two INDEPENDENT, properly Part-F-sized and zoned dwellings, both meant to be assessed together:
+        /// "Flat 1" (from <see cref="Model"/>, 5 rooms) and a second, smaller "Flat 2" (a supplied habitable
+        /// room and an extracted wet room, partitioned so its own transfer air network closes on its own -
+        /// the smallest shape that can complete the whole Base MVHR chain independently of Flat 1).
+        /// <para>
+        /// Unlike <see cref="ModelWithTwoSizedDwellings"/>, BOTH dwellings here are meant to be assessed -
+        /// this fixture is for proving what happens when Approved Document F's "size each dwelling
+        /// independently" rule reaches Base MVHR realization, not for proving an unassessed dwelling is
+        /// left alone.
+        /// </para>
+        /// </summary>
+        private static AnalyticalModel ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone zone_2)
+        {
+            AnalyticalModel analyticalModel = Model(OpeningRestriction.Unrestricted);
+
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            zone_1 = adjacencyCluster.GetObjects<Zone>()?.Find(x => x.Name == "Flat 1");
+            Assert.NotNull(zone_1);
+
+            //Model() already relates "Flat 1" to every space it builds.
+
+            Space space_Supply = new Space("Flat 2 Bedroom");
+            space_Supply.SetValue(SpaceParameter.Area, 12.0);
+            space_Supply.SetValue(SpaceParameter.Volume, 30.0);
+
+            InternalCondition internalCondition_Supply = new InternalCondition("Flat 2 Bedroom IC");
+            internalCondition_Supply.SetValue(InternalConditionParameter.VentilationSystemTypeName, "Ventilation System");
+            space_Supply.InternalCondition = internalCondition_Supply;
+
+            PartFSpaceData partFSpaceData_Supply = new PartFSpaceData(
+                "Flat 2 Bedroom",
+                PartFType.Habitable,
+                PartFVentilationType.supply,
+                true,
+                null,
+                true,
+                true,
+                true,
+                false,
+                "Volume",
+                8.0);
+
+            partFSpaceData_Supply.Terminals.Add(new PartFVentilationTerminalRequirement("Flat 2 Bedroom - Supply", space_Supply.Guid, PartFTerminalRole.Supply)
+            {
+                SpaceName = space_Supply.Name,
+                OperatingMode = PartFOperatingMode.ContinuousDesign,
+                ContinuousDesignFlowRate_Lps = 8.0,
+                IsInBalancedFlow = true,
+                IsRequired = true,
+                SourceReference = "Approved Document F, Volume 1: Dwellings (2021 edition), paragraph 1.67 (page 16)",
+            });
+
+            space_Supply.SetValue(SpaceParameter.PartFSpaceData, partFSpaceData_Supply);
+
+            adjacencyCluster.AddObject(space_Supply);
+
+            Space space_Extract = new Space("Flat 2 Bathroom");
+            space_Extract.SetValue(SpaceParameter.Area, 6.0);
+            space_Extract.SetValue(SpaceParameter.Volume, 15.0);
+
+            InternalCondition internalCondition_Extract = new InternalCondition("Flat 2 Bathroom IC");
+            internalCondition_Extract.SetValue(InternalConditionParameter.VentilationSystemTypeName, "Ventilation System");
+            space_Extract.InternalCondition = internalCondition_Extract;
+
+            //Matched to the Bedroom's own 8.0 l/s supply, not a different figure: with only these two rooms
+            //in Flat 2's star, the transfer air network has nowhere else to absorb an imbalance, and TAS
+            //refuses to simulate a zone whose air movements do not balance.
+            PartFSpaceData partFSpaceData_Extract = new PartFSpaceData(
+                "Flat 2 Bathroom",
+                PartFType.WetRoom,
+                PartFVentilationType.extract,
+                false,
+                null,
+                true,
+                true,
+                false,
+                false,
+                "Volume",
+                8.0);
+
+            partFSpaceData_Extract.Terminals.Add(new PartFVentilationTerminalRequirement("Flat 2 Bathroom - Extract", space_Extract.Guid, PartFTerminalRole.GeneralExtract)
+            {
+                SpaceName = space_Extract.Name,
+                OperatingMode = PartFOperatingMode.ContinuousDesign,
+                ContinuousDesignFlowRate_Lps = 8.0,
+                IsInBalancedFlow = true,
+                IsRequired = true,
+                SourceReference = "Approved Document F, Volume 1: Dwellings (2021 edition), paragraph 1.17 (page 8), Table 1.2 (page 10) and paragraph 1.70 (page 17)",
+            });
+
+            space_Extract.SetValue(SpaceParameter.PartFSpaceData, partFSpaceData_Extract);
+
+            adjacencyCluster.AddObject(space_Extract);
+
+            //The partition that closes Flat 2's own transfer air network, independently of Flat 1's.
+            Helpers.DwellingPartitions.Partition(adjacencyCluster, space_Supply.Name, space_Extract.Name, 100);
+
+            zone_2 = new Zone("Flat 2");
+            adjacencyCluster.AddObject(zone_2);
+            adjacencyCluster.AddRelation(zone_2, space_Supply);
+            adjacencyCluster.AddRelation(zone_2, space_Extract);
+
+            return new AnalyticalModel(analyticalModel, adjacencyCluster);
+        }
+
+        /// <summary>
         /// Nothing the simulation could read as continuous mechanical supply or extract reached this space.
         /// <para>
         /// <c>CalculatedSupplyAirFlow</c> answers <c>NaN</c> where no rate is stated on any of its four
@@ -1521,6 +1982,11 @@ namespace SAM.Tests
                 adjacencyCluster.AddObject(space);
             }
 
+            //A flat whose rooms all open off the living room. A dwelling with no internal partitions has no
+            //transfer air network, and the Base MVHR preparation refuses one - a supplied bedroom whose air
+            //cannot reach an extract is a building TAS will not simulate.
+            Helpers.DwellingPartitions.Star(adjacencyCluster, "Living Room", "Bedroom 1", "Bedroom 2", "Kitchen", "Bathroom");
+
             ProfileLibrary profileLibrary = new ProfileLibrary("Part O Fixture");
 
             profileLibrary.Add(new Profile("Occupancy 24h", ProfileType.Occupancy, Values(1)));
@@ -1554,7 +2020,18 @@ namespace SAM.Tests
                 adjacencyCluster_Sized = analyticalModel.AdjacencyCluster;
             }
 
-            adjacencyCluster_Sized.AddObject(new Zone("Flat 1"));
+            Zone zone_Flat1 = new Zone("Flat 1");
+            adjacencyCluster_Sized.AddObject(zone_Flat1);
+
+            //Related to every space this fixture builds, matching how a real model's own zoning relates a
+            //dwelling zone to its rooms. Modify.PrepareBaseMVHR partitions the assessed scope into one Base
+            //MVHR system per dwelling zone using exactly this relation (Query.PartFDwellingZones plus the
+            //zone -> space relation), so a zone this fixture leaves unrelated would resolve to no spaces at
+            //all rather than to "every space", which is what every existing test here still assesses.
+            foreach (Space space_Existing in adjacencyCluster_Sized.GetSpaces())
+            {
+                adjacencyCluster_Sized.AddRelation(zone_Flat1, space_Existing);
+            }
 
             Panel panel = AnalyticalCreate.Panel(wallConstruction, PanelType.Wall, WallFace());
 

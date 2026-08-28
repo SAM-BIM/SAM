@@ -252,29 +252,139 @@ runtime behaviour is *not* invented. See §6.
 
 ---
 
-## 5. Iteration 1a — Base MVHR (NOT implemented; recorded only)
+## 5. Iteration 1a — Base MVHR (implemented)
 
 ```text
 Part F regulatory requirement
        |
        v
-explicit BaseMVHR route
+explicit MVHR route  +  BasePassive
        |
        v
-apply continuous supply / extract requirement
+apply continuous supply / extract requirement       Modify.ApplyPartFVentilationRates
        |
        v
-select minimum compliant MVHR unit from MVHR_Template
+realize 0..N design terminals per requirement       Modify.RealizePartFVentilationTerminals
        |
        v
-unit capacity is equipment capability,
-NOT the source of the Part F requirement
+generic ventilation system + air handling unit      Modify.AddPartOBaseMVHRSystem
+       |
+       v
+derive system design duty, check against Part F     Query.ReconcileVentilationSystemDesignDuty
+       |
+       v
+directional air movements, per room per direction   Modify.AddAirMovementObjects
+  + the unit's own exhaust, to outside
+       |
+       v
+internal transfer air, routed by the Part F         Modify.AddPartFTransferAirMovements
+airflow network over the model's own adjacencies
+       |
+       v
+conservation checked at every node                  Query.AirMovementResidual
+       |
+       v
+TAS inter-zone air movements                        Modify.UpdateIZAMs  (SAM_Tas)
+       |
+       v
+TM59 mechanical criterion
+
+  [ Iteration 2 ] select minimum compliant MVHR unit against that duty.
+                  Unit capacity is equipment capability,
+                  NOT the source of the Part F requirement.
 ```
 
-This is deliberately not built yet. It is implemented only after Iteration 1b is accepted end to end.
+### The four separations this chain keeps
+
+```text
+PartFVentilationTerminalRequirement        what Approved Document F requires of a room
+        |  realized by 0..N
+VentilationTerminal                        what the design puts in the room
+        |  connected to
+VentilationSystem + AirHandlingUnit         what moves the air
+        |  realized as
+SpaceAirMovement                           what the simulation moves, this stage
+```
+
+- **The requirement is read and never written.** Realization touches no `PartFSpaceData`.
+- **`0..N` is the model, never `1`.** One 20 l/s terminal may become two of 10 without changing the
+  requirement, the space, the system, the duty or the scenario key. A space's duty is the **sum** of its
+  terminals, never the count of them. Realizing one terminal per continuous requirement is the initial
+  strategy, not an invariant.
+- **The system duty is derived, never stored.** `Query.VentilationSystemDesignDuty` sums the connected
+  terminals on demand, so it cannot go stale. It is checked against the Approved Document F requirement the
+  spaces carry, and a disagreement at the system total **refuses**.
+- **Supply and extract are separate everywhere.** A balanced heat recovery system balances at the *system*:
+  a bedroom is supplied and not extracted, a wet room extracted and not supplied, and the air moves between
+  them as transfer air. Deriving both directions from one figure — which is what the generic air-movement
+  builder did before, having nothing better to read — moves roughly the right total amount of air through
+  the wrong rooms.
+
+### The air movements are a network, and it must conserve
+
+TAS will not simulate a building in which **any one zone's** inter-zone air movements do not balance. A
+zone that gains air it never loses is refused outright — the EDSL documentation states the rule as *"any
+air flow imbalance will be reported as a Max Pressure Exceeded error"*, and SAM sees it only as
+`Simulation Failed`. Balance over the building as a whole is **not** enough; it is checked zone by zone.
+
+That is not a formality for this design, it is the design: a balanced heat recovery dwelling balances at
+the system, so almost every room is individually out of balance and the air that closes each of them is
+transfer air. Two objects carry it, and neither adjusts a design duty to get there:
+
+- **`Modify.AddPartFTransferAirMovements`** routes each space's net — supply less extract — through the
+  dwelling using `PartFAirflowNetwork`, the same network Approved Document F paragraph 1.25 is assessed
+  over. The connections are the model's own internal adjacencies. Where the network cannot route a space's
+  net, the preparation **refuses and names the room**; it does not invent a route, and it does not quietly
+  connect the room to outside, which would put untempered outside air into the wet rooms of a heat
+  recovery dwelling and flatter the overheating result the assessment turns on.
+- **The unit's exhaust**, built by `Modify.AddAirMovementObjects` as a `SpaceAirMovement` from the unit to
+  a destination of **null**. Null is how outside is said. Its flow is the sum of the extract movements, so
+  the unit's zone loses exactly the extract air it gained.
+
+**Conservation is summed per node, never matched per route.** These movements form a directed network: one
+unit feeds several rooms, a room may draw from several rooms and pass air on to several more, and flows
+split and recombine along the way. No movement has a partner, and a check that looked for one would reject
+a correct model. `Query.AirMovementResidual` sums every movement at each node — counting the unit's
+outside intake on the same terms the TBD writer derives it — and `Modify.PreparePartOIteration` refuses on
+any node that does not come out at zero.
+
+**The network is not built over the served spaces alone.** A `VentilationSystem` relates only to the spaces
+carrying a design terminal, but paragraph 1.25's transfer air crosses a space with none — a hall, a
+landing, a lobby — on its way between a supplied room and an extracted one. `Query.PartFTransferAirSpaces`
+widens the served spaces out to every other space of the *same dwelling*, read from the model's own `Zone`
+membership via `Query.PartFDwellingZones` — the same authority `PartFCalculator` sizes with, so a space this
+calls part of a dwelling is exactly a space Part F sized as part of it — so a zero-terminal internal hall
+stays in scope as a transfer node and is not routed around. It is
+not simply every space in the model, either: a communal corridor, stair or landlord area is excluded by the
+same widening, so the network can never carry one dwelling's transfer air through a common part into
+another dwelling, which Approved Document F forbids. Pinned by
+`SAM.Tests/PartFTransferAirDwellingScopeTests.cs`.
+
+### Requirement lineage across a Part F recalculation
+
+`PartFCalculator` mints a new `PartFVentilationTerminalRequirement` on every run, so a design terminal's
+`RequirementGuid` is stale the moment Part F is recalculated. `PartFTerminalReference` therefore carries the
+requirement's **regulatory identity** beside the guid — space, `PartFTerminalRole`, source paragraph — and
+re-linking is explicit in every direction: exactly one match re-links and reports; no match **refuses**;
+more than one match **refuses as ambiguous**. Nothing is guessed and nothing is silently repaired.
+
+The role is on the *reference*, not on the terminal. `FlowClassification` stays `Supply`/`Extract`, because
+local kitchen extract and general wet-room extract are the same thing physically and differ only under the
+Approved Document — and that distinction must not leak into a classification generic MEP work reads.
+
+### The model's own ventilation systems are evidence, not the design
+
+A model routinely arrives carrying the system-template assignment it was built with. The licensed acceptance
+model splits its rooms across an `NV` system, an `MV` system and a `UV` system while the assessment states
+one MVHR route for the whole dwelling. Iteration 1a **builds its own** system rather than attaching Base
+MVHR terminals to one of those — attaching them to a system typed `NV` would be untrue, and choosing between
+three would be a guess — and the air-movement realization is **scoped** to the system it built, so no room
+served by two systems is ventilated twice. What the model says is reported room by room as a warning and
+left exactly as authored. Reconciling it is design work, or Iteration 2's when it selects a real unit.
 
 Iterations 2 and 3 — acoustic restriction, summer bypass, boost, active cooling, manufacturer supply
-temperature, larger-unit selection — are likewise recorded in §2 and not implemented.
+temperature, larger-unit selection — are recorded in §2 and not implemented. They extend the topology built
+here rather than replacing it.
 
 ---
 
@@ -315,12 +425,24 @@ value `PartFOperatingMode.HighBoost`, which names a *rate*, not an operation.
 
 **4. Does TAS currently have a truthful write path for it?**
 
-**No.** `SAM.Analytical.Tas` exports the supply side only — `SupplyAirFlow` / `SupplyAirFlowPerArea` /
-`SupplyAirFlowPerPerson` reach the TBD as `freshAirRate` and the `ticV` factor, plus the
-`SAMZoneMetadata` decomposition in the zone description. `InternalConditionParameter.ExhaustAirFlow` is
-read in exactly one place in the whole repository — `PartODiagnosticLog`, for reporting — and is written
-to no TBD field. There is therefore no TAS representation of an intermittent extract to be truthful or
-untruthful with, let alone a scheduled one.
+**No — for an *intermittent* extract.** There is now one for a *continuous* one; the two answers are
+different and the distinction is the whole point of this section.
+
+`InternalConditionParameter.ExhaustAirFlow` still reaches **no** TBD field. It is read in exactly one place
+in the whole repository — `PartODiagnosticLog`, for reporting. The internal-gain export is supply-only:
+`SupplyAirFlow` / `SupplyAirFlowPerArea` / `SupplyAirFlowPerPerson` reach the TBD as `freshAirRate` and the
+`ticV` factor, plus the `SAMZoneMetadata` decomposition in the zone description.
+
+What Iteration 1a added is a *different* mechanism, not a write path for that parameter. A design extract
+terminal becomes a `SpaceAirMovement` from the room **to the air handling unit**, and `Modify.UpdateIZAMs`
+writes it as an inter-zone air movement on the unit's own TAS zone, sourced from the room. That direction
+has to be expressed that way round: `TBD.IIZAM` has a source zone, target zones and a `fromOutside` flag,
+and **no outward direction at all**, so an air movement with an unstated destination is written onto its own
+room's zone with neither a source nor outside air behind it and moves nothing. That is what every outward
+movement did before Iteration 1a, and it is the one `SAM_Tas` production change the milestone needed.
+
+None of that gives an *intermittent* extract a representation. The rate is continuous, and the movement runs
+whenever its profile does.
 
 ### The consequence, and it is deliberate
 
@@ -336,6 +458,11 @@ with the intermittent wet-room extract **preserved as data and not modelled as r
 is not a gap that blocks the NV/opening workflow: SAM has the rate but not the operation, TAS has neither,
 and inventing a schedule would be exactly the failure mode this architecture exists to prevent. It is a
 documented future runtime-control item.
+
+Iteration 1a does not change that. It realizes the **continuous** extract a wet room is sized for, because
+the calculator is System 4 shaped and that terminal runs at the Approved Document F sizing condition. A
+terminal with no `ContinuousDesignFlowRate_Lps` — a cooker hood, a separate intermittent extract fan — is
+realized as nothing at all, so no intermittent rate is turned into a 24/7 flow.
 
 ---
 
@@ -380,7 +507,16 @@ ventilation system; that dependency is what `PartOVentilationMode` removes.
 | Route refuses missing / unknown / ambiguous / mixed | **Implemented** |
 | Iteration 1b `BaseNaturalVentilation` | **Implemented**, licensed acceptance in `PartO-TAS-VALIDATION.md` |
 | Authored opening behaviour preserved through preparation | **Implemented** |
-| Iteration 1a `BaseMVHR` + MVHR unit selection | Not implemented — §5 |
+| Iteration 1a `BasePassive` — design terminals, generic system, design duty, directional runtime | **Implemented** — §5 |
+| Design terminal `0..N` per requirement, per space, per direction | **Implemented** — §5 |
+| Requirement lineage re-linked explicitly across a Part F recalculation | **Implemented** — §5 |
+| Internal transfer air, routed by the Part F airflow network | **Implemented** — §5 |
+| Air handling unit exhaust to outside | **Implemented** — §5 |
+| Conservation refused per zone, summed over every movement | **Implemented** — §5 |
+| Transfer air through a space with no design terminal (an internal hall) | **Implemented** — §5, `Query.PartFTransferAirSpaces` |
+| MVHR unit **selection** against the derived duty | Not implemented — Iteration 2, §5 |
+| Design terminal physical placement (`Location`) | Seam present, unused — §5 |
+| Reconciling the model's own ventilation systems with the stated route | Not implemented — reported only, §5 |
 | Iteration 2 acoustic restriction / bypass / boost | Not implemented — §2 |
 | Iteration 3 active cooling / manufacturer performance | Not implemented — §2 |
 | Per-zone (mixed NV + mechanical) airflow application | Not implemented — refuses |

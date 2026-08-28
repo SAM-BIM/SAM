@@ -139,6 +139,11 @@ WHAT IT STILL DOES NOT DO
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "supply m3/s", NickName = "supply m3/s", Description = "APPLIED supply air flow per space [m3/s], read back through Query.CalculatedSupplyAirFlow - the value the simulation will actually use. Matches the spaces output item for item.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "extract m3/s", NickName = "extract m3/s", Description = "APPLIED extract air flow per space [m3/s], from the space's internal condition. Matches the spaces output item for item.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "partF l/s", NickName = "partF l/s", Description = "The Part F sized rate the application read, per space [l/s] - supply for a habitable room, extract for a wet room. Compare against supply m3/s x 1000 to confirm what was applied.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "ventilationTerminals", NickName = "ventilationTerminals", Description = "The design ventilation terminals realized for this iteration - one per continuous Approved Document F requirement, unless a designer has subdivided them. Empty on the NaturalVentilation route, which has no continuous mechanical terminals to realize.\n\nA space may hold any number of supply and any number of extract terminals. Read the SUM of a space's terminals, never the first one.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "ventilationSystem", NickName = "ventilationSystem", Description = "The generic ventilation system the design terminals were connected to, or nothing on the NaturalVentilation route. No manufacturer unit is selected at this iteration.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "airHandlingUnit", NickName = "airHandlingUnit", Description = "The generic air handling unit that system supplies from, or nothing on the NaturalVentilation route.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "supply duty l/s", NickName = "supply duty l/s", Description = "The system's total design supply duty [l/s], summed from its connected supply terminals. This is the figure a real unit will have to meet at Iteration 2.\n\nDerived from the terminals on demand and never stored on the system, so it cannot go stale when a terminal is added, removed or re-balanced.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Number() { Name = "extract duty l/s", NickName = "extract duty l/s", Description = "The system's total design extract duty [l/s], summed from its connected extract terminals.\n\nNot required to equal the supply duty in any one room: a balanced heat recovery system balances at the SYSTEM, with transfer air moving between the supplied and the extracted rooms.", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "notes", NickName = "notes", Description = "What was applied to each space and what it displaced.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "refusals", NickName = "refusals", Description = "Everything that produced no result, and why.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "successful", NickName = "successful", Description = "Were the rates applied and scenarios stated with nothing refused?", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
@@ -324,6 +329,36 @@ WHAT IT STILL DOES NOT DO
             if (index != -1)
             {
                 dataAccess.SetDataList(index, spaces.ConvertAll(x => x?.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData)?.ContinuousDesignFlowRate_Lps ?? 0));
+            }
+
+            index = Params.IndexOfOutputParam("ventilationTerminals");
+            if (index != -1)
+            {
+                dataAccess.SetDataList(index, partOIterationPreparation.VentilationTerminals.ConvertAll(x => new GooAnalyticalObject(x)));
+            }
+
+            index = Params.IndexOfOutputParam("ventilationSystem");
+            if (index != -1 && partOIterationPreparation.VentilationSystem != null)
+            {
+                dataAccess.SetData(index, new GooAnalyticalObject(partOIterationPreparation.VentilationSystem));
+            }
+
+            index = Params.IndexOfOutputParam("airHandlingUnit");
+            if (index != -1 && partOIterationPreparation.AirHandlingUnit != null)
+            {
+                dataAccess.SetData(index, new GooAnalyticalObject(partOIterationPreparation.AirHandlingUnit));
+            }
+
+            index = Params.IndexOfOutputParam("supply duty l/s");
+            if (index != -1)
+            {
+                dataAccess.SetData(index, Rounded(partOIterationPreparation.DesignSupplyDuty_Lps));
+            }
+
+            index = Params.IndexOfOutputParam("extract duty l/s");
+            if (index != -1)
+            {
+                dataAccess.SetData(index, Rounded(partOIterationPreparation.DesignExtractDuty_Lps));
             }
 
             index = Params.IndexOfOutputParam("notes");

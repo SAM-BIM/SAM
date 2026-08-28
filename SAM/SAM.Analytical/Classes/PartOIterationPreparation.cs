@@ -56,6 +56,74 @@ namespace SAM.Analytical
         /// </summary>
         public PartOPartFAirflowApplication AirflowApplication { get; internal set; }
 
+        /// <summary>
+        /// The design ventilation terminals realized for this iteration, or empty where the route has none.
+        /// <para>
+        /// Realized only on the MVHR route, and only because the Base MVHR operating scenario asks for
+        /// design-rate operation - never because a space happens to carry an airflow. On the natural
+        /// ventilation route this is empty, which is the honest answer: Iteration 1b has no continuous
+        /// mechanical terminals to realize.
+        /// </para>
+        /// <para>
+        /// <b>Zero, one or many per space per direction.</b> Read the sum, never the count.
+        /// </para>
+        /// </summary>
+        public List<VentilationTerminal> VentilationTerminals { get; } = [];
+
+        /// <summary>
+        /// The generic ventilation system the design terminals were connected to, or null where the route
+        /// has none. No manufacturer unit is selected at this iteration.
+        /// <para>
+        /// <b>The FIRST dwelling's system where the assessment covers more than one.</b> PartFCalculator
+        /// sizes each dwelling zone independently, so Base MVHR realizes one generic system per assessed
+        /// dwelling rather than combining independent dwellings onto shared plant - kept singular here for
+        /// callers built before a model could carry more than one. Read <see cref="VentilationSystems"/>
+        /// instead where the assessment may cover more than one dwelling.
+        /// </para>
+        /// </summary>
+        public VentilationSystem VentilationSystem { get; internal set; }
+
+        /// <summary>
+        /// The generic air handling unit that system supplies from, or null where the route has none. The
+        /// FIRST dwelling's unit - see <see cref="VentilationSystem"/> and <see cref="AirHandlingUnits"/>.
+        /// </summary>
+        public AirHandlingUnit AirHandlingUnit { get; internal set; }
+
+        /// <summary>
+        /// One generic ventilation system per assessed dwelling zone, in the same deterministic (name then
+        /// guid) order the dwellings were processed in. Empty on the NaturalVentilation route.
+        /// <para>
+        /// <see cref="VentilationSystem"/> is <c>VentilationSystems[0]</c> where this is non-empty - the two
+        /// never disagree.
+        /// </para>
+        /// </summary>
+        public List<VentilationSystem> VentilationSystems { get; } = [];
+
+        /// <summary>The air handling unit for each entry of <see cref="VentilationSystems"/>, item for item.</summary>
+        public List<AirHandlingUnit> AirHandlingUnits { get; } = [];
+
+        /// <summary>
+        /// The total design supply duty [l/s] summed across every dwelling system this run built, from
+        /// their connected supply terminals. <see cref="double.NaN"/> where no system was built.
+        /// <para>
+        /// This is the figure a real unit will have to meet at Iteration 2. It is derived on demand from
+        /// the terminals and never stored on the system, so it cannot go stale when a terminal is added,
+        /// removed or re-balanced - see <c>Query.VentilationSystemDesignDuty</c>.
+        /// </para>
+        /// </summary>
+        public double DesignSupplyDuty_Lps { get; internal set; } = double.NaN;
+
+        /// <summary>
+        /// The total design extract duty [l/s] summed across every dwelling system this run built, from
+        /// their connected extract terminals. <see cref="double.NaN"/> where no system was built.
+        /// <para>
+        /// Reported separately from <see cref="DesignSupplyDuty_Lps"/> and not required to equal it in any
+        /// one room: a balanced heat recovery system balances at the system, with transfer air moving
+        /// between the supplied and the extracted rooms.
+        /// </para>
+        /// </summary>
+        public double DesignExtractDuty_Lps { get; internal set; } = double.NaN;
+
         /// <summary>What was applied to each space, what it displaced, and what was deliberately not applied.</summary>
         public List<string> Notes { get; } = [];
 
