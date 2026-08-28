@@ -1,0 +1,156 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
+
+using System.Collections.Generic;
+
+namespace SAM.Analytical
+{
+    public static partial class Modify
+    {
+        /// <summary>
+        /// Sets one space's design airflow in one direction, leaving every other space alone.
+        /// <para>
+        /// <b>Space-targeted, because that is the engineering control Approved Document O needs.</b> An
+        /// overheating iteration typically fails in one room: a single bedroom on a west facade, with the
+        /// rest of the dwelling passing comfortably. Raising that bedroom from 20 to 24 l/s and leaving
+        /// the other rooms at 20 and 40 is the correct answer, and a data model that could only scale
+        /// every room together could not express it. Nothing here scales anything: a caller wanting a
+        /// proportional strategy applies it room by room through this, so a strategy stays a strategy
+        /// rather than becoming the only mechanism the model has.
+        /// </para>
+        /// <para>
+        /// <b>The Approved Document F requirement is not touched, and is not allowed to be undercut.</b>
+        /// The requirement lives on the space's <c>PartFSpaceData</c> and this never writes to it - it
+        /// reads it, and refuses a design below it. That is the lower half of the Iteration 2 invariant
+        /// <c>PartFRequired &lt;= Design</c>: design airflow is a deliberate choice made <i>above</i> a
+        /// regulatory floor, so lowering a room past the floor is not a design decision but a compliance
+        /// failure, and it is refused rather than recorded.
+        /// </para>
+        /// <para>
+        /// <b>Nothing runtime is written.</b> No profile, no internal condition airflow, no simulation
+        /// operating state. The design airflow is what the dwelling's design network is recalculated from
+        /// - see <c>Modify.PreparePartOIteration</c>, which rebuilds the air movements and the transfer
+        /// air from these terminals - and turning a design number into an operating one is an explicit,
+        /// separate step.
+        /// </para>
+        /// <para>
+        /// <b>A subdivided room keeps its subdivision.</b> Where a space carries several terminals of the
+        /// direction, the new total is distributed across them <i>in the proportions they already have</i>,
+        /// so four diffusers stay four diffusers and a deliberate imbalance between them survives. Where
+        /// the existing terminals total zero the share is equal, there being no proportion to preserve.
+        /// </para>
+        /// </summary>
+        /// <param name="adjacencyCluster">The model. <b>Modified in place</b> on success.</param>
+        /// <param name="space">The room whose design airflow is being set.</param>
+        /// <param name="flowClassification">Supply or extract. The two move independently and one call sets one of them.</param>
+        /// <param name="designFlowRate_Lps">The new design airflow [l/s] for the room, as a total across its terminals.</param>
+        /// <param name="notes">What changed, from what to what, and against which requirement.</param>
+        /// <param name="refusals">Why nothing changed, one sentence. Empty on success.</param>
+        /// <returns>The space's terminals of that direction as they now stand, or null on a refusal.</returns>
+        public static List<VentilationTerminal> SetSpaceDesignFlowRate(this AdjacencyCluster adjacencyCluster, Space space, FlowClassification flowClassification, double designFlowRate_Lps, out List<string> notes, out List<string> refusals, double tolerance_Lps = 0.001)
+        {
+            notes = [];
+            refusals = [];
+
+            if (adjacencyCluster is null || space is null)
+            {
+                refusals.Add("No space was supplied, so no design airflow could be set.");
+
+                return null;
+            }
+
+            if (double.IsNaN(designFlowRate_Lps) || double.IsInfinity(designFlowRate_Lps) || designFlowRate_Lps < 0)
+            {
+                refusals.Add(string.Format("Space '{0}': {1} l/s is not a design airflow. Nothing was changed.", space.Name, designFlowRate_Lps));
+
+                return null;
+            }
+
+            //Taken from the cluster rather than trusted as handed in: a caller may be holding a space from
+            //before the Part F rates were applied, and that one carries a different parameter set.
+            Space space_Cluster = (adjacencyCluster.GetSpaces() ?? []).Find(x => x is not null && x.Guid == space.Guid);
+            if (space_Cluster is null)
+            {
+                refusals.Add(string.Format("Space '{0}' is not in the model, so its design airflow could not be set.", space.Name));
+
+                return null;
+            }
+
+            List<VentilationTerminal> result = Query.VentilationTerminals(adjacencyCluster.VentilationTerminals(space_Cluster), flowClassification) ?? [];
+
+            if (result.Count == 0)
+            {
+                refusals.Add(string.Format(
+                    "Space '{0}' has no design {1} terminal, so there is no design airflow to set. Realize the Approved Document F requirements first, or add a terminal deliberately - creating one here would invent a duty the assessment did not size.",
+                    space_Cluster.Name,
+                    Core.Query.Description(flowClassification)));
+
+                return null;
+            }
+
+            //The regulatory floor, read and never written. Null means the space was never sized, which is
+            //not a floor of zero and not a reason to refuse - a designer may deliberately move air through
+            //a room Approved Document F said nothing about.
+            double? requirement_Lps = adjacencyCluster.PartFRequiredFlowRate_Lps(space_Cluster, flowClassification);
+
+            if (requirement_Lps.HasValue && designFlowRate_Lps + tolerance_Lps < requirement_Lps.Value)
+            {
+                refusals.Add(string.Format(
+                    "Space '{0}': a design {1} airflow of {2:0.###} l/s is below the {3:0.###} l/s Approved Document F requires of that room. Design airflow is chosen above the regulatory minimum, never below it, so nothing was changed. Re-run the Part F calculation if the requirement itself is wrong.",
+                    space_Cluster.Name,
+                    Core.Query.Description(flowClassification),
+                    designFlowRate_Lps,
+                    requirement_Lps.Value));
+
+                return null;
+            }
+
+            double total_Lps = Query.VentilationTerminalDesignDuty_Lps(result, flowClassification) ?? 0;
+
+            List<VentilationTerminal> result_Updated = [];
+
+            for (int i = 0; i < result.Count; i++)
+            {
+                VentilationTerminal ventilationTerminal = result[i];
+
+                double share_Lps;
+
+                if (total_Lps > tolerance_Lps)
+                {
+                    //Proportional to what the terminal already carries, so a subdivision a designer chose -
+                    //and any deliberate imbalance within it - survives the change.
+                    double existing_Lps = ventilationTerminal.DesignFlowRate_Lps.HasValue && !double.IsNaN(ventilationTerminal.DesignFlowRate_Lps.Value) ? ventilationTerminal.DesignFlowRate_Lps.Value : 0;
+
+                    share_Lps = designFlowRate_Lps * existing_Lps / total_Lps;
+                }
+                else
+                {
+                    share_Lps = designFlowRate_Lps / result.Count;
+                }
+
+                //A COPY with the same guid, following Modify.RealizePartFVentilationTerminals: the cluster
+                //this call was given is updated while the model the caller may still hold is not reached
+                //through the shared object instance.
+                VentilationTerminal ventilationTerminal_Updated = new(ventilationTerminal.Guid, ventilationTerminal)
+                {
+                    DesignFlowRate_Lps = share_Lps
+                };
+
+                adjacencyCluster.AddObject(ventilationTerminal_Updated);
+
+                result_Updated.Add(ventilationTerminal_Updated);
+            }
+
+            notes.Add(string.Format(
+                "Space '{0}': design {1} airflow set from {2:0.###} l/s to {3:0.###} l/s across {4} terminal(s). Approved Document F still requires {5} of that room and is unchanged; no other space was touched and no runtime airflow was written.",
+                space_Cluster.Name,
+                Core.Query.Description(flowClassification),
+                total_Lps,
+                designFlowRate_Lps,
+                result_Updated.Count,
+                requirement_Lps.HasValue ? string.Format("{0:0.###} l/s", requirement_Lps.Value) : "nothing"));
+
+            return result_Updated;
+        }
+    }
+}

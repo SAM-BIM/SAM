@@ -53,19 +53,28 @@ namespace SAM.Analytical
 
         /// <summary>
         /// Checks the design duty of a system's terminals against the Approved Document F requirement its
-        /// spaces carry, and says where they disagree.
+        /// spaces carry, and says where they differ.
         /// <para>
         /// <b>Two independent derivations, compared rather than reconciled.</b> The duty comes from the
         /// design terminals; the requirement comes from <c>PartFSpaceData</c> on the spaces, which is what
         /// <c>PartFCalculator</c> wrote and what <c>Modify.ApplyPartFVentilationRates</c> read. Neither is
-        /// allowed to correct the other. A disagreement at the system total is a <b>refusal</b>, because
-        /// the model would then simulate a dwelling ventilated to a figure nobody sized.
+        /// allowed to correct the other.
         /// </para>
         /// <para>
-        /// <b>A room-level disagreement is reported, not refused.</b> Two terminals of 10 l/s realizing a
+        /// <b>The comparison is one-sided, and that is the Iteration 2 invariant.</b> A design duty
+        /// <i>below</i> the requirement at the system total is a <b>refusal</b>: the model would simulate
+        /// a dwelling ventilated below the rate the Approved Document requires of it. A design duty
+        /// <i>above</i> the requirement is design headroom - the mechanism an Approved Document O
+        /// iteration raises a failing room through - and is <b>noted</b> rather than refused. Iteration 1a
+        /// compared the two with an absolute difference, which was right while the design was defined as
+        /// realizing the requirement exactly and which would now refuse every optimised dwelling; see
+        /// <see cref="Refuse"/>.
+        /// </para>
+        /// <para>
+        /// <b>A room-level difference is reported either way.</b> Two terminals of 10 l/s realizing a
         /// 20 l/s requirement agree; two of 15 do not, and the design may still be deliberate. Naming the
-        /// room and both numbers puts that in front of the engineer without deciding it for them - and any
-        /// divergence that is not cancelled out elsewhere reaches the system total anyway, where it does
+        /// room and both numbers puts that in front of the engineer without deciding it for them - and a
+        /// shortfall that is not cancelled out elsewhere reaches the system total anyway, where it does
         /// refuse.
         /// </para>
         /// </summary>
@@ -74,7 +83,7 @@ namespace SAM.Analytical
         /// borrowed distance tolerance - see <see cref="PartFSystemCapabilityRequirement"/> for the same
         /// reasoning.
         /// </param>
-        /// <returns>Whether the totals agree.</returns>
+        /// <returns>Whether the design duty meets the requirement on both sides.</returns>
         public static bool ReconcileVentilationSystemDesignDuty(this AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem, out List<string> notes, out List<string> warnings, out List<string> refusals, double tolerance_Lps = 0.001)
         {
             notes = [];
@@ -126,11 +135,24 @@ namespace SAM.Analytical
             if (result)
             {
                 notes.Add(string.Format(
-                    "Ventilation system '{0}' design duty: supply {1:0.###} l/s, extract {2:0.###} l/s, summed from {3} design terminal(s) and agreeing with the Approved Document F requirement its spaces carry.",
+                    "Ventilation system '{0}' design duty: supply {1:0.###} l/s, extract {2:0.###} l/s, summed from {3} design terminal(s) and meeting the Approved Document F requirement its spaces carry.",
                     ventilationSystem.FullName,
                     supplyDuty_Lps,
                     extractDuty_Lps,
                     (adjacencyCluster.VentilationTerminals(ventilationSystem) ?? []).Count));
+
+                //A design above the requirement is legal and deliberate, but it is never silent: the whole
+                //reason the two totals are derived separately is so that the gap between them can be read.
+                if (supplyDuty_Lps > requirement_Supply_Lps + tolerance_Lps || extractDuty_Lps > requirement_Extract_Lps + tolerance_Lps)
+                {
+                    notes.Add(string.Format(
+                        "Ventilation system '{0}' is designed above the Approved Document F requirement of {1:0.###} l/s supply and {2:0.###} l/s extract, by {3:0.###} l/s supply and {4:0.###} l/s extract. That difference is a design decision, not a recalculated requirement - the requirement is unchanged.",
+                        ventilationSystem.FullName,
+                        requirement_Supply_Lps,
+                        requirement_Extract_Lps,
+                        supplyDuty_Lps - requirement_Supply_Lps,
+                        extractDuty_Lps - requirement_Extract_Lps));
+                }
             }
 
             return result;
@@ -143,26 +165,53 @@ namespace SAM.Analytical
                 return;
             }
 
-            string note = string.Format(
-                "Space '{0}': the design {1} terminals total {2:0.###} l/s but Approved Document F sized {3:0.###} l/s. The design terminals are what will be simulated; this is reported so the difference is a decision rather than a surprise.",
-                space.Name,
-                direction,
-                duty_Lps,
-                requirement_Lps);
+            string note = duty_Lps > requirement_Lps
+                ? string.Format(
+                    "Space '{0}': the design {1} terminals total {2:0.###} l/s against the {3:0.###} l/s Approved Document F sized, so {4:0.###} l/s of that room's airflow is design headroom above the requirement. The design terminals are what will be simulated; this is reported so the difference is a decision rather than a surprise.",
+                    space.Name,
+                    direction,
+                    duty_Lps,
+                    requirement_Lps,
+                    duty_Lps - requirement_Lps)
+                : string.Format(
+                    "Space '{0}': the design {1} terminals total {2:0.###} l/s but Approved Document F sized {3:0.###} l/s. The design terminals are what will be simulated; this is reported so the difference is a decision rather than a surprise.",
+                    space.Name,
+                    direction,
+                    duty_Lps,
+                    requirement_Lps);
 
             notes.Add(note);
             warnings.Add(note);
         }
 
+        /// <summary>
+        /// Refuses a design duty <b>below</b> the Approved Document F requirement, and accepts one above
+        /// it as design headroom.
+        /// <para>
+        /// <b>The asymmetry is the point, and it is an Iteration 2 correction.</b> Iteration 1a compared
+        /// the two totals with an absolute difference, which was right while the design was defined as
+        /// realizing the requirement exactly - but it hard-codes <c>Design == Required</c> and makes the
+        /// invariant this iteration is built on, <c>PartFRequired &lt;= Design &lt;= SelectedCapacity</c>,
+        /// impossible to express. An Approved Document O iteration that raises one failing bedroom from
+        /// 20 to 24 l/s would have been refused as a model nobody sized.
+        /// </para>
+        /// <para>
+        /// Below the requirement is still a <b>refusal</b>, and for the original reason: the model would
+        /// otherwise simulate a dwelling ventilated below the rate the Approved Document requires of it,
+        /// and no design intent makes that a legal building. Above the requirement is a deliberate design
+        /// choice - the whole mechanism Part O optimisation works through - so it is <b>noted</b>, room by
+        /// room and at the system total, and never silently accepted either.
+        /// </para>
+        /// </summary>
         private static bool Refuse(List<string> refusals, VentilationSystem ventilationSystem, string direction, double duty_Lps, double requirement_Lps, double tolerance_Lps)
         {
-            if (System.Math.Abs(duty_Lps - requirement_Lps) <= tolerance_Lps)
+            if (duty_Lps + tolerance_Lps >= requirement_Lps)
             {
                 return true;
             }
 
             refusals.Add(string.Format(
-                "Ventilation system '{0}' has a design {1} duty of {2:0.###} l/s but the Approved Document F requirement on the spaces it serves totals {3:0.###} l/s. These are two independent statements of the same quantity and neither may be preferred silently, so nothing was prepared. Re-run the Part F calculation, or correct the design terminal duties, so that the two agree.",
+                "Ventilation system '{0}' has a design {1} duty of {2:0.###} l/s, below the {3:0.###} l/s the Approved Document F requirement on the spaces it serves totals. Design airflow is chosen above the regulatory minimum, never below it, so nothing was prepared. Re-run the Part F calculation, or raise the design terminal duties, so that the design meets the requirement.",
                 ventilationSystem.FullName,
                 direction,
                 duty_Lps,

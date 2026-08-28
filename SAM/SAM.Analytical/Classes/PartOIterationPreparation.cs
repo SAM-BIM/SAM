@@ -103,6 +103,26 @@ namespace SAM.Analytical
         public List<AirHandlingUnit> AirHandlingUnits { get; } = [];
 
         /// <summary>
+        /// The reusable ventilation unit product each dwelling was fitted with, one entry per successful
+        /// selection. Empty where no product catalogue was offered, which is Iteration 1a's state and not
+        /// a failure.
+        /// <para>
+        /// <b>Not item-for-item with <see cref="AirHandlingUnits"/>.</b> A dwelling nothing in the
+        /// catalogue can serve contributes a sentence to <see cref="Refusals"/> and no entry here, and the
+        /// other dwellings still select - so the two lists are the same length only when every dwelling
+        /// found a unit. Read the selection off the unit itself, through
+        /// <c>Query.SelectedVentilationUnitReference</c>, where the pairing matters.
+        /// </para>
+        /// <para>
+        /// <b>The capacity here is the equipment's, never the dwelling's.</b>
+        /// <see cref="VentilationUnitSelection.SupplyHeadroom_Lps"/> is design headroom deliberately left
+        /// unspent - <see cref="DesignSupplyDuty_Lps"/> is what the dwelling actually moves, and selecting
+        /// a larger unit never raises it.
+        /// </para>
+        /// </summary>
+        public List<VentilationUnitSelection> VentilationUnitSelections { get; } = [];
+
+        /// <summary>
         /// The total design supply duty [l/s] summed across every dwelling system this run built, from
         /// their connected supply terminals. <see cref="double.NaN"/> where no system was built.
         /// <para>

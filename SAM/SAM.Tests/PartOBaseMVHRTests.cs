@@ -641,12 +641,21 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// A duty a designer has pushed away from the requirement is <b>refused at the system total</b>,
-        /// naming both figures. Neither statement is preferred silently, because the model would otherwise
-        /// simulate a dwelling ventilated to a figure nobody sized.
+        /// A duty a designer has pushed <b>below</b> the requirement is refused at the system total,
+        /// naming both figures. The model would otherwise simulate a dwelling ventilated below the rate
+        /// the Approved Document requires of it, and no design intent makes that a legal building.
+        /// <para>
+        /// <b>The comparison became one-sided at Iteration 2, and this test with it.</b> It previously
+        /// pushed the bedroom terminal <i>up</i> by 7.5 l/s and required a refusal, which encoded
+        /// <c>Design == Required</c> - the assumption Iteration 2 exists to lift. Design airflow above the
+        /// requirement is now design headroom, reported rather than refused, and is what an Approved
+        /// Document O iteration spends when it raises a failing room; see
+        /// <see cref="PartOVentilationUnitSelectionTests"/> and the test below. Below the requirement
+        /// still refuses, which is what this now pins.
+        /// </para>
         /// </summary>
         [Fact]
-        public void ADutyThatDisagreesWithTheRequirement_Refuses()
+        public void ADutyBelowTheRequirement_Refuses()
         {
             PartOIterationPreparation preparation = Prepared();
 
@@ -654,7 +663,7 @@ namespace SAM.Tests
 
             VentilationTerminal ventilationTerminal = Analytical.Query.VentilationTerminals(Analytical.Query.VentilationTerminals(adjacencyCluster, Space(preparation.AnalyticalModel, name_Bedroom)), FlowClassification.Supply)[0];
 
-            ventilationTerminal.DesignFlowRate_Lps += 7.5;
+            ventilationTerminal.DesignFlowRate_Lps -= 2.5;
             adjacencyCluster.AddObject(ventilationTerminal);
 
             PartOIterationPreparation preparation_After = Prepare(new AnalyticalModel(preparation.AnalyticalModel, adjacencyCluster), PartOIteration.BasePassive, "MVRE");
@@ -662,6 +671,50 @@ namespace SAM.Tests
             Assert.NotNull(preparation_After.Refusal);
             Assert.Null(preparation_After.AnalyticalModel);
             Assert.Contains("design supply duty", preparation_After.Refusal);
+            Assert.Contains("below", preparation_After.Refusal);
+        }
+
+        /// <summary>
+        /// A duty a designer has pushed <b>above</b> the requirement is design headroom: it is reported at
+        /// the system total and at the room, and it is not refused.
+        /// <para>
+        /// The reporting matters as much as the acceptance. The two totals are derived separately precisely
+        /// so the gap between them can be read, and an unremarked divergence would be indistinguishable
+        /// from a mistake.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ADutyAboveTheRequirement_IsReportedAsHeadroomAndNotRefused()
+        {
+            PartOIterationPreparation preparation = Prepared();
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            //The bedroom gains supply and the bathroom the matching extract: on a balanced unit the two
+            //sides have to stay equal, or Iteration 1a's conservation check refuses for a different reason
+            //than the one under test.
+            AddDuty(adjacencyCluster, preparation.AnalyticalModel, name_Bedroom, FlowClassification.Supply, 7.5);
+            AddDuty(adjacencyCluster, preparation.AnalyticalModel, name_Bathroom, FlowClassification.Extract, 7.5);
+
+            PartOIterationPreparation preparation_After = Prepare(new AnalyticalModel(preparation.AnalyticalModel, adjacencyCluster), PartOIteration.BasePassive, "MVRE");
+
+            Assert.Null(preparation_After.Refusal);
+            Assert.NotNull(preparation_After.AnalyticalModel);
+
+            Assert.Equal(preparation.DesignSupplyDuty_Lps + 7.5, preparation_After.DesignSupplyDuty_Lps, 6);
+            Assert.Equal(preparation.DesignExtractDuty_Lps + 7.5, preparation_After.DesignExtractDuty_Lps, 6);
+
+            Assert.Contains(preparation_After.Notes, x => x.Contains("designed above the Approved Document F requirement"));
+            Assert.Contains(preparation_After.Warnings, x => x.Contains(name_Bedroom) && x.Contains("design headroom"));
+        }
+
+        private static void AddDuty(AdjacencyCluster adjacencyCluster, AnalyticalModel analyticalModel, string name_Space, FlowClassification flowClassification, double increase_Lps)
+        {
+            VentilationTerminal ventilationTerminal = Analytical.Query.VentilationTerminals(Analytical.Query.VentilationTerminals(adjacencyCluster, Space(analyticalModel, name_Space)), flowClassification)[0];
+
+            ventilationTerminal.DesignFlowRate_Lps += increase_Lps;
+
+            adjacencyCluster.AddObject(ventilationTerminal);
         }
 
         // =================================================================================================
