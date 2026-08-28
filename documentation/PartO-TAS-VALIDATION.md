@@ -1862,3 +1862,67 @@ assigned).
 acceptance used, gives exactly `TOTAL|values=78840|differing=16690` on the original `A0.sam` — the one
 figure the reconstructed laptop could not prove, now confirmed unchanged by the production topology
 correction.
+
+---
+
+## `A0.sam` retired as the Base MVHR whole-model acceptance fixture (2026-08-28)
+
+**Second-round Codex review on SAM#77** found that `PrepareBaseMVHR` combined every assessed dwelling onto
+one shared generic system/AHU, even though `PartFCalculator` sizes each dwelling zone independently. Fixed:
+`Modify.PrepareBaseMVHR` now partitions the assessed scope into one group per dwelling zone
+(`Query.PartFDwellingZones` + the zone→space relation) and builds or reuses one system per dwelling, never
+one shared system across independent dwellings.
+
+**Re-running the Original A0 Final Acceptance above under this fix no longer produces a result at all.**
+That acceptance assessed the WHOLE model — all four zones, confirmed from the harness source
+(`C:\TasOut\inv\PartO.cs`'s `partoauthor` mode calls `analyticalModel.GetZones()`, every zone, not a
+subset) — and under the fix that whole-model run now refuses. So does every one of A0's three flats
+assessed alone:
+
+| dwelling | own net design-duty imbalance | assessed alone |
+|---|---|---|
+| Flat 1 (`Studio 1_0`, `Bathroom_2`) | -19.5 l/s | refuses: `Studio 1_0` and `Bathroom_2` are both net sinks with no internal source |
+| Flat 2 (`Bedroom 2_3`, `Living Kitchen_4`, `Ensuite_5`) | +26 l/s | refuses: `The air movements do not balance: Ensuite_5 gains 10.667 l/s, Living Kitchen_4 gains 15.333 l/s.` |
+| Flat 3 (`Bedroom 2_6`, `Kitchen_7`, `Ensuite_8`) | -6.5 l/s | refuses: `Ensuite_8 loses 1 l/s, Kitchen_7 loses 5.5 l/s` |
+
+The three imbalances sum to **exactly zero** only across the whole building — not a coincidence. It is the
+fingerprint of the exact defect the fix closes: the old single-shared-system code let one flat's transfer
+air surplus balance a different flat's deficit through whatever adjacency happened to connect them, so the
+**"156/156 l/s, MVHR Air Movement Gain 0 W, max residual -0.000004 l/s"** result this document recorded
+above was resting on invalid cross-dwelling transfer, not on `A0.sam` genuinely being three independent,
+individually-balanced Base MVHR dwellings.
+
+**Confirmed this is a fixture defect, not a code defect, two ways:**
+
+1. **Adjacency is not the cause.** `zonespaces` (a new `C:\TasOut\inv` diagnostic mode) confirms Flat 2's
+   own three rooms are directly wall-connected to each other (`Bedroom 2_3 <-> Living Kitchen_4 <->
+   Ensuite_5`), with no need to route through `Corridor_1` or another flat — a self-contained transfer
+   route exists in principle. `INV_ZONE_ONLY=Flat 2` (a new diagnostic-only harness hook restricting the
+   `zones_` argument `partoauthor` passes into `Modify.PreparePartOIteration`) still refuses: `Bedroom 2_3`
+   alone (45.5 l/s supply, no extract) needs to shed more air internally than the other two rooms in its
+   OWN flat can sink (19.5 l/s of combined extract capacity) — a 26 l/s deficit intrinsic to that flat's
+   own Part F sizing, independent of any code scope.
+2. **Every flat fails the same way**, each for its own named-room reason
+   (`Modify.RefuseUnbalancedAirMovement`'s diagnostic names the exact rooms and residuals every time) —
+   there is no single dwelling that passes while others fail, which would point at a scoping bug. All
+   three fail, for three different room-level reasons, and their totals cancel only in aggregate.
+
+**Disposition.** `A0.sam`'s own Part F terminal data was never authored (or re-sized) to balance
+per-dwelling, only in aggregate across the whole building — a fact the pre-fix bug hid. Closing that bug
+is correct, and production logic was **not** changed to make `A0.sam` pass; doing so would mean either
+re-authoring the fixture's per-flat duties (design work on the fixture, out of scope for this PR) or
+letting transfer air cross dwelling boundaries again (reintroducing the defect). `A0.sam` therefore retires
+as the licensed acceptance fixture for Base MVHR's per-dwelling behaviour. The multi-dwelling seam is
+instead pinned by [SAM-BIM/SAM#77](https://github.com/SAM-BIM/SAM/pull/77)'s own automated `SAM.Tests`, on
+a real two-dwelling fixture built and independently balanced for exactly this purpose
+(`ModelWithTwoAssessedDwellings` in `PartOIterationPreparationTests.cs`, exercised by
+`TwoAssessedDwellings_EachGetsItsOwnVentilationSystemAndAirHandlingUnit` and three sibling tests).
+
+**Iteration 1b is untouched and re-confirmed live on the same fixture**: `1b OPEN/NIGHT` still reproduces
+the historic **16690/78840** figure exactly, because Iteration 1b (`BaseNaturalVentilation`) never reaches
+`PrepareBaseMVHR` — only the MVHR route does.
+
+Harness additions for this investigation (diagnostic-only, no production code touched): `ZoneSpaces.cs`
+(`zonespaces` mode) and `INV_ZONE_ONLY` in `PartO.cs`'s `Author` method. Evidence in `C:\TasOut\p1a4\`
+(whole-model refusal, adjacency dump, 1b regression) and `C:\TasOut\single\` (Flat 1/Flat 2 isolated
+re-runs).
