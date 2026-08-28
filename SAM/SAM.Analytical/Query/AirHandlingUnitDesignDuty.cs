@@ -249,7 +249,22 @@ namespace SAM.Analytical
                 return false;
             }
 
-            AirHandlingUnitDesignDuty(adjacencyCluster, airHandlingUnit, out double supplyDuty_Lps, out double extractDuty_Lps);
+            //NO duty is not a duty of zero, and a product is not adequate for it.
+            //
+            //A unit whose systems or design terminals have been removed or disconnected keeps its product
+            //selection, and its duty derives as 0/0 - which every non-negative capacity satisfies. Reporting
+            //that unit adequate would say the plant is fine for a dwelling that currently moves no air, and
+            //would suppress the reselection or reconstruction the model actually needs.
+            //Modify.SelectVentilationUnit already refuses this case; adequacy has to agree with it.
+            if (!AirHandlingUnitDesignDuty(adjacencyCluster, airHandlingUnit, out double supplyDuty_Lps, out double extractDuty_Lps))
+            {
+                reason = string.Format(
+                    "Air handling unit '{0}' supplies no ventilation system carrying design terminals, so there is no design duty to check its selected product '{1}' against. Adequacy is unknown rather than met.",
+                    airHandlingUnit.Name,
+                    ventilationUnitReference);
+
+                return false;
+            }
 
             if (ventilationUnitCapacityDescriptor.IsSufficientFor(supplyDuty_Lps, extractDuty_Lps, tolerance_Lps))
             {

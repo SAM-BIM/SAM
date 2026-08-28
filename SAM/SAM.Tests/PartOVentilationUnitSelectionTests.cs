@@ -1520,6 +1520,117 @@ namespace SAM.Tests
             Assert.Equal(double.PositiveInfinity, ventilationTerminal.DesignFlowRate_Lps.Value);
         }
 
+        /// <summary>
+        /// <b>A nonsense terminal in a room the transaction would only touch as a consequence still stops
+        /// it before the target is written.</b>
+        /// <para>
+        /// A room total hides it: <c>VentilationTerminalDesignDuty_Lps</c> skips a <c>NaN</c>, so a room
+        /// holding one NaN terminal beside healthy ones sums to a total that meets its requirement and
+        /// passes every plan check. Only the setter notices - and if that happened one room in, the target
+        /// would already be written and the all-or-nothing promise broken.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ANonsenseTerminalInADerivedRoom_StopsTheTransactionBeforeTheTargetIsWritten()
+        {
+            PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            //The kitchen is where cooking priority sends the derived extract. Give it a second, nonsense
+            //terminal beside its healthy one, so the room TOTAL still reads correctly.
+            Space space_Kitchen = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Kitchen);
+
+            VentilationTerminal ventilationTerminal_Nonsense = new("Nonsense extract", FlowClassification.Extract, double.NaN);
+            ventilationTerminal_Nonsense.SetValue(VentilationTerminalParameter.PartFTerminalReference, Analytical.Query.VentilationTerminals(adjacencyCluster.VentilationTerminals(space_Kitchen), FlowClassification.Extract)[0].GetValue<PartFTerminalReference>(VentilationTerminalParameter.PartFTerminalReference));
+
+            adjacencyCluster.AddObject(ventilationTerminal_Nonsense);
+            adjacencyCluster.AddRelation(ventilationTerminal_Nonsense, space_Kitchen);
+            adjacencyCluster.AddRelation(ventilationTerminal_Nonsense, Assert.Single(adjacencyCluster.GetObjects<VentilationSystem>()));
+
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(adjacencyCluster);
+
+            Space space_Bedroom = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Bedroom);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Bedroom, FlowClassification.Supply, Design(adjacencyCluster, space_Bedroom, FlowClassification.Supply) + 4);
+
+            Assert.False(change.Successful);
+            Assert.NotEmpty(change.Refusals);
+            Assert.Contains("not a quantity of air", change.Refusals[0]);
+
+            //THE TARGET IS UNTOUCHED - which is the whole point.
+            Assert.Null(change.TargetedAdjustment);
+            Assert.Empty(change.DerivedAdjustments);
+            Assert.Equal(terminals_Before, TerminalDesigns(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// <b>A change worth making is applied whole, even where its individual shares are each smaller
+        /// than the tolerance.</b>
+        /// <para>
+        /// The tolerance decides whether a <i>change</i> is worth making; it does not get to veto the
+        /// pieces that change is made of. With a 1 l/s tolerance a 1.5 l/s change split across two rooms
+        /// gives two 0.75 l/s shares - skipping both would write the target, balance nothing, and leave
+        /// exactly the partial change this transaction promises never to produce.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ASubToleranceShare_IsStillApplied()
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Space space_Supply = Room(adjacencyCluster, "Living Room", PartFTerminalRole.Supply, 10);
+            Space space_Extract_1 = Room(adjacencyCluster, "Bathroom", PartFTerminalRole.GeneralExtract, 5);
+            Space space_Extract_2 = Room(adjacencyCluster, "Shower Room", PartFTerminalRole.GeneralExtract, 5);
+
+            VentilationSystem ventilationSystem = new("Fixture", new VentilationSystemType("Fixture MVHR", "Fixture"));
+
+            adjacencyCluster.AddObject(ventilationSystem);
+
+            Terminal(adjacencyCluster, ventilationSystem, space_Supply, FlowClassification.Supply, 10);
+            Terminal(adjacencyCluster, ventilationSystem, space_Extract_1, FlowClassification.Extract, 5);
+            Terminal(adjacencyCluster, ventilationSystem, space_Extract_2, FlowClassification.Extract, 5);
+
+            adjacencyCluster.AddRelation(ventilationSystem, space_Supply);
+            adjacencyCluster.AddRelation(ventilationSystem, space_Extract_1);
+            adjacencyCluster.AddRelation(ventilationSystem, space_Extract_2);
+
+            //No cooking terminal here, so the derived 1.5 l/s splits evenly: 0.75 each, both under the
+            //1 l/s tolerance this call is given.
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Supply, FlowClassification.Supply, 11.5, PartFExtractAllocationStrategy.MinimumFirstCookingPriority, 1.0);
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+
+            Assert.Equal(2, change.DerivedAdjustments.Count);
+            Assert.Equal(11.5, change.SupplyDuty_Lps, 6);
+            Assert.Equal(11.5, change.ExtractDuty_Lps, 6);
+
+            Assert.Equal(5.75, Design(adjacencyCluster, space_Extract_1, FlowClassification.Extract), 6);
+            Assert.Equal(5.75, Design(adjacencyCluster, space_Extract_2, FlowClassification.Extract), 6);
+        }
+
+        /// <summary>
+        /// A unit with a product but no design duty is <b>unknown</b>, not adequate. Reporting it adequate
+        /// would say the plant is fine for a dwelling that currently moves no air, and would suppress the
+        /// reselection the model needs.
+        /// </summary>
+        [Fact]
+        public void AUnitWithNoDesignDuty_IsNotReportedAdequate()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out _);
+
+            //Every design terminal disconnected from the system, so the unit's duty derives from nothing.
+            VentilationSystem ventilationSystem = Assert.Single(adjacencyCluster.GetObjects<VentilationSystem>());
+
+            foreach (VentilationTerminal ventilationTerminal in adjacencyCluster.GetRelatedObjects<VentilationTerminal>(ventilationSystem) ?? [])
+            {
+                adjacencyCluster.RemoveRelation(ventilationSystem, ventilationTerminal);
+            }
+
+            Assert.False(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, DwellingCatalogue(), out string reason));
+            Assert.Contains("no design duty", reason);
+        }
+
         // =================================================================================================
         // I. Catalogue integrity - one identity, one meaning
         // =================================================================================================

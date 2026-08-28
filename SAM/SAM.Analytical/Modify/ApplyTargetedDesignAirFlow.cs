@@ -274,6 +274,37 @@ namespace SAM.Analytical
                 result.Notes.Add(note_Allocation);
             }
 
+            //LAST precondition, and it covers every room this transaction will write - the target and each
+            //planned derived room.
+            //
+            //A room total is shared out in proportion to what its terminals already carry, so a terminal
+            //carrying something that is not a quantity of air makes that impossible. The room TOTAL does
+            //not reveal it: Query.VentilationTerminalDesignDuty_Lps skips a NaN, so a room holding one NaN
+            //terminal beside healthy ones sums to a total that meets its requirement and passes every plan
+            //check above. Only the setter notices, one room in - by which time the target has been written
+            //and the all-or-nothing promise is already broken. So it is asked here, of every room, before
+            //the first write.
+            List<Space> spaces_Written = [space_Target];
+            foreach (Space space_Opposite in spaces_Opposite)
+            {
+                if (dictionary_Planned.ContainsKey(space_Opposite.Guid))
+                {
+                    spaces_Written.Add(space_Opposite);
+                }
+            }
+
+            foreach (Space space_Written in spaces_Written)
+            {
+                FlowClassification flowClassification_Written = space_Written.Guid == space_Target.Guid ? flowClassification : flowClassification_Opposite;
+
+                if (!IsRedistributable(Query.VentilationTerminals(adjacencyCluster.VentilationTerminals(space_Written), flowClassification_Written), space_Written, flowClassification_Written, out string refusal_Redistributable))
+                {
+                    result.Refusals.Add(refusal_Redistributable);
+
+                    return result;
+                }
+            }
+
             // ---- Apply. Every floor is already checked, so nothing below can refuse ---------------------
 
             List<string> refusals = [];
@@ -305,7 +336,14 @@ namespace SAM.Analytical
 
                 double before_Lps = dictionary_Duty[space_Opposite.Guid];
 
-                if (System.Math.Abs(planned_Lps - before_Lps) <= tolerance_Lps)
+                //Skipped only where the room genuinely does not move. NOT where its share is merely
+                //smaller than the tolerance: a change well above tolerance can divide into shares that are
+                //each below it - 1.5 l/s across two rooms against a 1 l/s tolerance gives two 0.75 l/s
+                //shares - and skipping them all would write the target, balance nothing, and leave exactly
+                //the partial change this transaction promises never to produce. The tolerance decides
+                //whether a CHANGE is worth making, which was settled above; it does not get to veto the
+                //pieces that change is made of.
+                if (planned_Lps == before_Lps)
                 {
                     continue;
                 }

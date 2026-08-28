@@ -5,9 +5,9 @@
 merged as `7fb04ed9`). Open as **PR #79**, base `sow/2026-Q3`. **Not merged.**
 
 ## Last updated
-2026-08-28 - Iteration 2 / MVHR selection and independently adjustable design airflows, plus twelve
-correctness fixes across four review rounds on PR #79 (ten raised by Codex, two found in review of the PR
-itself).
+2026-08-28 - Iteration 2 / MVHR selection and independently adjustable design airflows, plus fifteen
+correctness fixes across five review rounds on PR #79 (thirteen raised by Codex, two found in review of
+the PR itself).
 
 ## Current status (this session)
 
@@ -234,6 +234,32 @@ carries, and `finite * Infinity / Infinity` is `NaN` - which would have been wri
 requested total while `VentilationTerminalDesignDuty_Lps` afterwards skipped it and read a silently wrong
 duty. Every existing terminal duty is validated finite and non-negative before anything is written.
 
+## Review round 5 - closing the all-or-nothing gaps fix 12 opened
+
+No P1. Three P2s, two of which regressed the transaction's headline contract - worth noting that a
+guard added in one round can break a promise made in another.
+
+**13. Every room the transaction will write is preflighted, not just the target.** *(Codex P2)*
+Fix 12 put the terminal-validity check inside the setter, and `ApplyTargetedDesignAirFlow` writes the
+target first. A derived room holding a NaN terminal beside healthy ones sums to a room total that meets
+its requirement - `VentilationTerminalDesignDuty_Lps` skips NaN - so every plan check passed, the target
+was written, and only then did the derived write refuse. All-or-nothing, broken by the guard meant to
+protect it. The check is now shared (`Modify.IsRedistributable`) and asked of the target **and every
+planned derived room before the first write**.
+
+**14. A share smaller than the tolerance is still applied.** *(Codex P2)*
+The apply loop skipped a derived room whose share was within tolerance. A change well above tolerance can
+divide into shares that are each below it - 1.5 l/s across two rooms against a 1 l/s tolerance gives two
+0.75 l/s shares - so all of them were skipped, the target was written, nothing balanced, and the post-write
+check refused a change already made. The tolerance decides whether a *change* is worth making, which is
+settled before planning; it does not get to veto the pieces that change is made of. A room is now skipped
+only where it genuinely does not move.
+
+**15. A unit with no design duty is unknown, not adequate.** *(Codex P2)*
+`IsVentilationUnitSufficient` ignored `AirHandlingUnitDesignDuty`'s return value, so a unit whose systems
+or terminals had been removed derived 0/0 - which every non-negative capacity satisfies - and was reported
+adequate. `Modify.SelectVentilationUnit` already refuses that case; adequacy now agrees with it.
+
 ## Deliberate behaviour change carried from the first commit
 
 `Query.ReconcileVentilationSystemDesignDuty` compared design duty and requirement with an **absolute**
@@ -276,8 +302,8 @@ untracked deployment output, they belong to no repository's source, and BuildAll
 
 ## Tests
 
-`PartOVentilationUnitSelectionTests` - **64 facts** (37 at `41a02d4e`; one replaced and six added by review
-round 1, fourteen by round 2, four by round 3 and three by round 4 - eight of them `[Theory]` cases):
+`PartOVentilationUnitSelectionTests` - **67 facts** (37 at `41a02d4e`, and one replaced and thirty added
+across five review rounds - eight of them `[Theory]` cases):
 - Selection: smallest compliant, exact match, undersized rejected, supply/extract independent, refusal
   determinism, rank ties, catalogue-order independence.
 - Authority separation: capacity never written into a requirement, capacity never taken up as design,
@@ -307,7 +333,7 @@ New with the review fixes:
 
 ## Validation
 
-- **`SAM.Tests`: 1548 passed, 0 failed** (1545 after round 3; 1541 after round 2; 1527 after round 1; 1513 at Iteration 1a).
+- **`SAM.Tests`: 1551 passed, 0 failed** (1548 / 1545 / 1541 / 1527 after rounds 4/3/2/1; 1513 at Iteration 1a).
 - **`SAM.Analytical.Systems.Tests`: 40 passed, 0 failed.**
 - **`SAM.Analytical.Tas.TM59.Tests`: 649 passed, 0 failed** - run against the deployed Iteration 2 DLL
   after a BuildAll, with the new guards confirmed present in it, so genuinely against this work. No `SAM_Tas` production code calls any changed API; its only touchpoint is
@@ -358,6 +384,20 @@ one). Three new findings, all verified independently and all real:
 | Scope room-floor checks to this ventilation system | P1 | Fixed - fix 10 |
 | Resolve adequacy from the cluster-owned unit | P2 | Fixed - fix 11 |
 | Reject non-finite existing terminal duties | P2 | Fixed - fix 12 |
+
+**Round 5.** No P1. Three P2s, all verified and all real:
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| Preflight derived-room duties before mutating the target | P2 | Fixed - fix 13 |
+| Apply shares whose aggregate exceeds the tolerance | P2 | Fixed - fix 14 |
+| Refuse adequacy when no design duty exists | P2 | Fixed - fix 15 |
+
+**Trend worth reading before commissioning a sixth round.** Rounds 1-4 each found a P1; round 5 found
+none, and its three P2s were all consequences of round 4's own guards rather than defects in the Iteration
+2 design. The findings are converging on input-hardening against states the Part O workflow does not
+produce (detached objects, infinite property values, disconnected systems). That is worth having, and it
+is no longer telling us anything about the architecture.
 
 ## Remaining ambiguity / open items
 

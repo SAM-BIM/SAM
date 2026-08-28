@@ -122,21 +122,11 @@ namespace SAM.Analytical
             //requested total, while VentilationTerminalDesignDuty_Lps afterwards skips the NaN and reads a
             //duty that is silently wrong. Checked before anything is written, so the model is never left
             //partly mutated.
-            foreach (VentilationTerminal ventilationTerminal in result)
+            if (!IsRedistributable(result, space_Cluster, flowClassification, out string refusal_Terminal))
             {
-                double? designFlowRate_Existing_Lps = ventilationTerminal.DesignFlowRate_Lps;
+                refusals.Add(refusal_Terminal);
 
-                if (designFlowRate_Existing_Lps.HasValue && (double.IsNaN(designFlowRate_Existing_Lps.Value) || double.IsInfinity(designFlowRate_Existing_Lps.Value) || designFlowRate_Existing_Lps.Value < 0))
-                {
-                    refusals.Add(string.Format(
-                        "Space '{0}': design {1} terminal '{2}' carries {3} l/s, which is not a quantity of air. A room's design airflow is redistributed in proportion to what its terminals already carry, so nothing could be shared out from it and nothing was changed. Correct that terminal first.",
-                        space_Cluster.Name,
-                        Core.Query.Description(flowClassification),
-                        ventilationTerminal.Name,
-                        designFlowRate_Existing_Lps.Value));
-
-                    return null;
-                }
+                return null;
             }
 
             double total_Lps = Query.VentilationTerminalDesignDuty_Lps(result, flowClassification) ?? 0;
@@ -185,6 +175,43 @@ namespace SAM.Analytical
                 requirement_Lps.HasValue ? string.Format("{0:0.###} l/s", requirement_Lps.Value) : "nothing"));
 
             return result_Updated;
+        }
+
+        /// <summary>
+        /// Whether every one of a room's design terminals in one direction carries a real, non-negative
+        /// quantity of air - the precondition for redistributing a room total across them.
+        /// <para>
+        /// <b>Shared, because two callers have to agree about it.</b> A room total is shared out in
+        /// proportion to what each terminal already carries, so an infinite duty makes the total infinite
+        /// and every share <c>finite * Infinity / Infinity</c> = <c>NaN</c>, and a NaN duty is skipped by
+        /// <c>Query.VentilationTerminalDesignDuty_Lps</c> so a room total can look healthy while one
+        /// terminal is nonsense. <see cref="ApplyTargetedDesignAirFlow"/> calls this over every room it
+        /// plans to touch <b>before its first write</b>; discovering it here, one room in, would leave that
+        /// transaction's target already mutated and its all-or-nothing promise broken.
+        /// </para>
+        /// </summary>
+        internal static bool IsRedistributable(List<VentilationTerminal> ventilationTerminals, Space space, FlowClassification flowClassification, out string refusal)
+        {
+            refusal = null;
+
+            foreach (VentilationTerminal ventilationTerminal in ventilationTerminals ?? [])
+            {
+                double? designFlowRate_Lps = ventilationTerminal?.DesignFlowRate_Lps;
+
+                if (designFlowRate_Lps.HasValue && (double.IsNaN(designFlowRate_Lps.Value) || double.IsInfinity(designFlowRate_Lps.Value) || designFlowRate_Lps.Value < 0))
+                {
+                    refusal = string.Format(
+                        "Space '{0}': design {1} terminal '{2}' carries {3} l/s, which is not a quantity of air. A room's design airflow is redistributed in proportion to what its terminals already carry, so nothing could be shared out from it and nothing was changed. Correct that terminal first.",
+                        space.Name,
+                        Core.Query.Description(flowClassification),
+                        ventilationTerminal.Name,
+                        designFlowRate_Lps.Value);
+
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }
