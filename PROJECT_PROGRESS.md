@@ -1,16 +1,23 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3`. Iteration 2 was developed on `feature/parto-iteration2-mvhr-selection` (off `sow/2026-Q3`
-at `b8fb0c0f`, i.e. with Iteration 1a PR #77 merged as `7fb04ed9`) and shipped as **PR #79**, base
-`sow/2026-Q3`. **MERGED** as merge commit **`fafed15f`**; the feature branch is deleted on the remote and
+`feature/parto-iteration2-manufacturer-catalogue`, based on `sow/2026-Q3` at **`ce95bc5b`** - the
+Iteration-2 documentation closure after PR #79. The work is committed on that branch and raised as a pull
+request against `sow/2026-Q3`. **Not merged.**
+
+**`SAM_Systems` depends on this.** Its companion branch
+`feature/parto-iteration2-ventilation-unit-catalogue` carries the manufacturer catalogue and needs the
+`SAM.Analytical` API added here, so this must merge first.
+
+Iteration 2 itself was developed on `feature/parto-iteration2-mvhr-selection` (off `sow/2026-Q3` at
+`b8fb0c0f`, i.e. with Iteration 1a PR #77 merged as `7fb04ed9`) and shipped as **PR #79**, base
+`sow/2026-Q3`. **MERGED** as merge commit **`fafed15f`**; that feature branch is deleted on the remote and
 locally.
 
 ## Last updated
-2026-08-28 - **Part F / Part O Iteration 2 complete and merged** (`SAM-BIM/SAM` #79, merge commit
-`fafed15f`): MVHR selection and independently adjustable design airflows, plus fifteen correctness fixes
-across five review rounds (thirteen raised by Codex, two found in review of the PR itself), and a sixth
-review round that raised no P1.
+2026-08-29 - the manufacturer `AirHandlingUnit` template/catalogue seam (uncommitted, see the stage
+section below), on top of **Part F / Part O Iteration 2 complete and merged** (`SAM-BIM/SAM` #79, merge
+commit `fafed15f`, documentation closed at `ce95bc5b`).
 
 ## Current status
 
@@ -109,6 +116,241 @@ per unit.
 Selection rule: **smallest compliant, never nearest**; both sides checked independently; nothing compliant
 is an explained refusal, never an undersized fallback; two products tied on size *and* rank refuse as
 ambiguous.
+
+## Current stage: the manufacturer catalogue seam
+
+**The manufacturer template seam.** PR #79 left one thing deliberately undone: "no shipped product
+catalogue - selection is a pure function over supplied descriptors, and the `SAM_Systems` reader mirroring
+`Query.SystemCapabilityDescriptors` / `CapabilityIndex.JSON` is the one remaining seam needed to drive this
+from Grasshopper." That seam is now built, and the data model behind it is deliberately shaped for
+Iteration 3. **No Iteration 3 behaviour is implemented, and PR #79's selection kernel is unchanged.**
+
+### The five quantities, and the one that is new
+
+Iteration 2 keeps four quantities apart. The template work adds a fifth that is easily mistaken for
+equipment capability, and the whole design turns on the difference:
+
+| Quantity | Lives in | Example |
+|---|---|---|
+| Part F requirement | `PartFSpaceData.Terminals[].ContinuousDesignFlowRate_Lps` | the Approved Document's demand of a room |
+| Equipment capability | `VentilationUnitTemplate.MaximumSupplyFlowRate_Lps` / `...Extract...` | what the fan can move |
+| **Published duty point** | `VentilationUnitPerformanceTable` axis values | *conditions the manufacturer measured at* |
+| Design airflow | `VentilationTerminal.DesignFlowRate_Lps` | what this dwelling is designed to move |
+| Operating airflow / leaving-air temperature | Iteration 3, hourly | what it moves at 3pm in August |
+
+**A published duty point is never read as a capacity.** The Nuaire selection tables are published at
+50-120 l/s; 120 l/s is the last column of a table, not a statement about the fan. The catalogue therefore
+ships the Nuaire unit with **no** maximum supply or extract airflow, and it is consequently **not
+selectable** - loudly, by name, with the reason - rather than selectable against an invented number.
+
+### What was added
+
+**`SAM.Math`** - one class, because there was a one-dimensional and a two-dimensional interpolator and
+manufacturer data is routinely three-dimensional:
+
+- `MultilinearInterpolation` - N-dimensional regular-grid interpolation, and **arithmetic only**: it is
+  deliberately not an `IJSAMObject`, because what gets written to a file is the manufacturer table, not an
+  interpolator. Exact at the nodes (the bracketing fraction of a coordinate sitting on an axis value is
+  exactly 0 or exactly 1, so a lookup gives the published number back bit for bit). `Calculate` **never
+  extrapolates** and answers `NaN` outside the grid; `CalculateClamped` and `CalculateExtrapolated` are
+  separate, named methods. N-D rather than 3-D-specific because this feature already uses it at **1-D**
+  (the control curve) and **3-D** (the performance table) through one code path.
+
+**`SAM.Analytical`** - the vocabulary, no data:
+
+- `VentilationUnitPerformanceAxis` / `VentilationUnitPerformanceOutput` / `VentilationUnitPerformanceTable` -
+  a manufacturer's raw table: the conditions it was measured at, in the units it was published in, and every
+  measured value, flattened row-major. Shape is data - a two-condition table and a four-condition table are
+  the same type, and a product that also publishes an input power needs no schema change.
+- `FlowFractionControlCurve` - the controller ramp as data (22 degC -> 0.30, 26 degC -> 1.00), carrying its
+  **own** domain policy. Nothing generic holds a hard-coded 22 or 26.
+- `VentilationUnitTemplate` (`SAMObject`) - identity, cooling-module model, **source**, both maximum
+  airflows (`NaN` = unresolved), rank, performance table, control curve.
+- `Enums.PerformanceDomainPolicy` - `Refuse` (default) / `ClampToDomain` / `OuterCellLinearExtrapolation`.
+- `Query.CapacityDescriptor` / `CapacityDescriptors` / `UnselectableVentilationUnitTemplates` /
+  `MatchingVentilationUnitTemplate` - the mapping into PR #79's `VentilationUnitCapacityDescriptor`, and the
+  identity lookup Iteration 3 will cross to reach performance data from what the model stores.
+- `Query.PerformanceValue` / `SupplyAirTemperature_C` / `CombinedCoolingCapacity_kW` - lookups by **named**
+  condition, so the axis order in a hand-edited file is never load-bearing.
+
+**`SAM_Systems`** - the data and the reader (see that repository's `PROJECT_PROGRESS.md`).
+
+### Review pass (same session, after PR #79 merged)
+
+A focused architecture/diff review challenged the size of the new code and removed what it could not
+justify. **Removed, all of it dead and untested:**
+
+| Removed | Why |
+|---|---|
+| `MultilinearInterpolation`'s whole `IJSAMObject` surface - the interface, the `JsonObject` constructor, `FromJsonObject`, `ToJsonObject` and its private JSON number reader | Nothing serialises an interpolator. Verified by search: the type is never serialised in code and never named in any resource file. It was ~135 lines of untested serialiser, **and a third copy of the `JsonElement` workaround** - removing it leaves the workaround in the two places that genuinely parse a wire format |
+| `MultilinearInterpolation.Load` made private | The grid is now immutable after construction, which is what makes a cached interpolator safe to share |
+| `VentilationUnitPerformanceTable.Axes` and `.Outputs` | Zero callers, and each deep-copied the entire 96-value table on every property read |
+| `VentilationUnitPerformanceTable.Interpolation(...)` made private | Zero external callers, and it leaked a `SAM.Math` type through this type's public surface. Every read now goes through `Value(...)`, which is also where the domain policy is applied - so there is no way to reach the arithmetic while bypassing the decision about what happens outside the published range |
+
+**Added:** a cap of 24 axes in the grid validator. Corners are enumerated as one bit per dimension, and a
+shift of 32 or more wraps silently in C# - it would enumerate the wrong corners rather than fail. Far
+beyond any real performance table, but a wrong answer is worse than a refusal.
+
+`MultilinearInterpolation.cs` 630 -> 495 lines; `VentilationUnitPerformanceTable.cs` 586 -> 547. No
+behaviour change: the same 32 focused tests pass unmodified.
+
+**Kept, and why:** the two near-identical `...PerformanceAxis` / `...PerformanceOutput` types (an axis must
+be strictly increasing and an output need not be - merging them would need a flag that decides which
+validity rule applies); `FlowFractionControlCurve` delegating to a one-axis `VentilationUnitPerformanceTable`
+(it inherits exactness, validation, both domain policies and serialisation rather than duplicating them);
+and the Iteration-3 lookup seams (`PerformanceValue`, `SupplyAirTemperature_C`, `CombinedCoolingCapacity_kW`,
+`MatchingVentilationUnitTemplate`) which have no production caller yet **by design** and are covered by tests.
+
+### Decisions worth not re-litigating
+
+1. **Litres per second, not SI cubic metres per second.** Every airflow in the Part F and Part O work is
+   `_Lps`, and a template in m3/s would need converting at exactly the seam where a units mistake is least
+   visible. Temperatures are degC and cooling is kW because that is what the brochure publishes - raw
+   manufacturer data is never converted on the way in.
+2. **The template lives in `SAM.Analytical`, the catalogue in `SAM_Systems`.** Same seam as Iteration 1a:
+   the core library owns the vocabulary and the selection rule and carries no manufacturer list; which
+   products exist is a fact about whoever is asking.
+3. **Refuse, never default, on a hand-edited file.** A missing capacity is a legal named state; a *badly
+   written* one refuses. A missing `Rank` refuses the whole catalogue (a missing rank is a unique 0, 0 sorts
+   first, and the unranked entry becomes the preferred answer) - the trap `SystemCapabilityDescriptors`
+   was hardened for.
+4. **Extrapolation is a named, non-default policy that stores nothing** - see *The three authorities*
+   above. The supplied engineering spreadsheet is a transcription aid, not an architectural specification,
+   and nothing derived from it - no formula, no fitted curve, no value outside the manufacturer's published
+   domain - was imported. The authoritative source is the Nuaire brochure.
+
+### The three authorities, and which is which
+
+```
+Nuaire published table       MANUFACTURER AUTHORITY          the catalogue holds this, and only this
+SAM interpolation/extrap.    explicit generic policy         Refuse | ClampToDomain | OuterCellLinearExtrapolation
+legacy IES spreadsheet       HISTORICAL, NON-AUTHORITATIVE   never stored, never asserted, not reconstructed
+```
+
+The policy formerly called `LegacyLinearExtrapolation` is now
+**`OuterCellLinearExtrapolation`**. The old name claimed something that is not true: comparison against the
+legacy spreadsheet's own derived figures shows they **disagree** - it gives roughly 14.9 degC at
+26 / 23 / 80 where SAM gives 15.1, and roughly 18.9 degC at 26 / 26 / 120 where SAM gives 19.4. The name
+was chosen over the shorter `LinearExtrapolation` because it says which linear extrapolation it is -
+continuation of the outermost cell, not a fit through all the points - and this codebase prefers names that
+cannot be read the wrong way.
+
+That spreadsheet is historical reference material: its derivation is unavailable, the engineer who produced
+it is unavailable, and it is not being reconstructed. No polynomial was fitted and no ramp expression was
+reverse-engineered. Exact compatibility with that tool, should a project ever need it, is a **separate task
+requiring an authoritative specification or validated acceptance data** - not a reason to bend SAM's policy.
+
+SAM's own extrapolation arithmetic **is** pinned, in
+`VentilationUnitCatalogueTests.SAMsLinearExtrapolation_IsPinnedOutsideThePublishedDomain`, at nine points -
+five below the published 29 degC external floor, four above the published 26 degC entering ceiling. Every
+value was computed independently in Python before being asserted in C#; the two agree to 1e-6. The test
+states in its own documentation that it pins SAM arithmetic and **not** IES compatibility.
+
+### Deployment - closed, with evidence
+
+`Query.DefaultVentilationUnitDirectory()` resolves `<resources>/Analytical/Systems/VentilationUnit`, where
+`Analytical/Systems` is derived by `Core.Query.ResourcesDirectory(setting, assembly)` from the assembly
+name `SAM.Analytical.Systems` (leading `SAM.` stripped, dots to separators) and the leaf comes from
+`AnalyticalSystemSettingParameter.DefaultVentilationUnitDirectoryName`.
+
+**The existing mechanism already carries it - no new mechanism was added.** The chain, traced end to end:
+
+1. `SAM_Systems/Grasshopper/SAM.Analytical.Grasshopper.Systems.csproj` has an **unconditional**
+   `Target Name="PostBuild" AfterTargets="PostBuildEvent"` that runs
+   `xcopy "$(SolutionDir)\files\resources" "$(APPDATA)\SAM\resources" /Y/I/E/S` and the same to
+   `%USERPROFILE%\Documents\SAM\resources`. `/E/S` is recursive, and it copies the **whole**
+   `files/resources` tree - which is why `SystemEnergyCentre/CapabilityIndex.JSON` reaches installs today.
+2. CI `installer.yml:702` copies `%USERPROFILE%\Documents\SAM` into `stage\user\Documents\SAM` after the
+   full release build (recorded in `PLAN_SAM_TAS_SPLIT.md:228`).
+3. `SAM_Installer/Build_Installer.iss:62` stages `build\user\Documents\SAM\resources\*` into
+   `{userappdata}\SAM\resources`, recursively.
+4. At runtime `Core.Query.ResourcesDirectory` finds it under `Documents\SAM\resources` or, failing that,
+   beside the executing assembly - which is where step 1 and step 3 both put it.
+
+**Empirical proof on this machine**, after building `SAM_Systems.sln`: the catalogue is present and
+**byte-identical to the repository source** (11042 bytes, md5 `f56eabebe6529afed9dc64512c4fb222`) at both
+
+```
+%APPDATA%\SAM\resources\Analytical\Systems\VentilationUnit\VentilationUnitCatalogue.JSON
+%USERPROFILE%\Documents\SAM\resources\Analytical\Systems\VentilationUnit\VentilationUnitCatalogue.JSON
+```
+
+with `SystemEnergyCentre/CapabilityIndex.JSON` sitting beside it in the same tree.
+
+Two focused tests lock the invariant **machine-independently**, so a clean CI runner checks the same thing:
+`TheCatalogue_SitsWhereTheRuntimeResolverWillLookForIt` re-derives the assembly-name segment and the setting
+leaf and asserts the shipped file is at exactly that relative path (it fails if the folder moves, the
+setting is renamed, or the assembly is renamed), and `TheReaderAndTheShippedFile_AgreeOnTheFileName` stops
+either side of the file name being renamed alone.
+
+### A defect found on the way
+
+`SAM.Math.LinearInterpolation` and `BilinearInterpolation` read numbers with
+`GetValue<object>()` + `Core.Query.IsNumeric`. A **parsed** JSON number is backed by a `JsonElement`, which
+is not a numeric CLR type, so those classes silently deserialise empty from any saved file. The new code
+uses `JsonValue.TryGetValue` instead; **the two pre-existing classes are untouched and still carry the
+defect** - recorded as separate work rather than fixed opportunistically here.
+
+### Files added (`SAM`)
+
+```
+SAM/SAM.Math/Classes/Interpolation/MultilinearInterpolation.cs
+SAM/SAM.Analytical/Enums/PerformanceDomainPolicy.cs
+SAM/SAM.Analytical/Classes/System/PerformanceJson.cs                    (internal)
+SAM/SAM.Analytical/Classes/System/VentilationUnitPerformanceAxis.cs
+SAM/SAM.Analytical/Classes/System/VentilationUnitPerformanceOutput.cs
+SAM/SAM.Analytical/Classes/System/VentilationUnitPerformanceTable.cs
+SAM/SAM.Analytical/Classes/System/FlowFractionControlCurve.cs
+SAM/SAM.Analytical/Classes/System/VentilationUnitTemplate.cs
+SAM/SAM.Analytical/Query/CapacityDescriptor.cs
+SAM/SAM.Analytical/Query/PerformanceValue.cs
+SAM/SAM.Tests/PartOVentilationUnitTemplateTests.cs
+```
+
+**Nothing existing in `SAM` was modified.** Every file is an addition.
+
+### Tests (this session)
+
+| Suite | Result |
+|---|---|
+| `PartOVentilationUnitTemplateTests` (new, `SAM.Tests`) | **32 / 32** |
+| `SAM.Tests` (full) | **1583 / 1583** (was 1551 + 32) |
+| `SAM.Analytical.Systems.Tests` (full, incl. 28 new) | **68 / 68** |
+| `SAM.Analytical.Systems.Mollier.Tests` | **123 / 123** |
+| `SAM.Analytical.Tas.TM59.Tests` (against the rebuilt DLL) | **649 / 649** |
+
+### The legacy IES/TAS workbook is not what was supplied
+
+Recorded because a later session will otherwise re-derive it. The file supplied as
+`02_Nuaire_Performance_Interpolation.xlsm` is Duncan MacArthur's **"Nuaire IZAM Vent Rates.xlsm"** - the
+attachment named in the email thread - created 2017 by Richard Summers, last saved by Michal Dengusiak on
+2026-08-28. Full forensic read of the package: four worksheets, none hidden (`Sheet1`, `AHU1`, `Nuaire`,
+`Sheet2`); no defined names; no chart parts; no external workbook links; one VBA code module (`Module1`,
+matching the supplied `.bas`). **478 formula cells, all of two kinds**: 476 instances of
+`(E{n}/1000)*$B$1` / `(G{n}/1000)*$B$1` on `Sheet1` - litres per second to kilograms per second at
+1.21 kg/m3 - and two scratch cells on `Nuaire` (`=80*0.3`, `=0.3^2`). The strings `ramp` and `interpolat`
+appear nowhere in any part, text or binary; `IES` appears nowhere (earlier apparent hits were the substring
+in "properties").
+
+So this workbook contains **no interpolated table, no external axis below 29 degC and no ramp expression**.
+Its `Nuaire` sheet is an 80 l/s slice of the manufacturer table at external 29/32/34; its `Sheet2` is the
+full 3 x 4 x 8 table as static values with hand-written entry instructions. The IES workbook Michal
+describes in his 10 October 2025 email is a **different, third-party file that was not supplied**.
+
+An earlier note in this file said the workbook had "five formulas". That count was wrong - it missed
+Excel's shared-formula stubs, which carry no formula text of their own. The conclusion it supported
+(no interpolation logic in this workbook) is unchanged and is now established from the whole package.
+
+### Open items
+
+- **The Nuaire capacity is unresolved and must stay that way until sourced.** The July 2022 brochure states
+  no maximum supply or extract airflow. The related email thread mentions "80-90 L/s" as the project's own
+  assumption, which is not a manufacturer statement and was not written into the catalogue.
+- ~~Deployment~~ **closed** - traced, proved byte-identical in both deployed trees, and locked by two
+  machine-independent tests. See *Deployment - closed, with evidence* above.
+- **No `Application` eligibility on the ventilation unit catalogue.** `CapabilityIndex.JSON` filters
+  domestic vs commercial templates; the unit catalogue has no equivalent because PR #79's selection kernel
+  has no application concept to consume one. Worth revisiting before a commercial AHU is catalogued.
 
 ## Review round 1 - the four correctness fixes at `c67cf5d4`
 
