@@ -141,7 +141,10 @@ namespace SAM.Analytical
         /// </param>
         public bool IsSufficientFor(double supplyDuty_Lps, double extractDuty_Lps, double tolerance_Lps = 0.001)
         {
-            return IsValid
+            //An unusable tolerance cannot show sufficiency, so it does not. False is the safe answer for a
+            //predicate that gates equipment selection - see Query.IsValidFlowRateTolerance.
+            return Query.IsValidFlowRateTolerance(tolerance_Lps)
+                && IsValid
                 && maximumSupplyFlowRate_Lps + tolerance_Lps >= supplyDuty_Lps
                 && maximumExtractFlowRate_Lps + tolerance_Lps >= extractDuty_Lps;
         }

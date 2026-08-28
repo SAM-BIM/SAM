@@ -1235,7 +1235,265 @@ namespace SAM.Tests
         }
 
         // =================================================================================================
-        // H. Identity and serialization
+        // H. Preconditions - the dwelling has to be valid before it can be changed
+        // =================================================================================================
+
+        /// <summary>
+        /// <b>Balance is not compliance, and a globally balanced dwelling can still be illegal.</b>
+        /// <para>
+        /// The bathroom is designed at 5 l/s against a 10 l/s requirement and the kitchen at 15 against 10,
+        /// so extract totals 20 against 20 l/s of supply and the dwelling balances perfectly - while the
+        /// bathroom sits below its Approved Document F floor. Raising a bedroom by 1 l/s would derive 1 l/s
+        /// of kitchen extract under cooking priority, never touch the bathroom, and report success: a
+        /// transaction claiming a valid design for a dwelling that was never compliant.
+        /// </para>
+        /// <para>
+        /// The precondition now checks every served room against its own requirement, through the same
+        /// <c>Query.ReconcileVentilationSystemDesignDuty</c> the preparation refuses on, so there is one
+        /// definition of compliant. The existing shortfall is <b>refused, never repaired</b> - quietly
+        /// fixing a room nobody targeted would be an unrequested design decision.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ARoomAlreadyBelowItsPartFFloor_RefusesBeforeWritingAnything()
+        {
+            AdjacencyCluster adjacencyCluster = ShortfallFixture(out Space space_Supply, out _, out _);
+
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(adjacencyCluster);
+            Dictionary<string, string> requirements_Before = Requirements(adjacencyCluster);
+
+            //A perfectly ordinary, legal target elsewhere in the dwelling.
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Supply, FlowClassification.Supply, 21);
+
+            Assert.False(change.Successful);
+            Assert.NotEmpty(change.Refusals);
+
+            //The deficient room is named, with both numbers.
+            Assert.Contains("Bathroom", change.Refusals[0]);
+            Assert.Contains("5", change.Refusals[0]);
+            Assert.Contains("10", change.Refusals[0]);
+
+            Assert.Null(change.TargetedAdjustment);
+            Assert.Empty(change.DerivedAdjustments);
+            Assert.Equal(terminals_Before, TerminalDesigns(adjacencyCluster));
+            Assert.Equal(requirements_Before, Requirements(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// The boundary of the test above: with the bathroom brought up to its floor the dwelling is
+        /// compliant, and the very same targeted change proceeds normally. So the refusal is about the
+        /// shortfall and not about the fixture.
+        /// </summary>
+        [Fact]
+        public void TheSameDwellingOnceCompliant_ProceedsNormally()
+        {
+            AdjacencyCluster adjacencyCluster = ShortfallFixture(out Space space_Supply, out Space space_Bathroom, out Space space_Kitchen);
+
+            //Bathroom 5 -> 10 and kitchen 15 -> 10: every room now at its requirement, still balanced at 20.
+            Assert.NotNull(adjacencyCluster.SetSpaceDesignFlowRate(space_Bathroom, FlowClassification.Extract, 10, out _, out List<string> refusals_Bathroom));
+            Assert.Empty(refusals_Bathroom);
+
+            Assert.NotNull(adjacencyCluster.SetSpaceDesignFlowRate(space_Kitchen, FlowClassification.Extract, 10, out _, out List<string> refusals_Kitchen));
+            Assert.Empty(refusals_Kitchen);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Supply, FlowClassification.Supply, 21);
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+            Assert.Equal(21, change.SupplyDuty_Lps, 6);
+            Assert.Equal(21, change.ExtractDuty_Lps, 6);
+        }
+
+        /// <summary>
+        /// <b>A tolerance that cannot be compared against is refused, not worked around.</b>
+        /// <para>
+        /// Every Iteration 2 safety rule is a comparison against the tolerance, so <c>NaN</c> switches the
+        /// derived allocation, the imbalance refusal and the capacity check off at once and the result
+        /// reports success on an unbalanced dwelling. An infinity does the same wearing the opposite mask.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(double.NegativeInfinity)]
+        [InlineData(-1.0)]
+        public void AnUnusableTolerance_RefusesAndWritesNothing(double tolerance_Lps)
+        {
+            PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(adjacencyCluster);
+
+            Space space_Bedroom = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Bedroom);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Bedroom, FlowClassification.Supply, Design(adjacencyCluster, space_Bedroom, FlowClassification.Supply) + 4, PartFExtractAllocationStrategy.MinimumFirstCookingPriority, tolerance_Lps);
+
+            Assert.False(change.Successful);
+            Assert.NotEmpty(change.Refusals);
+            Assert.Contains("tolerance", change.Refusals[0]);
+
+            Assert.Null(change.TargetedAdjustment);
+            Assert.Empty(change.DerivedAdjustments);
+            Assert.Equal(terminals_Before, TerminalDesigns(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// The same guard on the selection path, which is where an unusable tolerance would otherwise
+        /// accept an undersized unit: <c>NaN</c> makes "is 100 enough for 150?" evaluate false in the
+        /// direction that lets it through.
+        /// </summary>
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(-1.0)]
+        public void AnUnusableTolerance_NeverAcceptsAnUndersizedUnit(double tolerance_Lps)
+        {
+            //Selection refuses outright rather than choosing.
+            VentilationUnitSelection selection = Catalogue().SelectSmallestCapableVentilationUnit(150, 150, tolerance_Lps);
+
+            Assert.False(selection.IsSelected);
+            Assert.Contains("tolerance", selection.Reason);
+
+            //And nothing is offered as compliant, so no caller can pick one off the list either.
+            Assert.Empty(Catalogue().CapableVentilationUnits(150, 150, tolerance_Lps));
+
+            //Including the predicate underneath both of them.
+            Assert.False(Descriptor("MVHR-220", 220, 220).IsSufficientFor(150, 150, tolerance_Lps));
+
+            //And an already-selected unit is never reported as adequate on an unusable tolerance.
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out _);
+
+            Assert.False(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, DwellingCatalogue(), out string reason, tolerance_Lps));
+            Assert.Contains("tolerance", reason);
+        }
+
+        // =================================================================================================
+        // I. Catalogue integrity - one identity, one meaning
+        // =================================================================================================
+
+        /// <summary>
+        /// <b>An identity a catalogue gives two meanings is refused, in either order.</b>
+        /// <para>
+        /// The model stores only the product's identity and looks its capability up again later by that
+        /// identity. Two entries sharing an identity but rated 100/100 and 200/200 leave no single answer
+        /// to "what did we select", so a unit chosen for a 150 l/s duty could later be reported as
+        /// undersized or as having headroom purely according to catalogue order.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AnIdentityWithConflictingCapacities_RefusesInEitherOrder()
+        {
+            List<VentilationUnitCapacityDescriptor> descriptors =
+            [
+                new(new VentilationUnitReference("Test Fixture", "MVHR-A", null), 100, 100),
+                new(new VentilationUnitReference("Test Fixture", "MVHR-A", null), 200, 200),
+            ];
+
+            VentilationUnitSelection selection = descriptors.SelectSmallestCapableVentilationUnit(150, 150);
+
+            Assert.False(selection.IsSelected);
+            Assert.Contains("two different meanings", selection.Reason);
+
+            //Deterministic: reversing the catalogue gives the same refusal, not a different answer.
+            List<VentilationUnitCapacityDescriptor> descriptors_Reversed = [descriptors[1], descriptors[0]];
+
+            VentilationUnitSelection selection_Reversed = descriptors_Reversed.SelectSmallestCapableVentilationUnit(150, 150);
+
+            Assert.False(selection_Reversed.IsSelected);
+            Assert.Equal(selection.Reason, selection_Reversed.Reason);
+        }
+
+        /// <summary>Nothing is written onto the air handling unit when the catalogue is ambiguous.</summary>
+        [Fact]
+        public void AnIdentityWithConflictingCapacities_WritesNothingOntoTheUnit()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out VentilationUnitReference ventilationUnitReference);
+
+            List<VentilationUnitCapacityDescriptor> descriptors =
+            [
+                new(new VentilationUnitReference("Test Fixture", "MVHR-A", null), 100, 100),
+                new(new VentilationUnitReference("Test Fixture", "MVHR-A", null), 200, 200),
+            ];
+
+            VentilationUnitSelection selection = adjacencyCluster.SelectVentilationUnit(airHandlingUnit, descriptors, out _, out List<string> refusals);
+
+            Assert.False(selection.IsSelected);
+            Assert.Single(refusals);
+
+            //The unit keeps the product it already had - it is not cleared and not overwritten.
+            Assert.True(ventilationUnitReference.Matches(airHandlingUnit.SelectedVentilationUnitReference()));
+        }
+
+        /// <summary>
+        /// An exact repeat is a duplicated line in a hand-edited file, not a contradiction, and stays
+        /// harmless - the same way a duplicated template entry already does in
+        /// <c>Query.SelectPreferredCapableSystem</c>.
+        /// </summary>
+        [Fact]
+        public void AnIdentityRepeatedIdentically_RemainsValid()
+        {
+            List<VentilationUnitCapacityDescriptor> descriptors =
+            [
+                new(new VentilationUnitReference("Test Fixture", "MVHR-A", null), 200, 200),
+                new(new VentilationUnitReference("Test Fixture", "MVHR-A", null), 200, 200),
+            ];
+
+            VentilationUnitSelection selection = descriptors.SelectSmallestCapableVentilationUnit(150, 150);
+
+            Assert.True(selection.IsSelected, selection.Reason);
+            Assert.Equal("MVHR-A", selection.VentilationUnitReference?.Model);
+        }
+
+        /// <summary>
+        /// <b>Conflicting rank on one identity is refused too</b>, and that is a deliberate classification
+        /// rather than an omission: rank decides selections, so two answers for it attached to one identity
+        /// is the same defect as two answers for a capacity.
+        /// </summary>
+        [Fact]
+        public void AnIdentityWithConflictingRank_Refuses()
+        {
+            List<VentilationUnitCapacityDescriptor> descriptors =
+            [
+                new(new VentilationUnitReference("Test Fixture", "MVHR-A", null), 200, 200, 1),
+                new(new VentilationUnitReference("Test Fixture", "MVHR-A", null), 200, 200, 2),
+            ];
+
+            VentilationUnitSelection selection = descriptors.SelectSmallestCapableVentilationUnit(150, 150);
+
+            Assert.False(selection.IsSelected);
+            Assert.Contains("two different meanings", selection.Reason);
+        }
+
+        /// <summary>
+        /// The lookup is defensive on its own, so a unit selected from one catalogue and later checked
+        /// against a malformed one reports an unknown capacity rather than an order-dependent pass.
+        /// </summary>
+        [Fact]
+        public void TheCapabilityLookup_IsNeverOrderDependent()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out VentilationUnitReference ventilationUnitReference);
+
+            List<VentilationUnitCapacityDescriptor> descriptors =
+            [
+                new(new VentilationUnitReference(ventilationUnitReference), 15, 15),
+                new(new VentilationUnitReference(ventilationUnitReference), 500, 500),
+            ];
+
+            Assert.Null(airHandlingUnit.SelectedVentilationUnitCapacityDescriptor(descriptors));
+
+            List<VentilationUnitCapacityDescriptor> descriptors_Reversed = [descriptors[1], descriptors[0]];
+
+            Assert.Null(airHandlingUnit.SelectedVentilationUnitCapacityDescriptor(descriptors_Reversed));
+
+            //So adequacy is unknown rather than decided by order, in both directions.
+            Assert.False(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, descriptors, out string reason));
+            Assert.Contains("not among the ventilation unit products offered", reason);
+
+            Assert.False(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, descriptors_Reversed, out _));
+        }
+
+        // =================================================================================================
+        // J. Identity and serialization
         // =================================================================================================
 
         /// <summary>
@@ -1687,6 +1945,44 @@ namespace SAM.Tests
 
             adjacencyCluster.AddRelation(ventilationSystem, space_Supply);
             adjacencyCluster.AddRelation(ventilationSystem, space_Extract);
+
+            return adjacencyCluster;
+        }
+
+        /// <summary>
+        /// A dwelling that <b>balances globally while one room is already below its Approved Document F
+        /// floor</b> - the exact case from the PR #79 review.
+        /// <code>
+        /// Bathroom extract:  requirement 10, design  5     &lt;- illegal, and nobody is targeting it
+        /// Kitchen  extract:  requirement 10, design 15     &lt;- offsetting surplus
+        /// Living   supply:   requirement 20, design 20
+        ///                    extract total 20 == supply total 20
+        /// </code>
+        /// <para>
+        /// Built by hand because the real <see cref="PartFCalculator"/> would never produce it: the point
+        /// is precisely that such a model can reach the API from elsewhere, and that balance alone does not
+        /// prove it legal.
+        /// </para>
+        /// </summary>
+        private static AdjacencyCluster ShortfallFixture(out Space space_Supply, out Space space_Bathroom, out Space space_Kitchen)
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            space_Supply = Room(adjacencyCluster, "Living Room", PartFTerminalRole.Supply, 20);
+            space_Bathroom = Room(adjacencyCluster, "Bathroom", PartFTerminalRole.GeneralExtract, 10);
+            space_Kitchen = Room(adjacencyCluster, "Kitchen", PartFTerminalRole.LocalKitchenExtract, 10);
+
+            VentilationSystem ventilationSystem = new("Fixture", new VentilationSystemType("Fixture MVHR", "Fixture"));
+
+            adjacencyCluster.AddObject(ventilationSystem);
+
+            Terminal(adjacencyCluster, ventilationSystem, space_Supply, FlowClassification.Supply, 20);
+            Terminal(adjacencyCluster, ventilationSystem, space_Bathroom, FlowClassification.Extract, 5);
+            Terminal(adjacencyCluster, ventilationSystem, space_Kitchen, FlowClassification.Extract, 15);
+
+            adjacencyCluster.AddRelation(ventilationSystem, space_Supply);
+            adjacencyCluster.AddRelation(ventilationSystem, space_Bathroom);
+            adjacencyCluster.AddRelation(ventilationSystem, space_Kitchen);
 
             return adjacencyCluster;
         }

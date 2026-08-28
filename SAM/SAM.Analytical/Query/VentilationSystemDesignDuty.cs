@@ -97,6 +97,14 @@ namespace SAM.Analytical
             warnings = [];
             refusals = [];
 
+            //Checked before every comparison below - see Query.IsValidFlowRateTolerance.
+            if (!IsValidFlowRateTolerance(tolerance_Lps))
+            {
+                refusals.Add(FlowRateToleranceRefusal(tolerance_Lps));
+
+                return false;
+            }
+
             if (adjacencyCluster is null || ventilationSystem is null)
             {
                 refusals.Add("No ventilation system was supplied, so its design duty could not be checked against the Approved Document F requirement.");

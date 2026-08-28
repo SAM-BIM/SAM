@@ -5,8 +5,9 @@
 merged as `7fb04ed9`). Open as **PR #79**, base `sow/2026-Q3`. **Not merged.**
 
 ## Last updated
-2026-08-28 - Iteration 2 / MVHR selection and independently adjustable design airflows, plus the four
-correctness fixes from the PR #79 review (two found by Codex, two found in review of the PR itself).
+2026-08-28 - Iteration 2 / MVHR selection and independently adjustable design airflows, plus seven
+correctness fixes across two review rounds on PR #79 (five raised by Codex, two found in review of the PR
+itself).
 
 ## Current status (this session)
 
@@ -83,7 +84,7 @@ Selection rule: **smallest compliant, never nearest**; both sides checked indepe
 is an explained refusal, never an undersized fallback; two products tied on size *and* rank refuse as
 ambiguous.
 
-## The four correctness fixes from the PR #79 review
+## Review round 1 - the four correctness fixes at `c67cf5d4`
 
 Applied on top of the first Iteration 2 commit `41a02d4e`. Two were found by Codex, two in review of the
 PR itself.
@@ -123,6 +124,65 @@ result claiming a valid balanced design for a dwelling that gains air it never l
 its derived consequence move both sides equally and cannot close a pre-existing residual anyway. The check
 is now a **pre-write refusal**, and the post-write balance assertion is a refusal rather than a warning.
 
+## Review round 2 - the three further fixes on top of `c67cf5d4`
+
+Codex did not re-raise fixes 1 or 2 above; it found three more. All three were verified independently
+before being accepted.
+
+**5. Every served room's Part F floor is validated before any mutation.** *(Codex P1)*
+Fix 4 made a *balanced* dwelling the precondition, but balance is a property of the totals and the
+Approved Document F floor is a property of each room, and one is not evidence of the other. A bathroom at
+5 l/s against a 10 l/s requirement, offset by a kitchen at 15 against 10, totals 20 either way and
+balances perfectly against 20 l/s of supply - so a +1 l/s bedroom target derived 1 l/s of kitchen extract,
+never touched the bathroom, and reported success on a dwelling that was never compliant. The reduction
+path already checked every candidate room; the **increase** path returned without any floor check, which
+is why only increases were exposed.
+
+The precondition now runs `Query.ReconcileVentilationSystemDesignDuty` over the whole served system and
+refuses on its refusals - **reusing the one definition of compliant** rather than adding a second, so this
+can never drift from what `Modify.PreparePartOIteration` refuses to simulate. Only its refusals are read;
+its notes and warnings are about design headroom, which is legal. An already-invalid dwelling is refused,
+**never repaired** - quietly fixing a room nobody targeted would be an unrequested design decision.
+
+**6. A product identity that means two things is refused.** *(Codex P2)*
+The model stores only `VentilationUnitReference` and looks capability up again by that identity, so a
+catalogue with two entries sharing manufacturer/model/reference but rated 100/100 and 200/200 leaves no
+single answer to "what did we select" - `SelectedVentilationUnitCapacityDescriptor` returned whichever came
+first, making a unit's adequacy depend on catalogue order. `SelectSmallestCapableVentilationUnit` now scans
+the whole valid catalogue for identity collisions before choosing anything and refuses a conflicting one,
+so an ambiguous identity is never written onto an air handling unit. The refusal names the pair in a fixed
+ordinal order, so the same broken catalogue produces the same sentence however it was read. The lookup is
+independently defensive and returns null on a conflict, for a unit selected from one catalogue and later
+checked against another.
+
+*Classification, stated deliberately:* an exact repeat (same identity, same capacities, same rank) is a
+duplicated line in a hand-edited file and stays **harmless**, matching how `SelectPreferredCapableSystem`
+already treats a duplicated template entry. Conflicting **rank** on one identity is treated as
+**conflicting**, because rank decides selections and two answers for it is the same defect as two answers
+for a capacity. The invariant: *stored product identity -> exactly one capability meaning.*
+
+**7. A tolerance that cannot be compared against is refused.** *(Codex P2)*
+Every Iteration 2 safety rule is a comparison against `tolerance_Lps`, so `double.NaN` made the derived
+allocation, the imbalance refusal and the capacity check all evaluate false at once and the transaction
+reported success on an unbalanced dwelling; an infinity is the same failure wearing the opposite mask.
+New `Query.IsValidFlowRateTolerance` / `Query.FlowRateToleranceRefusal` define one rule (finite, `>= 0`,
+zero meaning exact) and one sentence, applied at every Iteration 2 public entry point that takes a
+tolerance:
+
+| Entry point | Behaviour on an invalid tolerance |
+|---|---|
+| `ApplyTargetedDesignAirFlow` | refusal, zero writes |
+| `SetSpaceDesignFlowRate` | refusal, zero writes |
+| `SelectVentilationUnit` | refusal, nothing written to the unit |
+| `SelectSmallestCapableVentilationUnit` | `VentilationUnitSelection.Refused` |
+| `ReconcileVentilationSystemDesignDuty` | refusal |
+| `IsVentilationUnitSufficient` | false, with the reason |
+| `CapableVentilationUnits` | empty list - the return type carries no reason, and empty can never approve an undersized unit |
+| `VentilationUnitCapacityDescriptor.IsSufficientFor` | false - a predicate that cannot show sufficiency does not |
+
+Refused, never clamped: substituting a default would hide the caller's mistake behind an answer that looks
+right, and the answer is a compliance statement.
+
 ## Deliberate behaviour change carried from the first commit
 
 `Query.ReconcileVentilationSystemDesignDuty` compared design duty and requirement with an **absolute**
@@ -143,7 +203,9 @@ in the PR.
 - `SAM/SAM/SAM.Analytical/Classes/System/DwellingDesignAirFlowChange.cs` (new) - targeted + derived + duties, all-or-nothing.
 - `SAM/SAM/SAM.Analytical/Query/CapableVentilationUnits.cs` (new) - the pure selection rule.
 - `SAM/SAM/SAM.Analytical/Query/PartFRequiredFlowRate.cs` (new) - the immutable floor, per terminal / space / system.
-- `SAM/SAM/SAM.Analytical/Query/AirHandlingUnitDesignDuty.cs` (new) - AHU<->system resolution, derived duty, capacity check.
+- `SAM/SAM/SAM.Analytical/Query/AirHandlingUnitDesignDuty.cs` (new) - AHU<->system resolution, derived duty, capacity check;
+  the identity lookup is conflict-defensive (fix 6).
+- `SAM/SAM/SAM.Analytical/Query/IsValidFlowRateTolerance.cs` (new) - the one tolerance rule and the one refusal sentence (fix 7).
 - `SAM/SAM/SAM.Analytical/Modify/SelectVentilationUnit.cs` (new) - binds a selection to one unit.
 - `SAM/SAM/SAM.Analytical/Modify/SetSpaceDesignFlowRate.cs` (new) - the primitive; writes what it is told, does **not** rebalance.
 - `SAM/SAM/SAM.Analytical/Modify/ApplyTargetedDesignAirFlow.cs` (new) - the transaction; fixes 1, 2 and 4 live here.
@@ -157,9 +219,14 @@ in the PR.
 
 **No `SAM_Systems` and no `SAM_Tas` production changes in Iteration 2.**
 
+*Not part of this PR:* diagnosing why `SAM_Tas` would not compile produced
+`SAM_SolarCalculator/build/SAM.{Core,Geometry}.SolarCalculator.dll` as local build artefacts. They are
+untracked deployment output, they belong to no repository's source, and BuildAlls regenerates them.
+
 ## Tests
 
-`PartOVentilationUnitSelectionTests` - **43 facts** (37 at `41a02d4e`; one replaced, six added by the review fixes):
+`PartOVentilationUnitSelectionTests` - **57 facts** (37 at `41a02d4e`; one replaced and six added by the first
+review round, fourteen more by the second - four of them `[Theory]` cases):
 - Selection: smallest compliant, exact match, undersized rejected, supply/extract independent, refusal
   determinism, rank ties, catalogue-order independence.
 - Authority separation: capacity never written into a requirement, capacity never taken up as design,
@@ -189,13 +256,14 @@ New with the review fixes:
 
 ## Validation
 
-- **`SAM.Tests`: 1527 passed, 0 failed** (1520 before the review fixes; 1513 at Iteration 1a).
+- **`SAM.Tests`: 1541 passed, 0 failed** (1527 after the first review round; 1520 before it; 1513 at Iteration 1a).
 - **`SAM.Analytical.Systems.Tests`: 40 passed, 0 failed.**
-- **`SAM.Analytical.Tas.TM59.Tests`: 649 passed, 0 failed** - run after a BuildAll, so genuinely against
-  this work. No `SAM_Tas` production code calls any changed API; its only touchpoint is
+- **`SAM.Analytical.Tas.TM59.Tests`: 649 passed, 0 failed** - run against the deployed Iteration 2 DLL
+  after a BuildAll, with the new guards confirmed present in it, so genuinely against this work. No `SAM_Tas` production code calls any changed API; its only touchpoint is
   `PreparePartOIteration`'s four-argument form, which is source-compatible and defaults to Iteration 1a
   behaviour.
-- Release build clean; PR #79 CI green at `41a02d4e` (`build (Release)`, `test (Release)`, `spdx`).
+- Release build clean; PR #79 CI green at `41a02d4e` and `c67cf5d4` (`build (Release)`, `test (Release)`,
+  `spdx`).
 
 **Trap worth knowing.** `SAM_Tas` references **deployed** DLLs by `HintPath`
 (`..\..\..\SAM\build\SAM.Analytical.dll`), not project references, so running its suite without a BuildAll
@@ -205,7 +273,7 @@ session was exactly that and meant nothing. Rebuilding it also needs
 need **.NET Framework MSBuild** (`dotnet build` fails with MSB4803 on `ResolveComReference`). Deploy first,
 confirm `SAM\build\SAM.Analytical.dll` is newer than your changes, then run the suite.
 
-## Codex review of PR #79 (at `41a02d4e`)
+## Codex reviews of PR #79
 
 | Finding | Severity | Resolution |
 |---|---|---|
@@ -214,6 +282,16 @@ confirm `SAM\build\SAM.Analytical.dll` is newer than your changes, then run the 
 | Record Iteration 2 in `PROJECT_PROGRESS.md` | - | Fixed - this update |
 
 Fixes 3 and 4 were **not** found by Codex; they came out of reviewing the PR against the agreed invariant.
+
+**Round 2, at `c67cf5d4`.** Codex did not re-raise round 1's findings (GitHub re-anchors old comment
+bodies to the new head - check `original_commit_id`, not `commit_id`, to tell an old comment from a new
+one). Three new findings, all verified independently and all real:
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| Refuse balanced dwellings with room-level shortfalls | P1 | Fixed - fix 5 |
+| Reject duplicate identities with conflicting capacities | P2 | Fixed - fix 6 |
+| Reject NaN tolerances before balancing | P2 | Fixed - fix 7 |
 
 ## Remaining ambiguity / open items
 

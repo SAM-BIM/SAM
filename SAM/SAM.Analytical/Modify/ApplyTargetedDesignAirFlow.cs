@@ -96,6 +96,14 @@ namespace SAM.Analytical
                 return result;
             }
 
+            //FIRST, because every check below is a comparison against it. See Query.IsValidFlowRateTolerance.
+            if (!Query.IsValidFlowRateTolerance(tolerance_Lps))
+            {
+                result.Refusals.Add(Query.FlowRateToleranceRefusal(tolerance_Lps));
+
+                return result;
+            }
+
             if (double.IsNaN(designFlowRate_Lps) || double.IsInfinity(designFlowRate_Lps) || designFlowRate_Lps < 0)
             {
                 result.Refusals.Add(string.Format("Space '{0}': {1} l/s is not a design airflow. Nothing was changed.", space.Name, designFlowRate_Lps));
@@ -141,6 +149,35 @@ namespace SAM.Analytical
                     ventilationSystem.FullName,
                     supplyDuty_Before_Lps,
                     extractDuty_Before_Lps));
+
+                return result;
+            }
+
+            //A COMPLIANT dwelling is the other half of the precondition, and balance alone does not give it.
+            //
+            //A dwelling can balance globally while a room sits below its own Approved Document F floor -
+            //a bathroom designed at 5 l/s against a 10 l/s requirement, offset by a kitchen at 15 against
+            //10, totals 20 either way. Raising a bedroom by 1 l/s then derives 1 l/s of kitchen extract
+            //under cooking priority, leaves the bathroom at 5, and reports success: a transaction claiming
+            //a valid design for a dwelling that was never compliant. Balance is a property of the totals;
+            //the Approved Document F floor is a property of each room, and one is not evidence of the other.
+            //
+            //Checked through Query.ReconcileVentilationSystemDesignDuty rather than re-derived here, so
+            //there is exactly ONE definition of what compliant means and this can never drift from what
+            //Modify.PreparePartOIteration refuses to simulate. Only its refusals are read: its notes and
+            //warnings are about design headroom, which is legal and is not this method's business to report.
+            //
+            //An already-invalid dwelling is REFUSED, never repaired. Quietly fixing a room nobody targeted
+            //would be an unrequested design decision, and it would hide the defect from the engineer who
+            //has to answer for it.
+            adjacencyCluster.ReconcileVentilationSystemDesignDuty(ventilationSystem, out _, out _, out List<string> refusals_Compliance, tolerance_Lps);
+
+            if (refusals_Compliance.Count != 0)
+            {
+                result.Refusals.Add(string.Format(
+                    "Ventilation system '{0}' is not a valid design to change, because it does not currently meet Approved Document F: {1} Nothing was changed - an existing shortfall is not repaired as a side effect of targeting a different room.",
+                    ventilationSystem.FullName,
+                    string.Join(" ", refusals_Compliance)));
 
                 return result;
             }

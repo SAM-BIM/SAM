@@ -134,15 +134,40 @@ namespace SAM.Analytical
                 return null;
             }
 
+            VentilationUnitCapacityDescriptor result = null;
+
             foreach (VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor in ventilationUnitCapacityDescriptors ?? [])
             {
-                if (ventilationUnitCapacityDescriptor is not null && ventilationUnitReference.Matches(ventilationUnitCapacityDescriptor.VentilationUnitReference))
+                if (ventilationUnitCapacityDescriptor is null || !ventilationUnitReference.Matches(ventilationUnitCapacityDescriptor.VentilationUnitReference))
                 {
-                    return ventilationUnitCapacityDescriptor;
+                    continue;
+                }
+
+                if (result is null)
+                {
+                    result = ventilationUnitCapacityDescriptor;
+
+                    continue;
+                }
+
+                //A second entry for the same identity. An exact repeat is a duplicated line and answers the
+                //same question the same way, so it is ignored; one that disagrees means this identity has no
+                //single capability, and returning EITHER would make the unit's adequacy depend on the order
+                //the catalogue was read in. Null instead, which IsVentilationUnitSufficient reports as an
+                //unknown capacity rather than a pass.
+                //
+                //Query.SelectSmallestCapableVentilationUnit refuses such a catalogue outright, so a
+                //conflicting identity should never reach a unit in the first place. This is the second line
+                //of defence, for a unit selected from one catalogue and later checked against another.
+                if (ventilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps != result.MaximumSupplyFlowRate_Lps
+                    || ventilationUnitCapacityDescriptor.MaximumExtractFlowRate_Lps != result.MaximumExtractFlowRate_Lps
+                    || ventilationUnitCapacityDescriptor.Rank != result.Rank)
+                {
+                    return null;
                 }
             }
 
-            return null;
+            return result;
         }
 
         /// <summary>
@@ -171,6 +196,15 @@ namespace SAM.Analytical
         public static bool IsVentilationUnitSufficient(this AdjacencyCluster adjacencyCluster, AirHandlingUnit airHandlingUnit, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, out string reason, double tolerance_Lps = 0.001)
         {
             reason = null;
+
+            //Before any comparison - an unusable tolerance would otherwise decide adequacy by accident.
+            //See Query.IsValidFlowRateTolerance.
+            if (!IsValidFlowRateTolerance(tolerance_Lps))
+            {
+                reason = FlowRateToleranceRefusal(tolerance_Lps);
+
+                return false;
+            }
 
             if (adjacencyCluster is null || airHandlingUnit is null)
             {

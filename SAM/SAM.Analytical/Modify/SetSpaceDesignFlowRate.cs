@@ -52,6 +52,14 @@ namespace SAM.Analytical
             notes = [];
             refusals = [];
 
+            //Checked before every comparison below - see Query.IsValidFlowRateTolerance.
+            if (!Query.IsValidFlowRateTolerance(tolerance_Lps))
+            {
+                refusals.Add(Query.FlowRateToleranceRefusal(tolerance_Lps));
+
+                return null;
+            }
+
             if (adjacencyCluster is null || space is null)
             {
                 refusals.Add("No space was supplied, so no design airflow could be set.");

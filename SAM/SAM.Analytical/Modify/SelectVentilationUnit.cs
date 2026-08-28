@@ -56,6 +56,16 @@ namespace SAM.Analytical
             notes = [];
             refusals = [];
 
+            //Checked before every comparison below - see Query.IsValidFlowRateTolerance.
+            if (!Query.IsValidFlowRateTolerance(tolerance_Lps))
+            {
+                VentilationUnitSelection result_Tolerance = VentilationUnitSelection.Refused(Query.FlowRateToleranceRefusal(tolerance_Lps));
+
+                refusals.Add(result_Tolerance.Reason);
+
+                return result_Tolerance;
+            }
+
             if (adjacencyCluster is null || airHandlingUnit is null)
             {
                 VentilationUnitSelection result_Null = VentilationUnitSelection.Refused("No air handling unit was supplied, so no ventilation unit product could be selected.");

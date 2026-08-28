@@ -46,6 +46,15 @@ namespace SAM.Analytical
                 return result;
             }
 
+            //An unusable tolerance cannot decide sufficiency, so nothing is offered as sufficient. Empty is
+            //the safe answer this return type can give - it can never approve an undersized unit - and the
+            //callers that can carry a reason (SelectSmallestCapableVentilationUnit, and the Modify methods
+            //above it) refuse with one. See Query.IsValidFlowRateTolerance.
+            if (!IsValidFlowRateTolerance(tolerance_Lps))
+            {
+                return result;
+            }
+
             foreach (VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor in ventilationUnitCapacityDescriptors ?? [])
             {
                 if (ventilationUnitCapacityDescriptor is not null && ventilationUnitCapacityDescriptor.IsSufficientFor(supplyDuty_Lps, extractDuty_Lps, tolerance_Lps))
@@ -109,6 +118,12 @@ namespace SAM.Analytical
                 return VentilationUnitSelection.Refused("No design duty was stated, so no ventilation unit can be chosen. Realize the Approved Document F requirements as design terminals first.", supplyDuty_Lps, extractDuty_Lps);
             }
 
+            //Before any comparison - see Query.IsValidFlowRateTolerance.
+            if (!IsValidFlowRateTolerance(tolerance_Lps))
+            {
+                return VentilationUnitSelection.Refused(FlowRateToleranceRefusal(tolerance_Lps), supplyDuty_Lps, extractDuty_Lps);
+            }
+
             List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors_Valid = [];
 
             //The largest capacity anything offered had, on each side, so a refusal can say how far short the
@@ -142,6 +157,25 @@ namespace SAM.Analytical
                     string.Format("No ventilation unit product was offered to meet a design duty of {0:0.###} l/s supply and {1:0.###} l/s extract.", supplyDuty_Lps, extractDuty_Lps),
                     supplyDuty_Lps,
                     extractDuty_Lps);
+            }
+
+            //One identity, one meaning - checked over the WHOLE catalogue before anything is chosen.
+            //
+            //The model stores only the product's identity; its capability is looked up in the catalogue
+            //again later, by that identity. So a catalogue holding two entries with the same manufacturer,
+            //model and reference but different capacities has no single answer to "what did we select" -
+            //Query.SelectedVentilationUnitCapacityDescriptor would return whichever came first, and a unit
+            //chosen for a 150 l/s duty could be reported as undersized or as having headroom purely
+            //according to catalogue order.
+            //
+            //Checked across every valid entry rather than only the compliant ones, because the conflict is
+            //a fact about the catalogue and not about this duty: letting it through whenever the duty
+            //happens to exclude one of the pair would make the same catalogue valid or invalid depending
+            //on who asked.
+            string refusal_Conflict = ConflictingIdentity(ventilationUnitCapacityDescriptors_Valid);
+            if (refusal_Conflict is not null)
+            {
+                return VentilationUnitSelection.Refused(refusal_Conflict, supplyDuty_Lps, extractDuty_Lps);
             }
 
             List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors_Capable = CapableVentilationUnits(ventilationUnitCapacityDescriptors_Valid, supplyDuty_Lps, extractDuty_Lps, tolerance_Lps);
@@ -212,6 +246,69 @@ namespace SAM.Analytical
             }
 
             return VentilationUnitSelection.Selected(result, supplyDuty_Lps, extractDuty_Lps);
+        }
+
+        /// <summary>
+        /// The first product identity a catalogue gives two different meanings, described for a refusal -
+        /// or null where every identity means one thing.
+        /// <para>
+        /// <b>The invariant:</b> a stored product identity maps to exactly one capability definition.
+        /// Iteration 2 stores identity on the air handling unit and looks capability up again later, so an
+        /// identity that means two things makes the model's own record ambiguous.
+        /// </para>
+        /// <para>
+        /// <b>An exact repeat is harmless and stays harmless.</b> The same product listed twice with the
+        /// same capacities and the same rank is a duplicated line in a hand-edited file, not a choice -
+        /// which is exactly how <see cref="SelectPreferredCapableSystem"/> already treats a duplicated
+        /// template entry, and treating it as an error would refuse catalogues that say nothing
+        /// contradictory.
+        /// </para>
+        /// <para>
+        /// <b>Rank counts as conflicting, deliberately.</b> Two entries of the same identity and capacity
+        /// but different rank disagree about where that product sits in the supplier's preference order,
+        /// and rank decides selections. It is selection-relevant data attached to an identity, so two
+        /// answers for it is the same defect as two answers for a capacity, and it is refused the same way
+        /// rather than silently resolved by order.
+        /// </para>
+        /// </summary>
+        private static string ConflictingIdentity(List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors)
+        {
+            for (int i = 0; i < ventilationUnitCapacityDescriptors.Count; i++)
+            {
+                VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor = ventilationUnitCapacityDescriptors[i];
+
+                for (int j = i + 1; j < ventilationUnitCapacityDescriptors.Count; j++)
+                {
+                    VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor_Other = ventilationUnitCapacityDescriptors[j];
+
+                    if (VentilationUnitCapacityDescriptor.CompareIdentity(ventilationUnitCapacityDescriptor, ventilationUnitCapacityDescriptor_Other) != 0)
+                    {
+                        continue;
+                    }
+
+                    if (ventilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps == ventilationUnitCapacityDescriptor_Other.MaximumSupplyFlowRate_Lps
+                        && ventilationUnitCapacityDescriptor.MaximumExtractFlowRate_Lps == ventilationUnitCapacityDescriptor_Other.MaximumExtractFlowRate_Lps
+                        && ventilationUnitCapacityDescriptor.Rank == ventilationUnitCapacityDescriptor_Other.Rank)
+                    {
+                        //An exact repeat. Says nothing contradictory, so it decides nothing.
+                        continue;
+                    }
+
+                    //The two are named in a fixed order rather than in catalogue order, so the SAME broken
+                    //catalogue produces the SAME sentence however it was read. A refusal whose wording
+                    //depended on input order would be one more thing an engineer could not reproduce.
+                    List<string> descriptions = [ventilationUnitCapacityDescriptor.ToString(), ventilationUnitCapacityDescriptor_Other.ToString()];
+                    descriptions.Sort(System.StringComparer.Ordinal);
+
+                    return string.Format(
+                        "The ventilation unit products offered give the identity '{0}' two different meanings - {1} and {2}. A product identity is what gets stored on the air handling unit and what its capability is looked up by later, so one identity has to mean one thing or the selected unit's capacity would depend on the order the catalogue was read in. Nothing was selected. Correct the catalogue so that identity appears once, or give the two entries distinguishable references.",
+                        ventilationUnitCapacityDescriptor.VentilationUnitReference,
+                        descriptions[0],
+                        descriptions[1]);
+                }
+            }
+
+            return null;
         }
     }
 }
