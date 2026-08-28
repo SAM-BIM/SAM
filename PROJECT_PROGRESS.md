@@ -5,9 +5,9 @@
 merged as `7fb04ed9`). Open as **PR #79**, base `sow/2026-Q3`. **Not merged.**
 
 ## Last updated
-2026-08-28 - Iteration 2 / MVHR selection and independently adjustable design airflows, plus seven
-correctness fixes across two review rounds on PR #79 (five raised by Codex, two found in review of the PR
-itself).
+2026-08-28 - Iteration 2 / MVHR selection and independently adjustable design airflows, plus nine
+correctness fixes across three review rounds on PR #79 (seven raised by Codex, two found in review of the
+PR itself).
 
 ## Current status (this session)
 
@@ -183,6 +183,27 @@ tolerance:
 Refused, never clamped: substituting a default would hide the caller's mistake behind an answer that looks
 right, and the answer is a compliance statement.
 
+## Review round 3 - two further guards on top of the round 2 head
+
+Codex's third pass raised no P1 and did not re-raise anything. Two P2s, both verified and both real.
+
+**8. A negative or infinite design duty is met by nothing, not by everything.** *(Codex P2)*
+A capacity check is `maximum >= duty`, so a negative duty was satisfied by every non-negative capacity and
+`SelectSmallestCapableVentilationUnit` returned the smallest product on the shelf as a successful answer to
+a physically impossible design. Reachable through the public selector, or from a terminal deserialized with
+a negative `DesignFlowRate_Lps`. A duty must now be finite and `>= 0` - zero stays valid, because a system
+with no terminal of that direction really does move nothing - checked in the selector, in
+`CapableVentilationUnits`, and in `IsSufficientFor` underneath both.
+
+**9. An air handling unit the model does not hold is refused, not inserted.** *(Codex P2)*
+`SelectVentilationUnit` resolved the unit by GUID and **fell back to the caller's object** when that failed.
+The duty above it is resolved by the unit's *name*, which is how a ventilation system names its plant - so
+a detached unit merely sharing a name with one in the model got a duty, looked selectable, and was written
+to and added. The cluster would then hold two units of that name with the product reference on the wrong
+one, and every name-based lookup afterwards - `Query.VentilationSystems` and the TAS export among them -
+could resolve the original, unselected unit. It now refuses: a selection nothing can find again is worse
+than no selection.
+
 ## Deliberate behaviour change carried from the first commit
 
 `Query.ReconcileVentilationSystemDesignDuty` compared design duty and requirement with an **absolute**
@@ -225,8 +246,8 @@ untracked deployment output, they belong to no repository's source, and BuildAll
 
 ## Tests
 
-`PartOVentilationUnitSelectionTests` - **57 facts** (37 at `41a02d4e`; one replaced and six added by the first
-review round, fourteen more by the second - four of them `[Theory]` cases):
+`PartOVentilationUnitSelectionTests` - **61 facts** (37 at `41a02d4e`; one replaced and six added by review
+round 1, fourteen by round 2 and four by round 3 - eight of them `[Theory]` cases):
 - Selection: smallest compliant, exact match, undersized rejected, supply/extract independent, refusal
   determinism, rank ties, catalogue-order independence.
 - Authority separation: capacity never written into a requirement, capacity never taken up as design,
@@ -256,7 +277,7 @@ New with the review fixes:
 
 ## Validation
 
-- **`SAM.Tests`: 1541 passed, 0 failed** (1527 after the first review round; 1520 before it; 1513 at Iteration 1a).
+- **`SAM.Tests`: 1545 passed, 0 failed** (1541 after round 2; 1527 after round 1; 1520 before; 1513 at Iteration 1a).
 - **`SAM.Analytical.Systems.Tests`: 40 passed, 0 failed.**
 - **`SAM.Analytical.Tas.TM59.Tests`: 649 passed, 0 failed** - run against the deployed Iteration 2 DLL
   after a BuildAll, with the new guards confirmed present in it, so genuinely against this work. No `SAM_Tas` production code calls any changed API; its only touchpoint is
@@ -292,6 +313,13 @@ one). Three new findings, all verified independently and all real:
 | Refuse balanced dwellings with room-level shortfalls | P1 | Fixed - fix 5 |
 | Reject duplicate identities with conflicting capacities | P2 | Fixed - fix 6 |
 | Reject NaN tolerances before balancing | P2 | Fixed - fix 7 |
+
+**Round 3.** No P1, nothing re-raised. Two new findings, both verified and both real:
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| Reject negative design duties before selecting | P2 | Fixed - fix 8 |
+| Refuse air handling units outside the cluster | P2 | Fixed - fix 9 |
 
 ## Remaining ambiguity / open items
 

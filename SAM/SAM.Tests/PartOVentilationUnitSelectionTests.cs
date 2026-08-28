@@ -1367,6 +1367,69 @@ namespace SAM.Tests
             Assert.Contains("tolerance", reason);
         }
 
+        /// <summary>
+        /// <b>A negative duty is met by nothing, not by everything.</b>
+        /// <para>
+        /// A capacity check is <c>maximum &gt;= duty</c>, so a negative duty is satisfied by every
+        /// non-negative capacity and the smallest product on the shelf comes back as a successful answer to
+        /// a physically impossible design. A duty that is not a real, non-negative quantity of air is
+        /// refused instead - at the selector, in the compliant-set query, and in the predicate underneath
+        /// both.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData(-1.0)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(double.NaN)]
+        public void AnImpossibleDesignDuty_IsMetByNothing(double duty_Lps)
+        {
+            VentilationUnitSelection selection = Catalogue().SelectSmallestCapableVentilationUnit(duty_Lps, duty_Lps);
+
+            Assert.False(selection.IsSelected);
+            Assert.NotNull(selection.Reason);
+
+            Assert.Empty(Catalogue().CapableVentilationUnits(duty_Lps, duty_Lps));
+            Assert.False(Descriptor("MVHR-220", 220, 220).IsSufficientFor(duty_Lps, duty_Lps));
+
+            //One bad side is enough - a valid extract duty does not rescue an impossible supply one.
+            Assert.False(Catalogue().SelectSmallestCapableVentilationUnit(duty_Lps, 100).IsSelected);
+            Assert.False(Catalogue().SelectSmallestCapableVentilationUnit(100, duty_Lps).IsSelected);
+        }
+
+        /// <summary>
+        /// <b>A unit the model does not hold is refused, not quietly inserted.</b>
+        /// <para>
+        /// The duty is resolved through the unit's <i>name</i>, which is how a ventilation system names its
+        /// plant - so a detached unit sharing a name with one in the model gets a duty and looks
+        /// selectable. Writing the selection onto it and adding it would leave the cluster holding two
+        /// units of that name with the product reference on the wrong one, and every name-based lookup
+        /// afterwards could resolve the original, unselected unit.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AnAirHandlingUnitOutsideTheModel_RefusesAndInsertsNothing()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out VentilationUnitReference ventilationUnitReference);
+
+            //A different object with the same name, not in the cluster.
+            AirHandlingUnit airHandlingUnit_Detached = Analytical.Create.AirHandlingUnit(airHandlingUnit.Name);
+
+            Assert.NotEqual(airHandlingUnit.Guid, airHandlingUnit_Detached.Guid);
+
+            int count_Before = adjacencyCluster.GetObjects<AirHandlingUnit>().Count;
+
+            VentilationUnitSelection selection = adjacencyCluster.SelectVentilationUnit(airHandlingUnit_Detached, DwellingCatalogue(), out _, out List<string> refusals);
+
+            Assert.False(selection.IsSelected);
+            Assert.Single(refusals);
+            Assert.Contains("not in this model", refusals[0]);
+
+            //Nothing inserted, and the model's own unit keeps the product it already had.
+            Assert.Equal(count_Before, adjacencyCluster.GetObjects<AirHandlingUnit>().Count);
+            Assert.Null(airHandlingUnit_Detached.SelectedVentilationUnitReference());
+            Assert.True(ventilationUnitReference.Matches(airHandlingUnit.SelectedVentilationUnitReference()));
+        }
+
         // =================================================================================================
         // I. Catalogue integrity - one identity, one meaning
         // =================================================================================================

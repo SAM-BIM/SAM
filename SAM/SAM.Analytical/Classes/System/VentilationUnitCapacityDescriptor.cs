@@ -141,9 +141,13 @@ namespace SAM.Analytical
         /// </param>
         public bool IsSufficientFor(double supplyDuty_Lps, double extractDuty_Lps, double tolerance_Lps = 0.001)
         {
-            //An unusable tolerance cannot show sufficiency, so it does not. False is the safe answer for a
-            //predicate that gates equipment selection - see Query.IsValidFlowRateTolerance.
+            //An unusable tolerance cannot show sufficiency, so it does not. Nor can a duty that is not a
+            //real, non-negative quantity of air: a NEGATIVE duty would otherwise be met by every capacity,
+            //and this predicate is what gates equipment selection. False is the safe answer to both - see
+            //Query.IsValidFlowRateTolerance.
             return Query.IsValidFlowRateTolerance(tolerance_Lps)
+                && IsUsable(supplyDuty_Lps)
+                && IsUsable(extractDuty_Lps)
                 && IsValid
                 && maximumSupplyFlowRate_Lps + tolerance_Lps >= supplyDuty_Lps
                 && maximumExtractFlowRate_Lps + tolerance_Lps >= extractDuty_Lps;

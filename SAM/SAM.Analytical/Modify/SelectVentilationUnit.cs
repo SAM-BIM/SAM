@@ -104,7 +104,27 @@ namespace SAM.Analytical
             //constructor would have to reproduce, and adding one here would be a change to the equipment
             //hierarchy for the sake of one parameter. Modify.AddPartOBaseMVHRSystem already sets the unit's
             //supply temperatures this way.
-            AirHandlingUnit airHandlingUnit_Selected = (adjacencyCluster.GetObjects<AirHandlingUnit>() ?? []).Find(x => x is not null && x.Guid == airHandlingUnit.Guid) ?? airHandlingUnit;
+            //Resolved by GUID, and REFUSED where that fails rather than falling back to the caller's object.
+            //
+            //The duty above was resolved through the unit's NAME, which is how a ventilation system names
+            //its plant, so a detached unit that merely shares a name with one in the model gets a duty and
+            //looks selectable. Writing the selection onto that object and adding it would put a SECOND unit
+            //of the same name into the cluster with the product reference on the wrong one, and every
+            //name-based lookup afterwards - Query.VentilationSystems and the TAS export among them - could
+            //resolve the original, unselected unit instead. A selection nothing can find again is worse
+            //than no selection.
+            AirHandlingUnit airHandlingUnit_Selected = (adjacencyCluster.GetObjects<AirHandlingUnit>() ?? []).Find(x => x is not null && x.Guid == airHandlingUnit.Guid);
+
+            if (airHandlingUnit_Selected is null)
+            {
+                VentilationUnitSelection result_Detached = VentilationUnitSelection.Refused(string.Format(
+                    "Air handling unit '{0}' is not in this model - no unit of that identity was found, though the model may well hold another unit of the same name. Selecting a product onto an object the model does not contain would leave the selection where nothing can resolve it. Nothing was changed: take the unit from the model and select onto that one.",
+                    airHandlingUnit.Name));
+
+                refusals.Add(result_Detached.Reason);
+
+                return result_Detached;
+            }
 
             airHandlingUnit_Selected.SetValue(AirHandlingUnitParameter.VentilationUnitReference, result.VentilationUnitReference);
 

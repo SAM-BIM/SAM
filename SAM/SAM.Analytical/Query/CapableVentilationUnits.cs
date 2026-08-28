@@ -39,10 +39,12 @@ namespace SAM.Analytical
         {
             List<VentilationUnitCapacityDescriptor> result = [];
 
-            if (double.IsNaN(supplyDuty_Lps) || double.IsNaN(extractDuty_Lps))
+            //A duty has to be a real, non-negative quantity of air before anything can be compliant with it.
+            //Not-a-number means nothing was stated; a NEGATIVE duty is worse than unstated, because
+            //IsSufficientFor would find every non-negative capacity sufficient for it and the smallest
+            //product on the shelf would be returned for a physically impossible design.
+            if (!IsValidDesignDuty(supplyDuty_Lps) || !IsValidDesignDuty(extractDuty_Lps))
             {
-                //No duty was stated, so nothing is compliant with it. Returning "every product" here would
-                //let an unsized dwelling be given the smallest unit on the shelf.
                 return result;
             }
 
@@ -113,9 +115,15 @@ namespace SAM.Analytical
         /// </summary>
         public static VentilationUnitSelection SelectSmallestCapableVentilationUnit(this IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, double supplyDuty_Lps, double extractDuty_Lps, double tolerance_Lps = 0.001)
         {
-            if (double.IsNaN(supplyDuty_Lps) || double.IsNaN(extractDuty_Lps))
+            if (!IsValidDesignDuty(supplyDuty_Lps) || !IsValidDesignDuty(extractDuty_Lps))
             {
-                return VentilationUnitSelection.Refused("No design duty was stated, so no ventilation unit can be chosen. Realize the Approved Document F requirements as design terminals first.", supplyDuty_Lps, extractDuty_Lps);
+                //Refused, and the two cases read differently because they are different mistakes: nothing
+                //sized versus something sized wrongly.
+                string reason = double.IsNaN(supplyDuty_Lps) || double.IsNaN(extractDuty_Lps)
+                    ? "No design duty was stated, so no ventilation unit can be chosen. Realize the Approved Document F requirements as design terminals first."
+                    : string.Format("A design duty of {0:0.###} l/s supply and {1:0.###} l/s extract is not a quantity of air a unit can be selected for - a duty has to be finite and cannot be negative. Nothing was selected; correct the design terminals it was summed from.", supplyDuty_Lps, extractDuty_Lps);
+
+                return VentilationUnitSelection.Refused(reason, supplyDuty_Lps, extractDuty_Lps);
             }
 
             //Before any comparison - see Query.IsValidFlowRateTolerance.
@@ -246,6 +254,16 @@ namespace SAM.Analytical
             }
 
             return VentilationUnitSelection.Selected(result, supplyDuty_Lps, extractDuty_Lps);
+        }
+
+        /// <summary>
+        /// Whether a design duty [l/s] is a quantity of air a product can be selected for: finite, and not
+        /// negative. Zero is valid - a system with no terminal of that direction moves nothing, and that is
+        /// a real answer.
+        /// </summary>
+        private static bool IsValidDesignDuty(double duty_Lps)
+        {
+            return !double.IsNaN(duty_Lps) && !double.IsInfinity(duty_Lps) && duty_Lps >= 0;
         }
 
         /// <summary>
