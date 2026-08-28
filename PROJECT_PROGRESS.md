@@ -5,9 +5,9 @@
 merged as `7fb04ed9`). Open as **PR #79**, base `sow/2026-Q3`. **Not merged.**
 
 ## Last updated
-2026-08-28 - Iteration 2 / MVHR selection and independently adjustable design airflows, plus nine
-correctness fixes across three review rounds on PR #79 (seven raised by Codex, two found in review of the
-PR itself).
+2026-08-28 - Iteration 2 / MVHR selection and independently adjustable design airflows, plus twelve
+correctness fixes across four review rounds on PR #79 (ten raised by Codex, two found in review of the PR
+itself).
 
 ## Current status (this session)
 
@@ -204,6 +204,36 @@ one, and every name-based lookup afterwards - `Query.VentilationSystems` and the
 could resolve the original, unselected unit. It now refuses: a selection nothing can find again is worse
 than no selection.
 
+## Review round 4 - scoping the compliance read, and two more guards
+
+**10. The room-level Part F check is scoped to THIS ventilation system.** *(Codex P1)*
+Fixes 3 and 5 put the compliance decision on `ReconcileVentilationSystemDesignDuty`'s per-room duty, which
+was summed from **every** terminal in the room regardless of system - pre-existing Iteration 1a code, but
+newly load-bearing. A room holding a foreign system's terminal therefore had that air counted towards this
+system's Approved Document F floor: the room check passed while this system's own terminal stayed short,
+and a little headroom in a neighbouring room carried the system total too, so both halves of the check
+rested on air this system does not move. The per-room duty is now filtered to the system being reconciled.
+
+*Filtered rather than refused, deliberately:* this is a **read**, and the honest answer to "what does this
+system put into this room" is available exactly. **Writes** stay conservative -
+`ApplyTargetedDesignAirFlow` still refuses outright to touch a room it cannot attribute unambiguously,
+because a write cannot be filtered the same way. For the single-system dwelling the Part O workflow builds
+the filtered set is identical, so Iteration 1a behaviour is unchanged.
+
+**11. Adequacy is resolved from the cluster's own unit.** *(Codex P2)*
+`IsVentilationUnitSufficient` read the product reference off the **caller's** object while
+`AirHandlingUnitDesignDuty` derived the duty from the model by name, so a detached same-named unit - or a
+stale copy kept from before a re-selection - could report adequate on a selection the model does not hold,
+suppressing the escalation an outgrown unit needs. Both halves of the comparison now come from the same
+object, resolved by GUID, and a unit the model does not hold refuses.
+
+**12. A terminal carrying an impossible duty refuses before redistribution.** *(Codex P2)*
+`DesignFlowRate_Lps` is publicly settable and deserialized without a range check, so an infinite one is
+reachable. `SetSpaceDesignFlowRate` shares a room total in proportion to what each terminal already
+carries, and `finite * Infinity / Infinity` is `NaN` - which would have been written and reported as the
+requested total while `VentilationTerminalDesignDuty_Lps` afterwards skipped it and read a silently wrong
+duty. Every existing terminal duty is validated finite and non-negative before anything is written.
+
 ## Deliberate behaviour change carried from the first commit
 
 `Query.ReconcileVentilationSystemDesignDuty` compared design duty and requirement with an **absolute**
@@ -246,8 +276,8 @@ untracked deployment output, they belong to no repository's source, and BuildAll
 
 ## Tests
 
-`PartOVentilationUnitSelectionTests` - **61 facts** (37 at `41a02d4e`; one replaced and six added by review
-round 1, fourteen by round 2 and four by round 3 - eight of them `[Theory]` cases):
+`PartOVentilationUnitSelectionTests` - **64 facts** (37 at `41a02d4e`; one replaced and six added by review
+round 1, fourteen by round 2, four by round 3 and three by round 4 - eight of them `[Theory]` cases):
 - Selection: smallest compliant, exact match, undersized rejected, supply/extract independent, refusal
   determinism, rank ties, catalogue-order independence.
 - Authority separation: capacity never written into a requirement, capacity never taken up as design,
@@ -277,7 +307,7 @@ New with the review fixes:
 
 ## Validation
 
-- **`SAM.Tests`: 1545 passed, 0 failed** (1541 after round 2; 1527 after round 1; 1520 before; 1513 at Iteration 1a).
+- **`SAM.Tests`: 1548 passed, 0 failed** (1545 after round 3; 1541 after round 2; 1527 after round 1; 1513 at Iteration 1a).
 - **`SAM.Analytical.Systems.Tests`: 40 passed, 0 failed.**
 - **`SAM.Analytical.Tas.TM59.Tests`: 649 passed, 0 failed** - run against the deployed Iteration 2 DLL
   after a BuildAll, with the new guards confirmed present in it, so genuinely against this work. No `SAM_Tas` production code calls any changed API; its only touchpoint is
@@ -320,6 +350,14 @@ one). Three new findings, all verified independently and all real:
 |---|---|---|
 | Reject negative design duties before selecting | P2 | Fixed - fix 8 |
 | Refuse air handling units outside the cluster | P2 | Fixed - fix 9 |
+
+**Round 4.** One P1 and two P2s, all verified and all real:
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| Scope room-floor checks to this ventilation system | P1 | Fixed - fix 10 |
+| Resolve adequacy from the cluster-owned unit | P2 | Fixed - fix 11 |
+| Reject non-finite existing terminal duties | P2 | Fixed - fix 12 |
 
 ## Remaining ambiguity / open items
 

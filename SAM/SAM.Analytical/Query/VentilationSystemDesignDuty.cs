@@ -133,7 +133,30 @@ namespace SAM.Analytical
                 requirement_Supply_Lps += space_Requirement_Supply_Lps;
                 requirement_Extract_Lps += space_Requirement_Extract_Lps;
 
-                List<VentilationTerminal> ventilationTerminals_Space = adjacencyCluster.VentilationTerminals(space);
+                //THIS system's terminals in that room, not the room's whole population.
+                //
+                //A room can hold terminals belonging to more than one ventilation system. Summing all of
+                //them and calling the total this system's duty would let ANOTHER system's air satisfy this
+                //system's Approved Document F floor - the room check below would pass while this system's
+                //own terminal in the room stayed short, and with a little headroom in a neighbouring room
+                //the system total would pass too. Both halves of the compliance check would then rest on
+                //air this system does not move.
+                //
+                //Filtered rather than refused, and deliberately: this is a READ, and the honest answer to
+                //"what does this system put into this room" is available exactly. Writes stay conservative
+                //- Modify.ApplyTargetedDesignAirFlow still refuses outright to touch a room whose terminals
+                //it cannot attribute unambiguously, because a write cannot be filtered the same way.
+                //
+                //For the single-system dwelling the Approved Document O workflow builds, this is the same
+                //set as before and nothing changes.
+                List<VentilationTerminal> ventilationTerminals_Space = [];
+                foreach (VentilationTerminal ventilationTerminal in adjacencyCluster.VentilationTerminals(space) ?? [])
+                {
+                    if ((adjacencyCluster.GetRelatedObjects<VentilationSystem>(ventilationTerminal) ?? []).Find(x => x is not null && x.Guid == ventilationSystem.Guid) is not null)
+                    {
+                        ventilationTerminals_Space.Add(ventilationTerminal);
+                    }
+                }
 
                 double space_Duty_Supply_Lps = ventilationTerminals_Space.VentilationTerminalDesignDuty_Lps(FlowClassification.Supply) ?? 0;
                 double space_Duty_Extract_Lps = ventilationTerminals_Space.VentilationTerminalDesignDuty_Lps(FlowClassification.Extract) ?? 0;

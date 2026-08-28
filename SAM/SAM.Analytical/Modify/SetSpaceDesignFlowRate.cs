@@ -113,6 +113,32 @@ namespace SAM.Analytical
                 return null;
             }
 
+            //Every EXISTING terminal duty has to be a real, non-negative quantity before any of them is
+            //redistributed, because each share is proportional to what that terminal already carries.
+            //
+            //DesignFlowRate_Lps is publicly settable and is deserialized without a range check, so an
+            //infinite one is reachable. It makes the room total infinite, and each share then computes as
+            //finite * Infinity / Infinity = NaN - which this method would write and then report as the
+            //requested total, while VentilationTerminalDesignDuty_Lps afterwards skips the NaN and reads a
+            //duty that is silently wrong. Checked before anything is written, so the model is never left
+            //partly mutated.
+            foreach (VentilationTerminal ventilationTerminal in result)
+            {
+                double? designFlowRate_Existing_Lps = ventilationTerminal.DesignFlowRate_Lps;
+
+                if (designFlowRate_Existing_Lps.HasValue && (double.IsNaN(designFlowRate_Existing_Lps.Value) || double.IsInfinity(designFlowRate_Existing_Lps.Value) || designFlowRate_Existing_Lps.Value < 0))
+                {
+                    refusals.Add(string.Format(
+                        "Space '{0}': design {1} terminal '{2}' carries {3} l/s, which is not a quantity of air. A room's design airflow is redistributed in proportion to what its terminals already carry, so nothing could be shared out from it and nothing was changed. Correct that terminal first.",
+                        space_Cluster.Name,
+                        Core.Query.Description(flowClassification),
+                        ventilationTerminal.Name,
+                        designFlowRate_Existing_Lps.Value));
+
+                    return null;
+                }
+            }
+
             double total_Lps = Query.VentilationTerminalDesignDuty_Lps(result, flowClassification) ?? 0;
 
             List<VentilationTerminal> result_Updated = [];

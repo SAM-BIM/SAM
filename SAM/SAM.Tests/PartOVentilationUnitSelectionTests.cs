@@ -1430,6 +1430,96 @@ namespace SAM.Tests
             Assert.True(ventilationUnitReference.Matches(airHandlingUnit.SelectedVentilationUnitReference()));
         }
 
+        /// <summary>
+        /// <b>Another system's air never satisfies this system's Part F floor.</b>
+        /// <para>
+        /// A room can hold terminals belonging to more than one ventilation system. Summing all of them and
+        /// calling the total this system's duty would let a foreign terminal cover this system's shortfall:
+        /// the room check would pass while this system's own terminal in that room stayed short, and with a
+        /// little headroom in a neighbouring room the system total would pass too - both halves of the
+        /// compliance check resting on air this system does not move.
+        /// </para>
+        /// <para>
+        /// The per-room duty is therefore filtered to this system. Reads are filtered because the honest
+        /// answer is available exactly; <i>writes</i> stay conservative and still refuse a room they cannot
+        /// attribute - see <see cref="ASpaceSharedWithAnotherVentilationSystem_RefusesAndTouchesNeitherSystem"/>.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AForeignSystemsTerminal_NeverSatisfiesThisSystemsPartFFloor()
+        {
+            AdjacencyCluster adjacencyCluster = ShortfallFixture(out _, out Space space_Bathroom, out _);
+
+            VentilationSystem ventilationSystem = Assert.Single(adjacencyCluster.GetObjects<VentilationSystem>());
+
+            //Before: the bathroom is 5 l/s short of its 10 l/s requirement, and reconciliation says so.
+            Assert.False(adjacencyCluster.ReconcileVentilationSystemDesignDuty(ventilationSystem, out _, out _, out List<string> refusals_Before));
+            Assert.Contains(refusals_Before, x => x.Contains("Bathroom"));
+
+            //A second system puts its own 5 l/s of extract in the same room. That is the other system's
+            //air, and it changes nothing about this system's compliance.
+            VentilationSystem ventilationSystem_Other = new("Other", new VentilationSystemType("Other MV", "Fixture other system"));
+
+            VentilationTerminal ventilationTerminal_Other = new("Other extract", FlowClassification.Extract, 5);
+
+            adjacencyCluster.AddObject(ventilationSystem_Other);
+            adjacencyCluster.AddObject(ventilationTerminal_Other);
+            adjacencyCluster.AddRelation(ventilationTerminal_Other, space_Bathroom);
+            adjacencyCluster.AddRelation(ventilationTerminal_Other, ventilationSystem_Other);
+
+            Assert.False(adjacencyCluster.ReconcileVentilationSystemDesignDuty(ventilationSystem, out _, out _, out List<string> refusals_After));
+            Assert.Contains(refusals_After, x => x.Contains("Bathroom"));
+        }
+
+        /// <summary>
+        /// Adequacy is resolved from the model's own unit, so a detached or stale copy cannot report a
+        /// product the cluster does not hold as adequate - which would suppress the escalation an outgrown
+        /// unit needs.
+        /// </summary>
+        [Fact]
+        public void AdequacyIsResolvedFromTheModelsOwnUnit()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out _);
+
+            //A detached same-named unit carrying a product the model's unit does not have.
+            AirHandlingUnit airHandlingUnit_Detached = Analytical.Create.AirHandlingUnit(airHandlingUnit.Name);
+            airHandlingUnit_Detached.SetValue(AirHandlingUnitParameter.VentilationUnitReference, new VentilationUnitReference("Test Fixture", "MVHR-50", null));
+
+            Assert.False(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit_Detached, DwellingCatalogue(), out string reason));
+            Assert.Contains("not in this model", reason);
+
+            //The model's own unit answers normally.
+            Assert.True(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, DwellingCatalogue(), out _));
+        }
+
+        /// <summary>
+        /// A terminal carrying a value that is not a quantity of air cannot have a room total redistributed
+        /// across it - the proportional share would compute as <c>NaN</c> - so the change is refused before
+        /// anything is written rather than producing a silently wrong duty.
+        /// </summary>
+        [Fact]
+        public void ATerminalCarryingAnImpossibleDuty_RefusesBeforeWriting()
+        {
+            PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            Space space_Bedroom = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Bedroom);
+
+            VentilationTerminal ventilationTerminal = Assert.Single(Analytical.Query.VentilationTerminals(adjacencyCluster.VentilationTerminals(space_Bedroom), FlowClassification.Supply));
+
+            ventilationTerminal.DesignFlowRate_Lps = double.PositiveInfinity;
+            adjacencyCluster.AddObject(ventilationTerminal);
+
+            Assert.Null(adjacencyCluster.SetSpaceDesignFlowRate(space_Bedroom, FlowClassification.Supply, 24, out _, out List<string> refusals));
+
+            Assert.NotEmpty(refusals);
+            Assert.Contains("not a quantity of air", refusals[0]);
+
+            //Untouched - and emphatically not NaN.
+            Assert.Equal(double.PositiveInfinity, ventilationTerminal.DesignFlowRate_Lps.Value);
+        }
+
         // =================================================================================================
         // I. Catalogue integrity - one identity, one meaning
         // =================================================================================================

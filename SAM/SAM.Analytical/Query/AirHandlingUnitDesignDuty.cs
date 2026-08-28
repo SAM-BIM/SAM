@@ -213,6 +213,26 @@ namespace SAM.Analytical
                 return false;
             }
 
+            //The CLUSTER's unit, resolved by identity - not the object the caller happens to be holding.
+            //
+            //The duty below is derived through the unit's NAME, so a detached same-named unit, or a stale
+            //copy taken before the model re-selected, would have its own product reference read against the
+            //model's duty. That can report a unit adequate on a selection the model does not hold, and
+            //suppress exactly the escalation an outgrown unit needs. The two halves of this comparison have
+            //to come from the same object.
+            AirHandlingUnit airHandlingUnit_Cluster = (adjacencyCluster.GetObjects<AirHandlingUnit>() ?? []).Find(x => x is not null && x.Guid == airHandlingUnit.Guid);
+
+            if (airHandlingUnit_Cluster is null)
+            {
+                reason = string.Format(
+                    "Air handling unit '{0}' is not in this model - no unit of that identity was found, though the model may well hold another unit of the same name. Its adequacy cannot be checked against a duty the model derives for a different object.",
+                    airHandlingUnit.Name);
+
+                return false;
+            }
+
+            airHandlingUnit = airHandlingUnit_Cluster;
+
             VentilationUnitReference ventilationUnitReference = SelectedVentilationUnitReference(airHandlingUnit);
             if (ventilationUnitReference is null)
             {
