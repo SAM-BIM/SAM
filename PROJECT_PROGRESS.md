@@ -1,9 +1,12 @@
 # Project Progress
 
 ## Branch
-`feature/parto-iteration2-manufacturer-catalogue`, based on `sow/2026-Q3` at **`ce95bc5b`** - the
-Iteration-2 documentation closure after PR #79. The work is committed on that branch and raised as a pull
-request against `sow/2026-Q3`. **Not merged.**
+`fix/json-numeric-roundtrip`, based on `sow/2026-Q3` at **`5433c20f`** - the merge of PR #80. Raised as
+**PR #81** against `sow/2026-Q3`. **MERGED** (see "Latest" below; this documentation commit is the last
+commit on the branch).
+
+The manufacturer catalogue work on `feature/parto-iteration2-manufacturer-catalogue` was **MERGED** as
+**PR #80**, merge commit **`5433c20f`**.
 
 **`SAM_Systems` depends on this.** Its companion branch
 `feature/parto-iteration2-ventilation-unit-catalogue` carries the manufacturer catalogue and needs the
@@ -15,9 +18,71 @@ Iteration 2 itself was developed on `feature/parto-iteration2-mvhr-selection` (o
 locally.
 
 ## Last updated
-2026-08-29 - the manufacturer `AirHandlingUnit` template/catalogue seam (uncommitted, see the stage
-section below), on top of **Part F / Part O Iteration 2 complete and merged** (`SAM-BIM/SAM` #79, merge
-commit `fafed15f`, documentation closed at `ce95bc5b`).
+2026-08-29 (second pass) - the parsed-JSON numeric round-trip fix, **PR #81**, on top of the merged
+manufacturer catalogue seam (**PR #80**, merge commit `5433c20f`).
+
+## Latest (2026-08-29, second pass): parsed-JSON numeric round-trip fix - PR #81
+
+**Status: COMPLETE, merged into `sow/2026-Q3` via PR #81.**
+
+### The defect
+
+A `JsonValue` built in-process wraps a boxed CLR number; a `JsonValue` that came out of
+`JsonNode.Parse` - **every path that reads a saved SAM file** - wraps a `System.Text.Json.JsonElement`.
+Readers that tested the CLR type of `GetValue<object>()` (`Core.Query.IsNumeric`) passed in-process and
+silently deserialised empty/zeroed from disk. No exception, so in-memory-only tests never saw it. Found
+while adding `MultilinearInterpolation` on the catalogue branch (recorded in "A defect found on the way"
+below, which this PR resolves).
+
+### The fix
+
+- **`SAM.Core/Query/TryGetDouble.cs` (new)** - the one place that knows this: asks a `JsonValue` for
+  `double`, then `long`, then `decimal`, with the old `IsNumeric` test as a last fallback for exotic boxed
+  types. JSON strings are deliberately rejected (the CLR test it replaces rejected them too).
+- **`LinearInterpolation.FromJsonObject`** and **`PolynomialEquation.FromJsonObject`** use it.
+- **`Core.Query.Array<T>`** hands the `JsonNode` to `TryConvert` whole instead of unwrapping with
+  `GetValue<object>()` first.
+- **`Core.Query/TryConvert.cs`** - `double` read straight off the node (fast path, never becomes text);
+  `TryConvertJsonNumber` now parses JSON number tokens **invariantly** (`NumberStyles.Float`/`Integer`,
+  `InvariantCulture`). A JSON number is invariant by definition; the culture-guessing `TryParseDouble`
+  read `"-1.000"` as *minus one thousand* under `en-US` (the `-1,000` group-separator reading wins the
+  fractional-part tie via `Math.Min`). Codex P2 finding on the first commit, fixed in the second.
+- **`PerformanceJson`**'s private `TryGetDouble` delegates to the shared helper, keeping only its own
+  NaN/infinity rule.
+
+Every `GetValue<object>()` in the repository is gone bar the one inside the helper. Remaining `IsNumeric`
+call sites are non-JSON contexts (parameter values, Grasshopper `params object[]` inputs).
+
+### Files changed (PR #81)
+
+- `SAM/SAM.Core/Query/TryGetDouble.cs` (**added**)
+- `SAM/SAM.Core/Query/TryConvert.cs`
+- `SAM/SAM.Core/Query/Array.cs`
+- `SAM/SAM.Math/Classes/Interpolation/LinearInterpolation.cs`
+- `SAM/SAM.Math/Classes/Equation/PolynomialEquation.cs`
+- `SAM/SAM.Analytical/Classes/System/PerformanceJson.cs`
+- `SAM/SAM.Tests/InterpolationRoundTripTests.cs` (**added**, 7 tests - all round-trip through a JSON
+  **string**, which is what forces the parsed-`JsonElement` path)
+- `PROJECT_PROGRESS.md` (this file)
+
+### Validation
+
+- Full `SAM.Tests` Release locally: **1600 passed, 0 failed**.
+- CI on the branch: build (Release), test (Release), spdx - all green.
+
+### Unresolved
+
+- One P3 review note, parked: `Array<T>` now routes elements through `TryConvert`'s string branch too, so
+  a JSON *string* element in a numeric array (e.g. `["1.5"]`) converts, and still via the
+  culture-guessing `TryParseDouble`. Sole in-repo caller is `Array<double>` over serialised matrices, so
+  real-world exposure is negligible. If it ever matters, gate on `GetValueKind() == JsonValueKind.Number`.
+
+### Next step
+
+Nothing open on this fix. The standing next seam is unchanged - see "Next step" below: the `SAM_Systems`
+MVHR catalogue reader (its companion branch needs PR #80 + this PR merged first; both now are).
+
+---
 
 ## Current status
 
@@ -288,8 +353,8 @@ either side of the file name being renamed alone.
 `SAM.Math.LinearInterpolation` and `BilinearInterpolation` read numbers with
 `GetValue<object>()` + `Core.Query.IsNumeric`. A **parsed** JSON number is backed by a `JsonElement`, which
 is not a numeric CLR type, so those classes silently deserialise empty from any saved file. The new code
-uses `JsonValue.TryGetValue` instead; **the two pre-existing classes are untouched and still carry the
-defect** - recorded as separate work rather than fixed opportunistically here.
+uses `JsonValue.TryGetValue` instead; the two pre-existing classes were left untouched here and fixed the
+same day as separate work - **`fix/json-numeric-roundtrip`, PR #81, merged** (see "Latest" at the top).
 
 ### Files added (`SAM`)
 
