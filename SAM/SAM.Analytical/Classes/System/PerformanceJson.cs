@@ -127,37 +127,11 @@ namespace SAM.Analytical
 
         private static bool TryGetDouble(JsonNode jsonNode, out double value)
         {
-            value = double.NaN;
-
-            //JsonValue.TryGetValue rather than GetValue<object> + IsNumeric. A number that has been PARSED
-            //is backed by a JsonElement, which is not a numeric CLR type and which IsNumeric therefore
-            //rejects - so the GetValue<object> form reads numbers written in this process and silently
-            //loses every number read back from a file. Asked for each numeric shape in turn, because a
-            //JsonValue is typed by whatever built it: a parsed element, or the double/long/decimal an
-            //earlier ToJsonObject added.
-            if (jsonNode is not JsonValue jsonValue)
-            {
-                return false;
-            }
-
-            if (jsonValue.TryGetValue(out double value_Double))
-            {
-                value = value_Double;
-            }
-            else if (jsonValue.TryGetValue(out long value_Long))
-            {
-                value = value_Long;
-            }
-            else if (jsonValue.TryGetValue(out decimal value_Decimal))
-            {
-                value = (double)value_Decimal;
-            }
-            else
-            {
-                return false;
-            }
-
-            return !double.IsNaN(value) && !double.IsInfinity(value);
+            //Core.Query.TryGetDouble carries the reason this is not GetValue<object> + IsNumeric: a number
+            //that has been PARSED is backed by a JsonElement, which is not a numeric CLR type. Rejecting
+            //NaN and infinity stays here - it is this file's rule about what counts as a stated
+            //performance figure, not a fact about reading JSON.
+            return Core.Query.TryGetDouble(jsonNode, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
         }
     }
 }
