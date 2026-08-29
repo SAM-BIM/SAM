@@ -43,6 +43,12 @@ namespace SAM.Analytical
         /// <summary>The fraction of the unit's airflow a controller calls for. Dimensionless, 0 to 1.</summary>
         public const string Name_FlowFraction = "FlowFraction";
 
+        /// <summary>The unit string a Celsius-denominated output is expected to declare.</summary>
+        public const string Unit_DegreesCelsius = "degC";
+
+        /// <summary>The unit string a kilowatt-denominated output is expected to declare.</summary>
+        public const string Unit_Kilowatts = "kW";
+
         private string name;
         private string unit;
         private double[] values;

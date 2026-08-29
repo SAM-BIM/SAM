@@ -368,6 +368,13 @@ namespace SAM.Math
             int[] indices_Lower = new int[dimensions];
             double[] fractions = new double[dimensions];
 
+            //Only a varying (Length > 1) axis contributes an upper corner - a singleton axis is a constant
+            //with nothing to weight against. Enumerating corners over dimensions rather than over this list
+            //is the defect this method used to have: a singleton axis has exactly one real point, but was
+            //still given a bit in the corner index, so 24 singleton axes produced 2^24 nominal corners - all
+            //but one of them immediately zero-weighted and discarded - for a grid holding a single value.
+            List<int> dimensions_Varying = new List<int>();
+
             for (int i = 0; i < dimensions; i++)
             {
                 double[] axis = axes[i];
@@ -380,6 +387,8 @@ namespace SAM.Math
                     fractions[i] = 0;
                     continue;
                 }
+
+                dimensions_Varying.Add(i);
 
                 //The last cell whose lower bound is at or below the coordinate, held inside the grid so that
                 //the top boundary uses the final cell rather than falling off the end. A coordinate sitting
@@ -404,42 +413,35 @@ namespace SAM.Math
 
             double result = 0;
 
-            int corners = 1 << dimensions;
+            int dimensionCount_Varying = dimensions_Varying.Count;
+            int corners = 1 << dimensionCount_Varying;
 
             for (int corner = 0; corner < corners; corner++)
             {
                 double weight = 1;
-                int[] indices = new int[dimensions];
+                int[] indices = (int[])indices_Lower.Clone();
 
-                for (int i = 0; i < dimensions; i++)
+                for (int bit = 0; bit < dimensionCount_Varying; bit++)
                 {
-                    bool upper = ((corner >> i) & 1) == 1;
+                    int dimension = dimensions_Varying[bit];
+                    bool upper = ((corner >> bit) & 1) == 1;
 
                     if (upper)
                     {
-                        if (axes[i].Length == 1)
-                        {
-                            //No upper corner exists in a constant dimension, so this whole corner contributes
-                            //nothing.
-                            weight = 0;
-                            break;
-                        }
-
-                        indices[i] = indices_Lower[i] + 1;
-                        weight *= fractions[i];
+                        indices[dimension] = indices_Lower[dimension] + 1;
+                        weight *= fractions[dimension];
                     }
                     else
                     {
-                        indices[i] = indices_Lower[i];
-                        weight *= 1 - fractions[i];
+                        indices[dimension] = indices_Lower[dimension];
+                        weight *= 1 - fractions[dimension];
                     }
                 }
 
                 if (weight == 0)
                 {
                     //Skipped rather than added: it contributes nothing, and skipping keeps a zero-weight
-                    //corner out of the arithmetic entirely - including the corner that does not exist in a
-                    //constant dimension.
+                    //corner out of the arithmetic entirely.
                     continue;
                 }
 

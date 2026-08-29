@@ -352,6 +352,88 @@ Excel's shared-formula stubs, which carry no formula text of their own. The conc
   domestic vs commercial templates; the unit catalogue has no equivalent because PR #79's selection kernel
   has no application concept to consume one. Worth revisiting before a commercial AHU is catalogued.
 
+## Codex review round (2026-08-29) - PR #80, three P2 findings, all fixed
+
+Codex reviewed PR #80 (`8813bed0`) and posted three P2 findings, all against the manufacturer catalogue
+seam described above. All three were accepted and fixed on top of `8813bed0`; the architecture, scope and
+every "decision worth not re-litigating" above are unchanged.
+
+### 1. Typed C/l-s/kW lookups did not check the table's declared units
+
+`SupplyAirTemperature_C` / `CombinedCoolingCapacity_kW` resolved axes/output by name only and never checked
+that the table's `Unit` fields actually said degC/l-s/kW - a table published in Fahrenheit, m3/s or any
+other unit, or one that simply omitted the optional `Unit` field, would have its raw numbers handed back as
+if they were Celsius/litres-per-second/kilowatts.
+
+**Fixed** by hardening the typed convenience seam only, per the review's explicit scope: `VentilationUnitPerformanceAxis`/
+`VentilationUnitPerformanceOutput` gained `Unit_DegreesCelsius` / `Unit_LitresPerSecond` / `Unit_Kilowatts`
+constants, and `PerformanceValue.cs`'s two typed methods now check every required axis/output unit before
+doing the lookup, refusing with `NaN` on any mismatch or missing unit. The generic raw
+`Query.PerformanceValue(table, outputName, conditions, policy)` is completely unaffected and still answers
+from a table in any units the manufacturer published - no general unit-conversion framework was added.
+`VentilationUnitPerformanceTable.IsValid` is unchanged (`Unit` was never part of validity and still isn't).
+
+Test: `PartOVentilationUnitTemplateTests` section H (`TypedLookup_AcceptsATableDeclaringDegCLpsAndKw`,
+`TypedLookup_RefusesWhenARequiredAxisUnitIsMissing`, `TypedLookup_RefusesAWrongTemperatureUnit`,
+`TypedLookup_RefusesAWrongAirflowUnit`, `TypedLookup_RefusesAWrongOutputUnit`,
+`GenericPerformanceValue_StillReadsArbitraryManufacturerUnits`). Confirmed against the real shipped Nuaire
+catalogue in `SAM_Systems`: every axis/output there already declares exactly degC/l-s/kW, so this fix
+changes nothing about the one product currently catalogued.
+
+### 2. A table reload racing an in-flight interpolator build could leave a stale value cached
+
+`VentilationUnitPerformanceTable.Interpolation` read the (unlocked) `axes`/output fields, built a
+`MultilinearInterpolation` from them, then wrote the result into the cache under a second, separate lock. A
+`FromJsonObject` reload landing between those two steps clears the cache and installs new axes/outputs, and
+the in-flight build - built from the now-superseded data - would then be written into the *new* generation's
+cache, so a later lookup for the same output could silently read a value from the table the reload just
+replaced.
+
+**Fixed** with a generation counter: `FromJsonObject` increments `generation` in the same lock that clears
+the cache, and `Interpolation` captures `generation` alongside its axes/output snapshot before building,
+then only publishes the built interpolator into the cache if `generation` is unchanged - an interpolator
+built against generation N can never be published as generation N+1's value. No new locking/concurrency
+infrastructure beyond the counter and the existing lock.
+
+Test: `AReloadDuringAnInFlightLookup_NeverLeavesTheOldValueCached`, made deterministic (no threads, no
+sleeps) via a test-only seam - `VentilationUnitPerformanceTable.OnInterpolationSnapshotCaptured`, an
+`internal` hook (exposed to `SAM.Tests` via a new `InternalsVisibleTo` in
+`SAM.Analytical/Properties/AssemblyInfo.cs`) that fires exactly in the window the race used to occupy, so
+the test can trigger the reload synchronously from inside it and reproduce the race on one thread every
+time.
+
+### 3. Corner enumeration counted a corner for every axis, including singleton ones
+
+`MultilinearInterpolation.Interpolate` enumerated `2^dimensions` corners regardless of which axes actually
+varied. A singleton (one-value) axis has no upper corner and every corner touching it was already
+zero-weighted and skipped, but the corner was still allocated and iterated first - for a table with (say)
+24 singleton axes and one real value, that is 16,777,216 iterations and `int[24]` allocations to answer a
+lookup with exactly one possible answer.
+
+**Fixed** by enumerating corners only over the axes with more than one value (`dimensions_Varying`);
+`corners = 1 << dimensions_Varying.Count`. Singleton axes stay fixed at index 0 in every corner and
+contribute no bit, matching the pre-existing "no corner" comment that was already there but not acted on
+structurally. N-D behaviour, exact-at-node behaviour, clamping, outer-cell extrapolation, row-major
+indexing and "singleton axis = constant" are all unchanged - confirmed by the identity test below, not just
+inspection. The 24-axis validator cap was left as-is (it already bounds the varying-axis count too, since
+varying <= total).
+
+Test: `ManySingletonAxes_AnswerWithTheSingleRealValue`, `AMixOfSingletonAndVaryingAxes_InterpolatesOnlyOverTheVaryingOnes`,
+`SingletonAxesInflated_MatchTheEquivalentLowerDimensionalTable` (the last one proves the fix numerically:
+the full table with its singleton axes still present and the same table with them stripped out entirely
+share one flattened values array by construction, and both must - and do - interpolate to the same number).
+
+### Validation
+
+| Suite | Result |
+|---|---|
+| `PartOVentilationUnitTemplateTests` (focused, incl. 10 new) | **42 / 42** |
+| `SAM.Tests` (full) | **1593 / 1593** |
+| `SAM.Analytical` / `SAM.Tests` Release build | 0 errors |
+| `SAM_Tas` regression | **not run** - grepped `SAM_Tas` for every changed symbol (`VentilationUnitPerformanceTable`, `PerformanceValue`, `SupplyAirTemperature_C`, `CombinedCoolingCapacity_kW`, `MultilinearInterpolation`); zero references. Nothing in this round touches SAM.Analytical surface SAM_Tas consumes |
+
+New commit on top of `8813bed0` on `feature/parto-iteration2-manufacturer-catalogue`. Not merged.
+
 ## Review round 1 - the four correctness fixes at `c67cf5d4`
 
 Applied on top of the first Iteration 2 commit `41a02d4e`. Two were found by Codex, two in review of the

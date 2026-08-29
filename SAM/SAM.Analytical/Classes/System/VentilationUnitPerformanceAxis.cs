@@ -52,6 +52,12 @@ namespace SAM.Analytical
         /// <summary>The control temperature a flow-fraction curve is indexed by.</summary>
         public const string Name_ControlTemperature = "ControlTemperature";
 
+        /// <summary>The unit string a Celsius-denominated axis is expected to declare.</summary>
+        public const string Unit_DegreesCelsius = "degC";
+
+        /// <summary>The unit string a litres-per-second-denominated axis is expected to declare.</summary>
+        public const string Unit_LitresPerSecond = "l/s";
+
         private string name;
         private string unit;
         private double[] values;

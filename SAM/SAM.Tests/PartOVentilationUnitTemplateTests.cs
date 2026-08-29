@@ -810,9 +810,305 @@ namespace SAM.Tests
             Assert.Equal(20, multilinearInterpolation.CalculateExtrapolated(99, 2), 12);
         }
 
+        /// <summary>
+        /// Many constant (singleton) dimensions around one real value answer with that value, however many
+        /// of them there are. This is the shape Codex's corner-enumeration finding was about: the OLD code
+        /// still allocated and evaluated a nominal corner per singleton axis - <c>2^dimensions</c> of them,
+        /// all but one immediately zero-weighted and discarded - rather than recognising that a singleton
+        /// axis contributes no corner at all.
+        /// </summary>
+        [Fact]
+        public void ManySingletonAxes_AnswerWithTheSingleRealValue()
+        {
+            double[][] axes = new double[20][];
+            double[] coordinates = new double[20];
+
+            for (int i = 0; i < 20; i++)
+            {
+                axes[i] = new double[] { i };
+                coordinates[i] = i;
+            }
+
+            SAM.Math.MultilinearInterpolation multilinearInterpolation = new(axes, new double[] { 42.0 });
+
+            Assert.True(multilinearInterpolation.IsValid);
+            Assert.Equal(20, multilinearInterpolation.Dimensions);
+
+            Assert.Equal(42.0, multilinearInterpolation.Calculate(coordinates));
+            Assert.Equal(42.0, multilinearInterpolation.CalculateClamped(coordinates));
+            Assert.Equal(42.0, multilinearInterpolation.CalculateExtrapolated(coordinates));
+        }
+
+        /// <summary>
+        /// A mixture of singleton and varying axes interpolates only over the varying ones - the singleton
+        /// axes hold their one coordinate and contribute no corner, exactly as a two-dimensional table
+        /// would if the singleton axes were not there at all (see the next test).
+        /// </summary>
+        [Fact]
+        public void AMixOfSingletonAndVaryingAxes_InterpolatesOnlyOverTheVaryingOnes()
+        {
+            SAM.Math.MultilinearInterpolation multilinearInterpolation = MixedSingletonAndVaryingInterpolation();
+
+            Assert.True(multilinearInterpolation.IsValid);
+            Assert.Equal(4, multilinearInterpolation.Dimensions);
+
+            //Exact at every real node, singleton coordinates included.
+            Assert.Equal(0.0, multilinearInterpolation.Calculate(5, 10, 100, 0), 12);
+            Assert.Equal(12.0, multilinearInterpolation.Calculate(5, 20, 100, 2), 12);
+
+            //Halfway between the two varying-axis nodes that bracket it.
+            Assert.Equal(6.0, multilinearInterpolation.Calculate(5, 15, 100, 1), 12);
+        }
+
+        /// <summary>
+        /// The same table with its singleton axes stripped out entirely is a lower-dimensional table over
+        /// the identical flattened values - row-major flattening gives a singleton axis a multiplier of
+        /// exactly one, so the two tables share one values array. Interpolating the full table at a
+        /// singleton axis's one coordinate must equal interpolating the reduced table without it.
+        /// </summary>
+        [Fact]
+        public void SingletonAxesInflated_MatchTheEquivalentLowerDimensionalTable()
+        {
+            SAM.Math.MultilinearInterpolation full = MixedSingletonAndVaryingInterpolation();
+
+            SAM.Math.MultilinearInterpolation reduced = new(
+                new double[][] { new double[] { 10.0, 20.0 }, new double[] { 0.0, 1.0, 2.0 } },
+                new double[] { 0, 1, 2, 10, 11, 12 });
+
+            Assert.True(reduced.IsValid);
+            Assert.Equal(2, reduced.Dimensions);
+
+            Assert.Equal(reduced.Calculate(15, 1), full.Calculate(5, 15, 100, 1), 12);
+            Assert.Equal(reduced.Calculate(12, 1.5), full.Calculate(5, 12, 100, 1.5), 12);
+        }
+
+        // =================================================================================================
+        // H. The C / l-s / kW convenience seam refuses units it was not told to expect
+        // =================================================================================================
+
+        /// <summary>
+        /// The baseline the refusal tests below are contrasted against: a table declaring exactly &#176;C /
+        /// &#176;C / l/s on its axes and &#176;C / kW on its outputs answers normally through the typed
+        /// convenience calls.
+        /// </summary>
+        [Fact]
+        public void TypedLookup_AcceptsATableDeclaringDegCLpsAndKw()
+        {
+            VentilationUnitTemplate ventilationUnitTemplate = Template("UNIT-TYPED-OK", 120, 100);
+
+            Assert.Equal(Supply(0, 0, 0), ventilationUnitTemplate.SupplyAirTemperature_C(29, 23, 50), 12);
+            Assert.Equal(Cooling(0, 0, 0), ventilationUnitTemplate.CombinedCoolingCapacity_kW(29, 23, 50), 12);
+        }
+
+        /// <summary>
+        /// A required axis left with no declared unit at all refuses the typed call, even though the raw
+        /// table is otherwise perfectly valid and perfectly readable through the generic lookup.
+        /// </summary>
+        [Fact]
+        public void TypedLookup_RefusesWhenARequiredAxisUnitIsMissing()
+        {
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new(
+                [
+                    new VentilationUnitPerformanceAxis(name_External, null, [29.0]),
+                    new VentilationUnitPerformanceAxis(name_Entering, "degC", [23.0]),
+                    new VentilationUnitPerformanceAxis(name_Flow, "l/s", [50.0]),
+                ],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [15.0])]);
+
+            //Unit is not part of IsValid - the raw table is fine, and the generic API answers from it.
+            Assert.True(ventilationUnitPerformanceTable.IsValid);
+            Assert.Equal(15.0, ventilationUnitPerformanceTable.PerformanceValue(name_Supply, RawConditions()));
+
+            VentilationUnitTemplate ventilationUnitTemplate = TemplateWithTable(ventilationUnitPerformanceTable);
+
+            Assert.True(double.IsNaN(ventilationUnitTemplate.SupplyAirTemperature_C(29, 23, 50)));
+        }
+
+        /// <summary>A temperature axis published in anything other than &#176;C refuses, rather than being read as Celsius.</summary>
+        [Fact]
+        public void TypedLookup_RefusesAWrongTemperatureUnit()
+        {
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new(
+                [
+                    new VentilationUnitPerformanceAxis(name_External, "degF", [29.0]),
+                    new VentilationUnitPerformanceAxis(name_Entering, "degC", [23.0]),
+                    new VentilationUnitPerformanceAxis(name_Flow, "l/s", [50.0]),
+                ],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [15.0])]);
+
+            VentilationUnitTemplate ventilationUnitTemplate = TemplateWithTable(ventilationUnitPerformanceTable);
+
+            Assert.True(double.IsNaN(ventilationUnitTemplate.SupplyAirTemperature_C(29, 23, 50)));
+
+            //The raw API is unaffected - the table itself is a legitimate Fahrenheit/Celsius/l/s mixture.
+            Assert.Equal(15.0, ventilationUnitPerformanceTable.PerformanceValue(name_Supply, RawConditions()));
+        }
+
+        /// <summary>An airflow axis published in anything other than l/s refuses, rather than being read as litres per second.</summary>
+        [Fact]
+        public void TypedLookup_RefusesAWrongAirflowUnit()
+        {
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new(
+                [
+                    new VentilationUnitPerformanceAxis(name_External, "degC", [29.0]),
+                    new VentilationUnitPerformanceAxis(name_Entering, "degC", [23.0]),
+                    new VentilationUnitPerformanceAxis(name_Flow, "m3/s", [50.0]),
+                ],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [15.0])]);
+
+            VentilationUnitTemplate ventilationUnitTemplate = TemplateWithTable(ventilationUnitPerformanceTable);
+
+            Assert.True(double.IsNaN(ventilationUnitTemplate.SupplyAirTemperature_C(29, 23, 50)));
+        }
+
+        /// <summary>
+        /// An output published in anything other than its expected unit refuses - a &#176;C claim on a
+        /// Kelvin column, or a kW claim on a BTU/h one, must not be handed back as if it had been converted.
+        /// </summary>
+        [Fact]
+        public void TypedLookup_RefusesAWrongOutputUnit()
+        {
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new(
+                [
+                    new VentilationUnitPerformanceAxis(name_External, "degC", [29.0]),
+                    new VentilationUnitPerformanceAxis(name_Entering, "degC", [23.0]),
+                    new VentilationUnitPerformanceAxis(name_Flow, "l/s", [50.0]),
+                ],
+                [
+                    new VentilationUnitPerformanceOutput(name_Supply, "K", [15.0]),
+                    new VentilationUnitPerformanceOutput(name_Cooling, "BTU/h", [1.0]),
+                ]);
+
+            VentilationUnitTemplate ventilationUnitTemplate = TemplateWithTable(ventilationUnitPerformanceTable);
+
+            Assert.True(double.IsNaN(ventilationUnitTemplate.SupplyAirTemperature_C(29, 23, 50)));
+            Assert.True(double.IsNaN(ventilationUnitTemplate.CombinedCoolingCapacity_kW(29, 23, 50)));
+
+            //The raw API answers both regardless - it was never told to expect Celsius or kW.
+            Assert.Equal(15.0, ventilationUnitPerformanceTable.PerformanceValue(name_Supply, RawConditions()));
+            Assert.Equal(1.0, ventilationUnitPerformanceTable.PerformanceValue(name_Cooling, RawConditions()));
+        }
+
+        /// <summary>
+        /// <b>The generic raw table stays generic.</b> A table published entirely in other units -
+        /// Fahrenheit, cubic feet per minute, Kelvin - is fully readable through
+        /// <see cref="PerformanceValue(VentilationUnitPerformanceTable, string, IDictionary{string, double}, PerformanceDomainPolicy)"/>.
+        /// Only the named &#176;C/l-s/kW convenience seam refuses it, and it must not be hardened into
+        /// rejecting non-SI or non-Nuaire units generally.
+        /// </summary>
+        [Fact]
+        public void GenericPerformanceValue_StillReadsArbitraryManufacturerUnits()
+        {
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new(
+                [
+                    new VentilationUnitPerformanceAxis(name_External, "degF", [84.0]),
+                    new VentilationUnitPerformanceAxis(name_Entering, "degF", [73.0]),
+                    new VentilationUnitPerformanceAxis(name_Flow, "cfm", [106.0]),
+                ],
+                [new VentilationUnitPerformanceOutput(name_Supply, "K", [288.0])]);
+
+            Assert.True(ventilationUnitPerformanceTable.IsValid);
+            Assert.Equal(288.0, ventilationUnitPerformanceTable.PerformanceValue(name_Supply, RawConditions(84.0, 73.0, 106.0)));
+
+            VentilationUnitTemplate ventilationUnitTemplate = TemplateWithTable(ventilationUnitPerformanceTable);
+
+            Assert.True(double.IsNaN(ventilationUnitTemplate.SupplyAirTemperature_C(84, 73, 106)));
+        }
+
+        // =================================================================================================
+        // I. A reload mid-lookup must never leave a stale value cached
+        // =================================================================================================
+
+        /// <summary>
+        /// <b>Pins the Codex cache/generation race, deterministically - no threads, no sleeps.</b>
+        /// <para>
+        /// <see cref="VentilationUnitPerformanceTable.OnInterpolationSnapshotCaptured"/> is a test-only seam
+        /// that fires at the exact point a concurrent <c>FromJsonObject</c> reload used to be able to land:
+        /// after a lookup has captured its pre-build snapshot of the axes/output, but before it has finished
+        /// building and caching the interpolator from them. Firing a reload synchronously from that hook
+        /// reproduces the race on a single thread, every time.
+        /// </para>
+        /// <para>
+        /// Without the generation check, the first lookup's in-flight build (holding the OLD value) would be
+        /// written into the cache the reload just cleared, and the SECOND lookup - which never saw the old
+        /// table at all - would read that stale value back instead of building fresh from the NEW table.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AReloadDuringAnInFlightLookup_NeverLeavesTheOldValueCached()
+        {
+            VentilationUnitPerformanceTable seed_Before = new(
+                [new VentilationUnitPerformanceAxis(name_Flow, "l/s", [50.0])],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [10.0])]);
+
+            VentilationUnitPerformanceTable seed_After = new(
+                [new VentilationUnitPerformanceAxis(name_Flow, "l/s", [50.0])],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [99.0])]);
+
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new();
+            ventilationUnitPerformanceTable.FromJsonObject(seed_Before.ToJsonObject());
+
+            ventilationUnitPerformanceTable.OnInterpolationSnapshotCaptured = () =>
+            {
+                //Fires once - a second reload landing in the same window is not what this test is about.
+                ventilationUnitPerformanceTable.OnInterpolationSnapshotCaptured = null;
+                ventilationUnitPerformanceTable.FromJsonObject(seed_After.ToJsonObject());
+            };
+
+            double value_First = ventilationUnitPerformanceTable.Value(name_Supply, new double[] { 50.0 });
+            double value_Second = ventilationUnitPerformanceTable.Value(name_Supply, new double[] { 50.0 });
+
+            //The in-flight build still returns a correct answer - correct for the pre-reload table it was
+            //actually built from, which is what it saw before the reload it is unaware of.
+            Assert.Equal(10.0, value_First);
+
+            //The point of the fix: the second, unrelated lookup was never told about the first one's stale
+            //build, so it rebuilds from the CURRENT table rather than reading back what the first call
+            //would otherwise have wrongly cached.
+            Assert.Equal(99.0, value_Second);
+        }
+
         // =================================================================================================
         // Fixtures
         // =================================================================================================
+
+        /// <summary>
+        /// A 4-D table - singleton, varying[10,20], singleton, varying[0,1,2] - whose flattened values are a
+        /// simple function of the two varying axes only: <c>10*j + l</c>. Shared by the singleton-axis
+        /// corner-enumeration tests above.
+        /// </summary>
+        private static SAM.Math.MultilinearInterpolation MixedSingletonAndVaryingInterpolation()
+        {
+            double[][] axes = new double[][]
+            {
+                new double[] { 5.0 },
+                new double[] { 10.0, 20.0 },
+                new double[] { 100.0 },
+                new double[] { 0.0, 1.0, 2.0 },
+            };
+
+            return new SAM.Math.MultilinearInterpolation(axes, new double[] { 0, 1, 2, 10, 11, 12 });
+        }
+
+        /// <summary>A conditions dictionary for the raw <see cref="Query.PerformanceValue"/> API, at the fixture's single tabulated point unless overridden.</summary>
+        private static Dictionary<string, double> RawConditions(double external = 29.0, double entering = 23.0, double flow = 50.0)
+        {
+            return new Dictionary<string, double>
+            {
+                { name_External, external },
+                { name_Entering, entering },
+                { name_Flow, flow },
+            };
+        }
+
+        /// <summary>A minimal template carrying a given performance table and nothing else - the unit-checking tests only care about the table.</summary>
+        private static VentilationUnitTemplate TemplateWithTable(VentilationUnitPerformanceTable ventilationUnitPerformanceTable)
+        {
+            return new VentilationUnitTemplate(Reference("UNIT-UNITS"), source_Fixture)
+            {
+                PerformanceTable = ventilationUnitPerformanceTable,
+            };
+        }
 
         private const string name_External = VentilationUnitPerformanceAxis.Name_ExternalDryBulbTemperature;
 

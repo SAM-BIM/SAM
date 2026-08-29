@@ -56,6 +56,22 @@ namespace SAM.Analytical
         /// </summary>
         private readonly object @lock = new();
 
+        /// <summary>
+        /// Incremented, under the lock above, every time <see cref="FromJsonObject"/> replaces the
+        /// axes/outputs. An interpolator build tags itself with the generation it read its snapshot under,
+        /// so a build started against generation N can never be published into generation N+1's cache - see
+        /// <see cref="Interpolation(string)"/>.
+        /// </summary>
+        private int generation;
+
+        /// <summary>
+        /// Test-only seam. Invoked, outside any lock, immediately after <see cref="Interpolation(string)"/>
+        /// captures its pre-build snapshot (axes, output and generation) and before it builds the
+        /// interpolator - the exact window a concurrent <see cref="FromJsonObject"/> reload occupies in the
+        /// race this field's sibling <see cref="generation"/> field closes. Production code never sets this.
+        /// </summary>
+        internal Action OnInterpolationSnapshotCaptured;
+
         public VentilationUnitPerformanceTable()
         {
         }
@@ -403,6 +419,10 @@ namespace SAM.Analytical
 
             Math.MultilinearInterpolation result;
 
+            List<VentilationUnitPerformanceAxis> axesSnapshot;
+            VentilationUnitPerformanceOutput outputSnapshot;
+            int generationSnapshot;
+
             lock (@lock)
             {
                 multilinearInterpolations ??= [];
@@ -411,21 +431,31 @@ namespace SAM.Analytical
                 {
                     return result;
                 }
+
+                //Captured together, under the same lock a reload clears the cache and bumps the generation
+                //under - so this snapshot is either entirely before or entirely after any one reload, never
+                //a mix of pre- and post-reload state.
+                generationSnapshot = generation;
+                axesSnapshot = axes;
+                outputSnapshot = OutputInternal(outputName);
             }
 
-            VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput = OutputInternal(outputName);
-            if (ventilationUnitPerformanceOutput is null)
+            if (outputSnapshot is null)
             {
                 return null;
             }
 
+            //Test-only: lets a test force a FromJsonObject reload here, deterministically, in the exact
+            //window a concurrent one would otherwise race this build in.
+            OnInterpolationSnapshotCaptured?.Invoke();
+
             List<double[]> axisValues = [];
-            foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axes)
+            foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axesSnapshot)
             {
                 axisValues.Add(ventilationUnitPerformanceAxis.Values);
             }
 
-            result = new Math.MultilinearInterpolation(axisValues, ventilationUnitPerformanceOutput.Values);
+            result = new Math.MultilinearInterpolation(axisValues, outputSnapshot.Values);
 
             if (!result.IsValid)
             {
@@ -434,12 +464,22 @@ namespace SAM.Analytical
 
             lock (@lock)
             {
+                if (generation != generationSnapshot)
+                {
+                    //A reload replaced the table's data while this interpolator was being built from the
+                    //pre-reload snapshot above. The result is correct for the table it was built from, but
+                    //that table is no longer this generation - it must not be published into the current
+                    //cache, or a later lookup for the same output would silently read the old table's value.
+                    return result;
+                }
+
                 //Re-created rather than assumed: a concurrent reload will have cleared it, and an interpolator
                 //this call already built is still worth returning to its caller.
                 multilinearInterpolations ??= [];
 
-                //Last writer wins, and that is harmless: two threads racing here build interpolators that are
-                //equal in every value, because both read the same immutable axes and output.
+                //Last writer wins, and that is harmless: two threads racing here on the SAME generation build
+                //interpolators that are equal in every value, because both read the same immutable axes and
+                //output.
                 multilinearInterpolations[outputName] = result;
             }
 
@@ -470,6 +510,11 @@ namespace SAM.Analytical
             {
                 //Cleared with the data it was built from, so a cached interpolator can never outlive it.
                 multilinearInterpolations = null;
+
+                //Bumped in the same lock as the clear above, so a build already in flight against the old
+                //data (see Interpolation) can tell it is no longer current even after this method has gone
+                //on to install the new axes/outputs below.
+                generation++;
             }
 
             if (jsonObject["Axes"] is JsonArray jsonArray_Axes)

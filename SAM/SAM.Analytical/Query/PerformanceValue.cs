@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Analytical.Enums;
+using System;
 using System.Collections.Generic;
 
 namespace SAM.Analytical
@@ -90,9 +91,21 @@ namespace SAM.Analytical
         /// conditions". It does not decide what the airflow is, does not know what a timestep is, and
         /// produces no operating state. Iteration 3 owns those questions.
         /// </para>
+        /// <para>
+        /// <b>Named units, checked, not assumed.</b> This API's name promises &#176;C in, l/s in, &#176;C
+        /// out. A table whose declared axis/output units do not match - a different unit system, or a
+        /// manufacturer field left blank - is refused with <see cref="double.NaN"/> rather than having its
+        /// raw numbers treated as if they were Celsius and litres per second. A table published in other
+        /// units is still fully readable through the raw <see cref="PerformanceValue(VentilationUnitPerformanceTable, string, IDictionary{string, double}, PerformanceDomainPolicy)"/>.
+        /// </para>
         /// </summary>
         public static double SupplyAirTemperature_C(this VentilationUnitTemplate ventilationUnitTemplate, double externalDryBulbTemperature_C, double enteringDryBulbTemperature_C, double airFlowRate_Lps, PerformanceDomainPolicy performanceDomainPolicy = PerformanceDomainPolicy.Refuse)
         {
+            if (!HasTypedUnits(ventilationUnitTemplate?.PerformanceTable, VentilationUnitPerformanceOutput.Name_SupplyAirTemperature, VentilationUnitPerformanceOutput.Unit_DegreesCelsius))
+            {
+                return double.NaN;
+            }
+
             return PerformanceValue(
                 ventilationUnitTemplate,
                 VentilationUnitPerformanceOutput.Name_SupplyAirTemperature,
@@ -102,10 +115,16 @@ namespace SAM.Analytical
 
         /// <summary>
         /// The manufacturer's combined cooling figure [kW] at an external dry bulb, an entering dry bulb and
-        /// an airflow. See <see cref="SupplyAirTemperature_C"/> - the same lookup, the other output.
+        /// an airflow. See <see cref="SupplyAirTemperature_C"/> - the same lookup, the same unit checking,
+        /// the other output.
         /// </summary>
         public static double CombinedCoolingCapacity_kW(this VentilationUnitTemplate ventilationUnitTemplate, double externalDryBulbTemperature_C, double enteringDryBulbTemperature_C, double airFlowRate_Lps, PerformanceDomainPolicy performanceDomainPolicy = PerformanceDomainPolicy.Refuse)
         {
+            if (!HasTypedUnits(ventilationUnitTemplate?.PerformanceTable, VentilationUnitPerformanceOutput.Name_CombinedCoolingCapacity, VentilationUnitPerformanceOutput.Unit_Kilowatts))
+            {
+                return double.NaN;
+            }
+
             return PerformanceValue(
                 ventilationUnitTemplate,
                 VentilationUnitPerformanceOutput.Name_CombinedCoolingCapacity,
@@ -121,6 +140,46 @@ namespace SAM.Analytical
                 { VentilationUnitPerformanceAxis.Name_EnteringDryBulbTemperature, enteringDryBulbTemperature_C },
                 { VentilationUnitPerformanceAxis.Name_AirFlowRate, airFlowRate_Lps },
             };
+        }
+
+        /// <summary>
+        /// Whether a table declares exactly the units the &#176;C/l/s/kW typed lookups above promise: both
+        /// temperature axes in Celsius, the airflow axis in litres per second, and the named output in its
+        /// expected unit. A missing axis/output, or one whose <c>Unit</c> was left unset or names something
+        /// else, refuses - there is no neutral unit to assume on a manufacturer's behalf.
+        /// </summary>
+        private static bool HasTypedUnits(VentilationUnitPerformanceTable ventilationUnitPerformanceTable, string outputName, string outputUnit)
+        {
+            if (ventilationUnitPerformanceTable is null)
+            {
+                return false;
+            }
+
+            if (!AxisUnitMatches(ventilationUnitPerformanceTable, VentilationUnitPerformanceAxis.Name_ExternalDryBulbTemperature, VentilationUnitPerformanceAxis.Unit_DegreesCelsius))
+            {
+                return false;
+            }
+
+            if (!AxisUnitMatches(ventilationUnitPerformanceTable, VentilationUnitPerformanceAxis.Name_EnteringDryBulbTemperature, VentilationUnitPerformanceAxis.Unit_DegreesCelsius))
+            {
+                return false;
+            }
+
+            if (!AxisUnitMatches(ventilationUnitPerformanceTable, VentilationUnitPerformanceAxis.Name_AirFlowRate, VentilationUnitPerformanceAxis.Unit_LitresPerSecond))
+            {
+                return false;
+            }
+
+            VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput = ventilationUnitPerformanceTable.Output(outputName);
+
+            return ventilationUnitPerformanceOutput is not null && string.Equals(ventilationUnitPerformanceOutput.Unit, outputUnit, StringComparison.Ordinal);
+        }
+
+        private static bool AxisUnitMatches(VentilationUnitPerformanceTable ventilationUnitPerformanceTable, string axisName, string unit)
+        {
+            VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis = ventilationUnitPerformanceTable.Axis(axisName);
+
+            return ventilationUnitPerformanceAxis is not null && string.Equals(ventilationUnitPerformanceAxis.Unit, unit, StringComparison.Ordinal);
         }
     }
 }
