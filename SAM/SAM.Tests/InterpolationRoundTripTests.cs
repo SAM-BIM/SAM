@@ -97,5 +97,42 @@ namespace SAM.Tests
             Assert.Equal(1e-05, result[1, 1]);
             Assert.Equal(-0.1, result[1, 2]);
         }
+
+        [Fact]
+        public void Array_ParsedJsonArray_ReadsIntegralDecimalsWithoutCultureGuessing()
+        {
+            // A JSON number token is invariant by definition, so a hand-written or hand-edited "-1.000"
+            // is minus one. Read it by way of its text with a parser that guesses whether ',' or '.' is
+            // the decimal separator and "-1.000" also reads as "-1,000" - minus one thousand - which
+            // under any culture that groups with ',' is the value that wins.
+            JsonArray jsonArray = (JsonArray)JsonNode.Parse("[[-1.000, 1.000], [-2.500, -1234.000]]")!;
+
+            double[,] result = Core.Query.Array<double>(jsonArray);
+
+            Assert.NotNull(result);
+            Assert.Equal(-1.0, result[0, 0]);
+            Assert.Equal(1.0, result[0, 1]);
+            Assert.Equal(-2.5, result[1, 0]);
+            Assert.Equal(-1234.0, result[1, 1]);
+        }
+
+        [Fact]
+        public void FromJson_BilinearInterpolation_ReadsIntegralDecimals()
+        {
+            // The same thing where it actually bites: a matrix of temperatures a human typed with
+            // trailing zeros. Whole-numbered and negative is the ordinary case here, not an edge case.
+            string json = @"{
+                ""_type"": ""SAM.Math.BilinearInterpolation"",
+                ""XArray"": [1.000, 2.000],
+                ""YArray"": [10.000, 20.000],
+                ""Values"": [[-1.000, -3.000], [-5.000, -7.000]]
+            }";
+
+            BilinearInterpolation result = RoundTrip.FromJson<BilinearInterpolation>(json);
+
+            Assert.Equal(-1.0, result.Calculate(1.0, 10.0));
+            Assert.Equal(-7.0, result.Calculate(2.0, 20.0));
+            Assert.Equal(-4.0, result.Calculate(1.5, 15.0), 10);
+        }
     }
 }
