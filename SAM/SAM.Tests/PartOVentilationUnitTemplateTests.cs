@@ -5,6 +5,7 @@ using SAM.Analytical;
 using SAM.Analytical.Enums;
 using SAM.Core;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace SAM.Tests
@@ -745,6 +746,57 @@ namespace SAM.Tests
         }
 
         // =================================================================================================
+        // F2. Typed units - the curve proves degC/dimensionless, rather than trusting the axis name
+        // =================================================================================================
+
+        /// <summary>
+        /// <b>The Celsius-typed API must prove the unit, not just the axis name.</b> A control-temperature
+        /// axis that exists but is declared in Fahrenheit must not be read through
+        /// <see cref="FlowFractionControlCurve.ControlTemperatures_C"/> or <c>FlowFraction</c> as though its
+        /// raw numbers were already Celsius.
+        /// </summary>
+        [Fact]
+        public void AControlTemperatureAxisDeclaredInFahrenheit_IsRefusedRatherThanReadAsCelsius()
+        {
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new(
+                [new VentilationUnitPerformanceAxis(VentilationUnitPerformanceAxis.Name_ControlTemperature, "degF", [71.6, 78.8])],
+                [new VentilationUnitPerformanceOutput(VentilationUnitPerformanceOutput.Name_FlowFraction, VentilationUnitPerformanceOutput.Unit_Dimensionless, [0.3, 1.0])]);
+
+            FlowFractionControlCurve flowFractionControlCurve = CurveFromTable(ventilationUnitPerformanceTable);
+
+            Assert.False(flowFractionControlCurve.IsValid);
+            Assert.Null(flowFractionControlCurve.ControlTemperatures_C);
+            Assert.True(double.IsNaN(flowFractionControlCurve.MinimumControlTemperature_C));
+            Assert.True(double.IsNaN(flowFractionControlCurve.MaximumControlTemperature_C));
+            Assert.True(double.IsNaN(flowFractionControlCurve.FlowFraction(22)));
+        }
+
+        /// <summary>A control-temperature axis with no declared unit at all is refused the same way - there is no neutral unit to assume on a manufacturer's behalf.</summary>
+        [Fact]
+        public void AControlTemperatureAxisWithNoDeclaredUnit_IsRefused()
+        {
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new(
+                [new VentilationUnitPerformanceAxis(VentilationUnitPerformanceAxis.Name_ControlTemperature, null, [22.0, 26.0])],
+                [new VentilationUnitPerformanceOutput(VentilationUnitPerformanceOutput.Name_FlowFraction, VentilationUnitPerformanceOutput.Unit_Dimensionless, [0.3, 1.0])]);
+
+            Assert.False(CurveFromTable(ventilationUnitPerformanceTable).IsValid);
+        }
+
+        /// <summary>
+        /// The flow-fraction output's dimensionless convention is proven, not assumed - an output
+        /// mistakenly carrying a physical unit (here "kW") is refused rather than treated as a fraction.
+        /// </summary>
+        [Fact]
+        public void AFlowFractionOutputNotDeclaredDimensionless_IsRefused()
+        {
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new(
+                [new VentilationUnitPerformanceAxis(VentilationUnitPerformanceAxis.Name_ControlTemperature, VentilationUnitPerformanceAxis.Unit_DegreesCelsius, [22.0, 26.0])],
+                [new VentilationUnitPerformanceOutput(VentilationUnitPerformanceOutput.Name_FlowFraction, "kW", [0.3, 1.0])]);
+
+            Assert.False(CurveFromTable(ventilationUnitPerformanceTable).IsValid);
+        }
+
+        // =================================================================================================
         // G. The maths underneath, directly
         // =================================================================================================
 
@@ -1068,6 +1120,209 @@ namespace SAM.Tests
             Assert.Equal(99.0, value_Second);
         }
 
+        /// <summary>
+        /// <b>Pins the Codex atomic-replacement finding, deterministically.</b>
+        /// <para>
+        /// <see cref="VentilationUnitPerformanceTable.OnReplacementLocalsPrepared"/> fires after
+        /// <c>FromJsonObject</c> has parsed the incoming axes/outputs into locals but before it publishes
+        /// them. A reader that runs from that hook is exercising the exact window a non-atomic replacement
+        /// would expose: before the fix, the live axes/outputs fields had already been nulled out (and, for
+        /// part of the window, were being rebuilt element by element) well before this point. A reader here
+        /// must instead still see the complete PRE-reload table, never a nulled or half-rebuilt one.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AReloadInProgress_NeverExposesANulledOrPartiallyRebuiltTable()
+        {
+            VentilationUnitPerformanceTable seed_Before = new(
+                [new VentilationUnitPerformanceAxis(name_Flow, "l/s", [50.0, 60.0])],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [10.0, 20.0])]);
+
+            VentilationUnitPerformanceTable seed_After = new(
+                [new VentilationUnitPerformanceAxis(name_Flow, "l/s", [70.0])],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [99.0])]);
+
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new();
+            ventilationUnitPerformanceTable.FromJsonObject(seed_Before.ToJsonObject());
+
+            List<string> axisNames_SeenMidReload = null;
+            int? pointCount_SeenMidReload = null;
+
+            ventilationUnitPerformanceTable.OnReplacementLocalsPrepared = () =>
+            {
+                //Fires once - a second reload landing in the same window is not what this test is about.
+                ventilationUnitPerformanceTable.OnReplacementLocalsPrepared = null;
+
+                axisNames_SeenMidReload = ventilationUnitPerformanceTable.AxisNames;
+                pointCount_SeenMidReload = ventilationUnitPerformanceTable.PointCount;
+            };
+
+            ventilationUnitPerformanceTable.FromJsonObject(seed_After.ToJsonObject());
+
+            //Mid-reload, the reader saw the complete OLD (2-point) table - not null, and not the 1-point NEW
+            //table that was still only a local at that moment.
+            Assert.NotNull(axisNames_SeenMidReload);
+            Assert.Equal(2, pointCount_SeenMidReload);
+
+            //And once the reload has returned, the table is the fully-published NEW one.
+            Assert.Equal(1, ventilationUnitPerformanceTable.PointCount);
+            Assert.Equal(99.0, ventilationUnitPerformanceTable.Value(name_Supply, new double[] { 70.0 }));
+        }
+
+        /// <summary>
+        /// <b>Pins the Codex "new axes + old outputs" finding, deterministically.</b>
+        /// <para>
+        /// Codex's point: moving the axes/outputs swap under a lock made it atomic to a reader that ALSO
+        /// takes that lock, but <c>PublishedValue</c>, <c>ToJsonObject</c>, <c>IsValid</c> and the
+        /// <c>Axis</c>/<c>Output</c> accessors never did - so two sequential field assignments were not
+        /// atomic to any of them, and a reader landing between the two could see the NEW axes' shape
+        /// combined with the OLD outputs' values (or vice versa). If the two tables' point counts happen
+        /// to coincide - as they deliberately do here - that is not a crash or a refusal: it is
+        /// <c>PublishedValue</c> indexing into the wrong output row and returning a plausible-looking but
+        /// WRONG manufacturer value.
+        /// </para>
+        /// <para>
+        /// <b>Why the shapes below are chosen the way they are.</b> BEFORE is a 2 &#215; 3 table (6 points);
+        /// AFTER is a reshaped 3 &#215; 2 table - the SAME 6-point total, but different per-axis lengths, so
+        /// the flattening index math genuinely differs between the two rather than merely relabelling the
+        /// same layout. At coordinate (1, 1), all four possible pairings - old axes/old outputs, new/new,
+        /// new axes/old outputs, old axes/new outputs - read back four DIFFERENT numbers (22, 96, 21, 95).
+        /// A reader that ever saw a torn pairing would return 21 or 95; this test proves it never does.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AReloadInProgress_NeverPairsAxesFromOneGenerationWithOutputsFromAnother()
+        {
+            VentilationUnitPerformanceTable seed_Before = new(
+                [
+                    new VentilationUnitPerformanceAxis(name_External, "degC", [29.0, 32.0]),
+                    new VentilationUnitPerformanceAxis(name_Flow, "l/s", [50.0, 60.0, 70.0]),
+                ],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [11.0, 12.0, 13.0, 21.0, 22.0, 23.0])]);
+
+            //Reshaped - same 6-point total, different per-axis lengths - so a torn pairing's index math
+            //genuinely diverges from either correct answer rather than coincidentally matching one.
+            VentilationUnitPerformanceTable seed_After = new(
+                [
+                    new VentilationUnitPerformanceAxis(name_External, "degC", [29.0, 32.0, 35.0]),
+                    new VentilationUnitPerformanceAxis(name_Flow, "l/s", [50.0, 60.0]),
+                ],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [99.0, 98.0, 97.0, 96.0, 95.0, 94.0])]);
+
+            //Pins the four-way arithmetic the rest of this test relies on before touching the table under test.
+            Assert.Equal(22.0, seed_Before.PublishedValue(name_Supply, 1, 1));
+            Assert.Equal(96.0, seed_After.PublishedValue(name_Supply, 1, 1));
+
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new();
+            ventilationUnitPerformanceTable.FromJsonObject(seed_Before.ToJsonObject());
+
+            double? value_SeenMidReload = null;
+            VentilationUnitPerformanceTable table_SeenMidReload = null;
+
+            ventilationUnitPerformanceTable.OnReplacementLocalsPrepared = () =>
+            {
+                //Fires once - a second reload landing in the same window is not what this test is about.
+                ventilationUnitPerformanceTable.OnReplacementLocalsPrepared = null;
+
+                //PublishedValue and ToJsonObject are both unsynchronized, both touch axes AND outputs, and
+                //are exactly the two Codex named - exercised from the one window a two-step field swap
+                //could have torn.
+                value_SeenMidReload = ventilationUnitPerformanceTable.PublishedValue(name_Supply, 1, 1);
+                table_SeenMidReload = new VentilationUnitPerformanceTable(ventilationUnitPerformanceTable.ToJsonObject());
+            };
+
+            ventilationUnitPerformanceTable.FromJsonObject(seed_After.ToJsonObject());
+
+            //Mid-reload, both readers saw the complete OLD pairing (22) - never the torn 21 a "new axes,
+            //old outputs" combination would produce, and never the NEW pairing either, since the new state
+            //had not yet been published at that point.
+            Assert.Equal(22.0, value_SeenMidReload);
+            Assert.Equal(22.0, table_SeenMidReload.PublishedValue(name_Supply, 1, 1));
+            Assert.Equal(2, table_SeenMidReload.Axis(name_External).Count);
+            Assert.Equal(3, table_SeenMidReload.Axis(name_Flow).Count);
+
+            //And once the reload has returned, the same reader sees the fully-published NEW pairing (96) -
+            //never the other torn combination (95).
+            Assert.Equal(96.0, ventilationUnitPerformanceTable.PublishedValue(name_Supply, 1, 1));
+        }
+
+        // =================================================================================================
+        // J. Strict string fields - a JSON string only, never a stringified number/object/array
+        // =================================================================================================
+
+        /// <summary>
+        /// <b>"Source": 123 is malformed data, not a number worth reading as text.</b> Before the fix,
+        /// <c>PerformanceJson.Text</c> read every JSON scalar through <c>ToString()</c>, so a Source written
+        /// as a bare number would silently become the string "123" and the template would look validly
+        /// sourced. It must instead read as absent - which, because Source is required for
+        /// <see cref="VentilationUnitTemplate.IsValid"/>, refuses the whole template.
+        /// </summary>
+        [Fact]
+        public void ASourceWrittenAsANumber_IsRejectedRatherThanStringified()
+        {
+            JsonObject jsonObject = Template("UNIT-A", 120, 100).ToJsonObject();
+            jsonObject["Source"] = 123;
+
+            VentilationUnitTemplate ventilationUnitTemplate_Malformed = new(jsonObject);
+
+            Assert.Null(ventilationUnitTemplate_Malformed.Source);
+            Assert.False(ventilationUnitTemplate_Malformed.IsValid);
+        }
+
+        /// <summary>A performance axis Name written as a JSON object reads as absent, the same way - not the object's stringified JSON text.</summary>
+        [Fact]
+        public void AnAxisNameWrittenAsAJsonObject_IsRejectedRatherThanStringified()
+        {
+            JsonObject jsonObject_Axis = new()
+            {
+                ["_type"] = "SAM.Analytical.VentilationUnitPerformanceAxis,SAM.Analytical",
+                ["Name"] = new JsonObject(),
+                ["Unit"] = "degC",
+                ["Values"] = new JsonArray(1.0, 2.0),
+            };
+
+            VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis = new(jsonObject_Axis);
+
+            Assert.Null(ventilationUnitPerformanceAxis.Name);
+            Assert.False(ventilationUnitPerformanceAxis.IsValid);
+        }
+
+        /// <summary>A performance output Unit written as a JSON array reads as absent, the same way.</summary>
+        [Fact]
+        public void AnOutputUnitWrittenAsAJsonArray_IsRejectedRatherThanStringified()
+        {
+            JsonObject jsonObject_Output = new()
+            {
+                ["_type"] = "SAM.Analytical.VentilationUnitPerformanceOutput,SAM.Analytical",
+                ["Name"] = VentilationUnitPerformanceOutput.Name_SupplyAirTemperature,
+                ["Unit"] = new JsonArray(),
+                ["Values"] = new JsonArray(1.0),
+            };
+
+            VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput = new(jsonObject_Output);
+
+            Assert.Null(ventilationUnitPerformanceOutput.Unit);
+        }
+
+        /// <summary>A genuine JSON string still reads exactly as written - the strict check does not touch this, deliberate, tolerant path.</summary>
+        [Fact]
+        public void AGenuineStringField_StillReadsCorrectly()
+        {
+            JsonObject jsonObject_Axis = new()
+            {
+                ["_type"] = "SAM.Analytical.VentilationUnitPerformanceAxis,SAM.Analytical",
+                ["Name"] = VentilationUnitPerformanceAxis.Name_ExternalDryBulbTemperature,
+                ["Unit"] = "degC",
+                ["Values"] = new JsonArray(29.0, 32.0),
+            };
+
+            VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis = new(jsonObject_Axis);
+
+            Assert.Equal(VentilationUnitPerformanceAxis.Name_ExternalDryBulbTemperature, ventilationUnitPerformanceAxis.Name);
+            Assert.Equal("degC", ventilationUnitPerformanceAxis.Unit);
+            Assert.True(ventilationUnitPerformanceAxis.IsValid);
+        }
+
         // =================================================================================================
         // Fixtures
         // =================================================================================================
@@ -1171,6 +1426,18 @@ namespace SAM.Tests
         private static FlowFractionControlCurve ControlCurve()
         {
             return new FlowFractionControlCurve([22.0, 26.0], [0.3, 1.0]);
+        }
+
+        /// <summary>A curve wrapping a given performance table, via the JSON constructor - the only way to hand the curve a table its own typed constructor would not have built.</summary>
+        private static FlowFractionControlCurve CurveFromTable(VentilationUnitPerformanceTable ventilationUnitPerformanceTable)
+        {
+            JsonObject jsonObject = new()
+            {
+                ["_type"] = "SAM.Analytical.FlowFractionControlCurve,SAM.Analytical",
+                ["PerformanceTable"] = ventilationUnitPerformanceTable.ToJsonObject(),
+            };
+
+            return new FlowFractionControlCurve(jsonObject);
         }
 
         /// <summary>

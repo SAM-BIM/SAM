@@ -49,6 +49,9 @@ namespace SAM.Analytical
         /// <summary>The unit string a kilowatt-denominated output is expected to declare.</summary>
         public const string Unit_Kilowatts = "kW";
 
+        /// <summary>The unit string a dimensionless output - a fraction with no unit of its own - is expected to declare.</summary>
+        public const string Unit_Dimensionless = "-";
+
         private string name;
         private string unit;
         private double[] values;

@@ -3,6 +3,7 @@
 
 using SAM.Analytical.Enums;
 using SAM.Core;
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
@@ -57,8 +58,8 @@ namespace SAM.Analytical
         public FlowFractionControlCurve(IEnumerable<double> controlTemperatures_C, IEnumerable<double> flowFractions, PerformanceDomainPolicy performanceDomainPolicy = PerformanceDomainPolicy.ClampToDomain)
         {
             ventilationUnitPerformanceTable = new VentilationUnitPerformanceTable(
-                [new VentilationUnitPerformanceAxis(VentilationUnitPerformanceAxis.Name_ControlTemperature, "degC", controlTemperatures_C)],
-                [new VentilationUnitPerformanceOutput(VentilationUnitPerformanceOutput.Name_FlowFraction, "-", flowFractions)]);
+                [new VentilationUnitPerformanceAxis(VentilationUnitPerformanceAxis.Name_ControlTemperature, VentilationUnitPerformanceAxis.Unit_DegreesCelsius, controlTemperatures_C)],
+                [new VentilationUnitPerformanceOutput(VentilationUnitPerformanceOutput.Name_FlowFraction, VentilationUnitPerformanceOutput.Unit_Dimensionless, flowFractions)]);
 
             this.performanceDomainPolicy = performanceDomainPolicy;
         }
@@ -86,12 +87,16 @@ namespace SAM.Analytical
             }
         }
 
-        /// <summary>The control temperatures [&#176;C] the curve is stated at, in order.</summary>
+        /// <summary>
+        /// The control temperatures [&#176;C] the curve is stated at, in order. Null unless
+        /// <see cref="IsValid"/> - a Celsius-typed API refuses to hand back a Fahrenheit or unit-less axis's
+        /// raw numbers as if they were already Celsius.
+        /// </summary>
         public double[] ControlTemperatures_C
         {
             get
             {
-                return ventilationUnitPerformanceTable?.Axis(VentilationUnitPerformanceAxis.Name_ControlTemperature)?.Values;
+                return IsValid ? ventilationUnitPerformanceTable.Axis(VentilationUnitPerformanceAxis.Name_ControlTemperature).Values : null;
             }
         }
 
@@ -104,31 +109,42 @@ namespace SAM.Analytical
             }
         }
 
-        /// <summary>The lowest control temperature [&#176;C] the curve states.</summary>
+        /// <summary>
+        /// The lowest control temperature [&#176;C] the curve states. NaN unless <see cref="IsValid"/> - see
+        /// <see cref="ControlTemperatures_C"/>.
+        /// </summary>
         public double MinimumControlTemperature_C
         {
             get
             {
-                VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis = ventilationUnitPerformanceTable?.Axis(VentilationUnitPerformanceAxis.Name_ControlTemperature);
-
-                return ventilationUnitPerformanceAxis is null ? double.NaN : ventilationUnitPerformanceAxis.Minimum;
-            }
-        }
-
-        /// <summary>The highest control temperature [&#176;C] the curve states.</summary>
-        public double MaximumControlTemperature_C
-        {
-            get
-            {
-                VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis = ventilationUnitPerformanceTable?.Axis(VentilationUnitPerformanceAxis.Name_ControlTemperature);
-
-                return ventilationUnitPerformanceAxis is null ? double.NaN : ventilationUnitPerformanceAxis.Maximum;
+                return IsValid ? ventilationUnitPerformanceTable.Axis(VentilationUnitPerformanceAxis.Name_ControlTemperature).Minimum : double.NaN;
             }
         }
 
         /// <summary>
-        /// Whether the curve can be read: one control-temperature axis, one flow-fraction output, and
-        /// every fraction between 0 and 1 inclusive.
+        /// The highest control temperature [&#176;C] the curve states. NaN unless <see cref="IsValid"/> - see
+        /// <see cref="ControlTemperatures_C"/>.
+        /// </summary>
+        public double MaximumControlTemperature_C
+        {
+            get
+            {
+                return IsValid ? ventilationUnitPerformanceTable.Axis(VentilationUnitPerformanceAxis.Name_ControlTemperature).Maximum : double.NaN;
+            }
+        }
+
+        /// <summary>
+        /// Whether the curve can be read: one control-temperature axis genuinely stated in Celsius, one
+        /// dimensionless flow-fraction output, and every fraction between 0 and 1 inclusive.
+        /// <para>
+        /// <b>The Celsius-typed <c>_C</c> API promises &#176;C, so it proves the unit rather than the axis
+        /// name.</b> A table whose control-temperature axis exists but declares "degF", or has no declared
+        /// unit at all, is refused here - the alternative is silently reading a Fahrenheit or unit-less
+        /// number as though it were Celsius, which is exactly the mistake a named, checked unit exists to
+        /// prevent. Ditto the flow-fraction output: it is refused unless its declared unit is the
+        /// dimensionless convention this type writes - see
+        /// <see cref="VentilationUnitPerformanceOutput.Unit_Dimensionless"/> - rather than assumed.
+        /// </para>
         /// <para>
         /// A fraction outside 0 to 1 is refused rather than clamped. Negative is airflow running backwards
         /// and above one is a unit exceeding itself; either is a transcription mistake, and clamping it
@@ -144,7 +160,14 @@ namespace SAM.Analytical
                     return false;
                 }
 
-                if (ventilationUnitPerformanceTable.AxisIndex(VentilationUnitPerformanceAxis.Name_ControlTemperature) != 0)
+                VentilationUnitPerformanceAxis controlTemperatureAxis = ventilationUnitPerformanceTable.Axis(VentilationUnitPerformanceAxis.Name_ControlTemperature);
+                if (controlTemperatureAxis is null || !string.Equals(controlTemperatureAxis.Unit, VentilationUnitPerformanceAxis.Unit_DegreesCelsius, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+
+                VentilationUnitPerformanceOutput flowFractionOutput = ventilationUnitPerformanceTable.Output(VentilationUnitPerformanceOutput.Name_FlowFraction);
+                if (flowFractionOutput is null || !string.Equals(flowFractionOutput.Unit, VentilationUnitPerformanceOutput.Unit_Dimensionless, StringComparison.Ordinal))
                 {
                     return false;
                 }

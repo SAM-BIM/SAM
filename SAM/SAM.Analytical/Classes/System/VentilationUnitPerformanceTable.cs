@@ -38,8 +38,45 @@ namespace SAM.Analytical
     /// </summary>
     public class VentilationUnitPerformanceTable : IJSAMObject
     {
-        private List<VentilationUnitPerformanceAxis> axes;
-        private List<VentilationUnitPerformanceOutput> outputs;
+        /// <summary>
+        /// The axes and outputs together, as one unit that is never mutated after it is built.
+        /// <para>
+        /// <b>Why this exists.</b> Axes and outputs used to be two separate fields, swapped one after the
+        /// other even once that swap was moved under a lock - which made the swap atomic to a reader that
+        /// also took the lock, but not to one that did not. An unsynchronized reader (every accessor below
+        /// except <see cref="Interpolation(string)"/>) could still land between the two assignments and see
+        /// the new axes paired with the old outputs, or vice versa. Folding both into one object collapses
+        /// the swap to a single reference assignment, which is atomic to every reader with no lock required
+        /// on the read side at all.
+        /// </para>
+        /// </summary>
+        private sealed class TableState
+        {
+            internal readonly List<VentilationUnitPerformanceAxis> Axes;
+            internal readonly List<VentilationUnitPerformanceOutput> Outputs;
+
+            internal TableState(List<VentilationUnitPerformanceAxis> axes, List<VentilationUnitPerformanceOutput> outputs)
+            {
+                Axes = axes;
+                Outputs = outputs;
+            }
+        }
+
+        /// <summary>
+        /// The published axes/outputs, as one <see cref="TableState"/>. <c>volatile</c> so a reload's
+        /// reference assignment - see <see cref="FromJsonObject"/> - is visible to a reader on another
+        /// thread that never takes <see cref="@lock"/>, without which nothing would guarantee the write
+        /// is observed rather than a stale cached copy of the reference.
+        /// <para>
+        /// <b>Every read operation captures this exactly once</b> - into a local, at the top of the
+        /// operation - and does the rest of its work from that one snapshot. Reading the field a second
+        /// time partway through an operation (for instance calling one public accessor from inside
+        /// another) would reopen exactly the tearing window this field exists to close, just one level up:
+        /// axes read under one published state, outputs - or an index derived from the axes - read under a
+        /// different one.
+        /// </para>
+        /// </summary>
+        private volatile TableState state = new(null, null);
 
         /// <summary>
         /// The interpolators, one per output, built once from the axes and cached. Rebuilt from scratch
@@ -49,28 +86,30 @@ namespace SAM.Analytical
         private Dictionary<string, Math.MultilinearInterpolation> multilinearInterpolations;
 
         /// <summary>
-        /// Guards the cache above. Iteration 3 is expected to read one shared catalogue table across eight
-        /// thousand timesteps, and a Dictionary written from two threads at once corrupts silently - which
-        /// on a performance lookup means wrong numbers rather than an exception. The lock is taken only
-        /// while the cache is consulted, never while a value is interpolated.
+        /// Guards the cache above, and coordinates <see cref="Interpolation(string)"/>'s stale-build check
+        /// against <see cref="FromJsonObject"/>'s reload. Iteration 3 is expected to read one shared
+        /// catalogue table across eight thousand timesteps, and a Dictionary written from two threads at
+        /// once corrupts silently - which on a performance lookup means wrong numbers rather than an
+        /// exception. The lock is taken only while the cache is consulted, never while a value is
+        /// interpolated.
         /// </summary>
         private readonly object @lock = new();
 
         /// <summary>
-        /// Incremented, under the lock above, every time <see cref="FromJsonObject"/> replaces the
-        /// axes/outputs. An interpolator build tags itself with the generation it read its snapshot under,
-        /// so a build started against generation N can never be published into generation N+1's cache - see
-        /// <see cref="Interpolation(string)"/>.
-        /// </summary>
-        private int generation;
-
-        /// <summary>
         /// Test-only seam. Invoked, outside any lock, immediately after <see cref="Interpolation(string)"/>
-        /// captures its pre-build snapshot (axes, output and generation) and before it builds the
-        /// interpolator - the exact window a concurrent <see cref="FromJsonObject"/> reload occupies in the
-        /// race this field's sibling <see cref="generation"/> field closes. Production code never sets this.
+        /// captures its pre-build snapshot and before it builds the interpolator - the exact window a
+        /// concurrent <see cref="FromJsonObject"/> reload occupies in the race <see cref="state"/>'s own
+        /// reference identity closes. Production code never sets this.
         /// </summary>
         internal Action OnInterpolationSnapshotCaptured;
+
+        /// <summary>
+        /// Test-only seam. Invoked after <see cref="FromJsonObject"/> has finished parsing the replacement
+        /// axes/outputs into a new <see cref="TableState"/> but before it publishes it - the window in
+        /// which a concurrent reader must still see the complete pre-reload table. Production code never
+        /// sets this.
+        /// </summary>
+        internal Action OnReplacementLocalsPrepared;
 
         public VentilationUnitPerformanceTable()
         {
@@ -78,30 +117,17 @@ namespace SAM.Analytical
 
         public VentilationUnitPerformanceTable(IEnumerable<VentilationUnitPerformanceAxis> axes, IEnumerable<VentilationUnitPerformanceOutput> outputs)
         {
-            //Copied: both are mutable-ish reference types, and a table a lookup is reading must not change
-            //underneath it - the same rule VentilationUnitCapacityDescriptor follows for its reference.
-            if (axes is not null)
-            {
-                this.axes = [];
-                foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axes)
-                {
-                    this.axes.Add(ventilationUnitPerformanceAxis is null ? null : new VentilationUnitPerformanceAxis(ventilationUnitPerformanceAxis));
-                }
-            }
-
-            if (outputs is not null)
-            {
-                this.outputs = [];
-                foreach (VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput in outputs)
-                {
-                    this.outputs.Add(ventilationUnitPerformanceOutput is null ? null : new VentilationUnitPerformanceOutput(ventilationUnitPerformanceOutput));
-                }
-            }
+            state = Copied(axes, outputs);
         }
 
         public VentilationUnitPerformanceTable(VentilationUnitPerformanceTable ventilationUnitPerformanceTable)
-            : this(ventilationUnitPerformanceTable?.axes, ventilationUnitPerformanceTable?.outputs)
         {
+            //One read of the source table's published state, so a concurrent reload on the SOURCE cannot
+            //hand this copy axes from one load and outputs from another - the same single-snapshot rule
+            //every reader below follows.
+            TableState sourceState = ventilationUnitPerformanceTable?.state;
+
+            state = Copied(sourceState?.Axes, sourceState?.Outputs);
         }
 
         public VentilationUnitPerformanceTable(JsonObject jsonObject)
@@ -114,6 +140,7 @@ namespace SAM.Analytical
         {
             get
             {
+                List<VentilationUnitPerformanceAxis> axes = state.Axes;
                 return axes is null ? -1 : axes.Count;
             }
         }
@@ -123,18 +150,7 @@ namespace SAM.Analytical
         {
             get
             {
-                if (axes is null)
-                {
-                    return null;
-                }
-
-                List<string> result = [];
-                foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axes)
-                {
-                    result.Add(ventilationUnitPerformanceAxis?.Name);
-                }
-
-                return result;
+                return Names(state.Axes);
             }
         }
 
@@ -143,18 +159,7 @@ namespace SAM.Analytical
         {
             get
             {
-                if (outputs is null)
-                {
-                    return null;
-                }
-
-                List<string> result = [];
-                foreach (VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput in outputs)
-                {
-                    result.Add(ventilationUnitPerformanceOutput?.Name);
-                }
-
-                return result;
+                return Names(state.Outputs);
             }
         }
 
@@ -163,29 +168,7 @@ namespace SAM.Analytical
         {
             get
             {
-                if (axes is null || axes.Count == 0)
-                {
-                    return -1;
-                }
-
-                long result = 1;
-
-                foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axes)
-                {
-                    if (ventilationUnitPerformanceAxis is null || ventilationUnitPerformanceAxis.Count <= 0)
-                    {
-                        return -1;
-                    }
-
-                    result *= ventilationUnitPerformanceAxis.Count;
-
-                    if (result > int.MaxValue)
-                    {
-                        return -1;
-                    }
-                }
-
-                return (int)result;
+                return PointCountOf(state.Axes);
             }
         }
 
@@ -203,99 +186,39 @@ namespace SAM.Analytical
         {
             get
             {
-                if (axes is null || axes.Count == 0 || outputs is null || outputs.Count == 0)
-                {
-                    return false;
-                }
-
-                int pointCount = PointCount;
-                if (pointCount <= 0)
-                {
-                    return false;
-                }
-
-                HashSet<string> names = [];
-
-                foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axes)
-                {
-                    if (ventilationUnitPerformanceAxis is null || !ventilationUnitPerformanceAxis.IsValid || !names.Add(ventilationUnitPerformanceAxis.Name))
-                    {
-                        return false;
-                    }
-                }
-
-                names = [];
-
-                foreach (VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput in outputs)
-                {
-                    if (ventilationUnitPerformanceOutput is null || !ventilationUnitPerformanceOutput.IsValid || !names.Add(ventilationUnitPerformanceOutput.Name))
-                    {
-                        return false;
-                    }
-
-                    if (ventilationUnitPerformanceOutput.Count != pointCount)
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
+                TableState state = this.state;
+                return IsValidState(state.Axes, state.Outputs);
             }
         }
 
         /// <summary>The position of a named axis, or -1 where the table has no such axis.</summary>
         public int AxisIndex(string name)
         {
-            if (axes is null)
-            {
-                return -1;
-            }
-
-            for (int i = 0; i < axes.Count; i++)
-            {
-                if (axes[i] is not null && axes[i].Matches(name))
-                {
-                    return i;
-                }
-            }
-
-            return -1;
+            return AxisIndexIn(state.Axes, name);
         }
 
         /// <summary>One axis by position, or null. A copy.</summary>
         public VentilationUnitPerformanceAxis Axis(int index)
         {
-            if (axes is null || index < 0 || index >= axes.Count || axes[index] is null)
-            {
-                return null;
-            }
-
-            return new VentilationUnitPerformanceAxis(axes[index]);
+            return AxisAt(state.Axes, index);
         }
 
         /// <summary>One axis by name, or null. A copy.</summary>
         public VentilationUnitPerformanceAxis Axis(string name)
         {
-            return Axis(AxisIndex(name));
+            //ONE capture of the axes, so the index this resolves the name to and the axis it hands back are
+            //read from the SAME list - calling AxisIndex(name) and then Axis(index) as two separate calls
+            //would read state.Axes twice, and a reload landing between the two could resolve an index that
+            //belongs to a different axis in the second read's list.
+            List<VentilationUnitPerformanceAxis> axes = state.Axes;
+            return AxisAt(axes, AxisIndexIn(axes, name));
         }
 
         /// <summary>One output by name, or null. A copy.</summary>
         public VentilationUnitPerformanceOutput Output(string name)
         {
-            if (outputs is null)
-            {
-                return null;
-            }
-
-            foreach (VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput in outputs)
-            {
-                if (ventilationUnitPerformanceOutput is not null && ventilationUnitPerformanceOutput.Matches(name))
-                {
-                    return new VentilationUnitPerformanceOutput(ventilationUnitPerformanceOutput);
-                }
-            }
-
-            return null;
+            VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput = FindOutput(state.Outputs, name);
+            return ventilationUnitPerformanceOutput is null ? null : new VentilationUnitPerformanceOutput(ventilationUnitPerformanceOutput);
         }
 
         /// <summary>
@@ -310,12 +233,19 @@ namespace SAM.Analytical
         /// </summary>
         public double PublishedValue(string outputName, params int[] indices)
         {
-            if (!IsValid || indices is null || indices.Length != axes.Count)
+            //ONE capture for the whole lookup - axes, validity and the output all come from the SAME
+            //published state, so a reload landing mid-call cannot hand this method one generation's axis
+            //layout and a different generation's output values.
+            TableState state = this.state;
+            List<VentilationUnitPerformanceAxis> axes = state.Axes;
+            List<VentilationUnitPerformanceOutput> outputs = state.Outputs;
+
+            if (!IsValidState(axes, outputs) || indices is null || indices.Length != axes.Count)
             {
                 return double.NaN;
             }
 
-            VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput = OutputInternal(outputName);
+            VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput = FindOutput(outputs, outputName);
             if (ventilationUnitPerformanceOutput is null)
             {
                 return double.NaN;
@@ -384,7 +314,12 @@ namespace SAM.Analytical
         /// </summary>
         public bool InDomain(params double[] coordinates)
         {
-            if (!IsValid || coordinates is null || coordinates.Length != axes.Count)
+            //ONE capture - see PublishedValue's remarks. The domain this checks against has to be the same
+            //axes IsValidState just proved were self-consistent.
+            TableState state = this.state;
+            List<VentilationUnitPerformanceAxis> axes = state.Axes;
+
+            if (!IsValidState(axes, state.Outputs) || coordinates is null || coordinates.Length != axes.Count)
             {
                 return false;
             }
@@ -412,16 +347,13 @@ namespace SAM.Analytical
         /// </summary>
         private Math.MultilinearInterpolation Interpolation(string outputName)
         {
-            if (!IsValid || string.IsNullOrWhiteSpace(outputName))
+            if (string.IsNullOrWhiteSpace(outputName))
             {
                 return null;
             }
 
             Math.MultilinearInterpolation result;
-
-            List<VentilationUnitPerformanceAxis> axesSnapshot;
-            VentilationUnitPerformanceOutput outputSnapshot;
-            int generationSnapshot;
+            TableState stateSnapshot;
 
             lock (@lock)
             {
@@ -432,14 +364,20 @@ namespace SAM.Analytical
                     return result;
                 }
 
-                //Captured together, under the same lock a reload clears the cache and bumps the generation
-                //under - so this snapshot is either entirely before or entirely after any one reload, never
-                //a mix of pre- and post-reload state.
-                generationSnapshot = generation;
-                axesSnapshot = axes;
-                outputSnapshot = OutputInternal(outputName);
+                //ONE capture of the published state - axes and outputs together, from the same reload -
+                //taken under the same lock a reload also swaps its reference under. state's own identity
+                //stands in for the old separate generation counter: this snapshot is either entirely the
+                //pre-reload TableState or entirely the post-reload one, and "is it still current" below is
+                //answered by comparing THIS OBJECT to whatever state now holds, not by comparing numbers.
+                stateSnapshot = state;
             }
 
+            if (!IsValidState(stateSnapshot.Axes, stateSnapshot.Outputs))
+            {
+                return null;
+            }
+
+            VentilationUnitPerformanceOutput outputSnapshot = FindOutput(stateSnapshot.Outputs, outputName);
             if (outputSnapshot is null)
             {
                 return null;
@@ -450,7 +388,7 @@ namespace SAM.Analytical
             OnInterpolationSnapshotCaptured?.Invoke();
 
             List<double[]> axisValues = [];
-            foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axesSnapshot)
+            foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in stateSnapshot.Axes)
             {
                 axisValues.Add(ventilationUnitPerformanceAxis.Values);
             }
@@ -464,12 +402,12 @@ namespace SAM.Analytical
 
             lock (@lock)
             {
-                if (generation != generationSnapshot)
+                if (!ReferenceEquals(state, stateSnapshot))
                 {
-                    //A reload replaced the table's data while this interpolator was being built from the
+                    //A reload published a new TableState while this interpolator was being built from the
                     //pre-reload snapshot above. The result is correct for the table it was built from, but
-                    //that table is no longer this generation - it must not be published into the current
-                    //cache, or a later lookup for the same output would silently read the old table's value.
+                    //that table is no longer the published one - it must not go into the current cache, or
+                    //a later lookup for the same output would silently read the old table's value.
                     return result;
                 }
 
@@ -477,9 +415,9 @@ namespace SAM.Analytical
                 //this call already built is still worth returning to its caller.
                 multilinearInterpolations ??= [];
 
-                //Last writer wins, and that is harmless: two threads racing here on the SAME generation build
-                //interpolators that are equal in every value, because both read the same immutable axes and
-                //output.
+                //Last writer wins, and that is harmless: two threads racing here on the SAME published state
+                //build interpolators that are equal in every value, because both read the same immutable
+                //axes and output.
                 multilinearInterpolations[outputName] = result;
             }
 
@@ -488,12 +426,14 @@ namespace SAM.Analytical
 
         public override string ToString()
         {
-            if (!IsValid)
+            TableState state = this.state;
+
+            if (!IsValidState(state.Axes, state.Outputs))
             {
                 return "Invalid VentilationUnitPerformanceTable";
             }
 
-            return string.Format("{0} point(s) over {1}, publishing {2}", PointCount, string.Join(" x ", AxisNames), string.Join(", ", OutputNames));
+            return string.Format("{0} point(s) over {1}, publishing {2}", PointCountOf(state.Axes), string.Join(" x ", Names(state.Axes)), string.Join(", ", Names(state.Outputs)));
         }
 
         public bool FromJsonObject(JsonObject jsonObject)
@@ -503,36 +443,47 @@ namespace SAM.Analytical
                 return false;
             }
 
-            axes = null;
-            outputs = null;
-
-            lock (@lock)
-            {
-                //Cleared with the data it was built from, so a cached interpolator can never outlive it.
-                multilinearInterpolations = null;
-
-                //Bumped in the same lock as the clear above, so a build already in flight against the old
-                //data (see Interpolation) can tell it is no longer current even after this method has gone
-                //on to install the new axes/outputs below.
-                generation++;
-            }
+            //Parsed into locals first - never onto any field a reader could see - so a concurrent reader is
+            //never exposed to a state nulled out or half-built from the array currently being walked.
+            List<VentilationUnitPerformanceAxis> axes_New = null;
+            List<VentilationUnitPerformanceOutput> outputs_New = null;
 
             if (jsonObject["Axes"] is JsonArray jsonArray_Axes)
             {
-                axes = [];
+                axes_New = [];
                 foreach (JsonNode jsonNode in jsonArray_Axes)
                 {
-                    axes.Add(jsonNode is JsonObject jsonObject_Axis ? new VentilationUnitPerformanceAxis(jsonObject_Axis) : null);
+                    axes_New.Add(jsonNode is JsonObject jsonObject_Axis ? new VentilationUnitPerformanceAxis(jsonObject_Axis) : null);
                 }
             }
 
             if (jsonObject["Outputs"] is JsonArray jsonArray_Outputs)
             {
-                outputs = [];
+                outputs_New = [];
                 foreach (JsonNode jsonNode in jsonArray_Outputs)
                 {
-                    outputs.Add(jsonNode is JsonObject jsonObject_Output ? new VentilationUnitPerformanceOutput(jsonObject_Output) : null);
+                    outputs_New.Add(jsonNode is JsonObject jsonObject_Output ? new VentilationUnitPerformanceOutput(jsonObject_Output) : null);
                 }
+            }
+
+            //Test-only: lets a test observe the pre-publish state - still the complete old TableState -
+            //from the exact window a concurrent reload used to be able to publish a torn one in.
+            OnReplacementLocalsPrepared?.Invoke();
+
+            TableState state_New = new(axes_New, outputs_New);
+
+            lock (@lock)
+            {
+                //Published through ONE reference assignment - axes and outputs together, as the single
+                //TableState built above - so every reader, synchronized or not, sees either the complete
+                //pre-reload state or the complete post-reload one, never axes from one paired with outputs
+                //from the other. Assigning a volatile field is itself an atomic, ordered publish; the lock
+                //here is for multilinearInterpolations below, which Interpolation also only ever touches
+                //under this same lock.
+                state = state_New;
+
+                //Cleared with the data it was built from, so a cached interpolator can never outlive it.
+                multilinearInterpolations = null;
             }
 
             return true;
@@ -540,15 +491,19 @@ namespace SAM.Analytical
 
         public JsonObject ToJsonObject()
         {
+            //ONE capture, so a table mid-reload serializes as either the complete old table or the complete
+            //new one, never new axes written out beside old outputs.
+            TableState state = this.state;
+
             JsonObject result = new()
             {
                 ["_type"] = Core.Query.FullTypeName(this)
             };
 
-            if (axes is not null)
+            if (state.Axes is not null)
             {
                 JsonArray jsonArray = [];
-                foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axes)
+                foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in state.Axes)
                 {
                     jsonArray.Add(ventilationUnitPerformanceAxis?.ToJsonObject());
                 }
@@ -556,10 +511,10 @@ namespace SAM.Analytical
                 result["Axes"] = jsonArray;
             }
 
-            if (outputs is not null)
+            if (state.Outputs is not null)
             {
                 JsonArray jsonArray = [];
-                foreach (VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput in outputs)
+                foreach (VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput in state.Outputs)
                 {
                     jsonArray.Add(ventilationUnitPerformanceOutput?.ToJsonObject());
                 }
@@ -570,8 +525,172 @@ namespace SAM.Analytical
             return result;
         }
 
-        /// <summary>The stored output, uncopied - for the internals that only read it.</summary>
-        private VentilationUnitPerformanceOutput OutputInternal(string name)
+        /// <summary>Deep-copies a pair of axes/outputs into a new <see cref="TableState"/> - both constructors that take data directly route through here.</summary>
+        private static TableState Copied(IEnumerable<VentilationUnitPerformanceAxis> axes, IEnumerable<VentilationUnitPerformanceOutput> outputs)
+        {
+            //Copied: both are mutable-ish reference types, and a table a lookup is reading must not change
+            //underneath it - the same rule VentilationUnitCapacityDescriptor follows for its reference.
+            List<VentilationUnitPerformanceAxis> axes_New = null;
+            if (axes is not null)
+            {
+                axes_New = [];
+                foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axes)
+                {
+                    axes_New.Add(ventilationUnitPerformanceAxis is null ? null : new VentilationUnitPerformanceAxis(ventilationUnitPerformanceAxis));
+                }
+            }
+
+            List<VentilationUnitPerformanceOutput> outputs_New = null;
+            if (outputs is not null)
+            {
+                outputs_New = [];
+                foreach (VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput in outputs)
+                {
+                    outputs_New.Add(ventilationUnitPerformanceOutput is null ? null : new VentilationUnitPerformanceOutput(ventilationUnitPerformanceOutput));
+                }
+            }
+
+            return new TableState(axes_New, outputs_New);
+        }
+
+        /// <summary>Whether an explicit axes/outputs pair - both drawn from the SAME captured state - is one a lookup can be answered from. See <see cref="IsValid"/>.</summary>
+        private static bool IsValidState(List<VentilationUnitPerformanceAxis> axes, List<VentilationUnitPerformanceOutput> outputs)
+        {
+            if (axes is null || axes.Count == 0 || outputs is null || outputs.Count == 0)
+            {
+                return false;
+            }
+
+            int pointCount = PointCountOf(axes);
+            if (pointCount <= 0)
+            {
+                return false;
+            }
+
+            HashSet<string> names = [];
+
+            foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axes)
+            {
+                if (ventilationUnitPerformanceAxis is null || !ventilationUnitPerformanceAxis.IsValid || !names.Add(ventilationUnitPerformanceAxis.Name))
+                {
+                    return false;
+                }
+            }
+
+            names = [];
+
+            foreach (VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput in outputs)
+            {
+                if (ventilationUnitPerformanceOutput is null || !ventilationUnitPerformanceOutput.IsValid || !names.Add(ventilationUnitPerformanceOutput.Name))
+                {
+                    return false;
+                }
+
+                if (ventilationUnitPerformanceOutput.Count != pointCount)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>The product of an explicit axes list's lengths. See <see cref="PointCount"/>.</summary>
+        private static int PointCountOf(List<VentilationUnitPerformanceAxis> axes)
+        {
+            if (axes is null || axes.Count == 0)
+            {
+                return -1;
+            }
+
+            long result = 1;
+
+            foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axes)
+            {
+                if (ventilationUnitPerformanceAxis is null || ventilationUnitPerformanceAxis.Count <= 0)
+                {
+                    return -1;
+                }
+
+                result *= ventilationUnitPerformanceAxis.Count;
+
+                if (result > int.MaxValue)
+                {
+                    return -1;
+                }
+            }
+
+            return (int)result;
+        }
+
+        /// <summary>The names of an explicit axis list, in order. See <see cref="AxisNames"/>.</summary>
+        private static List<string> Names(List<VentilationUnitPerformanceAxis> axes)
+        {
+            if (axes is null)
+            {
+                return null;
+            }
+
+            List<string> result = [];
+
+            foreach (VentilationUnitPerformanceAxis ventilationUnitPerformanceAxis in axes)
+            {
+                result.Add(ventilationUnitPerformanceAxis?.Name);
+            }
+
+            return result;
+        }
+
+        /// <summary>The names of an explicit output list, in order. See <see cref="OutputNames"/>.</summary>
+        private static List<string> Names(List<VentilationUnitPerformanceOutput> outputs)
+        {
+            if (outputs is null)
+            {
+                return null;
+            }
+
+            List<string> result = [];
+
+            foreach (VentilationUnitPerformanceOutput ventilationUnitPerformanceOutput in outputs)
+            {
+                result.Add(ventilationUnitPerformanceOutput?.Name);
+            }
+
+            return result;
+        }
+
+        /// <summary>The position of a named axis in an explicit axes list, or -1. See <see cref="AxisIndex"/>.</summary>
+        private static int AxisIndexIn(List<VentilationUnitPerformanceAxis> axes, string name)
+        {
+            if (axes is null)
+            {
+                return -1;
+            }
+
+            for (int i = 0; i < axes.Count; i++)
+            {
+                if (axes[i] is not null && axes[i].Matches(name))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>One axis by position in an explicit axes list, or null. A copy. See <see cref="Axis(int)"/>.</summary>
+        private static VentilationUnitPerformanceAxis AxisAt(List<VentilationUnitPerformanceAxis> axes, int index)
+        {
+            if (axes is null || index < 0 || index >= axes.Count || axes[index] is null)
+            {
+                return null;
+            }
+
+            return new VentilationUnitPerformanceAxis(axes[index]);
+        }
+
+        /// <summary>The stored output by name in an explicit outputs list, uncopied - for the internals that only read it.</summary>
+        private static VentilationUnitPerformanceOutput FindOutput(List<VentilationUnitPerformanceOutput> outputs, string name)
         {
             if (outputs is null || string.IsNullOrWhiteSpace(name))
             {

@@ -24,12 +24,26 @@ namespace SAM.Analytical
     internal static class PerformanceJson
     {
         /// <summary>
-        /// A string property, or null where it is absent. Read through <c>ToString</c> rather than
-        /// <c>GetValue&lt;string&gt;</c>, which throws on a non-string.
+        /// A string property, or null where it is absent or is not a JSON string.
+        /// <para>
+        /// <b>A JSON string only - never a stringified number, object, or array.</b> <c>"Source": 123</c> and
+        /// <c>"Name": {}</c> are malformed data for this vocabulary, not a number or an object that happens
+        /// to also be readable as text: <c>ToString()</c> on a non-string node returns the node's JSON text
+        /// (<c>"123"</c>, <c>"{}"</c>), which would silently accept them as if they had been written
+        /// correctly. Checked by <see cref="JsonNode.GetValueKind"/> rather than a type test, because every
+        /// JSON scalar - string included - is represented by the same <see cref="JsonValue"/> node type.
+        /// </para>
         /// </summary>
         internal static string Text(JsonObject jsonObject, string name)
         {
-            return jsonObject is not null && jsonObject.ContainsKey(name) ? jsonObject[name]?.ToString() : null;
+            if (jsonObject is null || !jsonObject.ContainsKey(name))
+            {
+                return null;
+            }
+
+            JsonNode jsonNode = jsonObject[name];
+
+            return jsonNode is not null && jsonNode.GetValueKind() == System.Text.Json.JsonValueKind.String ? jsonNode.GetValue<string>() : null;
         }
 
         /// <summary>Writes a string property, omitting it entirely where there is nothing to say.</summary>
