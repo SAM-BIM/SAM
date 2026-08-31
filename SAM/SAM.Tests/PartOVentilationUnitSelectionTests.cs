@@ -1930,6 +1930,290 @@ namespace SAM.Tests
             Assert.NotEqual(ventilationUnitSelection.Descriptor.MaximumSupplyFlowRate_Lps, ventilationUnitSelection.SupplyDuty_Lps, 3);
         }
 
+        // K. ApplyTargetedDesignAirFlow's equipment validation - Grasshopper Seam 2's analytical orchestration.
+        //    The airflow rebalancing itself (targeted vs derived, Part F floor, no-partial-write) is section
+        //    D/E/H's job and is unchanged; these tests are focused on the NEW behaviour: once a catalogue is
+        //    offered, does the serving unit get kept, reselected or refused - and does an equipment refusal
+        //    ever roll back the airflow change that already committed?
+
+        /// <summary>
+        /// A targeted change the selected unit can still absorb leaves the selection exactly as it was -
+        /// restated here against the new orchestration specifically, and against the catalogue's OTHER
+        /// capable products: nothing about their existence should matter while MVHR-100 still suffices.
+        /// </summary>
+        [Fact]
+        public void EquipmentValidation_KeptWhenSelectedProductRemainsSufficient()
+        {
+            PartOIterationPreparation preparation = Prepared(Catalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+            AirHandlingUnit airHandlingUnit = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            VentilationUnitReference ventilationUnitReference_Before = airHandlingUnit.SelectedVentilationUnitReference();
+            Assert.Equal("MVHR-100", ventilationUnitReference_Before.Model);
+
+            DwellingDesignAirFlowChange change = RaiseDutyTotalToWithCatalogue(adjacencyCluster, airHandlingUnit, 60, Catalogue());
+
+            Assert.Equal(VentilationUnitSelectionOutcome.Kept, change.VentilationUnitSelectionOutcome);
+            Assert.True(ventilationUnitReference_Before.Matches(change.VentilationUnitReference));
+            Assert.True(ventilationUnitReference_Before.Matches(airHandlingUnit.SelectedVentilationUnitReference()));
+            Assert.Null(change.VentilationUnitSelectionReason);
+        }
+
+        /// <summary>
+        /// A targeted change that pushes the recalculated duty past the selected product's rating escalates
+        /// to the next SMALLEST capable product - 180, not 150, since a 160 l/s duty needs the smallest one
+        /// that still covers it, and 150 does not.
+        /// </summary>
+        [Fact]
+        public void EquipmentValidation_ReselectsTheSmallestCapableProductWhenExhausted()
+        {
+            PartOIterationPreparation preparation = Prepared(Catalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+            AirHandlingUnit airHandlingUnit = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            DwellingDesignAirFlowChange change = RaiseDutyTotalToWithCatalogue(adjacencyCluster, airHandlingUnit, 160, Catalogue());
+
+            Assert.Equal(VentilationUnitSelectionOutcome.Reselected, change.VentilationUnitSelectionOutcome);
+            Assert.Equal("MVHR-180", change.VentilationUnitReference?.Model);
+            Assert.Equal("MVHR-180", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+
+            //The design airflow is the engineering duty, never the selected product's rating.
+            Assert.Equal(160, change.SupplyDuty_Lps, 6);
+        }
+
+        /// <summary>
+        /// <b>No product in the catalogue can move the recalculated duty, and the airflow change is NOT
+        /// rolled back because of it.</b> This is the existing contract
+        /// <c>ATargetedChangeBeyondCapacity_ExposesExhaustionAndEscalates</c> already pins for the
+        /// separately-sequenced calls; restated here for the single orchestrated call this seam adds.
+        /// </summary>
+        [Fact]
+        public void EquipmentValidation_RefusesEquipmentButKeepsTheAirflowChangeSuccessful()
+        {
+            PartOIterationPreparation preparation = Prepared(Catalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+            AirHandlingUnit airHandlingUnit = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            DwellingDesignAirFlowChange change = RaiseDutyTotalToWithCatalogue(adjacencyCluster, airHandlingUnit, 300, Catalogue());
+
+            //The airflow change committed - it is not what refused.
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+            Assert.Equal(300, change.SupplyDuty_Lps, 6);
+
+            Assert.Equal(VentilationUnitSelectionOutcome.Refused, change.VentilationUnitSelectionOutcome);
+            Assert.False(string.IsNullOrWhiteSpace(change.VentilationUnitSelectionReason));
+
+            //The unit keeps whatever it had before this call - an honest state, never a half-selection.
+            Assert.Equal("MVHR-100", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+            Assert.Equal("MVHR-100", change.VentilationUnitReference?.Model);
+        }
+
+        /// <summary>
+        /// <b>No catalogue connected is backward compatible, not a new refusal.</b> A model that already
+        /// carries a selected product must not have that selection invalidated, touched, or even inspected,
+        /// merely because the caller did not supply a catalogue this time.
+        /// </summary>
+        [Fact]
+        public void EquipmentValidation_UnconnectedDescriptors_LeavesTheSelectionUntouched()
+        {
+            PartOIterationPreparation preparation = Prepared(Catalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+            AirHandlingUnit airHandlingUnit = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            VentilationUnitReference ventilationUnitReference_Before = airHandlingUnit.SelectedVentilationUnitReference();
+
+            //Well beyond every product in the catalogue - if equipment were evaluated at all, this would refuse it.
+            DwellingDesignAirFlowChange change = RaiseDutyTotalToWithCatalogue(adjacencyCluster, airHandlingUnit, 300, null);
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+            Assert.Equal(VentilationUnitSelectionOutcome.NotApplicable, change.VentilationUnitSelectionOutcome);
+            Assert.Null(change.VentilationUnitReference);
+            Assert.Null(change.VentilationUnitSelectionReason);
+
+            //Untouched - not merely unreported.
+            Assert.True(ventilationUnitReference_Before.Matches(airHandlingUnit.SelectedVentilationUnitReference()));
+        }
+
+        /// <summary>
+        /// <b>A unit nothing has ever been selected for is not "exhausted".</b> This call validates an
+        /// EXISTING selection - it does not make a first one. A catalogue offered against a unit with no
+        /// prior selection must leave it exactly as unselected as it was, reading NotApplicable, never
+        /// silently perform an initial selection as a side effect of a targeted airflow change.
+        /// </summary>
+        [Fact]
+        public void EquipmentValidation_NeverSelected_StaysNotApplicable_EvenWithACatalogueOffered()
+        {
+            //Iteration 1a: descriptors null at preparation, so no selection was ever made.
+            PartOIterationPreparation preparation = Prepared(null);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+            AirHandlingUnit airHandlingUnit = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            Assert.Null(airHandlingUnit.SelectedVentilationUnitReference());
+
+            DwellingDesignAirFlowChange change = RaiseDutyTotalToWithCatalogue(adjacencyCluster, airHandlingUnit, 30, Catalogue());
+
+            Assert.Equal(VentilationUnitSelectionOutcome.NotApplicable, change.VentilationUnitSelectionOutcome);
+            Assert.Null(change.VentilationUnitReference);
+            Assert.Null(change.VentilationUnitSelectionReason);
+
+            //Still nothing selected - not a first selection made on its behalf.
+            Assert.Null(airHandlingUnit.SelectedVentilationUnitReference());
+        }
+
+        /// <summary>
+        /// One dwelling's equipment escalation must not read, report on, or touch another dwelling's unit -
+        /// the same independence <c>TwoUnits_ShareAProductAndKeepIndependentDuties</c> already proves for
+        /// duty, restated here for the new equipment-outcome fields specifically.
+        /// </summary>
+        [Fact]
+        public void EquipmentValidation_TwoDwellings_StayIndependent()
+        {
+            List<VentilationUnitCapacityDescriptor> descriptors = [Descriptor("MVHR-50", 50, 50)];
+
+            PartOIterationPreparation preparation = Prepare(TwoDwellingModel(), descriptors);
+
+            Assert.Null(preparation.Refusal);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            List<AirHandlingUnit> airHandlingUnits = adjacencyCluster.GetObjects<AirHandlingUnit>();
+            Assert.Equal(2, airHandlingUnits.Count);
+
+            VentilationUnitReference ventilationUnitReference_2_Before = airHandlingUnits[1].SelectedVentilationUnitReference();
+
+            //Push dwelling 1 well past the one product offered - it can only refuse, never touch dwelling 2.
+            DwellingDesignAirFlowChange change = RaiseDutyTotalToWithCatalogue(adjacencyCluster, airHandlingUnits[0], 500, descriptors);
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+            Assert.Equal(VentilationUnitSelectionOutcome.Refused, change.VentilationUnitSelectionOutcome);
+            Assert.True(change.AirHandlingUnit.Guid == airHandlingUnits[0].Guid);
+
+            //Dwelling 2's unit and duty are exactly as they were.
+            Assert.True(ventilationUnitReference_2_Before.Matches(airHandlingUnits[1].SelectedVentilationUnitReference()));
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnits[1], out double supplyDuty_2_Lps, out _);
+            Assert.NotEqual(500, supplyDuty_2_Lps, 3);
+        }
+
+        /// <summary>
+        /// <b>Deferred guard, re-checked for this seam.</b> Grasshopper can supply any string as
+        /// <c>flowClassification_</c>; if it resolves to <see cref="FlowClassification.Undefined"/>, the
+        /// existing top-of-method check already refuses it before anything else runs. Pinned here because
+        /// this is the first public entry point that exposes the parameter to Grasshopper at all.
+        /// </summary>
+        [Fact]
+        public void UndefinedFlowClassification_IsRefused()
+        {
+            PartOIterationPreparation preparation = Prepared(null);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+            Space space_Bedroom = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Bedroom);
+
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(adjacencyCluster);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Bedroom, FlowClassification.Undefined, 999);
+
+            Assert.False(change.Successful);
+            Assert.Contains(change.Refusals, x => x.Contains("neither"));
+            Assert.Equal(VentilationUnitSelectionOutcome.NotApplicable, change.VentilationUnitSelectionOutcome);
+            Assert.Equal(terminals_Before, TerminalDesigns(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// <b>Deferred guard, re-checked for this seam.</b> A room holding a healthy terminal beside a
+        /// second one whose design airflow was never established (null, not zero - see
+        /// <see cref="VentilationTerminal.DesignFlowRate_Lps"/>) is exactly the externally-authored state
+        /// Grasshopper can now hand this operation for the first time.
+        /// <para>
+        /// <b>Pinned, not newly guarded.</b> <c>IsRedistributable</c> already treats null as a real,
+        /// zero-weighted quantity - deliberately, so a room's FIRST design decision through this operation
+        /// is not blocked - and the sibling's calculated share is then exactly zero, never NaN and never a
+        /// silently wrong nonzero number. The healthy terminal absorbs the whole change exactly as if the
+        /// null one were not there. Refusing outright would break the ordinary case of designing a room for
+        /// the first time; this is not the false-0/0-duty risk the deferred guard names, because that risk
+        /// is about a whole system with no established terminal at all, and this transaction's OWN
+        /// precondition already requires the system to be balanced and Approved Document F compliant before
+        /// anything is written - which a genuinely never-sized system is not. No new production path
+        /// creates a <see cref="VentilationTerminal"/> from nothing here; this only ever rewrites terminals
+        /// the model already had.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ASiblingNullTerminal_GetsAnExplicitZeroShare_NeverCorruptingTheRoomTotal()
+        {
+            PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            Space space_Kitchen = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Kitchen);
+
+            VentilationTerminal ventilationTerminal_Unestablished = new("Unestablished extract", FlowClassification.Extract, null);
+            ventilationTerminal_Unestablished.SetValue(VentilationTerminalParameter.PartFTerminalReference, Analytical.Query.VentilationTerminals(adjacencyCluster.VentilationTerminals(space_Kitchen), FlowClassification.Extract)[0].GetValue<PartFTerminalReference>(VentilationTerminalParameter.PartFTerminalReference));
+
+            adjacencyCluster.AddObject(ventilationTerminal_Unestablished);
+            adjacencyCluster.AddRelation(ventilationTerminal_Unestablished, space_Kitchen);
+            adjacencyCluster.AddRelation(ventilationTerminal_Unestablished, Assert.Single(adjacencyCluster.GetObjects<VentilationSystem>()));
+
+            double requirement_Kitchen_Lps = adjacencyCluster.PartFRequiredFlowRate_Lps(space_Kitchen, FlowClassification.Extract).Value;
+            double design_Kitchen_Before_Lps = Design(adjacencyCluster, space_Kitchen, FlowClassification.Extract);
+
+            Space space_Bedroom = adjacencyCluster.GetSpaces().Find(x => x.Name == name_Bedroom);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Bedroom, FlowClassification.Supply, Design(adjacencyCluster, space_Bedroom, FlowClassification.Supply) + 4);
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+
+            //The room total is exact and above its requirement - never NaN, never silently short.
+            double design_Kitchen_After_Lps = Design(adjacencyCluster, space_Kitchen, FlowClassification.Extract);
+            Assert.Equal(design_Kitchen_Before_Lps + 4, design_Kitchen_After_Lps, 6);
+            Assert.True(design_Kitchen_After_Lps + 0.001 >= requirement_Kitchen_Lps);
+
+            //The previously-unestablished terminal is now explicitly, exactly zero - not left null, and not NaN.
+            VentilationTerminal ventilationTerminal_After = adjacencyCluster.GetObjects<VentilationTerminal>().Find(x => x.Guid == ventilationTerminal_Unestablished.Guid);
+            Assert.NotNull(ventilationTerminal_After);
+            Assert.True(ventilationTerminal_After.DesignFlowRate_Lps.HasValue);
+            Assert.Equal(0, ventilationTerminal_After.DesignFlowRate_Lps.Value, 6);
+        }
+
+        /// <summary>
+        /// Moves an air handling unit's whole duty to <paramref name="target_Lps"/> through the living room
+        /// of the dwelling it serves - found through the unit's own system, exactly as
+        /// <see cref="RaiseDwellingSupplyTo"/> does, so this works for either the one- or two-dwelling
+        /// fixture - but forwarding a catalogue through the new equipment-validation parameter, and
+        /// returning the change for the caller to assert on.
+        /// </summary>
+        private static DwellingDesignAirFlowChange RaiseDutyTotalToWithCatalogue(AdjacencyCluster adjacencyCluster, AirHandlingUnit airHandlingUnit, double target_Lps, List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors)
+        {
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit, out double supplyDuty_Lps, out _);
+
+            foreach (VentilationSystem ventilationSystem in adjacencyCluster.VentilationSystems(airHandlingUnit))
+            {
+                foreach (Space space in adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? [])
+                {
+                    if (space.Name.StartsWith(name_LivingRoom, StringComparison.Ordinal))
+                    {
+                        DwellingDesignAirFlowChange result = adjacencyCluster.ApplyTargetedDesignAirFlow(
+                            space,
+                            FlowClassification.Supply,
+                            Design(adjacencyCluster, space, FlowClassification.Supply) + (target_Lps - supplyDuty_Lps),
+                            ventilationUnitCapacityDescriptors: ventilationUnitCapacityDescriptors);
+
+                        Assert.True(result.Successful, string.Join(" ", result.Refusals));
+
+                        return result;
+                    }
+                }
+            }
+
+            Assert.Fail("The fixture unit serves no living room.");
+
+            return null;
+        }
+
         // =================================================================================================
         // Fixtures
         // =================================================================================================
