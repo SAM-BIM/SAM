@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Types;
 using SAM.Analytical.Enums;
 using SAM.Analytical.Grasshopper.Properties;
 using SAM.Core;
@@ -272,12 +273,23 @@ WHAT IT STILL DOES NOT DO
             index = Params.IndexOfInputParam("ventilationUnitCapacityDescriptors_");
             if (index != -1)
             {
-                List<object> objects = [];
-                if (dataAccess.GetDataList(index, objects) && objects != null && objects.Count != 0)
+                List<GH_ObjectWrapper> objectWrappers = [];
+                if (dataAccess.GetDataList(index, objectWrappers) && objectWrappers != null && objectWrappers.Count != 0)
                 {
                     ventilationUnitCapacityDescriptors = [];
-                    foreach (object @object in objects)
+                    foreach (GH_ObjectWrapper objectWrapper in objectWrappers)
                     {
+                        object @object = objectWrapper?.Value;
+
+                        //A descriptor arrives wrapped as a GooObject (it is not an IJSAMObject, so it
+                        //cannot ride GooAnalyticalObject/GooSAMObject) - unwrap once more before testing
+                        //the underlying type, or every descriptor is discarded and an empty-but-connected
+                        //catalogue silently refuses every dwelling instead of selecting.
+                        if (@object is IGH_Goo)
+                        {
+                            @object = (@object as dynamic).Value;
+                        }
+
                         if (@object is VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor)
                         {
                             ventilationUnitCapacityDescriptors.Add(ventilationUnitCapacityDescriptor);

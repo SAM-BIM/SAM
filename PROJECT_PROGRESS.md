@@ -96,6 +96,23 @@ exactly what the GH component thinly wraps. The manual canvas for final licensed
 required cases, are documented in `SAM_Systems/PROJECT_PROGRESS.md` under "Grasshopper Seam 1", alongside the
 companion `SAMAnalyticalSystemVentilationUnitCatalogue` component this input is meant to be wired from.
 
+### Codex review (2026-08-31) - one P1 finding, fixed
+
+Codex found a real defect on the first pass: reading `ventilationUnitCapacityDescriptors_` as
+`List<object>` never unwraps Grasshopper's `IGH_Goo` wrapper (a descriptor arrives as a `GooObject`, since
+it is not an `IJSAMObject`), so `@object is VentilationUnitCapacityDescriptor` was false for every item -
+a connected catalogue silently became a non-null *empty* list, which the library reads as "a catalogue was
+offered and nothing in it is sufficient", refusing every dwelling instead of selecting.
+
+Fixed by following the codebase's own established unwrap idiom for a generic input
+(`SAMAnalyticalAddAirPanels.cs`/`SAMAnalyticalAddAirPartitions.cs`: read as `List<GH_ObjectWrapper>`, then
+`objectWrapper.Value`, then `if (@object is IGH_Goo) { @object = (@object as dynamic).Value; }` before the
+type check). No automated regression test could be added for this specific defect - it only manifests
+through Grasshopper's own data-marshalling layer, which (see "GH acceptance" below) neither this repository
+nor `SAM.Tests` has a harness to exercise outside a live Rhino/Grasshopper session; the fix is proven by
+precedent (copied verbatim from two existing components) and by rebuild + full `SAM.Tests` re-run
+(1613/1613, unaffected - the defect was in GH-layer unwrapping the tests cannot reach).
+
 ### Next step
 
 Merge this PR alongside `SAM-BIM/SAM_Systems`'s `feature/parto-iteration2-gh-ventilation-catalogue`, in either
