@@ -59,8 +59,22 @@ namespace SAM.Analytical
         /// It writes design airflows and nothing else. The transfer paths, the inter-zone air movements
         /// and the air handling unit's derived duty are rebuilt by re-preparing the iteration, which is
         /// idempotent and already refuses where the dwelling's adjacencies cannot route the result - see
-        /// <c>Modify.AddPartFTransferAirMovements</c>. No Approved Document F requirement is touched, no
-        /// ventilation unit is selected or re-selected, and no runtime or profile airflow is written.
+        /// <c>Modify.AddPartFTransferAirMovements</c>. No Approved Document F requirement is touched, and
+        /// no runtime or profile airflow is written.
+        /// </para>
+        /// <para>
+        /// <b>Equipment is validated, never selected, unless <paramref name="ventilationUnitCapacityDescriptors"/>
+        /// is supplied</b> - and even then, ONLY after the airflow change above has already committed.
+        /// <c>Query.IsVentilationUnitSufficient</c> checks the serving air handling unit's current
+        /// selection against the recalculated duty; if it still suffices nothing is reselected
+        /// (<see cref="Enums.VentilationUnitSelectionOutcome.Kept"/>); if not, <c>Modify.SelectVentilationUnit</c>
+        /// escalates to the next compliant product from the catalogue offered
+        /// (<see cref="Enums.VentilationUnitSelectionOutcome.Reselected"/>), or refuses if none is capable
+        /// (<see cref="Enums.VentilationUnitSelectionOutcome.Refused"/>). <b>The airflow change is never
+        /// rolled back because equipment could not be validated</b> - the two are separate questions, and
+        /// an equipment gap is reported beside a successful design change, not instead of it. Leave the
+        /// catalogue unconnected/null to keep exactly this method's behaviour from before equipment
+        /// validation existed - see <see cref="DwellingDesignAirFlowChange.VentilationUnitSelectionOutcome"/>.
         /// </para>
         /// </summary>
         /// <param name="adjacencyCluster">The model. <b>Modified in place on success, and untouched on a refusal.</b></param>
@@ -72,11 +86,16 @@ namespace SAM.Analytical
         /// <c>PartFCalculator</c> defaults to, so a design rebalance and the sizing that preceded it agree
         /// about where surplus extract belongs.
         /// </param>
+        /// <param name="ventilationUnitCapacityDescriptors">
+        /// The products available to validate the serving air handling unit's selection against, once the
+        /// airflow change has committed. Null keeps this method's behaviour exactly as it was before
+        /// equipment validation existed - no unit is resolved, checked or reselected.
+        /// </param>
         /// <returns>
-        /// What was targeted, what was derived, and the duties that resulted - or a refusal with nothing
-        /// written. Never null.
+        /// What was targeted, what was derived, the duties that resulted, and - where a catalogue was
+        /// offered - what happened to the serving unit's selection. A refusal writes nothing. Never null.
         /// </returns>
-        public static DwellingDesignAirFlowChange ApplyTargetedDesignAirFlow(this AdjacencyCluster adjacencyCluster, Space space, FlowClassification flowClassification, double designFlowRate_Lps, PartFExtractAllocationStrategy partFExtractAllocationStrategy = PartFExtractAllocationStrategy.MinimumFirstCookingPriority, double tolerance_Lps = 0.001)
+        public static DwellingDesignAirFlowChange ApplyTargetedDesignAirFlow(this AdjacencyCluster adjacencyCluster, Space space, FlowClassification flowClassification, double designFlowRate_Lps, PartFExtractAllocationStrategy partFExtractAllocationStrategy = PartFExtractAllocationStrategy.MinimumFirstCookingPriority, double tolerance_Lps = 0.001, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors = null)
         {
             DwellingDesignAirFlowChange result = new();
 
@@ -412,7 +431,110 @@ namespace SAM.Analytical
                 space_Target.Name,
                 result.DerivedAdjustments.Count));
 
+            //Equipment is validated AFTER the airflow change above has already committed, and never rolls
+            //it back - see the class documentation. Skipped entirely (outcome stays NotApplicable) unless
+            //a catalogue was actually offered, which keeps every existing caller's behaviour unchanged.
+            if (ventilationUnitCapacityDescriptors is not null)
+            {
+                ValidateVentilationUnit(adjacencyCluster, ventilationSystem, ventilationUnitCapacityDescriptors, result, tolerance_Lps);
+            }
+
             return result;
+        }
+
+        /// <summary>
+        /// Checks the serving air handling unit's CURRENT selection against the duty
+        /// <see cref="ApplyTargetedDesignAirFlow"/> just recalculated, and re-selects only where it no
+        /// longer suffices - see <see cref="Query.IsVentilationUnitSufficient"/> and
+        /// <see cref="SelectVentilationUnit"/>, which this composes rather than reimplements.
+        /// <para>
+        /// <b>Never called just because a smaller capable product exists.</b> A currently sufficient unit
+        /// is left exactly as selected - re-running the smallest-capable search on every change would let
+        /// an unrelated catalogue edit swap out equipment nobody asked to change.
+        /// </para>
+        /// <para>
+        /// <b>Validates an existing selection; never makes a first one.</b> A unit nothing has ever been
+        /// selected for is not "exhausted" and reselecting for it is not what this call was asked to do -
+        /// see <see cref="VentilationUnitSelectionOutcome.NotApplicable"/>. Making a first selection is
+        /// still exactly <see cref="SelectVentilationUnit"/>, called deliberately, on its own.
+        /// </para>
+        /// <para>
+        /// <b>An unknown capacity is refused, never treated as exhausted.</b> Where the CURRENTLY selected
+        /// product is not among the descriptors this call was given -
+        /// <see cref="Query.SelectedVentilationUnitCapacityDescriptor"/> finds nothing - its adequacy is
+        /// unknown, not insufficient. Falling through to reselection here would let a filtered or
+        /// otherwise incomplete catalogue silently downgrade a unit that is still entirely adequate, just
+        /// not describable from what this call was handed.
+        /// </para>
+        /// </summary>
+        private static void ValidateVentilationUnit(AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, DwellingDesignAirFlowChange result, double tolerance_Lps)
+        {
+            AirHandlingUnit airHandlingUnit = Query.AirHandlingUnit(adjacencyCluster, ventilationSystem);
+            if (airHandlingUnit is null)
+            {
+                //Nothing to validate - a system with no resolvable unit (the natural ventilation route, or
+                //one not yet bound to any). Outcome stays NotApplicable.
+                return;
+            }
+
+            //Resolved either way, so a caller can always find the unit this call reasoned about - even
+            //where nothing further below runs.
+            result.AirHandlingUnit = airHandlingUnit;
+
+            VentilationUnitReference ventilationUnitReference_Selected = airHandlingUnit.SelectedVentilationUnitReference();
+            if (ventilationUnitReference_Selected is null)
+            {
+                //A unit nothing has ever been selected for is not an equipment GAP this call was asked to
+                //close. Outcome stays NotApplicable.
+                return;
+            }
+
+            if (airHandlingUnit.SelectedVentilationUnitCapacityDescriptor(ventilationUnitCapacityDescriptors) is null)
+            {
+                //Unknown, not insufficient - the catalogue this call was given does not describe the
+                //product actually selected, so nothing here can say whether it still suffices. Refused,
+                //exactly as an exhausted unit is: nothing is written, the existing selection stands.
+                result.VentilationUnitSelectionOutcome = VentilationUnitSelectionOutcome.Refused;
+
+                result.VentilationUnitSelectionReason = string.Format(
+                    "Air handling unit '{0}' is selected as '{1}', which is not among the ventilation unit products offered to this call, so its adequacy against the recalculated design duty is unknown rather than met. Nothing was reselected.",
+                    airHandlingUnit.Name,
+                    ventilationUnitReference_Selected);
+
+                return;
+            }
+
+            if (adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, ventilationUnitCapacityDescriptors, out _, tolerance_Lps))
+            {
+                result.VentilationUnitSelectionOutcome = VentilationUnitSelectionOutcome.Kept;
+
+                result.Notes.Add(string.Format(
+                    "Air handling unit '{0}' keeps its selected product '{1}': the recalculated design duty is still within its rating.",
+                    airHandlingUnit.Name,
+                    result.VentilationUnitReference));
+
+                return;
+            }
+
+            VentilationUnitSelection ventilationUnitSelection = adjacencyCluster.SelectVentilationUnit(airHandlingUnit, ventilationUnitCapacityDescriptors, out List<string> notes_Selection, out List<string> refusals_Selection, tolerance_Lps);
+
+            //The cluster's own instance, re-resolved by guid after SelectVentilationUnit's own write - so
+            //this reports what the model now holds rather than the (pre-write) instance asked about.
+            result.AirHandlingUnit = adjacencyCluster.GetObject<AirHandlingUnit>(airHandlingUnit.Guid) ?? airHandlingUnit;
+
+            if (ventilationUnitSelection.IsSelected)
+            {
+                result.VentilationUnitSelectionOutcome = VentilationUnitSelectionOutcome.Reselected;
+                result.Notes.AddRange(notes_Selection);
+
+                return;
+            }
+
+            //Deliberately NOT added to result.Refusals: the airflow change already committed, by the
+            //contract ApplyTargetedDesignAirFlow's own tests already pin. An equipment gap is reported
+            //here, beside a successful design change, never rolled back into it.
+            result.VentilationUnitSelectionOutcome = VentilationUnitSelectionOutcome.Refused;
+            result.VentilationUnitSelectionReason = string.Join(" ", refusals_Selection);
         }
 
         /// <summary>

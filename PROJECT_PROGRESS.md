@@ -1,21 +1,259 @@
 # Project Progress
 
 ## Branch
-`feature/parto-iteration2-gh-equipment-selection`, based on `sow/2026-Q3` at **`45429237`** - the merge of
-PR #82 (late P2 hardening on the manufacturer-performance seam). Raised as a PR against `sow/2026-Q3`.
-**Not merged yet** - see "Latest" below.
+`feature/parto-iteration2-gh-targeted-design-airflow`, based on `sow/2026-Q3` at **`bb82865a`** - the merge
+of PR #83 (Grasshopper Seam 1). Raised as a PR against `sow/2026-Q3`. **Not merged yet** - see "Latest"
+below.
 
-**Companion branch in `SAM-BIM/SAM_Systems`**: `feature/parto-iteration2-gh-ventilation-catalogue`, off
-SAM_Systems' `sow/2026-Q3` at `e444982`. Deliberately not a code dependency in either direction - this
-repository does not reference `SAM.Analytical.Systems` - the two components are wired together only on a
-Grasshopper canvas, so either PR can merge independently of the other.
+Grasshopper Seam 1 itself is **merged** (PR #83, merge commit `bb82865a`), alongside its companion
+`SAM-BIM/SAM_Systems` PR #17 (merge commit `a57e797`).
+
+**No `SAM-BIM/SAM_Systems` companion change for Seam 2.** The catalogue reader Seam 1 already exposed is
+reused as-is - `VentilationUnitCapacityDescriptor[]` is the only thing this stage needs from SAM_Systems,
+and it already flows through the Grasshopper canvas. See "Latest" for why no SAM_Systems production change
+was needed.
 
 Everything below "Latest" up to the next dated heading is superseded history retained for context; older
 history follows further down.
 
 ## Last updated
-2026-08-31 - Grasshopper Seam 1: exposes Iteration 2's already-implemented ventilation-unit selection
-through the existing `SAMAnalyticalPreparePartOIteration` component. No new selection logic added here.
+2026-08-31 - Grasshopper Seam 2: exposes Iteration 2's already-implemented targeted design-airflow
+rebalance through a new `SAMAnalyticalApplyTargetedDesignAirFlow` component, composed with the existing
+equipment-selection primitives at one new analytical orchestration point.
+
+## Latest (2026-08-31): Grasshopper Seam 2 - targeted design airflow, rebalance, and equipment validation
+
+**Status: implemented, tested, PR pending review. Not merged.**
+
+### Goal
+
+Expose the already-designed targeted room design-airflow workflow through Grasshopper: target one room's
+design airflow, rebalance the network, recalculate duty, validate the currently selected ventilation unit,
+and keep/reselect/refuse accordingly - without redesigning the analytical architecture and without
+starting Iteration 3 (`SAM_Systems` materialisation).
+
+### Inspection findings (before any code was written)
+
+Re-verified against the current merged code (post Seam 1, tip `bb82865a`), not assumed from an earlier
+session:
+
+- `Modify.ApplyTargetedDesignAirFlow` already did everything through recalculating the dwelling's design
+  duty after a targeted change: validated the existing network first (balance, then Approved Document F
+  compliance via `Query.ReconcileVentilationSystemDesignDuty`), refused a request below the room's Part F
+  floor, applied the targeted change and derived every balancing consequence through a private `Allocate`
+  helper (the design-side application of `PartFCalculator.AllocateContinuousExtract`'s cooking-priority
+  rule), validated the resulting network, and wrote nothing on any refusal - all before a single terminal
+  was touched. Its return type, `DwellingDesignAirFlowChange`, already separated `TargetedAdjustment` from
+  `DerivedAdjustments` (each `DesignAirFlowAdjustment` carrying its own `IsDerived` flag).
+- It did **not** touch equipment at all - no call to `Query.IsVentilationUnitSufficient` or
+  `Modify.SelectVentilationUnit` anywhere, and no catalogue parameter. Both of those methods already
+  existed, already worked exactly as designed (confirmed by reading their full bodies), and were already
+  exercised in `SAM.Tests` - but only as three separately-sequenced calls a test helper (`Retarget`, then
+  `IsVentilationUnitSufficient`, then `SelectVentilationUnit`) made by hand. No single call gave the
+  keep/reselect/refuse guarantee Grasshopper needs.
+- The existing contract, proven directly by `ATargetedChangeBeyondCapacity_ExposesExhaustionAndEscalates`:
+  a design airflow change **commits regardless of equipment adequacy**. The airflow write and the
+  equipment question are separate, and nothing in the existing code rolls the airflow change back because
+  no product in a catalogue is capable. This is the authority preserved below - not a policy invented for
+  Grasshopper.
+- No "zone owns AHU" shortcut exists anywhere in `ApplyTargetedDesignAirFlow` or its helpers. The
+  air handling unit is resolved from a `VentilationSystem` by a **pre-existing, documented, name-based**
+  lookup (`Query.AirHandlingUnit`, technical debt recorded on the method itself, shared by
+  `Modify.AddAirMovementObjects`, `Modify.AddVentilationSystem` and the TAS export) - not something this
+  stage introduces, and `AirHandlingUnitDesignDuty` is explicitly summed over every system a unit supplies,
+  "not one... the general MEP arrangement of one unit serving several zones is precisely what this
+  architecture must not foreclose."
+
+**Conclusion: this is an analytical orchestration change, not a pure GH-exposure seam.** The library
+intentionally stopped before equipment revalidation, so a tiny, reusable addition was made to
+`SAM.Analytical` first - composing the two existing primitives, never reimplementing either - and
+Grasshopper wraps that, exactly as Seam 1 wrapped `Modify.PreparePartOIteration`'s existing overload.
+
+### What was added
+
+| File | What |
+|---|---|
+| `SAM.Analytical/Enums/VentilationUnitSelectionOutcome.cs` (new) | `NotApplicable`/`Kept`/`Reselected`/`Refused` - what happened to the serving unit's selection. |
+| `SAM.Analytical/Classes/System/DwellingDesignAirFlowChange.cs` | +4 properties: `VentilationUnitSelectionOutcome`, `AirHandlingUnit`, `VentilationUnitReference`, `VentilationUnitSelectionReason`. None of the four participate in `Successful` - equipment adequacy is reported beside a successful airflow change, never instead of it. |
+| `SAM.Analytical/Modify/ApplyTargetedDesignAirFlow.cs` | One new optional parameter, `ventilationUnitCapacityDescriptors_` (`IEnumerable<VentilationUnitCapacityDescriptor>`, appended last, default `null` - every existing call site is unaffected). Null skips equipment validation entirely, exactly as before this parameter existed. Where supplied, a new private `ValidateVentilationUnit` helper runs strictly AFTER the airflow change has already committed: `Query.IsVentilationUnitSufficient` first (Kept if it still suffices - never reselects just because a smaller capable product exists elsewhere in the catalogue), then `Modify.SelectVentilationUnit` only if it does not (Reselected on success, Refused - and left exactly as it was - if no product is capable). Composes the two existing primitives; adds no selection or sufficiency logic of its own. |
+| `Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalApplyTargetedDesignAirFlow.cs` (new) | Thin GH wrapper. Inputs: `_analyticalModel`, `_space`, `_flowClassification`, `_designAirFlow`, `partFExtractAllocationStrategy_`, `tolerance_`, `ventilationUnitCapacityDescriptors_` (optional list, same `GH_ObjectWrapper`/`IGH_Goo` unwrap idiom Seam 1's Codex fix established - not repeated as a marshalling defect this time). Outputs: `analyticalModel`, `space`, `designAirFlowBefore/After l/s`, `derivedAdjustments`, `supply/extract duty l/s`, `airHandlingUnit`, `ventilationUnitReference`, `equipmentOutcome`, `equipmentReason`, `notes`, `refusals`, `successful`. |
+| `SAM.Tests/PartOVentilationUnitSelectionTests.cs` (+7 tests, section K) | Focused on the NEW orchestration only - not a retest of the rebalancing rules sections D/E/H already cover. See "Tests" below. |
+
+### Transactional semantics, exactly as inspected and preserved
+
+- **Targeted vs derived**: unchanged, already correct, already tested (sections D/E). Not retested here
+  beyond what the new equipment tests incidentally exercise.
+- **Part F floor / invalid rebalance**: unchanged - refuses with nothing written, already tested (sections
+  D/H). The new optional parameter defaults to `null` for every pre-existing call, so every one of these
+  tests exercises the exact same code path as before this stage.
+- **Keep**: `IsVentilationUnitSufficient` true - `equipmentOutcome` = Kept, reference unchanged, **no call
+  to `SelectVentilationUnit` at all** - so a smaller-but-still-capable product elsewhere in the catalogue
+  can never displace a unit that is still adequate.
+- **Reselect**: `IsVentilationUnitSufficient` false, `SelectVentilationUnit` finds a capable product -
+  `equipmentOutcome` = Reselected, the SMALLEST capable product (proven with the catalogue's own
+  100/150/180/220 fixture: a duty of 160 l/s selects 180, skipping 150, which the smallest-capable rule
+  already guaranteed and this stage only exposes).
+- **Refuse (equipment)**: `SelectVentilationUnit` finds nothing capable - `equipmentOutcome` = Refused, the
+  unit keeps whatever it had before this call, and **the airflow change's `Successful` stays true** - the
+  existing, unmodified contract, not a new rollback policy.
+- **No descriptors connected**: `equipmentOutcome` = NotApplicable, the unit's existing selection is not
+  even read, let alone touched - true backward compatibility, matching Seam 1's own convention for the
+  same distinction.
+- **Multi-dwelling / no zone-owns-AHU shortcut**: one dwelling's equipment escalation cannot read, report
+  on or touch another dwelling's unit - proven directly (not just structurally) with a new test against
+  `TwoDwellingModel()`.
+
+### Deferred guards, re-evaluated for this seam specifically
+
+Seam 1 could not make either guard reachable (it never touched `VentilationTerminal.DesignFlowRate_Lps` or
+any classification at all). Seam 2 is different - it is the first public entry point onto
+`Modify.ApplyTargetedDesignAirFlow`, which **does** write `DesignFlowRate_Lps` - so both were re-traced
+against the actual new reachability surface, not re-asserted from the earlier note:
+
+- **`FlowClassification.Undefined` as the `_flowClassification_` input**: already refused, by the
+  existing top-of-method check (`flowClassification != Supply && != Extract`) - confirmed by reading the
+  method, not assumed. Pinned with `UndefinedFlowClassification_IsRefused`. The low-level setter
+  (`Modify.SetSpaceDesignFlowRate`) was **not** modified - it never sees an `Undefined` terminal in the
+  first place, because every terminal list it works from is already filtered to Supply/Extract upstream.
+- **`VentilationTerminal.DesignFlowRate_Lps == null` on a pre-existing, externally-authored terminal**:
+  traced in full rather than assumed safe. Two distinct scenarios exist:
+  1. **A null-flow terminal sharing a room with an already-established one.** `IsRedistributable`
+     deliberately allows null through as a zero-weighted quantity (refusing only NaN/Infinity/negative) -
+     the null terminal's calculated share is then exactly zero, never `NaN`, and the healthy terminal
+     absorbs the whole change. This is not a bug: refusing outright would block the ordinary case of
+     designing a room for the first time through this operation. Pinned with
+     `ASiblingNullTerminal_GetsAnExplicitZeroShare_NeverCorruptingTheRoomTotal`. **No guard was added** -
+     the existing behaviour is correct and is not the risk the deferred note names.
+  2. **A whole system with no established terminal at all**, which could make
+     `Query.VentilationSystemDesignDuty` report a coerced, falsely-"established" 0/0 duty that
+     `IsVentilationUnitSufficient` would then trivially pass - the exact risk the deferred note names.
+     Traced and found **still not reachable through this seam**: `ApplyTargetedDesignAirFlow`'s own
+     pre-existing balance and Approved Document F compliance preconditions (unchanged by this work) refuse
+     before the transaction ever reaches equipment validation, for any system a real Part F preparation
+     could produce. Reaching this state would require a hand-built model bypassing those preconditions
+     entirely - a genuine authoring path this seam does not add. **No guard was added.** This risk's own
+     reopening condition (a production path that *creates* `VentilationTerminal` objects) still does not
+     apply: this operation only ever rewrites terminals the model already had.
+
+### Tests
+
+Section K, `SAM.Tests/PartOVentilationUnitSelectionTests.cs` (9 new - 7 from the initial pass, +1 added
+after the internal review pass, +1 added after Codex's PR review):
+
+1. `EquipmentValidation_KeptWhenSelectedProductRemainsSufficient`
+2. `EquipmentValidation_ReselectsTheSmallestCapableProductWhenExhausted`
+3. `EquipmentValidation_RefusesEquipmentButKeepsTheAirflowChangeSuccessful`
+4. `EquipmentValidation_UnconnectedDescriptors_LeavesTheSelectionUntouched`
+5. `EquipmentValidation_NeverSelected_StaysNotApplicable_EvenWithACatalogueOffered`
+6. `EquipmentValidation_SelectedProductNotInThisCatalogue_IsRefusedAsUnknown_NeverDowngraded`
+7. `EquipmentValidation_TwoDwellings_StayIndependent`
+8. `UndefinedFlowClassification_IsRefused`
+9. `ASiblingNullTerminal_GetsAnExplicitZeroShare_NeverCorruptingTheRoomTotal`
+
+### Internal review pass (before pushing) - 4 real findings, all fixed
+
+A dedicated multi-angle review of the diff (line-by-line, removed-behaviour, cross-file, reuse,
+simplification/efficiency, altitude/conventions) surfaced four findings worth acting on immediately,
+beyond what the focused tests above already covered:
+
+1. **`VentilationUnitSelectionOutcome.NotApplicable`'s own doc comment was wrong.** It claimed a unit
+   with no prior selection reads `NotApplicable`; the code actually let `SelectVentilationUnit` make a
+   FIRST selection for it, landing on `Reselected`/`Refused` instead - an unrequested side effect of a
+   targeted airflow change. Fixed in the code (not the doc): `ValidateVentilationUnit` now checks
+   `SelectedVentilationUnitReference() is null` up front and stays `NotApplicable` - this call validates
+   an EXISTING selection, it does not make a first one. Pinned with a new test,
+   `EquipmentValidation_NeverSelected_StaysNotApplicable_EvenWithACatalogueOffered`.
+2. **`VentilationUnitSelectionReason` never reached the Grasshopper component.** A real gap - a `Refused`
+   equipment outcome gave a Grasshopper user zero explanation, even though the reason already existed on
+   the object returned. Fixed: new `equipmentReason` output added.
+3. **`VentilationUnitReference` was three hand-maintained copies of `AirHandlingUnit`'s own selection.**
+   Simplified to a computed property reading `AirHandlingUnit?.SelectedVentilationUnitReference()` on
+   demand, so the two can never disagree.
+4. **The post-`SelectVentilationUnit` guid re-resolution reinvented `RelationCluster.GetObject<T>(Guid)`.**
+   Replaced the manual `GetObjects<T>().Find(x => x.Guid == ...)` scan with the existing single-item
+   lookup - simpler and cheaper.
+
+Three further observations were considered and deliberately left as-is: a connected-but-wrong-typed
+`ventilationUnitCapacityDescriptors_` wire collapsing to an empty (not null) list - an established
+convention already shipped in Seam 1's own component, not something newly introduced here; the
+`IEnumerable<VentilationUnitCapacityDescriptor>` parameter being enumerated twice inside
+`ValidateVentilationUnit` - a pre-existing characteristic of calling `IsVentilationUnitSufficient` then
+`SelectVentilationUnit` in sequence (the same sequence the test helpers already used by hand), and both
+real callers (this GH component, the SAM_Systems catalogue reader) hand over materialized lists in
+practice; and keeping equipment validation as a private, inline step of `ApplyTargetedDesignAirFlow`
+rather than a separately composable public operation - a deliberate choice matching Seam 1's own
+precedent of extending an existing method rather than adding a parallel entry point, revisit only if a
+second caller genuinely needs the same guarantee.
+
+### Codex review (PR #84) - two real P2 findings, both fixed
+
+1. **Unknown capacity was being treated as exhausted.** Where the CURRENTLY selected product is not
+   among the descriptors this call was given (a filtered or narrower catalogue than the one it was
+   originally selected from), `IsVentilationUnitSufficient` returns `false` because the capacity is
+   *unknown*, not because the unit is insufficient - and the code was falling through to reselection
+   regardless, which could silently downgrade a unit (e.g. from MVHR-220 to MVHR-100) that was never
+   actually exhausted. Fixed: `ValidateVentilationUnit` now checks
+   `Query.SelectedVentilationUnitCapacityDescriptor` directly before consulting sufficiency at all: unknown
+   capacity now refuses immediately (unit untouched, `VentilationUnitSelectionReason` explains why) and
+   never reaches `SelectVentilationUnit`. Pinned with a new test,
+   `EquipmentValidation_SelectedProductNotInThisCatalogue_IsRefusedAsUnknown_NeverDowngraded`.
+2. **`result.AirHandlingUnit` stayed null when a resolved unit had no prior selection.** Contradicted the
+   documented contract ("null where none resolved") and hid the resolved unit from Grasshopper's
+   `airHandlingUnit` output even though it *had* resolved - only its selection was missing. Fixed:
+   `result.AirHandlingUnit` is now assigned as soon as the unit resolves, before the no-selection check
+   that keeps the outcome `NotApplicable`. Pinned by extending
+   `EquipmentValidation_NeverSelected_StaysNotApplicable_EvenWithACatalogueOffered` to assert
+   `change.AirHandlingUnit` is non-null.
+
+### Validation
+
+- Focused: `PartOVentilationUnitSelectionTests` 80/80 (71 existing + 9 new, including both post-review pins).
+- Full `SAM.Tests` Release: **1622 passed, 0 failed** (was 1613 before this stage; +9 new, zero
+  regressions - every pre-existing call to `ApplyTargetedDesignAirFlow` exercises the exact same code path,
+  since the new parameter defaults to `null`).
+- `SAM.Analytical`, `SAM.Analytical.Grasshopper` compile with 0 CS errors in Release.
+- `SAM-BIM/SAM_Systems`'s existing `SAMAnalyticalSystemVentilationUnitCatalogue` (Seam 1) rebuilt clean
+  against these fresh SAM binaries (after the review-pass fixes too), confirming no companion change is
+  needed there.
+- The project-level `dotnet build` of either `.csproj` alone still fails its post-build deploy step with
+  the pre-existing `*Undefined*\files\resources` xcopy quirk when `$(SolutionDir)` is not supplied -
+  unrelated to this change, same as Seam 1; `-p:SolutionDir=...` builds clean.
+
+### GH acceptance
+
+No live-Grasshopper/Rhino test harness exists in this repository (unchanged since Seam 1). The manual
+canvas for final licensed acceptance:
+
+```
+SAMAnalytical.SystemVentilationUnitCatalogue (SAM_Systems)
+  -> ventilationUnitCapacityDescriptors
+SAMAnalytical.PreparePartOIteration
+  -> analyticalModel
+SAMAnalytical.ApplyTargetedDesignAirFlow
+  _analyticalModel          <- analyticalModel
+  _space                    <- the room to target
+  _flowClassification       <- "Supply" or "Extract"
+  _designAirFlow            <- the new l/s
+  ventilationUnitCapacityDescriptors_ <- ventilationUnitCapacityDescriptors
+```
+
+- **Keep**: target a room by a small amount that keeps the dwelling's duty within the selected product's
+  rating. Expect `equipmentOutcome` = Kept, `ventilationUnitReference` unchanged.
+- **Reselect**: target a room by enough that the recalculated duty passes the selected product's rating,
+  against a controlled test catalogue with more than one capable size above it (not the real Nuaire
+  product - its authoritative maximum capacities remain unresolved, so it can never prove a reselection).
+  Expect `equipmentOutcome` = Reselected, `ventilationUnitReference` the next SMALLEST capable product.
+- **Refuse**: target a room by enough that no product in the catalogue offered is capable. Expect
+  `equipmentOutcome` = Refused, `successful` still `true`, and `ventilationUnitReference` unchanged from
+  before the call.
+- **Part F floor**: request a design airflow below the targeted room's Approved Document F requirement.
+  Expect `successful` = `false`, `analyticalModel` unchanged, and `refusals` naming the shortfall.
+
+### Next step
+
+Merge this PR once reviewed. Seam 2 and Iteration 3 remain out of scope beyond what this stage adds - no
+`AirSystem` materialisation, no generic `AirHandlingUnitTemplate`, no runtime/profile airflow, no TAS
+export change.
 
 ## Latest (2026-08-31): Grasshopper Seam 1 - exposing existing Iteration 2 selection through Grasshopper
 
