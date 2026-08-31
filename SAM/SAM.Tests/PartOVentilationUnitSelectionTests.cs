@@ -2063,6 +2063,44 @@ namespace SAM.Tests
 
             //Still nothing selected - not a first selection made on its behalf.
             Assert.Null(airHandlingUnit.SelectedVentilationUnitReference());
+
+            //The unit itself is still resolved and reported, even though there was nothing to validate -
+            //null here would mean "no unit resolved", which is not what happened.
+            Assert.NotNull(change.AirHandlingUnit);
+            Assert.Equal(airHandlingUnit.Guid, change.AirHandlingUnit.Guid);
+        }
+
+        /// <summary>
+        /// <b>An unknown capacity is refused, never treated as exhausted.</b> The currently selected
+        /// product is not among the descriptors THIS call was given - a filtered or narrower catalogue
+        /// than the one it was originally selected from - so its adequacy is unknown, not insufficient.
+        /// Falling through to reselection would let an incomplete catalogue silently downgrade a unit that
+        /// remains entirely adequate for the real duty.
+        /// </summary>
+        [Fact]
+        public void EquipmentValidation_SelectedProductNotInThisCatalogue_IsRefusedAsUnknown_NeverDowngraded()
+        {
+            PartOIterationPreparation preparation = Prepared(Catalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+            AirHandlingUnit airHandlingUnit = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            Assert.Equal("MVHR-100", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+
+            //A catalogue that omits MVHR-100 entirely - the unit is still selected as it, but this call
+            //cannot see its capacity. A duty well within 100's original rating, so a Reselected outcome
+            //here would prove the defect: downgrading a unit that was never actually exhausted.
+            List<VentilationUnitCapacityDescriptor> catalogueWithoutTheSelectedProduct = [Descriptor("MVHR-150", 150, 150), Descriptor("MVHR-180", 180, 180), Descriptor("MVHR-220", 220, 220)];
+
+            DwellingDesignAirFlowChange change = RaiseDutyTotalToWithCatalogue(adjacencyCluster, airHandlingUnit, 60, catalogueWithoutTheSelectedProduct);
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+            Assert.Equal(VentilationUnitSelectionOutcome.Refused, change.VentilationUnitSelectionOutcome);
+            Assert.Contains("not among the ventilation unit products offered", change.VentilationUnitSelectionReason);
+
+            //Untouched - still MVHR-100, never downgraded to a smaller product from an incomplete catalogue.
+            Assert.Equal("MVHR-100", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+            Assert.Equal("MVHR-100", change.VentilationUnitReference?.Model);
         }
 
         /// <summary>

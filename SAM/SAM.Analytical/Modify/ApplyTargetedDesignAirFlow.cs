@@ -458,19 +458,51 @@ namespace SAM.Analytical
         /// see <see cref="VentilationUnitSelectionOutcome.NotApplicable"/>. Making a first selection is
         /// still exactly <see cref="SelectVentilationUnit"/>, called deliberately, on its own.
         /// </para>
+        /// <para>
+        /// <b>An unknown capacity is refused, never treated as exhausted.</b> Where the CURRENTLY selected
+        /// product is not among the descriptors this call was given -
+        /// <see cref="Query.SelectedVentilationUnitCapacityDescriptor"/> finds nothing - its adequacy is
+        /// unknown, not insufficient. Falling through to reselection here would let a filtered or
+        /// otherwise incomplete catalogue silently downgrade a unit that is still entirely adequate, just
+        /// not describable from what this call was handed.
+        /// </para>
         /// </summary>
         private static void ValidateVentilationUnit(AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, DwellingDesignAirFlowChange result, double tolerance_Lps)
         {
             AirHandlingUnit airHandlingUnit = Query.AirHandlingUnit(adjacencyCluster, ventilationSystem);
-            if (airHandlingUnit is null || airHandlingUnit.SelectedVentilationUnitReference() is null)
+            if (airHandlingUnit is null)
             {
                 //Nothing to validate - a system with no resolvable unit (the natural ventilation route, or
-                //one not yet bound to any), or a unit nothing has ever been selected for, is not an
-                //equipment GAP this call was asked to close. Outcome stays NotApplicable.
+                //one not yet bound to any). Outcome stays NotApplicable.
                 return;
             }
 
+            //Resolved either way, so a caller can always find the unit this call reasoned about - even
+            //where nothing further below runs.
             result.AirHandlingUnit = airHandlingUnit;
+
+            VentilationUnitReference ventilationUnitReference_Selected = airHandlingUnit.SelectedVentilationUnitReference();
+            if (ventilationUnitReference_Selected is null)
+            {
+                //A unit nothing has ever been selected for is not an equipment GAP this call was asked to
+                //close. Outcome stays NotApplicable.
+                return;
+            }
+
+            if (airHandlingUnit.SelectedVentilationUnitCapacityDescriptor(ventilationUnitCapacityDescriptors) is null)
+            {
+                //Unknown, not insufficient - the catalogue this call was given does not describe the
+                //product actually selected, so nothing here can say whether it still suffices. Refused,
+                //exactly as an exhausted unit is: nothing is written, the existing selection stands.
+                result.VentilationUnitSelectionOutcome = VentilationUnitSelectionOutcome.Refused;
+
+                result.VentilationUnitSelectionReason = string.Format(
+                    "Air handling unit '{0}' is selected as '{1}', which is not among the ventilation unit products offered to this call, so its adequacy against the recalculated design duty is unknown rather than met. Nothing was reselected.",
+                    airHandlingUnit.Name,
+                    ventilationUnitReference_Selected);
+
+                return;
+            }
 
             if (adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, ventilationUnitCapacityDescriptors, out _, tolerance_Lps))
             {

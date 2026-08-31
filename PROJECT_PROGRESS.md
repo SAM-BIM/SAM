@@ -137,17 +137,18 @@ against the actual new reachability surface, not re-asserted from the earlier no
 
 ### Tests
 
-Section K, `SAM.Tests/PartOVentilationUnitSelectionTests.cs` (8 new - 7 from the initial pass, +1 added
-after the internal review pass below caught a real defect):
+Section K, `SAM.Tests/PartOVentilationUnitSelectionTests.cs` (9 new - 7 from the initial pass, +1 added
+after the internal review pass, +1 added after Codex's PR review):
 
 1. `EquipmentValidation_KeptWhenSelectedProductRemainsSufficient`
 2. `EquipmentValidation_ReselectsTheSmallestCapableProductWhenExhausted`
 3. `EquipmentValidation_RefusesEquipmentButKeepsTheAirflowChangeSuccessful`
 4. `EquipmentValidation_UnconnectedDescriptors_LeavesTheSelectionUntouched`
 5. `EquipmentValidation_NeverSelected_StaysNotApplicable_EvenWithACatalogueOffered`
-6. `EquipmentValidation_TwoDwellings_StayIndependent`
-7. `UndefinedFlowClassification_IsRefused`
-8. `ASiblingNullTerminal_GetsAnExplicitZeroShare_NeverCorruptingTheRoomTotal`
+6. `EquipmentValidation_SelectedProductNotInThisCatalogue_IsRefusedAsUnknown_NeverDowngraded`
+7. `EquipmentValidation_TwoDwellings_StayIndependent`
+8. `UndefinedFlowClassification_IsRefused`
+9. `ASiblingNullTerminal_GetsAnExplicitZeroShare_NeverCorruptingTheRoomTotal`
 
 ### Internal review pass (before pushing) - 4 real findings, all fixed
 
@@ -184,10 +185,30 @@ rather than a separately composable public operation - a deliberate choice match
 precedent of extending an existing method rather than adding a parallel entry point, revisit only if a
 second caller genuinely needs the same guarantee.
 
+### Codex review (PR #84) - two real P2 findings, both fixed
+
+1. **Unknown capacity was being treated as exhausted.** Where the CURRENTLY selected product is not
+   among the descriptors this call was given (a filtered or narrower catalogue than the one it was
+   originally selected from), `IsVentilationUnitSufficient` returns `false` because the capacity is
+   *unknown*, not because the unit is insufficient - and the code was falling through to reselection
+   regardless, which could silently downgrade a unit (e.g. from MVHR-220 to MVHR-100) that was never
+   actually exhausted. Fixed: `ValidateVentilationUnit` now checks
+   `Query.SelectedVentilationUnitCapacityDescriptor` directly before consulting sufficiency at all: unknown
+   capacity now refuses immediately (unit untouched, `VentilationUnitSelectionReason` explains why) and
+   never reaches `SelectVentilationUnit`. Pinned with a new test,
+   `EquipmentValidation_SelectedProductNotInThisCatalogue_IsRefusedAsUnknown_NeverDowngraded`.
+2. **`result.AirHandlingUnit` stayed null when a resolved unit had no prior selection.** Contradicted the
+   documented contract ("null where none resolved") and hid the resolved unit from Grasshopper's
+   `airHandlingUnit` output even though it *had* resolved - only its selection was missing. Fixed:
+   `result.AirHandlingUnit` is now assigned as soon as the unit resolves, before the no-selection check
+   that keeps the outcome `NotApplicable`. Pinned by extending
+   `EquipmentValidation_NeverSelected_StaysNotApplicable_EvenWithACatalogueOffered` to assert
+   `change.AirHandlingUnit` is non-null.
+
 ### Validation
 
-- Focused: `PartOVentilationUnitSelectionTests` 79/79 (71 existing + 8 new, including the post-review pin).
-- Full `SAM.Tests` Release: **1621 passed, 0 failed** (was 1613 before this stage; +8 new, zero
+- Focused: `PartOVentilationUnitSelectionTests` 80/80 (71 existing + 9 new, including both post-review pins).
+- Full `SAM.Tests` Release: **1622 passed, 0 failed** (was 1613 before this stage; +9 new, zero
   regressions - every pre-existing call to `ApplyTargetedDesignAirFlow` exercises the exact same code path,
   since the new parameter defaults to `null`).
 - `SAM.Analytical`, `SAM.Analytical.Grasshopper` compile with 0 CS errors in Release.
