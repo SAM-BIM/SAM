@@ -1,25 +1,106 @@
 # Project Progress
 
 ## Branch
-`fix/json-numeric-roundtrip`, based on `sow/2026-Q3` at **`5433c20f`** - the merge of PR #80. Raised as
-**PR #81** against `sow/2026-Q3`. **MERGED** (see "Latest" below; this documentation commit is the last
-commit on the branch).
+`feature/parto-iteration2-gh-equipment-selection`, based on `sow/2026-Q3` at **`45429237`** - the merge of
+PR #82 (late P2 hardening on the manufacturer-performance seam). Raised as a PR against `sow/2026-Q3`.
+**Not merged yet** - see "Latest" below.
 
-The manufacturer catalogue work on `feature/parto-iteration2-manufacturer-catalogue` was **MERGED** as
-**PR #80**, merge commit **`5433c20f`**.
+**Companion branch in `SAM-BIM/SAM_Systems`**: `feature/parto-iteration2-gh-ventilation-catalogue`, off
+SAM_Systems' `sow/2026-Q3` at `e444982`. Deliberately not a code dependency in either direction - this
+repository does not reference `SAM.Analytical.Systems` - the two components are wired together only on a
+Grasshopper canvas, so either PR can merge independently of the other.
 
-**`SAM_Systems` depends on this.** Its companion branch
-`feature/parto-iteration2-ventilation-unit-catalogue` carries the manufacturer catalogue and needs the
-`SAM.Analytical` API added here, so this must merge first.
-
-Iteration 2 itself was developed on `feature/parto-iteration2-mvhr-selection` (off `sow/2026-Q3` at
-`b8fb0c0f`, i.e. with Iteration 1a PR #77 merged as `7fb04ed9`) and shipped as **PR #79**, base
-`sow/2026-Q3`. **MERGED** as merge commit **`fafed15f`**; that feature branch is deleted on the remote and
-locally.
+Everything below "Latest" up to the next dated heading is superseded history retained for context; older
+history follows further down.
 
 ## Last updated
-2026-08-29 (second pass) - the parsed-JSON numeric round-trip fix, **PR #81**, on top of the merged
-manufacturer catalogue seam (**PR #80**, merge commit `5433c20f`).
+2026-08-31 - Grasshopper Seam 1: exposes Iteration 2's already-implemented ventilation-unit selection
+through the existing `SAMAnalyticalPreparePartOIteration` component. No new selection logic added here.
+
+## Latest (2026-08-31): Grasshopper Seam 1 - exposing existing Iteration 2 selection through Grasshopper
+
+**Status: implemented, tested, PR pending review. Not merged.**
+
+### Goal
+
+Make the already-implemented Iteration 2 ventilation-unit selection (`Modify.PreparePartOIteration`'s
+5-argument overload, `Query.SelectSmallestCapableVentilationUnit`) usable from a normal Grasshopper canvas -
+expose it, do not reimplement it, do not redesign the analytical architecture.
+
+### Inspection findings (before any code was written)
+
+Confirmed against the current merged code, not assumed from an earlier session:
+
+- `Modify.PreparePartOIteration(..., IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors = null)`
+  already selects **independently per dwelling** (inside the per-dwelling loop in `PrepareBaseMVHR`), already
+  derives duty from the **realised terminal network** (`VentilationSystemDesignDuty`/`AirHandlingUnitDesignDuty`,
+  never from Part F requirement figures), already calls the existing smallest-capable kernel
+  (`Query.SelectSmallestCapableVentilationUnit`), and writes **only**
+  `AirHandlingUnitParameter.VentilationUnitReference` (`Modify.SelectVentilationUnit.cs:129` - nothing else on
+  the model moves). `PartOIterationPreparation.VentilationUnitSelections` already existed and was already
+  populated. When `ventilationUnitCapacityDescriptors` is `null`, the whole selection block is skipped by a
+  guard clause (`if (ventilationUnitCapacityDescriptors is not null)`) - behaviour is unchanged from Iteration
+  1a's four-argument call.
+- `SAMAnalyticalPreparePartOIteration` (the GH component) called only the **four**-argument overload -
+  descriptors were never passed, so selection never ran from Grasshopper. `PartOIterationPreparation` already
+  carried `VentilationSystems`/`AirHandlingUnits` (plural) and `VentilationUnitSelections`, all three unwired
+  to any GH output.
+- `VentilationUnitCapacityDescriptor` and `VentilationUnitSelection` are deliberately **not** `IJSAMObject` (own
+  doc comments: "the catalogue is the wire format" / same reasoning as `SystemCapabilityDescriptor`), so
+  neither can ride the existing `GooJSAMObject<T>`/`GooSAMObject` family - they ride the untyped
+  `GooObject`/`GooObjectParam` instead. `VentilationUnitTemplate` **is** a `SAMObject`, so it rides
+  `GooSAMObject`/`GooSAMObjectParam` directly. No new Goo/Param type was created for any of the three.
+
+### What was added
+
+| File | What |
+|---|---|
+| `Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalPreparePartOIteration.cs` | One new optional input, `ventilationUnitCapacityDescriptors_` (`Param_GenericObject`, list, unwrapped to `List<VentilationUnitCapacityDescriptor>` or left `null`), passed straight into the existing 5-argument `PreparePartOIteration` overload. Three new outputs forwarding previously-hidden `PartOIterationPreparation` properties verbatim: `ventilationSystems`/`airHandlingUnits` (plural, `GooAnalyticalObjectParam`) and `ventilationUnitSelections` (`GooObjectParam`). |
+| `SAM/SAM.Tests/PartOVentilationUnitSelectionTests.cs` (+4 tests, section G) | Focused on the new wiring, not a retest of the selection algorithm sections A-F already cover: null descriptors leave the plural network outputs populated but `VentilationUnitSelections` empty (backward compatibility); a connected catalogue's selection is the same identity written to the unit; two dwellings' plural outputs stay independent with matching per-dwelling duties; a selection's reported duty is the design duty, never the selected product's capacity. |
+
+### What was deliberately not touched
+
+The selection kernel, the catalogue vocabulary, and every existing Part F/Part O behaviour. No capability was
+copied onto `VentilationTerminal.DesignFlowRate_Lps`, no maximum airflow was inferred from any performance
+table, no manufacturer performance data was written onto the analytical AHU, and `SAM.Analytical` gained no
+reference to `SAM.Analytical.Systems`.
+
+### Deferred guards, re-checked
+
+Both re-confirmed **not reachable** through this seam, matching the prior investigation:
+
+- `VentilationTerminal.DesignFlowRate_Lps == null` - terminals on this path are only ever constructed by
+  `Modify.RealizePartFVentilationTerminals` after `continuous_Lps.HasValue` is verified
+  (`RealizePartFVentilationTerminals.cs:189-208`); the new GH input/outputs create no new terminal-construction
+  path.
+- Undefined flow classification - the same constructor call always passes the ternary of
+  `FlowClassification.Extract`/`Supply`, never `Undefined`.
+
+### Validation
+
+- Focused: `PartOVentilationUnitSelectionTests` 71/71 (67 existing + 4 new).
+- Full `SAM.Tests` Release: **1613 passed, 0 failed**.
+- `SAM.Analytical.Grasshopper` compiles with 0 CS errors in Release. The project-level `dotnet build` of the
+  `.csproj` alone fails its post-build deploy step with the pre-existing `*Undefined*\files\resources` xcopy
+  quirk when `$(SolutionDir)` is not supplied - the same environmental quirk recorded lower in this file
+  (search "xcopy quirk"); confirmed pre-existing by rebuilding the unmodified baseline commit, which fails
+  identically. Passing `-p:SolutionDir=...` (or building via `SAM.sln`) builds clean.
+
+### GH acceptance
+
+No live-Grasshopper/Rhino test harness exists in this repository - the one Grasshopper-driving test project,
+`SAM.Core.Grasshopper.Tests`, never calls `SolveInstance`, and `SAM.Tests` does not reference
+`Grasshopper.Kernel`/`GH_IO` at all. Per the brief, no new testing framework was built for this stage;
+automated coverage instead targets `Modify.PreparePartOIteration` and `PartOIterationPreparation` directly -
+exactly what the GH component thinly wraps. The manual canvas for final licensed acceptance, and both
+required cases, are documented in `SAM_Systems/PROJECT_PROGRESS.md` under "Grasshopper Seam 1", alongside the
+companion `SAMAnalyticalSystemVentilationUnitCatalogue` component this input is meant to be wired from.
+
+### Next step
+
+Merge this PR alongside `SAM-BIM/SAM_Systems`'s `feature/parto-iteration2-gh-ventilation-catalogue`, in either
+order - neither depends on the other at the code level. Seam 2 and Iteration 3 are deliberately not started
+here.
 
 ## Latest (2026-08-29, second pass): parsed-JSON numeric round-trip fix - PR #81
 

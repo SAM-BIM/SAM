@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.3";
+        public override string LatestComponentVersion => "1.1.0";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -87,7 +87,7 @@ ITERATIONS
 
 WHAT IT STILL DOES NOT DO
 - It does not size natural ventilation. See above.
-- It does not select an MVHR unit. Iteration 1a's equipment selection is not implemented: the Part F requirement is applied, but no physical unit is chosen against it, and a unit's capacity would never be the source of that requirement.
+- It does not select an MVHR unit unless ventilationUnitCapacityDescriptors_ is connected. Selection itself is SAM.Analytical.Modify.PreparePartOIteration's existing smallest-capable-unit rule - this component only feeds it a catalogue and reports what it did; it never re-implements or overrides the rule, and a unit's capacity never becomes the source of the Part F requirement.
 - It does not apply Part F airflow per zone. A model mixing routes is refused rather than half-applied; a per-zone application is a separate change with its own transfer-air and balance consequences.
 - It does not author, reset or otherwise change a restriction (Unrestricted/NightClosed/AlwaysClosed) on any aperture - that stays the modeller's job, via SAMAnalytical.AddOpeningPropertiesByPartO's restriction_. It only reports.
 - It does not guess at opening behaviour it cannot classify. An opening authored through the legacy general-valued profiles_ carrier states availability in a form that has no deterministic reading as restricted or unrestricted; that is reported as UNKNOWN rather than assumed unrestricted, because assuming is how a restricted opening ends up labelled as an unrestricted one.
@@ -120,6 +120,8 @@ WHAT IT STILL DOES NOT DO
                 @string = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_ventilationStrategies", NickName = "_ventilationStrategies", Description = "Part O ventilation route per zone: NV / NaturalVentilation, or MVHR / MVRE. One value applies to every zone. Required - never defaulted, and never inferred from a system object on the model.\n\nAnything else REFUSES, including MV and UV. There is no fallback: an unstated route read as mechanical writes Approved Document F System 4 supply and extract into a dwelling that may have none.", Access = GH_ParamAccess.list };
                 result.Add(new GH_SAMParam(@string, ParamVisibility.Binding));
 
+                result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_GenericObject() { Name = "ventilationUnitCapacityDescriptors_", NickName = "ventilationUnitCapacityDescriptors_", Description = "Selectable VentilationUnitCapacityDescriptor products, from SAMAnalyticalSystem.VentilationUnitCatalogue (SAM_Systems) or another source of the same type. Optional: leave unconnected to prepare the iteration exactly as before - no unit is selected and AirHandlingUnitParameter.VentilationUnitReference is left untouched.\n\nSelection itself is SAM.Analytical.Modify.PreparePartOIteration's existing smallest-capable-unit rule, run independently per dwelling against the realized terminal network's duty. This input only feeds that rule a catalogue; it never re-implements or overrides it, and a selected product's capacity never becomes the dwelling's design airflow.", Access = GH_ParamAccess.list, Optional = true }, ParamVisibility.Binding));
+
                 return [.. result];
             }
         }
@@ -147,6 +149,9 @@ WHAT IT STILL DOES NOT DO
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "notes", NickName = "notes", Description = "What was applied to each space and what it displaced.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "refusals", NickName = "refusals", Description = "Everything that produced no result, and why.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_Boolean() { Name = "successful", NickName = "successful", Description = "Were the rates applied and scenarios stated with nothing refused?", Access = GH_ParamAccess.item }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "ventilationSystems", NickName = "ventilationSystems", Description = "One generic ventilation system per assessed dwelling zone, in the order the dwellings were processed in. Empty on the NaturalVentilation route. ventilationSystem (singular) is item 0 of this list.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooAnalyticalObjectParam() { Name = "airHandlingUnits", NickName = "airHandlingUnits", Description = "The air handling unit for each entry of ventilationSystems, item for item. airHandlingUnit (singular) is item 0 of this list.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooObjectParam() { Name = "ventilationUnitSelections", NickName = "ventilationUnitSelections", Description = "The outcome of selecting a ventilation unit for each dwelling, where ventilationUnitCapacityDescriptors_ is connected - one entry per successful selection. Empty where no catalogue was offered (Iteration 1a's ordinary state, not a failure) or where every dwelling was refused (see refusals).\n\nNot item-for-item with airHandlingUnits: a dwelling nothing in the catalogue can serve contributes to refusals and no entry here.", Access = GH_ParamAccess.list }, ParamVisibility.Binding));
 
                 return [.. result];
             }
@@ -259,9 +264,31 @@ WHAT IT STILL DOES NOT DO
                 }
             }
 
+            //Unconnected means exactly what it did before this input existed: no catalogue, no selection,
+            //AirHandlingUnitParameter.VentilationUnitReference untouched. A connected-but-empty wire is
+            //treated the same way rather than as a catalogue that offers nothing, since nothing here can
+            //tell "wired to an empty list" apart from "the upstream component produced nothing yet".
+            List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors = null;
+            index = Params.IndexOfInputParam("ventilationUnitCapacityDescriptors_");
+            if (index != -1)
+            {
+                List<object> objects = [];
+                if (dataAccess.GetDataList(index, objects) && objects != null && objects.Count != 0)
+                {
+                    ventilationUnitCapacityDescriptors = [];
+                    foreach (object @object in objects)
+                    {
+                        if (@object is VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor)
+                        {
+                            ventilationUnitCapacityDescriptors.Add(ventilationUnitCapacityDescriptor);
+                        }
+                    }
+                }
+            }
+
             //Every decision below this line is the library's, so what this component does and what
             //SAM.Tests exercises cannot drift apart.
-            PartOIterationPreparation partOIterationPreparation = analyticalModel.PreparePartOIteration(partOIteration, zones, dictionary_VentilationStrategy);
+            PartOIterationPreparation partOIterationPreparation = analyticalModel.PreparePartOIteration(partOIteration, zones, dictionary_VentilationStrategy, ventilationUnitCapacityDescriptors);
 
             if (partOIterationPreparation.Refusal != null)
             {
@@ -376,6 +403,24 @@ WHAT IT STILL DOES NOT DO
             if (index_Successful != -1)
             {
                 dataAccess.SetData(index_Successful, refusals.Count == 0);
+            }
+
+            index = Params.IndexOfOutputParam("ventilationSystems");
+            if (index != -1)
+            {
+                dataAccess.SetDataList(index, partOIterationPreparation.VentilationSystems.ConvertAll(x => new GooAnalyticalObject(x)));
+            }
+
+            index = Params.IndexOfOutputParam("airHandlingUnits");
+            if (index != -1)
+            {
+                dataAccess.SetDataList(index, partOIterationPreparation.AirHandlingUnits.ConvertAll(x => new GooAnalyticalObject(x)));
+            }
+
+            index = Params.IndexOfOutputParam("ventilationUnitSelections");
+            if (index != -1)
+            {
+                dataAccess.SetDataList(index, partOIterationPreparation.VentilationUnitSelections.ConvertAll(x => new GooObject(x)));
             }
         }
 

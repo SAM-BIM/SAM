@@ -1833,6 +1833,103 @@ namespace SAM.Tests
             Assert.Equal(supplyDuty_2_Lps, supplyDuty_2_After_Lps, 6);
         }
 
+        // G. The plural outputs Grasshopper exposes (VentilationSystems, AirHandlingUnits,
+        //    VentilationUnitSelections) - focused on the wiring itself, not the selection rule section A-F
+        //    already cover. SAMAnalyticalPreparePartOIteration forwards these three properties verbatim.
+
+        /// <summary>
+        /// Iteration 1a's exact prior behaviour: no catalogue in, no unit out. VentilationSystems and
+        /// AirHandlingUnits are unaffected by that - they are the generic network Iteration 1a already
+        /// built - but VentilationUnitSelections stays empty and the singular outputs remain item 0 of the
+        /// plural ones, so a caller that ignores the new outputs entirely sees nothing different.
+        /// </summary>
+        [Fact]
+        public void NullDescriptors_LeaveVentilationSystemsAndAirHandlingUnitsPopulated_ButNoSelections()
+        {
+            PartOIterationPreparation preparation = Prepared(null);
+
+            Assert.Single(preparation.VentilationSystems);
+            Assert.Single(preparation.AirHandlingUnits);
+            Assert.Empty(preparation.VentilationUnitSelections);
+
+            Assert.Same(preparation.VentilationSystem, preparation.VentilationSystems[0]);
+            Assert.Same(preparation.AirHandlingUnit, preparation.AirHandlingUnits[0]);
+
+            Assert.Null(preparation.AirHandlingUnits[0].SelectedVentilationUnitReference());
+        }
+
+        /// <summary>
+        /// A connected catalogue reaches the existing selection kernel through the same
+        /// <c>PreparePartOIteration</c> call, and the selection it makes is the one
+        /// <c>VentilationUnitSelections</c> reports - the same identity that ends up on the air handling
+        /// unit, not a second answer computed separately for the report.
+        /// </summary>
+        [Fact]
+        public void ConnectedDescriptors_ExposeTheSameSelectionThatWasWrittenToTheUnit()
+        {
+            PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
+
+            VentilationUnitSelection ventilationUnitSelection = Assert.Single(preparation.VentilationUnitSelections);
+
+            Assert.True(ventilationUnitSelection.IsSelected);
+            Assert.Equal("MVHR-25", ventilationUnitSelection.VentilationUnitReference.Model);
+
+            VentilationUnitReference ventilationUnitReference_OnUnit = preparation.AirHandlingUnits[0].SelectedVentilationUnitReference();
+
+            Assert.NotNull(ventilationUnitReference_OnUnit);
+            Assert.True(ventilationUnitSelection.VentilationUnitReference.Matches(ventilationUnitReference_OnUnit));
+        }
+
+        /// <summary>
+        /// Two dwellings each contribute their own system, their own unit and their own selection to the
+        /// three plural outputs - none of the three collapses two dwellings' results into one, and each
+        /// selection's duty is the duty of the dwelling it actually belongs to, not the other one's.
+        /// </summary>
+        [Fact]
+        public void TwoDwellings_PluralOutputsCarryOneEntryPerDwelling_WithMatchingDuties()
+        {
+            PartOIterationPreparation preparation = Prepare(TwoDwellingModel(), DwellingCatalogue());
+
+            Assert.Null(preparation.Refusal);
+            Assert.Equal(2, preparation.VentilationSystems.Count);
+            Assert.Equal(2, preparation.AirHandlingUnits.Count);
+            Assert.Equal(2, preparation.VentilationUnitSelections.Count);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            foreach (AirHandlingUnit airHandlingUnit in preparation.AirHandlingUnits)
+            {
+                VentilationUnitReference ventilationUnitReference = airHandlingUnit.SelectedVentilationUnitReference();
+                Assert.NotNull(ventilationUnitReference);
+
+                VentilationUnitSelection ventilationUnitSelection = preparation.VentilationUnitSelections.Find(x => ventilationUnitReference.Matches(x.VentilationUnitReference));
+                Assert.NotNull(ventilationUnitSelection);
+
+                adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit, out double supplyDuty_Lps, out double extractDuty_Lps);
+
+                Assert.Equal(supplyDuty_Lps, ventilationUnitSelection.SupplyDuty_Lps, 6);
+                Assert.Equal(extractDuty_Lps, ventilationUnitSelection.ExtractDuty_Lps, 6);
+            }
+        }
+
+        /// <summary>
+        /// The duty a selection reports is the dwelling's design duty, never the equipment's rated capacity
+        /// - restated here against <see cref="PartOIterationPreparation.VentilationUnitSelections"/>
+        /// specifically, since that is the new surface a Grasshopper canvas reads it through.
+        /// </summary>
+        [Fact]
+        public void SelectionDuty_IsTheDesignDuty_NotTheSelectedProductsCapacity()
+        {
+            PartOIterationPreparation preparation = Prepared(DwellingCatalogue());
+
+            VentilationUnitSelection ventilationUnitSelection = Assert.Single(preparation.VentilationUnitSelections);
+
+            Assert.Equal(preparation.DesignSupplyDuty_Lps, ventilationUnitSelection.SupplyDuty_Lps, 6);
+            Assert.Equal(preparation.DesignExtractDuty_Lps, ventilationUnitSelection.ExtractDuty_Lps, 6);
+
+            Assert.NotEqual(ventilationUnitSelection.Descriptor.MaximumSupplyFlowRate_Lps, ventilationUnitSelection.SupplyDuty_Lps, 3);
+        }
+
         // =================================================================================================
         // Fixtures
         // =================================================================================================
