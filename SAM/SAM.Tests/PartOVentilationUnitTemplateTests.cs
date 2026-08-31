@@ -1169,6 +1169,83 @@ namespace SAM.Tests
             Assert.Equal(99.0, ventilationUnitPerformanceTable.Value(name_Supply, new double[] { 70.0 }));
         }
 
+        /// <summary>
+        /// <b>Pins the Codex "new axes + old outputs" finding, deterministically.</b>
+        /// <para>
+        /// Codex's point: moving the axes/outputs swap under a lock made it atomic to a reader that ALSO
+        /// takes that lock, but <c>PublishedValue</c>, <c>ToJsonObject</c>, <c>IsValid</c> and the
+        /// <c>Axis</c>/<c>Output</c> accessors never did - so two sequential field assignments were not
+        /// atomic to any of them, and a reader landing between the two could see the NEW axes' shape
+        /// combined with the OLD outputs' values (or vice versa). If the two tables' point counts happen
+        /// to coincide - as they deliberately do here - that is not a crash or a refusal: it is
+        /// <c>PublishedValue</c> indexing into the wrong output row and returning a plausible-looking but
+        /// WRONG manufacturer value.
+        /// </para>
+        /// <para>
+        /// <b>Why the shapes below are chosen the way they are.</b> BEFORE is a 2 &#215; 3 table (6 points);
+        /// AFTER is a reshaped 3 &#215; 2 table - the SAME 6-point total, but different per-axis lengths, so
+        /// the flattening index math genuinely differs between the two rather than merely relabelling the
+        /// same layout. At coordinate (1, 1), all four possible pairings - old axes/old outputs, new/new,
+        /// new axes/old outputs, old axes/new outputs - read back four DIFFERENT numbers (22, 96, 21, 95).
+        /// A reader that ever saw a torn pairing would return 21 or 95; this test proves it never does.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AReloadInProgress_NeverPairsAxesFromOneGenerationWithOutputsFromAnother()
+        {
+            VentilationUnitPerformanceTable seed_Before = new(
+                [
+                    new VentilationUnitPerformanceAxis(name_External, "degC", [29.0, 32.0]),
+                    new VentilationUnitPerformanceAxis(name_Flow, "l/s", [50.0, 60.0, 70.0]),
+                ],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [11.0, 12.0, 13.0, 21.0, 22.0, 23.0])]);
+
+            //Reshaped - same 6-point total, different per-axis lengths - so a torn pairing's index math
+            //genuinely diverges from either correct answer rather than coincidentally matching one.
+            VentilationUnitPerformanceTable seed_After = new(
+                [
+                    new VentilationUnitPerformanceAxis(name_External, "degC", [29.0, 32.0, 35.0]),
+                    new VentilationUnitPerformanceAxis(name_Flow, "l/s", [50.0, 60.0]),
+                ],
+                [new VentilationUnitPerformanceOutput(name_Supply, "degC", [99.0, 98.0, 97.0, 96.0, 95.0, 94.0])]);
+
+            //Pins the four-way arithmetic the rest of this test relies on before touching the table under test.
+            Assert.Equal(22.0, seed_Before.PublishedValue(name_Supply, 1, 1));
+            Assert.Equal(96.0, seed_After.PublishedValue(name_Supply, 1, 1));
+
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable = new();
+            ventilationUnitPerformanceTable.FromJsonObject(seed_Before.ToJsonObject());
+
+            double? value_SeenMidReload = null;
+            VentilationUnitPerformanceTable table_SeenMidReload = null;
+
+            ventilationUnitPerformanceTable.OnReplacementLocalsPrepared = () =>
+            {
+                //Fires once - a second reload landing in the same window is not what this test is about.
+                ventilationUnitPerformanceTable.OnReplacementLocalsPrepared = null;
+
+                //PublishedValue and ToJsonObject are both unsynchronized, both touch axes AND outputs, and
+                //are exactly the two Codex named - exercised from the one window a two-step field swap
+                //could have torn.
+                value_SeenMidReload = ventilationUnitPerformanceTable.PublishedValue(name_Supply, 1, 1);
+                table_SeenMidReload = new VentilationUnitPerformanceTable(ventilationUnitPerformanceTable.ToJsonObject());
+            };
+
+            ventilationUnitPerformanceTable.FromJsonObject(seed_After.ToJsonObject());
+
+            //Mid-reload, both readers saw the complete OLD pairing (22) - never the torn 21 a "new axes,
+            //old outputs" combination would produce, and never the NEW pairing either, since the new state
+            //had not yet been published at that point.
+            Assert.Equal(22.0, value_SeenMidReload);
+            Assert.Equal(22.0, table_SeenMidReload.PublishedValue(name_Supply, 1, 1));
+            Assert.Equal(2, table_SeenMidReload.Axis(name_External).Count);
+            Assert.Equal(3, table_SeenMidReload.Axis(name_Flow).Count);
+
+            //And once the reload has returned, the same reader sees the fully-published NEW pairing (96) -
+            //never the other torn combination (95).
+            Assert.Equal(96.0, ventilationUnitPerformanceTable.PublishedValue(name_Supply, 1, 1));
+        }
+
         // =================================================================================================
         // J. Strict string fields - a JSON string only, never a stringified number/object/array
         // =================================================================================================
