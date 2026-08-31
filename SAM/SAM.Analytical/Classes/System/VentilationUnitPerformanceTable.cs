@@ -503,40 +503,60 @@ namespace SAM.Analytical
                 return false;
             }
 
-            axes = null;
-            outputs = null;
-
-            lock (@lock)
-            {
-                //Cleared with the data it was built from, so a cached interpolator can never outlive it.
-                multilinearInterpolations = null;
-
-                //Bumped in the same lock as the clear above, so a build already in flight against the old
-                //data (see Interpolation) can tell it is no longer current even after this method has gone
-                //on to install the new axes/outputs below.
-                generation++;
-            }
+            //Parsed into locals first - never onto the live axes/outputs fields - so a concurrent lookup
+            //reading those fields while this runs sees either the complete old table or the complete new
+            //one, never a table nulled out or half-built from the array currently being walked.
+            List<VentilationUnitPerformanceAxis> axes_New = null;
+            List<VentilationUnitPerformanceOutput> outputs_New = null;
 
             if (jsonObject["Axes"] is JsonArray jsonArray_Axes)
             {
-                axes = [];
+                axes_New = [];
                 foreach (JsonNode jsonNode in jsonArray_Axes)
                 {
-                    axes.Add(jsonNode is JsonObject jsonObject_Axis ? new VentilationUnitPerformanceAxis(jsonObject_Axis) : null);
+                    axes_New.Add(jsonNode is JsonObject jsonObject_Axis ? new VentilationUnitPerformanceAxis(jsonObject_Axis) : null);
                 }
             }
 
             if (jsonObject["Outputs"] is JsonArray jsonArray_Outputs)
             {
-                outputs = [];
+                outputs_New = [];
                 foreach (JsonNode jsonNode in jsonArray_Outputs)
                 {
-                    outputs.Add(jsonNode is JsonObject jsonObject_Output ? new VentilationUnitPerformanceOutput(jsonObject_Output) : null);
+                    outputs_New.Add(jsonNode is JsonObject jsonObject_Output ? new VentilationUnitPerformanceOutput(jsonObject_Output) : null);
                 }
+            }
+
+            //Test-only: lets a test observe the pre-swap state - still the complete old table - from the
+            //exact window a concurrent reload used to be able to publish a torn one in.
+            OnReplacementLocalsPrepared?.Invoke();
+
+            lock (@lock)
+            {
+                //Swapped by reference under the same lock that clears the cache and bumps the generation
+                //below, so the two locals above become visible to a reader atomically together with that
+                //generation bump - a lookup either finds the old generation with the old table, or the new
+                //generation with the new table, never a mix.
+                axes = axes_New;
+                outputs = outputs_New;
+
+                //Cleared with the data it was built from, so a cached interpolator can never outlive it.
+                multilinearInterpolations = null;
+
+                //Bumped in the same lock as the swap above, so a build already in flight against the old
+                //data (see Interpolation) can tell it is no longer current.
+                generation++;
             }
 
             return true;
         }
+
+        /// <summary>
+        /// Test-only seam. Invoked after <see cref="FromJsonObject"/> has finished parsing the replacement
+        /// axes/outputs into locals but before it publishes them - the window in which a concurrent reader
+        /// must still see the complete pre-reload table. Production code never sets this.
+        /// </summary>
+        internal Action OnReplacementLocalsPrepared;
 
         public JsonObject ToJsonObject()
         {
