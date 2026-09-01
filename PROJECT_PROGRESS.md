@@ -17,9 +17,87 @@ Everything below "Latest" up to the next dated heading is superseded history ret
 history follows further down.
 
 ## Last updated
-2026-08-31 - Grasshopper Seam 2: exposes Iteration 2's already-implemented targeted design-airflow
-rebalance through a new `SAMAnalyticalApplyTargetedDesignAirFlow` component, composed with the existing
-equipment-selection primitives at one new analytical orchestration point.
+2026-09-01 - Approved Document O Iterations 1a, 1b and 2 accepted on a licensed three-route TAS run, with
+the overheating result taken through the production `Tas.TSDQueryTM59Results` query path. Documentation
+only; no production code changed.
+
+## Latest (2026-09-01): Iteration 1a / 1b / 2 licensed acceptance - ACCEPTED
+
+**Status: accepted. Documentation-only change in this repository.**
+
+Each of the three routes was carried end to end - Part F, `PreparePartOIteration`, gbXML, a licensed
+full-year TAS simulation (days 1-365, CIBSE Weather 2021), result import, and the TM59 query - on the
+corrected `SAM_zoningAM.sam` fixture (9 spaces, 4 zones, Flat 1/2/3 `IsDwelling = true`, Corridor `false`).
+The result was read through the **same production path the `Tas.TSDQueryTM59Results` component runs**:
+`Convert.ToSAM(TSD)` with the component's own conversion settings, `Create.TM59AssessmentCalculator`,
+`OverheatingScenarioMap`, `RestoreDesignInternalConditions`, `Spaces`, `Calculate`, `TM59AssessmentReport` -
+not a private summary.
+
+| Route | Prepared | TAS | TM59 |
+|---|---|---|---|
+| 1b, natural ventilation | 0 systems, 0 AHUs, 0 terminals, 0 air movements, duty `NaN` | 9 zones | 9 natural results, PASS |
+| 1a, Base MVHR, generic plant | 3 systems, 3 AHUs, 30+63+63 = 156/156 l/s, 11 nodes at residual 0 | 12 zones | 9 mechanical results, PASS |
+| 2, Base MVHR + catalogue | identical to 1a, plus one selected product per AHU | 12 zones | 9 mechanical results, PASS |
+
+**The Iteration 2 invariant held, measured three ways.** The prepared-model dumps for 1a and 2 diff clean
+over every air movement, terminal, system and design-duty line; the AHU duties read 30/63/63 l/s before and
+after selection; and comparing the two TSDs hour by hour gives **105,120 of 105,120 hourly resultant
+temperatures identical, max absolute difference 0**. Selection reads the duty and never writes it.
+
+`MVHR-01/02/03` Air Movement Gain is **0 W for all 8,760 hours** on the 1a and 2 runs, and the 17 TBD
+inter-zone air movements carry exactly one room-to-outside extract per extracting room - no duplicate
+extract, and no stale unit-to-outside exhaust.
+
+**The 8,760 occupied-hours figure is genuine fixture profile data**, not a query interpretation or an import
+problem. `OccupiedHours` counts hours whose occupant sensible gain is above zero, and the residential
+internal conditions on this fixture never reach zero (min 105 W / 75 W). The kitchens are the control that
+settles it: their profile does drop to exactly zero, for 4,015 hours, and they report 4,745. A broken count
+would have returned 8,760 for them too. Note also that the base `MaxExceedableHours` of 262 is 3% of the
+*annual* occupied hours - the correct limit for the mechanically ventilated criterion, and **not** the
+natural-ventilation limit, where Criterion 1 uses the summer subset (3,672 hours, limit 110) and Criterion 2
+the night window (3,285 hours, limit 32).
+
+### Non-blocking findings recorded for follow-up
+
+None of these blocked acceptance, and none is an equipment-selection architecture question.
+
+1. **Ventilation-strategy vocabulary cleanup.** `PreparePartOIteration` accepts `"NaturalVentilation"` as a
+   synonym for `NV` and reports success, while the TM59 assessment path compares the raw string against
+   `NV / MV / MVRE / MVHR / UV / EOL / EOC / CAV / VAV / DISP` and therefore refuses every space. Measured
+   both ways on the same model: with `"NaturalVentilation"`, nine `VENT_STRATEGY_REFUSAL` lines and zero
+   results after a *successful* preparation; with `NV`, nine results. The Grasshopper components document
+   the two vocabularies differently - `SAMAnalyticalCreateOverheatingScenarios` says "NV, MV, MVRE or UV",
+   `SAMAnalyticalPreparePartOIteration` says "NV / NaturalVentilation, or MVHR / MVRE". Deciding which
+   vocabulary wins touches the scenario factory or the criterion selection, so nothing was changed here.
+   **Vocabulary cleanup, not an Iteration 2 blocker.**
+
+2. **`Tas.TSDQueryTM59Results` must receive the model from the completed workflow / result-import path**, not
+   the earlier preparation model. The query resolves a simulated space to a design space through
+   `SpaceParameter.ZoneGuid`, the identity TAS preserves across the round trip, and only the model the
+   workflow *returns* carries the current TAS zone identities - a preparation output can still hold stale
+   guids from an earlier round trip on the source fixture. Verified both ways: preparation output gives
+   `SimulationSpaceMap complete = False` and all nine spaces refused; workflow output gives `complete = True`
+   and nine results. The Grasshopper Part O canvas already wires it correctly. **This is an important
+   SAM_UI wiring requirement.**
+
+3. **`Corridor_1` currently follows a dwelling TM59 criterion on this fixture**, because one ventilation
+   strategy was applied to every zone - so it was assessed as a bedroom on the NV route (its fixture
+   internal condition carries the Sleeping application) and as a mechanically ventilated room on the MVHR
+   routes. Common-space assessment should use the appropriate `UV` scenario where required, which selects
+   the TM59 corridor >28 degC risk check rather than a compliance criterion.
+   `Create.OverheatingScenarios` already classifies the corridor as `CommonSpace` by scope, so this is a
+   **TM59 scenario/fixture follow-up, not MVHR equipment-selection architecture.** It passes on every
+   criterion either way, but the corridor's result should come from the corridor criterion before it is
+   quoted.
+
+4. **The Nuaire 150 l/s is the highest fan-curve free-air capability point of the evidenced product.** It is
+   a legitimate maximum and a legitimate selection ceiling, correctly named "Maximum". **It must not be
+   reinterpreted as a selected operating flow or an installed design duty** - a project needing the
+   installed duty wants Nuaire's project-specific selection. See `SAM_Systems/PROJECT_PROGRESS.md`,
+   *THE CAPACITY COMES FROM THE FAN CURVE*, and `SAM-BIM/SAM_Systems` PR #18.
+
+Companion change: `SAM-BIM/SAM_Systems` PR #18, which maps the Nuaire maximum airflow. **Iteration 3, the
+physical/operating-state work, and SAM_UI are out of scope for this acceptance.**
 
 ## Latest (2026-08-31): Grasshopper Seam 2 - targeted design airflow, rebalance, and equipment validation
 
@@ -540,9 +618,12 @@ equipment capability, and the whole design turns on the difference:
 | Operating airflow / leaving-air temperature | Iteration 3, hourly | what it moves at 3pm in August |
 
 **A published duty point is never read as a capacity.** The Nuaire selection tables are published at
-50-120 l/s; 120 l/s is the last column of a table, not a statement about the fan. The catalogue therefore
-ships the Nuaire unit with **no** maximum supply or extract airflow, and it is consequently **not
-selectable** - loudly, by name, with the reason - rather than selectable against an invented number.
+50-120 l/s; 120 l/s is the last column of a table, not a statement about the fan. The unit's capacity comes
+from a different figure on the same brochure pages - the fan static-pressure chart's Curve 1 free-air (0 Pa)
+endpoint, 150 l/s - so the catalogue ships it at 150/150 l/s, and the two numbers are asserted **not** to be
+equal so they cannot be confused again. Curves 2 and 3 (120 and 90 l/s) are the same fan at lower speed
+settings: operating states of one physical product, never catalogue entries. See
+`SAM_Systems/PROJECT_PROGRESS.md`, *THE CAPACITY COMES FROM THE FAN CURVE*.
 
 ### What was added
 
