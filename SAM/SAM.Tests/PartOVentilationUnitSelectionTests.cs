@@ -2253,6 +2253,509 @@ namespace SAM.Tests
         }
 
         // =================================================================================================
+        // L. Iteration 2B - the candidate / preflight / commit boundary.
+        //    Modify.EvaluateTargetedDesignAirFlow proposes the SAME engineering change section D/E/H/K
+        //    already pin, and differs from it in exactly one respect: it never touches the model it was
+        //    given, and it hands back the changed one only where the selected unit can carry it. The
+        //    manual seam's semantics are restated here beside it, unchanged, because the two have to
+        //    diverge deliberately rather than by accident.
+        // =================================================================================================
+
+        /// <summary>
+        /// <b>Accepted.</b> A candidate the selected product can carry comes back with the changed model to
+        /// adopt, the targeted and derived adjustments it would make, the duties before and after, and the
+        /// headroom that would be left - while the model it was evaluated against is untouched.
+        /// </summary>
+        [Fact]
+        public void Candidate_WithinSelectedCapacity_IsAcceptedAndCarriesTheChangedModel()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out _);
+
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit, out double supplyDuty_Before_Lps, out _);
+            Assert.Equal(19.2, supplyDuty_Before_Lps, 3);
+
+            string json_Before = Core.Convert.ToString(adjacencyCluster);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+            double design_Before_Lps = Design(adjacencyCluster, space, FlowClassification.Supply);
+
+            //22.2 l/s against MVHR-25 - inside the rating, with 2.8 l/s to spare.
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                design_Before_Lps + 3,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(candidate.IsAccepted, string.Join(" ", candidate.Refusals));
+            Assert.NotNull(candidate.AdjacencyCluster);
+            Assert.Equal(VentilationUnitSelectionOutcome.Kept, candidate.VentilationUnitSelectionOutcome);
+            Assert.Null(candidate.VentilationUnitSelectionReason);
+
+            //What it proposes, and what that proposal derives.
+            Assert.Equal(design_Before_Lps, candidate.TargetedAdjustment.Before_Lps, 6);
+            Assert.Equal(design_Before_Lps + 3, candidate.TargetedAdjustment.After_Lps, 6);
+            Assert.False(candidate.TargetedAdjustment.IsDerived);
+            Assert.NotEmpty(candidate.DerivedAdjustments);
+            Assert.All(candidate.DerivedAdjustments, x => Assert.True(x.IsDerived));
+
+            double change_Derived_Lps = 0;
+            foreach (DesignAirFlowAdjustment designAirFlowAdjustment in candidate.DerivedAdjustments)
+            {
+                change_Derived_Lps += designAirFlowAdjustment.Change_Lps;
+            }
+
+            Assert.Equal(3, change_Derived_Lps, 6);
+
+            //The dwelling's duty, on both sides of the proposal.
+            Assert.Equal(19.2, candidate.SupplyDuty_Before_Lps, 3);
+            Assert.Equal(19.2, candidate.ExtractDuty_Before_Lps, 3);
+            Assert.Equal(22.2, candidate.SupplyDuty_After_Lps, 3);
+            Assert.Equal(22.2, candidate.ExtractDuty_After_Lps, 3);
+
+            //Headroom is reported against the SELECTED product, and is not a design airflow.
+            Assert.Equal(2.8, candidate.SupplyHeadroom_Lps, 3);
+            Assert.Equal(2.8, candidate.ExtractHeadroom_Lps, 3);
+            Assert.Equal("MVHR-25", candidate.VentilationUnitReference?.Model);
+
+            //The model to adopt genuinely carries the change, and is still a compliant balanced design.
+            Assert.Equal(design_Before_Lps + 3, Design(candidate.AdjacencyCluster, space, FlowClassification.Supply), 6);
+            candidate.AdjacencyCluster.ReconcileVentilationSystemDesignDuty(candidate.VentilationSystem, out _, out _, out List<string> refusals_Compliance);
+            Assert.Empty(refusals_Compliance);
+
+            //And the model it was evaluated against is exactly as it was.
+            Assert.True(Helpers.JsonEquivalence.AreEquivalent(json_Before, Core.Convert.ToString(adjacencyCluster), out string difference), difference);
+        }
+
+        /// <summary>
+        /// <b>Rejected, atomically.</b> A candidate whose duty outgrows the selected product is refused -
+        /// and the model it was evaluated against is unchanged terminal by terminal, not merely at the room
+        /// totals. No targeted change without its derived ones, and no derived ones at all.
+        /// </summary>
+        [Fact]
+        public void Candidate_BeyondSelectedCapacity_IsRefusedAndNothingIsWritten()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out VentilationUnitReference ventilationUnitReference_Before);
+
+            string json_Before = Core.Convert.ToString(adjacencyCluster);
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(adjacencyCluster);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            //29.2 l/s against MVHR-25 - 4.2 l/s past the rating.
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 10,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.False(candidate.IsAccepted);
+
+            //Nothing to adopt - the whole point of the boundary.
+            Assert.Null(candidate.AdjacencyCluster);
+
+            //The airflow arithmetic itself was fine; it is the equipment that rejected the candidate, and
+            //the result says so specifically rather than only that something refused.
+            Assert.True(candidate.Change.Successful, string.Join(" ", candidate.Change.Refusals));
+            Assert.Equal(VentilationUnitSelectionOutcome.Refused, candidate.VentilationUnitSelectionOutcome);
+            Assert.Contains("exhausted", candidate.VentilationUnitSelectionReason);
+            Assert.Contains(candidate.Refusals, x => x.Contains("cannot carry it"));
+
+            //It reports what the candidate WOULD have designed, and how far past the unit that went.
+            Assert.Equal(29.2, candidate.SupplyDuty_After_Lps, 3);
+            Assert.Equal(-4.2, candidate.SupplyHeadroom_Lps, 3);
+
+            //Untouched: every terminal, the unit's selection, and the model whole.
+            Assert.Equal(terminals_Before, TerminalDesigns(adjacencyCluster));
+            Assert.True(ventilationUnitReference_Before.Matches(airHandlingUnit.SelectedVentilationUnitReference()));
+            Assert.True(Helpers.JsonEquivalence.AreEquivalent(json_Before, Core.Convert.ToString(adjacencyCluster), out string difference), difference);
+        }
+
+        /// <summary>
+        /// <b>A candidate never buys a bigger unit.</b> The catalogue above holds MVHR-35 and MVHR-50, both
+        /// of which could move 29.2 l/s - and the candidate is refused anyway. The selected unit is the
+        /// constraint an optimisation explores within, not a variable it gets to move; choosing a product
+        /// remains <c>Modify.SelectVentilationUnit</c>, called deliberately.
+        /// </summary>
+        [Fact]
+        public void Candidate_BeyondSelectedCapacity_NeverReselects_EvenWhereABiggerProductIsOffered()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out _);
+
+            Assert.Contains(DwellingCatalogue(), x => x.MaximumSupplyFlowRate_Lps >= 35);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 10,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.False(candidate.IsAccepted);
+            Assert.NotEqual(VentilationUnitSelectionOutcome.Reselected, candidate.VentilationUnitSelectionOutcome);
+
+            //Neither the model's unit nor the one the result reports has moved off MVHR-25.
+            Assert.Equal("MVHR-25", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+            Assert.Equal("MVHR-25", candidate.VentilationUnitReference?.Model);
+        }
+
+        /// <summary>
+        /// <b>The manual seam is unchanged, and the two now diverge deliberately.</b> The SAME proposal, on
+        /// the SAME dwelling, with a catalogue offering nothing bigger: the manual edit commits the airflow
+        /// change and reports the equipment gap beside it, while the candidate rejects the proposal whole.
+        /// That difference is the entire content of Iteration 2B.
+        /// </summary>
+        [Fact]
+        public void ManualEdit_KeepsItsAirflowChangeWhenEquipmentRefuses_WhereTheCandidateKeepsNothing()
+        {
+            //A catalogue holding ONLY the selected product, so the manual seam has nothing to escalate to
+            //and refuses - the case that would look identical to a candidate rejection if the manual
+            //semantics had been changed.
+            List<VentilationUnitCapacityDescriptor> descriptors = [Descriptor("MVHR-25", 25, 25)];
+
+            AdjacencyCluster adjacencyCluster_Manual = Selected(out AirHandlingUnit airHandlingUnit_Manual, out _);
+            Space space_Manual = adjacencyCluster_Manual.GetSpaces().Find(x => x.Name == name_LivingRoom);
+            double design_Manual_Lps = Design(adjacencyCluster_Manual, space_Manual, FlowClassification.Supply) + 10;
+
+            DwellingDesignAirFlowChange change = adjacencyCluster_Manual.ApplyTargetedDesignAirFlow(
+                space_Manual,
+                FlowClassification.Supply,
+                design_Manual_Lps,
+                ventilationUnitCapacityDescriptors: descriptors);
+
+            //MANUAL: the design edit stands, and the equipment gap is reported beside it - never rolled
+            //back into it, and never added to the transaction's own refusals.
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+            Assert.Empty(change.Refusals);
+            Assert.Equal(VentilationUnitSelectionOutcome.Refused, change.VentilationUnitSelectionOutcome);
+            Assert.False(string.IsNullOrWhiteSpace(change.VentilationUnitSelectionReason));
+            Assert.Equal(design_Manual_Lps, Design(adjacencyCluster_Manual, space_Manual, FlowClassification.Supply), 6);
+            Assert.Equal(29.2, change.SupplyDuty_Lps, 3);
+            Assert.Equal("MVHR-25", airHandlingUnit_Manual.SelectedVentilationUnitReference()?.Model);
+
+            //AUTOMATIC: the same proposal, and nothing survives it.
+            AdjacencyCluster adjacencyCluster_Candidate = Selected(out _, out _);
+            Space space_Candidate = adjacencyCluster_Candidate.GetSpaces().Find(x => x.Name == name_LivingRoom);
+            double design_Candidate_Before_Lps = Design(adjacencyCluster_Candidate, space_Candidate, FlowClassification.Supply);
+
+            string json_Before = Core.Convert.ToString(adjacencyCluster_Candidate);
+
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster_Candidate.EvaluateTargetedDesignAirFlow(
+                space_Candidate,
+                FlowClassification.Supply,
+                design_Candidate_Before_Lps + 10,
+                ventilationUnitCapacityDescriptors: descriptors);
+
+            Assert.False(candidate.IsAccepted);
+            Assert.NotEmpty(candidate.Refusals);
+            Assert.Equal(design_Candidate_Before_Lps, Design(adjacencyCluster_Candidate, space_Candidate, FlowClassification.Supply), 6);
+            Assert.True(Helpers.JsonEquivalence.AreEquivalent(json_Before, Core.Convert.ToString(adjacencyCluster_Candidate), out string difference), difference);
+        }
+
+        /// <summary>
+        /// The manual seam's OTHER equipment behaviour, restated unchanged: where the catalogue does hold a
+        /// bigger product, a manual edit still escalates to it. A candidate never does - see
+        /// <see cref="Candidate_BeyondSelectedCapacity_NeverReselects_EvenWhereABiggerProductIsOffered"/>.
+        /// </summary>
+        [Fact]
+        public void ManualEdit_StillReselectsTheNextCapableProduct()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 10,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+            Assert.Equal(VentilationUnitSelectionOutcome.Reselected, change.VentilationUnitSelectionOutcome);
+            Assert.Equal("MVHR-35", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+        }
+
+        /// <summary>
+        /// <b>An accepted candidate applies exactly what the manual seam would apply.</b> The commit is the
+        /// existing engineering transaction rather than a reimplementation of it, so the same proposal
+        /// through either route leaves every room's design airflow identical, targeted and derived alike.
+        /// </summary>
+        [Fact]
+        public void AcceptedCandidate_AppliesTheSameDesignTheManualSeamWould()
+        {
+            AdjacencyCluster adjacencyCluster_Manual = Selected(out _, out _);
+            Retarget(adjacencyCluster_Manual, name_LivingRoom, FlowClassification.Supply, 3);
+
+            AdjacencyCluster adjacencyCluster_Candidate = Selected(out _, out _);
+            Space space_Candidate = adjacencyCluster_Candidate.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            //Compared on the CANDIDATE's own model, before and after: the two fixtures are built
+            //independently and their Approved Document F data carries their own space guids, so the two
+            //routes' requirement text can only be compared with itself.
+            Dictionary<string, string> requirements_Before = Requirements(adjacencyCluster_Candidate);
+
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster_Candidate.EvaluateTargetedDesignAirFlow(
+                space_Candidate,
+                FlowClassification.Supply,
+                Design(adjacencyCluster_Candidate, space_Candidate, FlowClassification.Supply) + 3,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(candidate.IsAccepted, string.Join(" ", candidate.Refusals));
+
+            //Room by room and side by side - the targeted change and every derived one.
+            Assert.Equal(Designs(adjacencyCluster_Manual), Designs(candidate.AdjacencyCluster));
+
+            //And no Approved Document F requirement moved to get there.
+            Assert.Equal(requirements_Before, Requirements(candidate.AdjacencyCluster));
+        }
+
+        /// <summary>
+        /// <b>Authority separation, on the committed model.</b> The selected product's capacity constrained
+        /// the candidate and became nothing else: not an Approved Document F requirement, not a room's
+        /// design airflow, and not a runtime airflow. A unit rated at 100 l/s serving a dwelling designed at
+        /// 22.2 l/s leaves the dwelling designed at 22.2.
+        /// </summary>
+        [Fact]
+        public void AcceptedCandidate_NeverTurnsCapacityIntoARequirement_ADesign_OrARuntimeAirflow()
+        {
+            //Catalogue() sizes the fixture flat onto MVHR-100 - headroom it must not spend.
+            PartOIterationPreparation preparation = Prepared(Catalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+            AirHandlingUnit airHandlingUnit = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+            Assert.Equal("MVHR-100", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            Dictionary<string, string> requirements_Before = Requirements(adjacencyCluster);
+            List<string> runtimeAirflows_Before = RuntimeAirflows(adjacencyCluster);
+
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 3,
+                ventilationUnitCapacityDescriptors: Catalogue());
+
+            Assert.True(candidate.IsAccepted, string.Join(" ", candidate.Refusals));
+
+            //The design duty is what was asked for, never the rating that permitted it.
+            Assert.Equal(22.2, candidate.SupplyDuty_After_Lps, 3);
+            Assert.Equal(77.8, candidate.SupplyHeadroom_Lps, 3);
+            Assert.Equal(100, candidate.VentilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps, 6);
+
+            //No room's design airflow, on either side, went anywhere near the capacity.
+            foreach (KeyValuePair<string, double> keyValuePair in Designs(candidate.AdjacencyCluster))
+            {
+                Assert.True(keyValuePair.Value < 100, keyValuePair.Key);
+            }
+
+            //Every Approved Document F requirement is the same requirement, on the committed model.
+            Assert.Equal(requirements_Before, Requirements(candidate.AdjacencyCluster));
+
+            //And no runtime airflow was written - that is the preparation's job, not a design change's.
+            Assert.Equal(runtimeAirflows_Before, RuntimeAirflows(candidate.AdjacencyCluster));
+        }
+
+        /// <summary>
+        /// A candidate the airflow transaction itself refuses - here a design below what Approved Document F
+        /// requires of the targeted room - is rejected with that refusal, and equally leaves nothing behind.
+        /// The Part F floor is enforced by the existing transaction, never re-derived by the candidate.
+        /// </summary>
+        [Fact]
+        public void Candidate_BelowThePartFFloor_IsRefusedByTheAirflowTransaction()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            double? requirement_Lps = adjacencyCluster.PartFRequiredFlowRate_Lps(space, FlowClassification.Supply);
+            Assert.True(requirement_Lps > 1);
+
+            string json_Before = Core.Convert.ToString(adjacencyCluster);
+
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                requirement_Lps.Value - 1,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.False(candidate.IsAccepted);
+            Assert.Null(candidate.AdjacencyCluster);
+            Assert.Contains(candidate.Refusals, x => x.Contains("Approved Document F requires"));
+
+            //Equipment was never reached - the airflow change was impossible before capacity could matter.
+            Assert.Equal(VentilationUnitSelectionOutcome.NotApplicable, candidate.VentilationUnitSelectionOutcome);
+
+            Assert.True(Helpers.JsonEquivalence.AreEquivalent(json_Before, Core.Convert.ToString(adjacencyCluster), out string difference), difference);
+        }
+
+        /// <summary>
+        /// No catalogue offered means equipment is no constraint on the candidate - the same
+        /// backward-compatible meaning it has for a manual edit, so a caller who never selected a product
+        /// can still explore a design.
+        /// </summary>
+        [Fact]
+        public void Candidate_WithoutACatalogue_TreatsEquipmentAsNoConstraint()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            //Well past MVHR-25 - refused outright had a catalogue been offered.
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 10);
+
+            Assert.True(candidate.IsAccepted, string.Join(" ", candidate.Refusals));
+            Assert.Equal(VentilationUnitSelectionOutcome.NotApplicable, candidate.VentilationUnitSelectionOutcome);
+            Assert.Null(candidate.VentilationUnitCapacityDescriptor);
+            Assert.True(double.IsNaN(candidate.SupplyHeadroom_Lps));
+        }
+
+        /// <summary>
+        /// A unit nothing has ever been selected for constrains nothing, exactly as it validates nothing for
+        /// a manual edit - a candidate does not make a first selection on its behalf.
+        /// </summary>
+        [Fact]
+        public void Candidate_WithNoProductEverSelected_IsNotConstrainedByEquipment()
+        {
+            //Iteration 1a: no catalogue at preparation, so nothing was ever selected.
+            PartOIterationPreparation preparation = Prepared(null);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+            AirHandlingUnit airHandlingUnit = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+            Assert.Null(airHandlingUnit.SelectedVentilationUnitReference());
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 3,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(candidate.IsAccepted, string.Join(" ", candidate.Refusals));
+            Assert.Equal(VentilationUnitSelectionOutcome.NotApplicable, candidate.VentilationUnitSelectionOutcome);
+
+            //Still nothing selected, on the committed model as well as the original.
+            Assert.Null(airHandlingUnit.SelectedVentilationUnitReference());
+            Assert.Null(Assert.Single(candidate.AdjacencyCluster.GetObjects<AirHandlingUnit>()).SelectedVentilationUnitReference());
+        }
+
+        /// <summary>
+        /// <b>An unknown capacity rejects the candidate rather than passing it.</b> The currently selected
+        /// product is not among the products this call was given, so whether it could carry the candidate is
+        /// unknown - and an optimisation must not commit a design on an unknown. The same conservatism
+        /// <c>Query.IsVentilationUnitSufficient</c> already applies for a manual edit.
+        /// </summary>
+        [Fact]
+        public void Candidate_WhereTheSelectedProductIsNotInTheCatalogue_IsRefusedAsUnknown()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            //A catalogue that omits MVHR-25, at a duty every remaining product could carry easily.
+            List<VentilationUnitCapacityDescriptor> descriptors = [Descriptor("MVHR-35", 35, 35), Descriptor("MVHR-50", 50, 50)];
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 3,
+                ventilationUnitCapacityDescriptors: descriptors);
+
+            Assert.False(candidate.IsAccepted);
+            Assert.Null(candidate.AdjacencyCluster);
+            Assert.Equal(VentilationUnitSelectionOutcome.Refused, candidate.VentilationUnitSelectionOutcome);
+            Assert.Contains("not among the ventilation unit products offered", candidate.VentilationUnitSelectionReason);
+        }
+
+        /// <summary>
+        /// <b>Headroom is not a target.</b> A dwelling designed at 19.2 l/s behind a unit rated at 100 is
+        /// left designed at 19.2 - a candidate that proposes no change reports 80.8 l/s of headroom and
+        /// proposes taking none of it. This is the accepted three-flat fixture's invariant in miniature:
+        /// 30/30 and 63/63 l/s stay where they are behind a 150/150 unit.
+        /// </summary>
+        [Fact]
+        public void Candidate_DoesNotSpendAvailableHeadroom()
+        {
+            PartOIterationPreparation preparation = Prepared(Catalogue());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+            double design_Before_Lps = Design(adjacencyCluster, space, FlowClassification.Supply);
+
+            //The design it already has, proposed again - the only thing a candidate ever evaluates is what
+            //it was asked to evaluate.
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                design_Before_Lps,
+                ventilationUnitCapacityDescriptors: Catalogue());
+
+            Assert.True(candidate.IsAccepted, string.Join(" ", candidate.Refusals));
+            Assert.Equal(80.8, candidate.SupplyHeadroom_Lps, 3);
+            Assert.Empty(candidate.DerivedAdjustments);
+            Assert.Equal(design_Before_Lps, candidate.TargetedAdjustment.After_Lps, 6);
+            Assert.Equal(Designs(adjacencyCluster), Designs(candidate.AdjacencyCluster));
+        }
+
+        /// <summary>
+        /// One dwelling's candidate never reads, reports on or writes another dwelling's - the isolation
+        /// <c>EquipmentValidation_TwoDwellings_StayIndependent</c> pins for the manual seam, restated for
+        /// the candidate boundary.
+        /// </summary>
+        [Fact]
+        public void Candidate_TwoDwellings_StayIndependent()
+        {
+            List<VentilationUnitCapacityDescriptor> descriptors = [Descriptor("MVHR-50", 50, 50)];
+
+            PartOIterationPreparation preparation = Prepare(TwoDwellingModel(), descriptors);
+            Assert.Null(preparation.Refusal);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            List<AirHandlingUnit> airHandlingUnits = adjacencyCluster.GetObjects<AirHandlingUnit>();
+            Assert.Equal(2, airHandlingUnits.Count);
+
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnits[1], out double supplyDuty_2_Before_Lps, out _);
+            VentilationUnitReference ventilationUnitReference_2_Before = airHandlingUnits[1].SelectedVentilationUnitReference();
+
+            //The living room of whichever flat unit 0 happens to serve - resolved through the unit's own
+            //system rather than by name, so the test never depends on the order the units came back in.
+            Space space = LivingRoom(adjacencyCluster, airHandlingUnits[0]);
+
+            //Push that dwelling well past the only product offered.
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 100,
+                ventilationUnitCapacityDescriptors: descriptors);
+
+            Assert.False(candidate.IsAccepted);
+            Assert.Equal(airHandlingUnits[0].Guid, candidate.AirHandlingUnit.Guid);
+
+            //Dwelling 2's duty and selection are untouched by dwelling 1's rejected candidate.
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnits[1], out double supplyDuty_2_After_Lps, out _);
+            Assert.Equal(supplyDuty_2_Before_Lps, supplyDuty_2_After_Lps, 6);
+            Assert.True(ventilationUnitReference_2_Before.Matches(airHandlingUnits[1].SelectedVentilationUnitReference()));
+        }
+
+        /// <summary>No model is not a crash, and it is not an accepted candidate either.</summary>
+        [Fact]
+        public void Candidate_WithoutAModel_IsRefused()
+        {
+            DwellingDesignAirFlowCandidate candidate = ((AdjacencyCluster)null).EvaluateTargetedDesignAirFlow(null, FlowClassification.Supply, 10);
+
+            Assert.NotNull(candidate);
+            Assert.False(candidate.IsAccepted);
+            Assert.Null(candidate.AdjacencyCluster);
+            Assert.NotEmpty(candidate.Refusals);
+        }
+
+        // =================================================================================================
         // Fixtures
         // =================================================================================================
 
@@ -2501,6 +3004,28 @@ namespace SAM.Tests
             }
 
             Assert.Fail("The fixture unit serves no living room.");
+        }
+
+        /// <summary>
+        /// The living room of the dwelling <paramref name="airHandlingUnit"/> serves, resolved through the
+        /// unit's own ventilation system - so a test never has to know which flat a unit came back as.
+        /// </summary>
+        private static Space LivingRoom(AdjacencyCluster adjacencyCluster, AirHandlingUnit airHandlingUnit)
+        {
+            foreach (VentilationSystem ventilationSystem in adjacencyCluster.VentilationSystems(airHandlingUnit))
+            {
+                foreach (Space space in adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem) ?? [])
+                {
+                    if (space.Name.StartsWith(name_LivingRoom, StringComparison.Ordinal))
+                    {
+                        return space;
+                    }
+                }
+            }
+
+            Assert.Fail("The fixture unit serves no living room.");
+
+            return null;
         }
 
         /// <summary>The models every air handling unit in the cluster is currently selected as, in order.</summary>
@@ -2803,9 +3328,18 @@ namespace SAM.Tests
         /// </summary>
         private static List<string> RuntimeAirflows(PartOIterationPreparation preparation)
         {
+            return RuntimeAirflows(preparation.AnalyticalModel.AdjacencyCluster);
+        }
+
+        /// <summary>
+        /// The same, asked of a cluster directly - a design transaction hands one of those back, and a
+        /// preparation is not the only thing whose runtime airflows have to be provably untouched.
+        /// </summary>
+        private static List<string> RuntimeAirflows(AdjacencyCluster adjacencyCluster)
+        {
             List<string> result = [];
 
-            foreach (Space space in preparation.AnalyticalModel.AdjacencyCluster.GetSpaces())
+            foreach (Space space in adjacencyCluster.GetSpaces())
             {
                 InternalCondition internalCondition = space.InternalCondition;
 
