@@ -2897,6 +2897,49 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>A request far larger than the bracket a fixed halving budget could close still clamps to the
+        /// unit's rating</b> - it does not quietly give up and answer "no change possible".
+        /// <para>
+        /// Codex found this on PR #86. Bisection needs about <c>log2(width / tolerance)</c> halvings, so a
+        /// request 1e18 l/s above the existing design needs roughly seventy against a 0.001 l/s tolerance.
+        /// A fixed budget of sixty exits with the feasible bound still sitting on the anchor - the search
+        /// returns the unchanged design, reports it as the closest feasible value, and claims it was
+        /// resolved to within the tolerance. All three are wrong, and none of them are visible to the
+        /// caller. The budget is now derived from the bracket and the tolerance instead.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void Resolution_AVastRequest_StillClampsToTheSelectedUnitsRating()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+            double design_Before_Lps = Design(adjacencyCluster, space, FlowClassification.Supply);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                design_Before_Lps + 1e18,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+
+            //The answer the fixed budget could not reach: the room really can take 5.8 l/s more, and
+            //saying otherwise would send an engineer to buy a bigger unit they do not need.
+            Assert.True(resolution.IsChanged);
+            Assert.Equal(design_Before_Lps + 5.8, resolution.Achieved_Lps, 2);
+            Assert.Equal(25, resolution.SupplyDuty_After_Lps, 2);
+
+            //And it paid for the answer rather than for the size of the number: log2(1e18 / 0.001) is about
+            //seventy halvings, plus the request and the anchor. A budget that followed the bracket without
+            //bound would be the opposite defect.
+            Assert.InRange(resolution.Evaluations, 3, 100);
+
+            AssertPartFFloorsAreMet(resolution.AdjacencyCluster);
+        }
+
+        /// <summary>
         /// <b>The request is a ceiling, never a target to grow into.</b> A dwelling on a 50 l/s unit asked
         /// for 3 l/s more gets 3 l/s more - the search stops at what was asked for and leaves the remaining
         /// headroom exactly where it was, reported and unspent.

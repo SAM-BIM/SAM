@@ -9,18 +9,60 @@ namespace SAM.Analytical
     public static partial class Modify
     {
         /// <summary>
-        /// The most bisections <see cref="ResolveTargetedDesignAirFlow"/> will make before giving the best
-        /// feasible answer it has.
+        /// The absolute ceiling on <see cref="ResolveTargetedDesignAirFlow"/>'s bisections - a termination
+        /// backstop, never the thing that decides the answer.
         /// <para>
-        /// The tolerance normally ends the search long first - a 100 l/s bracket resolved to 0.001 l/s
-        /// takes seventeen. This exists so a tolerance of <b>zero</b>, which
-        /// <see cref="Query.IsValidFlowRateTolerance"/> deliberately accepts as "compare exactly", asks for
-        /// a bracket that cannot close rather than a search that cannot end. Sixty bisections take any
-        /// realistic bracket below what a double can represent, and the loop's own equality guard usually
-        /// stops it before that.
+        /// Halving any finite bracket this many times drives it below what a <see cref="double"/> can
+        /// represent at either end, so the loop's own equality guard is always reached first. It exists so
+        /// a tolerance of <b>zero</b>, which <see cref="Query.IsValidFlowRateTolerance"/> deliberately
+        /// accepts as "compare exactly", asks for a bracket that cannot close rather than a search that
+        /// cannot end.
         /// </para>
         /// </summary>
-        private const int maximumDesignAirFlowEvaluations = 60;
+        private const int maximumDesignAirFlowHalvings = 1100;
+
+        /// <summary>
+        /// How many halvings a bracket of <paramref name="width_Lps"/> needs to close to
+        /// <paramref name="tolerance_Lps"/> - <c>log2(width / tolerance)</c>, which is what the search's
+        /// loop actually terminates on.
+        ///
+        /// <para><b>Why this is derived rather than a constant</b></para>
+        /// <para>
+        /// A fixed budget silently breaks the guarantee this search advertises. Sixty halvings close a
+        /// 100 l/s bracket to a thousandth with forty to spare, and close a 1e18 l/s bracket to about
+        /// 0.87 l/s - so a caller asking for an implausibly large airflow got an answer that was accepted,
+        /// reported as "the closest design airflow the unit will carry", and 0.6 l/s short of the truth,
+        /// with nothing in the result to say so. An engineer reading it would size equipment they did not
+        /// need. The budget therefore follows the bracket the caller actually created.
+        /// </para>
+        /// <para>
+        /// A zero tolerance asks for machine precision, which no finite count expresses, so it takes the
+        /// ceiling and is ended by the loop's equality guard instead. The ceiling is also the answer for
+        /// any bracket so wide that <c>log2</c> exceeds it - a request that far from the room's existing
+        /// design is not an airflow anybody means, and the guard then ends the search at machine precision
+        /// rather than short of it.
+        /// </para>
+        /// </summary>
+        private static int DesignAirFlowHalvings(double width_Lps, double tolerance_Lps)
+        {
+            if (tolerance_Lps <= 0)
+            {
+                return maximumDesignAirFlowHalvings;
+            }
+
+            double halvings = System.Math.Ceiling(System.Math.Log(width_Lps / tolerance_Lps, 2));
+
+            if (double.IsNaN(halvings) || halvings < 1)
+            {
+                //The bracket is already at or inside the tolerance. The loop's own condition will not run
+                //a single iteration, and this simply agrees with it.
+                return 1;
+            }
+
+            //One spare halving, so a bracket whose log2 lands a hair under an integer is never left one
+            //halving short of the tolerance by the rounding alone.
+            return halvings + 1 < maximumDesignAirFlowHalvings ? (int)halvings + 1 : maximumDesignAirFlowHalvings;
+        }
 
         /// <summary>
         /// Designs a room as close to a requested airflow as the dwelling and its <b>already selected</b>
@@ -186,7 +228,7 @@ namespace SAM.Analytical
             {
                 //Feasible exactly as asked. No search, no bracket, and the answer is the candidate an
                 //engineer would have got by evaluating it themselves.
-                Settle(result, candidate_Requested, null);
+                Settle(result, candidate_Requested, null, 0);
 
                 return result;
             }
@@ -246,7 +288,11 @@ namespace SAM.Analytical
             //where it stopped, rather than what stopped it at the original request.
             string reason_Limiting = string.Join(" ", candidate_Requested.Refusals);
 
-            for (int i = 0; i < maximumDesignAirFlowEvaluations && System.Math.Abs(bound_Infeasible_Lps - bound_Feasible_Lps) > tolerance_Lps; i++)
+            //Derived from the bracket this caller actually created, so the loop always terminates on the
+            //tolerance rather than on a budget that ran out first. See DesignAirFlowHalvings.
+            int halvings = DesignAirFlowHalvings(System.Math.Abs(bound_Infeasible_Lps - bound_Feasible_Lps), tolerance_Lps);
+
+            for (int i = 0; i < halvings && System.Math.Abs(bound_Infeasible_Lps - bound_Feasible_Lps) > tolerance_Lps; i++)
             {
                 //Written as an offset from the feasible bound rather than as a half-sum, so it cannot
                 //overflow and cannot land outside the bracket on the way to it.
@@ -276,7 +322,7 @@ namespace SAM.Analytical
                 reason_Limiting = string.Join(" ", candidate.Refusals);
             }
 
-            Settle(result, candidate_Feasible, reason_Limiting);
+            Settle(result, candidate_Feasible, reason_Limiting, System.Math.Abs(bound_Infeasible_Lps - bound_Feasible_Lps));
 
             return result;
         }
@@ -285,7 +331,7 @@ namespace SAM.Analytical
         /// Takes the candidate the search settled on as the answer, carrying its notes, its warnings and -
         /// where it fell short of the request - what stopped it.
         /// </summary>
-        private static void Settle(DwellingDesignAirFlowResolution result, DwellingDesignAirFlowCandidate candidate, string reason_Limiting)
+        private static void Settle(DwellingDesignAirFlowResolution result, DwellingDesignAirFlowCandidate candidate, string reason_Limiting, double residual_Lps)
         {
             result.Candidate = candidate;
 
@@ -302,13 +348,13 @@ namespace SAM.Analytical
             //Said plainly and up front, because the one thing a caller must never do with this result is
             //read Achieved_Lps as though it were what they asked for.
             result.Notes.Insert(0, string.Format(
-                "Space '{0}' was requested at {1:0.###} l/s of {2} and resolved to {3:0.###} l/s - the closest design airflow to that request the dwelling and its selected ventilation unit will carry, found in {4} evaluation(s) and reported to within {5:0.###} l/s. {6}",
+                "Space '{0}' was requested at {1:0.###} l/s of {2} and resolved to {3:0.###} l/s - the closest design airflow to that request the dwelling and its selected ventilation unit will carry, found in {4} evaluation(s) and narrowed to within {5:0.######} l/s of the last airflow that was refused. {6}",
                 result.TargetedAdjustment?.SpaceName ?? "-",
                 result.Requested_Lps,
                 Core.Query.Description(result.TargetedAdjustment?.FlowClassification ?? FlowClassification.Undefined),
                 result.Achieved_Lps,
                 result.Evaluations,
-                result.Tolerance_Lps,
+                residual_Lps,
                 result.IsChanged
                     ? "Nothing was reselected and no headroom beyond the request was taken up."
                     : "That is the room's existing design airflow, so adopting this changes nothing."));
