@@ -21,10 +21,20 @@ namespace SAM.Analytical
         /// <para>
         /// <b>The Approved Document F requirement is not touched, and is not allowed to be undercut.</b>
         /// The requirement lives on the space's <c>PartFSpaceData</c> and this never writes to it - it
-        /// reads it, and refuses a design below it. That is the lower half of the Iteration 2 invariant
-        /// <c>PartFRequired &lt;= Design</c>: design airflow is a deliberate choice made <i>above</i> a
-        /// regulatory floor, so lowering a room past the floor is not a design decision but a compliance
-        /// failure, and it is refused rather than recorded.
+        /// reads it, and will not record a design below it. That is the lower half of the Iteration 2
+        /// invariant <c>PartFRequired &lt;= Design</c>: design airflow is a deliberate choice made
+        /// <i>above</i> a regulatory floor, so lowering a room past the floor is not a design decision but
+        /// a compliance failure.
+        /// </para>
+        /// <para>
+        /// <b>Below the floor by more than the tolerance is refused; below it by less is raised to the
+        /// floor exactly.</b> The two are different mistakes and deserve different answers. A caller
+        /// asking for materially less than the Approved Document requires has made a design error and is
+        /// told so. A caller whose arithmetic landed a rounding bit under the requirement asked for the
+        /// requirement, and refusing a value the comparison cannot tell apart from a legal one would be
+        /// noise - but writing it as asked would PERSIST a room designed below its regulatory floor, which
+        /// is the thing the invariant exists to prevent. Tolerance decides whether two airflows are the
+        /// same number; it is never permission to record a design below the floor.
         /// </para>
         /// <para>
         /// <b>Nothing runtime is written.</b> No profile, no internal condition airflow, no simulation
@@ -101,16 +111,43 @@ namespace SAM.Analytical
             //a room Approved Document F said nothing about.
             double? requirement_Lps = adjacencyCluster.PartFRequiredFlowRate_Lps(space_Cluster, flowClassification);
 
-            if (requirement_Lps.HasValue && designFlowRate_Lps + tolerance_Lps < requirement_Lps.Value)
+            if (requirement_Lps.HasValue && designFlowRate_Lps < requirement_Lps.Value)
             {
-                refusals.Add(string.Format(
-                    "Space '{0}': a design {1} airflow of {2:0.###} l/s is below the {3:0.###} l/s Approved Document F requires of that room. Design airflow is chosen above the regulatory minimum, never below it, so nothing was changed. Re-run the Part F calculation if the requirement itself is wrong.",
+                if (designFlowRate_Lps + tolerance_Lps < requirement_Lps.Value)
+                {
+                    refusals.Add(string.Format(
+                        "Space '{0}': a design {1} airflow of {2:0.###} l/s is below the {3:0.###} l/s Approved Document F requires of that room. Design airflow is chosen above the regulatory minimum, never below it, so nothing was changed. Re-run the Part F calculation if the requirement itself is wrong.",
+                        space_Cluster.Name,
+                        Core.Query.Description(flowClassification),
+                        designFlowRate_Lps,
+                        requirement_Lps.Value));
+
+                    return null;
+                }
+
+                //WITHIN tolerance below the floor - raised to the floor rather than written as asked.
+                //
+                //Refusing this would be wrong: a caller whose arithmetic landed a rounding bit under the
+                //requirement asked for the requirement, and answering "no" to a value the comparison
+                //cannot tell apart from a legal one is not compliance, it is noise. Writing it as asked
+                //would be worse: the room is then PERSISTED below what Approved Document F requires of it,
+                //and the Iteration 2 invariant is PartFRequired <= Design. So it is set to the floor,
+                //exactly.
+                //
+                //Enforced HERE as well as in ApplyTargetedDesignAirFlow, because this is the setter every
+                //design write goes through, and a floor that only holds when reached through the
+                //transaction above it is not a floor. See ApplyTargetedDesignAirFlow, which snaps before
+                //planning its balancing consequence so the two sides agree about the value being written -
+                //by the time a room reaches here, its share of that plan is already decided.
+                notes.Add(string.Format(
+                    "Space '{0}': the requested design {1} airflow of {2:0.######} l/s is below the {3:0.###} l/s Approved Document F requires of that room by less than the {4:0.###} l/s tolerance, so it was set to exactly that requirement. Tolerance decides whether two airflows are the same number; it never permits a design airflow to be recorded below the regulatory floor.",
                     space_Cluster.Name,
                     Core.Query.Description(flowClassification),
                     designFlowRate_Lps,
-                    requirement_Lps.Value));
+                    requirement_Lps.Value,
+                    tolerance_Lps));
 
-                return null;
+                designFlowRate_Lps = requirement_Lps.Value;
             }
 
             //Every EXISTING terminal duty has to be a real, non-negative quantity before any of them is
