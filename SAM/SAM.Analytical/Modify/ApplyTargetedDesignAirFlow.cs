@@ -216,16 +216,43 @@ namespace SAM.Analytical
             //likes and lowered only as far as Approved Document F allows.
             double? requirement_Target_Lps = adjacencyCluster.PartFRequiredFlowRate_Lps(space_Target, flowClassification);
 
-            if (requirement_Target_Lps.HasValue && designFlowRate_Lps + tolerance_Lps < requirement_Target_Lps.Value)
+            if (requirement_Target_Lps.HasValue && designFlowRate_Lps < requirement_Target_Lps.Value)
             {
-                result.Refusals.Add(string.Format(
-                    "Space '{0}': a design {1} airflow of {2:0.###} l/s is below the {3:0.###} l/s Approved Document F requires of that room. Design airflow is chosen above the regulatory minimum, never below it, so nothing was changed.",
+                if (designFlowRate_Lps + tolerance_Lps < requirement_Target_Lps.Value)
+                {
+                    result.Refusals.Add(string.Format(
+                        "Space '{0}': a design {1} airflow of {2:0.###} l/s is below the {3:0.###} l/s Approved Document F requires of that room. Design airflow is chosen above the regulatory minimum, never below it, so nothing was changed.",
+                        space_Target.Name,
+                        Core.Query.Description(flowClassification),
+                        designFlowRate_Lps,
+                        requirement_Target_Lps.Value));
+
+                    return result;
+                }
+
+                //WITHIN tolerance below the floor - raised to the floor rather than written as asked.
+                //
+                //Tolerance decides whether two airflows are the SAME NUMBER. It is not a licence to record
+                //a design airflow below the regulatory minimum, and the two readings only look alike until
+                //something drives deliberately at the edge: a bounded search asking for the lowest design
+                //this room will take answers 27.999 against a 28 l/s requirement, every comparison here
+                //passes it, and the model then PERSISTS a room designed below what Approved Document F
+                //requires of it. The Iteration 2 invariant is PartFRequired <= Design, and a value the
+                //comparison cannot tell apart from the floor is set to the floor exactly.
+                //
+                //Snapped HERE, before change_Lps, so the whole transaction is planned from the value that
+                //will actually be written: the opposite-side allocation balances against it, the duties
+                //report it, and TargetedAdjustment states it. Planning from 27.999 and writing 28 would
+                //leave the dwelling out of balance by exactly the amount that was corrected.
+                result.Notes.Add(string.Format(
+                    "Space '{0}': the requested design {1} airflow of {2:0.######} l/s is below the {3:0.###} l/s Approved Document F requires of that room by less than the {4:0.###} l/s tolerance, so it was raised to exactly that requirement before the change was planned. Tolerance decides whether two airflows are the same number; it never permits a design airflow to be recorded below the regulatory floor.",
                     space_Target.Name,
                     Core.Query.Description(flowClassification),
                     designFlowRate_Lps,
-                    requirement_Target_Lps.Value));
+                    requirement_Target_Lps.Value,
+                    tolerance_Lps));
 
-                return result;
+                designFlowRate_Lps = requirement_Target_Lps.Value;
             }
 
             double change_Lps = designFlowRate_Lps - duty_Target_Before_Lps;

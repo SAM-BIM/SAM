@@ -2755,6 +2755,740 @@ namespace SAM.Tests
             Assert.NotEmpty(candidate.Refusals);
         }
 
+
+        // =================================================================================================
+        // M. Iteration 2B - the clamp. Modify.ResolveTargetedDesignAirFlow bisects the SAME candidate
+        //    section L pins, so every answer it gives is a candidate that genuinely passed. What it adds
+        //    is the answer to the question a single candidate cannot answer: not "is 40 l/s feasible"
+        //    but "how much CAN this room have, against the unit already selected". The request bounds it
+        //    on one side and the room's existing design bounds it on the other, so it can neither
+        //    overshoot what was asked for nor move the room the other way to get there.
+        // =================================================================================================
+
+        /// <summary>
+        /// <b>The ordinary case costs nothing.</b> A request the dwelling can carry is met exactly, in one
+        /// evaluation, with no search and no bracket - the answer an engineer would have got by evaluating
+        /// that one candidate themselves.
+        /// </summary>
+        [Fact]
+        public void Resolution_AFeasibleRequest_IsMetExactlyInOneEvaluation()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+            double design_Before_Lps = Design(adjacencyCluster, space, FlowClassification.Supply);
+
+            //22.2 l/s against MVHR-25 - inside the rating, exactly as the candidate test uses it.
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                design_Before_Lps + 3,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.True(resolution.IsRequestSatisfied);
+            Assert.True(resolution.IsChanged);
+            Assert.Null(resolution.LimitingReason);
+            Assert.Equal(1, resolution.Evaluations);
+
+            Assert.Equal(design_Before_Lps + 3, resolution.Requested_Lps, 6);
+            Assert.Equal(design_Before_Lps + 3, resolution.Achieved_Lps, 6);
+
+            //The whole candidate contract is reachable through the answer, unchanged.
+            Assert.Equal(19.2, resolution.SupplyDuty_Before_Lps, 3);
+            Assert.Equal(22.2, resolution.SupplyDuty_After_Lps, 3);
+            Assert.Equal(22.2, resolution.ExtractDuty_After_Lps, 3);
+            Assert.Equal(2.8, resolution.SupplyHeadroom_Lps, 3);
+            Assert.Equal("MVHR-25", resolution.VentilationUnitReference?.Model);
+            Assert.NotEmpty(resolution.DerivedAdjustments);
+
+            //And the model to adopt genuinely carries it.
+            Assert.NotNull(resolution.AdjacencyCluster);
+            Assert.Equal(design_Before_Lps + 3, Design(resolution.AdjacencyCluster, space, FlowClassification.Supply), 6);
+        }
+
+        /// <summary>
+        /// <b>The whole point.</b> A request past the selected unit's rating is not refused - it is clamped
+        /// to the greatest design airflow that unit will carry, and says so. The dwelling is sized at
+        /// 19.2 l/s on MVHR-25, so 5.8 l/s is what the living room can actually take up.
+        /// </summary>
+        [Fact]
+        public void Resolution_BeyondSelectedCapacity_ClampsToTheGreatestFeasibleDesign()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+            double design_Before_Lps = Design(adjacencyCluster, space, FlowClassification.Supply);
+
+            //+10 would design the dwelling at 29.2 l/s - 4.2 l/s past MVHR-25, and refused outright as a
+            //single candidate.
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                design_Before_Lps + 10,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            //Accepted - and unmistakably NOT what was asked for.
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+            Assert.True(resolution.IsChanged);
+            Assert.Empty(resolution.Refusals);
+
+            Assert.Equal(design_Before_Lps + 10, resolution.Requested_Lps, 6);
+            Assert.Equal(design_Before_Lps + 5.8, resolution.Achieved_Lps, 2);
+
+            //It searched, and it said what stopped it.
+            Assert.True(resolution.Evaluations > 2);
+            Assert.NotNull(resolution.LimitingReason);
+            Assert.Contains("cannot carry", resolution.LimitingReason);
+
+            //The dwelling now designs the unit's rating and not a litre more, on both sides.
+            Assert.Equal(25, resolution.SupplyDuty_After_Lps, 2);
+            Assert.Equal(25, resolution.ExtractDuty_After_Lps, 2);
+            Assert.Equal(0, resolution.SupplyHeadroom_Lps, 2);
+
+            //And the answer is a real candidate: still balanced, still Approved Document F compliant.
+            Assert.NotNull(resolution.AdjacencyCluster);
+            resolution.AdjacencyCluster.ReconcileVentilationSystemDesignDuty(resolution.VentilationSystem, out _, out _, out List<string> refusals_Compliance);
+            Assert.Empty(refusals_Compliance);
+
+            resolution.AdjacencyCluster.VentilationSystemDesignDuty(resolution.VentilationSystem, out double supplyDuty_Lps, out double extractDuty_Lps);
+            Assert.Equal(supplyDuty_Lps, extractDuty_Lps, 6);
+        }
+
+        /// <summary>
+        /// <b>The clamped answer is the GREATEST feasible one, not merely a feasible one.</b> This is what
+        /// makes the search worth having, and the only thing a bisection could plausibly get wrong: a
+        /// tenth of a litre more is refused by the very evaluation the answer came from.
+        /// </summary>
+        [Fact]
+        public void Resolution_ClampedAnswer_IsTheGreatestFeasibleDesign()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 10,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+
+            //Feasible where it landed...
+            DwellingDesignAirFlowCandidate candidate_At = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                resolution.Achieved_Lps,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(candidate_At.IsAccepted, string.Join(" ", candidate_At.Refusals));
+
+            //...and infeasible a tenth of a litre further on, which bounds the answer to well inside the
+            //0.001 l/s tolerance it was resolved to.
+            DwellingDesignAirFlowCandidate candidate_Past = adjacencyCluster.EvaluateTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                resolution.Achieved_Lps + 0.1,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.False(candidate_Past.IsAccepted);
+        }
+
+        /// <summary>
+        /// <b>The request is a ceiling, never a target to grow into.</b> A dwelling on a 50 l/s unit asked
+        /// for 3 l/s more gets 3 l/s more - the search stops at what was asked for and leaves the remaining
+        /// headroom exactly where it was, reported and unspent.
+        /// </summary>
+        [Fact]
+        public void Resolution_NeverSpendsHeadroomTheRequestDidNotAskFor()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out _);
+
+            List<VentilationUnitCapacityDescriptor> descriptors = [Descriptor("MVHR-50", 50, 50)];
+
+            //Re-selected deliberately onto a unit with a great deal of room to spare.
+            adjacencyCluster.SelectVentilationUnit(airHandlingUnit, descriptors, out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+            double design_Before_Lps = Design(adjacencyCluster, space, FlowClassification.Supply);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                design_Before_Lps + 3,
+                ventilationUnitCapacityDescriptors: descriptors);
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.True(resolution.IsRequestSatisfied);
+
+            //Exactly what was asked for - not the 30.8 l/s the unit would have carried.
+            Assert.Equal(design_Before_Lps + 3, resolution.Achieved_Lps, 6);
+            Assert.Equal(22.2, resolution.SupplyDuty_After_Lps, 3);
+            Assert.Equal(27.8, resolution.SupplyHeadroom_Lps, 3);
+        }
+
+        /// <summary>
+        /// <b>The selected unit is the constraint, never a variable.</b> A request past MVHR-25 is clamped
+        /// to MVHR-25 even though MVHR-35 and MVHR-50 are sitting in the same catalogue - a clamp explores
+        /// within the equipment somebody chose, and does not buy bigger equipment as a side effect. The
+        /// rule <c>Candidate_BeyondSelectedCapacity_NeverReselects_EvenWhereABiggerProductIsOffered</c>
+        /// states for one candidate, restated for the search built on it.
+        /// </summary>
+        [Fact]
+        public void Resolution_NeverReselectsALargerProduct_EvenWhereOneIsOffered()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            List<string> selected_Before = SelectedModels(adjacencyCluster);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 10,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+
+            //Kept, on the answer and in the model it hands back - never Reselected.
+            Assert.Equal(VentilationUnitSelectionOutcome.Kept, resolution.Candidate.VentilationUnitSelectionOutcome);
+            Assert.Equal("MVHR-25", resolution.VentilationUnitReference?.Model);
+            Assert.Equal(25, resolution.VentilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps, 6);
+
+            Assert.Equal(selected_Before, SelectedModels(resolution.AdjacencyCluster));
+            Assert.Equal(selected_Before, SelectedModels(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// <b>A reduction clamps too, and on an entirely different limit.</b> Nothing about equipment is
+        /// involved: the supply room can be taken down only as far as the extract side holds design
+        /// headroom above its own Approved Document F floors. <c>AReductionBeyondAllAvailableHeadroom</c>
+        /// refuses 30 to 10 outright; the clamp answers 28, which
+        /// <c>AReductionExactlyAtAvailableHeadroom_Succeeds</c> independently proves is the boundary.
+        /// </summary>
+        [Fact]
+        public void Resolution_AReduction_ClampsToTheOppositeSidesPartFHeadroom()
+        {
+            AdjacencyCluster adjacencyCluster = HeadroomFixture(out Space space_Supply, out Space space_Extract);
+
+            //Supply 30 -> 10 needs 20 l/s off the extract side, which holds only 2 l/s above its floor.
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(space_Supply, FlowClassification.Supply, 10);
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+            Assert.True(resolution.IsChanged);
+
+            Assert.Equal(10, resolution.Requested_Lps, 6);
+            Assert.Equal(28, resolution.Achieved_Lps, 2);
+
+            Assert.NotNull(resolution.LimitingReason);
+            Assert.Contains("headroom above what Approved Document F requires", resolution.LimitingReason);
+
+            //The derived side went to its floor and no further, in the model handed back.
+            Assert.Equal(28, Design(resolution.AdjacencyCluster, space_Extract, FlowClassification.Extract), 6);
+
+            //Balanced to within the tolerance the whole transaction is defined against - and NOT to more
+            //than that. The extract side stops dead on its own Approved Document F floor, so the last
+            //sliver of supply the search can still take is the sliver the BALANCE check tolerates, and the
+            //supply room lands at 27.999 rather than 28.
+            //
+            //That is legal, and it is a different thing entirely from the floor defect
+            //Resolution_BelowTheTargetRoomsPartFFloor pins: the room holding 27.999 here is the SUPPLY
+            //room, whose own Approved Document F requirement is 10 l/s. Nothing in this answer is below
+            //its floor - which the assertion below states outright rather than leaving to be inferred.
+            Assert.True(System.Math.Abs(resolution.SupplyDuty_After_Lps - resolution.ExtractDuty_After_Lps) <= 0.001);
+            Assert.Equal(28, resolution.ExtractDuty_After_Lps, 6);
+
+            AssertPartFFloorsAreMet(resolution.AdjacencyCluster);
+
+            //And the model it was resolved against is untouched.
+            Assert.Equal(30, Design(adjacencyCluster, space_Supply, FlowClassification.Supply), 6);
+            Assert.Equal(30, Design(adjacencyCluster, space_Extract, FlowClassification.Extract), 6);
+        }
+
+        /// <summary>
+        /// <b>A request below the targeted room's own Approved Document F floor clamps to EXACTLY that
+        /// floor</b> - not to the last value the comparison would have tolerated below it.
+        /// <para>
+        /// <b>This is the case that found the floor-integrity defect.</b> A bounded search drives
+        /// deliberately at the edge of every constraint, and the edge of the Part F floor was
+        /// <c>design + tolerance &lt; requirement</c> - so 27.999 l/s against a 28 l/s requirement passed
+        /// every check and was written, and the model persisted a room designed below what Approved
+        /// Document F requires of it. Tolerance decides whether two airflows are the same number; it is
+        /// not permission to record a design below the regulatory minimum. The existing authority now
+        /// raises a within-tolerance request to the requirement before planning anything from it.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void Resolution_BelowTheTargetRoomsPartFFloor_ClampsToTheFloor_NeverBelowIt()
+        {
+            AdjacencyCluster adjacencyCluster = HeadroomFixture(out Space space_Supply, out Space space_Extract);
+
+            //The extract room requires 28 and is designed at 30. Asking for 20 is asking for less than
+            //Approved Document F allows - the supply side could easily have absorbed it.
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(space_Extract, FlowClassification.Extract, 20);
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+
+            //EXACTLY the requirement - asserted to nine decimal places, because 27.999 is precisely the
+            //answer this test is here to rule out.
+            Assert.Equal(28, resolution.Achieved_Lps, 9);
+            Assert.True(resolution.Achieved_Lps >= 28);
+
+            //And the targeted adjustment reports the value that was actually written, not the one asked
+            //for and not the one the bisection last tried.
+            Assert.Equal(28, resolution.TargetedAdjustment.After_Lps, 9);
+            Assert.Equal(30, resolution.TargetedAdjustment.Before_Lps, 9);
+            Assert.Equal(28, Design(resolution.AdjacencyCluster, space_Extract, FlowClassification.Extract), 9);
+
+            Assert.NotNull(resolution.LimitingReason);
+            Assert.Contains("Approved Document F requires of that room", resolution.LimitingReason);
+
+            //The balancing side was planned from 28 and not from 27.999, so the dwelling comes out square
+            //rather than out by exactly the amount the floor correction moved.
+            Assert.Equal(28, Design(resolution.AdjacencyCluster, space_Supply, FlowClassification.Supply), 9);
+            Assert.True(System.Math.Abs(resolution.SupplyDuty_After_Lps - resolution.ExtractDuty_After_Lps) <= 0.001);
+
+            //And no room anywhere in the answer sits below its own floor.
+            AssertPartFFloorsAreMet(resolution.AdjacencyCluster);
+        }
+
+        /// <summary>
+        /// <b>Where nothing at all is feasible, the search refuses and carries no model.</b> A dwelling that
+        /// is not a valid design to change - here one already below an Approved Document F floor in a room
+        /// nobody targeted - cannot carry its OWN design, so no value between it and the request could be
+        /// valid either. The search says that in as many words rather than bisecting a bracket with no
+        /// feasible point in it, and it costs two evaluations to find out.
+        /// </summary>
+        [Fact]
+        public void Resolution_WhereTheDwellingItselfIsInvalid_RefusesAndCarriesNoModel()
+        {
+            AdjacencyCluster adjacencyCluster = ShortfallFixture(out Space space_Supply, out _, out _);
+
+            Dictionary<string, double> design_Before = Designs(adjacencyCluster);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(space_Supply, FlowClassification.Supply, 30);
+
+            Assert.False(resolution.IsAccepted);
+            Assert.Null(resolution.AdjacencyCluster);
+            Assert.True(double.IsNaN(resolution.Achieved_Lps));
+            Assert.False(resolution.IsRequestSatisfied);
+            Assert.False(resolution.IsChanged);
+
+            //The request, then the design as it stands - and no bisection at all.
+            Assert.Equal(2, resolution.Evaluations);
+
+            Assert.Contains(resolution.Refusals, x => x.Contains("does not currently meet Approved Document F"));
+            Assert.Contains(resolution.Refusals, x => x.Contains("the dwelling's design as it already stands was rejected on the same terms"));
+
+            Assert.Equal(design_Before, Designs(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// <b>The model the search was given is never touched</b> - not by the clamped answer it accepted,
+        /// and not by any of the candidates it rejected on the way there. Compared as whole clusters, so
+        /// this covers every terminal and every relation, not merely the room totals.
+        /// </summary>
+        [Fact]
+        public void Resolution_LeavesTheEvaluatedModelUntouched()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            string json_Before = Core.Convert.ToString(adjacencyCluster);
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(adjacencyCluster);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 10,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            //A clamped answer - so the search definitely rejected candidates along the way.
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+            Assert.True(resolution.Evaluations > 2);
+
+            Assert.Equal(terminals_Before, TerminalDesigns(adjacencyCluster));
+            Assert.True(Helpers.JsonEquivalence.AreEquivalent(json_Before, Core.Convert.ToString(adjacencyCluster), out string difference), difference);
+        }
+
+        /// <summary>
+        /// A request that IS the room's existing design is satisfied, in one evaluation, and changes
+        /// nothing - so a caller can ask without having to check first whether asking is a no-op.
+        /// </summary>
+        [Fact]
+        public void Resolution_AtTheRoomsExistingDesign_IsSatisfiedAndChangesNothing()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+            double design_Before_Lps = Design(adjacencyCluster, space, FlowClassification.Supply);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                design_Before_Lps,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.True(resolution.IsRequestSatisfied);
+            Assert.False(resolution.IsChanged);
+            Assert.Equal(1, resolution.Evaluations);
+            Assert.Equal(design_Before_Lps, resolution.Achieved_Lps, 6);
+            Assert.Empty(resolution.DerivedAdjustments);
+        }
+
+        /// <summary>
+        /// No catalogue offered means equipment is no constraint on the search either - the same
+        /// backward-compatible meaning it has for a candidate and for a manual edit. The request is then
+        /// simply met.
+        /// </summary>
+        [Fact]
+        public void Resolution_WithoutACatalogue_TreatsEquipmentAsNoConstraint()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            //Well past MVHR-25 - clamped hard had a catalogue been offered.
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 10);
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.True(resolution.IsRequestSatisfied);
+            Assert.Equal(1, resolution.Evaluations);
+            Assert.Equal(VentilationUnitSelectionOutcome.NotApplicable, resolution.Candidate.VentilationUnitSelectionOutcome);
+            Assert.True(double.IsNaN(resolution.SupplyHeadroom_Lps));
+        }
+
+        /// <summary>
+        /// <b>Authority separation, on a clamped answer.</b> The capacity that decided where the search
+        /// stopped became nothing else: not an Approved Document F requirement, and not a runtime airflow.
+        /// A design that was limited BY the equipment is exactly the case where capacity would leak into
+        /// the design if it were ever going to.
+        /// </summary>
+        [Fact]
+        public void Resolution_ClampedAnswer_WritesNoRequirementAndNoRuntimeAirflow()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Dictionary<string, string> requirements_Before = Requirements(adjacencyCluster);
+            List<string> runtimeAirflows_Before = RuntimeAirflows(adjacencyCluster);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 10,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+
+            //Every Approved Document F requirement is the same requirement, on the model handed back.
+            Assert.Equal(requirements_Before, Requirements(resolution.AdjacencyCluster));
+
+            //And no runtime airflow was written - that is the preparation's job, not a design search's.
+            Assert.Equal(runtimeAirflows_Before, RuntimeAirflows(resolution.AdjacencyCluster));
+
+            //No room's design airflow became the rating that limited it, either.
+            foreach (KeyValuePair<string, double> keyValuePair in Designs(resolution.AdjacencyCluster))
+            {
+                Assert.True(keyValuePair.Value < 25, keyValuePair.Key);
+            }
+        }
+
+        /// <summary>
+        /// One dwelling's search never reads, reports on or writes another dwelling's - the isolation
+        /// <c>Candidate_TwoDwellings_StayIndependent</c> pins for one candidate, restated for the many a
+        /// search evaluates.
+        /// </summary>
+        [Fact]
+        public void Resolution_TwoDwellings_StayIndependent()
+        {
+            List<VentilationUnitCapacityDescriptor> descriptors = [Descriptor("MVHR-50", 50, 50)];
+
+            PartOIterationPreparation preparation = Prepare(TwoDwellingModel(), descriptors);
+            Assert.Null(preparation.Refusal);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            List<AirHandlingUnit> airHandlingUnits = adjacencyCluster.GetObjects<AirHandlingUnit>();
+            Assert.Equal(2, airHandlingUnits.Count);
+
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnits[1], out double supplyDuty_2_Before_Lps, out _);
+            VentilationUnitReference ventilationUnitReference_2_Before = airHandlingUnits[1].SelectedVentilationUnitReference();
+
+            Space space = LivingRoom(adjacencyCluster, airHandlingUnits[0]);
+
+            //Push that dwelling well past the only product offered, so the search really has to clamp.
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 100,
+                ventilationUnitCapacityDescriptors: descriptors);
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+            Assert.Equal(airHandlingUnits[0].Guid, resolution.AirHandlingUnit.Guid);
+            Assert.Equal(50, resolution.SupplyDuty_After_Lps, 2);
+
+            //Dwelling 2's duty and selection are untouched - in the model handed back, and in the original.
+            List<AirHandlingUnit> airHandlingUnits_After = resolution.AdjacencyCluster.GetObjects<AirHandlingUnit>();
+            AirHandlingUnit airHandlingUnit_2_After = airHandlingUnits_After.Find(x => x.Guid == airHandlingUnits[1].Guid);
+
+            resolution.AdjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit_2_After, out double supplyDuty_2_Resolved_Lps, out _);
+            Assert.Equal(supplyDuty_2_Before_Lps, supplyDuty_2_Resolved_Lps, 6);
+            Assert.True(ventilationUnitReference_2_Before.Matches(airHandlingUnit_2_After.SelectedVentilationUnitReference()));
+
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnits[1], out double supplyDuty_2_After_Lps, out _);
+            Assert.Equal(supplyDuty_2_Before_Lps, supplyDuty_2_After_Lps, 6);
+        }
+
+        /// <summary>
+        /// A tolerance that cannot be compared against is refused before anything is evaluated - it decides
+        /// both every Approved Document F, balance and capacity comparison beneath the search AND when the
+        /// search's own bracket has closed. See <c>Query.IsValidFlowRateTolerance</c>.
+        /// </summary>
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(double.NegativeInfinity)]
+        [InlineData(-1.0)]
+        public void Resolution_AnUnusableTolerance_RefusesWithoutEvaluatingAnything(double tolerance_Lps)
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            string json_Before = Core.Convert.ToString(adjacencyCluster);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 3,
+                tolerance_Lps: tolerance_Lps,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.False(resolution.IsAccepted);
+            Assert.Null(resolution.AdjacencyCluster);
+            Assert.Equal(0, resolution.Evaluations);
+            Assert.NotEmpty(resolution.Refusals);
+
+            Assert.True(Helpers.JsonEquivalence.AreEquivalent(json_Before, Core.Convert.ToString(adjacencyCluster), out string difference), difference);
+        }
+
+        /// <summary>
+        /// A request that is not a quantity of air is refused by the search itself, before any bracket is
+        /// built - there is no value to resolve towards.
+        /// </summary>
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(-1.0)]
+        public void Resolution_AnImpossibleRequest_IsRefusedWithoutEvaluatingAnything(double designFlowRate_Lps)
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                designFlowRate_Lps,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.False(resolution.IsAccepted);
+            Assert.Null(resolution.AdjacencyCluster);
+            Assert.Equal(0, resolution.Evaluations);
+            Assert.Null(resolution.Candidate);
+            Assert.NotEmpty(resolution.Refusals);
+        }
+
+        /// <summary>No model is not a crash, and it is not an accepted answer either.</summary>
+        [Fact]
+        public void Resolution_WithoutAModel_IsRefused()
+        {
+            DwellingDesignAirFlowResolution resolution = ((AdjacencyCluster)null).ResolveTargetedDesignAirFlow(null, FlowClassification.Supply, 10);
+
+            Assert.NotNull(resolution);
+            Assert.False(resolution.IsAccepted);
+            Assert.Null(resolution.AdjacencyCluster);
+            Assert.Null(resolution.Candidate);
+            Assert.NotEmpty(resolution.Refusals);
+        }
+
+        // =================================================================================================
+        // N. Floor integrity - PartFRequiredAirFlow <= DesignAirFlow, at the tolerance boundary.
+        //    The lower half of the Iteration 2 invariant used to be enforced as
+        //    "design + tolerance < requirement refuses", which quietly permits a design up to one whole
+        //    tolerance BELOW the regulatory floor to be written. Nothing reached that edge until
+        //    Iteration 2B's bounded search started driving deliberately at every constraint. The rule is
+        //    now: more than a tolerance below refuses, exactly as before; within a tolerance below is
+        //    raised to the requirement and written as the requirement. Pinned on both the transaction and
+        //    the setter beneath it, because a floor that only holds on one route is not a floor.
+        // =================================================================================================
+
+        /// <summary>
+        /// <b>The transaction.</b> A targeted design airflow a rounding bit under the room's Approved
+        /// Document F requirement is written as the requirement, exactly - and the balancing consequence is
+        /// planned from that value, so the dwelling comes out square.
+        /// </summary>
+        [Fact]
+        public void NearFloorRequest_WithinTolerance_IsRaisedToThePartFRequirementExactly()
+        {
+            AdjacencyCluster adjacencyCluster = HeadroomFixture(out Space space_Supply, out Space space_Extract);
+
+            //The extract room requires 28 and is designed at 30. Half a thousandth under the requirement is
+            //a number the tolerance cannot tell apart from it.
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Extract, FlowClassification.Extract, 28 - 0.0005);
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+
+            //Written as the requirement, not as asked.
+            Assert.Equal(28, Design(adjacencyCluster, space_Extract, FlowClassification.Extract), 9);
+            Assert.Equal(28, change.TargetedAdjustment.After_Lps, 9);
+
+            //Balanced from the normalized value: the supply side moved to 28 too, not to 27.9995.
+            Assert.Equal(28, Design(adjacencyCluster, space_Supply, FlowClassification.Supply), 9);
+            Assert.Equal(change.SupplyDuty_Lps, change.ExtractDuty_Lps, 9);
+
+            //And it said so rather than correcting the engineer silently.
+            Assert.Contains(change.Notes, x => x.Contains("raised to exactly that requirement"));
+
+            AssertPartFFloorsAreMet(adjacencyCluster);
+        }
+
+        /// <summary>
+        /// <b>The boundary, from both sides.</b> Normalization is not an excuse to accept any sub-floor
+        /// design: a request materially below the requirement is still refused with nothing written, and
+        /// the two behaviours meet exactly one tolerance below the floor.
+        /// </summary>
+        [Fact]
+        public void ARequestMoreThanToleranceBelowThePartFFloor_IsStillRefused()
+        {
+            AdjacencyCluster adjacencyCluster = HeadroomFixture(out _, out Space space_Extract);
+
+            Dictionary<string, double> design_Before = Designs(adjacencyCluster);
+
+            //A hundredth under - ten tolerances, a design decision rather than a rounding bit.
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Extract, FlowClassification.Extract, 28 - 0.01);
+
+            Assert.False(change.Successful);
+            Assert.Contains(change.Refusals, x => x.Contains("Approved Document F requires of that room"));
+            Assert.Null(change.TargetedAdjustment);
+            Assert.Empty(change.DerivedAdjustments);
+
+            //Nothing written - the refusal is unchanged from before the floor correction.
+            Assert.Equal(design_Before, Designs(adjacencyCluster));
+
+            //Exactly one tolerance below is the last value that normalizes rather than refusing, which is
+            //where the two behaviours meet. Stated here so the boundary is pinned rather than implied.
+            DwellingDesignAirFlowChange change_Boundary = adjacencyCluster.ApplyTargetedDesignAirFlow(space_Extract, FlowClassification.Extract, 28 - 0.001);
+
+            Assert.True(change_Boundary.Successful, string.Join(" ", change_Boundary.Refusals));
+            Assert.Equal(28, Design(adjacencyCluster, space_Extract, FlowClassification.Extract), 9);
+        }
+
+        /// <summary>
+        /// <b>The setter beneath it.</b> A direct caller of <c>Modify.SetSpaceDesignFlowRate</c> cannot
+        /// persist a design below the floor either, because the floor is enforced where the write happens
+        /// and not only in the transaction above it.
+        /// </summary>
+        [Fact]
+        public void SetSpaceDesignFlowRate_WithinToleranceBelowThePartFFloor_WritesTheRequirementExactly()
+        {
+            AdjacencyCluster adjacencyCluster = HeadroomFixture(out _, out Space space_Extract);
+
+            List<VentilationTerminal> ventilationTerminals = adjacencyCluster.SetSpaceDesignFlowRate(space_Extract, FlowClassification.Extract, 28 - 0.0005, out List<string> notes, out List<string> refusals);
+
+            Assert.NotNull(ventilationTerminals);
+            Assert.Empty(refusals);
+
+            //The room total is the requirement, exactly - and so is the one terminal it was shared across.
+            Assert.Equal(28, Design(adjacencyCluster, space_Extract, FlowClassification.Extract), 9);
+            Assert.All(ventilationTerminals, x => Assert.True(x.DesignFlowRate_Lps.HasValue));
+
+            Assert.Contains(notes, x => x.Contains("set to exactly that requirement"));
+        }
+
+        /// <summary>
+        /// The same setter still refuses a design materially below the floor, writing nothing - the rule
+        /// <c>DesignAirFlowBelowThePartFRequirement_IsRefused</c> already pins, restated at the boundary so
+        /// the normalization above is known not to have widened it.
+        /// </summary>
+        [Fact]
+        public void SetSpaceDesignFlowRate_MoreThanToleranceBelowThePartFFloor_IsStillRefused()
+        {
+            AdjacencyCluster adjacencyCluster = HeadroomFixture(out _, out Space space_Extract);
+
+            Dictionary<string, double> design_Before = Designs(adjacencyCluster);
+
+            Assert.Null(adjacencyCluster.SetSpaceDesignFlowRate(space_Extract, FlowClassification.Extract, 28 - 0.01, out _, out List<string> refusals));
+
+            Assert.NotEmpty(refusals);
+            Assert.Equal(design_Before, Designs(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// <b>The candidate boundary inherits the correction.</b> A candidate evaluated a rounding bit
+        /// under the floor is accepted and carries a model designed AT the floor - the transaction it
+        /// borrows is the same one, so the candidate and the search cannot disagree with a manual edit
+        /// about where the floor is.
+        /// </summary>
+        [Fact]
+        public void Candidate_WithinToleranceBelowThePartFFloor_CarriesAModelDesignedAtTheFloor()
+        {
+            AdjacencyCluster adjacencyCluster = HeadroomFixture(out Space space_Supply, out Space space_Extract);
+
+            string json_Before = Core.Convert.ToString(adjacencyCluster);
+
+            DwellingDesignAirFlowCandidate candidate = adjacencyCluster.EvaluateTargetedDesignAirFlow(space_Extract, FlowClassification.Extract, 28 - 0.0005);
+
+            Assert.True(candidate.IsAccepted, string.Join(" ", candidate.Refusals));
+            Assert.Equal(28, candidate.TargetedAdjustment.After_Lps, 9);
+            Assert.Equal(28, Design(candidate.AdjacencyCluster, space_Extract, FlowClassification.Extract), 9);
+            Assert.Equal(28, Design(candidate.AdjacencyCluster, space_Supply, FlowClassification.Supply), 9);
+
+            AssertPartFFloorsAreMet(candidate.AdjacencyCluster);
+
+            //Still evaluated on a copy - the correction changed what gets written, not where.
+            Assert.True(Helpers.JsonEquivalence.AreEquivalent(json_Before, Core.Convert.ToString(adjacencyCluster), out string difference), difference);
+        }
+
+        /// <summary>
+        /// The whole real dwelling, after a clamped search against a capacity boundary: no room on either
+        /// side sits below its own Approved Document F requirement. The invariant asserted over a model the
+        /// production Part F calculator sized, rather than only over the hand-built floor fixtures.
+        /// </summary>
+        [Fact]
+        public void Resolution_ClampedAnswer_LeavesEveryRoomAtOrAboveItsPartFRequirement()
+        {
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
+
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowResolution resolution = adjacencyCluster.ResolveTargetedDesignAirFlow(
+                space,
+                FlowClassification.Supply,
+                Design(adjacencyCluster, space, FlowClassification.Supply) + 10,
+                ventilationUnitCapacityDescriptors: DwellingCatalogue());
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+
+            AssertPartFFloorsAreMet(resolution.AdjacencyCluster);
+            AssertPartFFloorsAreMet(adjacencyCluster);
+        }
         // =================================================================================================
         // Fixtures
         // =================================================================================================
@@ -3107,6 +3841,50 @@ namespace SAM.Tests
         private static double Design(AdjacencyCluster adjacencyCluster, Space space, FlowClassification flowClassification)
         {
             return adjacencyCluster.VentilationTerminals(space).VentilationTerminalDesignDuty_Lps(flowClassification) ?? 0;
+        }
+
+        /// <summary>
+        /// The lower half of the Iteration 2 invariant, asserted over a whole model: every room that
+        /// carries design terminals of a direction, and has an Approved Document F requirement for that
+        /// direction, is designed at or above it.
+        /// <para>
+        /// <b>Asserted with no tolerance at all, deliberately.</b> A tolerance here is exactly the mistake
+        /// this helper exists to catch - it is what let a room be persisted 0.001 l/s below its regulatory
+        /// floor and read as compliant. A design that cannot be told apart from the floor is now WRITTEN as
+        /// the floor, so the comparison has nothing left to forgive.
+        /// </para>
+        /// <para>
+        /// Rooms with no terminal of a direction are skipped: they carry no design airflow to check, and
+        /// whether one should exist at all is <c>Modify.RealizePartFVentilationTerminals</c>'s question.
+        /// </para>
+        /// </summary>
+        private static void AssertPartFFloorsAreMet(AdjacencyCluster adjacencyCluster)
+        {
+            Assert.NotNull(adjacencyCluster);
+
+            foreach (Space space in adjacencyCluster.GetSpaces() ?? [])
+            {
+                foreach (FlowClassification flowClassification in new[] { FlowClassification.Supply, FlowClassification.Extract })
+                {
+                    List<VentilationTerminal> ventilationTerminals = Analytical.Query.VentilationTerminals(adjacencyCluster.VentilationTerminals(space), flowClassification) ?? [];
+                    if (ventilationTerminals.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    double? requirement_Lps = adjacencyCluster.PartFRequiredFlowRate_Lps(space, flowClassification);
+                    if (!requirement_Lps.HasValue)
+                    {
+                        continue;
+                    }
+
+                    double design_Lps = Design(adjacencyCluster, space, flowClassification);
+
+                    Assert.True(
+                        design_Lps >= requirement_Lps.Value,
+                        string.Format("Space '{0}' is designed at {1:0.#########} l/s of {2} against the {3:0.#########} l/s Approved Document F requires of it.", space.Name, design_Lps, flowClassification, requirement_Lps.Value));
+                }
+            }
         }
 
         /// <summary>
