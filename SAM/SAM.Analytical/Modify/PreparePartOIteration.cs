@@ -535,6 +535,12 @@ namespace SAM.Analytical
                     {
                         result.VentilationUnitSelections.Add(ventilationUnitSelection);
                     }
+
+                    //Re-resolved by guid, because the selection is written onto a replacement unit rather
+                    //than onto this object - Modify.SelectVentilationUnit says why. Without this the
+                    //preparation would report a unit that carries no selected product while the model it
+                    //hands back carries one.
+                    airHandlingUnit = adjacencyCluster.GetObject<AirHandlingUnit>(airHandlingUnit.Guid) ?? airHandlingUnit;
                 }
 
                 result.VentilationSystems.Add(ventilationSystem);

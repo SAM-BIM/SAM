@@ -77,7 +77,12 @@ namespace SAM.Analytical
         /// validation existed - see <see cref="DwellingDesignAirFlowChange.VentilationUnitSelectionOutcome"/>.
         /// </para>
         /// </summary>
-        /// <param name="adjacencyCluster">The model. <b>Modified in place on success, and untouched on a refusal.</b></param>
+        /// <param name="adjacencyCluster">
+        /// The model. <b>Modified in place on success, and untouched on a refusal</b> - and <b>this cluster
+        /// is as far as either half of the change reaches</b>. Both the airflow and any reselection are
+        /// written as replacement objects, so a cluster taken from <c>AnalyticalModel.AdjacencyCluster</c>
+        /// can be edited here and then kept or thrown away without the model behind it moving.
+        /// </param>
         /// <param name="space">The one room being targeted.</param>
         /// <param name="flowClassification">Which side of that room is being set.</param>
         /// <param name="designFlowRate_Lps">The room's new design airflow [l/s], as a total across its terminals.</param>
