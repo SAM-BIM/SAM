@@ -3532,6 +3532,349 @@ namespace SAM.Tests
             AssertPartFFloorsAreMet(resolution.AdjacencyCluster);
             AssertPartFFloorsAreMet(adjacencyCluster);
         }
+
+        // =================================================================================================
+        // O. Iteration 2B - the AUTOMATIC Grasshopper seam. SAMAnalytical.ResolveTargetedDesignAirFlow.
+        //    Region M pins the clamp itself, on AdjacencyCluster. These pin what the COMPONENT adds on top
+        //    of it and nothing else: which model comes out of an accepted answer, which comes out of a
+        //    refused one, and that neither carries a design the caller did not get. An accepted answer
+        //    hands out a NEW model; a refused one deliberately hands back the caller's own, unchanged,
+        //    rather than manufacturing a copy of a design that was never applied.
+        //
+        //    Why these test library calls and not the Grasshopper component. SAM.Tests references no
+        //    Grasshopper assembly, so ResolvedModel below performs the same steps, in the same order, that
+        //    SAMAnalyticalResolveTargetedDesignAirFlow.SolveInstance performs - the component contributes
+        //    only Grasshopper parameter reading and message levels on top. Same arrangement, and the same
+        //    reason, as PartOIterationPreparationTests.
+        //
+        //    The manual seam it sits beside is region K's, and is deliberately untouched: an engineer
+        //    STATES a value there and the equipment gap is reported beside a change that has already
+        //    committed. Here nothing commits until a whole design has been found feasible, so the same
+        //    request comes back clamped instead. Component_TheTwoSeamsStillAnswerDifferently pins that the
+        //    two answers remain the two answers.
+        // =================================================================================================
+
+        /// <summary>
+        /// <b>A request the selected unit can carry is met exactly, and the model handed out carries it.</b>
+        /// The component's whole contribution on the accepted path is
+        /// <c>new AnalyticalModel(input, resolution.AdjacencyCluster)</c>, so this pins that the design the
+        /// search settled on is the design a downstream wire actually receives.
+        /// </summary>
+        [Fact]
+        public void Component_AnExactRequestWithinCapacity_IsSatisfiedAndTheOutputModelCarriesIt()
+        {
+            AnalyticalModel analyticalModel = Prepared(DwellingCatalogue()).AnalyticalModel;
+
+            Space space = analyticalModel.AdjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            double design_Before_Lps = Design(analyticalModel.AdjacencyCluster, space, FlowClassification.Supply);
+
+            //Well inside the 5.8 l/s MVHR-25 leaves the fixture flat.
+            double requested_Lps = design_Before_Lps + 2;
+
+            AnalyticalModel analyticalModel_Resolved = ResolvedModel(analyticalModel, space, FlowClassification.Supply, requested_Lps, DwellingCatalogue(), out DwellingDesignAirFlowResolution resolution);
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.True(resolution.IsRequestSatisfied);
+            Assert.True(resolution.IsChanged);
+            Assert.Equal(requested_Lps, resolution.Achieved_Lps, 6);
+            Assert.Null(resolution.LimitingReason);
+
+            //The model that comes OUT of the component, not the resolution's own cluster.
+            Assert.NotSame(analyticalModel, analyticalModel_Resolved);
+            Assert.Equal(requested_Lps, Design(analyticalModel_Resolved.AdjacencyCluster, space, FlowClassification.Supply), 6);
+
+            //And the one that went in is where it was.
+            Assert.Equal(design_Before_Lps, Design(analyticalModel.AdjacencyCluster, space, FlowClassification.Supply), 6);
+        }
+
+        /// <summary>
+        /// <b>A request beyond the selected unit clamps, and the unit stays selected.</b> The engineering is
+        /// region M's; what is pinned here is that the clamped design - not the request, and not the unit's
+        /// rating - is what reaches the output model, and that the product identity on the air handling
+        /// unit in that model is the one that was already there.
+        /// </summary>
+        [Fact]
+        public void Component_ACapacityLimitedRequest_ClampsAndKeepsTheSelectedUnit()
+        {
+            AnalyticalModel analyticalModel = Prepared(DwellingCatalogue()).AnalyticalModel;
+
+            Space space = analyticalModel.AdjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            double design_Before_Lps = Design(analyticalModel.AdjacencyCluster, space, FlowClassification.Supply);
+
+            //Well past what MVHR-25 will carry.
+            double requested_Lps = design_Before_Lps + 10;
+
+            AnalyticalModel analyticalModel_Resolved = ResolvedModel(analyticalModel, space, FlowClassification.Supply, requested_Lps, DwellingCatalogue(), out DwellingDesignAirFlowResolution resolution);
+
+            //Accepted and clamped - which is not a refusal, and the two outputs say so separately.
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+            Assert.True(resolution.IsChanged);
+            Assert.Empty(resolution.Refusals);
+
+            //Moved TOWARDS the request and stopped short of it. Never past, and never the other way.
+            Assert.True(resolution.Achieved_Lps > design_Before_Lps);
+            Assert.True(resolution.Achieved_Lps < requested_Lps);
+
+            //And the bound is named rather than left to be inferred.
+            Assert.False(string.IsNullOrWhiteSpace(resolution.LimitingReason));
+
+            //The clamped value is what the output model actually carries.
+            Assert.Equal(resolution.Achieved_Lps, Design(analyticalModel_Resolved.AdjacencyCluster, space, FlowClassification.Supply), 6);
+
+            //Nothing was bought. Kept, on the answer and on the unit in the model handed out.
+            Assert.Equal(VentilationUnitSelectionOutcome.Kept, resolution.Candidate.VentilationUnitSelectionOutcome);
+            Assert.Equal("MVHR-25", SelectedModel(analyticalModel_Resolved.AdjacencyCluster));
+            Assert.Equal("MVHR-25", SelectedModel(analyticalModel.AdjacencyCluster));
+
+            //The rating that bounded the answer is reported as a rating and stays one. The duty stops at
+            //that rating within the tolerance every capacity comparison is made against - and not one
+            //bisection step further, which is the whole claim "the selected unit is the bound" makes.
+            Assert.Equal(25, resolution.VentilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps, 6);
+            Assert.True(resolution.SupplyDuty_After_Lps <= 25 + 0.001, string.Format("The clamped design duty is {0:0.#########} l/s against the selected MVHR-25.", resolution.SupplyDuty_After_Lps));
+        }
+
+        /// <summary>
+        /// <b>The model the component was given is never touched</b> - not by a clamped answer, and not by
+        /// a refused one. Compared as whole clusters, so this covers every terminal and every relation
+        /// rather than only the room totals.
+        /// <para>
+        /// The refused half also pins the shape of the answer: no candidate model is handed back at all,
+        /// so there is no half-applied design for anyone to adopt by mistake. The component returns the
+        /// caller's own model in that case, which is why <c>accepted</c> and not the model wire is the
+        /// thing to read.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void Component_LeavesTheInputModelUntouched_OnAClampAndOnARefusal()
+        {
+            AnalyticalModel analyticalModel = Prepared(DwellingCatalogue()).AnalyticalModel;
+
+            Space space = analyticalModel.AdjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            string json_Before = Core.Convert.ToString(analyticalModel.AdjacencyCluster);
+            Dictionary<Guid, double> terminals_Before = TerminalDesigns(analyticalModel.AdjacencyCluster);
+
+            //A clamp, so the search definitely rejected candidates on the way there.
+            ResolvedModel(analyticalModel, space, FlowClassification.Supply, Design(analyticalModel.AdjacencyCluster, space, FlowClassification.Supply) + 10, DwellingCatalogue(), out DwellingDesignAirFlowResolution resolution_Clamped);
+
+            Assert.True(resolution_Clamped.IsAccepted, string.Join(" ", resolution_Clamped.Refusals));
+            Assert.False(resolution_Clamped.IsRequestSatisfied);
+
+            Assert.Equal(terminals_Before, TerminalDesigns(analyticalModel.AdjacencyCluster));
+            Assert.True(Helpers.JsonEquivalence.AreEquivalent(json_Before, Core.Convert.ToString(analyticalModel.AdjacencyCluster), out string difference_Clamped), difference_Clamped);
+
+            //A refusal. The living room is a habitable room, so Approved Document F gives it a supply
+            //terminal and no extract - there is no extract side of it to resolve towards anything.
+            AnalyticalModel analyticalModel_Refused = ResolvedModel(analyticalModel, space, FlowClassification.Extract, 30, DwellingCatalogue(), out DwellingDesignAirFlowResolution resolution_Refused);
+
+            Assert.False(resolution_Refused.IsAccepted);
+            Assert.NotEmpty(resolution_Refused.Refusals);
+            Assert.Null(resolution_Refused.AdjacencyCluster);
+            Assert.True(double.IsNaN(resolution_Refused.Achieved_Lps));
+            Assert.False(resolution_Refused.IsRequestSatisfied);
+            Assert.False(resolution_Refused.IsChanged);
+
+            //No partially modified model came out - the caller's own is what comes back.
+            Assert.Same(analyticalModel, analyticalModel_Refused);
+
+            Assert.Equal(terminals_Before, TerminalDesigns(analyticalModel.AdjacencyCluster));
+            Assert.True(Helpers.JsonEquivalence.AreEquivalent(json_Before, Core.Convert.ToString(analyticalModel.AdjacencyCluster), out string difference_Refused), difference_Refused);
+        }
+
+        /// <summary>
+        /// <b>The targeted and derived adjustments the component reports are the ones the output model
+        /// carries</b>, and the dwelling it hands out is balanced.
+        /// <para>
+        /// The two lists are the whole reason design airflow can be reviewed at all - one room was chosen,
+        /// the rest moved because the network required it - so a component that reported them from anywhere
+        /// other than the model it also hands out would be reporting a design nobody receives.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void Component_TargetedAndDerivedAdjustments_MatchTheOutputModelAndLeaveItBalanced()
+        {
+            AnalyticalModel analyticalModel = Prepared(DwellingCatalogue()).AnalyticalModel;
+
+            Space space = analyticalModel.AdjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            AnalyticalModel analyticalModel_Resolved = ResolvedModel(analyticalModel, space, FlowClassification.Supply, Design(analyticalModel.AdjacencyCluster, space, FlowClassification.Supply) + 2, DwellingCatalogue(), out DwellingDesignAirFlowResolution resolution);
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+
+            AdjacencyCluster adjacencyCluster_Resolved = analyticalModel_Resolved.AdjacencyCluster;
+
+            //ONE targeted room, and it is the room that was pointed at.
+            Assert.NotNull(resolution.TargetedAdjustment);
+            Assert.Equal(name_LivingRoom, resolution.TargetedAdjustment.SpaceName);
+            Assert.Equal(resolution.TargetedAdjustment.After_Lps, Design(adjacencyCluster_Resolved, space, FlowClassification.Supply), 6);
+
+            //Balancing the increase means moving the extract side, so there is something derived to check.
+            Assert.NotEmpty(resolution.DerivedAdjustments);
+
+            foreach (DesignAirFlowAdjustment designAirFlowAdjustment in resolution.DerivedAdjustments)
+            {
+                //A derived room is never the targeted one - that distinction is the point of the two lists.
+                Assert.NotEqual(name_LivingRoom, designAirFlowAdjustment.SpaceName);
+
+                Space space_Derived = adjacencyCluster_Resolved.GetSpaces().Find(x => x.Name == designAirFlowAdjustment.SpaceName);
+
+                Assert.NotNull(space_Derived);
+                Assert.Equal(designAirFlowAdjustment.After_Lps, Design(adjacencyCluster_Resolved, space_Derived, designAirFlowAdjustment.FlowClassification), 6);
+            }
+
+            //The dwelling the component hands out is square, and the duties it reports are that dwelling's.
+            adjacencyCluster_Resolved.VentilationSystemDesignDuty(adjacencyCluster_Resolved.GetObject<VentilationSystem>(resolution.VentilationSystem.Guid), out double supplyDuty_Lps, out double extractDuty_Lps);
+
+            Assert.Equal(resolution.SupplyDuty_After_Lps, supplyDuty_Lps, 6);
+            Assert.Equal(resolution.ExtractDuty_After_Lps, extractDuty_Lps, 6);
+            Assert.True(System.Math.Abs(supplyDuty_Lps - extractDuty_Lps) <= 0.001);
+
+            AssertPartFFloorsAreMet(adjacencyCluster_Resolved);
+        }
+
+        /// <summary>
+        /// <b>A reduction cannot be made to persist below the Approved Document F requirement</b>, however
+        /// far down it is asked to go - and the component is the route somebody would most easily try it
+        /// on, by wiring its own output back into it and asking for zero.
+        /// <para>
+        /// Two calls, exactly as a canvas would wire them: raise the room, then ask for nothing. The second
+        /// answer clamps at the room's requirement, which is where Iteration 1a designed it in the first
+        /// place, and every room in the model handed out is still at or above its own floor.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void Component_AReductionStopsAtThePartFFloor()
+        {
+            AnalyticalModel analyticalModel = Prepared(DwellingCatalogue()).AnalyticalModel;
+
+            Space space = analyticalModel.AdjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            double requirement_Lps = analyticalModel.AdjacencyCluster.PartFRequiredFlowRate_Lps(space, FlowClassification.Supply) ?? double.NaN;
+
+            Assert.False(double.IsNaN(requirement_Lps));
+
+            AnalyticalModel analyticalModel_Raised = ResolvedModel(analyticalModel, space, FlowClassification.Supply, requirement_Lps + 2, DwellingCatalogue(), out DwellingDesignAirFlowResolution resolution_Raised);
+
+            Assert.True(resolution_Raised.IsRequestSatisfied);
+
+            //Now ask the raised model for nothing at all.
+            AnalyticalModel analyticalModel_Reduced = ResolvedModel(analyticalModel_Raised, space, FlowClassification.Supply, 0, DwellingCatalogue(), out DwellingDesignAirFlowResolution resolution_Reduced);
+
+            Assert.True(resolution_Reduced.IsAccepted, string.Join(" ", resolution_Reduced.Refusals));
+            Assert.False(resolution_Reduced.IsRequestSatisfied);
+
+            //Exactly the requirement, and asserted to nine places because a thousandth under it is
+            //precisely the answer region N exists to rule out.
+            Assert.Equal(requirement_Lps, resolution_Reduced.Achieved_Lps, 9);
+            Assert.True(resolution_Reduced.Achieved_Lps >= requirement_Lps);
+            Assert.Equal(requirement_Lps, Design(analyticalModel_Reduced.AdjacencyCluster, space, FlowClassification.Supply), 9);
+
+            AssertPartFFloorsAreMet(analyticalModel_Reduced.AdjacencyCluster);
+        }
+
+        /// <summary>
+        /// <b>Authority separation, through the component.</b> The capacity that decided where the search
+        /// stopped became nothing else in the model handed out: not an Approved Document F requirement, and
+        /// not a runtime or profile airflow. A design that was limited BY the equipment is exactly the case
+        /// where a capacity would leak into a design if it were ever going to.
+        /// </summary>
+        [Fact]
+        public void Component_WritesNoPartFRequirementAndNoRuntimeAirflow()
+        {
+            AnalyticalModel analyticalModel = Prepared(DwellingCatalogue()).AnalyticalModel;
+
+            Dictionary<string, string> requirements_Before = Requirements(analyticalModel.AdjacencyCluster);
+            List<string> runtimeAirflows_Before = RuntimeAirflows(analyticalModel.AdjacencyCluster);
+
+            Space space = analyticalModel.AdjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            AnalyticalModel analyticalModel_Resolved = ResolvedModel(analyticalModel, space, FlowClassification.Supply, Design(analyticalModel.AdjacencyCluster, space, FlowClassification.Supply) + 10, DwellingCatalogue(), out DwellingDesignAirFlowResolution resolution);
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+
+            AdjacencyCluster adjacencyCluster_Resolved = analyticalModel_Resolved.AdjacencyCluster;
+
+            //The requirement is what bounded the answer from below and the capacity what bounded it from
+            //above. Neither moved.
+            Assert.Equal(requirements_Before, Requirements(adjacencyCluster_Resolved));
+            Assert.Equal(runtimeAirflows_Before, RuntimeAirflows(adjacencyCluster_Resolved));
+
+            //And no room took the selected product's rating as its own design airflow.
+            foreach (double design_Lps in Designs(adjacencyCluster_Resolved).Values)
+            {
+                Assert.NotEqual(25, design_Lps, 6);
+            }
+        }
+
+        /// <summary>
+        /// <b>The two seams still answer differently, and neither was changed to accommodate the other.</b>
+        /// The same over-capacity request, put to both on the same dwelling:
+        /// <code>
+        /// manual    -> applied in full, and a BIGGER product bought to carry it        (Reselected)
+        /// automatic -> clamped to what the ALREADY selected product carries            (Kept)
+        /// </code>
+        /// <para>
+        /// This is the sharpest form the distinction takes. An engineer who states a number gets that
+        /// number and the plant it implies; an engineer who asks how much is available gets the answer the
+        /// plant they already have will give, and no invoice. Neither is more correct - they are answers to
+        /// different questions, and the reason both seams exist.
+        /// </para>
+        /// <para>
+        /// Region K owns the manual seam's behaviour and is not restated here - only that adding the
+        /// automatic one left it exactly where it was.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void Component_TheTwoSeamsStillAnswerDifferently()
+        {
+            AnalyticalModel analyticalModel = Prepared(DwellingCatalogue()).AnalyticalModel;
+
+            Space space = analyticalModel.AdjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            double requested_Lps = Design(analyticalModel.AdjacencyCluster, space, FlowClassification.Supply) + 10;
+
+            //The manual seam, called exactly as SAMAnalytical.ApplyTargetedDesignAirFlow calls it - on its
+            //OWN prepared model rather than on the one the resolver is about to be given.
+            //
+            //Deliberately, and not for tidiness. A reselection written by that seam is currently visible on
+            //the AnalyticalModel it was handed: the design airflows do not leak, but the product written
+            //onto the air handling unit does, because AnalyticalModel.AdjacencyCluster does not copy that
+            //object away from the caller. That is a defect in the MANUAL seam and it is deliberately not
+            //fixed from here - Iteration 2B is a thin exposure of the resolver, and changing what a
+            //committed manual edit does to its input model is its own change with its own review. Sharing
+            //one model between the two calls here would only make this test depend on it.
+            AdjacencyCluster adjacencyCluster_Manual = Prepared(DwellingCatalogue()).AnalyticalModel.AdjacencyCluster;
+
+            Space space_Manual = adjacencyCluster_Manual.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster_Manual.ApplyTargetedDesignAirFlow(space_Manual, FlowClassification.Supply, requested_Lps, PartFExtractAllocationStrategy.MinimumFirstCookingPriority, 0.001, DwellingCatalogue());
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+            Assert.Equal(requested_Lps, Design(adjacencyCluster_Manual, space_Manual, FlowClassification.Supply), 6);
+
+            //The request was applied in full, so the selected MVHR-25 no longer covers it - and the manual
+            //seam buys the smallest product that does.
+            Assert.Equal(VentilationUnitSelectionOutcome.Reselected, change.VentilationUnitSelectionOutcome);
+            Assert.NotEqual("MVHR-25", SelectedModel(adjacencyCluster_Manual));
+
+            //The automatic seam, on a prepared model of its own that nothing above has touched.
+            AnalyticalModel analyticalModel_Resolved = ResolvedModel(analyticalModel, space, FlowClassification.Supply, requested_Lps, DwellingCatalogue(), out DwellingDesignAirFlowResolution resolution);
+
+            Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
+            Assert.False(resolution.IsRequestSatisfied);
+            Assert.True(resolution.Achieved_Lps < requested_Lps);
+            Assert.Equal(VentilationUnitSelectionOutcome.Kept, resolution.Candidate.VentilationUnitSelectionOutcome);
+            Assert.Equal(resolution.Achieved_Lps, Design(analyticalModel_Resolved.AdjacencyCluster, space, FlowClassification.Supply), 6);
+
+            //Nothing was bought, on either model - the same catalogue that let the manual seam reselect was
+            //offered here and changed nothing.
+            Assert.Equal("MVHR-25", SelectedModel(analyticalModel_Resolved.AdjacencyCluster));
+            Assert.Equal("MVHR-25", SelectedModel(analyticalModel.AdjacencyCluster));
+        }
         // =================================================================================================
         // Fixtures
         // =================================================================================================
@@ -4187,6 +4530,37 @@ namespace SAM.Tests
             AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
 
             return (adjacencyCluster.GetObjects<SpaceAirMovement>() ?? []).Count + (adjacencyCluster.GetObjects<AirHandlingUnitAirMovement>() ?? []).Count;
+        }
+
+        /// <summary>
+        /// <b>The automatic Grasshopper seam, called as <c>SAMAnalytical.ResolveTargetedDesignAirFlow</c>
+        /// calls it</b> - the same two steps, in the same order, that its <c>SolveInstance</c> performs once
+        /// its parameters have been read:
+        /// <code>
+        /// resolution = analyticalModel.AdjacencyCluster.ResolveTargetedDesignAirFlow(...)
+        /// out        = accepted ? new AnalyticalModel(analyticalModel, resolution.AdjacencyCluster)
+        ///                       : analyticalModel
+        /// </code>
+        /// <para>
+        /// Reading <c>AnalyticalModel.AdjacencyCluster</c> hands out a copy, and the resolver evaluates
+        /// every candidate on copies of its own, so <paramref name="analyticalModel"/> is unreachable from
+        /// here - which is the property region O's isolation test then proves rather than assumes.
+        /// </para>
+        /// </summary>
+        private static AnalyticalModel ResolvedModel(AnalyticalModel analyticalModel, Space space, FlowClassification flowClassification, double designFlowRate_Lps, List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, out DwellingDesignAirFlowResolution resolution)
+        {
+            resolution = analyticalModel.AdjacencyCluster.ResolveTargetedDesignAirFlow(space, flowClassification, designFlowRate_Lps, PartFExtractAllocationStrategy.MinimumFirstCookingPriority, 0.001, ventilationUnitCapacityDescriptors);
+
+            return resolution.IsAccepted ? new AnalyticalModel(analyticalModel, resolution.AdjacencyCluster) : analyticalModel;
+        }
+
+        /// <summary>
+        /// The model the cluster's one air handling unit is currently selected as. See
+        /// <see cref="SelectedModels"/> for the whole-model form.
+        /// </summary>
+        private static string SelectedModel(AdjacencyCluster adjacencyCluster)
+        {
+            return Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>()).SelectedVentilationUnitReference()?.Model;
         }
     }
 }
