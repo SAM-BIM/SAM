@@ -946,12 +946,25 @@ namespace SAM.Analytical
         /// <see cref="System.Guid.Empty"/> and several of those would otherwise be interchangeable to the
         /// sort while saying different things to a reader.
         /// </para>
+        /// <para>
+        /// The requested rate breaks the last tie. Two dropped targets can share a room, a direction and a
+        /// reason - one bathroom asked for two different supply figures, with no supply terminal to move
+        /// for either - and the report prints the rate, so a key without it leaves that pair to the mercy
+        /// of the sort and the same set can still read two ways.
+        /// </para>
         /// </summary>
         private static int CompareTargetRefusals(DesignAirFlowTargetRefusal x, DesignAirFlowTargetRefusal y)
         {
             int result = CompareTargets(x.DesignAirFlowTarget, y.DesignAirFlowTarget);
 
-            return result != 0 ? result : string.CompareOrdinal(x.Reason, y.Reason);
+            if (result != 0)
+            {
+                return result;
+            }
+
+            result = string.CompareOrdinal(x.Reason, y.Reason);
+
+            return result != 0 ? result : x.DesignAirFlowTarget.DesignFlowRate_Lps.CompareTo(y.DesignAirFlowTarget.DesignFlowRate_Lps);
         }
 
         /// <summary>One room and one direction, which is the grain everything in a round is keyed at.</summary>

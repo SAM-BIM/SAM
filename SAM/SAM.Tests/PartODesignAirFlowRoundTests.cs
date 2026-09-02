@@ -572,6 +572,41 @@ namespace SAM.Tests
                 candidate_Reversed.TargetRefusals.ConvertAll(x => x.ToString()));
         }
 
+        /// <summary>
+        /// <b>I, taken to the last tie.</b> Two dropped targets can name the SAME room and direction and
+        /// differ only in the figure - a bathroom with no supply terminal asked for two different supplies
+        /// is dropped twice with the same reason, and the report prints the rate. Room, direction and
+        /// reason alone therefore cannot order the pair; the requested rate is in the sort key, so even
+        /// they read identically handed over either way round.
+        /// </summary>
+        [Fact]
+        public void TargetRefusals_OnTheSameRoomAndDirection_AreOrderIndependentToo()
+        {
+            AdjacencyCluster adjacencyCluster = Fixture();
+
+            DesignAirFlowRoundCandidate candidate_Forward = Round(adjacencyCluster, [
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Supply, 5),
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Supply, 9)]);
+
+            DesignAirFlowRoundCandidate candidate_Reversed = Round(adjacencyCluster, [
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Supply, 9),
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Supply, 5)]);
+
+            //Dropped, both of them - a bathroom has no supply terminal, and a dropped target never reaches
+            //the duplicate check, which exists for targets the round could otherwise have taken. With
+            //nothing left to take, the round itself is refused.
+            Assert.False(candidate_Forward.IsAccepted);
+            Assert.Equal(2, candidate_Forward.TargetRefusals.Count);
+
+            //The pair really is distinguishable in the report - this is the case a key without the rate
+            //leaves unordered.
+            Assert.NotEqual(candidate_Forward.TargetRefusals[0].ToString(), candidate_Forward.TargetRefusals[1].ToString());
+
+            Assert.Equal(
+                candidate_Forward.TargetRefusals.ConvertAll(x => x.ToString()),
+                candidate_Reversed.TargetRefusals.ConvertAll(x => x.ToString()));
+        }
+
         // ---- J. Mixed supply and extract targets --------------------------------------------------------------------
 
         /// <summary>

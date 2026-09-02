@@ -14,7 +14,7 @@ No `SAM_Systems` or `SAM_Tas` change - neither was touched.
 Everything below "Latest (2026-09-01)" is superseded history retained for context.
 
 ## Last updated
-2026-09-02 - the deterministic multi-target Approved Document O design airflow optimisation round, plus two
+2026-09-02 - the deterministic multi-target Approved Document O design airflow optimisation round, plus five
 Codex review fixes.
 
 ## Latest (2026-09-02): the Iteration 2B design airflow optimisation round
@@ -84,11 +84,23 @@ preserving).
    accepts - the exact drift the shared-helper design exists to prevent. The correct fix is at the level
    both seams share; raised as a separate follow-up. A NaN design flow can only arrive from an externally
    authored or deserialized model, since `SetSpaceDesignFlowRate` refuses one.
+4. **P2** (`5bff1327`) - the duplicate check returned from inside the resolution loop, so a target sitting
+   after the duplicate was never examined: its reason went unreported and the refusal sort was bypassed
+   entirely, making even a refused round's report order dependent. The loop now examines every target and
+   collects the duplicate refusals, once per room and direction, before returning.
+5. **P2** (`3b77b83b`) - a malformed target (NaN/negative rate, invalid direction, null or foreign space)
+   was dropped as merely "not optimisable" while the rest of the batch was applied - silently executing
+   part of a transaction. Malformed now refuses the round; only a coherent request the building cannot
+   answer is dropped, which is what `DesignAirFlowTargetRefusal` documents.
+6. **P2** - two dropped targets sharing a room, a direction and a reason (one bathroom asked for two
+   different supply figures, with no supply terminal to move for either) compared equal on the refusal
+   sort key, while the report prints the rate - so the same set could still read two ways. The requested
+   rate now breaks the last tie in `CompareTargetRefusals`. One test.
 
 ### Validation
 
 - `SAM.sln` builds clean; CI green on all three checks.
-- `SAM.Tests`: **1701 passed, 0 failed** (1671 baseline + 30 new in `PartODesignAirFlowRoundTests`).
+- `SAM.Tests`: **1702 passed, 0 failed** (1671 baseline + 31 new in `PartODesignAirFlowRoundTests`).
 - New tests cover A-K from the programme brief: order independence (model **and** report), a deliberate
   target never overwritten by the balancing allocation, targeted vs derived derived once, Part F floors,
   dwelling isolation, balance, combined capacity refusal, **a resolver clamp not adopted as a full round**,
