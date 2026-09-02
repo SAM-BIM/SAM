@@ -88,7 +88,7 @@ preserving).
 ### Validation
 
 - `SAM.sln` builds clean; CI green on all three checks.
-- `SAM.Tests`: **1696 passed, 0 failed** (1671 baseline + 25 new in `PartODesignAirFlowRoundTests`).
+- `SAM.Tests`: **1701 passed, 0 failed** (1671 baseline + 30 new in `PartODesignAirFlowRoundTests`).
 - New tests cover A-K from the programme brief: order independence (model **and** report), a deliberate
   target never overwritten by the balancing allocation, targeted vs derived derived once, Part F floors,
   dwelling isolation, balance, combined capacity refusal, **a resolver clamp not adopted as a full round**,

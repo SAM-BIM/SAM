@@ -14,6 +14,12 @@ namespace SAM.Analytical
     /// target is dropped, named, and the round goes on with the rest - and a caller that finds every target
     /// here knows it has nothing left to try.
     /// </para>
+    /// <para>
+    /// <b>Only a coherent request lands here.</b> A target that is not a design airflow at all - no room, a
+    /// direction that is neither supply nor extract, a rate that is not a finite non-negative number, or a
+    /// room that is not in the model - refuses the whole round instead. Dropping one of those and applying
+    /// the rest would execute part of a transaction the caller asked for as a whole.
+    /// </para>
     /// </summary>
     public class DesignAirFlowTargetRefusal
     {

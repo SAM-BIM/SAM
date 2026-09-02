@@ -686,6 +686,74 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// A request that is not a design airflow at all refuses the round - it is not merely dropped as
+        /// "not optimisable" while the rest of the batch is applied.
+        /// <para>
+        /// A room with no terminal to move is an engineering fact about the building and the round goes on
+        /// without it. A NaN rate, a direction that is neither supply nor extract, or a room that is not in
+        /// the model are none of those things: they are a caller asking for something incoherent, and
+        /// quietly doing the rest would simulate a design missing one of its deliberate targets while
+        /// reporting the round a success.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(-1)]
+        public void AMalformedRate_RefusesTheRoundRatherThanBeingDropped(double designFlowRate_Lps)
+        {
+            AdjacencyCluster adjacencyCluster = Fixture();
+
+            Dictionary<string, double> designs_Before = Designs(adjacencyCluster);
+
+            DesignAirFlowRoundCandidate candidate = Round(adjacencyCluster, [
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Extract, 27),
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Extract, designFlowRate_Lps)]);
+
+            Assert.False(candidate.IsAccepted);
+            Assert.Null(candidate.AdjacencyCluster);
+
+            //Refused, not dropped.
+            Assert.Empty(candidate.TargetRefusals);
+            Assert.Contains(candidate.Refusals, x => x.Contains("is not a design airflow"));
+
+            Assert.Equal(designs_Before, Designs(adjacencyCluster));
+        }
+
+        /// <summary>A direction that is neither supply nor extract is not a design airflow either.</summary>
+        [Fact]
+        public void AMalformedDirection_RefusesTheRound()
+        {
+            AdjacencyCluster adjacencyCluster = Fixture();
+
+            DesignAirFlowRoundCandidate candidate = Round(adjacencyCluster, [
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Extract, 27),
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Undefined, 13)]);
+
+            Assert.False(candidate.IsAccepted);
+            Assert.Empty(candidate.TargetRefusals);
+            Assert.Contains(candidate.Refusals, x => x.Contains("supply or extract"));
+        }
+
+        /// <summary>
+        /// And a room with no lever still only drops itself - the distinction this whole classification
+        /// exists to make.
+        /// </summary>
+        [Fact]
+        public void ARoomWithNoLever_StillOnlyDropsItself()
+        {
+            AdjacencyCluster adjacencyCluster = Fixture();
+
+            DesignAirFlowRoundCandidate candidate = Round(adjacencyCluster, [
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Extract, 27),
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Supply, 5)]);
+
+            Assert.True(candidate.IsAccepted);
+            Assert.Single(candidate.TargetRefusals);
+            Assert.Single(candidate.TargetedAdjustments);
+        }
+
+        /// <summary>
         /// A duplicate does not stop the round examining the rest of what it was given. The round is
         /// refused either way, but <b>what it says about why</b> has to be the same whichever way round the
         /// same set was handed over - an earlier revision returned on the first duplicate, so a target

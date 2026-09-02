@@ -188,13 +188,26 @@ namespace SAM.Analytical
             HashSet<string> keys_Target = [];
 
             //Collected rather than returned on, so EVERY target is still examined - see the loop below.
+            //Malformed requests and duplicates both land here; both refuse the round.
             HashSet<string> keys_Duplicate = [];
-            List<string> refusals_Duplicate = [];
+            List<string> refusals_Round = [];
 
             foreach (DesignAirFlowTarget designAirFlowTarget in designAirFlowTargets_Temp)
             {
-                if (!Resolve(adjacencyCluster_Candidate, designAirFlowTarget, out Space space_Target, out VentilationSystem ventilationSystem, out string refusal_Target))
+                if (!Resolve(adjacencyCluster_Candidate, designAirFlowTarget, out Space space_Target, out VentilationSystem ventilationSystem, out string refusal_Target, out bool malformed))
                 {
+                    if (malformed)
+                    {
+                        //NOT a dropped target. A room with no lever to move is an engineering fact about
+                        //the building and the round goes on without it; a request that is not a design
+                        //airflow at all - no room, no direction, not a number - is a caller that has asked
+                        //for something incoherent, and quietly doing the rest of what it asked for would
+                        //simulate a design missing one of its deliberate targets while reporting success.
+                        refusals_Round.Add(refusal_Target);
+
+                        continue;
+                    }
+
                     result.TargetRefusals.Add(new DesignAirFlowTargetRefusal(designAirFlowTarget, refusal_Target));
 
                     continue;
@@ -218,7 +231,7 @@ namespace SAM.Analytical
                     //the same terminal set three times has made one mistake, not two.
                     if (keys_Duplicate.Add(key))
                     {
-                        refusals_Duplicate.Add(string.Format(
+                        refusals_Round.Add(string.Format(
                             "Space '{0}' was given more than one deliberate {1} design airflow in the same optimisation round, so which one was meant is not knowable. State one target per room and direction. Nothing was changed.",
                             space_Target.Name,
                             Core.Query.Description(designAirFlowTarget.FlowClassification)));
@@ -245,13 +258,13 @@ namespace SAM.Analytical
             //enumerated, which is exactly what this operation promises does not happen.
             result.TargetRefusals.Sort(CompareTargetRefusals);
 
-            if (refusals_Duplicate.Count != 0)
+            if (refusals_Round.Count != 0)
             {
-                //Ordinally, for the same reason the target refusals are sorted: two rooms each stated twice
-                //must read the same whichever of them the caller listed first.
-                refusals_Duplicate.Sort(StringComparer.Ordinal);
+                //Ordinally, for the same reason the target refusals are sorted: the same set of incoherent
+                //requests must read the same whichever of them the caller listed first.
+                refusals_Round.Sort(StringComparer.Ordinal);
 
-                result.Refusals.AddRange(refusals_Duplicate);
+                result.Refusals.AddRange(refusals_Round);
 
                 return result;
             }
@@ -824,38 +837,51 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// The room and the dwelling one target names, or the reason it cannot be taken.
-        /// <para>
-        /// Everything refused here is a property of the TARGET rather than of the round - no room, no
-        /// design terminal on that side, terminals belonging to no system or to more than one. Those are
-        /// reported and the target dropped, because a room this optimisation has no lever on must not stop
-        /// every other failing room in the building. Creating a terminal is never an answer: it would size
-        /// a duty the Approved Document F assessment never asked for.
-        /// </para>
+        /// The room and the dwelling one target names, or the reason it cannot be taken - and, crucially,
+        /// <b>which kind of reason it is</b>.
+        ///
+        /// <para><b>Two different things are being told apart here</b></para>
+        /// <list type="bullet">
+        /// <item><b>No lever</b> (<paramref name="malformed"/> false). The request is coherent and the
+        /// building simply cannot answer it: the room has no design terminal on that side, or its terminals
+        /// belong to no ventilation system or to more than one. That is an engineering fact, the target is
+        /// dropped with its reason, and the round goes on without it - because a room this optimisation
+        /// cannot move must not stop every other failing room in the building. Creating a terminal is never
+        /// an answer: it would size a duty the Approved Document F assessment never asked for.</item>
+        /// <item><b>Malformed</b> (<paramref name="malformed"/> true). The request is not a design airflow
+        /// at all: no room, a direction that is neither supply nor extract, a rate that is not a finite
+        /// non-negative number, or a room that is not in this model. Dropping one of these and applying the
+        /// rest would execute part of a transaction the caller asked for as a whole - and, for an automatic
+        /// optimiser, would simulate a design quietly missing one of its deliberate targets while reporting
+        /// the round as a success. These refuse the round.</item>
+        /// </list>
         /// </summary>
-        private static bool Resolve(AdjacencyCluster adjacencyCluster, DesignAirFlowTarget designAirFlowTarget, out Space space, out VentilationSystem ventilationSystem, out string refusal)
+        /// <param name="malformed">Whether the request itself was incoherent, rather than the building
+        /// being unable to answer a coherent one.</param>
+        private static bool Resolve(AdjacencyCluster adjacencyCluster, DesignAirFlowTarget designAirFlowTarget, out Space space, out VentilationSystem ventilationSystem, out string refusal, out bool malformed)
         {
             space = null;
             ventilationSystem = null;
             refusal = null;
+            malformed = true;
 
             if (designAirFlowTarget.Space is null)
             {
-                refusal = "No space was named, so there is nothing to target.";
+                refusal = "An optimisation round was given a target naming no space at all, so there is nothing to target. Nothing was changed.";
 
                 return false;
             }
 
             if (designAirFlowTarget.FlowClassification != FlowClassification.Supply && designAirFlowTarget.FlowClassification != FlowClassification.Extract)
             {
-                refusal = string.Format("A design airflow has to be supply or extract, and '{0}' is neither.", Core.Query.Description(designAirFlowTarget.FlowClassification));
+                refusal = string.Format("Space '{0}': a design airflow has to be supply or extract, and '{1}' is neither. Nothing was changed.", designAirFlowTarget.SpaceName ?? "?", Core.Query.Description(designAirFlowTarget.FlowClassification));
 
                 return false;
             }
 
             if (double.IsNaN(designAirFlowTarget.DesignFlowRate_Lps) || double.IsInfinity(designAirFlowTarget.DesignFlowRate_Lps) || designAirFlowTarget.DesignFlowRate_Lps < 0)
             {
-                refusal = string.Format("{0} l/s is not a design airflow - it has to be a finite, non-negative number of litres per second.", designAirFlowTarget.DesignFlowRate_Lps);
+                refusal = string.Format("Space '{0}': {1} l/s is not a design airflow - it has to be a finite, non-negative number of litres per second. Nothing was changed.", designAirFlowTarget.SpaceName ?? "?", designAirFlowTarget.DesignFlowRate_Lps);
 
                 return false;
             }
@@ -866,10 +892,14 @@ namespace SAM.Analytical
             space = (adjacencyCluster.GetSpaces() ?? []).Find(x => x is not null && x.Guid == designAirFlowTarget.SpaceGuid);
             if (space is null)
             {
-                refusal = string.Format("Space '{0}' is not in the model.", designAirFlowTarget.SpaceName ?? "?");
+                refusal = string.Format("Space '{0}' is not in the model being optimised, so a round cannot target it. Nothing was changed.", designAirFlowTarget.SpaceName ?? "?");
 
                 return false;
             }
+
+            //From here the request is coherent: anything that refuses below is the building unable to
+            //answer it, which drops the target rather than the round.
+            malformed = false;
 
             //The SAME resolution a single manual change makes, through the room's own terminals rather than
             //through any zone or unit ownership - so an air handling unit serving more than one system, or
