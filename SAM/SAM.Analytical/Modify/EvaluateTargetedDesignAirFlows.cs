@@ -187,6 +187,10 @@ namespace SAM.Analytical
             Dictionary<Guid, List<DesignAirFlowTarget>> dictionary_Target = [];
             HashSet<string> keys_Target = [];
 
+            //Collected rather than returned on, so EVERY target is still examined - see the loop below.
+            HashSet<string> keys_Duplicate = [];
+            List<string> refusals_Duplicate = [];
+
             foreach (DesignAirFlowTarget designAirFlowTarget in designAirFlowTargets_Temp)
             {
                 if (!Resolve(adjacencyCluster_Candidate, designAirFlowTarget, out Space space_Target, out VentilationSystem ventilationSystem, out string refusal_Target))
@@ -200,14 +204,27 @@ namespace SAM.Analytical
                 //not an ordering problem this operation can settle deterministically - it is a caller that
                 //has not decided, and guessing between them would be the exact silent behaviour a round
                 //exists to remove.
-                if (!keys_Target.Add(string.Format("{0}|{1}", space_Target.Guid, designAirFlowTarget.FlowClassification)))
-                {
-                    result.Refusals.Add(string.Format(
-                        "Space '{0}' was given more than one deliberate {1} design airflow in the same optimisation round, so which one was meant is not knowable. State one target per room and direction. Nothing was changed.",
-                        space_Target.Name,
-                        Core.Query.Description(designAirFlowTarget.FlowClassification)));
+                string key = string.Format("{0}|{1}", space_Target.Guid, designAirFlowTarget.FlowClassification);
 
-                    return result;
+                if (!keys_Target.Add(key))
+                {
+                    //Recorded and the loop CONTINUES, rather than returning here. Returning made even the
+                    //refused round's report depend on the order its targets arrived in - a target that
+                    //happened to sit after the duplicate was never examined, so its reason went unreported
+                    //and the sort below was skipped altogether. The round is refused either way; what it
+                    //says about why has to be the same whichever way round the same set was handed over.
+                    //
+                    //Once per room and direction, however many times it was repeated: a caller that stated
+                    //the same terminal set three times has made one mistake, not two.
+                    if (keys_Duplicate.Add(key))
+                    {
+                        refusals_Duplicate.Add(string.Format(
+                            "Space '{0}' was given more than one deliberate {1} design airflow in the same optimisation round, so which one was meant is not knowable. State one target per room and direction. Nothing was changed.",
+                            space_Target.Name,
+                            Core.Query.Description(designAirFlowTarget.FlowClassification)));
+                    }
+
+                    continue;
                 }
 
                 dictionary_VentilationSystem[ventilationSystem.Guid] = ventilationSystem;
@@ -227,6 +244,17 @@ namespace SAM.Analytical
             //that way would mean the same failing set read differently depending on how it happened to be
             //enumerated, which is exactly what this operation promises does not happen.
             result.TargetRefusals.Sort(CompareTargetRefusals);
+
+            if (refusals_Duplicate.Count != 0)
+            {
+                //Ordinally, for the same reason the target refusals are sorted: two rooms each stated twice
+                //must read the same whichever of them the caller listed first.
+                refusals_Duplicate.Sort(StringComparer.Ordinal);
+
+                result.Refusals.AddRange(refusals_Duplicate);
+
+                return result;
+            }
 
             if (dictionary_Target.Count == 0)
             {

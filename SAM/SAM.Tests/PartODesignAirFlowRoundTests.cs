@@ -686,6 +686,63 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// A duplicate does not stop the round examining the rest of what it was given. The round is
+        /// refused either way, but <b>what it says about why</b> has to be the same whichever way round the
+        /// same set was handed over - an earlier revision returned on the first duplicate, so a target
+        /// sitting after it went unexamined and unreported.
+        /// </summary>
+        [Fact]
+        public void ADuplicateTarget_DoesNotHideTheOtherTargetsReasons()
+        {
+            AdjacencyCluster adjacencyCluster = Fixture();
+
+            DesignAirFlowRoundCandidate candidate_Forward = Round(adjacencyCluster, [
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Supply, 5),
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Extract, 27),
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Extract, 30),
+                Target(adjacencyCluster, Name(name_Bathroom, 2), FlowClassification.Supply, 5)]);
+
+            DesignAirFlowRoundCandidate candidate_Reversed = Round(adjacencyCluster, [
+                Target(adjacencyCluster, Name(name_Bathroom, 2), FlowClassification.Supply, 5),
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Extract, 30),
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Extract, 27),
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Supply, 5)]);
+
+            Assert.False(candidate_Forward.IsAccepted);
+            Assert.False(candidate_Reversed.IsAccepted);
+
+            //Both wet rooms were examined and both reasons reported, whichever side of the duplicate they
+            //were listed on.
+            Assert.Equal(2, candidate_Forward.TargetRefusals.Count);
+
+            Assert.Equal(
+                candidate_Forward.TargetRefusals.ConvertAll(x => x.ToString()),
+                candidate_Reversed.TargetRefusals.ConvertAll(x => x.ToString()));
+
+            //And the duplicate is stated once, identically.
+            Assert.Equal(candidate_Forward.Refusals, candidate_Reversed.Refusals);
+            Assert.Contains(candidate_Forward.Refusals, x => x.Contains("more than one deliberate"));
+        }
+
+        /// <summary>
+        /// A room stated three times is one mistake, not two.
+        /// </summary>
+        [Fact]
+        public void ATargetRepeatedThreeTimes_IsReportedOnce()
+        {
+            AdjacencyCluster adjacencyCluster = Fixture();
+
+            DesignAirFlowRoundCandidate candidate = Round(adjacencyCluster, [
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Extract, 27),
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Extract, 30),
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Extract, 32)]);
+
+            Assert.False(candidate.IsAccepted);
+
+            Assert.Single(candidate.Refusals, x => x.Contains("more than one deliberate"));
+        }
+
+        /// <summary>
         /// A round writes design airflow and nothing else - no runtime or operating airflow, which stays
         /// entirely a matter for re-preparing the iteration. This is the Iteration 3 boundary, pinned.
         /// </summary>
