@@ -3537,7 +3537,9 @@ namespace SAM.Tests
         // O. Iteration 2B - the AUTOMATIC Grasshopper seam. SAMAnalytical.ResolveTargetedDesignAirFlow.
         //    Region M pins the clamp itself, on AdjacencyCluster. These pin what the COMPONENT adds on top
         //    of it and nothing else: which model comes out of an accepted answer, which comes out of a
-        //    refused one, and that neither is ever the caller's own.
+        //    refused one, and that neither carries a design the caller did not get. An accepted answer
+        //    hands out a NEW model; a refused one deliberately hands back the caller's own, unchanged,
+        //    rather than manufacturing a copy of a design that was never applied.
         //
         //    Why these test library calls and not the Grasshopper component. SAM.Tests references no
         //    Grasshopper assembly, so ResolvedModel below performs the same steps, in the same order, that
