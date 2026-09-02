@@ -1,25 +1,125 @@
 # Project Progress
 
 ## Branch
-`feature/parto-iteration2-gh-targeted-design-airflow`, based on `sow/2026-Q3` at **`bb82865a`** - the merge
-of PR #83 (Grasshopper Seam 1). Raised as a PR against `sow/2026-Q3`. **Not merged yet** - see "Latest"
-below.
+`feature/parto-iteration2b-design-airflow-round`, branched from `sow/2026-Q3` at **`0ae4b929`**
+(the merge of PR #87). Pushed; **PR #88** open against `sow/2026-Q3`, **not merged**. All three checks
+green (`build (Release)`, `test (Release)`, `spdx`).
 
-Grasshopper Seam 1 itself is **merged** (PR #83, merge commit `bb82865a`), alongside its companion
-`SAM-BIM/SAM_Systems` PR #17 (merge commit `a57e797`).
+**Companion: `SAM-BIM/SAM_UI` PR #77**, which orchestrates the automatic Iteration 2B loop over this
+round. **This PR must merge first** - SAM_UI #77 does not compile without
+`Modify.EvaluateTargetedDesignAirFlows`.
 
-**No `SAM-BIM/SAM_Systems` companion change for Seam 2.** The catalogue reader Seam 1 already exposed is
-reused as-is - `VentilationUnitCapacityDescriptor[]` is the only thing this stage needs from SAM_Systems,
-and it already flows through the Grasshopper canvas. See "Latest" for why no SAM_Systems production change
-was needed.
+No `SAM_Systems` or `SAM_Tas` change - neither was touched.
 
-Everything below "Latest" up to the next dated heading is superseded history retained for context; older
-history follows further down.
+Everything below "Latest (2026-09-01)" is superseded history retained for context.
 
 ## Last updated
-2026-09-01 - Approved Document O Iterations 1a, 1b and 2 accepted on a licensed three-route TAS run, with
-the overheating result taken through the production `Tas.TSDQueryTM59Results` query path. Documentation
-only; no production code changed.
+2026-09-02 - the deterministic multi-target Approved Document O design airflow optimisation round, plus five
+Codex review fixes.
+
+## Latest (2026-09-02): the Iteration 2B design airflow optimisation round
+
+**Status: implemented, tested, and exercised end to end on the licensed future-weather acceptance through
+SAM_UI #77.**
+
+### Why it was needed
+
+Iteration 2B raises several failing rooms at once. Every existing seam here is strictly one room and one
+direction - `ApplyTargetedDesignAirFlow`, `EvaluateTargetedDesignAirFlow`, `ResolveTargetedDesignAirFlow` -
+and sequencing them is order dependent twice over:
+
+1. each rebalance moves the rooms the next allocation is computed across, so a different design comes out
+   of each ordering, and the ordering is whatever order the assessment results came back in;
+2. under `MinimumFirstCookingPriority` the derived extract lands on the local kitchen extract - the very
+   room the next deliberate target is about to set.
+
+### What was added
+
+`Modify.EvaluateTargetedDesignAirFlows`, with `DesignAirFlowTarget`, `DwellingDesignAirFlowRound`,
+`DesignAirFlowRoundCandidate` and `DesignAirFlowTargetRefusal`.
+
+Per dwelling, with `cS` / `cE` the total deliberate change on each side:
+
+```
+only supply targeted    m = cS
+only extract targeted   m = cE
+both sides targeted     m = max(cS, cE)
+derived on each side    = m - c(side), allocated ONLY over rooms nobody targeted on that side
+```
+
+`max` is the only choice that never writes a deliberately requested room back down, and it makes every
+derived change in the both-sides case an increase, so no Part F floor can be approached by it. Targets sort
+by `(SpaceGuid, FlowClassification)` and systems by Guid, so the answer is a function of the **set** of
+targets.
+
+- **Never clamps.** Every target gets exactly the figure asked for, or the whole round is refused with no
+  model. `ResolveTargetedDesignAirFlow` still clamps and is **unchanged**.
+- **Equipment is a constraint, never a variable.** Nothing is ever reselected.
+- **Design airflow only** - no requirement, transfer path, AHU duty or runtime airflow is written.
+- **No dwelling-to-unit ownership assumed.**
+
+### The engineering is borrowed, not reimplemented
+
+The operation is a **sibling of `ApplyTargetedDesignAirFlow` in the same partial class** and calls the same
+private helpers - `VentilationSystem`, `TerminalsOfSystem`, `Allocate`, `IsRedistributable`,
+`SetSpaceDesignFlowRate` - plus `ReconcileVentilationSystemDesignDuty` and the capacity verdict extracted
+from `EvaluateTargetedDesignAirFlow`'s own check into a shared core. **Not one Part F, balancing or
+capacity equation is restated.** The only change to existing code is that extraction (+97/-23, behaviour
+preserving).
+
+### Review findings addressed (Codex, PR #88)
+
+1. **P1** (`0a6cb6fa`) - the capacity check ran inside the per-system loop, so a unit shared by two
+   targeted systems was judged on a state that never existed: one system rising 10 l/s and another falling
+   10 l/s had the first checked 10 l/s above where the round leaves it, refusing a round that fits the
+   rating exactly, and accepted cases reported stale headroom. Moved to a second pass,
+   `ValidateVentilationUnits`, run after every dwelling is written and **once per unit**; dwellings sharing
+   a unit share its verdict and its refusal. Two tests.
+2. **P2** (`5740a590`) - `TargetRefusals` were appended in the caller's enumeration order and never sorted,
+   so the same unoptimisable set read differently depending on enumeration - contradicting this operation's
+   own stated order independence. Now sorted on the same key, with the reason breaking a tie. One test.
+3. **P2 - DECLINED with reasons.** Validating terminal quantities across every room of a touched system,
+   not only the rooms the round writes. The observation is accurate, but `ApplyTargetedDesignAirFlow`
+   validates the same narrow set, and widening only the round would make it refuse dwellings a manual edit
+   accepts - the exact drift the shared-helper design exists to prevent. The correct fix is at the level
+   both seams share; raised as a separate follow-up. A NaN design flow can only arrive from an externally
+   authored or deserialized model, since `SetSpaceDesignFlowRate` refuses one.
+4. **P2** (`5bff1327`) - the duplicate check returned from inside the resolution loop, so a target sitting
+   after the duplicate was never examined: its reason went unreported and the refusal sort was bypassed
+   entirely, making even a refused round's report order dependent. The loop now examines every target and
+   collects the duplicate refusals, once per room and direction, before returning.
+5. **P2** (`3b77b83b`) - a malformed target (NaN/negative rate, invalid direction, null or foreign space)
+   was dropped as merely "not optimisable" while the rest of the batch was applied - silently executing
+   part of a transaction. Malformed now refuses the round; only a coherent request the building cannot
+   answer is dropped, which is what `DesignAirFlowTargetRefusal` documents.
+6. **P2** - two dropped targets sharing a room, a direction and a reason (one bathroom asked for two
+   different supply figures, with no supply terminal to move for either) compared equal on the refusal
+   sort key, while the report prints the rate - so the same set could still read two ways. The requested
+   rate now breaks the last tie in `CompareTargetRefusals`. One test.
+
+### Validation
+
+- `SAM.sln` builds clean; CI green on all three checks.
+- `SAM.Tests`: **1702 passed, 0 failed** (1671 baseline + 31 new in `PartODesignAirFlowRoundTests`).
+- New tests cover A-K from the programme brief: order independence (model **and** report), a deliberate
+  target never overwritten by the balancing allocation, targeted vs derived derived once, Part F floors,
+  dwelling isolation, balance, combined capacity refusal, **a resolver clamp not adopted as a full round**,
+  the last valid model surviving a capacity refusal exactly, the explicit not-optimisable answer, mixed
+  targets that balance directly deriving nothing, no room becoming a target by being moved, shared-unit
+  judgement, and refusal ordering.
+- Licensed acceptance through SAM_UI #77 on `SAM_zoningAM-CIBSEfutureZ1.sam`: round 1 produced exactly the
+  intended targets and derived consequences; at round 9 Flats 2 and 3 were refused at 153/153 against
+  150/150 with the product unchanged.
+
+### Issues / blockers
+
+- None blocking. One declined finding above, raised as a follow-up.
+- The parked manual-seam defect (`ApplyTargetedDesignAirFlow` ventilation-unit reselection leaking onto the
+  caller's `AnalyticalModel`) remains untouched and outstanding.
+
+### Next step
+
+- Merge this PR, then `SAM-BIM/SAM_UI` #77.
 
 ## Latest (2026-09-01): Iteration 1a / 1b / 2 licensed acceptance - ACCEPTED
 

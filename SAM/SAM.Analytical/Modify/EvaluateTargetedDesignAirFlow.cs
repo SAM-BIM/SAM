@@ -169,38 +169,37 @@ namespace SAM.Analytical
         /// </summary>
         private static bool IsWithinSelectedVentilationUnit(AdjacencyCluster adjacencyCluster, AirHandlingUnit airHandlingUnit, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, DwellingDesignAirFlowCandidate result, double tolerance_Lps)
         {
-            if (ventilationUnitCapacityDescriptors is null || airHandlingUnit is null || airHandlingUnit.SelectedVentilationUnitReference() is null)
-            {
-                //Outcome stays NotApplicable.
-                return true;
-            }
+            bool sufficient = IsWithinSelectedVentilationUnit(
+                adjacencyCluster,
+                airHandlingUnit,
+                ventilationUnitCapacityDescriptors,
+                tolerance_Lps,
+                out VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor,
+                out VentilationUnitSelectionOutcome ventilationUnitSelectionOutcome,
+                out string reason,
+                out double supplyHeadroom_Lps,
+                out double extractHeadroom_Lps,
+                out string note);
 
-            result.VentilationUnitCapacityDescriptor = airHandlingUnit.SelectedVentilationUnitCapacityDescriptor(ventilationUnitCapacityDescriptors);
-
-            //Recorded whatever the verdict, so a refused candidate can still say how far past the unit it
-            //went rather than only that it did. Negative where the candidate exceeds the rating.
-            if (result.VentilationUnitCapacityDescriptor is not null && adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit, out double supplyDuty_Lps, out double extractDuty_Lps))
-            {
-                result.SupplyHeadroom_Lps = result.VentilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps - supplyDuty_Lps;
-                result.ExtractHeadroom_Lps = result.VentilationUnitCapacityDescriptor.MaximumExtractFlowRate_Lps - extractDuty_Lps;
-            }
-
-            if (adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, ventilationUnitCapacityDescriptors, out string reason, tolerance_Lps))
-            {
-                result.VentilationUnitSelectionOutcome = VentilationUnitSelectionOutcome.Kept;
-
-                result.Notes.Add(string.Format(
-                    "Air handling unit '{0}' keeps its selected product '{1}': the candidate's design duty is within its rating, leaving {2:0.###} l/s supply and {3:0.###} l/s extract of headroom - which is reported and deliberately not spent.",
-                    airHandlingUnit.Name,
-                    result.VentilationUnitReference,
-                    result.SupplyHeadroom_Lps,
-                    result.ExtractHeadroom_Lps));
-
-                return true;
-            }
-
-            result.VentilationUnitSelectionOutcome = VentilationUnitSelectionOutcome.Refused;
+            result.VentilationUnitCapacityDescriptor = ventilationUnitCapacityDescriptor;
+            result.VentilationUnitSelectionOutcome = ventilationUnitSelectionOutcome;
             result.VentilationUnitSelectionReason = reason;
+
+            if (!double.IsNaN(supplyHeadroom_Lps))
+            {
+                result.SupplyHeadroom_Lps = supplyHeadroom_Lps;
+                result.ExtractHeadroom_Lps = extractHeadroom_Lps;
+            }
+
+            if (sufficient)
+            {
+                if (note is not null)
+                {
+                    result.Notes.Add(note);
+                }
+
+                return true;
+            }
 
             //Added to Refusals, which is exactly where the manual seam deliberately does NOT put it. A
             //manual edit has already committed by this point and an equipment gap is reported beside it; a
@@ -212,6 +211,81 @@ namespace SAM.Analytical
                 result.ExtractDuty_After_Lps));
 
             return false;
+        }
+
+        /// <summary>
+        /// The capacity verdict itself, with nowhere to write it - so a single candidate and a whole
+        /// optimisation round can ask the same question and cannot get different answers to it.
+        /// <para>
+        /// Composed from <see cref="Query.IsVentilationUnitSufficient"/> and
+        /// <see cref="Query.SelectedVentilationUnitCapacityDescriptor"/> rather than reimplemented, which is
+        /// what keeps the conservative cases those already settle: an unknown capacity is a refusal rather
+        /// than a pass, and a unit with no duty to speak of is not adequate by default.
+        /// </para>
+        /// <para>
+        /// <b>Not applicable is not a refusal.</b> No catalogue, no unit, or nothing ever selected all mean
+        /// equipment is simply not a constraint here, and the answer is true with the outcome left at
+        /// <see cref="VentilationUnitSelectionOutcome.NotApplicable"/>.
+        /// </para>
+        /// <para>
+        /// <b>Nothing is ever reselected.</b> The catalogue is read for the SELECTED product's rating and
+        /// for nothing else.
+        /// </para>
+        /// </summary>
+        /// <param name="supplyHeadroom_Lps">The rating less the duty, recorded whatever the verdict so a
+        /// refusal can say how far past the unit it went. Negative where it is past. NaN where the capacity
+        /// is not known.</param>
+        /// <param name="note">The sentence to record on a kept unit, or null where equipment was not a
+        /// constraint. Never written on a refusal - the caller words that itself, in its own terms.</param>
+        private static bool IsWithinSelectedVentilationUnit(
+            AdjacencyCluster adjacencyCluster,
+            AirHandlingUnit airHandlingUnit,
+            IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors,
+            double tolerance_Lps,
+            out VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor,
+            out VentilationUnitSelectionOutcome ventilationUnitSelectionOutcome,
+            out string reason,
+            out double supplyHeadroom_Lps,
+            out double extractHeadroom_Lps,
+            out string note)
+        {
+            ventilationUnitCapacityDescriptor = null;
+            ventilationUnitSelectionOutcome = VentilationUnitSelectionOutcome.NotApplicable;
+            reason = null;
+            supplyHeadroom_Lps = double.NaN;
+            extractHeadroom_Lps = double.NaN;
+            note = null;
+
+            if (ventilationUnitCapacityDescriptors is null || airHandlingUnit is null || airHandlingUnit.SelectedVentilationUnitReference() is null)
+            {
+                return true;
+            }
+
+            ventilationUnitCapacityDescriptor = airHandlingUnit.SelectedVentilationUnitCapacityDescriptor(ventilationUnitCapacityDescriptors);
+
+            if (ventilationUnitCapacityDescriptor is not null && adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit, out double supplyDuty_Lps, out double extractDuty_Lps))
+            {
+                supplyHeadroom_Lps = ventilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps - supplyDuty_Lps;
+                extractHeadroom_Lps = ventilationUnitCapacityDescriptor.MaximumExtractFlowRate_Lps - extractDuty_Lps;
+            }
+
+            if (!adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, ventilationUnitCapacityDescriptors, out reason, tolerance_Lps))
+            {
+                ventilationUnitSelectionOutcome = VentilationUnitSelectionOutcome.Refused;
+
+                return false;
+            }
+
+            ventilationUnitSelectionOutcome = VentilationUnitSelectionOutcome.Kept;
+
+            note = string.Format(
+                "Air handling unit '{0}' keeps its selected product '{1}': the candidate's design duty is within its rating, leaving {2:0.###} l/s supply and {3:0.###} l/s extract of headroom - which is reported and deliberately not spent.",
+                airHandlingUnit.Name,
+                airHandlingUnit.SelectedVentilationUnitReference(),
+                supplyHeadroom_Lps,
+                extractHeadroom_Lps);
+
+            return true;
         }
     }
 }
