@@ -1,17 +1,131 @@
 # Project Progress
 
 ## Branch
-`feature/parto-manual-seam-reselection-containment`, branched from `sow/2026-Q3` at **`5f701a2e`**
-(the merge of PR #88).
+`feature/parto-iteration2b-capacity-envelope`, branched from `sow/2026-Q3` at **`e20b34f6`**
+(the merge of PR #89, itself on top of PR #88's merge `5f701a2e`).
 
 No `SAM_Systems` or `SAM_Tas` change - neither was touched.
 
-Everything below "Latest (2026-09-01)" is superseded history retained for context.
+Everything below "Latest (2026-09-02): the selected-equipment capacity envelope" is superseded history
+retained for context.
 
 ## Last updated
-2026-09-02 - the manual seam's reselection no longer leaks onto the model the cluster came from.
+2026-09-02 - the diagnostic selected-equipment capacity envelope for Iteration 2B.
 
-## Latest (2026-09-02): a reselection stays inside the cluster it was handed
+## Latest (2026-09-02): the selected-equipment capacity envelope
+
+**Status: implemented and tested; PR open against `sow/2026-Q3`.**
+
+### Why it was needed
+
+The ordinary Iteration 2B optimisation is all-or-nothing at a fixed +5 l/s step, and that is right: an
+automatic optimiser running fixed steps must not adopt three fifths of one and simulate it as though it
+were the step. So the run stops - on `CapacityReached`, or on the iteration guard - with eligible rooms
+still failing TM59, and the engineer's next question is a different one: **not** "can this design take
+another whole step?" but "what is the best this dwelling and the unit I have already bought could do?".
+
+That question cannot be answered by weakening the round. It is answered by a separate operation producing
+a separate, clearly diagnostic model.
+
+### What was added
+
+`Modify.EvaluateDesignAirFlowCapacityEnvelope` - one coherent scaling of the deliberate target vector the
+ordinary policy would currently have asked for, per **serving equipment group**, taken to the point where
+the first selected-equipment capacity constraint binds.
+
+- **The increments are scaled, not the airflows.** Each target becomes
+  `before + scale * (planned - before)`, so a kitchen and an ensuite each asked for +5 l/s with 7 l/s of
+  unit headroom left come out at +3.5 and +3.5 - and the balancing supply moves the matching +7, derived
+  **once**, by `EvaluateTargetedDesignAirFlows`. Nothing is allocated by arrival order.
+- **The group is the air handling unit, not the dwelling.** The scale is solved against
+  `Query.AirHandlingUnitDesignDuty`, which sums every system a unit supplies, so two flats sharing one unit
+  share one ceiling and one factor. No dwelling-to-unit ownership is assumed and nothing is inferred from a
+  name.
+- **Analytical, then confirmed.** A round moves a balanced dwelling by a single amount `m` that is
+  positively homogeneous in the scale, so the ceiling is at exactly `headroom / M` on whichever side of the
+  rating is tighter - a division, not a search. The round is then evaluated once at it. Only where that is
+  refused for a reason which is *not* capacity does a bounded, monotonic, deterministic bisection retreat
+  within the same interval, and the retreat is recorded on the group.
+- **Not capped at one step.** Where the iteration guard stopped the run with capacity to spare the scale
+  goes past 1. The bound is selected-equipment feasibility, never `scale <= 1`.
+- **The headroom is not stretched by the tolerance.** Comparisons accept a duty a tolerance past the
+  rating; an envelope deliberately does not spend that.
+- **Every "no" is its own stated outcome.** `DesignAirFlowCapacityEnvelopeOutcome` -
+  `Scaled` / `NoHeadroom` / `NoTargets` / `CapacityUnresolved` / `Refused` - with a sentence per group and
+  overall. A null catalogue is `CapacityUnresolved` here rather than the backward-compatible "equipment is
+  no constraint" it means elsewhere: an unknown ceiling is never an unlimited one.
+
+### What it deliberately does not do
+
+- It **never** weakens the ordinary round. `EvaluateTargetedDesignAirFlows` is unchanged, still refuses a
+  partial step, and is the authority the envelope delegates every balancing, Approved Document F and
+  capacity decision to.
+- It **never** reselects equipment, writes a Part F requirement, or touches an operating, profile or
+  runtime airflow - so nothing here is Iteration 3 behaviour.
+- It **never** modifies the model it was handed. The analytical value plus a possible bisection means the
+  source design is read many times and written to never, so no search state accumulates and the same input
+  always gives the same answer.
+- `DesignAirFlowCapacityEnvelope.AdjacencyCluster` is a model to **look at**. It is not the accepted design
+  and must never become a later round's baseline.
+
+### Files
+
+| File | Change |
+| --- | --- |
+| `SAM/SAM.Analytical/Modify/EvaluateDesignAirFlowCapacityEnvelope.cs` | New - the envelope authority. |
+| `SAM/SAM.Analytical/Classes/System/DesignAirFlowCapacityEnvelope.cs` | New - the whole diagnostic result. |
+| `SAM/SAM.Analytical/Classes/System/DesignAirFlowCapacityEnvelopeGroup.cs` | New - one equipment group's share. |
+| `SAM/SAM.Analytical/Enums/DesignAirFlowCapacityEnvelopeOutcome.cs` | New - the stated outcomes. |
+| `SAM/SAM.Tests/PartOCapacityEnvelopeTests.cs` | New - 24 focused tests. |
+
+### Validation
+
+- `SAM.sln` builds clean; `SAM.Analytical` builds clean in Release too.
+- `SAM.Tests`: **1734 passed, 0 failed** (1703 post-#89 baseline + 31 new).
+- The 24 new tests cover: headroom below one whole round; proportional scaling with equal and with unequal
+  increments; headroom above one step; a vector far past the rating never producing a design past it;
+  shared equipment judged on its whole duty; separate units each at their own factor; order independence of
+  design, adjustments and report; targeted and derived kept apart; a balancing-only room never promoted to
+  a target; Part F requirements unchanged; no runtime airflow written; the product never reselected; the
+  source design untouched and repeat runs identical; no targets at all; a dropped target with no lever;
+  zero headroom, negative headroom, and a vector that moves no duty; no catalogue, nothing selected, and a
+  selection not on offer; a malformed vector refused rather than partly scaled; an unbalanced dwelling
+  refused rather than repaired.
+
+### Review findings addressed (Codex, PR #90)
+
+1. **P2** - a catalogue entry that *exists* but states a negative or non-finite maximum passed the
+   null-only descriptor check, and the arithmetic then turned it into the **wrong** answer rather than no
+   answer: a NaN maximum gives a NaN headroom and a negative one gives a negative headroom, and both fell
+   into the no-headroom branch - reporting a malformed catalogue as a perfectly good unit with nothing left
+   to give. Now asked through `VentilationUnitCapacityDescriptor.IsValid`, so what "a usable capacity"
+   means cannot drift from what selection means by it, and answered `CapacityUnresolved`: an unknown
+   capacity is neither an unlimited one nor an exhausted one.
+   <br>A rated maximum of **zero** is deliberately NOT caught by this - `IsUsable` says zero is valid and
+   simply never sufficient - so it stays `NoHeadroom`, which is the honest answer for a unit that genuinely
+   cannot carry anything. Both are pinned.
+2. **P2** - the deterministic retreat started from zero, discarding the fact that the measuring round had
+   already accepted this very vector at scale 1. A ceiling above 1 means the rating permits that step too,
+   so the retreat is now **seeded** from it: it can no longer answer with less than one ordinary step, nor
+   refuse a group whose full step is demonstrably fine.
+3. **P2** - a retreat left `BindingFlowClassification` set to the capacity side chosen by the analytical
+   calculation, so a group stopped by an Approved Document F floor reported supply or extract as binding
+   while still holding substantial headroom - telling an engineer to buy a bigger unit that would not help.
+   Cleared on retreat, and the reason and note now say the product is **not** what limits that group.
+   `Scale_Capacity` standing above `Scale` is the evidence. A group that really does reach its rating still
+   names the side, and that is pinned too.
+
+### Issues / blockers
+
+- None known.
+
+### Next step
+
+- SAM_UI's Iteration 2B orchestration calls this after its own terminal condition, gives the result its own
+  `-OptMax` TSD identity, and keeps it apart from the last ordinary accepted design.
+- Task 2, the canonical-TBD TAS warm-start, is a separate deliverable and a separate PR.
+
+## Superseded (2026-09-02): a reselection stays inside the cluster it was handed - merged as PR #89
 
 **Status: implemented and tested; PR open against `sow/2026-Q3`.**
 
