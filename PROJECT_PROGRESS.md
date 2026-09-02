@@ -81,7 +81,7 @@ the first selected-equipment capacity constraint binds.
 ### Validation
 
 - `SAM.sln` builds clean; `SAM.Analytical` builds clean in Release too.
-- `SAM.Tests`: **1727 passed, 0 failed** (1703 post-#89 baseline + 24 new).
+- `SAM.Tests`: **1731 passed, 0 failed** (1703 post-#89 baseline + 28 new).
 - The 24 new tests cover: headroom below one whole round; proportional scaling with equal and with unequal
   increments; headroom above one step; a vector far past the rating never producing a design past it;
   shared equipment judged on its whole duty; separate units each at their own factor; order independence of
@@ -91,6 +91,19 @@ the first selected-equipment capacity constraint binds.
   zero headroom, negative headroom, and a vector that moves no duty; no catalogue, nothing selected, and a
   selection not on offer; a malformed vector refused rather than partly scaled; an unbalanced dwelling
   refused rather than repaired.
+
+### Review findings addressed (Codex, PR #90)
+
+1. **P2** - a catalogue entry that *exists* but states a negative or non-finite maximum passed the
+   null-only descriptor check, and the arithmetic then turned it into the **wrong** answer rather than no
+   answer: a NaN maximum gives a NaN headroom and a negative one gives a negative headroom, and both fell
+   into the no-headroom branch - reporting a malformed catalogue as a perfectly good unit with nothing left
+   to give. Now asked through `VentilationUnitCapacityDescriptor.IsValid`, so what "a usable capacity"
+   means cannot drift from what selection means by it, and answered `CapacityUnresolved`: an unknown
+   capacity is neither an unlimited one nor an exhausted one.
+   <br>A rated maximum of **zero** is deliberately NOT caught by this - `IsUsable` says zero is valid and
+   simply never sufficient - so it stays `NoHeadroom`, which is the honest answer for a unit that genuinely
+   cannot carry anything. Both are pinned.
 
 ### Issues / blockers
 

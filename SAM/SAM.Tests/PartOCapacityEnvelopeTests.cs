@@ -669,6 +669,76 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// A catalogue entry that <b>exists</b> but does not state a usable capacity - a negative or
+        /// non-finite maximum - is an <b>unknown</b> ceiling, not an exhausted one.
+        /// <para>
+        /// This is the sharper half of "an unknown capacity is never an unlimited one": left to the
+        /// arithmetic, a NaN maximum gives a NaN headroom and a negative one gives a negative headroom, and
+        /// both would fall into the no-headroom branch - reporting a malformed catalogue as a perfectly good
+        /// unit with nothing left to give, which is a far more convincing wrong answer than no answer.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(-1)]
+        public void ASelectedProductWithNoUsableCapacity_IsUnresolvedRatherThanExhausted(double maximum_Lps)
+        {
+            AdjacencyCluster adjacencyCluster = Fixture(100, out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            //The SAME product identity the unit is selected as, offered with a capacity that is not one.
+            DesignAirFlowCapacityEnvelope designAirFlowCapacityEnvelope = Envelope(adjacencyCluster, Step(adjacencyCluster), [
+                new VentilationUnitCapacityDescriptor(ventilationUnitCapacityDescriptors[0].VentilationUnitReference, maximum_Lps, maximum_Lps, 0)]);
+
+            Assert.Equal(DesignAirFlowCapacityEnvelopeOutcome.CapacityUnresolved, designAirFlowCapacityEnvelope.Outcome);
+            Assert.Null(designAirFlowCapacityEnvelope.AdjacencyCluster);
+
+            DesignAirFlowCapacityEnvelopeGroup designAirFlowCapacityEnvelopeGroup = Assert.Single(designAirFlowCapacityEnvelope.Groups);
+
+            Assert.Equal(DesignAirFlowCapacityEnvelopeOutcome.CapacityUnresolved, designAirFlowCapacityEnvelopeGroup.Outcome);
+
+            //NOT NoHeadroom, which is what the arithmetic alone would have said - and never a scale.
+            Assert.NotEqual(DesignAirFlowCapacityEnvelopeOutcome.NoHeadroom, designAirFlowCapacityEnvelopeGroup.Outcome);
+            Assert.True(double.IsNaN(designAirFlowCapacityEnvelopeGroup.Scale));
+
+            //The descriptor IS resolved - the entry exists - and is reported, so an engineer can see the
+            //figure that is wrong rather than only that something is.
+            Assert.NotNull(designAirFlowCapacityEnvelopeGroup.VentilationUnitCapacityDescriptor);
+            Assert.False(designAirFlowCapacityEnvelopeGroup.VentilationUnitCapacityDescriptor.IsValid);
+
+            Assert.Contains("not a usable capacity", designAirFlowCapacityEnvelopeGroup.Reason);
+        }
+
+        /// <summary>
+        /// A product rated at <b>zero</b>, on the other hand, is a perfectly valid catalogue entry that
+        /// simply cannot carry anything - <c>VentilationUnitCapacityDescriptor.IsUsable</c> says so in those
+        /// words - so it is genuinely exhausted rather than unknown, and the honest answer is no headroom.
+        /// <para>
+        /// Pinned beside the invalid cases because the distinction is the whole point of the check above:
+        /// "this unit cannot give any more" and "nobody can say what this unit can give" are different
+        /// findings, and only one of them is a number.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ASelectedProductRatedAtZero_IsExhaustedRatherThanUnresolved()
+        {
+            AdjacencyCluster adjacencyCluster = Fixture(100, out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            DesignAirFlowCapacityEnvelope designAirFlowCapacityEnvelope = Envelope(adjacencyCluster, Step(adjacencyCluster), [
+                new VentilationUnitCapacityDescriptor(ventilationUnitCapacityDescriptors[0].VentilationUnitReference, 0, 0, 0)]);
+
+            Assert.Equal(DesignAirFlowCapacityEnvelopeOutcome.NoHeadroom, designAirFlowCapacityEnvelope.Outcome);
+            Assert.Null(designAirFlowCapacityEnvelope.AdjacencyCluster);
+
+            DesignAirFlowCapacityEnvelopeGroup designAirFlowCapacityEnvelopeGroup = Assert.Single(designAirFlowCapacityEnvelope.Groups);
+
+            Assert.True(designAirFlowCapacityEnvelopeGroup.VentilationUnitCapacityDescriptor.IsValid);
+
+            //Already 30 l/s past a rating of nothing, and reported as exactly that.
+            Assert.Equal(-30, designAirFlowCapacityEnvelopeGroup.SupplyHeadroom_Lps, 6);
+        }
+
+        /// <summary>
         /// A target vector that is not a coherent design at its own full step is not scaled into one. A
         /// request that is not a design airflow at all refuses the envelope for exactly the reason it
         /// refuses an ordinary round: quietly enveloping the rest would answer a question about a different

@@ -439,6 +439,29 @@ namespace SAM.Analytical
                 return result;
             }
 
+            //A catalogue entry that EXISTS but does not state a usable capacity - a negative or non-finite
+            //maximum, which VentilationUnitCapacityDescriptor.IsValid already rejects. Asked through that
+            //property rather than restated, so what "a usable capacity" means cannot drift from what
+            //selection means by it.
+            //
+            //Caught HERE, before the arithmetic, because the arithmetic would otherwise turn it into the
+            //wrong answer rather than no answer: a NaN maximum gives a NaN headroom and a negative one gives
+            //a negative headroom, and both fall into the NoHeadroom branch below - reporting a malformed
+            //ceiling as a perfectly good unit with nothing left to give. An unknown capacity is not an
+            //unlimited one, and it is not an exhausted one either.
+            if (!result.VentilationUnitCapacityDescriptor.IsValid)
+            {
+                result.Outcome = DesignAirFlowCapacityEnvelopeOutcome.CapacityUnresolved;
+                result.Reason = string.Format(
+                    "Air handling unit '{0}' is selected as '{1}', and the catalogue entry offered for it states {2:0.###}/{3:0.###} l/s, which is not a usable capacity - so its ceiling is unknown and no design can be scaled towards it. An unknown capacity is neither an unlimited one nor an exhausted one.",
+                    airHandlingUnit.Name,
+                    result.VentilationUnitReference,
+                    result.VentilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps,
+                    result.VentilationUnitCapacityDescriptor.MaximumExtractFlowRate_Lps);
+
+                return result;
+            }
+
             //The duty of the LAST ACCEPTED ORDINARY DESIGN, read off the caller's own model - because that
             //is the design the envelope starts from and the headroom being divided up is what that design
             //has left. Summed over every system the unit supplies, including any this vector never
