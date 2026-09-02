@@ -545,6 +545,33 @@ namespace SAM.Tests
             Assert.NotEmpty(candidate.Refusals);
         }
 
+        /// <summary>
+        /// <b>I, and A.</b> The refusals a round reports are part of its report, so they obey the same
+        /// order independence the adjustments do: the same unoptimisable set, handed over reversed, reads
+        /// identically.
+        /// </summary>
+        [Fact]
+        public void TargetRefusals_AreOrderIndependentToo()
+        {
+            AdjacencyCluster adjacencyCluster = Fixture();
+
+            DesignAirFlowRoundCandidate candidate_Forward = Round(adjacencyCluster, [
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Supply, 5),
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Supply, 5),
+                Target(adjacencyCluster, Name(name_Bathroom, 2), FlowClassification.Supply, 5)]);
+
+            DesignAirFlowRoundCandidate candidate_Reversed = Round(adjacencyCluster, [
+                Target(adjacencyCluster, Name(name_Bathroom, 2), FlowClassification.Supply, 5),
+                Target(adjacencyCluster, Name(name_Kitchen, 1), FlowClassification.Supply, 5),
+                Target(adjacencyCluster, Name(name_Bathroom, 1), FlowClassification.Supply, 5)]);
+
+            Assert.Equal(3, candidate_Forward.TargetRefusals.Count);
+
+            Assert.Equal(
+                candidate_Forward.TargetRefusals.ConvertAll(x => x.ToString()),
+                candidate_Reversed.TargetRefusals.ConvertAll(x => x.ToString()));
+        }
+
         // ---- J. Mixed supply and extract targets --------------------------------------------------------------------
 
         /// <summary>

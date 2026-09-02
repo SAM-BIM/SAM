@@ -221,6 +221,13 @@ namespace SAM.Analytical
                 designAirFlowTargets_System.Add(designAirFlowTarget);
             }
 
+            //Sorted on the SAME key the taken targets are, so the report a round produces is a function of
+            //the SET of targets in every part - the refusals included. They are appended in the caller's
+            //enumeration order above because that is the order the reasons are discovered in; leaving them
+            //that way would mean the same failing set read differently depending on how it happened to be
+            //enumerated, which is exactly what this operation promises does not happen.
+            result.TargetRefusals.Sort(CompareTargetRefusals);
+
             if (dictionary_Target.Count == 0)
             {
                 result.Refusals.Add(string.Format(
@@ -870,6 +877,23 @@ namespace SAM.Analytical
             int result = x.SpaceGuid.CompareTo(y.SpaceGuid);
 
             return result != 0 ? result : ((int)x.FlowClassification).CompareTo((int)y.FlowClassification);
+        }
+
+        /// <summary>
+        /// Orders two dropped targets by the same key their taken counterparts are ordered on, so a round
+        /// that could take none of what it was given still reports the same thing whichever way round it
+        /// was handed them.
+        /// <para>
+        /// The reason breaks a tie, because a target naming no room at all carries
+        /// <see cref="System.Guid.Empty"/> and several of those would otherwise be interchangeable to the
+        /// sort while saying different things to a reader.
+        /// </para>
+        /// </summary>
+        private static int CompareTargetRefusals(DesignAirFlowTargetRefusal x, DesignAirFlowTargetRefusal y)
+        {
+            int result = CompareTargets(x.DesignAirFlowTarget, y.DesignAirFlowTarget);
+
+            return result != 0 ? result : string.CompareOrdinal(x.Reason, y.Reason);
         }
 
         /// <summary>One room and one direction, which is the grain everything in a round is keyed at.</summary>
