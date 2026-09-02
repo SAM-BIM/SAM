@@ -1935,6 +1935,11 @@ namespace SAM.Tests
         //    D/E/H's job and is unchanged; these tests are focused on the NEW behaviour: once a catalogue is
         //    offered, does the serving unit get kept, reselected or refused - and does an equipment refusal
         //    ever roll back the airflow change that already committed?
+        //
+        //    The selection is asserted from the CLUSTER throughout - SelectedModel/SelectedReference - and
+        //    never from a unit handle taken before the call, because the write is a replacement object
+        //    rather than a mutation of the model's instance. That is also what keeps the change inside the
+        //    cluster it was handed, which is its own test at the end of this region.
 
         /// <summary>
         /// A targeted change the selected unit can still absorb leaves the selection exactly as it was -
@@ -1956,7 +1961,7 @@ namespace SAM.Tests
 
             Assert.Equal(VentilationUnitSelectionOutcome.Kept, change.VentilationUnitSelectionOutcome);
             Assert.True(ventilationUnitReference_Before.Matches(change.VentilationUnitReference));
-            Assert.True(ventilationUnitReference_Before.Matches(airHandlingUnit.SelectedVentilationUnitReference()));
+            Assert.True(ventilationUnitReference_Before.Matches(SelectedReference(adjacencyCluster)));
             Assert.Null(change.VentilationUnitSelectionReason);
         }
 
@@ -1977,7 +1982,7 @@ namespace SAM.Tests
 
             Assert.Equal(VentilationUnitSelectionOutcome.Reselected, change.VentilationUnitSelectionOutcome);
             Assert.Equal("MVHR-180", change.VentilationUnitReference?.Model);
-            Assert.Equal("MVHR-180", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+            Assert.Equal("MVHR-180", SelectedModel(adjacencyCluster));
 
             //The design airflow is the engineering duty, never the selected product's rating.
             Assert.Equal(160, change.SupplyDuty_Lps, 6);
@@ -2007,7 +2012,7 @@ namespace SAM.Tests
             Assert.False(string.IsNullOrWhiteSpace(change.VentilationUnitSelectionReason));
 
             //The unit keeps whatever it had before this call - an honest state, never a half-selection.
-            Assert.Equal("MVHR-100", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+            Assert.Equal("MVHR-100", SelectedModel(adjacencyCluster));
             Assert.Equal("MVHR-100", change.VentilationUnitReference?.Model);
         }
 
@@ -2035,7 +2040,7 @@ namespace SAM.Tests
             Assert.Null(change.VentilationUnitSelectionReason);
 
             //Untouched - not merely unreported.
-            Assert.True(ventilationUnitReference_Before.Matches(airHandlingUnit.SelectedVentilationUnitReference()));
+            Assert.True(ventilationUnitReference_Before.Matches(SelectedReference(adjacencyCluster)));
         }
 
         /// <summary>
@@ -2062,7 +2067,7 @@ namespace SAM.Tests
             Assert.Null(change.VentilationUnitSelectionReason);
 
             //Still nothing selected - not a first selection made on its behalf.
-            Assert.Null(airHandlingUnit.SelectedVentilationUnitReference());
+            Assert.Null(SelectedReference(adjacencyCluster));
 
             //The unit itself is still resolved and reported, even though there was nothing to validate -
             //null here would mean "no unit resolved", which is not what happened.
@@ -2099,7 +2104,7 @@ namespace SAM.Tests
             Assert.Contains("not among the ventilation unit products offered", change.VentilationUnitSelectionReason);
 
             //Untouched - still MVHR-100, never downgraded to a smaller product from an incomplete catalogue.
-            Assert.Equal("MVHR-100", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+            Assert.Equal("MVHR-100", SelectedModel(adjacencyCluster));
             Assert.Equal("MVHR-100", change.VentilationUnitReference?.Model);
         }
 
@@ -2215,6 +2220,71 @@ namespace SAM.Tests
             Assert.NotNull(ventilationTerminal_After);
             Assert.True(ventilationTerminal_After.DesignFlowRate_Lps.HasValue);
             Assert.Equal(0, ventilationTerminal_After.DesignFlowRate_Lps.Value, 6);
+        }
+
+        /// <summary>
+        /// <b>A reselection is written into the cluster it was handed, and into nothing behind it.</b>
+        /// <para>
+        /// <c>AnalyticalModel.AdjacencyCluster</c> hands out a copy so that a manual edit can be made and
+        /// then kept or thrown away, and both halves of this seam's change have to honour that copy. The
+        /// airflow half always did - the terminals are written as replacements. The equipment half did not:
+        /// the selection was set on the air handling unit object <i>in place</i>, and the copy shares that
+        /// object with the model it came from, so a dwelling whose plant was silently escalated on the
+        /// upstream model had no way to see it. <c>SAMAnalyticalApplyTargetedDesignAirFlow</c> documents
+        /// its model input as not modified, and an "all or nothing" refusal contract on top of that; a
+        /// selection leaking upstream breaks both.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void EquipmentValidation_AReselection_IsNotWrittenBackOntoTheModelTheClusterCameFrom()
+        {
+            AnalyticalModel analyticalModel = Prepared(DwellingCatalogue()).AnalyticalModel;
+
+            Space space = analyticalModel.AdjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
+
+            double design_Before_Lps = Design(analyticalModel.AdjacencyCluster, space, FlowClassification.Supply);
+
+            //Past what the selected MVHR-25 will carry, so the seam has to buy the next product up.
+            double requested_Lps = design_Before_Lps + 10;
+
+            //The copy, taken and edited exactly as the Grasshopper component takes and edits one.
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            AirHandlingUnit airHandlingUnit_Before = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+            List<Guid> guids_Sections_Before = [.. airHandlingUnit_Before.GetSections_Supply().ConvertAll(x => x.Guid), .. airHandlingUnit_Before.GetSections_Extract().ConvertAll(x => x.Guid)];
+            Assert.NotEmpty(guids_Sections_Before);
+
+            DwellingDesignAirFlowChange change = adjacencyCluster.ApplyTargetedDesignAirFlow(space, FlowClassification.Supply, requested_Lps, PartFExtractAllocationStrategy.MinimumFirstCookingPriority, 0.001, DwellingCatalogue());
+
+            Assert.True(change.Successful, string.Join(" ", change.Refusals));
+            Assert.Equal(VentilationUnitSelectionOutcome.Reselected, change.VentilationUnitSelectionOutcome);
+
+            //The copy carries both halves: the design that was asked for, and the product bought to move it.
+            Assert.Equal(requested_Lps, Design(adjacencyCluster, space, FlowClassification.Supply), 6);
+            Assert.Equal("MVHR-35", SelectedModel(adjacencyCluster));
+            Assert.Equal("MVHR-35", change.VentilationUnitReference?.Model);
+
+            //And the model the copy came from carries neither.
+            Assert.Equal(design_Before_Lps, Design(analyticalModel.AdjacencyCluster, space, FlowClassification.Supply), 6);
+            Assert.Equal("MVHR-25", SelectedModel(analyticalModel.AdjacencyCluster));
+
+            //The unit the copy now holds is a replacement, so it has to be the SAME unit in every other
+            //respect - the identity every name- and guid-based lookup resolves it through, the supply
+            //temperatures Iteration 1a deliberately leaves unstated, and the whole section arrangement,
+            //which lives in an equipment model of its own rather than in a parameter.
+            AirHandlingUnit airHandlingUnit_After = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            Assert.Equal(airHandlingUnit_Before.Guid, airHandlingUnit_After.Guid);
+            Assert.Equal(airHandlingUnit_Before.Name, airHandlingUnit_After.Name);
+            Assert.Equal(airHandlingUnit_Before.SummerSupplyTemperature, airHandlingUnit_After.SummerSupplyTemperature);
+            Assert.Equal(airHandlingUnit_Before.WinterSupplyTemperature, airHandlingUnit_After.WinterSupplyTemperature);
+            List<Guid> guids_Sections_After = [.. airHandlingUnit_After.GetSections_Supply().ConvertAll(x => x.Guid), .. airHandlingUnit_After.GetSections_Extract().ConvertAll(x => x.Guid)];
+            Assert.Equal(guids_Sections_Before, guids_Sections_After);
+
+            //And the relations to it survived being written over, so the dwelling's system still resolves
+            //its plant and the duty the reselection was made against is still readable through it.
+            Assert.True(adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit_After, out double supplyDuty_Lps, out _));
+            Assert.True(supplyDuty_Lps > 25, string.Format("The reselection was made against a design duty of {0:0.###} l/s, which should have exceeded the MVHR-25 it replaced.", supplyDuty_Lps));
         }
 
         /// <summary>
@@ -2460,7 +2530,7 @@ namespace SAM.Tests
         [Fact]
         public void ManualEdit_StillReselectsTheNextCapableProduct()
         {
-            AdjacencyCluster adjacencyCluster = Selected(out AirHandlingUnit airHandlingUnit, out _);
+            AdjacencyCluster adjacencyCluster = Selected(out _, out _);
 
             Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == name_LivingRoom);
 
@@ -2472,7 +2542,7 @@ namespace SAM.Tests
 
             Assert.True(change.Successful, string.Join(" ", change.Refusals));
             Assert.Equal(VentilationUnitSelectionOutcome.Reselected, change.VentilationUnitSelectionOutcome);
-            Assert.Equal("MVHR-35", airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+            Assert.Equal("MVHR-35", SelectedModel(adjacencyCluster));
         }
 
         /// <summary>
@@ -3837,31 +3907,24 @@ namespace SAM.Tests
 
             double requested_Lps = Design(analyticalModel.AdjacencyCluster, space, FlowClassification.Supply) + 10;
 
-            //The manual seam, called exactly as SAMAnalytical.ApplyTargetedDesignAirFlow calls it - on its
-            //OWN prepared model rather than on the one the resolver is about to be given.
-            //
-            //Deliberately, and not for tidiness. A reselection written by that seam is currently visible on
-            //the AnalyticalModel it was handed: the design airflows do not leak, but the product written
-            //onto the air handling unit does, because AnalyticalModel.AdjacencyCluster does not copy that
-            //object away from the caller. That is a defect in the MANUAL seam and it is deliberately not
-            //fixed from here - Iteration 2B is a thin exposure of the resolver, and changing what a
-            //committed manual edit does to its input model is its own change with its own review. Sharing
-            //one model between the two calls here would only make this test depend on it.
-            AdjacencyCluster adjacencyCluster_Manual = Prepared(DwellingCatalogue()).AnalyticalModel.AdjacencyCluster;
+            //The manual seam, called exactly as SAMAnalytical.ApplyTargetedDesignAirFlow calls it - on a
+            //copy of the SAME model the resolver is given below, which is the point: the two seams are
+            //compared on one dwelling, and neither call's edits reach the other or the model they share.
+            AdjacencyCluster adjacencyCluster_Manual = analyticalModel.AdjacencyCluster;
 
-            Space space_Manual = adjacencyCluster_Manual.GetSpaces().Find(x => x.Name == name_LivingRoom);
-
-            DwellingDesignAirFlowChange change = adjacencyCluster_Manual.ApplyTargetedDesignAirFlow(space_Manual, FlowClassification.Supply, requested_Lps, PartFExtractAllocationStrategy.MinimumFirstCookingPriority, 0.001, DwellingCatalogue());
+            DwellingDesignAirFlowChange change = adjacencyCluster_Manual.ApplyTargetedDesignAirFlow(space, FlowClassification.Supply, requested_Lps, PartFExtractAllocationStrategy.MinimumFirstCookingPriority, 0.001, DwellingCatalogue());
 
             Assert.True(change.Successful, string.Join(" ", change.Refusals));
-            Assert.Equal(requested_Lps, Design(adjacencyCluster_Manual, space_Manual, FlowClassification.Supply), 6);
+            Assert.Equal(requested_Lps, Design(adjacencyCluster_Manual, space, FlowClassification.Supply), 6);
 
             //The request was applied in full, so the selected MVHR-25 no longer covers it - and the manual
             //seam buys the smallest product that does.
             Assert.Equal(VentilationUnitSelectionOutcome.Reselected, change.VentilationUnitSelectionOutcome);
             Assert.NotEqual("MVHR-25", SelectedModel(adjacencyCluster_Manual));
 
-            //The automatic seam, on a prepared model of its own that nothing above has touched.
+            //The automatic seam, on the same untouched model - and it is untouched, reselection included.
+            Assert.Equal("MVHR-25", SelectedModel(analyticalModel.AdjacencyCluster));
+
             AnalyticalModel analyticalModel_Resolved = ResolvedModel(analyticalModel, space, FlowClassification.Supply, requested_Lps, DwellingCatalogue(), out DwellingDesignAirFlowResolution resolution);
 
             Assert.True(resolution.IsAccepted, string.Join(" ", resolution.Refusals));
@@ -4560,7 +4623,23 @@ namespace SAM.Tests
         /// </summary>
         private static string SelectedModel(AdjacencyCluster adjacencyCluster)
         {
-            return Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>()).SelectedVentilationUnitReference()?.Model;
+            return SelectedReference(adjacencyCluster)?.Model;
+        }
+
+        /// <summary>
+        /// The product reference the one air handling unit in <paramref name="adjacencyCluster"/> carries,
+        /// read <b>from the cluster</b> rather than from a unit handle taken before the call.
+        /// <para>
+        /// The distinction is load-bearing. <c>Modify.SelectVentilationUnit</c> writes the selection onto a
+        /// guid-preserving replacement unit and adds that over the model's instance, so a handle taken
+        /// earlier is no longer a probe of what the model now says - reading one would let a leaked or a
+        /// missing selection both pass unnoticed. See
+        /// <see cref="EquipmentValidation_AReselection_IsNotWrittenBackOntoTheModelTheClusterCameFrom"/>.
+        /// </para>
+        /// </summary>
+        private static VentilationUnitReference SelectedReference(AdjacencyCluster adjacencyCluster)
+        {
+            return Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>()).SelectedVentilationUnitReference();
         }
     }
 }

@@ -37,9 +37,14 @@ namespace SAM.Analytical
         /// </summary>
         /// <param name="adjacencyCluster">
         /// The model. <b>Modified in place</b> on success, so hand it a cluster you already own -
-        /// <c>AnalyticalModel.AdjacencyCluster</c> returns a copy.
+        /// <c>AnalyticalModel.AdjacencyCluster</c> returns a copy, and <b>this cluster is as far as the
+        /// change reaches</b>: the selection is written onto a guid-preserving replacement unit added over
+        /// the model's own, never set on the shared object a sibling cluster would see it through.
         /// </param>
-        /// <param name="airHandlingUnit">The unit instance to select a product for.</param>
+        /// <param name="airHandlingUnit">
+        /// The unit to select a product for, identified by guid. <b>Not written to</b> - read the choice
+        /// back from the returned selection, or re-resolve the unit from the cluster.
+        /// </param>
         /// <param name="ventilationUnitCapacityDescriptors">
         /// The products available to choose from. An argument rather than a library read, because which
         /// products exist is a fact about whoever is asking - see <c>Query.CapableVentilationUnits</c>.
@@ -95,15 +100,9 @@ namespace SAM.Analytical
                 return result;
             }
 
-            //The cluster's OWN instance is the one written to, resolved by guid rather than trusted as
+            //The cluster's OWN instance is the one written over, resolved by guid rather than trusted as
             //handed in: a caller holding a unit from before an earlier step would otherwise write the
             //selection onto an object the model has already replaced.
-            //
-            //Mutated in place rather than copied, because AirHandlingUnit has no guid-preserving copy
-            //constructor - ComplexEquipment carries an internal equipment model that a two-argument
-            //constructor would have to reproduce, and adding one here would be a change to the equipment
-            //hierarchy for the sake of one parameter. Modify.AddPartOBaseMVHRSystem already sets the unit's
-            //supply temperatures this way.
             //Resolved by GUID, and REFUSED where that fails rather than falling back to the caller's object.
             //
             //The duty above was resolved through the unit's NAME, which is how a ventilation system names
@@ -113,9 +112,9 @@ namespace SAM.Analytical
             //name-based lookup afterwards - Query.VentilationSystems and the TAS export among them - could
             //resolve the original, unselected unit instead. A selection nothing can find again is worse
             //than no selection.
-            AirHandlingUnit airHandlingUnit_Selected = (adjacencyCluster.GetObjects<AirHandlingUnit>() ?? []).Find(x => x is not null && x.Guid == airHandlingUnit.Guid);
+            AirHandlingUnit airHandlingUnit_Model = (adjacencyCluster.GetObjects<AirHandlingUnit>() ?? []).Find(x => x is not null && x.Guid == airHandlingUnit.Guid);
 
-            if (airHandlingUnit_Selected is null)
+            if (airHandlingUnit_Model is null)
             {
                 VentilationUnitSelection result_Detached = VentilationUnitSelection.Refused(string.Format(
                     "Air handling unit '{0}' is not in this model - no unit of that identity was found, though the model may well hold another unit of the same name. Selecting a product onto an object the model does not contain would leave the selection where nothing can resolve it. Nothing was changed: take the unit from the model and select onto that one.",
@@ -125,6 +124,28 @@ namespace SAM.Analytical
 
                 return result_Detached;
             }
+
+            //The selection is written onto a COPY and added OVER the model's instance, never set on that
+            //instance in place.
+            //
+            //AdjacencyCluster's copy constructor copies the object dictionary and not the objects in it, so
+            //several clusters routinely share one air handling unit object - an AnalyticalModel and the copy
+            //AnalyticalModel.AdjacencyCluster hands out among them. Setting the parameter in place writes
+            //this selection into every one of them at once, so a caller promised a cluster it could keep or
+            //throw away would find the plant escalated on the model it kept, with nothing in the answer
+            //saying so. The airflow half of Modify.ApplyTargetedDesignAirFlow has always written
+            //replacements rather than mutating terminals for exactly this reason; the equipment half now
+            //follows the same discipline.
+            //
+            //AirHandlingUnit's one-argument constructor is the copy this needs, and the whole of it:
+            //SAMObject carries the guid and name across, ParameterizedSAMObject clones the parameter sets so
+            //the write lands on this copy alone, and ComplexEquipment clones the internal equipment model.
+            //AddObject therefore replaces the unit under its own identity and every relation to it survives.
+            //
+            //Reading the selection back through the object that was handed IN is consequently not a thing
+            //this method ever promised - it already refused to write there. Take it from the returned
+            //VentilationUnitSelection, or re-resolve from the cluster by guid.
+            AirHandlingUnit airHandlingUnit_Selected = new AirHandlingUnit(airHandlingUnit_Model);
 
             airHandlingUnit_Selected.SetValue(AirHandlingUnitParameter.VentilationUnitReference, result.VentilationUnitReference);
 
