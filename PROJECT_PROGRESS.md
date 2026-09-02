@@ -1,23 +1,52 @@
 # Project Progress
 
 ## Branch
-`feature/parto-iteration2b-design-airflow-round`, branched from `sow/2026-Q3` at **`0ae4b929`**
-(the merge of PR #87). Pushed; **PR #88** open against `sow/2026-Q3`, **not merged**. All three checks
-green (`build (Release)`, `test (Release)`, `spdx`).
-
-**Companion: `SAM-BIM/SAM_UI` PR #77**, which orchestrates the automatic Iteration 2B loop over this
-round. **This PR must merge first** - SAM_UI #77 does not compile without
-`Modify.EvaluateTargetedDesignAirFlows`.
+`feature/parto-manual-seam-reselection-containment`, branched from `sow/2026-Q3` at **`5f701a2e`**
+(the merge of PR #88).
 
 No `SAM_Systems` or `SAM_Tas` change - neither was touched.
 
 Everything below "Latest (2026-09-01)" is superseded history retained for context.
 
 ## Last updated
-2026-09-02 - the deterministic multi-target Approved Document O design airflow optimisation round, plus five
-Codex review fixes.
+2026-09-02 - the manual seam's reselection no longer leaks onto the model the cluster came from.
 
-## Latest (2026-09-02): the Iteration 2B design airflow optimisation round
+## Latest (2026-09-02): a reselection stays inside the cluster it was handed
+
+**Status: implemented and tested; PR open against `sow/2026-Q3`.**
+
+The manual-seam defect parked under PR #88's blockers, now fixed. `Modify.SelectVentilationUnit` set the
+selection on the air handling unit object **in place**, and `AdjacencyCluster`'s copy constructor copies the
+object dictionary but not the objects - so `AnalyticalModel.AdjacencyCluster` hands out a copy that still
+shares the unit with the model behind it, and a reselection written into the copy was visible on the model
+the caller was promised would not move. The airflow half of `ApplyTargetedDesignAirFlow` always wrote
+replacements for exactly this reason; the equipment half did not.
+
+The selection is now written onto a guid-preserving `new AirHandlingUnit(unit)` - `SAMObject` carries the
+identity, `ParameterizedSAMObject` clones the parameter sets, `ComplexEquipment` clones the internal
+equipment model - and added over the model's instance, so every name- and guid-based lookup resolves the
+replacement and every relation survives. `PreparePartOIteration` re-resolves the unit by guid after
+selecting, since the unit it was holding is not the object that now carries the selection.
+
+### Validation
+
+- `SAM.sln` builds clean.
+- `SAM.Tests`: **1703 passed, 0 failed** (1702 post-#88 baseline + 1 new).
+- New test: `EquipmentValidation_AReselection_IsNotWrittenBackOntoTheModelTheClusterCameFrom` - an edit on
+  the copy carries both halves of the change, the model behind it carries neither, and the replacement unit
+  keeps identity, supply temperatures, section arrangement and relations. The existing equipment-validation
+  assertions now read the selection from the cluster throughout, never from a stale unit handle.
+
+### Issues / blockers
+
+- None known.
+
+### Next step
+
+- Merge the PR. The declined PR #88 finding (validating terminal quantities across every room of a touched
+  system, at the level both seams share) remains the one open follow-up.
+
+## Superseded (2026-09-02): the Iteration 2B design airflow optimisation round - merged as PR #88
 
 **Status: implemented, tested, and exercised end to end on the licensed future-weather acceptance through
 SAM_UI #77.**
@@ -114,8 +143,8 @@ preserving).
 ### Issues / blockers
 
 - None blocking. One declined finding above, raised as a follow-up.
-- The parked manual-seam defect (`ApplyTargetedDesignAirFlow` ventilation-unit reselection leaking onto the
-  caller's `AnalyticalModel`) remains untouched and outstanding.
+- ~~The parked manual-seam defect~~ **Resolved** - see "Latest (2026-09-02): a reselection stays inside the
+  cluster it was handed" above.
 
 ### Next step
 
