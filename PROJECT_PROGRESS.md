@@ -81,7 +81,7 @@ the first selected-equipment capacity constraint binds.
 ### Validation
 
 - `SAM.sln` builds clean; `SAM.Analytical` builds clean in Release too.
-- `SAM.Tests`: **1731 passed, 0 failed** (1703 post-#89 baseline + 28 new).
+- `SAM.Tests`: **1734 passed, 0 failed** (1703 post-#89 baseline + 31 new).
 - The 24 new tests cover: headroom below one whole round; proportional scaling with equal and with unequal
   increments; headroom above one step; a vector far past the rating never producing a design past it;
   shared equipment judged on its whole duty; separate units each at their own factor; order independence of
@@ -104,6 +104,16 @@ the first selected-equipment capacity constraint binds.
    <br>A rated maximum of **zero** is deliberately NOT caught by this - `IsUsable` says zero is valid and
    simply never sufficient - so it stays `NoHeadroom`, which is the honest answer for a unit that genuinely
    cannot carry anything. Both are pinned.
+2. **P2** - the deterministic retreat started from zero, discarding the fact that the measuring round had
+   already accepted this very vector at scale 1. A ceiling above 1 means the rating permits that step too,
+   so the retreat is now **seeded** from it: it can no longer answer with less than one ordinary step, nor
+   refuse a group whose full step is demonstrably fine.
+3. **P2** - a retreat left `BindingFlowClassification` set to the capacity side chosen by the analytical
+   calculation, so a group stopped by an Approved Document F floor reported supply or extract as binding
+   while still holding substantial headroom - telling an engineer to buy a bigger unit that would not help.
+   Cleared on retreat, and the reason and note now say the product is **not** what limits that group.
+   `Scale_Capacity` standing above `Scale` is the evidence. A group that really does reach its rating still
+   names the side, and that is pinned too.
 
 ### Issues / blockers
 

@@ -124,10 +124,16 @@ namespace SAM.Analytical
         public double ExtractHeadroom_Lps { get; internal set; } = double.NaN;
 
         /// <summary>
-        /// Which side of the selected product's rating the scaling ran into.
-        /// <see cref="FlowClassification.Undefined"/> where nothing bound - which on a
-        /// <see cref="DesignAirFlowCapacityEnvelopeOutcome.Scaled"/> group should not happen and on any
-        /// other is simply the absence of a scaling.
+        /// Which side of the selected product's rating the scaling ran into, or
+        /// <see cref="FlowClassification.Undefined"/> where the rating is <b>not</b> what stopped it.
+        /// <para>
+        /// Undefined on a <see cref="DesignAirFlowCapacityEnvelopeOutcome.Scaled"/> group is a real and
+        /// meaningful state, not an omission: it says the scaling was limited by something other than
+        /// capacity - an Approved Document F floor a scaled reduction would have breached, say - and
+        /// <see cref="Scale_Capacity"/> standing above <see cref="Scale"/> is the evidence. Naming a side
+        /// there would tell an engineer to buy a bigger unit that would not help, which is the opposite of
+        /// what this diagnostic is for.
+        /// </para>
         /// </summary>
         public FlowClassification BindingFlowClassification { get; internal set; } = FlowClassification.Undefined;
 

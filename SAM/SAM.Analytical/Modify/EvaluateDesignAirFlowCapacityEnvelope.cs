@@ -576,6 +576,13 @@ namespace SAM.Analytical
             {
                 List<string> refusals = [.. designAirFlowRoundCandidate.Refusals];
 
+                //Capacity is NOT what refused - the analytical point is feasible for the unit by
+                //construction - so from here on nothing about this group's answer is bound by its rating,
+                //and reporting a binding side would name a constraint that is not the one that stopped it.
+                //Cleared before the retreat rather than after, so no path out of this block can carry the
+                //stale value.
+                result.BindingFlowClassification = FlowClassification.Undefined;
+
                 //A MONOTONIC deterministic retreat, on the interval the analytical ceiling bounds. The
                 //upper end is known refused and zero is the design we started from, so the largest
                 //accepted point of a fixed bisection is the answer - the same answer every time, without
@@ -584,6 +591,32 @@ namespace SAM.Analytical
 
                 double scale_Low = 0;
                 double scale_High = result.Scale_Capacity;
+
+                //SEEDED from the whole unscaled step where the rating allows one, because that step is
+                //already KNOWN feasible: the measuring round accepted this very vector at scale 1, and a
+                //capacity ceiling above 1 means the rating permits it too. Groups are independent - each
+                //writes only its own systems' rooms and is judged only on its own unit - so a subset of an
+                //accepted round is accepted. It is nevertheless evaluated rather than assumed, because
+                //this seeds the answer that gets adopted.
+                //
+                //Without this the bisection can miss it entirely. A ceiling of, say, x14 with something
+                //non-capacity binding just above x1 puts every midpoint of [0, 14] above the feasible
+                //interval for all 32 probes - and the group would then be reported Refused while an
+                //ordinary full step of it was demonstrably fine. Answering "no envelope" when a whole
+                //step's worth of one exists is the worst outcome available here.
+                if (result.Scale_Capacity > 1)
+                {
+                    DesignAirFlowRoundCandidate designAirFlowRoundCandidate_Step = Round(adjacencyCluster, dwellingDesignAirFlowRounds, 1, partFExtractAllocationStrategy, tolerance_Lps, ventilationUnitCapacityDescriptors, out List<DesignAirFlowTarget> designAirFlowTargets_Step);
+
+                    if (designAirFlowRoundCandidate_Step.IsAccepted)
+                    {
+                        scale = 1;
+                        scale_Low = 1;
+
+                        designAirFlowRoundCandidate = designAirFlowRoundCandidate_Step;
+                        designAirFlowTargets_Scaled = designAirFlowTargets_Step;
+                    }
+                }
 
                 for (int i = 0; i < 32; i++)
                 {
@@ -626,7 +659,7 @@ namespace SAM.Analytical
                 }
 
                 result.Notes.Add(string.Format(
-                    "Air handling unit '{0}' could take a x{1:0.####} scaling of the target vector on its selected product's capacity alone, and that design was refused for a reason which is not capacity, so the envelope retreated deterministically to x{2:0.####}: {3}",
+                    "Air handling unit '{0}' could take a x{1:0.####} scaling of the target vector on its selected product's capacity alone, and that design was refused for a reason which is not capacity, so the envelope retreated deterministically to x{2:0.####}. Its selected product is therefore NOT what limits this group - see the headroom left at that scale - and the constraint that does is: {3}",
                     airHandlingUnit.Name,
                     result.Scale_Capacity,
                     scale,
@@ -638,16 +671,29 @@ namespace SAM.Analytical
             designAirFlowTargets = designAirFlowTargets_Scaled;
 
             result.Outcome = DesignAirFlowCapacityEnvelopeOutcome.Scaled;
-            result.Reason = string.Format(
-                "Air handling unit '{0}' keeps its selected product '{1}', rated {2:0.###}/{3:0.###} l/s, and the deliberate target vector was scaled coherently by x{4:0.####} - from the {5:0.###} l/s of {6} headroom the last accepted design left and the {7:0.###} l/s one whole step would have moved the unit by. Every target keeps its share of the vector; the balancing consequence is derived once from the scaled vector by the same authority an ordinary round uses. This is a diagnostic capacity envelope and not an accepted optimisation round.",
-                airHandlingUnit.Name,
-                result.VentilationUnitReference,
-                result.VentilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps,
-                result.VentilationUnitCapacityDescriptor.MaximumExtractFlowRate_Lps,
-                result.Scale,
-                headroom_Lps,
-                Core.Query.Description(result.BindingFlowClassification),
-                movement_Supply_Lps);
+
+            //Worded off what actually bound. A group that reached its rating says which side did; one that
+            //retreated says the product is not the limit, because claiming a capacity ceiling it never
+            //touched would send an engineer to buy a bigger unit that would not help.
+            result.Reason = result.BindingFlowClassification == FlowClassification.Undefined
+                ? string.Format(
+                    "Air handling unit '{0}' keeps its selected product '{1}', rated {2:0.###}/{3:0.###} l/s, and the deliberate target vector was scaled coherently by x{4:0.####} - which its rating did NOT limit: the product would have carried x{5:0.####}, and something else stopped the scaling first (see the notes). Every target keeps its share of the vector; the balancing consequence is derived once from the scaled vector by the same authority an ordinary round uses. This is a diagnostic capacity envelope and not an accepted optimisation round.",
+                    airHandlingUnit.Name,
+                    result.VentilationUnitReference,
+                    result.VentilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps,
+                    result.VentilationUnitCapacityDescriptor.MaximumExtractFlowRate_Lps,
+                    result.Scale,
+                    result.Scale_Capacity)
+                : string.Format(
+                    "Air handling unit '{0}' keeps its selected product '{1}', rated {2:0.###}/{3:0.###} l/s, and the deliberate target vector was scaled coherently by x{4:0.####} - from the {5:0.###} l/s of {6} headroom the last accepted design left and the {7:0.###} l/s one whole step would have moved the unit by. Every target keeps its share of the vector; the balancing consequence is derived once from the scaled vector by the same authority an ordinary round uses. This is a diagnostic capacity envelope and not an accepted optimisation round.",
+                    airHandlingUnit.Name,
+                    result.VentilationUnitReference,
+                    result.VentilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps,
+                    result.VentilationUnitCapacityDescriptor.MaximumExtractFlowRate_Lps,
+                    result.Scale,
+                    headroom_Lps,
+                    Core.Query.Description(result.BindingFlowClassification),
+                    movement_Supply_Lps);
 
             return result;
         }

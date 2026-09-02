@@ -790,6 +790,100 @@ namespace SAM.Tests
             Assert.NotEmpty(designAirFlowCapacityEnvelope.Refusals);
         }
 
+        // ---- The retreat: something other than capacity binds first ---------------------------------------
+
+        /// <summary>
+        /// Where the analytical capacity point is refused for a reason that is <b>not</b> capacity, the
+        /// envelope retreats - and then must not claim the selected product is what limited it.
+        ///
+        /// <para><b>The fixture</b></para>
+        /// <code>
+        /// selected  rated 142/142        dwelling balanced at 42/42, so 100 l/s of headroom
+        /// asked     Bedroom  supply  42 -> 52   (+10)
+        ///           Bathroom extract 20 -> 15   (-5)   &lt;- a REDUCTION, floored at 8 by Approved Document F
+        ///           derived  Kitchen extract 22 -> 37  (+15, to balance the +10 movement)
+        /// one step moves the unit 10 l/s, so capacity alone would allow x10
+        /// but the bathroom reaches its 8 l/s floor at x2.4, and that binds first
+        /// </code>
+        /// <para>
+        /// So the group is scaled, its scale is well below what the rating would have permitted, and
+        /// <see cref="DesignAirFlowCapacityEnvelopeGroup.BindingFlowClassification"/> must be
+        /// <see cref="FlowClassification.Undefined"/> - because naming a side would tell an engineer to buy
+        /// a bigger unit that would not help, which is the opposite of what this diagnostic is for.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void WhereSomethingOtherThanCapacityBinds_TheProductIsNotReportedAsTheLimit()
+        {
+            AdjacencyCluster adjacencyCluster = ReducingFixture(142, out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            DesignAirFlowCapacityEnvelope designAirFlowCapacityEnvelope = Envelope(adjacencyCluster, ReducingStep(adjacencyCluster), ventilationUnitCapacityDescriptors);
+
+            Assert.True(designAirFlowCapacityEnvelope.IsScaled, designAirFlowCapacityEnvelope.Reason);
+
+            DesignAirFlowCapacityEnvelopeGroup designAirFlowCapacityEnvelopeGroup = Assert.Single(designAirFlowCapacityEnvelope.Groups);
+
+            //Capacity alone would have allowed ten steps; the Approved Document F floor stopped it short.
+            Assert.Equal(10, designAirFlowCapacityEnvelopeGroup.Scale_Capacity, 6);
+            Assert.True(designAirFlowCapacityEnvelopeGroup.Scale < designAirFlowCapacityEnvelopeGroup.Scale_Capacity);
+
+            //NOT a capacity ceiling, and not reported as one.
+            Assert.Equal(FlowClassification.Undefined, designAirFlowCapacityEnvelopeGroup.BindingFlowClassification);
+
+            Assert.Contains("rating did NOT limit", designAirFlowCapacityEnvelopeGroup.Reason);
+            Assert.Contains(designAirFlowCapacityEnvelopeGroup.Notes, x => x.Contains("NOT what limits this group"));
+
+            //And the design really does still have capacity to spare - which is what makes naming a binding
+            //side wrong rather than merely imprecise.
+            Assert.True(designAirFlowCapacityEnvelopeGroup.SupplyHeadroom_Lps > 1, string.Format("supply headroom {0}", designAirFlowCapacityEnvelopeGroup.SupplyHeadroom_Lps));
+
+            //The floor that bound is intact on every room the envelope wrote.
+            Assert.All(designAirFlowCapacityEnvelope.TargetedAdjustments, x => Assert.True(double.IsNaN(x.Requirement_Lps) || x.After_Lps + tolerance_Lps >= x.Requirement_Lps));
+            Assert.All(designAirFlowCapacityEnvelope.DerivedAdjustments, x => Assert.True(double.IsNaN(x.Requirement_Lps) || x.After_Lps + tolerance_Lps >= x.Requirement_Lps));
+        }
+
+        /// <summary>
+        /// A retreat is <b>never worse than one ordinary step</b>.
+        /// <para>
+        /// The measuring round already proved this vector valid at scale 1, and a capacity ceiling above 1
+        /// means the rating permits it too - so the solve is seeded from that step rather than from zero.
+        /// Without the seed a retreat could answer with less than a whole step, or - if the search never
+        /// landed in the feasible interval - refuse the group outright, while an ordinary full step of it
+        /// was demonstrably fine. Reporting "no envelope" when a whole step's worth of one exists is the
+        /// worst outcome available here.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ARetreat_IsNeverWorseThanTheWholeStepAlreadyKnownToWork()
+        {
+            AdjacencyCluster adjacencyCluster = ReducingFixture(142, out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            //The ordinary round takes this vector at its full step, which is what makes x1 known good.
+            Assert.True(Round(adjacencyCluster, ReducingStep(adjacencyCluster), ventilationUnitCapacityDescriptors).IsAccepted);
+
+            DesignAirFlowCapacityEnvelopeGroup designAirFlowCapacityEnvelopeGroup = Assert.Single(Envelope(adjacencyCluster, ReducingStep(adjacencyCluster), ventilationUnitCapacityDescriptors).Groups);
+
+            Assert.True(designAirFlowCapacityEnvelopeGroup.Scale >= 1, string.Format("scale {0} is below the whole step already known to work", designAirFlowCapacityEnvelopeGroup.Scale));
+        }
+
+        /// <summary>
+        /// A group that really does reach its rating still names the side that bound it - the retreat's
+        /// <see cref="FlowClassification.Undefined"/> must not have become the answer for everything.
+        /// </summary>
+        [Fact]
+        public void AGroupThatReachesItsRating_StillNamesTheBindingSide()
+        {
+            AdjacencyCluster adjacencyCluster = Fixture(37, out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            DesignAirFlowCapacityEnvelopeGroup designAirFlowCapacityEnvelopeGroup = Assert.Single(Envelope(adjacencyCluster, Step(adjacencyCluster), ventilationUnitCapacityDescriptors).Groups);
+
+            Assert.Equal(designAirFlowCapacityEnvelopeGroup.Scale_Capacity, designAirFlowCapacityEnvelopeGroup.Scale, 9);
+
+            Assert.NotEqual(FlowClassification.Undefined, designAirFlowCapacityEnvelopeGroup.BindingFlowClassification);
+
+            Assert.Contains("headroom the last accepted design left", designAirFlowCapacityEnvelopeGroup.Reason);
+        }
+
         // ---- Fixture ---------------------------------------------------------------------------------------
 
         /// <summary>
@@ -961,6 +1055,62 @@ namespace SAM.Tests
             adjacencyCluster.AddObject(ventilationTerminal);
             adjacencyCluster.AddRelation(ventilationTerminal, space);
             adjacencyCluster.AddRelation(ventilationTerminal, ventilationSystem);
+        }
+
+        /// <summary>
+        /// One flat balanced at 42/42 l/s whose bathroom extract has real headroom above its Approved
+        /// Document F floor - so a target vector containing a <b>reduction</b> can be scaled until that
+        /// floor binds, which is the only way to reach the envelope's retreat path.
+        /// <code>
+        /// Bedroom 1  supply   requirement 13   design 42
+        /// Kitchen 1  extract  requirement 13   design 22   (local kitchen extract, untargeted)
+        /// Bathroom 1 extract  requirement  8   design 20   (12 l/s of room to come down)
+        /// </code>
+        /// </summary>
+        private static AdjacencyCluster ReducingFixture(double maximum_Lps, out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors)
+        {
+            ventilationUnitCapacityDescriptors = Descriptors(maximum_Lps);
+
+            AdjacencyCluster result = new();
+
+            AirHandlingUnit airHandlingUnit = new("AHU 1", 20, 20);
+
+            airHandlingUnit.SetValue(AirHandlingUnitParameter.VentilationUnitReference, ventilationUnitCapacityDescriptors[0].VentilationUnitReference);
+
+            result.AddObject(airHandlingUnit);
+
+            VentilationSystem ventilationSystem = new("Flat 1", new VentilationSystemType("Fixture MVHR", "Fixture"));
+            ventilationSystem.SetValue(VentilationSystemParameter.SupplyUnitName, airHandlingUnit.Name);
+
+            result.AddObject(ventilationSystem);
+
+            Space space_Bedroom = Room(result, name_Bedroom, PartFTerminalRole.Supply, 13);
+            Space space_Kitchen = Room(result, name_Kitchen, PartFTerminalRole.LocalKitchenExtract, 13);
+            Space space_Bathroom = Room(result, name_Bathroom, PartFTerminalRole.GeneralExtract, 8);
+
+            Terminal(result, ventilationSystem, space_Bedroom, FlowClassification.Supply, 42);
+            Terminal(result, ventilationSystem, space_Kitchen, FlowClassification.Extract, 22);
+            Terminal(result, ventilationSystem, space_Bathroom, FlowClassification.Extract, 20);
+
+            result.AddRelation(ventilationSystem, space_Bedroom);
+            result.AddRelation(ventilationSystem, space_Kitchen);
+            result.AddRelation(ventilationSystem, space_Bathroom);
+
+            return result;
+        }
+
+        /// <summary>
+        /// A mixed vector over <see cref="ReducingFixture"/>: the bedroom's supply raised a whole step and
+        /// the bathroom's extract lowered one. Scaling it drives the bathroom towards its floor, so
+        /// something other than the unit's rating binds first.
+        /// </summary>
+        private static List<DesignAirFlowTarget> ReducingStep(AdjacencyCluster adjacencyCluster)
+        {
+            return
+            [
+                Target(adjacencyCluster, name_Bedroom, FlowClassification.Supply, 52),
+                Target(adjacencyCluster, name_Bathroom, FlowClassification.Extract, 15),
+            ];
         }
 
         /// <summary>
