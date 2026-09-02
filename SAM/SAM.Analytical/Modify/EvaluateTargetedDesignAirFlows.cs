@@ -264,6 +264,16 @@ namespace SAM.Analytical
                 return result;
             }
 
+            //ONLY NOW, with every dwelling of the round written. A unit's duty is the sum over every system
+            //it supplies, so asking mid-round would judge it against a state that never existed - see
+            //ValidateVentilationUnits.
+            ValidateVentilationUnits(adjacencyCluster_Candidate, result, ventilationUnitCapacityDescriptors, tolerance_Lps);
+
+            if (result.Refusals.Count != 0)
+            {
+                return result;
+            }
+
             foreach (DwellingDesignAirFlowRound dwellingDesignAirFlowRound in result.DwellingRounds)
             {
                 //Copied only NOW. A refused round's dwelling notes are written in the present tense - "the
@@ -637,56 +647,145 @@ namespace SAM.Analytical
                 result.TargetedAdjustments.Count,
                 result.DerivedAdjustments.Count));
 
-            // ---- The selected unit, against the COMBINED duty ---------------------------------------------
-
-            //Resolved on the CANDIDATE, because the duty it is judged against is the candidate's.
-            AirHandlingUnit airHandlingUnit = Query.AirHandlingUnit(adjacencyCluster_Candidate, ventilationSystem);
-
-            result.AirHandlingUnit = airHandlingUnit;
-
-            bool sufficient = IsWithinSelectedVentilationUnit(
-                adjacencyCluster_Candidate,
-                airHandlingUnit,
-                ventilationUnitCapacityDescriptors,
-                tolerance_Lps,
-                out VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor,
-                out VentilationUnitSelectionOutcome ventilationUnitSelectionOutcome,
-                out string reason,
-                out double supplyHeadroom_Lps,
-                out double extractHeadroom_Lps,
-                out string note);
-
-            result.VentilationUnitCapacityDescriptor = ventilationUnitCapacityDescriptor;
-            result.VentilationUnitSelectionOutcome = ventilationUnitSelectionOutcome;
-            result.VentilationUnitSelectionReason = reason;
-            result.SupplyHeadroom_Lps = supplyHeadroom_Lps;
-            result.ExtractHeadroom_Lps = extractHeadroom_Lps;
-
-            if (sufficient)
-            {
-                if (note is not null)
-                {
-                    result.Notes.Add(note);
-                }
-
-                return result;
-            }
-
-            //The whole round is rejected on this. The check was against the recalculated SYSTEM duty rather
-            //than any one room, and it is never answered by selecting a larger product - an optimisation
-            //explores within the selected unit, it does not buy a different one.
-            result.Refusals.Add(string.Format(
-                "The optimisation round was calculated for ventilation system '{0}' and then rejected, because its selected ventilation unit cannot carry it: {1} Nothing was changed - the model is exactly as it was. The round would have designed {2:0.###} l/s of supply and {3:0.###} l/s of extract against a rating of {4:0.###}/{5:0.###} l/s, leaving {6:0.###}/{7:0.###} l/s of headroom. The selected product is the constraint this round explores within; a larger one is chosen deliberately, on its own.",
-                ventilationSystem.FullName,
-                reason,
-                supplyDuty_After_Lps,
-                extractDuty_After_Lps,
-                ventilationUnitCapacityDescriptor?.MaximumSupplyFlowRate_Lps ?? double.NaN,
-                ventilationUnitCapacityDescriptor?.MaximumExtractFlowRate_Lps ?? double.NaN,
-                supplyHeadroom_Lps,
-                extractHeadroom_Lps));
+            //Resolved on the CANDIDATE, because the duty it will be judged against is the candidate's. The
+            //judging itself happens in a SECOND PASS, once every dwelling of the round has been written -
+            //see ValidateVentilationUnits.
+            result.AirHandlingUnit = Query.AirHandlingUnit(adjacencyCluster_Candidate, ventilationSystem);
 
             return result;
+        }
+
+        /// <summary>
+        /// Checks every air handling unit the round touched against the unit <b>already selected</b> for
+        /// it - <b>after</b> every dwelling of the round has been written, and <b>once per unit</b>.
+        ///
+        /// <para><b>Why this cannot happen inside the per-dwelling loop</b></para>
+        /// <para>
+        /// <see cref="Query.AirHandlingUnitDesignDuty"/> sums every system a unit supplies, which is what
+        /// makes it correct for a unit serving more than one. Asked while the round is half written, it
+        /// therefore reads a duty that is partly the round's and partly the design the round is replacing -
+        /// a state that never existed and never will. Two systems on one unit, one rising 10 l/s and the
+        /// other falling 10 l/s, would have the first checked at a duty 10 l/s above where the round
+        /// actually leaves it: a unit sitting on its rating refused for a round that fits it exactly. In
+        /// the cases that were accepted anyway, the earlier systems still reported headroom measured
+        /// against that intermediate state - a wrong number in the audit trail of a run whose whole purpose
+        /// is to be auditable.
+        /// </para>
+        /// <para>
+        /// The Approved Document O workflow gives each dwelling its own unit, so there the two orders
+        /// agree - but the general MEP arrangement of one unit serving several systems is precisely what
+        /// this operation promises to remain correct for, and a promise kept only by the shape of one
+        /// workflow is not kept.
+        /// </para>
+        ///
+        /// <para><b>One verdict per unit, shared by every dwelling on it</b></para>
+        /// <para>
+        /// Dwellings that share a unit share its constraint, so they share its answer: the same descriptor,
+        /// outcome, headroom and - where it refuses - the same refusal on each of them. That is what lets a
+        /// caller retrying a round without the dwellings that hit capacity remove all of them together,
+        /// rather than meeting the same unit again on the next attempt.
+        /// </para>
+        /// <para>
+        /// Units are visited in name order, so what a round reports does not depend on the order its
+        /// targets arrived in.
+        /// </para>
+        /// </summary>
+        private static void ValidateVentilationUnits(AdjacencyCluster adjacencyCluster, DesignAirFlowRoundCandidate designAirFlowRoundCandidate, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, double tolerance_Lps)
+        {
+            //Grouped by the unit INSTANCE, so two systems on one unit are one check and one answer.
+            Dictionary<Guid, List<DwellingDesignAirFlowRound>> dictionary = [];
+            Dictionary<Guid, AirHandlingUnit> dictionary_AirHandlingUnit = [];
+
+            foreach (DwellingDesignAirFlowRound dwellingDesignAirFlowRound in designAirFlowRoundCandidate.DwellingRounds)
+            {
+                AirHandlingUnit airHandlingUnit = dwellingDesignAirFlowRound.AirHandlingUnit;
+                if (airHandlingUnit is null)
+                {
+                    //No unit resolved for this dwelling, so equipment is not a constraint on it. The
+                    //outcome stays NotApplicable, exactly as it does where no catalogue was offered.
+                    continue;
+                }
+
+                dictionary_AirHandlingUnit[airHandlingUnit.Guid] = airHandlingUnit;
+
+                if (!dictionary.TryGetValue(airHandlingUnit.Guid, out List<DwellingDesignAirFlowRound> dwellingDesignAirFlowRounds))
+                {
+                    dwellingDesignAirFlowRounds = [];
+                    dictionary[airHandlingUnit.Guid] = dwellingDesignAirFlowRounds;
+                }
+
+                dwellingDesignAirFlowRounds.Add(dwellingDesignAirFlowRound);
+            }
+
+            List<Guid> guids = [.. dictionary.Keys];
+
+            guids.Sort((x, y) =>
+            {
+                int result = string.CompareOrdinal(dictionary_AirHandlingUnit[x].Name, dictionary_AirHandlingUnit[y].Name);
+
+                return result != 0 ? result : x.CompareTo(y);
+            });
+
+            foreach (Guid guid in guids)
+            {
+                AirHandlingUnit airHandlingUnit = dictionary_AirHandlingUnit[guid];
+
+                bool sufficient = IsWithinSelectedVentilationUnit(
+                    adjacencyCluster,
+                    airHandlingUnit,
+                    ventilationUnitCapacityDescriptors,
+                    tolerance_Lps,
+                    out VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor,
+                    out VentilationUnitSelectionOutcome ventilationUnitSelectionOutcome,
+                    out string reason,
+                    out double supplyHeadroom_Lps,
+                    out double extractHeadroom_Lps,
+                    out string note);
+
+                //The UNIT's own duty, which for a unit serving several systems is not any one dwelling's -
+                //and is the quantity the rating was actually compared against, so it is the one reported.
+                if (!adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit, out double supplyDuty_Lps, out double extractDuty_Lps))
+                {
+                    supplyDuty_Lps = double.NaN;
+                    extractDuty_Lps = double.NaN;
+                }
+
+                string refusal = sufficient ? null : string.Format(
+                    "The optimisation round was calculated and then rejected, because the ventilation unit selected for air handling unit '{0}' cannot carry it: {1} Nothing was changed - the model is exactly as it was. The round would have left that unit moving {2:0.###} l/s of supply and {3:0.###} l/s of extract against a rating of {4:0.###}/{5:0.###} l/s, leaving {6:0.###}/{7:0.###} l/s of headroom. The selected product is the constraint this round explores within; a larger one is chosen deliberately, on its own.",
+                    airHandlingUnit.Name,
+                    reason,
+                    supplyDuty_Lps,
+                    extractDuty_Lps,
+                    ventilationUnitCapacityDescriptor?.MaximumSupplyFlowRate_Lps ?? double.NaN,
+                    ventilationUnitCapacityDescriptor?.MaximumExtractFlowRate_Lps ?? double.NaN,
+                    supplyHeadroom_Lps,
+                    extractHeadroom_Lps);
+
+                foreach (DwellingDesignAirFlowRound dwellingDesignAirFlowRound in dictionary[guid])
+                {
+                    dwellingDesignAirFlowRound.VentilationUnitCapacityDescriptor = ventilationUnitCapacityDescriptor;
+                    dwellingDesignAirFlowRound.VentilationUnitSelectionOutcome = ventilationUnitSelectionOutcome;
+                    dwellingDesignAirFlowRound.VentilationUnitSelectionReason = reason;
+                    dwellingDesignAirFlowRound.SupplyHeadroom_Lps = supplyHeadroom_Lps;
+                    dwellingDesignAirFlowRound.ExtractHeadroom_Lps = extractHeadroom_Lps;
+
+                    if (sufficient)
+                    {
+                        if (note is not null)
+                        {
+                            dwellingDesignAirFlowRound.Notes.Add(note);
+                        }
+
+                        continue;
+                    }
+
+                    //Every dwelling on this unit carries the refusal, because every one of them is subject
+                    //to it - and a caller dropping the dwellings that hit capacity then drops all of them.
+                    dwellingDesignAirFlowRound.Refusals.Add(refusal);
+
+                    designAirFlowRoundCandidate.Refusals.Add(refusal);
+                }
+            }
         }
 
         /// <summary>

@@ -345,6 +345,84 @@ namespace SAM.Tests
             Assert.Equal(designs_Before, Designs(adjacencyCluster));
         }
 
+        /// <summary>
+        /// <b>F, for a unit serving more than one system.</b> A unit's duty is the sum over every system it
+        /// supplies, so it can only be judged once the WHOLE round is written. Here one system rises 5 l/s
+        /// and another falls 5 l/s on the same unit, which is sitting exactly on its rating: the round
+        /// leaves the unit exactly where it found it and must be accepted.
+        /// <code>
+        /// MVHR-S rated 35/35, serving Flat A at 10/10 and Flat B at 25/25 - so 35/35, on the nose
+        /// targeted: Bedroom A supply 10 -> 15   derived: Kitchen A extract 10 -> 15
+        /// targeted: Bedroom B supply 25 -> 20   derived: Kitchen B extract 25 -> 20
+        /// unit after: 35/35 - unchanged
+        /// </code>
+        /// <para>
+        /// Checked per dwelling as the round was written, the system processed first would have been judged
+        /// against a duty that included the other system's OLD design - 40/35 one way round, and a stale
+        /// 30/35 the other - so this refused a valid round or reported headroom for a state that never
+        /// existed, depending only on which guid sorted first. Both are asserted against below.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ASharedVentilationUnit_IsJudgedOnTheWholeRoundRatherThanPartOfIt()
+        {
+            AdjacencyCluster adjacencyCluster = SharedUnitFixture(out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            DesignAirFlowRoundCandidate candidate = Round(adjacencyCluster, [
+                Target(adjacencyCluster, "Bedroom A", FlowClassification.Supply, 15),
+                Target(adjacencyCluster, "Bedroom B", FlowClassification.Supply, 20)], ventilationUnitCapacityDescriptors);
+
+            Assert.True(candidate.IsAccepted, string.Join(" ", candidate.Refusals));
+
+            Assert.Equal(2, candidate.DwellingRounds.Count);
+
+            //The unit ends exactly where it started, which is exactly on its rating.
+            AirHandlingUnit airHandlingUnit = Assert.Single(candidate.AdjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            Assert.True(candidate.AdjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit, out double supplyDuty_Lps, out double extractDuty_Lps));
+
+            Assert.Equal(35, supplyDuty_Lps, 6);
+            Assert.Equal(35, extractDuty_Lps, 6);
+
+            //One verdict per unit, shared by every dwelling on it - and measured against the design the
+            //round actually produces, not an intermediate one.
+            foreach (DwellingDesignAirFlowRound dwellingDesignAirFlowRound in candidate.DwellingRounds)
+            {
+                Assert.Equal(VentilationUnitSelectionOutcome.Kept, dwellingDesignAirFlowRound.VentilationUnitSelectionOutcome);
+                Assert.Equal(0, dwellingDesignAirFlowRound.SupplyHeadroom_Lps, 6);
+                Assert.Equal(0, dwellingDesignAirFlowRound.ExtractHeadroom_Lps, 6);
+            }
+        }
+
+        /// <summary>
+        /// <b>F, again for a shared unit.</b> Where the completed round really does outgrow the unit, every
+        /// dwelling on it carries the refusal - because every one of them is subject to it, and a caller
+        /// retrying without the dwellings that hit capacity has to drop all of them together or meet the
+        /// same unit again on the next attempt.
+        /// </summary>
+        [Fact]
+        public void ASharedVentilationUnitThatIsOutgrown_RefusesEveryDwellingOnIt()
+        {
+            AdjacencyCluster adjacencyCluster = SharedUnitFixture(out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            Dictionary<string, double> designs_Before = Designs(adjacencyCluster);
+
+            //Both systems rise, so the shared unit is asked for 45/45 against its 35/35 rating.
+            DesignAirFlowRoundCandidate candidate = Round(adjacencyCluster, [
+                Target(adjacencyCluster, "Bedroom A", FlowClassification.Supply, 15),
+                Target(adjacencyCluster, "Bedroom B", FlowClassification.Supply, 30)], ventilationUnitCapacityDescriptors);
+
+            Assert.False(candidate.IsAccepted);
+            Assert.Null(candidate.AdjacencyCluster);
+
+            Assert.Equal(2, candidate.VentilationUnitRefusals.Count);
+
+            //The duty reported is the UNIT's, not either dwelling's.
+            Assert.Contains(candidate.Refusals, x => x.Contains("moving 45"));
+
+            Assert.Equal(designs_Before, Designs(adjacencyCluster));
+        }
+
         // ---- G. A partial clamp is not a step ---------------------------------------------------------------------
 
         /// <summary>
@@ -680,6 +758,60 @@ namespace SAM.Tests
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// <b>One</b> air handling unit serving <b>two</b> ventilation systems - the general MEP
+        /// arrangement the round promises to stay correct for, and the one the Approved Document O
+        /// workflow's one-unit-per-dwelling shape hides.
+        /// <code>
+        /// MVHR-S rated 35/35
+        ///   Flat A   Bedroom A supply 10 (requires 5)   Kitchen A extract 10 (requires 5)
+        ///   Flat B   Bedroom B supply 25 (requires 5)   Kitchen B extract 25 (requires 5)
+        ///                                               unit duty 35/35 - exactly on the rating
+        /// </code>
+        /// Both wet rooms are given a low Approved Document F floor so a reduction has real headroom to
+        /// come out of, which is what lets one system fall while the other rises.
+        /// </summary>
+        private static AdjacencyCluster SharedUnitFixture(out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors)
+        {
+            ventilationUnitCapacityDescriptors =
+            [
+                new VentilationUnitCapacityDescriptor(new VentilationUnitReference("Test Fixture", "MVHR-35", null), 35, 35, 0),
+            ];
+
+            AdjacencyCluster result = new();
+
+            AirHandlingUnit airHandlingUnit = new("MVHR-S", 20, 20);
+
+            airHandlingUnit.SetValue(AirHandlingUnitParameter.VentilationUnitReference, ventilationUnitCapacityDescriptors[0].VentilationUnitReference);
+
+            result.AddObject(airHandlingUnit);
+
+            Add(result, airHandlingUnit, "A", 10);
+            Add(result, airHandlingUnit, "B", 25);
+
+            return result;
+        }
+
+        /// <summary>One dwelling of <see cref="SharedUnitFixture"/>, hung off the unit both of them share.</summary>
+        private static void Add(AdjacencyCluster adjacencyCluster, AirHandlingUnit airHandlingUnit, string suffix, double designFlowRate_Lps)
+        {
+            VentilationSystem ventilationSystem = new(string.Format("Flat {0}", suffix), new VentilationSystemType("Fixture MVHR", "Fixture"));
+
+            //The SAME unit name for both, which is how Query.AirHandlingUnit resolves them onto one unit.
+            ventilationSystem.SetValue(VentilationSystemParameter.SupplyUnitName, airHandlingUnit.Name);
+
+            adjacencyCluster.AddObject(ventilationSystem);
+
+            Space space_Bedroom = Room(adjacencyCluster, string.Format("Bedroom {0}", suffix), PartFTerminalRole.Supply, 5);
+            Space space_Kitchen = Room(adjacencyCluster, string.Format("Kitchen {0}", suffix), PartFTerminalRole.LocalKitchenExtract, 5);
+
+            Terminal(adjacencyCluster, ventilationSystem, space_Bedroom, FlowClassification.Supply, designFlowRate_Lps);
+            Terminal(adjacencyCluster, ventilationSystem, space_Kitchen, FlowClassification.Extract, designFlowRate_Lps);
+
+            adjacencyCluster.AddRelation(ventilationSystem, space_Bedroom);
+            adjacencyCluster.AddRelation(ventilationSystem, space_Kitchen);
         }
 
         private static Space Room(AdjacencyCluster adjacencyCluster, string name, PartFTerminalRole partFTerminalRole, double requirement_Lps)
