@@ -136,6 +136,18 @@ namespace SAM.Analytical
                             continue;
                         }
 
+                        // A panel is made adiabatic here for ONE reason: the filter has just cut it off from
+                        // a space on its other side. That is a property of the two adjacency states, and of
+                        // nothing else - External and Internal below count adjacent SPACES, they do not
+                        // classify the envelope:
+                        //
+                        //   source > 1 space, derived 1 space  -> the cut. Adiabatic.
+                        //   source 1 space,   derived 1 space  -> already a boundary to the outside. Not.
+                        //   source > 1 space, derived > 1 space -> both sides retained. Not.
+                        //
+                        // The derived cluster alone cannot tell the first case from the second, because both
+                        // leave one adjacent space; the source adjacency is what separates them.
+
                         PanelType panelType = panel.PanelType;
                         if (panelType == PanelType.Air)
                         {
@@ -164,18 +176,30 @@ namespace SAM.Analytical
 
                             panel = new Panel(panel, construction);
                             panel = new Panel(panel, panelType);
-                        }
-                        else
-                        {
-                            if (!result.External(panel))
-                            {
-                                continue;
-                            }
 
-                            if (!Internal(panel))
-                            {
-                                continue;
-                            }
+                            // This branch is the SECOND row of the table above, not the first: it is reached
+                            // only when the panel had one adjacent space in the source model too, so it was
+                            // already a boundary to the outside and the filter has cut nothing off it. An air
+                            // boundary cannot be simulated as one when there is no second space, which is why
+                            // it is re-typed here from its normal and given that type's real construction -
+                            // an upward-facing one becomes a Roof, a downward-facing one a floor.
+                            //
+                            // It must NOT also be marked adiabatic. This used to fall through to the
+                            // assignment below and did exactly that, which is how a genuine roof reached TAS
+                            // as an adiabatic surface: no solar gain, no heat loss, and a construction
+                            // statement contradicting its own flag. It keeps its external boundary.
+                            result.AddObject(panel);
+                            continue;
+                        }
+
+                        if (!result.External(panel))
+                        {
+                            continue;
+                        }
+
+                        if (!Internal(panel))
+                        {
+                            continue;
                         }
 
                         panel.SetValue(PanelParameter.Adiabatic, true);

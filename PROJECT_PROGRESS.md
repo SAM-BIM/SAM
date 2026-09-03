@@ -1,26 +1,106 @@
 # Project Progress
 
 ## Branch
-`feature/parto-isolated-dwellings`, branched from `sow/2026-Q3` at **`a5dabbf0`**
-(the merge of PR #91).
+`fix/parto-isolation-external-envelope`, branched from `sow/2026-Q3` at **`87583190`**
+(the merge of PR #92).
 
-**Pairs with, and must merge alongside:** `SAM_UI` `feature/parto-isolated-dwellings`, which does not
-compile without the `PartOIsolationContext` class, the `AnalyticalModelParameter.PartOIsolationContext`
-entry and the `PreparePartOIteration(..., isolate)` parameter below. **Merge `SAM` first.**
-
-No `SAM_Systems` change. The isolation work itself needed no `SAM_Tas` change, and the investigation
-below records why; the later Part O correction added one behaviour-neutral `SAM_Tas` PR
-(**SAM-BIM/SAM_Tas#46**, `feature/parto-plant-zone-daytypes`), whose merge order is free.
+**No companion branch in any other repository.** Self-contained in `SAM.Analytical`; `SAM_Tas` and
+`SAM_UI` are unchanged and both suites were re-run against the rebuilt `SAM.Analytical.dll`.
 
 Everything below "Previous: result review, provenance, and two report defects" is superseded history
 retained for context.
 
 ## Last updated
-2026-09-03 (latest) - the isolation cut is identified by the adjacency change rather than by
-`PanelParameter.Adiabatic`, so a wall that was already adiabatic in the source building keeps its
-apertures. Review round 2 on PR #92.
+2026-09-03 (later) - a genuine external boundary modelled as an `Air` panel is no longer marked adiabatic
+by `AdjacencyCluster.Filter`, so an isolated dwelling keeps its real roof.
 
-## Latest (2026-09-03, latest): the isolation cut is an adjacency change, not a flag
+## Latest (2026-09-03, later): a genuine roof must not come out of isolation adiabatic
+
+**Status: reproduced, root-caused, fixed and tested.** Reported from manual testing of Flat 1 in isolated
+mode: a genuine roof reached TAS as an adiabatic surface.
+
+### The truth table
+
+An isolation cut is one thing: **the source panel separated two thermal spaces and exactly one side is
+retained**. `AdjacencyCluster.External(Panel)` and `.Internal(Panel)` count adjacent SPACES - `== 1` and
+`> 1` respectively - and classify no envelope at all:
+
+| source | derived | meaning | adiabatic |
+|---|---|---|---|
+| > 1 space | 1 space | the isolation cut | **yes** |
+| 1 space | 1 space | already a boundary to the outside | no |
+| > 1 space | > 1 space | both sides retained | no |
+
+The derived cluster alone cannot tell row 1 from row 2 - both leave one adjacent space - so the decision
+has to consult the source adjacency, which is what makes the first row's second condition load-bearing.
+
+### The predicate in `Modify.IsolateSpaces` is CORRECT
+
+`!result.External(panel) || !adjacencyCluster.Internal(panel)` is exactly row 1 of that table: continue
+(not a cut) unless the derived cluster has one adjacent space and the source has more than one. It was
+put under suspicion and it is not the defect. It is now pinned by
+`EveryPanelTurnedAdiabatic_SeparatedASelectedSpaceFromAnExcludedOneInTheSource`.
+
+### The defect is one level down, in `AdjacencyCluster.Filter`
+
+`Filter(spaces, setAdiabatic: true)` - which `IsolateSpaces` calls, and which is the production authority
+for the flag - had two branches sharing one `SetValue(PanelParameter.Adiabatic, true)` at the bottom:
+
+- the **non-`Air`** branch required `source > 1` - correct, row 1;
+- the **`Air`** branch required `source == 1` - the OPPOSITE condition, row 2 - re-typed the panel from its
+  normal (an upward-facing one becomes a `Roof`) and gave it that type's real construction, **and then fell
+  through to the same adiabatic assignment.**
+
+So a genuine external boundary modelled as an `Air` panel - the shape a roof arrives in from a model whose
+top surface was left unzoned, which is Flat 1's roof - was correctly re-typed to `Roof`, correctly given a
+roof construction, and then wrongly marked adiabatic. No solar gain, no heat loss, and a construction
+statement contradicting its own flag.
+
+Nothing was wrong with the classification of `Roof`, `FloorExposed`, `SlabOnGrade`, `WallExternal`,
+`CurtainWall` or `UndergroundWall` panels that arrive already typed - those all pass unchanged, before and
+after. The defect reached only panels typed `Air` in the source.
+
+### The fix
+
+Three lines: the `Air` branch adds its re-typed panel to the result and `continue`s, instead of falling
+through to the adiabatic assignment. The `else` is de-nested since the branch now returns. Nothing else
+changes - the re-typing, the construction, the geometry, the apertures and the source model are all as
+they were.
+
+### Files changed
+
+- `SAM/SAM.Analytical/Classes/AdjacencyCluster.cs` - the `Air` branch no longer falls through, plus the
+  truth table as a comment where the decision is made.
+- `SAM/SAM.Tests/PartOIsolationEnvelopeTests.cs` - **new**, 19 tests.
+
+### Tests
+
+`PartOIsolationTests`' fixture carries external walls and internal partitions only, which is why this was
+never caught: it has no roof, no exposed floor, no ground floor and no `Air` panel. The new fixture adds
+them. Coverage: selected-to-excluded → adiabatic; selected-to-selected → stays internal; external wall,
+roof, exposed floor, ground floor, curtain wall and underground wall → not adiabatic, and keeping type,
+construction and area; an `Air` panel re-typed but not made adiabatic; external apertures kept; cut
+apertures removed; an authored adiabatic panel keeping its state and not counted as a cut; selecting every
+space turning nothing adiabatic; the source model unchanged; the before/after envelope classification; and
+the universal invariant that every panel turned adiabatic separated a selected from an excluded space in
+the source.
+
+**Load-bearing:** against the unmodified pre-fix code the `Air` test fails with "It was external in the
+source model, so isolation cut nothing here and it must keep its external boundary", and the envelope
+classification test fails with it.
+
+### Validation
+
+- `SAM.Tests` - **1850 passed** (1831 baseline + 19).
+- `SAM_Tas` **684 passed**, `SAM_UI` **411 passed**, both against the rebuilt `SAM.Analytical.dll`.
+
+### Not performed
+
+**No run on the real multi-flat model, and no licensed TAS run.** The before/after envelope classification
+is asserted on the fixture, not on Flat 1 itself. Re-running Flat 1 isolation and inspecting its envelope
+classification is still outstanding and is the acceptance step that closes this out.
+
+## Previous (2026-09-03, latest): the isolation cut is an adjacency change, not a flag
 
 **Status: implemented and tested. One production line, plus the coverage two review comments asked
 for.** Raised by Copilot on PR #92; real, and reachable from an ordinary project model.
