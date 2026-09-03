@@ -118,6 +118,20 @@ namespace SAM.Analytical
                 return new SpaceIsolation(null, refusals, notes, 0, 0, 0);
             }
 
+            // ---- The plant the selection depends on -----------------------------------------------------
+            //
+            // An air handling unit is related to no space at all - a ventilation system names it in
+            // VentilationSystemParameter.SupplyUnitName - so nothing about it is reachable from a space and
+            // Filter cannot carry it. Without this the isolated model would have systems with no unit, and
+            // every duty and equipment selection downstream would silently read as absent.
+            //
+            // BEFORE RestoreRelations, and that order is load-bearing: this adds the plant OBJECTS and
+            // nothing else, so they have to be in the derived cluster by the time the one authority on
+            // relations walks it. See CarryAirHandlingUnits for what went wrong when the two were split
+            // the other way round.
+
+            notes.AddRange(CarryAirHandlingUnits(adjacencyCluster, result));
+
             // ---- Relations Filter does not rebuild ------------------------------------------------------
             //
             // Filter relates each carried object to the SPACE it was carried for, which is all a geometric
@@ -126,15 +140,6 @@ namespace SAM.Analytical
             // carried objects are walked, so this costs the isolated model and not the building.
 
             RestoreRelations(adjacencyCluster, result);
-
-            // ---- The plant the selection depends on -----------------------------------------------------
-            //
-            // An air handling unit is related to no space at all - a ventilation system names it in
-            // VentilationSystemParameter.SupplyUnitName - so nothing about it is reachable from a space and
-            // Filter cannot carry it. Without this the isolated model would have systems with no unit, and
-            // every duty and equipment selection downstream would silently read as absent.
-
-            notes.AddRange(CarryAirHandlingUnits(adjacencyCluster, result));
 
             // ---- The apertures on the cut ---------------------------------------------------------------
 
@@ -361,10 +366,28 @@ namespace SAM.Analytical
         /// <summary>
         /// Restores every source relation whose <b>both</b> ends were carried into the derived cluster.
         /// Walks only what was carried, so an isolated flat costs the flat.
+        ///
+        /// <para><b>Enumerated with the untyped <c>GetObjects()</c>, deliberately</b></para>
+        /// <para>
+        /// <c>GetObjects&lt;IJSAMObject&gt;()</c> answers <b>null</b> on an
+        /// <see cref="AdjacencyCluster"/> however much it holds, so this method used to return at its
+        /// first line and restore nothing at all. <c>RelationCluster.GetObjects(Type)</c> gates on
+        /// <c>IsValid(type)</c>, and <c>AdjacencyCluster.IsValid</c> asks whether the type is assignable
+        /// TO one of the analytical families it admits - which <c>IJSAMObject</c>, being broader than all
+        /// of them, is not. That gate is right for adding an object and wrong for asking what is in there,
+        /// so the ungated overload is the one to ask.
+        /// </para>
+        /// <para>
+        /// The visible consequence: the unit's supply air movement was never related back to its unit, so
+        /// <c>Query.AirFlow</c> found nothing to size the unit's intake from, so
+        /// <c>SAM.Analytical.Tas.Modify.UpdateIZAMs</c> wrote no "IZAM &lt;unit&gt; FROM OUTSIDE", so the
+        /// generated plant zone delivered the dwelling's supply while gaining nothing - and TAS refuses to
+        /// simulate a zone whose air movements do not balance.
+        /// </para>
         /// </summary>
         private static void RestoreRelations(AdjacencyCluster adjacencyCluster, AdjacencyCluster result)
         {
-            List<IJSAMObject> objects = result.GetObjects<IJSAMObject>();
+            List<IJSAMObject> objects = result.GetObjects();
             if (objects is null)
             {
                 return;
@@ -403,8 +426,24 @@ namespace SAM.Analytical
 
         /// <summary>
         /// Carries in the air handling units the derived model's ventilation systems name, and the plant
-        /// side air movements that belong to them. A unit reaches its systems by NAME rather than by
-        /// relation, which is why nothing space-shaped can find it.
+        /// side objects that belong to them. A unit reaches its systems by NAME rather than by relation,
+        /// which is why nothing space-shaped can find it.
+        ///
+        /// <para><b>Objects only. Relations are <see cref="RestoreRelations"/>'s job.</b></para>
+        /// <para>
+        /// This used to restore the unit's own relations here, guarded on
+        /// <c>result.GetObject&lt;IJSAMObject&gt;(guid)</c> being non-null - a guard that can never be
+        /// satisfied, because <c>AdjacencyCluster.IsValid(Type)</c> rejects <c>IJSAMObject</c> and
+        /// <c>RelationCluster.GetObject(Type, Guid)</c> gates on it, so the lookup answers null for every
+        /// guid the cluster holds. The unit reached the derived model related to nothing but its own
+        /// <see cref="AirHandlingUnitAirMovement"/>; <c>Query.AirFlow</c> had no supply movement to read;
+        /// <c>SAM.Analytical.Tas.Modify.UpdateIZAMs</c> wrote no intake IZAM; and TAS refused the model.
+        /// </para>
+        /// <para>
+        /// So the two are split by responsibility and ordered: this adds objects, and RestoreRelations -
+        /// which runs after it, over the whole carried set - is the single authority on relations. One
+        /// mechanism, one place to be right.
+        /// </para>
         /// </summary>
         private static List<string> CarryAirHandlingUnits(AdjacencyCluster adjacencyCluster, AdjacencyCluster result)
         {
@@ -425,6 +464,7 @@ namespace SAM.Analytical
             }
 
             int count = 0;
+            int count_PlantAirMovement = 0;
 
             foreach (AirHandlingUnit airHandlingUnit in adjacencyCluster.GetObjects<AirHandlingUnit>() ?? [])
             {
@@ -441,23 +481,60 @@ namespace SAM.Analytical
 
                 count++;
 
-                //The unit's own air movements, and its links to whatever the flat already carried - the
-                //terminals' air movements are already in, and this is what reconnects them to the unit.
+                //Everything on the unit's side of the model that no space can reach, so that
+                //RestoreRelations then finds both ends of the unit's relations already carried.
                 foreach (IJSAMObject object_Related in adjacencyCluster.GetRelatedObjects(airHandlingUnit) ?? [])
                 {
-                    if (object_Related is AirHandlingUnitAirMovement)
+                    if (object_Related is null)
                     {
-                        IJSAMObject object_Clone = Core.Query.Clone(object_Related);
-                        result.AddObject(object_Clone);
-                        result.AddRelation(airHandlingUnit_Result, object_Clone);
-
                         continue;
                     }
 
                     Guid guid_Related = adjacencyCluster.GetGuid(object_Related);
-                    if (guid_Related != Guid.Empty && result.GetObject<IJSAMObject>(guid_Related) is not null)
+                    if (guid_Related == Guid.Empty)
                     {
-                        result.AddRelation(result.GetGuid(airHandlingUnit_Result), guid_Related);
+                        continue;
+                    }
+
+                    //Already carried, by Filter or by an earlier unit. Asked with GetTypeName, which is
+                    //the cluster's own type-agnostic "do you hold this guid" - NOT GetObject<T>, whose
+                    //type gate is what broke this in the first place.
+                    if (!string.IsNullOrEmpty(result.GetTypeName(guid_Related)))
+                    {
+                        continue;
+                    }
+
+                    //The unit's supply condition profiles, which become the humidistat and thermostat on
+                    //its generated TAS plant zone. Related to the unit and to nothing else, ever.
+                    if (object_Related is AirHandlingUnitAirMovement)
+                    {
+                        result.AddObject(Core.Query.Clone(object_Related));
+
+                        continue;
+                    }
+
+                    //The unit's own PLANT SIDE air movements - its exhaust, its intake - which hang off the
+                    //unit rather than off a room.
+                    //
+                    //Filter cannot carry these: they are related to no space at all, so nothing reachable
+                    //from the selection finds them. And one related to an EXCLUDED space cannot arrive here,
+                    //because Refusals_AirMovementScope already refused the whole isolation over it. What is
+                    //left is plant belonging to a unit this model is carrying.
+                    //
+                    //Carried even where this particular dwelling turns out not to need it:
+                    //Modify.AddAirHandlingUnitExhaust exists because a unit that gains the extract duty and
+                    //never loses it is a zone TAS refuses to simulate, so dropping the exhaust silently
+                    //turns a balanced unit into an unbalanced one.
+                    if (object_Related is SpaceAirMovement spaceAirMovement)
+                    {
+                        List<Space> spaces_Related = adjacencyCluster.GetRelatedObjects<Space>(spaceAirMovement);
+                        if (spaces_Related is not null && spaces_Related.Count != 0)
+                        {
+                            continue;
+                        }
+
+                        result.AddObject(Core.Query.Clone<SpaceAirMovement>(spaceAirMovement));
+                        count_PlantAirMovement++;
                     }
                 }
             }
@@ -465,6 +542,11 @@ namespace SAM.Analytical
             if (count != 0)
             {
                 notes.Add(string.Format("{0} air handling unit(s) serving only the selected dwellings were carried into the isolated model.", count));
+            }
+
+            if (count_PlantAirMovement != 0)
+            {
+                notes.Add(string.Format("{0} plant side air movement(s) belonging to those units - the unit's own intake and exhaust, which no room reaches - were carried with them.", count_PlantAirMovement));
             }
 
             return notes;
