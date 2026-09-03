@@ -147,6 +147,20 @@ namespace SAM.Analytical
         /// <summary>Where the results came from, for the header. Null where the caller stated none.</summary>
         public string Source { get; }
 
+        /// <summary>
+        /// What thermal model produced these results - the whole building, or an isolated derived model of
+        /// named dwellings. Null where the caller stated nothing, which reads as the ordinary whole-building
+        /// run.
+        /// <para>
+        /// <b>Stated because it changes what the numbers mean.</b> An isolated run simulates interfaces to
+        /// the dwellings it left out as adiabatic, so its results are not the whole-building results for the
+        /// same flat. A reader who cannot see that from the report could compare two runs that were never
+        /// comparable. The assessment itself is identical either way - the same criteria, over whichever
+        /// spaces were simulated - which is why this is a statement of scope and not an assessment input.
+        /// </para>
+        /// </summary>
+        public string ThermalModelScope { get; set; }
+
         /// <summary>The category the comfort limits were derived for, as the results themselves report it.</summary>
         public TM52BuildingCategory TM52BuildingCategory { get; }
 

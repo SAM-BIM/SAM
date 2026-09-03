@@ -84,6 +84,11 @@ namespace SAM.Analytical
                 stringBuilder.AppendLine(string.Format("Source: {0}", tM59AssessmentReport.Source));
             }
 
+            //Before the category and the verdicts: the scope decides how every line below it may be read.
+            stringBuilder.AppendLine(string.Format(
+                "Thermal model scope: {0}",
+                string.IsNullOrWhiteSpace(tM59AssessmentReport.ThermalModelScope) ? "WHOLE BUILDING" : tM59AssessmentReport.ThermalModelScope));
+
             stringBuilder.AppendLine(string.Format("TM52 building category: {0}", tM59AssessmentReport.TM52BuildingCategory.Description()));
             stringBuilder.AppendLine(PartOModellingAssumptionsNotice);
             stringBuilder.AppendLine();

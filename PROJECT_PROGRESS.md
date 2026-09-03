@@ -1,24 +1,158 @@
 # Project Progress
 
 ## Branch
-`feature/parto-result-review-and-persistence`, branched from `sow/2026-Q3` at **`471462e2`**
-(the merge of PR #90).
+`feature/parto-isolated-dwellings`, branched from `sow/2026-Q3` at **`a5dabbf0`**
+(the merge of PR #91).
 
-**Pairs with, and must merge alongside:** `SAM_UI` `feature/parto-result-review-and-persistence`, which
-does not compile without the `SimulationResultProvenance` / `OverheatingScenarios` additions below.
+**Pairs with, and must merge alongside:** `SAM_UI` `feature/parto-isolated-dwellings`, which does not
+compile without the `PartOIsolationContext` class, the `AnalyticalModelParameter.PartOIsolationContext`
+entry and the `PreparePartOIteration(..., isolate)` parameter below. **Merge `SAM` first.**
 
-No `SAM_Systems` or `SAM_Tas` change - neither was touched.
+No `SAM_Systems` or `SAM_Tas` change - neither was touched, and the investigation below records why
+`SAM_Tas` did not need one.
 
-Everything below "Previous: the selected-equipment capacity envelope" is superseded history retained for
-context.
+Everything below "Previous: result review, provenance, and two report defects" is superseded history
+retained for context.
 
 ## Last updated
-2026-09-03 - Part O result review and persistence: idempotent Part F condition naming, the persisted
-simulation-result provenance record - now binding the overheating scenarios as well as the design state,
-and failing closed on an incomplete record - and the TM59 space applications carried through
-simplification.
+2026-09-03 - Running selected dwellings in isolation: a derived thermal model containing only the
+selected dwellings, built on the existing `AdjacencyCluster.Filter` extraction authority, with the
+adiabatic isolation cut, external shading context, plant-scope refusals and a persisted isolation record.
 
-## Latest (2026-09-03): result review, provenance, and two report defects
+## Latest (2026-09-03): running selected dwellings in isolation
+
+**Status: implemented and tested. No Part O or Part F engineering semantics changed.**
+
+A large residential model can be ~5,000 spaces. Assessing one flat should not require simulating all of
+them. Isolation builds a **derived** model containing only the selected dwellings as thermal zones,
+keeping the thermal boundaries and the solar context they need.
+
+### 0. What the investigation found, before anything was written
+
+`FilterBySpaces` exists only as the Grasshopper component
+`SAMAnalyticalFilterBySpaces`; the production authority behind it is
+**`AdjacencyCluster.Filter(IEnumerable<Space>, bool setAdiabatic = true)`**. It already does more than
+expected, and none of it was rebuilt:
+
+* returns a **new** cluster - the source is never mutated;
+* identifies spaces by **guid** (`SAMObject`'s copy constructor carries the guid, so identity survives -
+  which TAS zone mapping, TM59 result mapping and provenance all depend on);
+* clones each selected space's related objects and relates them to that space;
+* and classifies **every** panel by comparing its adjacency in the DERIVED cluster against its adjacency
+  in the SOURCE - which is exactly the three-case matrix this feature needed:
+  * *selected/selected* - two spaces in the derived cluster, left as the internal partition it is;
+  * *selected/excluded* - one space derived, two in the source, marked `PanelParameter.Adiabatic`;
+  * *selected/external* - one space in both, left completely alone (type, construction, apertures,
+    orientation, exposure).
+
+`Filter` had **no tests**. It now has them.
+
+What `Filter` could not know, because it is a general geometric filter and these are questions about a
+*simulation*, is what `Modify.IsolateSpaces` adds around it - see below.
+
+**The adiabatic representation already exists end to end.** `PanelParameter.Adiabatic` is read by
+`SAM_Tas Modify.UpdateAdiabatic`, which sets the matching TBD zone surface to
+`SurfaceType.tbdNullLink`, and `WorkflowCalculator` already calls it ("Setting Adiabatic"). Nothing was
+invented and `SAM_Tas` needed no change.
+
+**The shading representation already exists too.** `PanelType.Shade` maps to gbXML
+`surfaceTypeEnum.Shade`, the Part O route converts through gbXML into T3D and then TBD, and the gbXML
+export writes a panel with no adjacent space perfectly well. So excluded external geometry reaches TAS as
+shading through the path that already existed.
+
+### 1. `Modify.IsolateSpaces` - the extraction
+
+Built **on** `Filter`, not beside it. It adds only the four things a simulation needs and a geometric
+filter cannot decide:
+
+**Relations `Filter` does not rebuild.** `Filter` relates each carried object to the space it was carried
+for. A simulation needs the rest of the graph - a terminal to its system, an air movement to its unit -
+so every source relation whose *both* ends were carried is restored. Only carried objects are walked.
+
+**The plant.** An `AirHandlingUnit` is related to no space at all: a `VentilationSystem` names it in
+`VentilationSystemParameter.SupplyUnitName`. Nothing reachable from a space finds it, so `Filter` cannot
+carry it, and without this step an isolated model would have systems with no unit and every duty and
+equipment selection downstream would read as absent.
+
+**The apertures on the cut.** Removed from the derived model. In the derived cluster a cut panel has one
+adjacent space, so an aperture left on it would be exported as an **external** window - giving the flat a
+door to outside, with solar gain and outside air behind it, where a corridor used to be. That is a
+fabricated boundary. Keyed on the `Adiabatic` flag `Filter` sets, deliberately **not** on
+`Query.Adiabatic`, which also reports any zero-thickness construction as adiabatic: a surface that was
+already adiabatic in the source building is not this run's cut and keeps its apertures.
+
+**The shading context**, using the definitions that already exist rather than a new rule: an uncarried
+source panel becomes shade when it is `Query.ExposedToSun` **and** has at most one adjacent space. An
+excluded façade, roof or exposed floor comes across; an internal partition (two adjacent spaces) never
+does; and an existing source shade (no adjacent space) keeps coming across as before. No proximity
+culling - the reduction comes from not simulating thousands of thermal zones, not from pruning shade.
+
+### 2. Fail closed on shared plant and on airflow crossing the cut
+
+Checked **before** anything is built, so a person is never told the scope was invalid after a long
+conversion. Refused, never silently narrowed:
+
+* a **ventilation system** serving both a selected and an excluded space;
+* an **air handling unit** that straddles the cut through two systems - the per-system check cannot see
+  that, so the unit is asked in its own right;
+* a **`SpaceAirMovement`** connecting a selected space to an excluded one.
+
+Splitting shared central plant proportionally is a different engineering problem and is deliberately not
+attempted. The dedicated per-dwelling MVHR the Part O workflow builds serves exactly one dwelling, so
+none of these fire on it.
+
+A refusal returns **no model**, by contract - the same rule `PartOIterationPreparation` already follows.
+
+### 3. `PreparePartOIteration(..., isolate)` - and why isolation comes last
+
+Isolation happens **after** the whole preparation, never before. Part F requirements, design terminals,
+system duties and the dwelling's internal transfer air are settled on the whole building first, and
+isolation then extracts the assessed dwellings carrying that state unchanged. So isolation **cannot move
+a Part F number** - it is a thermal model scope, which is the one thing it claims to be. (The dwelling's
+transfer air is solved over the *dwelling*, and a communal corridor belongs to no dwelling, so removing
+the entrance door to an excluded corridor cannot change it either - which is what makes re-preparing an
+isolated model in a later optimisation round give the same answer as the first.)
+
+It is placed before the openings report and the overheating scenarios so both describe the model that
+will actually be simulated. Only the selected dwellings therefore appear in the run's assessment scope.
+
+### 4. `PartOIsolationContext` - stamped, never inferred
+
+A new `AnalyticalModelParameter`, so it travels into the run's `.sam` with everything else. It carries
+the isolated space guids, the dwelling zone guids, the dwelling names for reporting, and a **scope
+token** (an FNV-1a digest over the sorted space guids) that `SAM_UI` uses to keep one isolated run's
+artifacts off another's.
+
+It exists because an isolated model cannot state this by itself: reopened later it is indistinguishable
+from a building that only ever had those spaces, and the two are different thermal models. Nothing reads
+isolation state back out of a filename.
+
+`TM59AssessmentReport.ThermalModelScope` (new) prints the scope in the report header, defaulting to
+`WHOLE BUILDING`.
+
+### 5. The engineering assumption, stated
+
+Selected-to-excluded conditioned-space interfaces are treated as **adiabatic** - approximately zero net
+conductive heat transfer across the omitted neighbours. Isolated results may therefore differ from a
+whole-building simulation of the same dwellings, and **must not be presented as equivalent**. The dialog,
+the preparation summary and the TM59 report all say so.
+
+### Tests
+
+`SAM.Tests.PartOIsolationTests` - 25 tests over the acceptance fixture (Flat 1: Studio + Bathroom;
+Flat 2: Bedroom + Kitchen; a Corridor between them; one dedicated MVHR each), covering extraction,
+identity under duplicate names, the source model being untouched, the three panel cases, shade
+qualification and non-duplication, the cut aperture rule both ways, dedicated and shared plant,
+cross-cut air movement, Part F data survival, context round-trip, token stability, and a 2,000-space
+synthetic model asserted on shape rather than on a clock.
+
+`SAM.Tests.PartOIterationPreparationTests` - 5 further tests for isolation through the preparation:
+the isolated model, the un-isolated control, Part F and design duty unmoved, scenario scope, and the
+reported scope note.
+
+Full `SAM.Tests`: **1786 passed, 0 failed**. `SAM.sln` MSBuild: **0 errors**.
+
+## Previous: result review, provenance, and two report defects
 
 **Status: implemented and tested. No Iteration 2B engineering semantics changed.**
 
