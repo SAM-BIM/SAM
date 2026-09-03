@@ -266,6 +266,86 @@ namespace SAM.Tests
             Assert.Single(panel.Apertures);
         }
 
+        /// <summary>
+        /// <b>A surface that was already adiabatic in the source building is not this run's cut.</b>
+        ///
+        /// <para>
+        /// <c>PanelParameter.Adiabatic</c> is not evidence of anything this method did.
+        /// <c>SAM.Analytical.Tas.Convert.ToSAM</c> sets it on every surface a TBD calls adiabatic,
+        /// <c>SAM.Analytical.gbXML.Convert.ToSAM</c> sets it wherever a gbXML surface names an adjacent
+        /// space the file does not contain, and the <c>SAMAnalyticalSetAdiabatic</c> component sets it
+        /// because a person asked for it - so a real project model, which is how these arrive, carries the
+        /// flag on ordinary walls. <c>Filter</c> copies a panel's parameters into the derived cluster, so
+        /// reading the flag back would take every one of them for a cut.
+        /// </para>
+        /// <para>
+        /// Here Studio-to-Bathroom is flagged in the source and both rooms are selected, so it is an
+        /// ordinary partition of the isolated flat. It must keep its door - the whole-building run would -
+        /// and it must not be counted in the disclosure note as an interface to an excluded space.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void SourceAdiabaticPanel_BetweenTwoSelectedSpaces_KeepsItsApertures()
+        {
+            PartFModel partFModel = Fixture();
+
+            SetAdiabatic(partFModel, "Studio", "Bathroom");
+
+            SpaceIsolation spaceIsolation = partFModel.AdjacencyCluster.IsolateSpaces(Flat1(partFModel));
+
+            Panel panel = Panel_Between(spaceIsolation.AdjacencyCluster, "Studio", "Bathroom");
+
+            Assert.Single(panel.Apertures);
+
+            //Studio-to-Corridor is the only cut, and the only aperture removed.
+            Assert.Equal(1, spaceIsolation.Count_AdiabaticPanel);
+            Assert.Equal(1, spaceIsolation.Count_RemovedCutAperture);
+        }
+
+        /// <summary>
+        /// The mirror of it: a source surface that was already adiabatic <b>and</b> divides a selected space
+        /// from an excluded one is still a cut. Its door is removed like any other cut's, because in the
+        /// derived model it has nothing left to open onto - being flagged in the source neither makes a
+        /// panel a cut nor excuses it from being one.
+        /// </summary>
+        [Fact]
+        public void SourceAdiabaticPanel_OnTheCut_IsStillCut()
+        {
+            PartFModel partFModel = Fixture();
+
+            SetAdiabatic(partFModel, "Studio", "Corridor");
+
+            SpaceIsolation spaceIsolation = partFModel.AdjacencyCluster.IsolateSpaces(Flat1(partFModel));
+
+            Panel panel = spaceIsolation.AdjacencyCluster.GetObject<Panel>(
+                Panel_Between(partFModel.AdjacencyCluster, "Studio", "Corridor").Guid);
+
+            Assert.True(panel.Apertures is null || panel.Apertures.Count == 0);
+            Assert.Equal(1, spaceIsolation.Count_AdiabaticPanel);
+            Assert.Equal(1, spaceIsolation.Count_RemovedCutAperture);
+        }
+
+        /// <summary>
+        /// And an already adiabatic <b>external</b> wall of a selected space is not a cut either - it has
+        /// one adjacent space in the source, so no adjacency of it changed. It keeps its window.
+        /// </summary>
+        [Fact]
+        public void SourceAdiabaticExternalWall_IsNotACut()
+        {
+            PartFModel partFModel = Fixture();
+
+            Panel panel_Source = Panel_External(partFModel.AdjacencyCluster, "Studio");
+            panel_Source.SetValue(PanelParameter.Adiabatic, true);
+            partFModel.AdjacencyCluster.AddObject(panel_Source);
+
+            SpaceIsolation spaceIsolation = partFModel.AdjacencyCluster.IsolateSpaces(Flat1(partFModel));
+
+            Panel panel = spaceIsolation.AdjacencyCluster.GetObject<Panel>(panel_Source.Guid);
+
+            Assert.Single(panel.Apertures);
+            Assert.Equal(1, spaceIsolation.Count_AdiabaticPanel);
+        }
+
         // ---- D. Systems --------------------------------------------------------------------------------
 
         /// <summary>The selected dwelling's own MVHR - system and unit - comes across.</summary>
@@ -609,6 +689,19 @@ namespace SAM.Tests
         }
 
         /// <summary>The one panel adjacent to both named spaces.</summary>
+        /// <summary>
+        /// Flags the partition between two named spaces adiabatic in the SOURCE model, the way a model
+        /// imported from a TBD or a gbXML - or one a person set adiabatic - arrives carrying it.
+        /// </summary>
+        private static void SetAdiabatic(PartFModel partFModel, string name_1, string name_2)
+        {
+            Panel panel = Panel_Between(partFModel.AdjacencyCluster, name_1, name_2);
+
+            panel.SetValue(PanelParameter.Adiabatic, true);
+
+            partFModel.AdjacencyCluster.AddObject(panel);
+        }
+
         private static Panel Panel_Between(AdjacencyCluster adjacencyCluster, string name_1, string name_2)
         {
             foreach (Panel panel in adjacencyCluster.GetPanels())

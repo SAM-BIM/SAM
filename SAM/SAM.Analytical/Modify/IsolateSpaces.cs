@@ -148,11 +148,23 @@ namespace SAM.Analytical
 
             foreach (Panel panel in result.GetPanels() ?? [])
             {
-                //The isolation cut specifically - the flag Filter just set - and NOT everything
-                //Query.Adiabatic would report. That reports any zero thickness construction as adiabatic
-                //too, and a surface that was already adiabatic in the source building is not this run's
-                //cut: it keeps whatever apertures it had, exactly as it would in a whole building run.
-                if (panel is null || !panel.TryGetValue(PanelParameter.Adiabatic, out bool adiabatic) || !adiabatic)
+                //The isolation cut is the ADJACENCY CHANGE this run made - two spaces in the source and
+                //one in the derived cluster - and is asked of the two clusters directly, never of a flag.
+                //
+                //Not Query.Adiabatic, which reports any zero thickness construction as adiabatic in its
+                //own right; and, less obviously, not PanelParameter.Adiabatic either. That flag is not
+                //this run's evidence: Convert.ToSAM sets it when a TBD says a surface is adiabatic and
+                //when a gbXML surface names an adjacent space the file does not contain, and the
+                //SAMAnalyticalSetAdiabatic component sets it because a person asked for it. Filter
+                //carries a panel's parameters into the derived cluster with it, so every one of those
+                //arrives here already flagged - and reading the flag would take a wall that was adiabatic
+                //in the whole building for a cut, strip the apertures it is entitled to keep, and count
+                //it in the disclosure note as an interface to a space it does not touch.
+                //
+                //Asked this way round it also stays right where the two coincide: a source surface that
+                //was already adiabatic AND divides a selected space from an excluded one IS a cut, and
+                //does lose its apertures, because in the derived model it has nothing left to open onto.
+                if (panel is null || !result.External(panel) || !adjacencyCluster.Internal(panel))
                 {
                     continue;
                 }

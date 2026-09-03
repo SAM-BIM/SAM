@@ -16,10 +16,82 @@ Everything below "Previous: result review, provenance, and two report defects" i
 retained for context.
 
 ## Last updated
-2026-09-03 (later) - two model-generation defects TAS refuses a model for: transposed humidistat
-limits on every air handling unit, and an isolated model that lost the relations between a unit and the
-air it moves. Both are now SAMAnalytical.Check rules. Flat 1 in isolation completes a full-year licensed
-TAS run.
+2026-09-03 (latest) - the isolation cut is identified by the adjacency change rather than by
+`PanelParameter.Adiabatic`, so a wall that was already adiabatic in the source building keeps its
+apertures. Review round 2 on PR #92.
+
+## Latest (2026-09-03, latest): the isolation cut is an adjacency change, not a flag
+
+**Status: implemented and tested. One production line, plus the coverage two review comments asked
+for.** Raised by Copilot on PR #92; real, and reachable from an ordinary project model.
+
+### The defect
+
+`Modify.IsolateSpaces` decided which derived panels were this run's isolation cut by reading
+`PanelParameter.Adiabatic` back off them - the flag `AdjacencyCluster.Filter` had just written. Every
+panel so identified had its apertures removed and was counted in the disclosure note.
+
+The flag is not this run's evidence. Three other places write it, and all three write it on ordinary
+surfaces of an ordinary model:
+
+- `SAM.Analytical.Tas.Convert.ToSAM` sets it on every surface a TBD calls adiabatic;
+- `SAM.Analytical.gbXML.Convert.ToSAM` sets it wherever a gbXML surface names an adjacent space the file
+  does not contain;
+- the `SAMAnalyticalSetAdiabatic` Grasshopper component sets it because a person asked for it.
+
+`Filter` carries a panel's parameters into the derived cluster with it, so every one of those arrived at
+the cut loop already flagged. A wall that was adiabatic in the whole building was therefore read as a
+cut: **its apertures were removed from the isolated model**, and it was counted in the report's
+disclosure note as an interface to an excluded space it does not touch. The code's own comment said the
+opposite was intended - that such a surface "keeps whatever apertures it had, exactly as it would in a
+whole building run" - so this is the code not doing what it says. A TBD or gbXML import is the normal way
+a real project model arrives, which is what makes it reachable rather than theoretical.
+
+### The correction
+
+The cut is the **adjacency change this run made**, which is what the class documentation already called
+it: two spaces in the source cluster and one in the derived one. Both clusters are in hand, so it is
+asked of them directly and of no flag:
+
+```
+if (panel is null || !result.External(panel) || !adjacencyCluster.Internal(panel))
+```
+
+This is the same predicate `Filter` uses to write the flag, so nothing about which panels become
+adiabatic changes - only which ones this method then treats as cuts. It stays right where the two
+coincide: a surface that was already adiabatic **and** divides a selected space from an excluded one is
+a cut, and does lose its apertures, because in the derived model it has nothing left to open onto.
+
+### Files
+
+- `SAM/SAM.Analytical/Modify/IsolateSpaces.cs` - the cut predicate.
+- `SAM/SAM.Tests/PartOIsolationTests.cs` - 3 new tests: an already-adiabatic partition between two
+  selected spaces keeps its door and is not counted; one that is also the cut still loses its door; an
+  already-adiabatic external wall is not a cut and keeps its window.
+- `SAM/SAM.Tests/TM59AssessmentReportTests.cs` - 2 new tests (4 cases) for the report scope line, which
+  Copilot noted was uncovered: an isolated scope is printed above the verdicts, and a report stating no
+  scope falls back to `WHOLE BUILDING` rather than to silence.
+
+### Validation
+
+Full `SAM.Tests` **1831 passed**, 0 failed (1824 before, +7). `SAM.sln` builds clean. Rebuilt
+`SAM.Analytical.dll` re-validated downstream: `SAM_UI` **410 passed** and `SAM_UI.sln` clean,
+`SAM_Tas` **669 passed** and `SAM_Tas.sln` clean.
+
+### Not addressed, deliberately
+
+- **The optional `isolate` parameter on `PreparePartOIteration` (Copilot, PR #92).** Adding it changes
+  the CLR signature, so an assembly compiled against the five-parameter version would need recompiling.
+  Not preserved as a separate overload: this repository has twice added an optional parameter to this
+  same method in place (`0c8a04eb`, `41a02d4e`), the method is Part O internal with no consumer outside
+  this family, and every SAM assembly is built and released together.
+- **The second `-ISO-` suffix (Copilot, SAM_UI PR #82).** Re-preparing an isolated scope from a model
+  adopted from an optimisation round - named `<project>-ISO-<token>-OptNN` - appends the suffix again,
+  because the idempotence check only recognises it as the final segment. Naming only, never provenance,
+  and it can grow at most once; the Iteration 2B rounds named in that comment call
+  `Analytical.Modify.PreparePartOIteration` directly and never reach `Query.ProjectName_Isolated`.
+  Recorded for a decision rather than fixed under a review round.
+- **The six MVHR plant zones** in the full-building Opt TBDs, unchanged from the entry below.
 
 ## Latest (2026-09-03, later): two model-generation defects TAS refuses a model for
 

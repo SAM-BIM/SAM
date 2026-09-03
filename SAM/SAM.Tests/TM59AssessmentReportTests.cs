@@ -658,6 +658,47 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>An isolated run says so, above the verdicts.</b> The scope decides how every line below it may
+        /// be read: the same criteria over two rooms of a building is not the same statement as the same
+        /// criteria over the building, and a reader handed the second when the first was run has been
+        /// misled. It is printed before the category and the verdicts for that reason.
+        /// </summary>
+        [Fact]
+        public void TheScopeLine_StatesAnIsolatedScope_AboveTheVerdicts()
+        {
+            TM59AssessmentReport tM59AssessmentReport = Report();
+
+            tM59AssessmentReport.ThermalModelScope = "ISOLATED. Selected dwellings: Flat 1";
+
+            string text = tM59AssessmentReport.ToString();
+
+            Assert.Contains("Thermal model scope: ISOLATED. Selected dwellings: Flat 1", text);
+            Assert.DoesNotContain("WHOLE BUILDING", text);
+
+            //Above the verdicts, which is what makes it a qualifier on them rather than a footnote.
+            Assert.True(text.IndexOf("Thermal model scope:") < text.IndexOf("TM59 OCCUPIED-SPACE ASSESSMENT:"));
+        }
+
+        /// <summary>
+        /// <b>And a report that states no scope prints WHOLE BUILDING rather than nothing.</b> Silence would
+        /// be read as a whole-building run by a reader who had no reason to think otherwise - which is the
+        /// one reading an isolated run must never get by default. Every report states its scope, so the line
+        /// being absent is never how a whole-building run is said.
+        /// </summary>
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void TheScopeLine_FallsBackToWholeBuilding_WhenNoScopeIsStated(string thermalModelScope)
+        {
+            TM59AssessmentReport tM59AssessmentReport = Report();
+
+            tM59AssessmentReport.ThermalModelScope = thermalModelScope;
+
+            Assert.Contains("Thermal model scope: WHOLE BUILDING", tM59AssessmentReport.ToString());
+        }
+
+        /// <summary>
         /// The legend has to explain what a reader is looking at, and it has to include the caveat: passing
         /// temperatures are not a statement of Approved Document O compliance.
         /// </summary>
