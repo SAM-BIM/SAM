@@ -321,6 +321,17 @@ namespace SAM.Tests
                 //all, so the empty parameter set the removal leaves behind is not a difference.
                 Assert.Equal(SimulationResultProvenance.Fingerprint(analyticalModel_Unstamped), SimulationResultProvenance.Fingerprint(analyticalModel));
 
+                //Relabelling a case does not invalidate a simulation. CaseDescription is a free-form label
+                //the Grasshopper case components write and CaseDataCollection is Design Explorer study
+                //metadata; digesting either would refuse valid results and force a fresh annual run because
+                //somebody renamed a study - the same false refusal the model's own name is excluded to avoid.
+                AnalyticalModel analyticalModel_Relabelled = new(analyticalModel_Unstamped);
+
+                analyticalModel_Relabelled.SetValue("CaseDescription", "South facing, 40% glazing");
+                analyticalModel_Relabelled.SetValue(AnalyticalModelParameter.CaseDataCollection, new CaseDataCollection());
+
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel_Relabelled));
+
                 //The scenarios move their OWN fingerprint and not the model's...
                 AnalyticalModel analyticalModel_Scenarios = new(analyticalModel);
 

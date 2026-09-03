@@ -186,7 +186,24 @@ namespace SAM.Analytical
         /// inputs. Renaming a model does not invalidate its results, and refusing them over it would be a
         /// false refusal rather than caution.
         /// </item>
+        /// <item>
+        /// <b>The presentation-only model parameters</b> - <c>CaseDescription</c>, a free-form label the
+        /// Grasshopper case components write, and
+        /// <see cref="AnalyticalModelParameter.CaseDataCollection"/>, which
+        /// <c>Convert.ToDesignExplorer</c> reads as study metadata. Neither reaches a simulation, and both
+        /// are edited by naming a case - so digesting them would refuse valid results and force a fresh
+        /// annual run because somebody relabelled a study. The same rule as the model's own name, applied one
+        /// level down.
+        /// </item>
         /// </list>
+        /// <para>
+        /// <b>A deny list and not an allow list</b>, deliberately. A parameter added later that <i>does</i>
+        /// bear on a simulation is then covered the day it appears, which is the fail-closed direction; an
+        /// allow list would silently omit it and accept results it invalidated. The cost is the opposite
+        /// mistake - a presentation parameter added later causing a false refusal until it is named here -
+        /// and that one is visible, recoverable by re-simulating, and cannot present stale results as
+        /// current.
+        /// </para>
         ///
         /// <para><b>Sectioned, so the boundaries cannot hide a change</b></para>
         /// <para>
@@ -266,9 +283,9 @@ namespace SAM.Analytical
 
         /// <summary>
         /// The model's own parameter sets - weather data, design days, north angle, sizing factors, the solar
-        /// model, anything else stamped on the model - <b>less</b> the two parameters that must not be in the
-        /// model fingerprint: this provenance record and the overheating scenarios. See
-        /// <see cref="Fingerprint(AnalyticalModel)"/> for why each is excluded.
+        /// model, anything else stamped on the model - <b>less</b> the parameters that must not be in the
+        /// model fingerprint: this provenance record, the overheating scenarios, and the presentation-only
+        /// case fields. See <see cref="Fingerprint(AnalyticalModel)"/> for why each is excluded.
         /// <para>
         /// The sets are copies (<see cref="ParameterizedSAMObject.GetParameterSets"/> hands back new
         /// instances), so removing from them cannot reach the model. They are ordered by name then guid, so a
@@ -286,9 +303,17 @@ namespace SAM.Analytical
             }
 
             //Asked of the attribute rather than restated as a literal, so the exclusions cannot drift from
-            //the names the parameters are actually stored under.
-            string name_Provenance = Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.SimulationResultProvenance)?.Name;
-            string name_Scenarios = Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.OverheatingScenarios)?.Name;
+            //the names the parameters are actually stored under. CaseDescription is the exception: it has no
+            //enum member - the Grasshopper case components write it by name - so the name IS its definition.
+            List<string> names_Excluded =
+            [
+                Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.SimulationResultProvenance)?.Name,
+                Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.OverheatingScenarios)?.Name,
+                Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.CaseDataCollection)?.Name,
+                "CaseDescription",
+            ];
+
+            names_Excluded.RemoveAll(string.IsNullOrEmpty);
 
             parameterSets.RemoveAll(x => x is null);
 
@@ -303,14 +328,9 @@ namespace SAM.Analytical
 
             foreach (ParameterSet parameterSet in parameterSets)
             {
-                if (!string.IsNullOrEmpty(name_Provenance))
+                foreach (string name_Excluded in names_Excluded)
                 {
-                    parameterSet.Remove(name_Provenance);
-                }
-
-                if (!string.IsNullOrEmpty(name_Scenarios))
-                {
-                    parameterSet.Remove(name_Scenarios);
+                    parameterSet.Remove(name_Excluded);
                 }
 
                 //A set holding nothing but the excluded parameters is not a difference, so it contributes
