@@ -8,16 +8,171 @@
 compile without the `PartOIsolationContext` class, the `AnalyticalModelParameter.PartOIsolationContext`
 entry and the `PreparePartOIteration(..., isolate)` parameter below. **Merge `SAM` first.**
 
-No `SAM_Systems` or `SAM_Tas` change - neither was touched, and the investigation below records why
-`SAM_Tas` did not need one.
+No `SAM_Systems` change. The isolation work itself needed no `SAM_Tas` change, and the investigation
+below records why; the later Part O correction added one behaviour-neutral `SAM_Tas` PR
+(**SAM-BIM/SAM_Tas#46**, `feature/parto-plant-zone-daytypes`), whose merge order is free.
 
 Everything below "Previous: result review, provenance, and two report defects" is superseded history
 retained for context.
 
 ## Last updated
-2026-09-03 - Running selected dwellings in isolation: a derived thermal model containing only the
-selected dwellings, built on the existing `AdjacencyCluster.Filter` extraction authority, with the
-adiabatic isolation cut, external shading context, plant-scope refusals and a persisted isolation record.
+2026-09-03 (later) - two model-generation defects TAS refuses a model for: transposed humidistat
+limits on every air handling unit, and an isolated model that lost the relations between a unit and the
+air it moves. Both are now SAMAnalytical.Check rules. Flat 1 in isolation completes a full-year licensed
+TAS run.
+
+## Latest (2026-09-03, later): two model-generation defects TAS refuses a model for
+
+**Status: implemented, tested, and validated on the licensed acceptance model. Flat 1 in isolation now
+completes a full-year TAS simulation.** Found by running the real-project acceptance case for the
+isolation work above; the isolated run wrote a 22 KB stub of a results file and an error log saying
+only `Simulation Failed`.
+
+### 1. Transposed humidistat limits - predates Part O and predates isolation
+
+`Modify.AddAirMovementObjects` gave every `AirHandlingUnitAirMovement` **Humidification 100%** and
+**Dehumidification 0%**. Those two profiles become the humidistat on the unit's generated TAS plant zone:
+`SAM_Tas Modify.UpdateIZAMs` writes Humidification to the humidity **lower** limit (`Profiles.ticHLL`) and
+Dehumidification to the **upper** (`ticHUL`). So the zone was asked to hold its air above 100% and below 0%
+relative humidity at once, and TAS's pre-simulation check refused it:
+
+> `Internal Condition 'MVHR-01' humidistat has overlapping limits.`
+
+Read out of the failing TBD: `ticHLL value=100 setback=0`, `ticHUL value=0 setback=100` - TAS's own
+correct **setbacks** still beside them, which is what a transposition of the *values* alone looks like.
+
+Corrected to lower 0% / upper 100%, which is the SAM convention for "no humidity control" - verbatim what
+the shipped profile library states as *No Humidification* (0) and *No Dehumidification* (100), and the pair
+TAS's own new-internal-condition defaults carry. **No heating, cooling, humidification or dehumidification
+control was invented to satisfy TAS**; the limits are inert.
+
+**It predates both.** The pair has been in `AddAirMovementObjects` since 2024-01-25 (`3f724001`), on the
+general path every model with an air handling unit goes through. The acceptance project's own `.sam`,
+saved by ordinary **non-isolated** runs, carries lower 100 / upper 0 on MVHR-01, **-02 and -03**, and so
+does a full-building `Opt` round's TBD.
+
+### 2. …but that was not the isolated run's blocker
+
+The same full-building TBD, with the same transposed humidistat, **simulated a full year** (18.5 MB TSD).
+The overlap is a genuine invalid state TAS reports and was never fatal to the solver. The real blocker:
+
+`UpdateIZAMs` writes the plant zone one air movement per room the unit **supplies**, plus one
+`IZAM <unit> FROM OUTSIDE` bringing in what it therefore has to draw - sized by `Query.AirFlow`, which
+reads the deliveries **related** to the unit. Where that resolves nothing the intake is not written, and
+the zone delivers the dwelling's whole supply while gaining nothing. TAS refuses to simulate a zone whose
+air movements do not balance. Measured on the isolated Flat 1: **MVHR-01 out 36.3 l/s, in 0**.
+
+`Modify.IsolateSpaces` depended on two lookups that **cannot work** on an `AdjacencyCluster`.
+`AdjacencyCluster.IsValid(Type)` asks whether a type is assignable **to** one of the analytical families it
+admits, which `IJSAMObject` - broader than all of them - is not; and *both*
+`RelationCluster.GetObjects(Type)` and `RelationCluster.GetObject(Type, Guid)` gate on it. Verified on this
+model: `GetObjects<IJSAMObject>()` → **null**, `GetObjects()` → **641**.
+
+- **`RestoreRelations` was a complete no-op.** It opened with `result.GetObjects<IJSAMObject>()` and
+  returned at its first line, so it restored **nothing** - not an air movement to its unit, not a terminal
+  to its system. Now asks the ungated `GetObjects()`. That gate is right for *admitting* an object and
+  wrong for asking what is in there.
+- **`CarryAirHandlingUnits`' existence guard was unsatisfiable** (`GetObject<IJSAMObject>(guid)` is null
+  for every guid the cluster holds), so no unit relation was restored either. The two are now split by
+  responsibility and **ordered**: the carry adds objects, `RestoreRelations` runs after it and is the
+  single authority on relations.
+- **The unit's own exhaust was never carried.** It is a `SpaceAirMovement` related to *no space at all*.
+  Plant-side movements of a carried unit now come across.
+
+### 3. Cross-cut air movement detection (raised by Copilot on PR #92)
+
+`Refusals_AirMovementScope` inspected only the relation graph, but `AddPartFTransferAirMovements` relates
+a transfer to the **downstream** space only - relating it to both would have the TBD writer write the
+dwelling two identical inter-zone air movements - so the upstream space exists on the object as a `From`
+reference and nowhere else. Two cases passed silently: *excluded → selected* was carried with a dangling
+`From`; *selected → excluded* was neither refused nor carried, so the selected room passed air to a room
+that is not in the model. New `Spaces_AirMovement` reads both ends, references included, and both refuse.
+
+### 4. Both defects are now SAM Check rules
+
+`Create.Log` - the authority behind `SAMAnalytical.Check` and the Check command - gains:
+
+- an **`InternalCondition`** whose humidification (lower) limit is above its dehumidification (upper) limit
+  at any index the two profiles share → **Error**. Read index by index, not by comparing one profile's
+  maximum against the other's minimum, because two schedules can each be higher than the other at
+  different hours without ever overlapping;
+- an **`AirHandlingUnitAirMovement`** carrying that same invalid pair → **Error**;
+- an `AirHandlingUnitAirMovement` whose unit **supplies a movement the unit is not related to** → **Error**:
+  the model says it delivers, the relation graph does not, so no intake can be sized. Asked that way round
+  deliberately, so a legitimate **extract-only** unit - which delivers to no room and balances its
+  extract against its own exhaust with no outside intake - is not reported (Codex P2 on PR #92). New
+  `Query.SpaceAirMovement_Delivered` answers "does the model say this unit delivers" over the whole
+  cluster;
+- an `AirHandlingUnitAirMovement` related to **no unit** → **Warning**, not an Error: nothing generates a
+  plant zone from it, so it is inert.
+
+Reached from `Log(AdjacencyCluster)` **before** the space and panel checks, because a unit's air movement
+is related to the unit and to no space - which is why nothing that walks the spaces could ever find it.
+
+Not Part O rules: an invalid model is invalid whoever asks.
+
+### Important decisions and assumptions
+
+- `AdjacencyCluster.IsValid(Type)` is **not** changed. It correctly restricts what may be *added*; the
+  defect was using a type-gated single-object lookup as an existence test. The type-agnostic
+  `GetTypeName(Guid)` is what `CarryAirHandlingUnits` now asks.
+- The humidistat rule reports **only** a lower limit above an upper limit. NaN is treated as an unstated
+  hour, not an overlap.
+- The intake rule does not attempt to reproduce `UpdateIZAMs`' whole plant-zone balance in
+  `SAM.Analytical` - that would duplicate SAM_Tas logic in the wrong layer. It reports one deterministic
+  disagreement between the model and its own relation graph.
+
+### Files changed
+
+- `SAM/SAM.Analytical/Modify/AddAirMovementObjects.cs` - the transposed humidity pair.
+- `SAM/SAM.Analytical/Modify/IsolateSpaces.cs` - `RestoreRelations` enumeration, `CarryAirHandlingUnits`
+  split/ordering and plant-side carry, `Spaces_AirMovement` for cross-cut detection.
+- `SAM/SAM.Analytical/Create/Log.cs` - the humidistat rule, the intake rule, the
+  `Log(AirHandlingUnitAirMovement, AdjacencyCluster)` overload and its wiring into `Log(AdjacencyCluster)`.
+- `SAM/SAM.Analytical/Query/SpaceAirMovement_Delivered.cs` - new.
+- `SAM/SAM.Tests/PartOHumidistatTests.cs` - new, 16 tests.
+- `SAM/SAM.Tests/PartOPlantZoneIntakeTests.cs` - new, 18 tests.
+- `SAM/SAM.Tests/PartOIterationPreparationTests.cs` - 4 prepared-model regressions.
+
+### Tests, builds and validation
+
+- Full `SAM.Tests` **1824 passed**, 0 failed. `SAM.sln` builds clean (VS 18 MSBuild).
+- **Licensed TAS acceptance run**, Flat 1 isolated out of
+  `000000_SAM_AnalyticalModel-It1a-futureZ1.sam`, full year 1-365 with sizing:
+
+| | before | after |
+| --- | --- | --- |
+| TSD | 22,414 bytes (sizing stub) | **4,691,076 bytes** |
+| `_error_log.txt` | `Simulation Failed` | *none written* |
+| TBD humidistat | `ticHLL 100` / `ticHUL 0` | `ticHLL 0` / `ticHUL 100` |
+| MVHR-01 zone balance | in 0, out 0.0363 m³/s | in 0.0363, out 0.0363, **net 0** |
+| workflow | stopped after Sizing | Simulating Model → Adding Results → Updating Design Loads → Saving Model |
+| `SAMAnalytical.Check` on the derived model | 3 errors on the source | **0 errors, 0 warnings** |
+
+  Only Flat 1's two spaces are simulated; the source `.sam` is byte-identical afterwards, timestamp
+  included.
+
+### Unresolved issues, risks and blockers
+
+- The intentional `Zone 'MVHR-01' is missing internal conditions on some daytypes` warning remains, by
+  design. Pinned in **SAM-BIM/SAM_Tas#46**; nothing on the Part O path promotes it to an error.
+- Passing `SAMAnalytical.Check` is **not** a guarantee that TAS can run - licensing, file I/O, the solver
+  and weather data are all still ahead, and TAS's own check knows rules this one does not.
+- The full-building `Opt` TBDs carry **six** MVHR plant zones (three with no internal conditions at all),
+  i.e. `UpdateIZAMs` appears to accumulate duplicate plant zones across optimisation rounds. **Observed,
+  not investigated, and not addressed here.** It does not stop TAS.
+- Copilot's other PR #92 comments (optional-parameter binary compatibility on
+  `PreparePartOIteration`; `TM59AssessmentReportFormatter` header coverage; the adiabatic-flag condition
+  also matching a source-adiabatic envelope; `PartOIsolationTests` modelling a transfer with both
+  relations) are **open and unaddressed**.
+
+### Exact recommended next step
+
+Wait for the re-requested Codex review on **SAM-BIM/SAM#92** (and SAM_UI#82, SAM_Tas#46), then decide on
+the four open Copilot comments listed above. **Do not merge** - merge order is SAM #92, then SAM_UI #82,
+then SAM_Tas #46 (order free).
+
+---
 
 ## Latest (2026-09-03): running selected dwellings in isolation
 

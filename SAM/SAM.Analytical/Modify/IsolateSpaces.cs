@@ -334,18 +334,13 @@ namespace SAM.Analytical
                 bool touches_Selected = false;
                 List<string> names_Excluded = [];
 
-                foreach (Space space in adjacencyCluster.GetRelatedObjects<Space>(spaceAirMovement) ?? [])
+                foreach (Space space in Spaces_AirMovement(adjacencyCluster, spaceAirMovement))
                 {
-                    if (space is null)
-                    {
-                        continue;
-                    }
-
                     if (guids_Selected.Contains(space.Guid))
                     {
                         touches_Selected = true;
                     }
-                    else
+                    else if (!names_Excluded.Contains(space.Name))
                     {
                         names_Excluded.Add(space.Name);
                     }
@@ -357,6 +352,83 @@ namespace SAM.Analytical
                         "The selected dwellings cannot be simulated in isolation because air movement '{0}' crosses the isolation boundary - it connects a selected space to '{1}', which is outside the scope. Select that dwelling as well, or run the whole building.",
                         spaceAirMovement.Name,
                         names_Excluded[0]));
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Both spaces an air movement actually connects - <b>read from its <c>From</c> and <c>To</c>
+        /// references as well as from its relations</b>.
+        ///
+        /// <para><b>Why the relations alone are not the answer</b></para>
+        /// <para>
+        /// A transfer air movement is deliberately related to <b>one</b> space, the one the air arrives in:
+        /// <c>Modify.AddPartFTransferAirMovements</c> relates it to the downstream space only, because
+        /// relating it to both would have the TBD writer walk it twice and write the dwelling two identical
+        /// inter-zone air movements. The upstream space exists on the object as a <c>From</c> reference and
+        /// nowhere else.
+        /// </para>
+        /// <para>
+        /// So asking the relation graph what a movement connects gives a truthful answer for a supply or an
+        /// extract - <c>Modify.AddAirMovementObjects</c> relates those to both the unit and the room - and
+        /// half an answer for a transfer. Isolating on half an answer let two cases through silently:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>
+        /// <b>excluded -> selected.</b> Related only to the selected space, so nothing looked excluded and
+        /// nothing refused. Carried into the derived model with a <c>From</c> pointing at a space that is
+        /// not in it - air arriving from a room that does not exist.
+        /// </item>
+        /// <item>
+        /// <b>selected -> excluded.</b> Related only to the excluded space, so it did not look as though it
+        /// touched the selection at all. Not refused and not carried: the selected room passes air on to a
+        /// room that is not there, and the dwelling's transfer air quietly comes up short.
+        /// </item>
+        /// </list>
+        /// <para>
+        /// A reference that resolves to something other than a space - an air handling unit - is not an
+        /// endpoint this asks about, and neither is an absent one, which is how "outside" is said. Those are
+        /// the plant side, and <see cref="Refusals_VentilationScope"/> and
+        /// <see cref="CarryAirHandlingUnits"/> are what decide about them.
+        /// </para>
+        /// </summary>
+        private static List<Space> Spaces_AirMovement(AdjacencyCluster adjacencyCluster, SpaceAirMovement spaceAirMovement)
+        {
+            List<Space> result = [];
+
+            HashSet<Guid> guids = [];
+
+            foreach (Space space in adjacencyCluster.GetRelatedObjects<Space>(spaceAirMovement) ?? [])
+            {
+                if (space is not null && guids.Add(space.Guid))
+                {
+                    result.Add(space);
+                }
+            }
+
+            foreach (string reference in new string[] { spaceAirMovement.From, spaceAirMovement.To })
+            {
+                if (string.IsNullOrWhiteSpace(reference))
+                {
+                    continue;
+                }
+
+                ObjectReference objectReference = Core.Convert.ComplexReference<ObjectReference>(reference);
+                if (objectReference is null)
+                {
+                    continue;
+                }
+
+                if (adjacencyCluster.GetObject(objectReference) is not Space space)
+                {
+                    continue;
+                }
+
+                if (guids.Add(space.Guid))
+                {
+                    result.Add(space);
                 }
             }
 
@@ -517,9 +589,10 @@ namespace SAM.Analytical
                     //unit rather than off a room.
                     //
                     //Filter cannot carry these: they are related to no space at all, so nothing reachable
-                    //from the selection finds them. And one related to an EXCLUDED space cannot arrive here,
-                    //because Refusals_AirMovementScope already refused the whole isolation over it. What is
-                    //left is plant belonging to a unit this model is carrying.
+                    //from the selection finds them. And one that touches an EXCLUDED space cannot arrive
+                    //here, because Refusals_AirMovementScope already refused the whole isolation over it -
+                    //reading both of the movement's ends, its From and To references included, not only its
+                    //relations. What is left is plant belonging to a unit this model is carrying.
                     //
                     //Carried even where this particular dwelling turns out not to need it:
                     //Modify.AddAirHandlingUnitExhaust exists because a unit that gains the extract duty and

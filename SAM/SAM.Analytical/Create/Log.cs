@@ -1097,39 +1097,57 @@ namespace SAM.Analytical
             if (string.IsNullOrWhiteSpace(name))
                 name = "???";
 
-            //The unit's generated TAS zone has to balance, and whether it can is decided here.
+            //The unit's generated TAS zone has to balance, and one specific way of breaking it is visible
+            //here.
             //
             //UpdateIZAMs writes the plant zone one air movement per room the unit SUPPLIES, and one
             //"IZAM <unit> FROM OUTSIDE" that brings in what it therefore has to draw - sized by
-            //Query.AirFlow, which reads the unit's own deliveries. Where that query answers nothing the
-            //intake is simply not written, and the zone delivers the dwelling's whole supply while gaining
-            //nothing. TAS refuses to simulate a zone whose air movements do not balance, and says only
-            //"Simulation Failed" when it does.
+            //Query.AirFlow, which reads the deliveries RELATED to the unit. Where that answers nothing the
+            //intake is simply not written; if the unit delivers anyway, its zone loses the dwelling's whole
+            //supply and gains nothing, and TAS refuses to simulate a zone whose air movements do not
+            //balance - saying only "Simulation Failed" when it does.
             //
-            //Deterministic, and visible in the analytical model long before any TBD exists: the unit is
-            //related to at least one SpaceAirMovement that names it as the source AND names a destination,
-            //or it is not. Reported against the movement rather than the unit because the movement is what
-            //becomes the zone.
+            //So the deterministic fault is a DISAGREEMENT, not an absence: the model holds a movement that
+            //names this unit as its source and names a destination, and that movement is not related to the
+            //unit. Whether it delivers is asked of the WHOLE cluster, because the missing relation is
+            //exactly what is wrong; whether an intake will be sized is asked of Query.AirFlow, which can
+            //only see the relations.
+            //
+            //Asking it that way round is what keeps a legitimate EXTRACT-ONLY unit valid. Such a unit
+            //delivers to no room at all: its zone gains each room's extract and loses it again through the
+            //unit's own exhaust, so it balances with no outside intake, and Query.AirFlow correctly answers
+            //nothing. "No intake" is only a fault where something is being delivered.
             if (adjacencyCluster != null)
             {
                 AirHandlingUnit airHandlingUnit = adjacencyCluster.GetRelatedObjects<AirHandlingUnit>(airHandlingUnitAirMovement)?.Find(x => x != null);
                 if (airHandlingUnit == null)
                 {
+                    //A Warning, not an Error. Nothing pairs this movement with a unit, so UpdateIZAMs
+                    //generates no plant zone from it and it is inert - the unit's supply condition is
+                    //simply never applied. Worth saying; not a reason a model cannot be simulated.
                     result.Add(
-                        "{0} AirHandlingUnitAirMovement (Guid: {1}) is related to no AirHandlingUnit, so nothing states which unit's supply condition it carries and no plant zone can be generated from it.",
-                        LogRecordType.Error,
+                        "{0} AirHandlingUnitAirMovement (Guid: {1}) is related to no AirHandlingUnit, so nothing states which unit's supply condition it carries and no TAS plant zone will be generated from it.",
+                        LogRecordType.Warning,
                         name,
                         airHandlingUnitAirMovement.Guid);
                 }
-                else if (double.IsNaN(Query.AirFlow(adjacencyCluster, airHandlingUnitAirMovement, out Profile profile_Intake)) || profile_Intake == null)
+                else
                 {
-                    result.Add(
-                        "{0} AirHandlingUnitAirMovement (Guid: {1}) resolves no intake air flow, because air handling unit '{2}' (Guid: {3}) is related to no air movement that both names it as the source and names a destination. Its generated TAS plant zone would deliver supply air and take none in, and TAS refuses to simulate a zone whose air movements do not balance.",
-                        LogRecordType.Error,
-                        name,
-                        airHandlingUnitAirMovement.Guid,
-                        string.IsNullOrWhiteSpace(airHandlingUnit.Name) ? "???" : airHandlingUnit.Name,
-                        airHandlingUnit.Guid);
+                    SpaceAirMovement spaceAirMovement_Delivered = Query.SpaceAirMovement_Delivered(adjacencyCluster, airHandlingUnit);
+
+                    if (spaceAirMovement_Delivered != null
+                        && (double.IsNaN(Query.AirFlow(adjacencyCluster, airHandlingUnitAirMovement, out Profile profile_Intake)) || profile_Intake == null))
+                    {
+                        result.Add(
+                            "{0} AirHandlingUnitAirMovement (Guid: {1}) resolves no intake air flow, although air handling unit '{2}' (Guid: {3}) supplies air movement '{4}' (Guid: {5}) - that movement is not RELATED to the unit, so the intake cannot be sized from it. The generated TAS plant zone would deliver supply air and take none in, and TAS refuses to simulate a zone whose air movements do not balance.",
+                            LogRecordType.Error,
+                            name,
+                            airHandlingUnitAirMovement.Guid,
+                            string.IsNullOrWhiteSpace(airHandlingUnit.Name) ? "???" : airHandlingUnit.Name,
+                            airHandlingUnit.Guid,
+                            string.IsNullOrWhiteSpace(spaceAirMovement_Delivered.Name) ? "???" : spaceAirMovement_Delivered.Name,
+                            spaceAirMovement_Delivered.Guid);
+                    }
                 }
             }
 

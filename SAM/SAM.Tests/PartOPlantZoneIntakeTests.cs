@@ -73,13 +73,15 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// <b>A unit that delivers nothing is an error</b>, naming the movement, the unit and both Guids -
-        /// because a plant zone with no intake is a model TAS will not simulate.
+        /// <b>A unit that supplies a room but is not RELATED to that movement is an error</b> - which is
+        /// the state an isolated model used to arrive in. The model says the unit delivers; the relation
+        /// graph does not, so nothing can size the intake, and the plant zone loses air it never gains.
+        /// The record names the movement, the unit and both Guids.
         /// </summary>
         [Fact]
-        public void AUnitThatDeliversNothing_IsAnError()
+        public void AUnitSupplyingAMovementItIsNotRelatedTo_IsAnError()
         {
-            AdjacencyCluster adjacencyCluster = Plant(out AirHandlingUnitAirMovement airHandlingUnitAirMovement, supply: false, exhaust: true);
+            AdjacencyCluster adjacencyCluster = Plant(out AirHandlingUnitAirMovement airHandlingUnitAirMovement, supply: true, exhaust: true, relateSupply: false);
 
             LogRecord logRecord = Assert.Single(AnalyticalCreate.Log(airHandlingUnitAirMovement, adjacencyCluster));
 
@@ -87,31 +89,58 @@ namespace SAM.Tests
             Assert.Contains("MVHR-01", logRecord.Text);
             Assert.Contains(airHandlingUnitAirMovement.Guid.ToString(), logRecord.Text);
             Assert.Contains("resolves no intake air flow", logRecord.Text);
+            Assert.Contains("Studio supply", logRecord.Text);
             Assert.Contains("air movements do not balance", logRecord.Text);
         }
 
         /// <summary>
-        /// <b>The unit's own exhaust is not a delivery.</b> It names the unit as its source and names no
-        /// destination - it is air leaving the building - so counting it as intake would have the unit draw
-        /// its own duty twice. A unit with nothing but an exhaust still has no intake to size.
+        /// <b>An extract-only unit is valid and must not be reported.</b>
+        /// <para>
+        /// It delivers to no room at all: its zone gains each room's extract and loses it again through the
+        /// unit's own exhaust, so it balances with no outside intake, and <c>Analytical.Query.AirFlow</c>
+        /// correctly answers nothing. "No intake" is only a fault where something is being delivered - so
+        /// the rule asks whether the model says the unit delivers, and only then whether an intake can be
+        /// sized.
+        /// </para>
+        /// <para>Raised by Codex on SAM #92 (P2). It would have refused a real system.</para>
         /// </summary>
         [Fact]
-        public void AUnitWithOnlyAnExhaust_IsStillAnError()
+        public void AnExtractOnlyUnit_ReportsNothing()
+        {
+            AdjacencyCluster adjacencyCluster = Plant(out AirHandlingUnitAirMovement airHandlingUnitAirMovement, supply: false, exhaust: true, extract: true);
+
+            //It really is extract-only, and it really does have air movements - so this is not a fixture
+            //that passes by being empty.
+            Assert.Equal(2, (adjacencyCluster.GetRelatedObjects<SpaceAirMovement>(Unit(adjacencyCluster)) ?? []).Count);
+            Assert.Null(Analytical.Query.SpaceAirMovement_Delivered(adjacencyCluster, Unit(adjacencyCluster)));
+
+            Assert.Empty(AnalyticalCreate.Log(airHandlingUnitAirMovement, adjacencyCluster));
+        }
+
+        /// <summary>
+        /// <b>The unit's own exhaust is not a delivery.</b> It names the unit as its source and names no
+        /// destination - it is air leaving the building - so counting it would have the unit draw its own
+        /// duty twice. A unit with nothing but an exhaust delivers nothing, so it needs no intake.
+        /// </summary>
+        [Fact]
+        public void AUnitWithOnlyAnExhaust_ReportsNothing()
         {
             AdjacencyCluster adjacencyCluster = Plant(out AirHandlingUnitAirMovement airHandlingUnitAirMovement, supply: false, exhaust: true);
 
             //The exhaust IS there - so this is not "the unit has no air movements at all".
             Assert.Single(adjacencyCluster.GetRelatedObjects<SpaceAirMovement>(Unit(adjacencyCluster)) ?? []);
+            Assert.Null(Analytical.Query.SpaceAirMovement_Delivered(adjacencyCluster, Unit(adjacencyCluster)));
 
-            Assert.Single(AnalyticalCreate.Log(airHandlingUnitAirMovement, adjacencyCluster));
+            Assert.Empty(AnalyticalCreate.Log(airHandlingUnitAirMovement, adjacencyCluster));
         }
 
         /// <summary>
-        /// An air movement related to no unit at all names nothing whose supply condition it carries, and
-        /// no plant zone can be generated from it.
+        /// An air movement related to no unit at all is a <b>warning</b>, not an error: nothing pairs it
+        /// with a unit, so no plant zone is generated from it and it is inert. Worth saying; not a reason a
+        /// model cannot be simulated.
         /// </summary>
         [Fact]
-        public void AnAirMovementRelatedToNoUnit_IsAnError()
+        public void AnAirMovementRelatedToNoUnit_IsAWarning()
         {
             AdjacencyCluster adjacencyCluster = new();
 
@@ -120,7 +149,7 @@ namespace SAM.Tests
 
             LogRecord logRecord = Assert.Single(AnalyticalCreate.Log(airHandlingUnitAirMovement, adjacencyCluster));
 
-            Assert.Equal(LogRecordType.Error, logRecord.LogRecordType);
+            Assert.Equal(LogRecordType.Warning, logRecord.LogRecordType);
             Assert.Contains("related to no AirHandlingUnit", logRecord.Text);
         }
 
@@ -141,7 +170,7 @@ namespace SAM.Tests
         [Fact]
         public void TheModelCheck_ReportsAUnitThatDeliversNothing()
         {
-            AdjacencyCluster adjacencyCluster = Plant(out AirHandlingUnitAirMovement _, supply: false, exhaust: true);
+            AdjacencyCluster adjacencyCluster = Plant(out AirHandlingUnitAirMovement _, supply: true, exhaust: true, relateSupply: false);
 
             AnalyticalModel analyticalModel = new("Block", null, null, null, adjacencyCluster, new MaterialLibrary("M"), new ProfileLibrary("P"));
 
@@ -276,13 +305,89 @@ namespace SAM.Tests
             Assert.Equal(before, partFModel.AdjacencyCluster.ToJsonObject().ToJsonString());
         }
 
+        // ---- C. A transfer air movement across the cut, which is related to one end only ---------------
+
+        /// <summary>
+        /// <b>A transfer air movement OUT of the selection into an excluded room refuses.</b>
+        /// <para>
+        /// <c>Modify.AddPartFTransferAirMovements</c> relates a transfer to the <b>downstream</b> space
+        /// only - relating it to both would have the TBD writer write the dwelling two identical inter-zone
+        /// air movements - so the upstream space exists on the object as a <c>From</c> reference and nowhere
+        /// else. Read from the relations alone, this movement looks as though it touches nothing selected:
+        /// it was neither refused nor carried, and the selected room passed its air on to a room that is
+        /// not in the model.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ATransferFromASelectedSpaceToAnExcludedOne_Refuses()
+        {
+            PartFModel partFModel = PlantFixture();
+
+            Transfer(partFModel, "Studio", "Corridor");
+
+            SpaceIsolation spaceIsolation = partFModel.AdjacencyCluster.IsolateSpaces([partFModel.Get("Studio"), partFModel.Get("Bathroom")]);
+
+            Assert.False(spaceIsolation.IsIsolated);
+            Assert.Null(spaceIsolation.AdjacencyCluster);
+            Assert.Contains(spaceIsolation.Refusals, x => x.Contains("Studio to Corridor transfer", StringComparison.Ordinal) && x.Contains("crosses the isolation boundary", StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// <b>And one INTO the selection from an excluded room refuses too.</b> This is the mirror case:
+        /// related to the selected space, so nothing looked excluded and nothing refused - and it was then
+        /// carried into the derived model with a <c>From</c> naming a space that is not in it, which is air
+        /// arriving from a room that does not exist.
+        /// </summary>
+        [Fact]
+        public void ATransferFromAnExcludedSpaceIntoASelectedOne_Refuses()
+        {
+            PartFModel partFModel = PlantFixture();
+
+            Transfer(partFModel, "Corridor", "Studio");
+
+            SpaceIsolation spaceIsolation = partFModel.AdjacencyCluster.IsolateSpaces([partFModel.Get("Studio"), partFModel.Get("Bathroom")]);
+
+            Assert.False(spaceIsolation.IsIsolated);
+            Assert.Null(spaceIsolation.AdjacencyCluster);
+            Assert.Contains(spaceIsolation.Refusals, x => x.Contains("Corridor to Studio transfer", StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// A transfer <b>within</b> the selection is not a cut and still isolates - the fixture's own
+        /// Studio-to-Bathroom transfer, which every other test here relies on.
+        /// </summary>
+        [Fact]
+        public void ATransferWithinTheSelection_StillIsolates()
+        {
+            SpaceIsolation spaceIsolation = Isolated(out PartFModel _);
+
+            Assert.True(spaceIsolation.IsIsolated);
+            Assert.Contains(
+                spaceIsolation.AdjacencyCluster.GetObjects<SpaceAirMovement>() ?? [],
+                x => x.Name == "Studio to Bathroom transfer");
+        }
+
+        /// <summary>
+        /// The plant side movements are not read as boundary crossings. The unit's exhaust names the unit
+        /// and no destination at all, and "no destination" is how outside is said - not a space outside the
+        /// scope.
+        /// </summary>
+        [Fact]
+        public void ThePlantSideMovements_AreNotReadAsBoundaryCrossings()
+        {
+            SpaceIsolation spaceIsolation = Isolated(out PartFModel _);
+
+            Assert.True(spaceIsolation.IsIsolated);
+            Assert.Empty(spaceIsolation.Refusals);
+        }
+
         // ---- The fixture -------------------------------------------------------------------------------
 
         /// <summary>
         /// A unit, its air movement, and optionally the two movements a real one has: the supply it
         /// delivers to a room, and its own exhaust.
         /// </summary>
-        private static AdjacencyCluster Plant(out AirHandlingUnitAirMovement airHandlingUnitAirMovement, bool supply, bool exhaust)
+        private static AdjacencyCluster Plant(out AirHandlingUnitAirMovement airHandlingUnitAirMovement, bool supply, bool exhaust, bool extract = false, bool relateSupply = true)
         {
             AdjacencyCluster adjacencyCluster = new();
 
@@ -302,6 +407,23 @@ namespace SAM.Tests
             if (supply)
             {
                 SpaceAirMovement spaceAirMovement = new("Studio supply", 0.03, reference_Unit, reference_Space);
+                adjacencyCluster.AddObject(spaceAirMovement);
+                adjacencyCluster.AddRelation(spaceAirMovement, space);
+
+                //relateSupply: false is the isolation defect in one line. The movement is in the model and
+                //names the unit as its source, and the unit does not know about it - so nothing can size
+                //the intake from it.
+                if (relateSupply)
+                {
+                    adjacencyCluster.AddRelation(spaceAirMovement, airHandlingUnit);
+                }
+            }
+
+            if (extract)
+            {
+                //Room to unit. The unit's zone GAINS this, which is how an extract-only unit balances
+                //against its exhaust with no outside intake at all.
+                SpaceAirMovement spaceAirMovement = new("Studio extract", 0.03, reference_Space, reference_Unit);
                 adjacencyCluster.AddObject(spaceAirMovement);
                 adjacencyCluster.AddRelation(spaceAirMovement, airHandlingUnit);
                 adjacencyCluster.AddRelation(spaceAirMovement, space);
@@ -404,6 +526,26 @@ namespace SAM.Tests
             //From the unit, to nowhere - the extract air leaving the building. Related to the unit and to
             //no space at all, which is exactly why a space-shaped filter cannot carry it.
             Add(adjacencyCluster, string.Format("{0} exhaust", name_Unit), 0.03, reference_Unit, null, airHandlingUnit, null);
+        }
+
+        /// <summary>
+        /// One transfer air movement, built exactly as <c>Modify.AddPartFTransferAirMovements</c> builds
+        /// one: <c>From</c> the upstream space, <c>To</c> the downstream space, and <b>related to the
+        /// downstream space only</b>.
+        /// </summary>
+        private static void Transfer(PartFModel partFModel, string name_Upstream, string name_Downstream)
+        {
+            Space space_Upstream = partFModel.Get(name_Upstream);
+            Space space_Downstream = partFModel.Get(name_Downstream);
+
+            Add(
+                partFModel.AdjacencyCluster,
+                string.Format("{0} to {1} transfer", name_Upstream, name_Downstream),
+                0.01,
+                new ObjectReference(space_Upstream).ToString(),
+                new ObjectReference(space_Downstream).ToString(),
+                null,
+                space_Downstream);
         }
 
         private static void Add(AdjacencyCluster adjacencyCluster, string name, double airFlow, string from, string to, AirHandlingUnit airHandlingUnit, Space space)
