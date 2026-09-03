@@ -24,12 +24,17 @@ namespace SAM.Tests
             return path;
         }
 
-        private static AnalyticalModel Model(string name)
+        /// <summary>
+        /// One model, with as much or as little of its non-cluster simulation state as a test needs. The
+        /// cluster is always the same, so a test that varies only the location, a library or a parameter is
+        /// isolating exactly that input.
+        /// </summary>
+        private static AnalyticalModel Model(string name, Location location = null, MaterialLibrary materialLibrary = null, ProfileLibrary profileLibrary = null)
         {
             AdjacencyCluster adjacencyCluster = new();
             adjacencyCluster.AddObject(new Space("Bedroom 1"));
 
-            return new AnalyticalModel(name, null, null, null, adjacencyCluster);
+            return new AnalyticalModel(name, null, location, null, adjacencyCluster, materialLibrary, profileLibrary);
         }
 
         /// <summary>The record round-trips through JSON with every field intact.</summary>
@@ -173,29 +178,194 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// <b>The fingerprint is exactly the digest of the cluster's JSON, and is computed without
-        /// materializing it.</b> The definition is what the record documents and what earlier builds wrote,
-        /// so it has to stay byte-for-byte the same as hashing <c>ToJsonString()</c> - this pins that against
-        /// a future drift in writer options, which would silently invalidate every recorded digest. The
-        /// streaming exists because a real ~5,000-space project's cluster JSON is hundreds of megabytes, and
-        /// holding it as a string and a byte array to produce sixteen characters is a multi-gigabyte spike.
+        /// <b>The fingerprint is exactly the digest of the sectioned simulation-bearing state, and is
+        /// computed without materializing any of it.</b>
+        /// <para>
+        /// The definition is what the record documents and what a later session recomputes, so it has to stay
+        /// byte-for-byte what hashing the same sections' <c>ToJsonString()</c> produces - this pins that
+        /// against a future drift in writer options or section order, either of which would silently
+        /// invalidate every recorded digest. The streaming exists because a real ~5,000-space project's
+        /// cluster JSON is hundreds of megabytes, and holding it as a string and a byte array to produce
+        /// sixteen characters is a multi-gigabyte spike.
+        /// </para>
         /// </summary>
         [Fact]
-        public void Fingerprint_IsTheDigestOfTheClusterJson()
+        public void Fingerprint_IsTheDigestOfTheSectionedSimulationState()
         {
             AnalyticalModel analyticalModel = Model("run");
 
             ulong expected = 14695981039346656037;
-            foreach (byte value in Encoding.UTF8.GetBytes(analyticalModel.AdjacencyCluster.ToJsonObject().ToJsonString()))
+
+            void Digest(byte[] bytes)
             {
-                expected ^= value;
-                expected *= 1099511628211;
+                foreach (byte value in bytes)
+                {
+                    expected ^= value;
+                    expected *= 1099511628211;
+                }
             }
+
+            //Section 1 is the cluster. Sections 2-5 - material library, profile library, location and model
+            //parameters - are absent on this model, so each contributes its tag and nothing else, which is
+            //what distinguishes an absent component from an empty one.
+            Digest([1]);
+            Digest(Encoding.UTF8.GetBytes(analyticalModel.AdjacencyCluster.ToJsonObject().ToJsonString()));
+            Digest([2]);
+            Digest([3]);
+            Digest([4]);
+            Digest([5]);
 
             Assert.Equal(expected.ToString("x16", System.Globalization.CultureInfo.InvariantCulture), SimulationResultProvenance.Fingerprint(analyticalModel));
 
             //A model with nothing to hash still answers, rather than throwing on the way to a null cluster.
             Assert.Equal(16, SimulationResultProvenance.Fingerprint(null).Length);
+        }
+
+        /// <summary>
+        /// <b>The fingerprint covers every simulation input, not just the adjacency cluster.</b>
+        /// <para>
+        /// An <c>AnalyticalModel</c> keeps its simulation inputs in several places. A digest over the cluster
+        /// alone did not move when a user edited a material's conductivity, an occupancy profile, the site
+        /// location or a model-level parameter after a run - so <c>TryResolvePath_TSD</c> accepted, and a
+        /// review presented, results produced from a design that no longer existed. Each of these is the same
+        /// cluster with one non-cluster input changed, so each one isolates a hole the old definition had.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void Fingerprint_MovesWhenAnyNonClusterSimulationInputChanges()
+        {
+            string fingerprint = SimulationResultProvenance.Fingerprint(Model("run"));
+
+            //A material's thermal properties - the conductivity a construction is simulated with.
+            MaterialLibrary materialLibrary = new("Library");
+            materialLibrary.Add(Analytical.Create.OpaqueMaterial("Brick", "Masonry", "Brick", null, 0.77, 1000, 1700, 0.1, 1, 0.5, 0.5, 0.5, 0.5, 0.9, 0.9, false));
+
+            MaterialLibrary materialLibrary_Changed = new("Library");
+            materialLibrary_Changed.Add(Analytical.Create.OpaqueMaterial("Brick", "Masonry", "Brick", null, 0.99, 1000, 1700, 0.1, 1, 0.5, 0.5, 0.5, 0.5, 0.9, 0.9, false));
+
+            string fingerprint_Material = SimulationResultProvenance.Fingerprint(Model("run", materialLibrary: materialLibrary));
+
+            Assert.NotEqual(fingerprint, fingerprint_Material);
+            Assert.NotEqual(fingerprint_Material, SimulationResultProvenance.Fingerprint(Model("run", materialLibrary: materialLibrary_Changed)));
+
+            //An occupancy profile - the hourly pattern a space is simulated under.
+            ProfileLibrary profileLibrary = new("Library");
+            profileLibrary.Add(new Profile("Occupancy", "Occupancy", [0.0, 0.5, 1.0]));
+
+            ProfileLibrary profileLibrary_Changed = new("Library");
+            profileLibrary_Changed.Add(new Profile("Occupancy", "Occupancy", [0.0, 0.9, 1.0]));
+
+            string fingerprint_Profile = SimulationResultProvenance.Fingerprint(Model("run", profileLibrary: profileLibrary));
+
+            Assert.NotEqual(fingerprint, fingerprint_Profile);
+            Assert.NotEqual(fingerprint_Profile, SimulationResultProvenance.Fingerprint(Model("run", profileLibrary: profileLibrary_Changed)));
+
+            //The site - which decides where the sun is.
+            string fingerprint_Location = SimulationResultProvenance.Fingerprint(Model("run", location: new Location("London", -0.13, 51.5, 11)));
+
+            Assert.NotEqual(fingerprint, fingerprint_Location);
+            Assert.NotEqual(fingerprint_Location, SimulationResultProvenance.Fingerprint(Model("run", location: new Location("Manchester", -2.24, 53.48, 38))));
+
+            //And a model-level parameter - here the north angle, which rotates every solar gain in the model.
+            AnalyticalModel analyticalModel_North = Model("run");
+            analyticalModel_North.SetValue(AnalyticalModelParameter.NorthAngle, 0.0);
+
+            AnalyticalModel analyticalModel_North_Changed = Model("run");
+            analyticalModel_North_Changed.SetValue(AnalyticalModelParameter.NorthAngle, 1.5);
+
+            Assert.NotEqual(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel_North));
+            Assert.NotEqual(SimulationResultProvenance.Fingerprint(analyticalModel_North), SimulationResultProvenance.Fingerprint(analyticalModel_North_Changed));
+        }
+
+        /// <summary>
+        /// <b>The two parameters the model fingerprint must not see.</b>
+        /// <para>
+        /// <b>This record itself</b> is a structural exclusion: the digest is stored inside it, so a
+        /// fingerprint that saw it would change the moment it was stamped and could never agree with itself.
+        /// Pinned by stamping a record and recomputing - the value has to be the one the record already
+        /// holds.
+        /// </para>
+        /// <para>
+        /// <b>The overheating scenarios</b> are excluded because they have their own authoritative digest,
+        /// taken over scenario identity rather than serialized form so that a rename is not a difference.
+        /// Digesting them here as well would bind their presentation fields through the back door. So a
+        /// change of scenarios moves the scenario fingerprint and leaves the model fingerprint alone - and
+        /// <c>IsCurrent</c> still refuses, because it checks both.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void Fingerprint_ExcludesTheProvenanceRecordAndTheOverheatingScenarios()
+        {
+            string path_TSD = WriteResults(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".tsd"));
+
+            try
+            {
+                AnalyticalModel analyticalModel = Model("run");
+
+                string fingerprint = SimulationResultProvenance.Fingerprint(analyticalModel);
+
+                //The SAME model, copied before anything is stamped on it - not a second Model(), whose
+                //cluster would hold a differently guid'd space and digest differently for that reason alone.
+                AnalyticalModel analyticalModel_Unstamped = new(analyticalModel);
+
+                //Stamping the record does not move the digest the record states - which is what makes the
+                //record able to validate itself.
+                SimulationResultProvenance provenance = new(analyticalModel, path_TSD);
+
+                analyticalModel.SetValue(AnalyticalModelParameter.SimulationResultProvenance, provenance);
+
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel));
+                Assert.Equal(provenance.Fingerprint_Model, SimulationResultProvenance.Fingerprint(analyticalModel));
+
+                //A model carrying nothing but a provenance record digests as one carrying no parameters at
+                //all, so the empty parameter set the removal leaves behind is not a difference.
+                Assert.Equal(SimulationResultProvenance.Fingerprint(analyticalModel_Unstamped), SimulationResultProvenance.Fingerprint(analyticalModel));
+
+                //The scenarios move their OWN fingerprint and not the model's...
+                AnalyticalModel analyticalModel_Scenarios = new(analyticalModel);
+
+                analyticalModel_Scenarios.SetValue(AnalyticalModelParameter.OverheatingScenarios, new SAMCollection<OverheatingScenario>([
+                    new OverheatingScenario(PartOAssessmentScope.Dwelling, Guid.NewGuid(), PartOIteration.BasePassive)]));
+
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel_Scenarios));
+                Assert.NotEqual(SimulationResultProvenance.Fingerprint_Scenarios(analyticalModel), SimulationResultProvenance.Fingerprint_Scenarios(analyticalModel_Scenarios));
+
+                //...and IsCurrent still refuses, because it is the conjunction of the two.
+                Assert.True(provenance.IsCurrent(analyticalModel));
+                Assert.False(provenance.IsCurrent(analyticalModel_Scenarios));
+            }
+            finally
+            {
+                File.Delete(path_TSD);
+            }
+        }
+
+        /// <summary>
+        /// <b>The digest survives the round trip a saved model actually makes.</b> The fingerprint is
+        /// recorded in one session and recomputed in another from a model read back off disk, so a
+        /// definition that depended on anything the serializer does not preserve - dictionary ordering,
+        /// parameter-set ordering - would refuse every perfectly valid saved run. Every section is populated
+        /// here, so the round trip is exercised over all of them rather than the cluster alone.
+        /// </summary>
+        [Fact]
+        public void Fingerprint_SurvivesTheModelsOwnJsonRoundTrip()
+        {
+            MaterialLibrary materialLibrary = new("Library");
+            materialLibrary.Add(Analytical.Create.OpaqueMaterial("Brick", "Masonry", "Brick", null, 0.77, 1000, 1700, 0.1, 1, 0.5, 0.5, 0.5, 0.5, 0.9, 0.9, false));
+
+            ProfileLibrary profileLibrary = new("Library");
+            profileLibrary.Add(new Profile("Occupancy", "Occupancy", [0.0, 0.5, 1.0]));
+
+            AnalyticalModel analyticalModel = Model("run", location: new Location("London", -0.13, 51.5, 11), materialLibrary: materialLibrary, profileLibrary: profileLibrary);
+
+            analyticalModel.SetValue(AnalyticalModelParameter.NorthAngle, 1.5);
+            analyticalModel.SetValue(AnalyticalModelParameter.OverheatingScenarios, new SAMCollection<OverheatingScenario>([
+                new OverheatingScenario(PartOAssessmentScope.Dwelling, Guid.NewGuid(), PartOIteration.BasePassive)]));
+
+            AnalyticalModel analyticalModel_Read = new(analyticalModel.ToJsonObject());
+
+            Assert.Equal(SimulationResultProvenance.Fingerprint(analyticalModel), SimulationResultProvenance.Fingerprint(analyticalModel_Read));
+            Assert.Equal(SimulationResultProvenance.Fingerprint_Scenarios(analyticalModel), SimulationResultProvenance.Fingerprint_Scenarios(analyticalModel_Read));
         }
 
         /// <summary>

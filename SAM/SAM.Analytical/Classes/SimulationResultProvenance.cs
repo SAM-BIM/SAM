@@ -150,44 +150,192 @@ namespace SAM.Analytical
         public string Fingerprint_OverheatingScenarios { get; set; } = string.Empty;
 
         /// <summary>
-        /// The model-content half of the validity rule: an FNV-1a digest of the <see cref="AdjacencyCluster"/>'s
-        /// JSON - the spaces, internal conditions, zones and relations an assessment reads. Model-level
-        /// parameters (view settings, the scenarios, this record itself) are deliberately not part of it; the
-        /// scenarios have their own fingerprint precisely because this one cannot see them.
+        /// The model-content half of the validity rule: an FNV-1a digest of every part of an
+        /// <see cref="AnalyticalModel"/> that <b>bears on a simulation</b> - the adjacency cluster, the
+        /// material library, the profile library, the location, and the model-level parameters.
+        ///
+        /// <para><b>Why it is not the cluster alone</b></para>
+        /// <para>
+        /// An <see cref="AnalyticalModel"/> keeps its simulation inputs in several places, and the cluster is
+        /// only the largest of them. A construction's material properties live in
+        /// <see cref="AnalyticalModel.MaterialLibrary"/>; an occupancy or equipment profile lives in
+        /// <see cref="AnalyticalModel.ProfileLibrary"/>; the weather file, design days, north angle, sizing
+        /// factors and solar model are model-level parameters; and <see cref="AnalyticalModel.Location"/>
+        /// decides where the sun is. A digest over the cluster alone therefore did not move when a user
+        /// edited a material's conductivity or an occupancy profile after a run - so
+        /// <see cref="TryResolvePath_TSD"/> would accept, and a review would present, results produced from
+        /// a design that no longer exists. Every one of those is now in the digest.
+        /// </para>
+        ///
+        /// <para><b>What is deliberately excluded, and why each one</b></para>
+        /// <list type="bullet">
+        /// <item>
+        /// <b>This record itself</b> (<see cref="AnalyticalModelParameter.SimulationResultProvenance"/>).
+        /// Necessarily: the digest is stored inside it, so including it would make stamping the record change
+        /// the value the record states. This is the one exclusion that is structural rather than a judgement.
+        /// </item>
+        /// <item>
+        /// <b>The overheating scenarios</b> (<see cref="AnalyticalModelParameter.OverheatingScenarios"/>).
+        /// They have their own authoritative digest - see <see cref="Fingerprint_Scenarios"/> - taken over
+        /// scenario <i>identity</i> rather than serialized form, so that renaming a scenario is not a
+        /// difference. Digesting them here as well would bind their presentation fields through the back
+        /// door and produce exactly the false refusals that separation exists to avoid.
+        /// </item>
+        /// <item>
+        /// <b>The model's name, guid, description and address.</b> Presentation and filing, not simulation
+        /// inputs. Renaming a model does not invalidate its results, and refusing them over it would be a
+        /// false refusal rather than caution.
+        /// </item>
+        /// </list>
+        ///
+        /// <para><b>Sectioned, so the boundaries cannot hide a change</b></para>
+        /// <para>
+        /// Each component is preceded by a one-byte section tag. Without it the components' bytes would
+        /// concatenate into a single undelimited stream, and a change that moved bytes from the end of one
+        /// component to the start of the next would digest identically. The tags also distinguish a
+        /// <i>missing</i> component from an empty one - a model with no profile library from one whose
+        /// library is empty - because the tag is written either way and the content is not.
+        /// </para>
+        ///
         /// <para>
         /// <b>Deliberately not <c>string.GetHashCode</c></b>, which is randomized per process - the digest is
         /// recorded and compared across sessions, so it must be stable, which the round trip is verified to
         /// preserve.
         /// </para>
         /// <para>
-        /// <b>Streamed, because the cluster is as large as the project.</b> The digest is taken over the
-        /// serialized bytes as they are written, never over a materialized copy of them. Measured on a real
-        /// Part O run, one space is worth roughly 140 kB of cluster JSON; at the ~5,000 spaces a real SAM
-        /// project reaches, holding that JSON as a string (2 bytes per char) AND as a UTF-8 byte array - which
-        /// is what <c>Encoding.UTF8.GetBytes(node.ToJsonString())</c> does - is a multi-gigabyte allocation
+        /// <b>Streamed, because the cluster is as large as the project.</b> The digest is taken over each
+        /// component's serialized bytes as they are written, never over a materialized copy of them, and
+        /// never over a second copy of the model as a whole - which is why the components are digested one
+        /// at a time rather than by serializing <see cref="AnalyticalModel.ToJsonObject"/>, whose deep clone
+        /// of the cluster would double the largest allocation in the operation. Measured on a real Part O
+        /// run, one space is worth roughly 140 kB of cluster JSON; at the ~5,000 spaces a real SAM project
+        /// reaches, holding that JSON as a string (2 bytes per char) AND as a UTF-8 byte array - which is
+        /// what <c>Encoding.UTF8.GetBytes(node.ToJsonString())</c> does - is a multi-gigabyte allocation
         /// spike to compute sixteen characters. The bytes hashed are the same bytes either way, so the digest
-        /// value is unchanged; only the peak memory is. Verified against the previous form in
-        /// <c>SimulationResultProvenanceTests</c>.
+        /// value is unchanged; only the peak memory is.
+        /// </para>
+        /// <para>
+        /// <b>This definition changed, and old digests no longer match by design.</b> A record stamped by a
+        /// build that digested the cluster alone will fail <see cref="IsCurrent(AnalyticalModel)"/> against
+        /// this one, and the model falls back to the ordinary prepare-and-simulate path. That is the
+        /// fail-closed direction: the alternative - accepting a digest whose definition is unknown - is
+        /// precisely the hole this widening closes.
         /// </para>
         /// </summary>
         public static string Fingerprint(AnalyticalModel analyticalModel)
         {
-            JsonObject jsonObject = analyticalModel?.AdjacencyCluster?.ToJsonObject();
-
             using FNV1a64Stream fNV1a64Stream = new();
 
-            if (jsonObject is not null)
+            if (analyticalModel is null)
             {
-                //Default writer options - not indented, default encoder - so these are byte for byte the
-                //bytes JsonNode.ToJsonString() produces, which is what keeps digests recorded by earlier
-                //builds comparable.
-                using (System.Text.Json.Utf8JsonWriter utf8JsonWriter = new(fNV1a64Stream))
+                return fNV1a64Stream.Digest;
+            }
+
+            //ORDER IS PART OF THE DIGEST and must not be rearranged: a recorded value is compared against
+            //one computed later, so the sections have to be visited the same way every time. The tags are
+            //likewise fixed - see the summary.
+            Section(fNV1a64Stream, 1, analyticalModel.AdjacencyCluster?.ToJsonObject());
+            Section(fNV1a64Stream, 2, analyticalModel.MaterialLibrary?.ToJsonObject());
+            Section(fNV1a64Stream, 3, analyticalModel.ProfileLibrary?.ToJsonObject());
+            Section(fNV1a64Stream, 4, analyticalModel.Location?.ToJsonObject());
+            Section(fNV1a64Stream, 5, Parameters(analyticalModel));
+
+            return fNV1a64Stream.Digest;
+        }
+
+        /// <summary>
+        /// One component of the model fingerprint: its section tag, then its serialized bytes where it has
+        /// any. See <see cref="Fingerprint(AnalyticalModel)"/> for why the tag is written even when the
+        /// component is absent.
+        /// </summary>
+        private static void Section(FNV1a64Stream fNV1a64Stream, byte section, JsonNode jsonNode)
+        {
+            fNV1a64Stream.WriteByte(section);
+
+            if (jsonNode is null)
+            {
+                return;
+            }
+
+            //Default writer options - not indented, default encoder - so these are byte for byte the bytes
+            //JsonNode.ToJsonString() produces.
+            using System.Text.Json.Utf8JsonWriter utf8JsonWriter = new(fNV1a64Stream);
+
+            jsonNode.WriteTo(utf8JsonWriter);
+        }
+
+        /// <summary>
+        /// The model's own parameter sets - weather data, design days, north angle, sizing factors, the solar
+        /// model, anything else stamped on the model - <b>less</b> the two parameters that must not be in the
+        /// model fingerprint: this provenance record and the overheating scenarios. See
+        /// <see cref="Fingerprint(AnalyticalModel)"/> for why each is excluded.
+        /// <para>
+        /// The sets are copies (<see cref="ParameterizedSAMObject.GetParameterSets"/> hands back new
+        /// instances), so removing from them cannot reach the model. They are ordered by name then guid, so a
+        /// digest does not depend on the order a model happens to hold its parameter sets in; a set left
+        /// empty by the removals is dropped rather than contributing an empty entry, so a model that carries
+        /// only a provenance record digests the same as one that carries no parameters at all.
+        /// </para>
+        /// </summary>
+        private static JsonObject Parameters(AnalyticalModel analyticalModel)
+        {
+            List<ParameterSet> parameterSets = analyticalModel.GetParameterSets();
+            if (parameterSets is null)
+            {
+                return null;
+            }
+
+            //Asked of the attribute rather than restated as a literal, so the exclusions cannot drift from
+            //the names the parameters are actually stored under.
+            string name_Provenance = Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.SimulationResultProvenance)?.Name;
+            string name_Scenarios = Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.OverheatingScenarios)?.Name;
+
+            parameterSets.RemoveAll(x => x is null);
+
+            parameterSets.Sort((x, y) =>
+            {
+                int comparison = string.CompareOrdinal(x.Name, y.Name);
+
+                return comparison != 0 ? comparison : x.Guid.CompareTo(y.Guid);
+            });
+
+            JsonArray jsonArray = [];
+
+            foreach (ParameterSet parameterSet in parameterSets)
+            {
+                if (!string.IsNullOrEmpty(name_Provenance))
                 {
-                    jsonObject.WriteTo(utf8JsonWriter);
+                    parameterSet.Remove(name_Provenance);
+                }
+
+                if (!string.IsNullOrEmpty(name_Scenarios))
+                {
+                    parameterSet.Remove(name_Scenarios);
+                }
+
+                //A set holding nothing but the excluded parameters is not a difference, so it contributes
+                //nothing - otherwise stamping a provenance record would itself change the digest by leaving
+                //an empty set behind it.
+                bool any = false;
+                foreach (string name in parameterSet.Names ?? [])
+                {
+                    any = true;
+
+                    break;
+                }
+
+                if (!any)
+                {
+                    continue;
+                }
+
+                if (parameterSet.ToJsonObject() is JsonObject jsonObject_ParameterSet)
+                {
+                    jsonArray.Add(jsonObject_ParameterSet);
                 }
             }
 
-            return fNV1a64Stream.Digest;
+            return jsonArray.Count == 0 ? null : new JsonObject { ["ParameterSets"] = jsonArray };
         }
 
         /// <summary>
