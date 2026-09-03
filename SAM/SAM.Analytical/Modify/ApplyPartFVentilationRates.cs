@@ -38,6 +38,15 @@ namespace SAM.Analytical
         /// disambiguated where two rooms share a name. The original internal conditions are untouched.
         /// </para>
         /// <para>
+        /// <b>The naming is idempotent.</b> The generated name is <c>&lt;condition&gt; - &lt;space&gt;</c>, and a
+        /// condition whose name this method already generated <i>for the same space</i> - one or more suffixes
+        /// deep, with or without the disambiguating <c>" (n)"</c> - is first stripped back to its base, so
+        /// re-applying the rates (re-preparing a prepared model, or an Iteration 2B optimisation re-preparing
+        /// every round) produces the SAME name again rather than appending the space name each time. The
+        /// multi-pass workflow relies on this: baseline conversion, restoration and every optimisation round all
+        /// run this method over the previous one's output.
+        /// </para>
+        /// <para>
         /// <b>Both directions are written, including zero.</b> A wet room sized for extract only gets
         /// <c>ExhaustAirFlow</c> and an explicit <c>SupplyAirFlow</c> of zero: under the balanced MVHR arrangement
         /// Part F sizes, its make-up air arrives as transfer air through the internal door, not as supply. Leaving
@@ -94,25 +103,16 @@ namespace SAM.Analytical
                 return null;
             }
 
+            //Decided ONCE per space, so the name reservation below and the application agree exactly on which
+            //spaces this call rewrites: a space carrying Part F data, with a rate applicable at the stated
+            //condition, and an internal condition to write it to.
+            List<Space> spaces_Sized = [];
+            List<double?> supply_Sized = [];
+            List<double?> extract_Sized = [];
+
             //Internal condition names have to stay distinguishable in TAS, and neither the space name nor the
             //original condition name is unique - three flats each have a "Bedroom 2".
             HashSet<string> names = [];
-
-            //The set is seeded from every internal-condition name ALREADY in the model, sized or not. An
-            //untouched condition whose name happens to match the generated "<condition> - <space>" pattern
-            //must reserve that name too: TAS identifies an internal condition by name, so letting a
-            //generated condition collide with an existing one would associate one room with another
-            //room's gains and airflow.
-            foreach (Space space_Existing in spaces)
-            {
-                string name_Existing = space_Existing?.InternalCondition?.Name;
-                if (!string.IsNullOrWhiteSpace(name_Existing))
-                {
-                    names.Add(name_Existing);
-                }
-            }
-
-            int count = 0;
 
             foreach (Space space in spaces)
             {
@@ -122,30 +122,61 @@ namespace SAM.Analytical
                 }
 
                 PartFSpaceData partFSpaceData = space.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData);
-                if (partFSpaceData == null)
+
+                double? supply_Lps = partFSpaceData == null ? null : SupplyFlowRate_Lps(partFSpaceData, partFOperatingMode);
+                double? extract_Lps = partFSpaceData == null ? null : ExtractFlowRate_Lps(partFSpaceData, partFOperatingMode);
+
+                if (partFSpaceData != null && (supply_Lps.HasValue || extract_Lps.HasValue) && space.InternalCondition != null)
                 {
-                    //Not a refusal: circulation, storage, a plant room or an unclassified space is legitimately
-                    //unsized, and the Part F components already report those.
+                    spaces_Sized.Add(space);
+                    supply_Sized.Add(supply_Lps);
+                    extract_Sized.Add(extract_Lps);
+
                     continue;
                 }
 
-                double? supply_Lps = SupplyFlowRate_Lps(partFSpaceData, partFOperatingMode);
-                double? extract_Lps = ExtractFlowRate_Lps(partFSpaceData, partFOperatingMode);
-
-                if (!supply_Lps.HasValue && !extract_Lps.HasValue)
+                if (partFSpaceData != null)
                 {
-                    refusals.Add(string.Format("Space '{0}' carries Part F data but no {1} rate on either direction, so nothing was applied to it.", space.Name, Core.Query.Description(partFOperatingMode)));
-                    continue;
+                    if (!supply_Lps.HasValue && !extract_Lps.HasValue)
+                    {
+                        refusals.Add(string.Format("Space '{0}' carries Part F data but no {1} rate on either direction, so nothing was applied to it.", space.Name, Core.Query.Description(partFOperatingMode)));
+                    }
+                    else if (space.InternalCondition == null)
+                    {
+                        //Without an internal condition there is nowhere the simulation would read a rate from, and
+                        //inventing one here would invent occupancy, gains and setpoints with it.
+                        refusals.Add(string.Format("Space '{0}' has no internal condition, so its Part F rates have nowhere to go. Assign an internal condition before applying them.", space.Name));
+                    }
                 }
+
+                //The set is seeded from every internal-condition name that SURVIVES this call - that is, from
+                //the spaces it will NOT rewrite: an unsized space (legitimately so - circulation, storage, a
+                //plant room), or one of the refusals above. An untouched condition whose name happens to match
+                //the generated "<condition> - <space>" pattern must reserve that name: TAS identifies an
+                //internal condition by name, so letting a generated condition collide with an existing one
+                //would associate one room with another room's gains and airflow.
+                //
+                //A name this call is about to REPLACE is deliberately not reserved: the generated name is
+                //stable across re-application (see UniqueName), so the replacement is meant to carry the same
+                //name the outgoing condition had. Reserving the outgoing names would push every re-prepared
+                //space to the next disambiguation index - " (2)", " (3)", ... - on every round.
+                string name_Existing = space.InternalCondition?.Name;
+                if (!string.IsNullOrWhiteSpace(name_Existing))
+                {
+                    names.Add(name_Existing);
+                }
+            }
+
+            int count = 0;
+
+            for (int i = 0; i < spaces_Sized.Count; i++)
+            {
+                Space space = spaces_Sized[i];
+
+                double? supply_Lps = supply_Sized[i];
+                double? extract_Lps = extract_Sized[i];
 
                 InternalCondition internalCondition = space.InternalCondition;
-                if (internalCondition == null)
-                {
-                    //Without an internal condition there is nowhere the simulation would read a rate from, and
-                    //inventing one here would invent occupancy, gains and setpoints with it.
-                    refusals.Add(string.Format("Space '{0}' has no internal condition, so its Part F rates have nowhere to go. Assign an internal condition before applying them.", space.Name));
-                    continue;
-                }
 
                 //A clone per space, with a fresh guid, so one room's rate cannot land on another's.
                 InternalCondition internalCondition_Space = new(UniqueName(names, internalCondition.Name, space.Name), Guid.NewGuid(), internalCondition);
@@ -268,9 +299,51 @@ namespace SAM.Analytical
             }
         }
 
+        /// <summary>
+        /// The name for one sized space's own condition: <c>&lt;condition&gt; - &lt;space&gt;</c>,
+        /// disambiguated as <c>... (n)</c> where that is already taken.
+        /// <para>
+        /// <b>Idempotent over re-application.</b> A condition whose name this method already generated
+        /// <i>for this same space</i> - the suffix applied one or more times, with or without the
+        /// disambiguating <c>" (n)"</c> - is first stripped back to its base, so re-running the preparation
+        /// over a prepared model (as every Iteration 2B round does) yields the SAME name again rather than
+        /// <c>"Studio - Studio 1_0 - Studio 1_0 - ..."</c>, which is the defect this guards: the name must
+        /// identify the room in TAS, and each pass was lengthening it instead. The suffix is stripped only
+        /// where it names THIS space, so a condition authored for another room is never rewritten toward it.
+        /// </para>
+        /// </summary>
         private static string UniqueName(HashSet<string> names, string name_InternalCondition, string name_Space)
         {
-            string result = string.Format("{0} - {1}", name_InternalCondition, name_Space);
+            string suffix = string.Format(" - {0}", name_Space);
+
+            string name_Base = name_InternalCondition ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(name_Space))
+            {
+                //The disambiguation this method adds on a collision: "<base> - <space> (n)". Recognised only
+                //where removing it leaves a name carrying THIS space's suffix - an authored name that merely
+                //ends in a parenthesis is not this method's product and is not stripped here.
+                if (name_Base.EndsWith(")", StringComparison.Ordinal))
+                {
+                    int index_Disambiguation = name_Base.LastIndexOf(" (", StringComparison.Ordinal);
+                    if (index_Disambiguation > 0
+                        && int.TryParse(name_Base.Substring(index_Disambiguation + 2, name_Base.Length - index_Disambiguation - 3), out int _)
+                        && name_Base.Substring(0, index_Disambiguation).EndsWith(suffix, StringComparison.Ordinal))
+                    {
+                        name_Base = name_Base.Substring(0, index_Disambiguation);
+                    }
+                }
+
+                //Every trailing copy of this space's own suffix, so a name already produced for this space -
+                //once, or several times deep from the passes this guard was added to stop - collapses back to
+                //its base before the suffix is applied exactly once below.
+                while (name_Base.EndsWith(suffix, StringComparison.Ordinal))
+                {
+                    name_Base = name_Base.Substring(0, name_Base.Length - suffix.Length);
+                }
+            }
+
+            string result = string.Format("{0}{1}", name_Base, suffix);
 
             if (names.Add(result))
             {

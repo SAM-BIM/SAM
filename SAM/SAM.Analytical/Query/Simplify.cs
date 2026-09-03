@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SAM.Analytical
 {
@@ -79,6 +80,10 @@ namespace SAM.Analytical
                 //ventilation result reported SummerOccupiedHours/MaxExceedableSummerHours that were not what
                 //their names said (Pass/Fail was unaffected, since it is read from Pass directly). Found while
                 //building the TM59 verification report, which reads these two fields for its Criterion 1 rows.
+                //
+                //The TM59 space applications are carried through: the extended result was classified from the
+                //internal condition, and dropping that here is what left the report's TM59 Application column
+                //"-" on every simplified row.
                 return new TM59NaturalVentilationResult(
                     tM59NaturalVentilationExtendedResult.Name,
                     tM59NaturalVentilationExtendedResult.Source,
@@ -89,13 +94,17 @@ namespace SAM.Analytical
                     tM59NaturalVentilationExtendedResult.GetSummerOccupiedHours(),
                     tM59NaturalVentilationExtendedResult.GetSummerMaxExceedableHours(),
                     tM59NaturalVentilationExtendedResult.GetOccupiedHoursExceedingComfortRange(),
-                    tM59NaturalVentilationExtendedResult.Pass);
+                    tM59NaturalVentilationExtendedResult.Pass,
+                    tM59NaturalVentilationExtendedResult.TM59SpaceApplications?.ToArray());
             }
 
             if (tMExtendedResult is TM59MechanicalVentilationExtendedResult)
             {
                 TM59MechanicalVentilationExtendedResult tM59MechanicalVentilationExtendedResult = (TM59MechanicalVentilationExtendedResult)tMExtendedResult;
 
+                //TM59SpaceApplications carried through, as above: the mechanical criterion does not vary by
+                //application, but the classification is still what the space was assessed as, and the report's
+                //TM59 Application column reads it.
                 return new TM59MechanicalVentilationResult(
                     tM59MechanicalVentilationExtendedResult.Name,
                     tM59MechanicalVentilationExtendedResult.Source,
@@ -104,7 +113,8 @@ namespace SAM.Analytical
                     tM59MechanicalVentilationExtendedResult.OccupiedHours,
                     tM59MechanicalVentilationExtendedResult.MaxExceedableHours,
                     tM59MechanicalVentilationExtendedResult.GetHoursNumberExceeding26(),
-                    tM59MechanicalVentilationExtendedResult.Pass);
+                    tM59MechanicalVentilationExtendedResult.Pass,
+                    tM59MechanicalVentilationExtendedResult.TM59SpaceApplications?.ToArray());
             }
 
             throw new System.NotImplementedException();

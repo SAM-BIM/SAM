@@ -1,18 +1,141 @@
 # Project Progress
 
 ## Branch
-`feature/parto-iteration2b-capacity-envelope`, branched from `sow/2026-Q3` at **`e20b34f6`**
-(the merge of PR #89, itself on top of PR #88's merge `5f701a2e`).
+`feature/parto-result-review-and-persistence`, branched from `sow/2026-Q3` at **`471462e2`**
+(the merge of PR #90).
+
+**Pairs with, and must merge alongside:** `SAM_UI` `feature/parto-result-review-and-persistence`, which
+does not compile without the `SimulationResultProvenance` / `OverheatingScenarios` additions below.
 
 No `SAM_Systems` or `SAM_Tas` change - neither was touched.
 
-Everything below "Latest (2026-09-02): the selected-equipment capacity envelope" is superseded history
-retained for context.
+Everything below "Previous: the selected-equipment capacity envelope" is superseded history retained for
+context.
 
 ## Last updated
-2026-09-02 - the diagnostic selected-equipment capacity envelope for Iteration 2B.
+2026-09-03 - Part O result review and persistence: idempotent Part F condition naming, the persisted
+simulation-result provenance record - now binding the overheating scenarios as well as the design state,
+and failing closed on an incomplete record - and the TM59 space applications carried through
+simplification.
 
-## Latest (2026-09-02): the selected-equipment capacity envelope
+## Latest (2026-09-03): result review, provenance, and two report defects
+
+**Status: implemented and tested. No Iteration 2B engineering semantics changed.**
+
+Three seams in this repository, all found by tracing defects reported from a real SAM_UI Part O run.
+
+### 1. `Modify.ApplyPartFVentilationRates` - the internal-condition name multiplied
+
+The production TM59 report was showing names like
+`Studio - Studio 1_0 - Studio 1_0 - Studio 1_0 - Studio 1_0`. The generated name is
+`<condition> - <space>`, and the method was applied over its own previous output on every pass - baseline
+conversion, restoration, and each Iteration 2B round re-prepare - so each pass appended the space name
+again.
+
+- `UniqueName` is now **idempotent**: before applying the suffix it strips every trailing copy of *this
+  space's own* suffix, and the `" (n)"` disambiguation it adds, but only where removing it leaves a name
+  carrying this space's suffix. A condition authored for another room is never rewritten toward this one.
+- The **name reservation set changed with it**, and had to. It is now seeded from the conditions that
+  *survive* the call - unsized spaces and the refusals - not from every condition present. Reserving the
+  names this call is about to replace would push every re-prepared space to the next index
+  (`" (2)"`, `" (3)"`, ...) on every round, which is the same defect wearing a different suffix. This is
+  why the method now decides its sized set once, up front, before reserving anything.
+- Pinned by four tests in `PartFAirflowApplicationTests`: `f(x) == f(f(x)) == f(f(f(x)))`; an
+  already-multiplied name heals back to one suffix; a disambiguated pair stays stable across
+  re-application; and an untouched condition that happens to hold a generated-looking name still reserves
+  it, so the sized space is pushed off it rather than colliding.
+
+### 2. `Query.Simplify` - the report's "TM59 Application" column was `-` for every space
+
+Not a classification defect. The extended results are classified correctly at calculation time from the
+internal condition; `Simplify`, which produces the results the report renders, was dropping
+`TM59SpaceApplications` on both the natural- and mechanical-ventilation branches. Carried through now.
+The engineering is untouched - the mechanical criterion does not vary by application - and nothing is
+inferred from a room name. Two tests in `TM59AssessmentReportTests`.
+
+### 3. `SimulationResultProvenance` (new) - which results a model was produced from
+
+The record that lets a saved model be reopened in a later session and its TM59 assessment **reviewed**
+from the existing results, with no new annual TAS simulation. Stamped onto the model by SAM_UI's
+`Modify.RunPartOSimulation`; read back by `PartORun.Restore`.
+
+- **Three things are bound together, none of them guessed.** (1) The results file: the recorded path,
+  length and write time - a name alone is never enough, because two runs of one project write results at
+  the same derived path. (2) The model's design state: an FNV-1a digest of the `AdjacencyCluster`'s JSON,
+  so a model edited since its run is refused rather than paired with results a different design produced.
+  (3) The **overheating scenarios**: `Fingerprint_OverheatingScenarios`, a digest of the persisted
+  scenarios' derived `Key`s.
+- **Why the scenario fingerprint had to exist** (final-review blocker). The scenarios are *model-level*
+  state, not part of the `AdjacencyCluster`, so the design fingerprint cannot see them at all - yet
+  `PartORun.Restore` reads them straight back as the authoritative TM59 assessment context. Without this
+  half: run A produces results and is saved with Scenario A; the same model file later has its
+  `OverheatingScenarios` swapped to Scenario B; the cluster is unchanged, the TSD length and write time
+  are unchanged, and the record still validated - so run A's results would be reassessed under an
+  assessment authority that did not produce them. Now refused, with a refusal that names the scenarios
+  rather than blaming the model or the file.
+- **Kept as a second fingerprint rather than folded into the first** (approach B). It makes the contract
+  observable - a refusal says *which* half moved - and keeps the large-project cluster hashing seam
+  separate from the much smaller assessment-context one.
+- **The scenario digest is over `OverheatingScenario.Key`, deliberately.** `Key` *is* the scenario's
+  identity: derived canonically from the scope, the design zone guid, the mitigation iteration, the
+  system template field by field, and the operating assumptions - never persisted, never round-tripped,
+  so it cannot go stale. Digesting it binds the *assessment authority*. Digesting the scenarios' JSON
+  instead would additionally bind `Name` and `Source`, which the type documents as outside its identity;
+  a renamed scenario is the same assessment, and refusing valid results over it would be a false refusal.
+  Keys are sorted before hashing (a reordering of a set is not a difference) and the count is hashed with
+  them (a set is never confused with a subset). Sixteen bytes per scenario through the same streaming
+  digest - no text, no intermediate copy.
+- **Fail closed: a partial record is not a record.** Every field is required - TSD path, TSD length, TSD
+  write time, design fingerprint, scenario fingerprint. A record missing any of them is refused wholesale
+  with its reason, never validated on the halves it happens to carry. The previous rule, which let an
+  absent model fingerprint return `true`, is gone along with the test that pinned it. This costs no
+  compatibility: real files from before this work carry *no* record at all and are handled as models that
+  were never simulated, with the ordinary "prepare and simulate" guidance. There is no third, partial
+  state to be lenient towards. Completeness is checked before the filesystem is touched, so an unusable
+  record is refused without hashing a large project on the way.
+- **The name only ever locates a candidate.** The recorded absolute path first; failing that, the file of
+  the same name beside the model, for the case where the whole output folder moved. The length/write-time
+  check is what accepts or refuses either.
+- **Cheap half first.** File stats are performed before the model digest, so a record whose results are
+  simply absent costs nothing to refuse.
+- **Scalability.** The digest is taken over the serialized bytes **as they are written**, never over a
+  materialized copy. Measured on a real Part O run (`...-OptMax.json`, 9 spaces - that run's model artifact
+  is now written as `.sam`, which does not change the digest, taken over the cluster's JSON either way):
+  the cluster JSON is
+  1.28 MB, i.e. ~140 kB per space, digested in ~30 ms. At the ~5,000 spaces a real SAM project reaches,
+  `Encoding.UTF8.GetBytes(node.ToJsonString())` would have allocated the JSON as a string *and* as a byte
+  array - a multi-gigabyte spike to produce sixteen characters. The bytes hashed are identical either way
+  and the digest value is unchanged (verified against the real model: `b582a931a6a09a54` before and
+  after), so this is a memory fix, not a semantic one. Pinned by
+  `Fingerprint_IsTheDigestOfTheClusterJson`, which would also catch a future drift in writer options
+  silently invalidating every recorded digest.
+- `AnalyticalModelParameter` gains `OverheatingScenarios` and `SimulationResultProvenance`. The scenarios
+  travel with the model because they are the assessment's authority over which TM59 criterion applies to
+  which space; without them a reopened model cannot be assessed, and inventing them would be a guess.
+
+### Validation
+
+- `SAM.Tests`: **1750 passed, 0 failed** (`SimulationResultProvenanceTests`: 10 of them).
+- `SAM.sln` Debug: 0 errors.
+- `SAM_Systems` and `SAM_Tas` untouched; both working trees clean.
+
+New/changed provenance tests: `IsCurrent_FailsClosedOnAMissingFingerprint` (replaces the assertion that
+an absent model fingerprint validates), `Fingerprint_Scenarios_BindsTheAssessmentContext` (save/open
+determinism, order independence, changed iteration, dropped scenario, none-vs-some),
+`TryResolvePath_TSD_RefusesScenariosChangedUnderUnchangedResults` (the blocker itself, with the design
+fingerprint and the file assertion-checked as *unchanged* so the refusal is attributable to the scenario
+half alone), and `TryResolvePath_TSD_RefusesAnIncompleteRecord` (each required field removed in turn).
+
+### Known limitation, stated deliberately
+
+A model saved **before** this round carries neither the provenance nor the scenarios - verified on the
+user's own `2026-08-05-PartO` output, where all four runs report `NONE (legacy)` for both. Such a model
+cannot have its TM59 assessment reviewed, and there is no safe fallback: without the recorded scenarios
+there is no authoritative ventilation strategy per space, and supplying one would be exactly the guess
+this record exists to prevent. Legacy models keep the ordinary "prepare and simulate" guidance. Runs
+produced from this build onward carry both.
+
+## Previous: the selected-equipment capacity envelope
 
 **Status: implemented and tested; PR open against `sow/2026-Q3`.**
 
