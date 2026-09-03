@@ -718,6 +718,68 @@ namespace SAM.Tests
         }
 
         // ---------------------------------------------------------------------------------------------
+        // Simplify carries the TM59 space applications
+        //
+        // The extended results are classified from the internal condition at calculation time; the
+        // simplified results are what the report renders. Dropping the classification at the seam is what
+        // left every mechanical row's TM59 Application column "-".
+        // ---------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// <b>The classification survives simplification.</b> A mechanical result simplified for the report
+        /// keeps the applications its extended form was classified with - the mechanical criterion does not
+        /// vary by application, but the column still says what the space was assessed as.
+        /// </summary>
+        [Fact]
+        public void SimplifiedMechanicalResult_KeepsItsTM59SpaceApplications()
+        {
+            TM59MechanicalVentilationExtendedResult extended = new(
+                "Kitchen_4",
+                source,
+                null,
+                TM52BuildingCategory.CategoryII,
+                [0, 1, 2],
+                new IndexedDoubles(),
+                new IndexedDoubles(),
+                new IndexedDoubles(),
+                TM59SpaceApplication.Cooking);
+
+            TM59MechanicalVentilationResult simplified = (TM59MechanicalVentilationResult)((TMExtendedResult)extended).Simplify();
+
+            Assert.NotNull(simplified.TM59SpaceApplications);
+            Assert.Contains(TM59SpaceApplication.Cooking, simplified.TM59SpaceApplications);
+            Assert.Single(simplified.TM59SpaceApplications);
+
+            //And the report's mechanical row shows it, rather than "-".
+            string text = new TM59AssessmentReport(null, [simplified], null, null, null, source).ToString();
+
+            Assert.Contains("Cooking", Section(text, TM59AssessmentReportFormatter.Heading_MechanicalVentilation, TM59AssessmentReportFormatter.Heading_CommunalCorridorRisk));
+        }
+
+        /// <summary>The same for a non-bedroom natural-ventilation result - the branch with the same omission.</summary>
+        [Fact]
+        public void SimplifiedNaturalVentilationResult_KeepsItsTM59SpaceApplications()
+        {
+            TM59NaturalVentilationExtendedResult extended = new(
+                "Living 1_0",
+                source,
+                null,
+                TM52BuildingCategory.CategoryII,
+                [0, 1, 2],
+                new IndexedDoubles(),
+                new IndexedDoubles(),
+                new IndexedDoubles(),
+                TM59SpaceApplication.Living,
+                TM59SpaceApplication.Cooking);
+
+            TM59NaturalVentilationResult simplified = (TM59NaturalVentilationResult)((TMExtendedResult)extended).Simplify();
+
+            Assert.NotNull(simplified.TM59SpaceApplications);
+            Assert.Contains(TM59SpaceApplication.Living, simplified.TM59SpaceApplications);
+            Assert.Contains(TM59SpaceApplication.Cooking, simplified.TM59SpaceApplications);
+        }
+
+        // ---------------------------------------------------------------------------------------------
         // The report changes nothing
         // ---------------------------------------------------------------------------------------------
 

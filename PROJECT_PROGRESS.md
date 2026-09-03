@@ -1,18 +1,101 @@
 # Project Progress
 
 ## Branch
-`feature/parto-iteration2b-capacity-envelope`, branched from `sow/2026-Q3` at **`e20b34f6`**
-(the merge of PR #89, itself on top of PR #88's merge `5f701a2e`).
+`feature/parto-result-review-and-persistence`, branched from `sow/2026-Q3` at **`471462e2`**
+(the merge of PR #90).
+
+**Pairs with, and must merge alongside:** `SAM_UI` `feature/parto-result-review-and-persistence`, which
+does not compile without the `SimulationResultProvenance` / `OverheatingScenarios` additions below.
 
 No `SAM_Systems` or `SAM_Tas` change - neither was touched.
 
-Everything below "Latest (2026-09-02): the selected-equipment capacity envelope" is superseded history
-retained for context.
+Everything below "Previous: the selected-equipment capacity envelope" is superseded history retained for
+context.
 
 ## Last updated
-2026-09-02 - the diagnostic selected-equipment capacity envelope for Iteration 2B.
+2026-09-03 - Part O result review and persistence: idempotent Part F condition naming, the persisted
+simulation-result provenance record, and the TM59 space applications carried through simplification.
 
-## Latest (2026-09-02): the selected-equipment capacity envelope
+## Latest (2026-09-03): result review, provenance, and two report defects
+
+**Status: implemented and tested. No Iteration 2B engineering semantics changed.**
+
+Three seams in this repository, all found by tracing defects reported from a real SAM_UI Part O run.
+
+### 1. `Modify.ApplyPartFVentilationRates` - the internal-condition name multiplied
+
+The production TM59 report was showing names like
+`Studio - Studio 1_0 - Studio 1_0 - Studio 1_0 - Studio 1_0`. The generated name is
+`<condition> - <space>`, and the method was applied over its own previous output on every pass - baseline
+conversion, restoration, and each Iteration 2B round re-prepare - so each pass appended the space name
+again.
+
+- `UniqueName` is now **idempotent**: before applying the suffix it strips every trailing copy of *this
+  space's own* suffix, and the `" (n)"` disambiguation it adds, but only where removing it leaves a name
+  carrying this space's suffix. A condition authored for another room is never rewritten toward this one.
+- The **name reservation set changed with it**, and had to. It is now seeded from the conditions that
+  *survive* the call - unsized spaces and the refusals - not from every condition present. Reserving the
+  names this call is about to replace would push every re-prepared space to the next index
+  (`" (2)"`, `" (3)"`, ...) on every round, which is the same defect wearing a different suffix. This is
+  why the method now decides its sized set once, up front, before reserving anything.
+- Pinned by four tests in `PartFAirflowApplicationTests`: `f(x) == f(f(x)) == f(f(f(x)))`; an
+  already-multiplied name heals back to one suffix; a disambiguated pair stays stable across
+  re-application; and an untouched condition that happens to hold a generated-looking name still reserves
+  it, so the sized space is pushed off it rather than colliding.
+
+### 2. `Query.Simplify` - the report's "TM59 Application" column was `-` for every space
+
+Not a classification defect. The extended results are classified correctly at calculation time from the
+internal condition; `Simplify`, which produces the results the report renders, was dropping
+`TM59SpaceApplications` on both the natural- and mechanical-ventilation branches. Carried through now.
+The engineering is untouched - the mechanical criterion does not vary by application - and nothing is
+inferred from a room name. Two tests in `TM59AssessmentReportTests`.
+
+### 3. `SimulationResultProvenance` (new) - which results a model was produced from
+
+The record that lets a saved model be reopened in a later session and its TM59 assessment **reviewed**
+from the existing results, with no new annual TAS simulation. Stamped onto the model by SAM_UI's
+`Modify.RunPartOSimulation`; read back by `PartORun.Restore`.
+
+- **Both halves are checked, neither is guessed.** The results side: the recorded path, length and write
+  time - a name alone is never enough, because two runs of one project write results at the same derived
+  path. The model side: an FNV-1a digest of the `AdjacencyCluster`'s JSON, so a model edited since its run
+  is refused rather than paired with results a different design produced.
+- **The name only ever locates a candidate.** The recorded absolute path first; failing that, the file of
+  the same name beside the model, for the case where the whole output folder moved. The length/write-time
+  check is what accepts or refuses either.
+- **Cheap half first.** File stats are performed before the model digest, so a record whose results are
+  simply absent costs nothing to refuse.
+- **Scalability.** The digest is taken over the serialized bytes **as they are written**, never over a
+  materialized copy. Measured on a real Part O run (`...-OptMax.json`, 9 spaces): the cluster JSON is
+  1.28 MB, i.e. ~140 kB per space, digested in ~30 ms. At the ~5,000 spaces a real SAM project reaches,
+  `Encoding.UTF8.GetBytes(node.ToJsonString())` would have allocated the JSON as a string *and* as a byte
+  array - a multi-gigabyte spike to produce sixteen characters. The bytes hashed are identical either way
+  and the digest value is unchanged (verified against the real model: `b582a931a6a09a54` before and
+  after), so this is a memory fix, not a semantic one. Pinned by
+  `Fingerprint_IsTheDigestOfTheClusterJson`, which would also catch a future drift in writer options
+  silently invalidating every recorded digest.
+- `AnalyticalModelParameter` gains `OverheatingScenarios` and `SimulationResultProvenance`. The scenarios
+  travel with the model because they are the assessment's authority over which TM59 criterion applies to
+  which space; without them a reopened model cannot be assessed, and inventing them would be a guess.
+
+### Validation
+
+- `SAM.Tests`: **1746 passed, 0 failed** (was 1743; +3 for the streamed digest and the resolution order,
+  on top of the +6 for the naming and simplification fixes).
+- `SAM.Analytical` builds with 0 errors.
+- `SAM_Systems` and `SAM_Tas` untouched; both working trees clean.
+
+### Known limitation, stated deliberately
+
+A model saved **before** this round carries neither the provenance nor the scenarios - verified on the
+user's own `2026-08-05-PartO` output, where all four runs report `NONE (legacy)` for both. Such a model
+cannot have its TM59 assessment reviewed, and there is no safe fallback: without the recorded scenarios
+there is no authoritative ventilation strategy per space, and supplying one would be exactly the guess
+this record exists to prevent. Legacy models keep the ordinary "prepare and simulate" guidance. Runs
+produced from this build onward carry both.
+
+## Previous: the selected-equipment capacity envelope
 
 **Status: implemented and tested; PR open against `sow/2026-Q3`.**
 

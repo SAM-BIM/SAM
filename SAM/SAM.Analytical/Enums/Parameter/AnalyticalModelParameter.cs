@@ -18,5 +18,7 @@ namespace SAM.Analytical
         [ParameterProperties("Cooling Design Days", "Cooling Design Days"), SAMObjectParameterValue(typeof(SAMCollection<DesignDay>))] CoolingDesignDays,
         [ParameterProperties("Case Data Collection", "Case Data Collection"), SAMObjectParameterValue(typeof(CaseDataCollection))] CaseDataCollection,
         [ParameterProperties("Solar Model", "Solar Model"), ParameterValue(ParameterType.IJSAMObject)] SolarModel,
+        [ParameterProperties("Overheating Scenarios", "Overheating Scenarios"), SAMObjectParameterValue(typeof(SAMCollection<OverheatingScenario>))] OverheatingScenarios,
+        [ParameterProperties("Simulation Result Provenance", "Simulation Result Provenance"), SAMObjectParameterValue(typeof(SimulationResultProvenance))] SimulationResultProvenance,
     }
 }

@@ -210,6 +210,152 @@ namespace SAM.Tests
             Assert.Equal(airFlow_Before, analyticalModel.GetSpaces().Find(x => x.Name == "Bedroom 1").CalculatedSupplyAirFlow(), 9);
         }
 
+        // ---------------------------------------------------------------------------------------------
+        // Re-application idempotence
+        //
+        // The Part O workflow re-prepares the model it already prepared: the user can prepare twice, and an
+        // Iteration 2B optimisation re-prepares once per round. The generated "<condition> - <space>" name
+        // must be a fixed point of the application, not grow by one suffix per pass.
+        // ---------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// <b>f(x) == f(f(x)).</b> Applying the rates to a model this method already applied them to keeps
+        /// every generated internal-condition name exactly as it was - not "<c>Studio - Studio 1_0 - Studio
+        /// 1_0 - ...</c>", one suffix longer per pass, which is what the production TM59 report showed.
+        /// </summary>
+        [Fact]
+        public void Reapplication_KeepsTheGeneratedNames()
+        {
+            AnalyticalModel analyticalModel_Once = Sized().ApplyPartFVentilationRates(PartFOperatingMode.ContinuousDesign, out List<string> _, out List<string> _);
+            AnalyticalModel analyticalModel_Twice = analyticalModel_Once.ApplyPartFVentilationRates(PartFOperatingMode.ContinuousDesign, out List<string> _, out List<string> _);
+            AnalyticalModel analyticalModel_Thrice = analyticalModel_Twice.ApplyPartFVentilationRates(PartFOperatingMode.ContinuousDesign, out List<string> _, out List<string> _);
+
+            foreach (Space space_Once in analyticalModel_Once.GetSpaces())
+            {
+                Space space_Twice = analyticalModel_Twice.GetSpaces().Find(x => x.Guid == space_Once.Guid);
+                Space space_Thrice = analyticalModel_Thrice.GetSpaces().Find(x => x.Guid == space_Once.Guid);
+
+                Assert.NotNull(space_Twice);
+                Assert.NotNull(space_Thrice);
+
+                Assert.Equal(space_Once.InternalCondition.Name, space_Twice.InternalCondition.Name);
+                Assert.Equal(space_Once.InternalCondition.Name, space_Thrice.InternalCondition.Name);
+
+                //The authored condition name survives as the base, with the space name applied exactly once.
+                Assert.Equal(space_Once.Name + " IC - " + space_Once.Name, space_Thrice.InternalCondition.Name);
+            }
+        }
+
+        /// <summary>
+        /// <b>Legacy damage heals.</b> A model already carrying a multiplied name - written while the suffix
+        /// was appended on every pass - collapses back to the intended name on the next application rather
+        /// than growing further.
+        /// </summary>
+        [Fact]
+        public void Reapplication_HealsAnAlreadyMultipliedName()
+        {
+            AnalyticalModel analyticalModel = Model();
+
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+            Space space = adjacencyCluster.GetSpaces().Find(x => x.Name == "Bedroom 1");
+            space.InternalCondition = new InternalCondition("Bedroom 1 IC - Bedroom 1 - Bedroom 1");
+            adjacencyCluster.AddObject(space);
+
+            PartFCalculator partFCalculator = Analytical.Query.DefaultPartFCalculator();
+            partFCalculator.AdjacencyCluster = adjacencyCluster;
+
+            Assert.True(partFCalculator.Calculate(), "The Part F calculation did not run, so this test would prove nothing.");
+
+            AnalyticalModel analyticalModel_Applied = new AnalyticalModel(analyticalModel, partFCalculator.AdjacencyCluster)
+                .ApplyPartFVentilationRates(PartFOperatingMode.ContinuousDesign, out List<string> _, out List<string> _);
+
+            Assert.Equal("Bedroom 1 IC - Bedroom 1", analyticalModel_Applied.GetSpaces().Find(x => x.Name == "Bedroom 1").InternalCondition.Name);
+        }
+
+        /// <summary>
+        /// <b>The disambiguated case is stable too.</b> Two rooms sharing one name and one condition are
+        /// numbered on the first application; the second application must produce the same SET of names -
+        /// which room gets the bare name and which gets " (2)" may follow the space order, so it is the set
+        /// that is pinned.
+        /// </summary>
+        [Fact]
+        public void Reapplication_OfADisambiguatedName_StaysStable()
+        {
+            AnalyticalModel analyticalModel = Model();
+
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            //A second "Bedroom 1", sharing the first's condition - the shape that takes the " (2)" suffix.
+            InternalCondition internalCondition_Shared = adjacencyCluster.GetSpaces().Find(x => x.Name == "Bedroom 1").InternalCondition;
+
+            Space space_Duplicate = new("Bedroom 1");
+            space_Duplicate.SetValue(SpaceParameter.Area, 14.0);
+            space_Duplicate.SetValue(SpaceParameter.Volume, 35.0);
+            space_Duplicate.InternalCondition = internalCondition_Shared;
+            adjacencyCluster.AddObject(space_Duplicate);
+
+            AnalyticalModel analyticalModel_Sized = new AnalyticalModel(analyticalModel, adjacencyCluster);
+
+            PartFCalculator partFCalculator = Analytical.Query.DefaultPartFCalculator();
+            partFCalculator.AdjacencyCluster = analyticalModel_Sized.AdjacencyCluster;
+
+            Assert.True(partFCalculator.Calculate(), "The Part F calculation did not run, so this test would prove nothing.");
+
+            AnalyticalModel analyticalModel_Once = new AnalyticalModel(analyticalModel_Sized, partFCalculator.AdjacencyCluster)
+                .ApplyPartFVentilationRates(PartFOperatingMode.ContinuousDesign, out List<string> _, out List<string> _);
+
+            List<string> names_Once = analyticalModel_Once.GetSpaces().ConvertAll(x => x.InternalCondition?.Name);
+
+            //The disambiguation really happened: two conditions answering to the same generated base name.
+            Assert.Contains("Bedroom 1 IC - Bedroom 1", names_Once);
+            Assert.Contains("Bedroom 1 IC - Bedroom 1 (2)", names_Once);
+
+            AnalyticalModel analyticalModel_Twice = analyticalModel_Once.ApplyPartFVentilationRates(PartFOperatingMode.ContinuousDesign, out List<string> _, out List<string> _);
+
+            List<string> names_Twice = analyticalModel_Twice.GetSpaces().ConvertAll(x => x.InternalCondition?.Name);
+
+            names_Once.Sort(System.StringComparer.Ordinal);
+            names_Twice.Sort(System.StringComparer.Ordinal);
+
+            Assert.Equal(names_Once, names_Twice);
+        }
+
+        /// <summary>
+        /// <b>A real collision is still refused, not grown.</b> The reservation of names that survive the
+        /// call is what the idempotence fix must not weaken: an untouched space's condition keeps its name,
+        /// and the sized room's clone is disambiguated around it - on every application, including the
+        /// second.
+        /// </summary>
+        [Fact]
+        public void Reapplication_StillRespectsAnUntouchedConditionWithTheGeneratedName()
+        {
+            AnalyticalModel analyticalModel = Sized();
+
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            Space space_Untouched = new("Storage");
+            space_Untouched.SetValue(SpaceParameter.Area, 5.0);
+            space_Untouched.SetValue(SpaceParameter.Volume, 12.5);
+            space_Untouched.InternalCondition = new InternalCondition("Bedroom 1 IC - Bedroom 1");
+            adjacencyCluster.AddObject(space_Untouched);
+
+            AnalyticalModel analyticalModel_Once = new AnalyticalModel(analyticalModel, adjacencyCluster)
+                .ApplyPartFVentilationRates(PartFOperatingMode.ContinuousDesign, out List<string> _, out List<string> _);
+
+            AnalyticalModel analyticalModel_Twice = analyticalModel_Once.ApplyPartFVentilationRates(PartFOperatingMode.ContinuousDesign, out List<string> _, out List<string> _);
+
+            Space space_Bedroom = analyticalModel_Twice.GetSpaces().Find(x => x.Name == "Bedroom 1");
+            Space space_Untouched_Applied = analyticalModel_Twice.GetSpaces().Find(x => x.Name == "Storage");
+
+            Assert.Equal("Bedroom 1 IC - Bedroom 1", space_Untouched_Applied.InternalCondition.Name);
+            Assert.NotEqual("Bedroom 1 IC - Bedroom 1", space_Bedroom.InternalCondition.Name);
+            Assert.StartsWith("Bedroom 1 IC - Bedroom 1 (", space_Bedroom.InternalCondition.Name);
+
+            //And stable on the second application: no climbing disambiguation index.
+            Assert.Equal(analyticalModel_Once.GetSpaces().Find(x => x.Name == "Bedroom 1").InternalCondition.Name, space_Bedroom.InternalCondition.Name);
+        }
+
+
         /// <summary>
         /// <b>Measured commissioning rates are refused.</b> They are evidence recorded from site, and driving them
         /// into a design simulation would report a measurement as a design intent.
