@@ -3,6 +3,7 @@
 
 using SAM.Core;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json.Nodes;
 
@@ -11,27 +12,65 @@ namespace SAM.Analytical
     /// <summary>
     /// Which simulation results file an <see cref="AnalyticalModel"/> was produced from, and how to tell
     /// whether the two still belong together: the results file's path, length and write time, captured when
-    /// the model was written, and a fingerprint of the model's own content.
+    /// the model was written, a fingerprint of the model's own content, and a fingerprint of the overheating
+    /// scenarios the run was assessed under.
     /// <para>
     /// <b>Why this exists.</b> A model saved after a full-year simulation - the per-run
-    /// <c>&lt;project&gt;.json</c> the TAS workflow writes, or the user's own <c>.sam</c> afterwards - can be
-    /// reopened in a later session and its overheating results reviewed WITHOUT rerunning the simulation,
+    /// <c>&lt;project&gt;.sam</c> the Part O workflow writes, or the user's own <c>.sam</c> afterwards - can
+    /// be reopened in a later session and its overheating results reviewed WITHOUT rerunning the simulation,
     /// provided the results it pairs with are provably the ones it was produced from. This record is that
     /// proof. It is stamped onto the model the workflow returned, so it travels with the model wherever the
     /// model is saved.
     /// </para>
+    ///
+    /// <para><b>The validity rule, stated rather than guessed</b></para>
     /// <para>
-    /// <b>The validity rule, stated rather than guessed.</b> Both halves are checked. The results side: a
-    /// candidate file must exist AND match the recorded length and write time - a name alone is never enough,
-    /// because two runs of one project write results at the same derived path. The model side: the reopened
-    /// model's <see cref="AdjacencyCluster"/> - spaces, internal conditions, zones and their relations, the
-    /// content an assessment actually reads - must hash to the recorded fingerprint, so a model edited after
-    /// the run is refused rather than silently paired with results a different design produced. Either
-    /// failure is reported as what it is; neither is guessed past.
+    /// Three things must be bound together, because all three are read when a restored run is assessed, and
+    /// any one of them moving underneath the other two would produce an assessment nobody ran:
     /// </para>
+    /// <list type="number">
+    /// <item>
+    /// <b>The results file.</b> A candidate must exist AND match the recorded length and write time - a name
+    /// alone is never enough, because two runs of one project write results at the same derived path.
+    /// </item>
+    /// <item>
+    /// <b>The model's design state.</b> The reopened model's <see cref="AdjacencyCluster"/> - spaces,
+    /// internal conditions, zones and their relations, the content an assessment actually reads - must hash
+    /// to <see cref="Fingerprint_Model"/>, so a model edited after the run is refused rather than silently
+    /// paired with results a different design produced.
+    /// </item>
+    /// <item>
+    /// <b>The overheating scenarios.</b> The scenarios persisted on the model must hash to
+    /// <see cref="Fingerprint_OverheatingScenarios"/>. They are model-level state, NOT part of the cluster,
+    /// so the cluster fingerprint does not see them at all - and <c>PartORun.Restore</c> reads them back as
+    /// the authoritative TM59 assessment context. Without this half, a model whose scenarios were changed
+    /// after the run would still validate on its cluster and its file, and the old results would be
+    /// reassessed against an assessment authority that did not produce them. That is the case this member
+    /// exists to refuse.
+    /// </item>
+    /// </list>
     /// <para>
-    /// <b>Provenance only.</b> This records where the results are; it decides nothing about what they say.
-    /// The assessment itself still resolves every space by identity and refuses what does not resolve.
+    /// <b>Kept as a separate fingerprint, deliberately.</b> The cluster hash is the expensive one - it costs
+    /// in proportion to the size of the project - and the scenarios are a handful of derived keys. Holding
+    /// them apart keeps the contract observable (a refusal names WHICH half moved) and keeps the
+    /// large-project hashing seam untouched by the small one.
+    /// </para>
+    ///
+    /// <para><b>Fail closed: a partial record is not a record</b></para>
+    /// <para>
+    /// Every field above is required. A record missing any of them cannot state that a model and its results
+    /// belong together, so it does not get to; it is refused with its reason, never validated on the halves
+    /// it happens to carry. This is NOT a compatibility problem: a model saved before this record existed
+    /// carries no record at all, and a model carrying no record is handled where it should be - as a model
+    /// that was never simulated on this path, with the ordinary "prepare and simulate" guidance. There is no
+    /// third state in between, and inventing one would be exactly the permissiveness this type exists to
+    /// remove.
+    /// </para>
+    ///
+    /// <para><b>Provenance only.</b></para>
+    /// <para>
+    /// This records where the results are; it decides nothing about what they say. The assessment itself
+    /// still resolves every space by identity and refuses what does not resolve.
     /// </para>
     /// </summary>
     public class SimulationResultProvenance : SAMObject
@@ -40,11 +79,19 @@ namespace SAM.Analytical
         {
         }
 
-        /// <summary>Captures the record from the model and its results file as they stand at this moment.</summary>
+        /// <summary>
+        /// Captures the record from the model and its results file as they stand at this moment.
+        /// <para>
+        /// Both fingerprints are taken from <paramref name="analyticalModel"/>, so the scenarios must already
+        /// be stamped onto it when this is constructed - which is what <c>Modify.RunPartOSimulation</c> does,
+        /// and why it does it in that order.
+        /// </para>
+        /// </summary>
         public SimulationResultProvenance(AnalyticalModel analyticalModel, string path_TSD)
         {
             Path_TSD = path_TSD;
             Fingerprint_Model = Fingerprint(analyticalModel);
+            Fingerprint_OverheatingScenarios = Fingerprint_Scenarios(analyticalModel);
 
             if (!string.IsNullOrWhiteSpace(path_TSD))
             {
@@ -66,6 +113,7 @@ namespace SAM.Analytical
                 Length_TSD = simulationResultProvenance.Length_TSD;
                 Timestamp_TSD = simulationResultProvenance.Timestamp_TSD;
                 Fingerprint_Model = simulationResultProvenance.Fingerprint_Model;
+                Fingerprint_OverheatingScenarios = simulationResultProvenance.Fingerprint_OverheatingScenarios;
             }
         }
 
@@ -74,26 +122,38 @@ namespace SAM.Analytical
         {
         }
 
-        /// <summary>The results file the model was produced from, as an absolute path when recorded.</summary>
+        /// <summary>The results file the model was produced from, as an absolute path when recorded. Required.</summary>
         public string Path_TSD { get; set; }
 
-        /// <summary>The results file's length in bytes when recorded.</summary>
+        /// <summary>The results file's length in bytes when recorded. Required; negative means absent.</summary>
         public long Length_TSD { get; set; } = -1;
 
-        /// <summary>The results file's <see cref="DateTime.Ticks"/> of <see cref="FileInfo.LastWriteTimeUtc"/> when recorded.</summary>
+        /// <summary>
+        /// The results file's <see cref="DateTime.Ticks"/> of <see cref="FileInfo.LastWriteTimeUtc"/> when
+        /// recorded. Required; negative means absent.
+        /// </summary>
         public long Timestamp_TSD { get; set; } = -1;
 
         /// <summary>
-        /// The model's own content fingerprint when recorded - see <see cref="Fingerprint(AnalyticalModel)"/>.
-        /// Absent (<see cref="string.Empty"/>) on a record written before it was kept: such a record is
-        /// validated on its results side only.
+        /// The model's own design-state fingerprint when recorded - see <see cref="Fingerprint(AnalyticalModel)"/>.
+        /// <b>Required.</b> Absent (<see cref="string.Empty"/>) makes the whole record unusable, not partially
+        /// usable.
         /// </summary>
         public string Fingerprint_Model { get; set; } = string.Empty;
 
         /// <summary>
+        /// The overheating scenarios' fingerprint when recorded - see
+        /// <see cref="Fingerprint_Scenarios(AnalyticalModel)"/>. <b>Required</b>, for the same reason: the
+        /// scenarios are the assessment authority a restored run reads back, and they live outside the
+        /// cluster the model fingerprint covers.
+        /// </summary>
+        public string Fingerprint_OverheatingScenarios { get; set; } = string.Empty;
+
+        /// <summary>
         /// The model-content half of the validity rule: an FNV-1a digest of the <see cref="AdjacencyCluster"/>'s
         /// JSON - the spaces, internal conditions, zones and relations an assessment reads. Model-level
-        /// parameters (view settings, this record itself) are deliberately not part of it.
+        /// parameters (view settings, the scenarios, this record itself) are deliberately not part of it; the
+        /// scenarios have their own fingerprint precisely because this one cannot see them.
         /// <para>
         /// <b>Deliberately not <c>string.GetHashCode</c></b>, which is randomized per process - the digest is
         /// recorded and compared across sessions, so it must be stable, which the round trip is verified to
@@ -125,6 +185,75 @@ namespace SAM.Analytical
                 {
                     jsonObject.WriteTo(utf8JsonWriter);
                 }
+            }
+
+            return fNV1a64Stream.Digest;
+        }
+
+        /// <summary>
+        /// The assessment-context half of the validity rule: an FNV-1a digest of the overheating scenarios
+        /// stamped on the model, taken over their <see cref="OverheatingScenario.Key"/>s.
+        ///
+        /// <para><b>Why the keys, and not the scenarios' JSON</b></para>
+        /// <para>
+        /// <see cref="OverheatingScenario.Key"/> IS the scenario's identity, derived canonically from exactly
+        /// the state that decides what is being assessed: the scope and design zone, the mitigation
+        /// iteration, the system template field by field, and the operating assumptions. It is never
+        /// persisted and never round-tripped, so it cannot go stale, and two machines stating the same
+        /// assessment derive the same guid. Hashing it therefore binds the <i>assessment authority</i>, which
+        /// is the thing that must not move underneath a set of results.
+        /// </para>
+        /// <para>
+        /// The alternative - digesting the scenarios' serialized form - would additionally bind
+        /// <see cref="SAMObject.Name"/> and <c>Source</c>, which the scenario type documents as deliberately
+        /// outside its identity: presentation and provenance. A renamed scenario is the same assessment, and
+        /// refusing a perfectly valid set of results over it would be a false refusal, not caution.
+        /// </para>
+        ///
+        /// <para><b>Ordered, so a reordering is not a difference</b></para>
+        /// <para>
+        /// The keys are sorted before hashing: the scenarios are a set of assessments, and the order a
+        /// collection happens to hold them in is not part of what they state. The count is hashed with them,
+        /// so a set is never confused with a subset or a superset of itself.
+        /// </para>
+        ///
+        /// <para><b>Small, and kept small</b></para>
+        /// <para>
+        /// Sixteen bytes per scenario go through the same streaming digest the cluster uses; nothing is
+        /// serialized to text and no intermediate copy of anything is made. A dwelling-scale run has tens of
+        /// scenarios, so this half of the record costs essentially nothing next to the cluster half - which
+        /// is the second reason the two are separate.
+        /// </para>
+        /// </summary>
+        public static string Fingerprint_Scenarios(AnalyticalModel analyticalModel)
+        {
+            using FNV1a64Stream fNV1a64Stream = new();
+
+            List<Guid> guids = [];
+
+            if (analyticalModel is not null && analyticalModel.TryGetValue(AnalyticalModelParameter.OverheatingScenarios, out SAMCollection<OverheatingScenario> overheatingScenarios) && overheatingScenarios is not null)
+            {
+                foreach (OverheatingScenario overheatingScenario in overheatingScenarios)
+                {
+                    if (overheatingScenario is not null)
+                    {
+                        guids.Add(overheatingScenario.Key);
+                    }
+                }
+            }
+
+            guids.Sort();
+
+            //The count first, so no set of scenarios digests to the same value as a differently sized one
+            //whose keys happen to concatenate identically.
+            byte[] bytes_Count = BitConverter.GetBytes(guids.Count);
+            fNV1a64Stream.Write(bytes_Count, 0, bytes_Count.Length);
+
+            foreach (Guid guid in guids)
+            {
+                byte[] bytes = guid.ToByteArray();
+
+                fNV1a64Stream.Write(bytes, 0, bytes.Length);
             }
 
             return fNV1a64Stream.Digest;
@@ -185,13 +314,26 @@ namespace SAM.Analytical
         }
 
         /// <summary>
+        /// Whether this record states all of what it must - the results file's path, length and write time,
+        /// the model fingerprint and the scenario fingerprint. A record missing any of them is refused
+        /// wholesale rather than validated on the rest; see the type's remarks for why there is no partial
+        /// form.
+        /// </summary>
+        public bool IsComplete => !string.IsNullOrWhiteSpace(Path_TSD)
+            && Length_TSD >= 0
+            && Timestamp_TSD >= 0
+            && !string.IsNullOrWhiteSpace(Fingerprint_Model)
+            && !string.IsNullOrWhiteSpace(Fingerprint_OverheatingScenarios);
+
+        /// <summary>
         /// Whether the file at <paramref name="path_TSD"/> is exactly the results this record was taken
         /// from: it exists, and its length and write time are the recorded ones. Both are checked, so a
-        /// rewrite landing inside the filesystem's timestamp granularity is still seen.
+        /// rewrite landing inside the filesystem's timestamp granularity is still seen - and a record that
+        /// never captured either is never satisfied by any file.
         /// </summary>
         public bool IsCurrent(string path_TSD)
         {
-            if (string.IsNullOrWhiteSpace(path_TSD))
+            if (string.IsNullOrWhiteSpace(path_TSD) || Length_TSD < 0 || Timestamp_TSD < 0)
             {
                 return false;
             }
@@ -202,25 +344,28 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// Whether a model carrying this record is still the model the results were produced from. True where
-        /// the fingerprints match - and, for a record written before a model fingerprint was kept, true:
-        /// absence is not a mismatch, the results-side check still stands.
+        /// Whether a model carrying this record is still the model the results were produced from, on both
+        /// the halves the model itself carries: its design state and its overheating scenarios. Fingerprints
+        /// that were never recorded fail here rather than passing - absence is not a match.
         /// </summary>
         public bool IsCurrent(AnalyticalModel analyticalModel)
         {
-            if (string.IsNullOrWhiteSpace(Fingerprint_Model))
+            if (string.IsNullOrWhiteSpace(Fingerprint_Model) || string.IsNullOrWhiteSpace(Fingerprint_OverheatingScenarios))
             {
-                return true;
+                return false;
             }
 
-            return string.Equals(Fingerprint_Model, Fingerprint(analyticalModel), StringComparison.Ordinal);
+            return string.Equals(Fingerprint_Model, Fingerprint(analyticalModel), StringComparison.Ordinal)
+                && string.Equals(Fingerprint_OverheatingScenarios, Fingerprint_Scenarios(analyticalModel), StringComparison.Ordinal);
         }
 
         /// <summary>
-        /// Resolves the results file this record points at, validating every file candidate by
-        /// <see cref="IsCurrent(string)"/> and then the model by <see cref="IsCurrent(AnalyticalModel)"/> -
-        /// so results are accepted only where they are provably the ones this model was produced from. Both
-        /// halves must pass; neither is guessed past.
+        /// Resolves the results file this record points at, validating the whole rule: the record is complete,
+        /// a file candidate matches <see cref="IsCurrent(string)"/>, the model's design state matches
+        /// <see cref="Fingerprint(AnalyticalModel)"/>, and its overheating scenarios match
+        /// <see cref="Fingerprint_Scenarios(AnalyticalModel)"/>. Results are accepted only where they are
+        /// provably the ones this model was produced from, under the scenarios it was assessed with. Every
+        /// part must pass; none is guessed past.
         /// <para>
         /// <b>Two candidates, in order.</b> The recorded absolute path first. Where that fails - the whole
         /// output folder moved, or the file there was replaced - the file of the same name beside
@@ -228,10 +373,12 @@ namespace SAM.Analytical
         /// <i>locates</i> a candidate; the recorded length and write time are what accept or refuse it.
         /// </para>
         /// <para>
-        /// <b>Cheap half first, deliberately.</b> The file checks are filesystem stats; the model check
-        /// digests the whole adjacency cluster and so costs in proportion to the size of the project. A
-        /// record whose results are absent - the ordinary case on a machine that never held them - is
-        /// therefore refused without digesting anything.
+        /// <b>Cheapest first, deliberately.</b> Completeness is a handful of field tests, so an unusable
+        /// record costs nothing. The file checks are then filesystem stats. Only after both does the model
+        /// check digest the whole adjacency cluster, which costs in proportion to the size of the project -
+        /// so a record whose results are absent, the ordinary case on a machine that never held them, is
+        /// refused without digesting anything. The scenario digest is last only because it is meaningless
+        /// before the model it belongs to has been accepted; it is by far the smaller of the two.
         /// </para>
         /// </summary>
         /// <param name="analyticalModel">The model carrying this record (reopened from disk).</param>
@@ -250,7 +397,30 @@ namespace SAM.Analytical
                 return false;
             }
 
-            //The results side first, because it is the cheap half: three filesystem stats against a recorded
+            //Fail closed on an incomplete record, before anything is stat'ed or hashed. A record that cannot
+            //state the whole rule does not get to state part of it - see the type's remarks.
+            if (Length_TSD < 0 || Timestamp_TSD < 0)
+            {
+                refusal = string.Format("The model's record of the simulation results at '{0}' does not state their size and write time, so those results cannot be shown to be the ones it was produced from. Re-run the simulation to review results for this model.", Path_TSD);
+
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(Fingerprint_Model))
+            {
+                refusal = string.Format("The model's record of the simulation results at '{0}' does not state the design they were produced from, so the model cannot be shown to be unchanged since. Re-run the simulation to review results for this model.", Path_TSD);
+
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(Fingerprint_OverheatingScenarios))
+            {
+                refusal = string.Format("The model's record of the simulation results at '{0}' does not state the overheating scenarios they were assessed under, so those results cannot be shown to belong to the scenarios this model now carries. Re-run the simulation to review results for this model.", Path_TSD);
+
+                return false;
+            }
+
+            //The results side next, because it is the cheap half: three filesystem stats against a recorded
             //path, length and write time. The model half below digests the whole adjacency cluster, which
             //costs in proportion to the size of the project - so a run whose results are simply gone, the
             //ordinary case on a machine that never held them, is refused without paying for it.
@@ -287,9 +457,19 @@ namespace SAM.Analytical
 
             //And the model half: a model edited since its run must not be paired with results the unedited
             //design produced, however intact the file is.
-            if (!IsCurrent(analyticalModel))
+            if (!string.Equals(Fingerprint_Model, Fingerprint(analyticalModel), StringComparison.Ordinal))
             {
                 refusal = string.Format("The model has changed since the simulation results at '{0}' were produced from it, so those results no longer describe it. Re-run the simulation to review results for the current model.", Path_TSD);
+
+                return false;
+            }
+
+            //And the assessment authority: the scenarios decide which TM59 criterion applies to which space,
+            //and they are model-level state the cluster fingerprint above cannot see. Changed scenarios over
+            //unchanged results would reassess an old run against an assessment nobody ran.
+            if (!string.Equals(Fingerprint_OverheatingScenarios, Fingerprint_Scenarios(analyticalModel), StringComparison.Ordinal))
+            {
+                refusal = string.Format("The overheating scenarios on this model are not the ones the simulation results at '{0}' were assessed under, so those results cannot be reviewed against them. Prepare the iteration again and re-run the simulation.", Path_TSD);
 
                 return false;
             }
@@ -326,6 +506,11 @@ namespace SAM.Analytical
                 Fingerprint_Model = jsonObject["Fingerprint_Model"]?.GetValue<string>() ?? string.Empty;
             }
 
+            if (jsonObject.ContainsKey("Fingerprint_OverheatingScenarios"))
+            {
+                Fingerprint_OverheatingScenarios = jsonObject["Fingerprint_OverheatingScenarios"]?.GetValue<string>() ?? string.Empty;
+            }
+
             return true;
         }
 
@@ -348,6 +533,11 @@ namespace SAM.Analytical
             if (!string.IsNullOrWhiteSpace(Fingerprint_Model))
             {
                 result["Fingerprint_Model"] = Fingerprint_Model;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Fingerprint_OverheatingScenarios))
+            {
+                result["Fingerprint_OverheatingScenarios"] = Fingerprint_OverheatingScenarios;
             }
 
             return result;

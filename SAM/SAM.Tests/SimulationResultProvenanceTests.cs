@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Analytical;
+using SAM.Analytical.Enums;
 using SAM.Core;
 using System;
 using System.IO;
@@ -47,6 +48,10 @@ namespace SAM.Tests
                 Assert.Equal(provenance.Length_TSD, read.Length_TSD);
                 Assert.Equal(provenance.Timestamp_TSD, read.Timestamp_TSD);
                 Assert.Equal(provenance.Fingerprint_Model, read.Fingerprint_Model);
+                Assert.Equal(provenance.Fingerprint_OverheatingScenarios, read.Fingerprint_OverheatingScenarios);
+
+                //Every required field is there, so the record can state the rule rather than part of it.
+                Assert.True(read.IsComplete);
             }
             finally
             {
@@ -79,8 +84,7 @@ namespace SAM.Tests
 
         /// <summary>
         /// The model half: the same model hashes to the same fingerprint after a JSON round trip - which is
-        /// the whole reopen path - and an edit changes it. A record with no fingerprint (written before it
-        /// was kept) validates on its results side alone.
+        /// the whole reopen path - and an edit changes it.
         /// </summary>
         [Fact]
         public void IsCurrent_ModelFingerprint()
@@ -100,10 +104,72 @@ namespace SAM.Tests
             AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
             adjacencyCluster.AddObject(new Space("Kitchen"));
             Assert.False(provenance.IsCurrent(new AnalyticalModel(analyticalModel, adjacencyCluster)));
+        }
 
-            //A record written before the fingerprint was kept is not a mismatch.
-            provenance.Fingerprint_Model = string.Empty;
-            Assert.True(provenance.IsCurrent(new AnalyticalModel(analyticalModel, adjacencyCluster)));
+        /// <summary>
+        /// <b>A record missing either fingerprint validates nothing.</b> This replaces the rule that let an
+        /// absent model fingerprint pass on the results side alone. That permissiveness had no legacy to
+        /// serve - a model saved before this record existed carries no record at all, and is handled as a
+        /// model that was never simulated - and it made a half-written record look like a whole one.
+        /// </summary>
+        [Fact]
+        public void IsCurrent_FailsClosedOnAMissingFingerprint()
+        {
+            AnalyticalModel analyticalModel = Model("run");
+
+            SimulationResultProvenance provenance = new(analyticalModel, null);
+
+            //The unmodified record still validates the model it was taken from.
+            Assert.True(provenance.IsCurrent(analyticalModel));
+            Assert.False(provenance.IsComplete);       //no results file was recorded above
+
+            //Neither half may be absent.
+            SimulationResultProvenance provenance_NoModel = new(provenance) { Fingerprint_Model = string.Empty };
+            Assert.False(provenance_NoModel.IsCurrent(analyticalModel));
+
+            SimulationResultProvenance provenance_NoScenarios = new(provenance) { Fingerprint_OverheatingScenarios = string.Empty };
+            Assert.False(provenance_NoScenarios.IsCurrent(analyticalModel));
+        }
+
+        /// <summary>
+        /// <b>The scenario half, which the cluster fingerprint cannot see.</b> The overheating scenarios are
+        /// model-level state, so a model whose scenarios were swapped after its run has an UNCHANGED cluster
+        /// fingerprint - and <c>PartORun.Restore</c> reads those scenarios back as the authority the results
+        /// are reassessed under. Pinned here at the fingerprint: same scenarios digest the same across a save
+        /// and a reload, a different set does not, and a reordering of the same set is not a difference.
+        /// </summary>
+        [Fact]
+        public void Fingerprint_Scenarios_BindsTheAssessmentContext()
+        {
+            OverheatingScenario overheatingScenario_A = new(PartOAssessmentScope.Dwelling, Guid.NewGuid(), PartOIteration.BasePassive);
+            OverheatingScenario overheatingScenario_B = new(PartOAssessmentScope.Dwelling, Guid.NewGuid(), PartOIteration.AcousticRestricted);
+
+            AnalyticalModel analyticalModel = Model("run");
+            analyticalModel.SetValue(AnalyticalModelParameter.OverheatingScenarios, new SAMCollection<OverheatingScenario>([overheatingScenario_A, overheatingScenario_B]));
+
+            string fingerprint = SimulationResultProvenance.Fingerprint_Scenarios(analyticalModel);
+
+            //Survives the save and the reload, which is the whole reopen path.
+            Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint_Scenarios(new AnalyticalModel(analyticalModel.ToJsonObject())));
+
+            //The order a collection happens to hold a set of assessments in is not part of what they state.
+            AnalyticalModel analyticalModel_Reordered = Model("run");
+            analyticalModel_Reordered.SetValue(AnalyticalModelParameter.OverheatingScenarios, new SAMCollection<OverheatingScenario>([overheatingScenario_B, overheatingScenario_A]));
+            Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint_Scenarios(analyticalModel_Reordered));
+
+            //A different assessment authority is a different fingerprint - a changed iteration...
+            AnalyticalModel analyticalModel_Changed = Model("run");
+            analyticalModel_Changed.SetValue(AnalyticalModelParameter.OverheatingScenarios, new SAMCollection<OverheatingScenario>([overheatingScenario_A, new OverheatingScenario(PartOAssessmentScope.Dwelling, overheatingScenario_B.ZoneGuid, PartOIteration.BasePassive)]));
+            Assert.NotEqual(fingerprint, SimulationResultProvenance.Fingerprint_Scenarios(analyticalModel_Changed));
+
+            //...and a dropped scenario, which is what makes the count part of the digest.
+            AnalyticalModel analyticalModel_Subset = Model("run");
+            analyticalModel_Subset.SetValue(AnalyticalModelParameter.OverheatingScenarios, new SAMCollection<OverheatingScenario>([overheatingScenario_A]));
+            Assert.NotEqual(fingerprint, SimulationResultProvenance.Fingerprint_Scenarios(analyticalModel_Subset));
+
+            //A model carrying none is not a model carrying some.
+            Assert.NotEqual(fingerprint, SimulationResultProvenance.Fingerprint_Scenarios(Model("run")));
+            Assert.Equal(16, SimulationResultProvenance.Fingerprint_Scenarios(null).Length);
         }
 
         /// <summary>
@@ -184,6 +250,97 @@ namespace SAM.Tests
 
                 Assert.False(provenance.TryResolvePath_TSD(new AnalyticalModel(analyticalModel, adjacencyCluster), null, out string _, out string refusal_Changed));
                 Assert.Contains("The model has changed", refusal_Changed);
+            }
+            finally
+            {
+                File.Delete(path_TSD);
+            }
+        }
+
+        /// <summary>
+        /// <b>The case the model fingerprint alone cannot see.</b> The cluster is untouched and the results
+        /// file is byte-for-byte the recorded one; only the overheating scenarios were swapped after the run.
+        /// Before the scenario fingerprint existed, that validated - and the old results would then have been
+        /// reassessed under an authority that did not produce them. It is now refused, and the refusal names
+        /// the scenarios rather than blaming the model or the file.
+        /// </summary>
+        [Fact]
+        public void TryResolvePath_TSD_RefusesScenariosChangedUnderUnchangedResults()
+        {
+            string path_TSD = WriteResults(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".tsd"));
+
+            try
+            {
+                Guid guid_Zone = Guid.NewGuid();
+
+                AnalyticalModel analyticalModel = Model("run");
+                analyticalModel.SetValue(AnalyticalModelParameter.OverheatingScenarios, new SAMCollection<OverheatingScenario>([new OverheatingScenario(PartOAssessmentScope.Dwelling, guid_Zone, PartOIteration.BasePassive)]));
+
+                SimulationResultProvenance provenance = new(analyticalModel, path_TSD);
+
+                Assert.True(provenance.TryResolvePath_TSD(analyticalModel, null, out string path_Resolved, out string refusal));
+                Assert.Equal(path_TSD, path_Resolved);
+                Assert.Null(refusal);
+
+                //Scenario A becomes Scenario B on the SAME model file: same cluster, same results, different
+                //assessment authority. This is the exact sequence the record now binds.
+                analyticalModel.SetValue(AnalyticalModelParameter.OverheatingScenarios, new SAMCollection<OverheatingScenario>([new OverheatingScenario(PartOAssessmentScope.Dwelling, guid_Zone, PartOIteration.AcousticRestricted)]));
+
+                //The unchanged halves are still unchanged - so the refusal below is the scenario half alone.
+                Assert.Equal(provenance.Fingerprint_Model, SimulationResultProvenance.Fingerprint(analyticalModel));
+                Assert.True(provenance.IsCurrent(path_TSD));
+
+                Assert.False(provenance.TryResolvePath_TSD(analyticalModel, null, out string _, out string refusal_Scenarios));
+                Assert.Contains("overheating scenarios", refusal_Scenarios);
+                Assert.DoesNotContain("The model has changed", refusal_Scenarios);
+            }
+            finally
+            {
+                File.Delete(path_TSD);
+            }
+        }
+
+        /// <summary>
+        /// <b>An incomplete record resolves nothing, and says which field is missing.</b> Every required
+        /// field is checked before the filesystem is touched, so a half-written record is refused without
+        /// being partially believed - and without hashing a large project on the way to refusing it.
+        /// </summary>
+        [Fact]
+        public void TryResolvePath_TSD_RefusesAnIncompleteRecord()
+        {
+            string path_TSD = WriteResults(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".tsd"));
+
+            try
+            {
+                AnalyticalModel analyticalModel = Model("run");
+
+                SimulationResultProvenance provenance = new(analyticalModel, path_TSD);
+
+                Assert.True(provenance.IsComplete);
+                Assert.True(provenance.TryResolvePath_TSD(analyticalModel, null, out string _, out string _));
+
+                //No model fingerprint.
+                SimulationResultProvenance provenance_NoModel = new(provenance) { Fingerprint_Model = string.Empty };
+                Assert.False(provenance_NoModel.IsComplete);
+                Assert.False(provenance_NoModel.TryResolvePath_TSD(analyticalModel, null, out string path_NoModel, out string refusal_NoModel));
+                Assert.Null(path_NoModel);
+                Assert.Contains("does not state the design", refusal_NoModel);
+
+                //No scenario fingerprint.
+                SimulationResultProvenance provenance_NoScenarios = new(provenance) { Fingerprint_OverheatingScenarios = string.Empty };
+                Assert.False(provenance_NoScenarios.IsComplete);
+                Assert.False(provenance_NoScenarios.TryResolvePath_TSD(analyticalModel, null, out string path_NoScenarios, out string refusal_NoScenarios));
+                Assert.Null(path_NoScenarios);
+                Assert.Contains("does not state the overheating scenarios", refusal_NoScenarios);
+
+                //No recorded size or write time - a file check that could never be satisfied is refused as
+                //what it is, rather than left to fail as a missing file.
+                SimulationResultProvenance provenance_NoFileStats = new(provenance) { Length_TSD = -1, Timestamp_TSD = -1 };
+                Assert.False(provenance_NoFileStats.IsComplete);
+                Assert.False(provenance_NoFileStats.IsCurrent(path_TSD));
+                Assert.False(provenance_NoFileStats.TryResolvePath_TSD(analyticalModel, null, out string path_NoFileStats, out string refusal_NoFileStats));
+                Assert.Null(path_NoFileStats);
+                Assert.Contains("size and write time", refusal_NoFileStats);
             }
             finally
             {
