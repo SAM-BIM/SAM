@@ -1687,6 +1687,244 @@ namespace SAM.Tests
         /// left alone.
         /// </para>
         /// </summary>
+        // ---- Running selected dwellings in isolation ---------------------------------------------------
+
+        /// <summary>
+        /// Preparing one of two assessed dwellings with isolation asked for returns the <b>isolated derived
+        /// model</b>: only that dwelling's spaces are thermal spaces, and the model states what it was
+        /// isolated for.
+        /// </summary>
+        [Fact]
+        public void PreparePartOIteration_Isolated_SimulatesOnlyTheSelectedDwelling()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone _);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" } },
+                null,
+                true);
+
+            Assert.Null(preparation.Refusal);
+            Assert.NotNull(preparation.AnalyticalModel);
+
+            //Flat 2's rooms were in the source model and are not in the simulated one.
+            foreach (Space space in preparation.AnalyticalModel.GetSpaces() ?? [])
+            {
+                Assert.DoesNotContain("Flat 2", space.Name, StringComparison.Ordinal);
+            }
+
+            PartOIsolationContext partOIsolationContext = preparation.AnalyticalModel.GetValue<PartOIsolationContext>(AnalyticalModelParameter.PartOIsolationContext);
+
+            Assert.NotNull(partOIsolationContext);
+            Assert.True(partOIsolationContext.IsValid);
+            Assert.Contains(zone_1.Guid, partOIsolationContext.Guids_Zone);
+            Assert.Contains(zone_1.Name, partOIsolationContext.Names_Dwelling);
+        }
+
+        /// <summary>
+        /// The same preparation without isolation keeps the whole building - and carries no isolation
+        /// context, so "isolated" is always something a model states rather than something inferred.
+        /// </summary>
+        [Fact]
+        public void PreparePartOIteration_NotIsolated_KeepsTheWholeBuilding()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone _);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" } });
+
+            Assert.Null(preparation.Refusal);
+            Assert.Null(preparation.AnalyticalModel.GetValue<PartOIsolationContext>(AnalyticalModelParameter.PartOIsolationContext));
+
+            Assert.Contains(preparation.AnalyticalModel.GetSpaces() ?? [], x => x.Name.StartsWith("Flat 2", StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// <b>Isolation is a thermal model scope, not a ventilation sizing method.</b> The selected
+        /// dwelling's Approved Document F requirement and its design terminal airflow are identical whether
+        /// or not the rest of the building was simulated - which is the whole reason isolation is applied
+        /// after the preparation rather than before it.
+        /// </summary>
+        [Fact]
+        public void PreparePartOIteration_Isolated_DoesNotMovePartFOrTheDesignDuty()
+        {
+            //ONE model, prepared twice. The fixture mints fresh guids on every call, so two separately
+            //built buildings could not be compared by identity at all - and identity is exactly what this
+            //test is about. The preparation works on a copy, so the second call sees the same source as the
+            //first.
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone _);
+
+            PartOIterationPreparation preparation_Full = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" } });
+
+            PartOIterationPreparation preparation_Isolated = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" } },
+                null,
+                true);
+
+            Assert.Null(preparation_Full.Refusal);
+            Assert.Null(preparation_Isolated.Refusal);
+
+            //The dwelling's own design duty - the middle term of the Iteration 2 invariant - is untouched.
+            Assert.Equal(preparation_Full.DesignSupplyDuty_Lps, preparation_Isolated.DesignSupplyDuty_Lps, 6);
+            Assert.Equal(preparation_Full.DesignExtractDuty_Lps, preparation_Isolated.DesignExtractDuty_Lps, 6);
+
+            //And so is every selected space's Part F data.
+            foreach (Space space_Isolated in preparation_Isolated.AnalyticalModel.GetSpaces() ?? [])
+            {
+                Space space_Full = preparation_Full.AnalyticalModel.GetSpaces()?.Find(x => x.Guid == space_Isolated.Guid);
+
+                Assert.NotNull(space_Full);
+
+                PartFSpaceData partFSpaceData_Full = space_Full.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData);
+                PartFSpaceData partFSpaceData_Isolated = space_Isolated.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData);
+
+                Assert.Equal(partFSpaceData_Full?.ToJsonObject()?.ToJsonString(), partFSpaceData_Isolated?.ToJsonObject()?.ToJsonString());
+            }
+        }
+
+        /// <summary>
+        /// Only the isolated dwelling is in the run's assessment scope. An excluded dwelling is not reported
+        /// as failed, passed or unassessed inside this run - it simply is not part of it.
+        /// </summary>
+        [Fact]
+        public void PreparePartOIteration_Isolated_ScopesTheOverheatingScenariosToTheSelection()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone zone_2);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" } },
+                null,
+                true);
+
+            Assert.Null(preparation.Refusal);
+
+            OverheatingScenario overheatingScenario = Assert.Single(preparation.OverheatingScenarios);
+
+            Assert.Equal(zone_1.Guid, overheatingScenario.ZoneGuid);
+            Assert.NotEqual(zone_2.Guid, overheatingScenario.ZoneGuid);
+        }
+
+        /// <summary>
+        /// The preparation records what isolation did, so the dialog can show the scope and the cut before
+        /// anybody starts a long conversion.
+        /// </summary>
+        [Fact]
+        public void PreparePartOIteration_Isolated_ReportsTheScope()
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone _);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" } },
+                null,
+                true);
+
+            Assert.Null(preparation.Refusal);
+            Assert.Contains(preparation.Notes, x => x.Contains("Thermal model scope: ISOLATED", StringComparison.Ordinal));
+        }
+
+        // ---- The generated MVHR plant zone's humidistat ------------------------------------------------
+
+        /// <summary>
+        /// <b>The prepared unit states no humidity control as a valid pair of limits</b> - humidity lower
+        /// limit 0%, upper limit 100% - whether or not the run is isolated.
+        /// <para>
+        /// These two profiles become the humidistat on the unit's generated TAS plant zone ("MVHR-01"):
+        /// <c>SAM.Analytical.Tas.Modify.UpdateIZAMs</c> writes Humidification to the humidity LOWER limit
+        /// (TBD <c>Profiles.ticHLL</c>) and Dehumidification to the UPPER (<c>ticHUL</c>). Transposed -
+        /// lower 100%, upper 0% - TAS refuses the model before simulating: "Internal Condition 'MVHR-01'
+        /// humidistat has overlapping limits". See <c>PartOHumidistatTests</c> for the whole account,
+        /// including that the transposition predates both Part O and isolation.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PreparePartOIteration_TheUnitStatesNoHumidityControlAsAValidLimitPair(bool isolate)
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone _);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" } },
+                null,
+                isolate);
+
+            Assert.Null(preparation.Refusal);
+
+            List<AirHandlingUnitAirMovement> airHandlingUnitAirMovements = preparation.AnalyticalModel.AdjacencyCluster.GetObjects<AirHandlingUnitAirMovement>();
+
+            Assert.NotNull(airHandlingUnitAirMovements);
+            Assert.NotEmpty(airHandlingUnitAirMovements);
+
+            foreach (AirHandlingUnitAirMovement airHandlingUnitAirMovement in airHandlingUnitAirMovements)
+            {
+                Profile profile_LowerLimit = airHandlingUnitAirMovement.Humidification;
+                Profile profile_UpperLimit = airHandlingUnitAirMovement.Dehumidification;
+
+                Assert.NotNull(profile_LowerLimit);
+                Assert.NotNull(profile_UpperLimit);
+
+                Assert.Equal(0, profile_LowerLimit[0], 6);
+                Assert.Equal(100, profile_UpperLimit[0], 6);
+
+                //At every hour, not only the first: the assertion is that the limits never cross, and a
+                //value profile repeats over the day.
+                for (int i = 0; i <= 23; i++)
+                {
+                    Assert.True(
+                        profile_LowerLimit[i] <= profile_UpperLimit[i],
+                        string.Format("Hour {0}: lower limit {1} is above upper limit {2}.", i, profile_LowerLimit[i], profile_UpperLimit[i]));
+                }
+            }
+        }
+
+        /// <summary>
+        /// <b>A Flat-1-style prepared model reports no overlapping humidity limits from the Check authority
+        /// the Part O pre-simulation gate runs</b> - isolated, which is the run the defect was found on, and
+        /// not isolated, which had the same defect and simply had not been read out of TAS yet.
+        /// <para>
+        /// Asserted on the whole-model log, which is exactly what <c>PartOPreSimulationCheck</c> runs, and
+        /// on each generated unit's own record, which is where such an error comes from.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PreparePartOIteration_ThePreparedModelReportsNoOverlappingHumidityLimits(bool isolate)
+        {
+            AnalyticalModel analyticalModel = ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone _);
+
+            PartOIterationPreparation preparation = analyticalModel.PreparePartOIteration(
+                PartOIteration.BasePassive,
+                new List<Zone> { zone_1 },
+                new Dictionary<Guid, string> { { zone_1.Guid, "MVRE" } },
+                null,
+                isolate);
+
+            Assert.Null(preparation.Refusal);
+
+            Assert.Empty(PartOHumidistatTests.HumidityRecords(Analytical.Create.Log(preparation.AnalyticalModel)));
+
+            foreach (AirHandlingUnitAirMovement airHandlingUnitAirMovement in preparation.AnalyticalModel.AdjacencyCluster.GetObjects<AirHandlingUnitAirMovement>() ?? [])
+            {
+                Assert.Empty(Analytical.Create.Log(airHandlingUnitAirMovement));
+            }
+        }
+
         private static AnalyticalModel ModelWithTwoAssessedDwellings(out Zone zone_1, out Zone zone_2)
         {
             AnalyticalModel analyticalModel = Model(OpeningRestriction.Unrestricted);

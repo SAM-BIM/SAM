@@ -90,7 +90,7 @@ namespace SAM.Analytical
         /// asking - the same boundary <c>Query.CapableSystems</c> draws for system templates.
         /// </para>
         /// </param>
-        public static PartOIterationPreparation PreparePartOIteration(this AnalyticalModel analyticalModel, PartOIteration partOIteration, IEnumerable<Zone> zones, Dictionary<Guid, string> dictionary_VentilationStrategy, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors = null)
+        public static PartOIterationPreparation PreparePartOIteration(this AnalyticalModel analyticalModel, PartOIteration partOIteration, IEnumerable<Zone> zones, Dictionary<Guid, string> dictionary_VentilationStrategy, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors = null, bool isolate = false)
         {
             PartOIterationPreparation result = new();
 
@@ -223,6 +223,30 @@ namespace SAM.Analytical
                 //exactly its previous whole-model behaviour for them. A caller-named subset is carried
                 //through instead of discarded: see PrepareBaseMVHR for why a subset cannot be ignored.
                 analyticalModel_Applied = PrepareBaseMVHR(analyticalModel_Applied, zones == null ? null : zones_Assessed, ventilationUnitCapacityDescriptors, result);
+
+                if (result.Refusal != null)
+                {
+                    return result;
+                }
+            }
+
+            // ---- 4b. The isolated thermal model, where one was asked for ---------------------------------
+            //
+            // AFTER everything above, never before. Approved Document F requirements, design terminals,
+            // system duties and the dwelling's internal transfer air are all settled on the whole building
+            // first, and isolation then extracts the assessed dwellings carrying that state unchanged. So
+            // isolation cannot move a Part F number: it is a thermal model scope, which is the one thing it
+            // claims to be. (The dwelling's transfer air is solved over the DWELLING - a communal corridor
+            // belongs to no dwelling - so removing the entrance door to an excluded corridor cannot change
+            // it either, which is what makes re-preparing an isolated model in a later optimisation round
+            // give the same answer as the first.)
+            //
+            // Placed before the steps below so that the openings report and the overheating scenarios both
+            // describe the model that will actually be simulated, rather than a building around it.
+
+            if (isolate)
+            {
+                analyticalModel_Applied = Isolate(analyticalModel_Applied, zones_Assessed, result);
 
                 if (result.Refusal != null)
                 {
@@ -774,6 +798,80 @@ namespace SAM.Analytical
             {
                 adjacencyCluster.Remove(sAMObjects);
             }
+        }
+
+        /// <summary>
+        /// Replaces the prepared model with the isolated derived model of the assessed dwellings, and stamps
+        /// what was isolated onto it - or sets the refusal and returns the model untouched.
+        /// <para>
+        /// The extraction itself is <see cref="IsolateSpaces(AdjacencyCluster, IEnumerable{Space})"/>. This
+        /// only decides WHICH spaces (every space of every assessed dwelling zone, by identity) and records
+        /// the answer so a reopened run can still say it was isolated.
+        /// </para>
+        /// </summary>
+        private static AnalyticalModel Isolate(AnalyticalModel analyticalModel, List<Zone> zones_Assessed, PartOIterationPreparation result)
+        {
+            AdjacencyCluster adjacencyCluster = analyticalModel?.AdjacencyCluster;
+            if (adjacencyCluster == null)
+            {
+                result.Refusal = "The prepared model carries no adjacency cluster, so it cannot be isolated.";
+
+                return analyticalModel;
+            }
+
+            //Whole dwellings, never part of one: the scope is the assessed zones, and a dwelling simulated
+            //without some of its own rooms would be a different dwelling.
+            HashSet<Guid> guids_Space = [];
+            List<Space> spaces = [];
+            List<Guid> guids_Zone = [];
+            List<string> names_Zone = [];
+
+            foreach (Zone zone in zones_Assessed ?? [])
+            {
+                if (zone == null)
+                {
+                    continue;
+                }
+
+                guids_Zone.Add(zone.Guid);
+                names_Zone.Add(zone.Name);
+
+                foreach (Space space in adjacencyCluster.GetRelatedObjects<Space>(zone) ?? [])
+                {
+                    if (space != null && guids_Space.Add(space.Guid))
+                    {
+                        spaces.Add(space);
+                    }
+                }
+            }
+
+            if (spaces.Count == 0)
+            {
+                result.Refusal = "No space belongs to the dwellings in scope, so there is nothing to simulate in isolation.";
+
+                return analyticalModel;
+            }
+
+            SpaceIsolation spaceIsolation = adjacencyCluster.IsolateSpaces(spaces);
+
+            //Refused BEFORE the model is handed on, so nothing converts or simulates a scope that was never
+            //valid. The reasons are the isolation's own and name what is shared.
+            if (!spaceIsolation.IsIsolated)
+            {
+                result.Refusal = string.Join("\n", spaceIsolation.Refusals);
+
+                return analyticalModel;
+            }
+
+            AnalyticalModel result_Model = new(analyticalModel, spaceIsolation.AdjacencyCluster);
+
+            //Stamped on the model, so it travels into the run's .sam and a later session reviewing those
+            //results can still tell they came from an isolated thermal model rather than a whole building.
+            result_Model.SetValue(AnalyticalModelParameter.PartOIsolationContext, new PartOIsolationContext(guids_Space, guids_Zone, names_Zone));
+
+            result.Notes.AddRange(spaceIsolation.Notes);
+
+            return result_Model;
         }
     }
 }

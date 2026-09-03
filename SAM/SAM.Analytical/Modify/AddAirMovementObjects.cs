@@ -223,8 +223,22 @@ namespace SAM.Analytical
             }
 
             List<double> densities = new List<double>() { FluidProperty.Air.Density };
-            List<double> humidifications = new List<double>() { 100 };
-            List<double> dehumidifications = new List<double>() { 0 };
+
+            //The unit does not humidify and does not dehumidify, and these two profiles are how that is
+            //said - as limits that can never be reached, not as an absence.
+            //
+            //They become the humidistat on the unit's TAS zone: Humidification is the humidity LOWER limit
+            //(TBD Profiles.ticHLL) and Dehumidification the UPPER limit (ticHUL). "No humidity control" is
+            //therefore a lower limit of 0% and an upper limit of 100% - exactly the pair the shipped
+            //profile library states as "No Humidification" (0) and "No Dehumidification" (100), and exactly
+            //the pair TAS's own new-internal-condition defaults carry.
+            //
+            //Written the other way round - lower 100%, upper 0% - the humidistat is asked to hold the air
+            //above 100% and below 0% at the same time, and TAS refuses the model before it simulates:
+            //"Internal Condition 'MVHR-01' humidistat has overlapping limits." That is what these two lists
+            //held until 2026-09; the two values were transposed.
+            List<double> humidifications = new List<double>() { 0 };
+            List<double> dehumidifications = new List<double>() { 100 };
 
             foreach (AirHandlingUnit airHandlingUnit in airHandlingUnits)
             {

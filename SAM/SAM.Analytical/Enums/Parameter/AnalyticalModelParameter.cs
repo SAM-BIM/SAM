@@ -20,5 +20,6 @@ namespace SAM.Analytical
         [ParameterProperties("Solar Model", "Solar Model"), ParameterValue(ParameterType.IJSAMObject)] SolarModel,
         [ParameterProperties("Overheating Scenarios", "Overheating Scenarios"), SAMObjectParameterValue(typeof(SAMCollection<OverheatingScenario>))] OverheatingScenarios,
         [ParameterProperties("Simulation Result Provenance", "Simulation Result Provenance"), SAMObjectParameterValue(typeof(SimulationResultProvenance))] SimulationResultProvenance,
+        [ParameterProperties("Part O Isolation Context", "Part O Isolation Context"), SAMObjectParameterValue(typeof(PartOIsolationContext))] PartOIsolationContext,
     }
 }

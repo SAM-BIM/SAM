@@ -1,24 +1,385 @@
 # Project Progress
 
 ## Branch
-`feature/parto-result-review-and-persistence`, branched from `sow/2026-Q3` at **`471462e2`**
-(the merge of PR #90).
+`feature/parto-isolated-dwellings`, branched from `sow/2026-Q3` at **`a5dabbf0`**
+(the merge of PR #91).
 
-**Pairs with, and must merge alongside:** `SAM_UI` `feature/parto-result-review-and-persistence`, which
-does not compile without the `SimulationResultProvenance` / `OverheatingScenarios` additions below.
+**Pairs with, and must merge alongside:** `SAM_UI` `feature/parto-isolated-dwellings`, which does not
+compile without the `PartOIsolationContext` class, the `AnalyticalModelParameter.PartOIsolationContext`
+entry and the `PreparePartOIteration(..., isolate)` parameter below. **Merge `SAM` first.**
 
-No `SAM_Systems` or `SAM_Tas` change - neither was touched.
+No `SAM_Systems` change. The isolation work itself needed no `SAM_Tas` change, and the investigation
+below records why; the later Part O correction added one behaviour-neutral `SAM_Tas` PR
+(**SAM-BIM/SAM_Tas#46**, `feature/parto-plant-zone-daytypes`), whose merge order is free.
 
-Everything below "Previous: the selected-equipment capacity envelope" is superseded history retained for
-context.
+Everything below "Previous: result review, provenance, and two report defects" is superseded history
+retained for context.
 
 ## Last updated
-2026-09-03 - Part O result review and persistence: idempotent Part F condition naming, the persisted
-simulation-result provenance record - now binding the overheating scenarios as well as the design state,
-and failing closed on an incomplete record - and the TM59 space applications carried through
-simplification.
+2026-09-03 (latest) - the isolation cut is identified by the adjacency change rather than by
+`PanelParameter.Adiabatic`, so a wall that was already adiabatic in the source building keeps its
+apertures. Review round 2 on PR #92.
 
-## Latest (2026-09-03): result review, provenance, and two report defects
+## Latest (2026-09-03, latest): the isolation cut is an adjacency change, not a flag
+
+**Status: implemented and tested. One production line, plus the coverage two review comments asked
+for.** Raised by Copilot on PR #92; real, and reachable from an ordinary project model.
+
+### The defect
+
+`Modify.IsolateSpaces` decided which derived panels were this run's isolation cut by reading
+`PanelParameter.Adiabatic` back off them - the flag `AdjacencyCluster.Filter` had just written. Every
+panel so identified had its apertures removed and was counted in the disclosure note.
+
+The flag is not this run's evidence. Three other places write it, and all three write it on ordinary
+surfaces of an ordinary model:
+
+- `SAM.Analytical.Tas.Convert.ToSAM` sets it on every surface a TBD calls adiabatic;
+- `SAM.Analytical.gbXML.Convert.ToSAM` sets it wherever a gbXML surface names an adjacent space the file
+  does not contain;
+- the `SAMAnalyticalSetAdiabatic` Grasshopper component sets it because a person asked for it.
+
+`Filter` carries a panel's parameters into the derived cluster with it, so every one of those arrived at
+the cut loop already flagged. A wall that was adiabatic in the whole building was therefore read as a
+cut: **its apertures were removed from the isolated model**, and it was counted in the report's
+disclosure note as an interface to an excluded space it does not touch. The code's own comment said the
+opposite was intended - that such a surface "keeps whatever apertures it had, exactly as it would in a
+whole building run" - so this is the code not doing what it says. A TBD or gbXML import is the normal way
+a real project model arrives, which is what makes it reachable rather than theoretical.
+
+### The correction
+
+The cut is the **adjacency change this run made**, which is what the class documentation already called
+it: two spaces in the source cluster and one in the derived one. Both clusters are in hand, so it is
+asked of them directly and of no flag:
+
+```
+if (panel is null || !result.External(panel) || !adjacencyCluster.Internal(panel))
+```
+
+This is the same predicate `Filter` uses to write the flag, so nothing about which panels become
+adiabatic changes - only which ones this method then treats as cuts. It stays right where the two
+coincide: a surface that was already adiabatic **and** divides a selected space from an excluded one is
+a cut, and does lose its apertures, because in the derived model it has nothing left to open onto.
+
+### Files
+
+- `SAM/SAM.Analytical/Modify/IsolateSpaces.cs` - the cut predicate.
+- `SAM/SAM.Tests/PartOIsolationTests.cs` - 3 new tests: an already-adiabatic partition between two
+  selected spaces keeps its door and is not counted; one that is also the cut still loses its door; an
+  already-adiabatic external wall is not a cut and keeps its window.
+- `SAM/SAM.Tests/TM59AssessmentReportTests.cs` - 2 new tests (4 cases) for the report scope line, which
+  Copilot noted was uncovered: an isolated scope is printed above the verdicts, and a report stating no
+  scope falls back to `WHOLE BUILDING` rather than to silence.
+
+### Validation
+
+Full `SAM.Tests` **1831 passed**, 0 failed (1824 before, +7). `SAM.sln` builds clean. Rebuilt
+`SAM.Analytical.dll` re-validated downstream: `SAM_UI` **410 passed** and `SAM_UI.sln` clean,
+`SAM_Tas` **669 passed** and `SAM_Tas.sln` clean.
+
+### Not addressed, deliberately
+
+- **The optional `isolate` parameter on `PreparePartOIteration` (Copilot, PR #92).** Adding it changes
+  the CLR signature, so an assembly compiled against the five-parameter version would need recompiling.
+  Not preserved as a separate overload: this repository has twice added an optional parameter to this
+  same method in place (`0c8a04eb`, `41a02d4e`), the method is Part O internal with no consumer outside
+  this family, and every SAM assembly is built and released together.
+- **The second `-ISO-` suffix (Copilot, SAM_UI PR #82).** Re-preparing an isolated scope from a model
+  adopted from an optimisation round - named `<project>-ISO-<token>-OptNN` - appends the suffix again,
+  because the idempotence check only recognises it as the final segment. Naming only, never provenance,
+  and it can grow at most once; the Iteration 2B rounds named in that comment call
+  `Analytical.Modify.PreparePartOIteration` directly and never reach `Query.ProjectName_Isolated`.
+  Recorded for a decision rather than fixed under a review round.
+- **The six MVHR plant zones** in the full-building Opt TBDs, unchanged from the entry below.
+
+## Latest (2026-09-03, later): two model-generation defects TAS refuses a model for
+
+**Status: implemented, tested, and validated on the licensed acceptance model. Flat 1 in isolation now
+completes a full-year TAS simulation.** Found by running the real-project acceptance case for the
+isolation work above; the isolated run wrote a 22 KB stub of a results file and an error log saying
+only `Simulation Failed`.
+
+### 1. Transposed humidistat limits - predates Part O and predates isolation
+
+`Modify.AddAirMovementObjects` gave every `AirHandlingUnitAirMovement` **Humidification 100%** and
+**Dehumidification 0%**. Those two profiles become the humidistat on the unit's generated TAS plant zone:
+`SAM_Tas Modify.UpdateIZAMs` writes Humidification to the humidity **lower** limit (`Profiles.ticHLL`) and
+Dehumidification to the **upper** (`ticHUL`). So the zone was asked to hold its air above 100% and below 0%
+relative humidity at once, and TAS's pre-simulation check refused it:
+
+> `Internal Condition 'MVHR-01' humidistat has overlapping limits.`
+
+Read out of the failing TBD: `ticHLL value=100 setback=0`, `ticHUL value=0 setback=100` - TAS's own
+correct **setbacks** still beside them, which is what a transposition of the *values* alone looks like.
+
+Corrected to lower 0% / upper 100%, which is the SAM convention for "no humidity control" - verbatim what
+the shipped profile library states as *No Humidification* (0) and *No Dehumidification* (100), and the pair
+TAS's own new-internal-condition defaults carry. **No heating, cooling, humidification or dehumidification
+control was invented to satisfy TAS**; the limits are inert.
+
+**It predates both.** The pair has been in `AddAirMovementObjects` since 2024-01-25 (`3f724001`), on the
+general path every model with an air handling unit goes through. The acceptance project's own `.sam`,
+saved by ordinary **non-isolated** runs, carries lower 100 / upper 0 on MVHR-01, **-02 and -03**, and so
+does a full-building `Opt` round's TBD.
+
+### 2. …but that was not the isolated run's blocker
+
+The same full-building TBD, with the same transposed humidistat, **simulated a full year** (18.5 MB TSD).
+The overlap is a genuine invalid state TAS reports and was never fatal to the solver. The real blocker:
+
+`UpdateIZAMs` writes the plant zone one air movement per room the unit **supplies**, plus one
+`IZAM <unit> FROM OUTSIDE` bringing in what it therefore has to draw - sized by `Query.AirFlow`, which
+reads the deliveries **related** to the unit. Where that resolves nothing the intake is not written, and
+the zone delivers the dwelling's whole supply while gaining nothing. TAS refuses to simulate a zone whose
+air movements do not balance. Measured on the isolated Flat 1: **MVHR-01 out 36.3 l/s, in 0**.
+
+`Modify.IsolateSpaces` depended on two lookups that **cannot work** on an `AdjacencyCluster`.
+`AdjacencyCluster.IsValid(Type)` asks whether a type is assignable **to** one of the analytical families it
+admits, which `IJSAMObject` - broader than all of them - is not; and *both*
+`RelationCluster.GetObjects(Type)` and `RelationCluster.GetObject(Type, Guid)` gate on it. Verified on this
+model: `GetObjects<IJSAMObject>()` → **null**, `GetObjects()` → **641**.
+
+- **`RestoreRelations` was a complete no-op.** It opened with `result.GetObjects<IJSAMObject>()` and
+  returned at its first line, so it restored **nothing** - not an air movement to its unit, not a terminal
+  to its system. Now asks the ungated `GetObjects()`. That gate is right for *admitting* an object and
+  wrong for asking what is in there.
+- **`CarryAirHandlingUnits`' existence guard was unsatisfiable** (`GetObject<IJSAMObject>(guid)` is null
+  for every guid the cluster holds), so no unit relation was restored either. The two are now split by
+  responsibility and **ordered**: the carry adds objects, `RestoreRelations` runs after it and is the
+  single authority on relations.
+- **The unit's own exhaust was never carried.** It is a `SpaceAirMovement` related to *no space at all*.
+  Plant-side movements of a carried unit now come across.
+
+### 3. Cross-cut air movement detection (raised by Copilot on PR #92)
+
+`Refusals_AirMovementScope` inspected only the relation graph, but `AddPartFTransferAirMovements` relates
+a transfer to the **downstream** space only - relating it to both would have the TBD writer write the
+dwelling two identical inter-zone air movements - so the upstream space exists on the object as a `From`
+reference and nowhere else. Two cases passed silently: *excluded → selected* was carried with a dangling
+`From`; *selected → excluded* was neither refused nor carried, so the selected room passed air to a room
+that is not in the model. New `Spaces_AirMovement` reads both ends, references included, and both refuse.
+
+### 4. Both defects are now SAM Check rules
+
+`Create.Log` - the authority behind `SAMAnalytical.Check` and the Check command - gains:
+
+- an **`InternalCondition`** whose humidification (lower) limit is above its dehumidification (upper) limit
+  at any index the two profiles share → **Error**. Read index by index, not by comparing one profile's
+  maximum against the other's minimum, because two schedules can each be higher than the other at
+  different hours without ever overlapping;
+- an **`AirHandlingUnitAirMovement`** carrying that same invalid pair → **Error**;
+- an `AirHandlingUnitAirMovement` whose unit **supplies a movement the unit is not related to** → **Error**:
+  the model says it delivers, the relation graph does not, so no intake can be sized. Asked that way round
+  deliberately, so a legitimate **extract-only** unit - which delivers to no room and balances its
+  extract against its own exhaust with no outside intake - is not reported (Codex P2 on PR #92). New
+  `Query.SpaceAirMovement_Delivered` answers "does the model say this unit delivers" over the whole
+  cluster;
+- an `AirHandlingUnitAirMovement` related to **no unit** → **Warning**, not an Error: nothing generates a
+  plant zone from it, so it is inert.
+
+Reached from `Log(AdjacencyCluster)` **before** the space and panel checks, because a unit's air movement
+is related to the unit and to no space - which is why nothing that walks the spaces could ever find it.
+
+Not Part O rules: an invalid model is invalid whoever asks.
+
+### Important decisions and assumptions
+
+- `AdjacencyCluster.IsValid(Type)` is **not** changed. It correctly restricts what may be *added*; the
+  defect was using a type-gated single-object lookup as an existence test. The type-agnostic
+  `GetTypeName(Guid)` is what `CarryAirHandlingUnits` now asks.
+- The humidistat rule reports **only** a lower limit above an upper limit. NaN is treated as an unstated
+  hour, not an overlap.
+- The intake rule does not attempt to reproduce `UpdateIZAMs`' whole plant-zone balance in
+  `SAM.Analytical` - that would duplicate SAM_Tas logic in the wrong layer. It reports one deterministic
+  disagreement between the model and its own relation graph.
+
+### Files changed
+
+- `SAM/SAM.Analytical/Modify/AddAirMovementObjects.cs` - the transposed humidity pair.
+- `SAM/SAM.Analytical/Modify/IsolateSpaces.cs` - `RestoreRelations` enumeration, `CarryAirHandlingUnits`
+  split/ordering and plant-side carry, `Spaces_AirMovement` for cross-cut detection.
+- `SAM/SAM.Analytical/Create/Log.cs` - the humidistat rule, the intake rule, the
+  `Log(AirHandlingUnitAirMovement, AdjacencyCluster)` overload and its wiring into `Log(AdjacencyCluster)`.
+- `SAM/SAM.Analytical/Query/SpaceAirMovement_Delivered.cs` - new.
+- `SAM/SAM.Tests/PartOHumidistatTests.cs` - new, 16 tests.
+- `SAM/SAM.Tests/PartOPlantZoneIntakeTests.cs` - new, 18 tests.
+- `SAM/SAM.Tests/PartOIterationPreparationTests.cs` - 4 prepared-model regressions.
+
+### Tests, builds and validation
+
+- Full `SAM.Tests` **1824 passed**, 0 failed. `SAM.sln` builds clean (VS 18 MSBuild).
+- **Licensed TAS acceptance run**, Flat 1 isolated out of
+  `000000_SAM_AnalyticalModel-It1a-futureZ1.sam`, full year 1-365 with sizing:
+
+| | before | after |
+| --- | --- | --- |
+| TSD | 22,414 bytes (sizing stub) | **4,691,076 bytes** |
+| `_error_log.txt` | `Simulation Failed` | *none written* |
+| TBD humidistat | `ticHLL 100` / `ticHUL 0` | `ticHLL 0` / `ticHUL 100` |
+| MVHR-01 zone balance | in 0, out 0.0363 m³/s | in 0.0363, out 0.0363, **net 0** |
+| workflow | stopped after Sizing | Simulating Model → Adding Results → Updating Design Loads → Saving Model |
+| `SAMAnalytical.Check` on the derived model | 3 errors on the source | **0 errors, 0 warnings** |
+
+  Only Flat 1's two spaces are simulated; the source `.sam` is byte-identical afterwards, timestamp
+  included.
+
+### Unresolved issues, risks and blockers
+
+- The intentional `Zone 'MVHR-01' is missing internal conditions on some daytypes` warning remains, by
+  design. Pinned in **SAM-BIM/SAM_Tas#46**; nothing on the Part O path promotes it to an error.
+- Passing `SAMAnalytical.Check` is **not** a guarantee that TAS can run - licensing, file I/O, the solver
+  and weather data are all still ahead, and TAS's own check knows rules this one does not.
+- The full-building `Opt` TBDs carry **six** MVHR plant zones (three with no internal conditions at all),
+  i.e. `UpdateIZAMs` appears to accumulate duplicate plant zones across optimisation rounds. **Observed,
+  not investigated, and not addressed here.** It does not stop TAS.
+- Copilot's other PR #92 comments (optional-parameter binary compatibility on
+  `PreparePartOIteration`; `TM59AssessmentReportFormatter` header coverage; the adiabatic-flag condition
+  also matching a source-adiabatic envelope; `PartOIsolationTests` modelling a transfer with both
+  relations) are **open and unaddressed**.
+
+### Exact recommended next step
+
+Wait for the re-requested Codex review on **SAM-BIM/SAM#92** (and SAM_UI#82, SAM_Tas#46), then decide on
+the four open Copilot comments listed above. **Do not merge** - merge order is SAM #92, then SAM_UI #82,
+then SAM_Tas #46 (order free).
+
+---
+
+## Latest (2026-09-03): running selected dwellings in isolation
+
+**Status: implemented and tested. No Part O or Part F engineering semantics changed.**
+
+A large residential model can be ~5,000 spaces. Assessing one flat should not require simulating all of
+them. Isolation builds a **derived** model containing only the selected dwellings as thermal zones,
+keeping the thermal boundaries and the solar context they need.
+
+### 0. What the investigation found, before anything was written
+
+`FilterBySpaces` exists only as the Grasshopper component
+`SAMAnalyticalFilterBySpaces`; the production authority behind it is
+**`AdjacencyCluster.Filter(IEnumerable<Space>, bool setAdiabatic = true)`**. It already does more than
+expected, and none of it was rebuilt:
+
+* returns a **new** cluster - the source is never mutated;
+* identifies spaces by **guid** (`SAMObject`'s copy constructor carries the guid, so identity survives -
+  which TAS zone mapping, TM59 result mapping and provenance all depend on);
+* clones each selected space's related objects and relates them to that space;
+* and classifies **every** panel by comparing its adjacency in the DERIVED cluster against its adjacency
+  in the SOURCE - which is exactly the three-case matrix this feature needed:
+  * *selected/selected* - two spaces in the derived cluster, left as the internal partition it is;
+  * *selected/excluded* - one space derived, two in the source, marked `PanelParameter.Adiabatic`;
+  * *selected/external* - one space in both, left completely alone (type, construction, apertures,
+    orientation, exposure).
+
+`Filter` had **no tests**. It now has them.
+
+What `Filter` could not know, because it is a general geometric filter and these are questions about a
+*simulation*, is what `Modify.IsolateSpaces` adds around it - see below.
+
+**The adiabatic representation already exists end to end.** `PanelParameter.Adiabatic` is read by
+`SAM_Tas Modify.UpdateAdiabatic`, which sets the matching TBD zone surface to
+`SurfaceType.tbdNullLink`, and `WorkflowCalculator` already calls it ("Setting Adiabatic"). Nothing was
+invented and `SAM_Tas` needed no change.
+
+**The shading representation already exists too.** `PanelType.Shade` maps to gbXML
+`surfaceTypeEnum.Shade`, the Part O route converts through gbXML into T3D and then TBD, and the gbXML
+export writes a panel with no adjacent space perfectly well. So excluded external geometry reaches TAS as
+shading through the path that already existed.
+
+### 1. `Modify.IsolateSpaces` - the extraction
+
+Built **on** `Filter`, not beside it. It adds only the four things a simulation needs and a geometric
+filter cannot decide:
+
+**Relations `Filter` does not rebuild.** `Filter` relates each carried object to the space it was carried
+for. A simulation needs the rest of the graph - a terminal to its system, an air movement to its unit -
+so every source relation whose *both* ends were carried is restored. Only carried objects are walked.
+
+**The plant.** An `AirHandlingUnit` is related to no space at all: a `VentilationSystem` names it in
+`VentilationSystemParameter.SupplyUnitName`. Nothing reachable from a space finds it, so `Filter` cannot
+carry it, and without this step an isolated model would have systems with no unit and every duty and
+equipment selection downstream would read as absent.
+
+**The apertures on the cut.** Removed from the derived model. In the derived cluster a cut panel has one
+adjacent space, so an aperture left on it would be exported as an **external** window - giving the flat a
+door to outside, with solar gain and outside air behind it, where a corridor used to be. That is a
+fabricated boundary. Keyed on the `Adiabatic` flag `Filter` sets, deliberately **not** on
+`Query.Adiabatic`, which also reports any zero-thickness construction as adiabatic: a surface that was
+already adiabatic in the source building is not this run's cut and keeps its apertures.
+
+**The shading context**, using the definitions that already exist rather than a new rule: an uncarried
+source panel becomes shade when it is `Query.ExposedToSun` **and** has at most one adjacent space. An
+excluded façade, roof or exposed floor comes across; an internal partition (two adjacent spaces) never
+does; and an existing source shade (no adjacent space) keeps coming across as before. No proximity
+culling - the reduction comes from not simulating thousands of thermal zones, not from pruning shade.
+
+### 2. Fail closed on shared plant and on airflow crossing the cut
+
+Checked **before** anything is built, so a person is never told the scope was invalid after a long
+conversion. Refused, never silently narrowed:
+
+* a **ventilation system** serving both a selected and an excluded space;
+* an **air handling unit** that straddles the cut through two systems - the per-system check cannot see
+  that, so the unit is asked in its own right;
+* a **`SpaceAirMovement`** connecting a selected space to an excluded one.
+
+Splitting shared central plant proportionally is a different engineering problem and is deliberately not
+attempted. The dedicated per-dwelling MVHR the Part O workflow builds serves exactly one dwelling, so
+none of these fire on it.
+
+A refusal returns **no model**, by contract - the same rule `PartOIterationPreparation` already follows.
+
+### 3. `PreparePartOIteration(..., isolate)` - and why isolation comes last
+
+Isolation happens **after** the whole preparation, never before. Part F requirements, design terminals,
+system duties and the dwelling's internal transfer air are settled on the whole building first, and
+isolation then extracts the assessed dwellings carrying that state unchanged. So isolation **cannot move
+a Part F number** - it is a thermal model scope, which is the one thing it claims to be. (The dwelling's
+transfer air is solved over the *dwelling*, and a communal corridor belongs to no dwelling, so removing
+the entrance door to an excluded corridor cannot change it either - which is what makes re-preparing an
+isolated model in a later optimisation round give the same answer as the first.)
+
+It is placed before the openings report and the overheating scenarios so both describe the model that
+will actually be simulated. Only the selected dwellings therefore appear in the run's assessment scope.
+
+### 4. `PartOIsolationContext` - stamped, never inferred
+
+A new `AnalyticalModelParameter`, so it travels into the run's `.sam` with everything else. It carries
+the isolated space guids, the dwelling zone guids, the dwelling names for reporting, and a **scope
+token** (an FNV-1a digest over the sorted space guids) that `SAM_UI` uses to keep one isolated run's
+artifacts off another's.
+
+It exists because an isolated model cannot state this by itself: reopened later it is indistinguishable
+from a building that only ever had those spaces, and the two are different thermal models. Nothing reads
+isolation state back out of a filename.
+
+`TM59AssessmentReport.ThermalModelScope` (new) prints the scope in the report header, defaulting to
+`WHOLE BUILDING`.
+
+### 5. The engineering assumption, stated
+
+Selected-to-excluded conditioned-space interfaces are treated as **adiabatic** - approximately zero net
+conductive heat transfer across the omitted neighbours. Isolated results may therefore differ from a
+whole-building simulation of the same dwellings, and **must not be presented as equivalent**. The dialog,
+the preparation summary and the TM59 report all say so.
+
+### Tests
+
+`SAM.Tests.PartOIsolationTests` - 25 tests over the acceptance fixture (Flat 1: Studio + Bathroom;
+Flat 2: Bedroom + Kitchen; a Corridor between them; one dedicated MVHR each), covering extraction,
+identity under duplicate names, the source model being untouched, the three panel cases, shade
+qualification and non-duplication, the cut aperture rule both ways, dedicated and shared plant,
+cross-cut air movement, Part F data survival, context round-trip, token stability, and a 2,000-space
+synthetic model asserted on shape rather than on a clock.
+
+`SAM.Tests.PartOIterationPreparationTests` - 5 further tests for isolation through the preparation:
+the isolated model, the un-isolated control, Part F and design duty unmoved, scenario scope, and the
+reported scope note.
+
+Full `SAM.Tests`: **1786 passed, 0 failed**. `SAM.sln` MSBuild: **0 errors**.
+
+## Previous: result review, provenance, and two report defects
 
 **Status: implemented and tested. No Iteration 2B engineering semantics changed.**
 
