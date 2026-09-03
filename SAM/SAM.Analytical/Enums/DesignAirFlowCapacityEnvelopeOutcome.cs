@@ -7,7 +7,7 @@ namespace SAM.Analytical.Enums
 {
     /// <summary>
     /// What a selected-equipment <b>capacity envelope</b> came to for one serving equipment group - the
-    /// diagnostic answer to "how far could this dwelling's already-selected unit be taken?" - or why no
+    /// diagnostic answer to "what design could this dwelling's already-selected unit support?" - or why no
     /// envelope was calculated for it.
     /// <para>
     /// <b>Every "no" is a stated one.</b> An envelope is a diagnostic, and a diagnostic that silently
@@ -28,27 +28,29 @@ namespace SAM.Analytical.Enums
         [Description("Undefined")] Undefined,
 
         /// <summary>
-        /// The group's deliberate target vector was scaled coherently to the point where the first
-        /// selected-equipment capacity constraint binds, and the resulting design is valid.
+        /// The design the group's equipment already serves was grown proportionally - every terminal keeping
+        /// its share of it - to the point where the first selected-equipment capacity constraint binds, and
+        /// the resulting design is valid.
         /// <para>
-        /// <b>The scale may be more or less than one whole step.</b> Less, where the remaining headroom
-        /// cannot carry a full round; more, where the ordinary optimisation stopped on its iteration guard
-        /// with capacity still to spare. The bound is selected-equipment feasibility, never
-        /// <c>scale &lt;= 1</c>.
+        /// <b>The factor is bounded by feasibility, not by one step.</b> Where the ordinary optimisation
+        /// stopped on its iteration guard with capacity still to spare, it is well above 1. It is never
+        /// below 1: a design already on - or past - its rating is <see cref="NoHeadroom"/> instead, because
+        /// an envelope never designs a dwelling downwards in the name of a diagnostic.
         /// </para>
         /// </summary>
         [Description("Scaled")] Scaled,
 
         /// <summary>
-        /// The selected unit is already at - or past - its rating, so there is no useful headroom for a
-        /// coherent scaling to move into. The ordinary optimisation's last accepted design <b>is</b> the
-        /// envelope for this group, and saying so is the diagnostic.
+        /// The selected unit is already at - or past - its rating, or moves no design air at all, so there
+        /// is no useful headroom for its design to be grown into. The ordinary optimisation's last accepted
+        /// design <b>is</b> the envelope for this group, and saying so is the diagnostic.
         /// </summary>
         [Description("No Headroom")] NoHeadroom,
 
         /// <summary>
-        /// No eligible deliberate target could be formed for this group at all, so there is no target
-        /// vector to scale. Not a failure - a group with nothing left to target has nothing to diagnose.
+        /// No eligible deliberate target could be formed at all, so no failing room says which equipment
+        /// the diagnostic is about. Not a failure - a design with nothing left to target has nothing to
+        /// diagnose.
         /// </summary>
         [Description("No Targets")] NoTargets,
 
@@ -57,8 +59,8 @@ namespace SAM.Analytical.Enums
         /// group's systems, nothing is selected on it, the selection is not among the products offered, or
         /// the design duty the rating would be compared against cannot be derived.
         /// <para>
-        /// <b>An unknown ceiling is never an unlimited one.</b> Scaling towards a capacity nobody can state
-        /// would produce a design airflow with no authority behind it, which is precisely what the
+        /// <b>An unknown ceiling is never an unlimited one.</b> Growing a design towards a capacity nobody
+        /// can state would produce a design airflow with no authority behind it, which is precisely what the
         /// <c>PartFRequiredAirFlow != DesignAirFlow != SelectedEquipmentCapacity</c> separation exists to
         /// prevent.
         /// </para>
@@ -66,9 +68,10 @@ namespace SAM.Analytical.Enums
         [Description("Capacity Unresolved")] CapacityUnresolved,
 
         /// <summary>
-        /// A target vector was formed and a feasible scale looked for, and no scaling of it produces a
-        /// valid design - an Approved Document F floor, an unbalanced dwelling, terminals that cannot be
-        /// attributed. The reason is recorded; nothing is repaired to make an envelope possible.
+        /// The design vector was read, a feasible factor found, and no growth of that design produces a
+        /// valid one - because the design itself is not valid to grow: an unbalanced dwelling, a room
+        /// already below its Approved Document F floor, terminals that cannot be attributed. The reason is
+        /// recorded; nothing is repaired to make an envelope possible.
         /// </summary>
         [Description("Refused")] Refused,
     }

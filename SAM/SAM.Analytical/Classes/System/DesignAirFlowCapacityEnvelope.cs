@@ -8,9 +8,8 @@ namespace SAM.Analytical
 {
     /// <summary>
     /// The <b>selected-equipment capacity envelope</b> of a design: what the already-selected ventilation
-    /// units could deliver if each were taken to its own design-capacity ceiling, worked out as one
-    /// coherent scaling of the deliberate target vector an ordinary optimisation round would currently
-    /// have asked for.
+    /// units could support if the <b>last valid design</b> were grown coherently to each unit's own
+    /// design-capacity ceiling, <b>preserving the proportions between every terminal that unit serves</b>.
     ///
     /// <para><b>A diagnostic, and emphatically not another optimisation round</b></para>
     /// <para>
@@ -25,23 +24,30 @@ namespace SAM.Analytical
     /// why it is a separate operation with a separate result rather than a flag on the round.
     /// </para>
     ///
-    /// <para><b>What "coherent" means, and why it is not room-by-room</b></para>
+    /// <para><b>What "coherent" means, and why it is the whole design</b></para>
     /// <para>
-    /// Two failing extract rooms in one flat would each be asked for +5 l/s, and 7 l/s of unit headroom
-    /// remains. Giving the first room its whole 5 and the second the remaining 2 makes the answer depend on
-    /// which room was enumerated first, which is the very defect the deterministic round exists to remove.
-    /// So the whole target vector is scaled by one factor per equipment group - here 0.7, giving +3.5 and
-    /// +3.5 - and the balancing consequence is derived <b>once</b> from the scaled vector by the ordinary
-    /// round authority. The proportions the failing rooms were asked for survive; nothing is allocated by
-    /// arrival order.
+    /// <b>One factor per equipment group, applied to every space and direction that unit serves.</b> A flat
+    /// designed 40 supply / 22 + 18 extract on a 150/150 unit grows by <c>min(150/40, 150/40) = 3.75</c> to
+    /// 150 supply / 82.5 + 67.5 extract - the same dwelling, larger, with <c>22/18</c> still equal to
+    /// <c>82.5/67.5</c>. Because the design being grown is balanced at every system, both sides move by the
+    /// same amount and the ordinary round derives no balancing consequence at all.
+    /// </para>
+    /// <para>
+    /// It is <b>not</b> a scaling of the optimisation's deliberate increments. That reading answers "how far
+    /// can the current targeted direction continue?" and spends the remaining headroom only on the rooms the
+    /// optimiser happened to be pushing - the same flat comes out at 150 supply / 22 + 128 extract, the
+    /// bathroom carrying the whole increase and the studio's extract untouched. Coherent arithmetic, and a
+    /// design nobody would build. The useful diagnostic is "what design could the already-selected unit
+    /// support?", and that is a proportional growth of the design that exists.
     /// </para>
     ///
-    /// <para><b>The scale is not capped at one step</b></para>
+    /// <para><b>The scale is not capped at one step, and never falls below 1</b></para>
     /// <para>
-    /// Where the ordinary optimisation stopped on its iteration guard rather than on capacity, several
-    /// steps' worth of headroom may remain, and the envelope scales past 1 to reach the ceiling. The bound
-    /// is selected-equipment feasibility, never <c>scale &lt;= 1</c> - an envelope that stopped at one step
-    /// would answer the iteration guard's question rather than the equipment's.
+    /// The bound is selected-equipment feasibility. Where the ordinary optimisation stopped on its iteration
+    /// guard rather than on capacity, several steps' worth of headroom may remain and the factor is well
+    /// above 1. It is never <i>below</i> 1: a design already sitting on - or past - its rating is reported
+    /// as <see cref="DesignAirFlowCapacityEnvelopeOutcome.NoHeadroom"/>, because an envelope never designs a
+    /// dwelling downwards in the name of a diagnostic.
     /// </para>
     ///
     /// <para><b>Every authority stays where it was</b></para>
@@ -56,9 +62,11 @@ namespace SAM.Analytical
     ///
     /// <para><b>Nothing is searched by mutating the model</b></para>
     /// <para>
-    /// The feasible scale is calculated analytically from the headroom and the movement one whole step
-    /// would cause, then confirmed by evaluating the round once. Where that is refused for a reason which
-    /// is not capacity, a bounded deterministic solve retreats within the same interval. Every attempt is
+    /// The feasible factor is a division - the selected product's rating over the duty the design already
+    /// carries, on whichever side gives the tighter ratio - then confirmed by evaluating the round once.
+    /// Where that is refused for a reason which is not capacity, a bounded deterministic solve retreats
+    /// within <c>[1, factor]</c>; where the round refuses the <i>source</i> design too, no factor repairs
+    /// that and the refusal is reported as it stands. Every attempt is
     /// evaluated against the <i>caller's own</i> model, which <see cref="Modify.EvaluateTargetedDesignAirFlows"/>
     /// never modifies - so no search state accumulates anywhere and the same input always gives the same
     /// answer.
@@ -78,12 +86,30 @@ namespace SAM.Analytical
         public AdjacencyCluster AdjacencyCluster { get; internal set; }
 
         /// <summary>
-        /// The ordinary round that produced <see cref="AdjacencyCluster"/>, evaluated over the <b>scaled</b>
-        /// target vector by <see cref="Modify.EvaluateTargetedDesignAirFlows"/> - so the targeted and
+        /// The ordinary round that produced <see cref="AdjacencyCluster"/>, evaluated over the <b>grown</b>
+        /// design vector by <see cref="Modify.EvaluateTargetedDesignAirFlows"/> - so the targeted and
         /// derived adjustments, the duties and the per-dwelling equipment verdicts of the envelope are the
         /// same shape, from the same authority, as an ordinary round's. Null where no group scaled.
+        /// <para>
+        /// Its own <c>TargetRefusals</c> are empty and are <b>not</b> the ones a caller wants: the envelope's
+        /// round is given the design that exists, which every room can carry by definition. The failing rooms
+        /// the ordinary policy could not target are on <see cref="TargetRefusals"/> here.
+        /// </para>
         /// </summary>
         public DesignAirFlowRoundCandidate RoundCandidate { get; internal set; }
+
+        /// <summary>
+        /// The deliberate targets the ordinary optimisation would next have asked for that the building has
+        /// <b>no lever</b> for - a failing room with no design terminal on the side that failed, say - each
+        /// with its own reason, ordered on the same key an ordinary round orders its own by.
+        /// <para>
+        /// A dropped target still <i>counts</i>: the envelope reads the target vector for scope, so a room
+        /// dropped here is a room whose equipment was never brought into the diagnostic. Where every one of
+        /// them is dropped the answer is <see cref="DesignAirFlowCapacityEnvelopeOutcome.NoTargets"/>, and
+        /// an engineer does something quite different about that than about an exhausted unit.
+        /// </para>
+        /// </summary>
+        public List<DesignAirFlowTargetRefusal> TargetRefusals { get; } = [];
 
         /// <summary>
         /// One entry per serving equipment group the envelope considered - <b>including</b> the groups it
@@ -96,8 +122,15 @@ namespace SAM.Analytical
         public List<DesignAirFlowCapacityEnvelopeGroup> Groups_Scaled => Groups.FindAll(x => x.IsScaled);
 
         /// <summary>
-        /// Every deliberate adjustment the envelope's scaled round made. <b>Not an accepted optimisation
-        /// step</b> - these are the diagnostic's targets.
+        /// Every deliberate adjustment the envelope's grown round made - one per space and direction the
+        /// scaled units serve, which is what makes the visible rows of a report reconcile to the units'
+        /// supply and extract duties with no hidden terminal contribution.
+        /// <para>
+        /// <b>Not an accepted optimisation step, and not an optimisation's targets.</b> These rooms were
+        /// chosen by <i>this operation</i>, to keep their share of the design vector - a report has to say
+        /// so in its own word (<c>SCALED</c>) rather than borrow the one an ordinary round uses, which would
+        /// claim the optimisation had asked for these figures.
+        /// </para>
         /// </summary>
         public List<DesignAirFlowAdjustment> TargetedAdjustments => RoundCandidate?.TargetedAdjustments ?? [];
 
@@ -125,11 +158,15 @@ namespace SAM.Analytical
         public List<string> Warnings { get; } = [];
 
         /// <summary>
-        /// Why no envelope model was produced. Empty where one was - and empty on a
-        /// <see cref="DesignAirFlowCapacityEnvelopeOutcome.NoHeadroom"/> or
-        /// <see cref="DesignAirFlowCapacityEnvelopeOutcome.NoTargets"/> answer too, because neither of those
-        /// is a failure: they are the diagnostic reporting that the design is already at the limit of what
-        /// this operation can say anything about.
+        /// What was refused, and why - the whole envelope where none could be calculated at all, or one
+        /// equipment group whose design could not be grown even where another group's was.
+        /// <para>
+        /// Empty on a <see cref="DesignAirFlowCapacityEnvelopeOutcome.NoHeadroom"/> or
+        /// <see cref="DesignAirFlowCapacityEnvelopeOutcome.NoTargets"/> answer, because neither of those is a
+        /// failure: they are the diagnostic reporting that the design is already at the limit of what this
+        /// operation can say anything about. Non-empty is therefore <b>not</b> the same as "no model" - ask
+        /// <see cref="IsScaled"/> for that.
+        /// </para>
         /// </summary>
         public List<string> Refusals { get; } = [];
 
