@@ -227,9 +227,14 @@ namespace SAM.Analytical
 
             List<string> refusals_Scope = [];
 
+            //ONE snapshot for this resolution pass. The model is only read here, and resolving each target's
+            //room against the whole space list one target at a time made scoping the diagnostic quadratic in
+            //the model.
+            PartFIndex partFIndex_Resolution = new(adjacencyCluster);
+
             foreach (DesignAirFlowTarget designAirFlowTarget in designAirFlowTargets_Temp)
             {
-                if (!Resolve(adjacencyCluster, designAirFlowTarget, out Space _, out VentilationSystem ventilationSystem, out string refusal_Target, out bool malformed))
+                if (!Resolve(adjacencyCluster, partFIndex_Resolution, designAirFlowTarget, out Space _, out VentilationSystem ventilationSystem, out string refusal_Target, out bool malformed))
                 {
                     if (malformed)
                     {

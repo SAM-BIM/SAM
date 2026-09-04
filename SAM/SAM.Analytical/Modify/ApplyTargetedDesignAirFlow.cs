@@ -135,9 +135,15 @@ namespace SAM.Analytical
                 return result;
             }
 
+            //ONE snapshot for this transaction's reads. Everything between here and the writes below only
+            //reads the model: the targeted room is resolved through it, and so is the Approved Document F
+            //floor of every room on the other side of the dwelling. Searching the whole space list for each
+            //of those made a transaction on a dwelling cost O(model) per room of it.
+            PartFIndex partFIndex = new(adjacencyCluster);
+
             //Taken from the cluster rather than trusted as handed in: a caller may be holding a space from
             //before the Part F rates were applied, and that one carries a different parameter set.
-            Space space_Target = (adjacencyCluster.GetSpaces() ?? []).Find(x => x is not null && x.Guid == space.Guid);
+            Space space_Target = partFIndex.Space(space.Guid);
             if (space_Target is null)
             {
                 result.Refusals.Add(string.Format("Space '{0}' is not in the model, so its design airflow could not be applied.", space.Name));
@@ -219,7 +225,7 @@ namespace SAM.Analytical
 
             //The regulatory floor, read and never written. The targeted room may be raised as far as anyone
             //likes and lowered only as far as Approved Document F allows.
-            double? requirement_Target_Lps = adjacencyCluster.PartFRequiredFlowRate_Lps(space_Target, flowClassification);
+            double? requirement_Target_Lps = partFIndex.PartFRequiredFlowRate_Lps(space_Target, flowClassification);
 
             if (requirement_Target_Lps.HasValue && designFlowRate_Lps < requirement_Target_Lps.Value)
             {
@@ -294,7 +300,7 @@ namespace SAM.Analytical
 
                 spaces_Opposite.Add(space_Related);
                 dictionary_Duty[space_Related.Guid] = ventilationTerminals.VentilationTerminalDesignDuty_Lps(flowClassification_Opposite) ?? 0;
-                dictionary_Requirement[space_Related.Guid] = adjacencyCluster.PartFRequiredFlowRate_Lps(space_Related, flowClassification_Opposite) ?? 0;
+                dictionary_Requirement[space_Related.Guid] = partFIndex.PartFRequiredFlowRate_Lps(space_Related, flowClassification_Opposite) ?? 0;
             }
 
             Dictionary<Guid, double> dictionary_Planned = [];

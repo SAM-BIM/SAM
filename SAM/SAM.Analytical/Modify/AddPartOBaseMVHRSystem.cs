@@ -79,13 +79,19 @@ namespace SAM.Analytical
                 return null;
             }
 
-            List<Space> spaces_Cluster = adjacencyCluster.GetSpaces() ?? [];
+            //ONE snapshot of the model's space identities, taken before anything is built. The scope is
+            //resolved and de-duplicated through it rather than by searching the whole space list once per
+            //space, which is what made preparing a five thousand space model quadratic twice over.
+            PartFIndex partFIndex = new(adjacencyCluster);
+
+            List<Space> spaces_Cluster = partFIndex.Spaces;
 
             List<Space> spaces_Temp = [];
+            HashSet<Guid> guids_Temp = [];
             foreach (Space space in spaces ?? spaces_Cluster)
             {
-                Space space_Cluster = space is null ? null : spaces_Cluster.Find(x => x is not null && x.Guid == space.Guid);
-                if (space_Cluster is not null && spaces_Temp.Find(x => x.Guid == space_Cluster.Guid) is null)
+                Space space_Cluster = space is null ? null : partFIndex.Space(space.Guid);
+                if (space_Cluster is not null && guids_Temp.Add(space_Cluster.Guid))
                 {
                     spaces_Temp.Add(space_Cluster);
                 }
