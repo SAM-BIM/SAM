@@ -70,7 +70,12 @@ namespace SAM.Analytical
                 return null;
             }
 
-            List<Space> spaces_Cluster = adjacencyCluster.GetSpaces() ?? [];
+            //ONE snapshot of the model's space identities, taken before any terminal is realized. Resolving
+            //each space of the scope against the whole space list one at a time made this quadratic in the
+            //model.
+            PartFIndex partFIndex = new(adjacencyCluster);
+
+            List<Space> spaces_Cluster = partFIndex.Spaces;
 
             List<Space> spaces_Temp = [];
             foreach (Space space in spaces ?? spaces_Cluster)
@@ -80,7 +85,7 @@ namespace SAM.Analytical
                     //Taken from the cluster rather than trusted as handed in: the caller may be holding
                     //space objects from before the Part F rates were applied, and those carry a different
                     //internal condition and a different parameter set.
-                    Space space_Cluster = spaces_Cluster.Find(x => x is not null && x.Guid == space.Guid);
+                    Space space_Cluster = partFIndex.Space(space.Guid);
                     if (space_Cluster is not null)
                     {
                         spaces_Temp.Add(space_Cluster);

@@ -1,20 +1,143 @@
 # Project Progress
 
 ## Branch
-`fix/parto-isolation-external-envelope`, branched from `sow/2026-Q3` at **`87583190`**
-(the merge of PR #92).
+`perf/partf-bulk-context`, branched from `sow/2026-Q3` at **`366b9c6c`** (the merge of PR #94).
 
-**No companion branch in any other repository.** Self-contained in `SAM.Analytical`; `SAM_Tas` and
-`SAM_UI` are unchanged and both suites were re-run against the rebuilt `SAM.Analytical.dll`.
+This branch is **SAM-BIM/SAM#99**.
+
+**Companion branch in `SAM_UI`: `perf/partf-bulk-context` (SAM-BIM/SAM_UI#86)**, branched from its
+`sow/2026-Q3` at **`75237eb9`**. **Merge order: SAM#99 first** - the SAM_UI branch will not compile without
+`PartFIndex`. `SAM_Tas` and `SAM_Systems` are unchanged.
 
 Everything below "Previous: result review, provenance, and two report defects" is superseded history
 retained for context.
 
 ## Last updated
-2026-09-03 (later) - a genuine external boundary modelled as an `Air` panel is no longer marked adiabatic
-by `AdjacencyCluster.Filter`, so an isolated dwelling keeps its real roof.
+2026-09-04 - Approved Document F bulk aggregation is no longer quadratic in the model. `PartFIndex` is a
+request-scoped snapshot of the model's space identities; the engineering rules are unchanged.
 
-## Latest (2026-09-03, later): a genuine roof must not come out of isolation adiabatic
+## Latest (2026-09-04): Part F large-model scaling - `PartFIndex`
+
+**Status: root-caused, implemented, tested and measured. Not merged.**
+
+### Root cause
+
+`Query.PartFRequiredFlowRate_Lps(AdjacencyCluster, Space, FlowClassification)` re-resolves the space it is
+handed against the cluster before reading it - correctly, because the Part F application replaces spaces
+wholesale. The resolution was:
+
+```csharp
+(adjacencyCluster.GetSpaces() ?? []).Find(x => x is not null && x.Guid == space.Guid) ?? space
+```
+
+`AdjacencyCluster.GetSpaces()` is `RelationCluster.GetObjects<Space>()`, which **rebuilds** the whole space
+list on every call - four intermediate `List` allocations of size n, plus a reflective `Query.Type` resolve
+per stored type name in `GetTypeNames` - and `Find` is then a linear search through it. Asked once that is
+nothing; asked twice per room inside a loop over the model's rooms it is `O(n²)`.
+
+Seven production sites did exactly that. Six were read-only loops and are fixed; one is a write path and was
+deliberately left alone (below).
+
+### Architecture: `SAM/SAM.Analytical/Classes/PartF/PartFIndex.cs`
+
+An immutable, **request-scoped** snapshot built once per traversal from one `AdjacencyCluster`. It indexes
+**identity only** - `Guid -> Space`, first occurrence winning exactly as `List.Find` does - and stores **no
+rate, no `PartFSpaceData` and no derived engineering value at all**. Every rate is read live from the
+resolved space on every call, so it is an index and not a cache; `PartFIndex_HoldsNoRate_...` pins that.
+
+It is **not a second engineering authority**. The rate rule was extracted into one internal reader,
+`Query.PartFRequiredFlowRate_Lps(Space space_Cluster, FlowClassification)`, which the public one-space query
+and `PartFIndex.PartFRequiredFlowRate_Lps` both call once they have resolved the space. The public one-space
+query is otherwise unchanged and remains the compatibility oracle.
+
+Modelled on `PartFAirflowNetwork`: a plain class built from a cluster, deliberately not a serialised
+`*Context` (`PartOIsolationContext`, `PartOPreparationContext` are records of what happened; this is a
+lookup), hence `Index` rather than `Context`.
+
+### Deliberately NOT migrated
+
+`Modify.SetSpaceDesignFlowRate` still does two `GetSpaces().Find(...)` per call. It is a **write** path -
+it replaces the space - so an index shared across a write loop would go stale, which is worse than the cost.
+A per-call index would only halve a constant and leave it `O(n)` per call. The same reasoning kept
+`EvaluateDwellingRound`'s Part F reads on the one-space query: `EvaluateTargetedDesignAirFlows` writes to
+the candidate cluster per dwelling, so its snapshot covers the resolution pass only.
+
+`AdjacencyCluster.GetObject<Space>(guid)` is already an `O(1)` dictionary lookup and would make the one-space
+query cheap on its own. It was **not** used, because changing the oracle's own resolution mechanism is what
+the equivalence tests are measuring against. Recorded as a possible follow-up simplification, not done here.
+
+### Compatibility
+
+Every answer is compared against the one-space query, exactly (`Assert.Equal` on `double?`, no tolerance),
+over 50 / 200 / 500 / 1000 / 5000 space models. Pinned edge cases: null model (answers nothing, never falls
+back to the caller's space), null space, empty model, a space not in the model (answered from the instance
+handed in), a stale copy of a model space (answered from the model's instance), an unsized space (null, not
+zero), zero, negative, NaN (null), a direction that is neither supply nor extract (null), a subdivided room,
+equivalent dwelling zones sharing rooms, a zone naming a removed space, and an empty scope.
+
+**Approved Document F has no space multiplier anywhere in SAM** - `grep -i multiplier` over `SAM/` returns
+only comments and unrelated test prose. There is nothing to preserve and the index introduces none.
+
+### Scaling evidence (structural, no timing thresholds)
+
+Allocated bytes per bulk aggregation, `GC.GetAllocatedBytesForCurrentThread`:
+
+| spaces | via `PartFIndex` | via one-space query |
+|---|---|---|
+| 400 | 1,716,392 | 25,204,888 |
+| 800 | 3,434,856 | 94,988,928 |
+| 1600 | 6,877,672 | 368,045,120 |
+
+Doubling ratio: index **x2.00, x2.00** (linear); one-space query **x3.77, x3.87** (quadratic). The test
+asserts only that the index ratio is `< 2.6`.
+
+Operation counts, asserted exactly: one snapshot built, `2n` requirement calls and `3n` identity resolutions
+for `n` rooms in scope - in SAM and again in SAM_UI against one `PartOWorkflowInspection.Inspect`.
+
+Local timings, reported by a `[Trait("Category", "Benchmark")]` test that asserts nothing about time:
+
+| spaces | one-space query | `PartFIndex` |
+|---|---|---|
+| 50 | 0.8 ms | 0.4 ms |
+| 200 | 8.0 ms | 1.7 ms |
+| 500 | 27.5 ms | 3.9 ms |
+| 1000 | 98.4 ms | 8.6 ms |
+| 5000 | 2221.5 ms | 46.3 ms |
+
+### Files changed
+
+`SAM`: new `SAM.Analytical/Classes/PartF/PartFIndex.cs`; `Query/PartFRequiredFlowRate.cs` (shared reader
+extracted), `Query/PartFTransferAirSpaces.cs`, `Modify/ApplyTargetedDesignAirFlow.cs`,
+`Modify/EvaluateTargetedDesignAirFlows.cs`, `Modify/EvaluateDesignAirFlowCapacityEnvelope.cs`,
+`Modify/AddPartOBaseMVHRSystem.cs`, `Modify/RealizePartFVentilationTerminals.cs`; new tests
+`SAM.Tests/PartFIndexTests.cs`, `SAM.Tests/PartFIndexScalingTests.cs`.
+
+`SAM_UI`: `SAM_UI/SAM.Analytical.UI/Classes/PartO/PartOWorkflowInspection.cs` (one snapshot per inspection,
+scope resolution delegated to SAM), `WPF/SAM.Analytical.UI.WPF/Modify/OptimisePartOTM59.cs`; new test
+`WPF/SAM.Analytical.UI.WPF.Tests/PartOWorkflowInspectionScalingTests.cs`. **No cache was added to
+`PartOWorkflowWindow`, `PartOWorkflowInspection` or anywhere in WPF**, and the workflow state semantics
+from PR #85 are untouched.
+
+### Validation
+
+`SAM.sln` builds, 0 errors. `SAM.Tests` **1902 passed / 0 failed** (1867 pre-existing, all passing, + 35
+new). `SAM_UI.sln` builds against the rebuilt `SAM.Analytical.dll`, 0 errors.
+`SAM.Analytical.UI.WPF.Tests` **498 passed / 0 failed** (491 + 7 new). `git diff --check` clean in both.
+
+Licensed TAS was not run: results are bit-identical to the oracle, so there is no engineering change for a
+simulation to validate.
+
+### Unresolved / follow-ups
+
+Unchanged from before: catalogue identity/content drift (investigate only when a wrong-result path is
+demonstrated), the Part O re-isolation/re-cutting limitation, and the Grasshopper variable-output updater.
+New: `SetSpaceDesignFlowRate` remains `O(model)` per write call (see "Deliberately NOT migrated").
+
+### Recommended next step
+
+Review SAM-BIM/SAM#99, then SAM-BIM/SAM_UI#86. Merge SAM first. Do not merge automatically.
+
+## Previous (2026-09-03, later): a genuine roof must not come out of isolation adiabatic
 
 **Status: reproduced, root-caused, fixed and tested.** Reported from manual testing of Flat 1 in isolated
 mode: a genuine roof reached TAS as an adiabatic surface.

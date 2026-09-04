@@ -66,7 +66,13 @@ namespace SAM.Analytical
                 return null;
             }
 
-            List<Space> spaces_Cluster = adjacencyCluster.GetSpaces() ?? [];
+            //One snapshot of the model's space identities, built from the single GetSpaces() this already
+            //made. The served spaces are resolved through it rather than searched for one at a time: the
+            //search is linear and the served set is the whole of a dwelling, so doing it per space made this
+            //quadratic in the model.
+            PartFIndex partFIndex = new(adjacencyCluster);
+
+            List<Space> spaces_Cluster = partFIndex.Spaces;
 
             //Resolved against the cluster so that a caller holding a detached copy of a space still gets the
             //instance the relations are keyed on.
@@ -74,7 +80,7 @@ namespace SAM.Analytical
 
             foreach (Space space in spaces_Served ?? [])
             {
-                Space space_Cluster = space is null ? null : spaces_Cluster.Find(x => x is not null && x.Guid == space.Guid);
+                Space space_Cluster = space is null ? null : partFIndex.Space(space.Guid);
                 if (space_Cluster is not null)
                 {
                     dictionary_Result[space_Cluster.Guid] = space_Cluster;

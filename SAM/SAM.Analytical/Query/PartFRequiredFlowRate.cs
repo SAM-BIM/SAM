@@ -99,6 +99,15 @@ namespace SAM.Analytical
         /// the space was never sized - a corridor, a store - which is not the same as a requirement of
         /// zero.
         /// </para>
+        /// <para>
+        /// <b>Resolving the space is the expensive half, and a bulk caller should not pay it per space.</b>
+        /// <c>GetSpaces()</c> rebuilds the model's space list on every call and the search through it is
+        /// linear, so a loop over the model's spaces asking this is quadratic. A caller already traversing
+        /// many spaces builds one <see cref="PartFIndex"/> and asks
+        /// <see cref="PartFIndex.PartFRequiredFlowRate_Lps"/>, which resolves through that snapshot and then
+        /// reads the rate with the very same reader this does. A caller asking about one space - a
+        /// Grasshopper component, a single manual change - stays here and builds nothing.
+        /// </para>
         /// </summary>
         public static double? PartFRequiredFlowRate_Lps(this AdjacencyCluster adjacencyCluster, Space space, FlowClassification flowClassification)
         {
@@ -111,7 +120,22 @@ namespace SAM.Analytical
             //before the Part F rates were applied, and that one carries a different parameter set.
             Space space_Cluster = (adjacencyCluster.GetSpaces() ?? []).Find(x => x is not null && x.Guid == space.Guid) ?? space;
 
-            PartFSpaceData partFSpaceData = space_Cluster.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData);
+            return PartFRequiredFlowRate_Lps(space_Cluster, flowClassification);
+        }
+
+        /// <summary>
+        /// What Approved Document F requires of one <b>already resolved</b> space in one direction, read from
+        /// that space's own Approved Document F data.
+        /// <para>
+        /// <b>The rule, in one place.</b> The one-space query above and <see cref="PartFIndex"/> differ only
+        /// in how they find the space the model currently carries; from there both call this, so a bulk
+        /// answer and a single answer cannot drift apart. Nothing here resolves anything, and callers must
+        /// hand in the instance the model holds - not the one they were given.
+        /// </para>
+        /// </summary>
+        internal static double? PartFRequiredFlowRate_Lps(Space space_Cluster, FlowClassification flowClassification)
+        {
+            PartFSpaceData partFSpaceData = space_Cluster?.GetValue<PartFSpaceData>(SpaceParameter.PartFSpaceData);
             if (partFSpaceData is null)
             {
                 return null;

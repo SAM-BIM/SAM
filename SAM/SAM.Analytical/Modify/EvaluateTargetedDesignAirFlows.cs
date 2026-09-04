@@ -192,9 +192,20 @@ namespace SAM.Analytical
             HashSet<string> keys_Duplicate = [];
             List<string> refusals_Round = [];
 
+            //ONE snapshot for the whole resolution pass, and only for it. Every target used to search the
+            //candidate's whole space list for its own room, which made resolving a round quadratic in the
+            //model - a five thousand space project with a target per room spent longer finding the rooms
+            //than evaluating them.
+            //
+            //Safe here and NOWHERE below: this loop writes nothing. EvaluateDwellingRound replaces spaces on
+            //the candidate as it goes, so a snapshot taken here would be stale for the second dwelling
+            //onwards - which is why the Approved Document F reads inside it are deliberately left resolving
+            //against the cluster on every call.
+            PartFIndex partFIndex_Resolution = new(adjacencyCluster_Candidate);
+
             foreach (DesignAirFlowTarget designAirFlowTarget in designAirFlowTargets_Temp)
             {
-                if (!Resolve(adjacencyCluster_Candidate, designAirFlowTarget, out Space space_Target, out VentilationSystem ventilationSystem, out string refusal_Target, out bool malformed))
+                if (!Resolve(adjacencyCluster_Candidate, partFIndex_Resolution, designAirFlowTarget, out Space space_Target, out VentilationSystem ventilationSystem, out string refusal_Target, out bool malformed))
                 {
                     if (malformed)
                     {
@@ -858,7 +869,7 @@ namespace SAM.Analytical
         /// </summary>
         /// <param name="malformed">Whether the request itself was incoherent, rather than the building
         /// being unable to answer a coherent one.</param>
-        private static bool Resolve(AdjacencyCluster adjacencyCluster, DesignAirFlowTarget designAirFlowTarget, out Space space, out VentilationSystem ventilationSystem, out string refusal, out bool malformed)
+        private static bool Resolve(AdjacencyCluster adjacencyCluster, PartFIndex partFIndex, DesignAirFlowTarget designAirFlowTarget, out Space space, out VentilationSystem ventilationSystem, out string refusal, out bool malformed)
         {
             space = null;
             ventilationSystem = null;
@@ -888,8 +899,9 @@ namespace SAM.Analytical
 
             //Taken from the cluster rather than trusted as handed in: a caller may be holding a space from
             //before the Approved Document F rates were applied, and that one carries a different parameter
-            //set.
-            space = (adjacencyCluster.GetSpaces() ?? []).Find(x => x is not null && x.Guid == designAirFlowTarget.SpaceGuid);
+            //set. Resolved through the round's own snapshot of that same cluster, which answers exactly what
+            //searching its space list answers and does not rebuild the list per target.
+            space = partFIndex.Space(designAirFlowTarget.SpaceGuid);
             if (space is null)
             {
                 refusal = string.Format("Space '{0}' is not in the model being optimised, so a round cannot target it. Nothing was changed.", designAirFlowTarget.SpaceName ?? "?");
