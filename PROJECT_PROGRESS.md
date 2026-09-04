@@ -3,8 +3,10 @@
 ## Branch
 `perf/partf-bulk-context`, branched from `sow/2026-Q3` at **`366b9c6c`** (the merge of PR #94).
 
-**Companion branch in `SAM_UI`: `perf/partf-bulk-context`**, branched from its `sow/2026-Q3` at
-**`75237eb9`**. Dependency order is SAM first: the SAM_UI branch will not compile without
+This branch is **SAM-BIM/SAM#99**.
+
+**Companion branch in `SAM_UI`: `perf/partf-bulk-context` (SAM-BIM/SAM_UI#86)**, branched from its
+`sow/2026-Q3` at **`75237eb9`**. **Merge order: SAM#99 first** - the SAM_UI branch will not compile without
 `PartFIndex`. `SAM_Tas` and `SAM_Systems` are unchanged.
 
 Everything below "Previous: result review, provenance, and two report defects" is superseded history
@@ -133,7 +135,7 @@ New: `SetSpaceDesignFlowRate` remains `O(model)` per write call (see "Deliberate
 
 ### Recommended next step
 
-Review both PRs, SAM first. Do not merge automatically.
+Review SAM-BIM/SAM#99, then SAM-BIM/SAM_UI#86. Merge SAM first. Do not merge automatically.
 
 ## Previous (2026-09-03, later): a genuine roof must not come out of isolation adiabatic
 
