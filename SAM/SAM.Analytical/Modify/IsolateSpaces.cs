@@ -249,6 +249,14 @@ namespace SAM.Analytical
                     continue;
                 }
 
+                //A system that only restates rooms an in-design-chain system already serves cannot straddle
+                //anything, so it is not asked to. See IsRedundant_VentilationSystem for why "bare" is not
+                //the criterion and why undetailed shared plant still refuses.
+                if (IsRedundant_VentilationSystem(adjacencyCluster, ventilationSystem))
+                {
+                    continue;
+                }
+
                 bool serves_Selected = false;
                 List<string> names_Excluded = [];
 
@@ -705,6 +713,189 @@ namespace SAM.Analytical
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// <b>Whether a ventilation system is redundant metadata beside the plant that actually serves its
+        /// rooms</b> - so that isolating a dwelling is not refused on account of it.
+        ///
+        /// <para><b>The case</b></para>
+        /// <para>
+        /// A building drawn with one estate-wide <c>MV</c> system - a single <see cref="VentilationSystem"/>
+        /// related to every flat's rooms, naming a central unit that was never detailed - refused every
+        /// per-dwelling isolation. <see cref="Refusals_VentilationScope"/> saw a system related to spaces in
+        /// two dwellings and read it as shared plant. In the models this arises from it is not: each of
+        /// those rooms is ALSO on a per-dwelling MVHR carrying that room's design terminals, and it is that
+        /// system the Part O preparation builds, sums a duty from, and realizes air movements for. The
+        /// estate-wide one contributes nothing to the Approved Document F requirement, nothing to a design
+        /// airflow, nothing to a duty and nothing to the inter-zone air movements the TBD carries.
+        /// </para>
+        ///
+        /// <para><b>Bare is NOT the criterion, and must not be</b></para>
+        /// <para>
+        /// A system carrying no terminal and no air movement is not automatically ignorable: on a model
+        /// where the design has not been built yet EVERY system looks like that, and a genuinely shared
+        /// central system somebody has still to detail is exactly what this refusal exists to catch.
+        /// <c>PartOIsolationTests.SharedVentilationSystem_Refuses</c> and
+        /// <c>SharedAirHandlingUnit_AcrossTwoSystems_Refuses</c> pin that, and they pass unchanged.
+        /// </para>
+        ///
+        /// <para><b>Redundancy is the criterion</b></para>
+        /// <para>
+        /// A system is ignored only where <b>every room it claims is already served by a system that IS in
+        /// the design chain</b>. Then it is not plant awaiting detail - it is a second, weaker statement
+        /// about rooms whose air is already accounted for, and taking a dwelling out of the scope removes
+        /// nothing anything reads. Where even one of its rooms has no such system, it is the only thing
+        /// standing for that room's ventilation and the refusal stands.
+        /// </para>
+        /// <para>
+        /// "In the design chain" is <see cref="IsDesignChain_VentilationSystem"/>, which is
+        /// <c>SAM.Analytical.UI.WPF.Query.PartOIterationAirHandlingUnits</c>' own test for a run's equipment
+        /// - connected to a design <see cref="VentilationTerminal"/> - widened to anything else that moves
+        /// air or has had a product chosen, so that nothing real is ever called redundant.
+        /// </para>
+        ///
+        /// <para><b>Nothing is decided about the model</b></para>
+        /// <para>
+        /// No duty is split, no capacity allocated, nothing written back. An ignored system keeps its
+        /// relations and is carried into the derived model by <c>Filter</c> exactly as before, related to
+        /// whichever of its spaces were retained. The single effect is that it no longer refuses.
+        /// </para>
+        /// </summary>
+        private static bool IsRedundant_VentilationSystem(AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem)
+        {
+            if (adjacencyCluster is null || ventilationSystem is null)
+            {
+                return false;
+            }
+
+            //Itself in the design chain: real plant, never redundant.
+            if (IsDesignChain_VentilationSystem(adjacencyCluster, ventilationSystem))
+            {
+                return false;
+            }
+
+            List<Space> spaces = adjacencyCluster.GetRelatedObjects<Space>(ventilationSystem);
+            if (spaces is null || spaces.Count == 0)
+            {
+                //It claims no room, so it cannot straddle the cut through one either.
+                return true;
+            }
+
+            foreach (Space space in spaces)
+            {
+                if (space is null)
+                {
+                    continue;
+                }
+
+                bool covered = false;
+
+                foreach (VentilationSystem ventilationSystem_Other in adjacencyCluster.GetRelatedObjects<VentilationSystem>(space) ?? [])
+                {
+                    if (ventilationSystem_Other is null || ventilationSystem_Other.Guid == ventilationSystem.Guid)
+                    {
+                        continue;
+                    }
+
+                    if (IsDesignChain_VentilationSystem(adjacencyCluster, ventilationSystem_Other))
+                    {
+                        covered = true;
+
+                        break;
+                    }
+                }
+
+                if (!covered)
+                {
+                    //This room's ventilation is stated by this system and by nothing else in the design
+                    //chain. Fail closed.
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// <b>Whether a ventilation system is part of the design the simulation reads.</b>
+        /// <para>
+        /// True where any of these holds: it carries a design <see cref="VentilationTerminal"/> - the
+        /// relation only the Part O preparation creates, and the test
+        /// <c>Query.PartOIterationAirHandlingUnits</c> uses to decide a run's equipment; it carries a
+        /// <see cref="SpaceAirMovement"/>, so it moves air between rooms; or a unit it names is itself real
+        /// plant, per <see cref="IsDesignChain_AirHandlingUnit"/>.
+        /// </para>
+        /// </summary>
+        private static bool IsDesignChain_VentilationSystem(AdjacencyCluster adjacencyCluster, VentilationSystem ventilationSystem)
+        {
+            if (adjacencyCluster is null || ventilationSystem is null)
+            {
+                return false;
+            }
+
+            List<VentilationTerminal> ventilationTerminals = adjacencyCluster.GetRelatedObjects<VentilationTerminal>(ventilationSystem);
+            if (ventilationTerminals is not null && ventilationTerminals.Count != 0)
+            {
+                return true;
+            }
+
+            List<SpaceAirMovement> spaceAirMovements = adjacencyCluster.GetRelatedObjects<SpaceAirMovement>(ventilationSystem);
+            if (spaceAirMovements is not null && spaceAirMovements.Count != 0)
+            {
+                return true;
+            }
+
+            foreach (string name_Unit in UnitNames(ventilationSystem))
+            {
+                foreach (AirHandlingUnit airHandlingUnit in adjacencyCluster.GetObjects<AirHandlingUnit>() ?? [])
+                {
+                    if (airHandlingUnit is null || !string.Equals(airHandlingUnit.Name, name_Unit, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    if (IsDesignChain_AirHandlingUnit(adjacencyCluster, airHandlingUnit))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// <b>Whether an air handling unit is more than a name.</b> Any one of these is enough: an
+        /// <see cref="AirHandlingUnitAirMovement"/> - its own supply condition, which becomes its generated
+        /// TAS plant zone; a <see cref="SpaceAirMovement"/>, air it actually moves to or from a room; a
+        /// <see cref="VentilationTerminal"/>, so it is in the design chain; or
+        /// <c>AirHandlingUnitParameter.VentilationUnitReference</c>, a product chosen against it and
+        /// therefore a capacity somebody selected.
+        /// </summary>
+        private static bool IsDesignChain_AirHandlingUnit(AdjacencyCluster adjacencyCluster, AirHandlingUnit airHandlingUnit)
+        {
+            if (adjacencyCluster is null || airHandlingUnit is null)
+            {
+                return false;
+            }
+
+            //Asked through the same query the duty and the equipment table read it with, so a product
+            //selected here is a product there.
+            if (Query.SelectedVentilationUnitReference(airHandlingUnit) is not null)
+            {
+                return true;
+            }
+
+            foreach (IJSAMObject object_Related in adjacencyCluster.GetRelatedObjects(airHandlingUnit) ?? [])
+            {
+                if (object_Related is AirHandlingUnitAirMovement || object_Related is SpaceAirMovement || object_Related is VentilationTerminal)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static List<string> UnitNames(VentilationSystem ventilationSystem)
