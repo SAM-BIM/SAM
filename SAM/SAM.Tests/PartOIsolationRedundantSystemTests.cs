@@ -255,6 +255,139 @@ namespace SAM.Tests
             Assert.Contains(spaceIsolation.Refusals, x => x.Contains("Corridor"));
         }
 
+        // ---- The boundary: coverage alone must never suppress a refusal ----------------------------
+
+        /// <summary>
+        /// <b>The regression that pins the limit of the redundancy rule.</b>
+        ///
+        /// <para>
+        /// Every room here carries a per-dwelling Part O design terminal on its own MVHR, and a central
+        /// system spans the selected dwelling and the excluded one on top of them. That is the exact
+        /// arrangement the redundancy rule was written for - and the one where getting it wrong is worst,
+        /// because a central plant that genuinely serves both dwellings would be silently split.
+        /// </para>
+        ///
+        /// <para>
+        /// So the rule has TWO conditions, and this proves the second one is load-bearing: coverage of the
+        /// rooms is <b>not</b> sufficient on its own. Whatever else is true, a central system that is itself
+        /// in the design chain - by any of the markers below - keeps refusing, however thoroughly its rooms
+        /// are already served.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Where the line falls, stated plainly.</b> A central system carrying <i>none</i> of these
+        /// markers, over rooms that are all covered, IS ignored - that is
+        /// <see cref="EstateWideSystem_OverRoomsAlreadyOnDesignTerminals_DoesNotRefuse"/>, and it is the
+        /// real model's <c>MV 1</c>. Nothing in the model distinguishes such a system from central plant
+        /// nobody has detailed yet; both are a bare <see cref="VentilationSystem"/> naming a bare
+        /// <see cref="AirHandlingUnit"/>. Detailing the plant even slightly - one terminal, one air
+        /// movement, one selected product - puts it back on the refusing side, which is what this asserts.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData("the central system carries its own design terminal")]
+        [InlineData("the central system moves air between rooms")]
+        [InlineData("the central unit has a product selected against it")]
+        [InlineData("the central unit carries its own supply condition")]
+        [InlineData("the central unit carries a design terminal")]
+        [InlineData("the central system names a dwelling unit that is real plant")]
+        public void GenuineSharedCentralPlant_OverRoomsThatAlsoHaveDwellingTerminals_StillRefuses(string marker)
+        {
+            PartFModel partFModel = Fixture_WithDesignTerminals();
+            AdjacencyCluster adjacencyCluster = partFModel.AdjacencyCluster;
+
+            //Studio and Bathroom are Flat 1 (selected); Bedroom and Kitchen are Flat 2 (excluded). All four
+            //carry a per-dwelling design terminal already, so the coverage condition holds for every room.
+            string name_Unit = marker == "the central system names a dwelling unit that is real plant" ? "AHU 1" : "Central AHU";
+
+            VentilationSystem ventilationSystem = EstateWideSystem(
+                partFModel,
+                name_Unit,
+                createUnit: name_Unit != "AHU 1",
+                "Studio", "Bathroom", "Bedroom", "Kitchen");
+
+            AirHandlingUnit airHandlingUnit = AirHandlingUnit_Named(adjacencyCluster, name_Unit);
+
+            switch (marker)
+            {
+                case "the central system carries its own design terminal":
+                    {
+                        VentilationTerminal ventilationTerminal = new("Central supply terminal", FlowClassification.Supply, 50);
+                        adjacencyCluster.AddObject(ventilationTerminal);
+                        adjacencyCluster.AddRelation(ventilationSystem, ventilationTerminal);
+                        break;
+                    }
+
+                case "the central system moves air between rooms":
+                    {
+                        //Deliberately BETWEEN TWO SELECTED ROOMS, so Refusals_AirMovementScope cannot fire
+                        //and the refusal can only have come from the ventilation scope check under test.
+                        SpaceAirMovement spaceAirMovement = new("Studio to Bathroom central", 10, "Studio", "Bathroom");
+                        adjacencyCluster.AddObject(spaceAirMovement);
+                        adjacencyCluster.AddRelation(ventilationSystem, spaceAirMovement);
+                        break;
+                    }
+
+                case "the central unit has a product selected against it":
+                    {
+                        airHandlingUnit.SetValue(AirHandlingUnitParameter.VentilationUnitReference, new VentilationUnitReference("Manufacturer", "Central 900", "MAN-900"));
+                        adjacencyCluster.AddObject(airHandlingUnit);
+                        break;
+                    }
+
+                case "the central unit carries its own supply condition":
+                    {
+                        AirHandlingUnitAirMovement airHandlingUnitAirMovement = new(name_Unit);
+                        adjacencyCluster.AddObject(airHandlingUnitAirMovement);
+                        adjacencyCluster.AddRelation(airHandlingUnit, airHandlingUnitAirMovement);
+                        break;
+                    }
+
+                case "the central unit carries a design terminal":
+                    {
+                        VentilationTerminal ventilationTerminal = new("Central plant terminal", FlowClassification.Extract, 50);
+                        adjacencyCluster.AddObject(ventilationTerminal);
+                        adjacencyCluster.AddRelation(airHandlingUnit, ventilationTerminal);
+                        break;
+                    }
+
+                case "the central system names a dwelling unit that is real plant":
+                    {
+                        //The realistic shape: the central system names Flat 1's OWN unit, and that unit is
+                        //real plant the way every unit the Part O preparation builds is - it carries its own
+                        //supply condition. Flat 1's unit is then genuinely serving Flat 2's rooms.
+                        AirHandlingUnitAirMovement airHandlingUnitAirMovement = new("AHU 1");
+                        adjacencyCluster.AddObject(airHandlingUnitAirMovement);
+                        adjacencyCluster.AddRelation(airHandlingUnit, airHandlingUnitAirMovement);
+                        break;
+                    }
+
+                default:
+                    throw new System.ArgumentException(marker);
+            }
+
+            //The premise: coverage really does hold for every room the central system claims, so if the
+            //refusal survives it is the design-chain condition doing it and not a gap in the coverage test.
+            foreach (string name_Space in new[] { "Studio", "Bathroom", "Bedroom", "Kitchen" })
+            {
+                Assert.Contains(
+                    adjacencyCluster.GetRelatedObjects<VentilationTerminal>(partFModel.Get(name_Space)) ?? [],
+                    x => x is not null);
+            }
+
+            SpaceIsolation spaceIsolation = adjacencyCluster.IsolateSpaces(Flat1(partFModel));
+
+            Assert.False(
+                spaceIsolation.IsIsolated,
+                string.Format("Isolation proceeded although {0}. Coverage by per-dwelling terminals must not suppress a refusal over genuine central plant.", marker));
+
+            Assert.Null(spaceIsolation.AdjacencyCluster);
+
+            Assert.Contains(
+                spaceIsolation.Refusals,
+                x => x.Contains("Estate MV") || x.Contains(name_Unit));
+        }
+
         // ---- Fixture -------------------------------------------------------------------------------
 
         /// <summary>
@@ -335,6 +468,16 @@ namespace SAM.Tests
         /// </summary>
         private static VentilationSystem EstateWideSystem(PartFModel partFModel, string name_Unit, params string[] names_Space)
         {
+            return EstateWideSystem(partFModel, name_Unit, true, names_Space);
+        }
+
+        /// <summary>
+        /// <paramref name="createUnit"/> is false where the system names a unit the fixture already holds -
+        /// a central system on a dwelling's own unit - so the model keeps ONE unit of that name rather than
+        /// two, which is what the shared-unit case is about.
+        /// </summary>
+        private static VentilationSystem EstateWideSystem(PartFModel partFModel, string name_Unit, bool createUnit, params string[] names_Space)
+        {
             VentilationSystem ventilationSystem = new("Estate MV", new VentilationSystemType("MV", "Fixture"));
             ventilationSystem.SetValue(VentilationSystemParameter.SupplyUnitName, name_Unit);
             ventilationSystem.SetValue(VentilationSystemParameter.ExhaustUnitName, name_Unit);
@@ -346,7 +489,10 @@ namespace SAM.Tests
                 partFModel.AdjacencyCluster.AddRelation(ventilationSystem, partFModel.Get(name_Space));
             }
 
-            partFModel.AdjacencyCluster.AddObject(new AirHandlingUnit(name_Unit, 20, 20));
+            if (createUnit)
+            {
+                partFModel.AdjacencyCluster.AddObject(new AirHandlingUnit(name_Unit, 20, 20));
+            }
 
             return ventilationSystem;
         }
