@@ -276,6 +276,73 @@ namespace SAM.Tests
             }
         }
 
+        // ---- D2. A cut this run did not make -----------------------------------------------------------
+
+        /// <summary>
+        /// A model filtered by <c>SAMAnalytical.FilterBySpaces</c> arrives with its cuts marked but their
+        /// openings intact, and isolating it must still take the openings off.
+        /// <para>
+        /// <c>AdjacencyCluster.Filter</c> is a public API, and the component calls it directly: it makes the
+        /// cut and marks it, but strips nothing, because removing a person openings is not what a geometric
+        /// filter is for. The Part O isolation is what decides that a door onto an omitted space cannot
+        /// stay - and it recognised this panel as a cut, counted it in the disclosure, and then left the
+        /// door on it. The run would have stated the interface was treated as adiabatic while the derived
+        /// model still opened onto the corridor, and the conversion would have exported that door as an
+        /// opening to outside.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void CutFromFilterBySpaces_StillLosesItsApertures()
+        {
+            PartFModel partFModel = Fixture();
+
+            //Exactly what the component does - Filter on its own, no isolation.
+            AdjacencyCluster adjacencyCluster = partFModel.AdjacencyCluster.Filter(Flat1(partFModel), true);
+
+            Panel panel_Filtered = Cut(adjacencyCluster);
+
+            //The premise: the filter marked the cut and kept the door.
+            Assert.NotEmpty(panel_Filtered.Apertures ?? []);
+
+            List<Space> spaces = [];
+            foreach (Space space in Flat1(partFModel))
+            {
+                spaces.Add(adjacencyCluster.GetObject<Space>(space.Guid));
+            }
+
+            SpaceIsolation spaceIsolation = adjacencyCluster.IsolateSpaces(spaces);
+
+            Panel panel_Cut = Cut(spaceIsolation.AdjacencyCluster);
+
+            Assert.Empty(panel_Cut.Apertures ?? []);
+            Assert.Equal(1, spaceIsolation.Count_AdiabaticPanel);
+            Assert.Equal(1, spaceIsolation.Count_RemovedCutAperture);
+        }
+
+        /// <summary>
+        /// And an authored adiabatic wall handed in the same way keeps its openings: the marker is what
+        /// decides, never the adiabatic flag.
+        /// </summary>
+        [Fact]
+        public void AuthoredAdiabaticWall_KeepsItsAperturesThroughAReIsolation()
+        {
+            PartFModel partFModel = Fixture();
+
+            Panel panel_External = External(partFModel.AdjacencyCluster, "Studio");
+            panel_External.SetValue(PanelParameter.Adiabatic, true);
+            partFModel.AdjacencyCluster.AddObject(panel_External);
+
+            SpaceIsolation one = partFModel.AdjacencyCluster.IsolateSpaces(Flat1(partFModel));
+            SpaceIsolation two = one.AdjacencyCluster.IsolateSpaces(Selected(one, partFModel));
+
+            Panel panel_Two = two.AdjacencyCluster.GetObject<Panel>(panel_External.Guid);
+
+            Assert.True(Analytical.Query.Adiabatic(panel_Two));
+            Assert.False(Analytical.Query.IsolationCut(panel_Two));
+            Assert.NotEmpty(panel_Two.Apertures ?? []);
+            Assert.Equal(0, two.Count_RemovedCutAperture);
+        }
+
         // ---- E. Changed scope --------------------------------------------------------------------------
 
         /// <summary>

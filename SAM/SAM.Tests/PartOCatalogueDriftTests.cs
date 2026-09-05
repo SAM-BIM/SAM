@@ -3,6 +3,7 @@
 
 using SAM.Analytical;
 using SAM.Analytical.Enums;
+using System;
 using System.Collections.Generic;
 using Xunit;
 
@@ -158,8 +159,20 @@ namespace SAM.Tests
             Assert.Equal(manufacturer, ventilationUnitReference.Manufacturer);
             Assert.Equal(model, ventilationUnitReference.Model);
 
-            //Nothing on the unit states what it can move, under any catalogue.
-            Assert.Null(airHandlingUnit.SelectedVentilationUnitCapacityDescriptor(null));
+            //Nothing on the unit states what it can move - asserted against what the unit actually
+            //PERSISTS, not against a lookup handed an empty catalogue. That lookup iterates the descriptors
+            //it is given, so a null answer to a null catalogue is true whatever the model stores, and would
+            //keep this test passing if a later change began writing capacity onto the unit while leaving
+            //the lookup catalogue-based. The saved state is the thing the decision rests on, so the saved
+            //state is what is read.
+            string text = airHandlingUnit.ToJsonObject().ToString();
+
+            Assert.Contains(manufacturer, text, StringComparison.Ordinal);
+            Assert.Contains(model, text, StringComparison.Ordinal);
+
+            Assert.DoesNotContain("MaximumSupplyFlowRate", text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("MaximumExtractFlowRate", text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("CapacityDescriptor", text, StringComparison.OrdinalIgnoreCase);
         }
 
         // ---- The fixture -----------------------------------------------------------------------------
