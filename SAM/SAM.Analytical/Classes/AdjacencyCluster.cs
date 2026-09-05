@@ -183,14 +183,24 @@ namespace SAM.Analytical
                             panelType = Query.PanelType(panel.Normal);
                             if (panelType != PanelType.Undefined)
                             {
+                                // The default library is a SETTING, and Query.DefaultConstruction answers
+                                // null wherever it is not configured - a test host, a CI runner, a fresh
+                                // machine. Assigning that null replaced the panel's own construction with
+                                // nothing at all, so the surface reached the simulation with no fabric to
+                                // read: worse than the air boundary it started as, and silently dependent
+                                // on which machine ran it. Only a real construction replaces one.
                                 Construction construction = Query.DefaultConstruction(panelType);
-                                PanelType panelType_Construction = construction.PanelType();
-                                if (panelType_Construction != PanelType.Undefined)
+                                if (construction is not null)
                                 {
-                                    panelType = panelType_Construction;
+                                    PanelType panelType_Construction = construction.PanelType();
+                                    if (panelType_Construction != PanelType.Undefined)
+                                    {
+                                        panelType = panelType_Construction;
+                                    }
+
+                                    panel = new Panel(panel, construction);
                                 }
 
-                                panel = new Panel(panel, construction);
                                 panel = new Panel(panel, panelType);
                             }
                             else if (!cut_Air)

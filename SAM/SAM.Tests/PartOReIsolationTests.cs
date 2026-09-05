@@ -214,6 +214,9 @@ namespace SAM.Tests
             Assert.True(Analytical.Query.Adiabatic(panel_Cut));
             Assert.True(Analytical.Query.IsolationCut(panel_Cut));
             Assert.Equal(1, spaceIsolation.Count_AdiabaticPanel);
+
+            //A re-typed surface keeps a fabric whether or not a default construction library is configured.
+            Assert.NotNull(panel_Cut.Construction);
         }
 
         /// <summary>
@@ -240,8 +243,17 @@ namespace SAM.Tests
 
             Assert.Equal(panel_One.Guid, panel_Two.Guid);
             Assert.Equal(panel_One.PanelType, panel_Two.PanelType);
-            Assert.Equal(panel_One.Construction.Name, panel_Two.Construction.Name);
             Assert.True(Analytical.Query.Adiabatic(panel_Two));
+
+            //And it still HAS a fabric, both times and the same one. Re-typing an air boundary reaches for
+            //the default construction library, which is a setting: on a machine where it is not configured
+            //- a test host, a CI runner - it answers nothing, and assigning that would leave the surface
+            //with no construction at all. Asserted rather than assumed, because the two environments
+            //legitimately give different constructions here and only the invariant is common to both.
+            Assert.NotNull(panel_One.Construction);
+            Assert.NotNull(panel_Two.Construction);
+            Assert.Equal(panel_One.Construction.Guid, panel_Two.Construction.Guid);
+            Assert.Equal(panel_One.Construction.Name, panel_Two.Construction.Name);
         }
 
         /// <summary>An air boundary between two spaces that are both kept is still an air boundary.</summary>
