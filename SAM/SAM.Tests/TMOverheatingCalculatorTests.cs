@@ -105,20 +105,32 @@ namespace SAM.Tests
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// A space missing a required series produces <b>no assessment, silently</b>. That is what the
-        /// extracted code did and it is preserved deliberately: changing it during the refactor would hide
-        /// whether the refactor was faithful.
+        /// A space missing a required series still produces no assessment - and now says which series it
+        /// was missing.
         /// <para>
-        /// This pins the behaviour; it does not endorse it. A space that vanishes from an overheating
-        /// assessment with no diagnostic is poor, and improving it is separate work.
+        /// The absence of a diagnostic used to be pinned here as pre-existing behaviour, explicitly "poor,
+        /// and improving it is separate work". This is that work: a room that vanishes from an overheating
+        /// assessment for want of data is a hole in the assessment, and a caller totalling the criterion
+        /// lists could not tell it from a room that was never asked about.
+        /// </para>
+        /// <para>
+        /// Naming WHICH series matters because the two have different causes. The occupancy key is the one
+        /// the analytical and TAS vocabularies disagree about, so a whole model missing only that one is a
+        /// key the caller did not supply rather than a damaged results file.
         /// </para>
         /// </summary>
         [Fact]
-        public void MissingRequiredSeries_ProducesNoAssessment()
+        public void MissingRequiredSeries_ProducesNoAssessmentAndSaysWhichSeriesWasMissing()
         {
             AnalyticalModel analyticalModel = Model(key_Analytical_OccupancySensibleGain, resultantTemperature: false);
 
-            Assert.Empty(Calculator(analyticalModel).Calculate_TM59(analyticalModel.GetSpaces()));
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+
+            Assert.Empty(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+
+            string refusal = Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals);
+            Assert.Contains("Bedroom 2_3", refusal);
+            Assert.Contains(key_Analytical_ResultantTemperature, refusal);
         }
 
         /// <summary>
@@ -202,28 +214,152 @@ namespace SAM.Tests
             Assert.Equal(0, tM59CorridorExtendedResult.GetHoursNumberExceeding28());
         }
 
+        // ------------------------------------------------------------------
+        // Hourly series integrity - a verdict is refused rather than clipped
+        // ------------------------------------------------------------------
+
         /// <summary>
-        /// <b>A truncated series must not lose the whole run.</b>
+        /// <b>Two series of different lengths are REFUSED, not assessed over the range they share.</b>
         /// <para>
-        /// <c>Collect</c> walks both hourly arrays with one counter. Bounding the loop by the occupancy
-        /// length while the resultant-temperature series is shorter - a partially written or truncated
-        /// simulation result - would throw <c>ArgumentOutOfRangeException</c> out of
-        /// <c>Calculate_TM59</c>, losing every space's assessment. The loop is bounded by the SHARED range,
-        /// and hours beyond it are simply not assessed.
+        /// This test previously asserted the opposite, and it was right about the half of it that still
+        /// holds: <c>Collect</c> walks both arrays with one counter, so bounding the walk by the occupancy
+        /// length while the resultant series is shorter would throw
+        /// <c>ArgumentOutOfRangeException</c> out of <c>Calculate_TM59</c> and lose every space's
+        /// assessment. That bound is still there.
+        /// </para>
+        /// <para>
+        /// What it got wrong is what should then happen to the space. Assessing it over the shared hours
+        /// produced a TM59 verdict for the room and reported it as the room's, when a fifth of the room's
+        /// occupied hours had no temperature to be judged at. Which of two unequal series is the truncated
+        /// one is not knowable, so neither can be trusted. The space is refused, with a reason, and every
+        /// other space in the building is still assessed - the trade the shared-range walk was making,
+        /// with the unassessable room now visible instead of silently reported.
         /// </para>
         /// </summary>
         [Fact]
-        public void AResultantSeriesShorterThanTheOccupancySeries_IsAssessedOverTheSharedRange()
+        public void SeriesOfDifferentLengths_AreRefusedRatherThanAssessedOverTheSharedRange()
         {
-            Space space = new("Bedroom 2_3");
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5, 27.5, 29.0],
+                values_OccupancySensibleGain: [0, 80.0, 80.0, 0, 80.0]);
 
-            ParameterSet parameterSet = new("SAM.Analytical.Tas.dll");
-            parameterSet.Add(key_Analytical_ResultantTemperature, Values([21.0, 24.5, 27.5, 29.0]));
-            parameterSet.Add(key_Analytical_OccupancySensibleGain, Values([0, 80.0, 80.0, 0, 80.0]));
-            space.Add(parameterSet);
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+
+            //No verdict at all - not a verdict over four of the five hours.
+            Assert.Empty(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+
+            //And it says so, naming the room and both lengths.
+            string refusal = Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals);
+            Assert.Contains("Bedroom 2_3", refusal);
+            Assert.Contains("different lengths", refusal);
+
+            //The identity too, so a caller keeping the room out of a pass need not parse the sentence.
+            Assert.Equal(analyticalModel.GetSpaces()[0].Guid, Assert.Single(tMOverheatingCalculator.SpaceGuids_HourlySeriesRefused));
+        }
+
+        /// <summary>
+        /// Equal lengths proceed, however short, and leave no refusal behind. This class is the calculation
+        /// over whatever series it is given - see <c>TMOverheatingCalculator.HourCount_Expected</c> for why
+        /// the length a series has to be is the caller's statement, not this class's assumption.
+        /// </summary>
+        [Fact]
+        public void SeriesOfEqualLength_Proceed()
+        {
+            AnalyticalModel analyticalModel = Model(key_Analytical_OccupancySensibleGain);
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+
+            Assert.Single(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Empty(tMOverheatingCalculator.HourlySeriesRefusals);
+        }
+
+        /// <summary>An empty series is a results file that was not written for the room, not a room with no
+        /// exceedances - so it is refused rather than assessed as zero hours.</summary>
+        [Fact]
+        public void AnEmptySeries_IsRefused()
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [],
+                values_OccupancySensibleGain: []);
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+
+            Assert.Empty(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+
+            Assert.Contains("EMPTY", Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals));
+        }
+
+        /// <summary>
+        /// <b>The full-year requirement, and that it is opt-in.</b>
+        /// <para>
+        /// Both series are the same length here, so nothing is mismatched - the results file is simply
+        /// short of the year the caller says it needs. Left unstated (the default 0) the same input is
+        /// assessed, because a short run is legitimate for a caller that asked for one; stated, it is
+        /// refused, because neither a pass nor a failure may be produced from part of a year. Approved
+        /// Document O is the caller that states it - see <c>PartOTM59Assessment</c>.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ASeriesShorterThanTheStatedYear_IsRefusedOnlyWhereTheYearIsStated()
+        {
+            AnalyticalModel analyticalModel = Model(key_Analytical_OccupancySensibleGain);
+
+            //Unstated: assessed, exactly as every existing caller's four-hour fixture is.
+            Assert.Single(Calculator(analyticalModel).Calculate_TM59(analyticalModel.GetSpaces()));
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+            tMOverheatingCalculator.HourCount_Expected = 8760;
+
+            Assert.Empty(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+
+            string refusal = Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals);
+            Assert.Contains("only 4 of the 8760", refusal);
+            Assert.Contains("partial year", refusal);
+        }
+
+        /// <summary>
+        /// A series LONGER than the stated year is not short of anything and proceeds - the leap-year
+        /// simulation's 8784 hours against a 365-day weather year. Its surplus hours are already excluded
+        /// by the comfort-band guard, which
+        /// <see cref="HoursBeyondTheComfortYear_AreNotAssessedAgainstZeroComfortLimits"/> pins; refusing the
+        /// space as well would lose an assessment that is correct.
+        /// </summary>
+        [Fact]
+        public void ASeriesLongerThanTheStatedYear_Proceeds()
+        {
+            AnalyticalModel analyticalModel = Model(key_Analytical_OccupancySensibleGain);
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+            tMOverheatingCalculator.HourCount_Expected = 4;
+
+            Assert.Single(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Empty(tMOverheatingCalculator.HourlySeriesRefusals);
+        }
+
+        /// <summary>
+        /// One unusable room does not cost the others their assessment - the reason the refusal is reported
+        /// rather than thrown, and the property the shared-range walk was originally protecting.
+        /// </summary>
+        [Fact]
+        public void ARefusedSpace_DoesNotLoseTheAssessmentOfEveryOtherSpace()
+        {
+            Space space_Good = new("Bedroom 1_1");
+            ParameterSet parameterSet_Good = new("SAM.Analytical.Tas.dll");
+            parameterSet_Good.Add(key_Analytical_ResultantTemperature, Values([21.0, 24.5, 27.5, 29.0]));
+            parameterSet_Good.Add(key_Analytical_OccupancySensibleGain, Values([0, 80.0, 80.0, 0]));
+            space_Good.Add(parameterSet_Good);
+
+            Space space_Bad = new("Bedroom 2_3");
+            ParameterSet parameterSet_Bad = new("SAM.Analytical.Tas.dll");
+            parameterSet_Bad.Add(key_Analytical_ResultantTemperature, Values([21.0, 24.5]));
+            parameterSet_Bad.Add(key_Analytical_OccupancySensibleGain, Values([0, 80.0, 80.0, 0]));
+            space_Bad.Add(parameterSet_Bad);
 
             AdjacencyCluster adjacencyCluster = new();
-            adjacencyCluster.AddObject(space);
+            adjacencyCluster.AddObject(space_Good);
+            adjacencyCluster.AddObject(space_Bad);
 
             AnalyticalModel analyticalModel = new("Three Flats", null, null, null, adjacencyCluster);
             analyticalModel.SetValue(AnalyticalModelParameter.WeatherData, new WeatherData("Test", "Test", 51.5, -0.1, 0, WeatherYear()));
@@ -231,10 +367,32 @@ namespace SAM.Tests
             TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
 
             TM59ExtendedResult tM59ExtendedResult = Assert.Single(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Equal("Bedroom 1_1", tM59ExtendedResult.Name);
 
-            //Assessed over the four shared hours only - the fifth occupancy hour was not paired with a
-            //resultant temperature, and nothing threw.
-            Assert.Equal(4, tM59ExtendedResult.GetAnnualHours());
+            Assert.Contains("Bedroom 2_3", Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals));
+        }
+
+        /// <summary>
+        /// Each calculation reports its own refusals and never an earlier call's - including a call that
+        /// returns null before assessing anything.
+        /// </summary>
+        [Fact]
+        public void TheRefusalRecord_BelongsToTheLastCalculation()
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5],
+                values_OccupancySensibleGain: [0, 80.0, 80.0, 0]);
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+
+            Assert.Empty(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals);
+
+            //A call that refuses before reaching any space clears the record rather than leaving the
+            //previous run's reasons readable as this one's.
+            Assert.Null(tMOverheatingCalculator.Calculate_TM59(null));
+            Assert.Empty(tMOverheatingCalculator.HourlySeriesRefusals);
         }
 
         // ------------------------------------------------------------------
@@ -256,7 +414,7 @@ namespace SAM.Tests
         /// One space carrying a short run of hourly values, stored exactly as the TSD converter stores
         /// them: a <c>JsonArray</c> added to a <c>ParameterSet</c> that is then added to the space.
         /// </summary>
-        private static AnalyticalModel Model(string key_OccupancySensibleGain, bool resultantTemperature = true, bool weatherData = true)
+        private static AnalyticalModel Model(string key_OccupancySensibleGain, bool resultantTemperature = true, bool weatherData = true, IEnumerable<double> values_ResultantTemperature = null, IEnumerable<double> values_OccupancySensibleGain = null)
         {
             Space space = new("Bedroom 2_3");
 
@@ -264,10 +422,10 @@ namespace SAM.Tests
 
             if (resultantTemperature)
             {
-                parameterSet.Add(key_Analytical_ResultantTemperature, Values([21.0, 24.5, 27.5, 29.0]));
+                parameterSet.Add(key_Analytical_ResultantTemperature, Values(values_ResultantTemperature ?? [21.0, 24.5, 27.5, 29.0]));
             }
 
-            parameterSet.Add(key_OccupancySensibleGain, Values([0, 80.0, 80.0, 0]));
+            parameterSet.Add(key_OccupancySensibleGain, Values(values_OccupancySensibleGain ?? [0, 80.0, 80.0, 0]));
 
             space.Add(parameterSet);
 
