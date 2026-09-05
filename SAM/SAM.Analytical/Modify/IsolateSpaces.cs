@@ -25,7 +25,7 @@ namespace SAM.Analytical
         /// </para>
         /// <list type="bullet">
         /// <item><b>selected to selected</b> - two spaces in the derived cluster, so it is left as the ordinary internal partition it is.</item>
-        /// <item><b>selected to excluded</b> - one space in the derived cluster but two in the source, so it is the isolation cut and is marked <c>PanelParameter.Adiabatic</c>.</item>
+        /// <item><b>selected to excluded</b> - one space in the derived cluster but two in the source, so it is the isolation cut and is marked <c>PanelParameter.Adiabatic</c> and <c>PanelParameter.IsolationCut</c>. An air boundary on the cut is additionally re-typed from its normal, because it has nothing left to open onto.</item>
         /// <item><b>selected to outside</b> - one space in both, so it is genuinely external and is left exactly as it is: its type, construction, apertures, orientation and exposure all unchanged.</item>
         /// </list>
         /// <para>
@@ -164,8 +164,29 @@ namespace SAM.Analytical
                 //Asked this way round it also stays right where the two coincide: a source surface that
                 //was already adiabatic AND divides a selected space from an excluded one IS a cut, and
                 //does lose its apertures, because in the derived model it has nothing left to open onto.
-                if (panel is null || !result.External(panel) || !adjacencyCluster.Internal(panel))
+                if (panel is null || !result.External(panel))
                 {
+                    continue;
+                }
+
+                if (!adjacencyCluster.Internal(panel))
+                {
+                    //Not a cut THIS run made - but the model handed in may itself be an isolated model, and
+                    //then its cuts are external on both sides of the comparison above and no adjacency
+                    //question can find them. They are still interfaces to excluded spaces, and the run
+                    //record has to say so: a re-prepared dwelling reporting "0 interface(s) treated as
+                    //adiabatic" over a model carrying them is a false statement about the thermal boundary
+                    //in the evidence for a Part O submission.
+                    //
+                    //Read from PanelParameter.IsolationCut, which Filter wrote when it made the cut, and
+                    //NOT from PanelParameter.Adiabatic: that one an import or a person sets too, and
+                    //counting it would take an authored adiabatic external wall for an interface to a space
+                    //it does not touch. Its apertures are already gone, so nothing is stripped again.
+                    if (Query.IsolationCut(panel))
+                    {
+                        count_Adiabatic++;
+                    }
+
                     continue;
                 }
 
