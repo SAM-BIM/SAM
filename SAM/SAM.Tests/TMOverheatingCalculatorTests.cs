@@ -432,6 +432,58 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>A boolean is not a measurement.</b>
+        /// <para>
+        /// <c>Core.Query.TryConvert</c> routes a JSON boolean through its bool-to-double conversion, so
+        /// <c>true</c> reads as 1 and <c>false</c> as 0. A corrupted full-year series of booleans therefore
+        /// converted cleanly, passed as finite numbers, and produced an ordinary Part O verdict from
+        /// occupancy and temperatures that were never measurements. Where a complete year is required the
+        /// node has to BE a JSON number.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AFullYearWithABooleanValue_IsRefused()
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5, 27.5, 29.0],
+                values_OccupancySensibleGain: [0, 80.0, 80.0, 0]);
+
+            Series(analyticalModel, key_Analytical_OccupancySensibleGain)[2] = JsonValue.Create(true);
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+            tMOverheatingCalculator.HourCount_Expected = 4;
+
+            Assert.Empty(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Contains("hour 2", Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals));
+        }
+
+        /// <summary>
+        /// <b>Only the hours the assessment requires are validated.</b> A series longer than the requested
+        /// year is accepted - the leap-year 8784 against a 365-day one - and <c>Collect</c> excludes the
+        /// surplus because the comfort band does not cover it. An unusable value in those surplus hours must
+        /// not refuse the room: it is never assessed, and refusing over it would contradict the rule that
+        /// accepts the longer series in the first place.
+        /// </summary>
+        [Fact]
+        public void AnUnusableValueBeyondTheRequiredYear_DoesNotRefuseTheRoom()
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5, 27.5, 29.0, 30.0],
+                values_OccupancySensibleGain: [0, 80.0, 80.0, 0, 80.0]);
+
+            //Hour 4 is beyond the four hours required, so it is surplus.
+            Series(analyticalModel, key_Analytical_ResultantTemperature)[4] = null;
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+            tMOverheatingCalculator.HourCount_Expected = 4;
+
+            Assert.Single(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Empty(tMOverheatingCalculator.HourlySeriesRefusals);
+        }
+
+        /// <summary>
         /// And on the legacy path the same value no longer throws either: the hour is skipped, exactly as an
         /// unconvertible one always was, and the room is still assessed. That is the pre-existing contract
         /// restored, not widened - before this, the read threw before the skip could happen.

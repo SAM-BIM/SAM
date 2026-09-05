@@ -507,7 +507,7 @@ namespace SAM.Analytical
             //was asked for - see below for why the answer differs from the ordinary path's.
             if (HourCount_Expected > 0)
             {
-                if (!IsUsableSeries(jsonArray_ResultantTemperature, out int index_Unusable))
+                if (!IsUsableSeries(jsonArray_ResultantTemperature, HourCount_Expected, out int index_Unusable))
                 {
                     RefuseHourlySeries(space, string.Format(
                         "Space '{0}' carries an unusable value in its '{1}' hourly series at hour {2} - it is absent, not a number, or not finite. The series is the right length, so the hour is missing rather than the file being short, and the room was refused rather than assessed over the hours that survived.",
@@ -518,7 +518,7 @@ namespace SAM.Analytical
                     return false;
                 }
 
-                if (!IsUsableSeries(jsonArray_OccupancySensibleGain, out index_Unusable))
+                if (!IsUsableSeries(jsonArray_OccupancySensibleGain, HourCount_Expected, out index_Unusable))
                 {
                     RefuseHourlySeries(space, string.Format(
                         "Space '{0}' carries an unusable value in its '{1}' hourly series at hour {2} - it is absent, not a number, or not finite. An hour with NO stated occupancy is not an unoccupied hour: it is an hour nothing is known about, and counting it as empty would quietly shrink the occupied hours a TM59 verdict is measured over.",
@@ -557,13 +557,29 @@ namespace SAM.Analytical
         /// must not be read as "nobody was in".
         /// </para>
         /// </summary>
-        private static bool IsUsableSeries(JsonArray jsonArray, out int index_Unusable)
+        private static bool IsUsableSeries(JsonArray jsonArray, int hourCount_Expected, out int index_Unusable)
         {
             index_Unusable = -1;
 
-            for (int i = 0; i < jsonArray.Count; i++)
+            //ONLY the hours the assessment requires. A series LONGER than the requested year - a leap-year
+            //simulation's 8784 against a 365-day one - is deliberately accepted, and Collect then excludes
+            //the surplus hours because the comfort band does not cover them. Validating them here would
+            //refuse the whole room over an hour that is never assessed, which contradicts the rule this
+            //check is part of.
+            int count = System.Math.Min(jsonArray.Count, hourCount_Expected);
+
+            for (int i = 0; i < count; i++)
             {
-                if (!TryGetHourlyValue(jsonArray[i], out double _))
+                //The node's own JSON kind FIRST, and not only whether it converts. Core.Query.TryConvert
+                //routes a JSON boolean through its bool-to-double conversion, so `true` reads as 1 and
+                //`false` as 0 - which means a corrupted series of booleans converted cleanly, passed as
+                //finite numbers, and produced an ordinary Part O verdict from occupancy and temperatures
+                //that were never measurements at all. An hourly value has to BE a number.
+                //
+                //Asked here and not in TryGetHourlyValue, which Collect shares: on the ordinary path a value
+                //that converts is read exactly as it always was, and this stricter rule applies only where a
+                //caller has asked for a complete year of evidence.
+                if (!IsUsableHour(jsonArray[i]))
                 {
                     index_Unusable = i;
 
@@ -572,6 +588,48 @@ namespace SAM.Analytical
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Whether one hour of a series is a genuine finite numeric measurement.
+        /// <para>
+        /// The node's own JSON kind is asked FIRST, and not only whether it converts.
+        /// <c>Core.Query.TryConvert</c> routes a JSON boolean through its bool-to-double conversion, so
+        /// <c>true</c> reads as 1 and <c>false</c> as 0 - which means a corrupted series of booleans
+        /// converted cleanly, passed as finite numbers, and produced an ordinary verdict from occupancy and
+        /// temperatures that were never measurements at all. An hourly value has to <b>be</b> a number.
+        /// </para>
+        /// <para>
+        /// <c>GetValueKind()</c> is itself guarded, because it throws on the NaN and infinity a
+        /// <c>JsonArray</c> will hold - it has to decide how the value would serialize, and those do not.
+        /// See <see cref="TryGetHourlyValue"/>.
+        /// </para>
+        /// <para>
+        /// Asked here and not in <see cref="TryGetHourlyValue"/>, which <see cref="Collect"/> shares: on the
+        /// ordinary path a value that converts is read exactly as it always was, and this stricter rule
+        /// applies only where a caller has asked for a complete year of evidence.
+        /// </para>
+        /// </summary>
+        private static bool IsUsableHour(JsonNode jsonNode)
+        {
+            if (jsonNode is not JsonValue jsonValue)
+            {
+                return false;
+            }
+
+            try
+            {
+                if (jsonValue.GetValueKind() != System.Text.Json.JsonValueKind.Number)
+                {
+                    return false;
+                }
+            }
+            catch (System.ArgumentException)
+            {
+                return false;
+            }
+
+            return TryGetHourlyValue(jsonValue, out double _);
         }
 
         /// <summary>
