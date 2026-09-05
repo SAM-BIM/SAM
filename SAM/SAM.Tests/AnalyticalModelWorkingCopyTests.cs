@@ -172,6 +172,47 @@ namespace SAM.Tests
             Assert.True(HasValue(analyticalModel_Source, parameterName_ApertureIdentity));
         }
 
+        /// <summary>
+        /// <b>The shallow copy DOES isolate the model's own state</b> - its name, its libraries, its
+        /// parameters - because those are fields of <see cref="AnalyticalModel"/> itself and the copy is a
+        /// new instance. Only the cluster's objects are shared.
+        /// <para>
+        /// This is the half of the shallow copy that is load-bearing at a boundary which renames a model and
+        /// then hands it to something that takes its own working copy. <c>Modify.Simulate</c> is that
+        /// boundary: it renames to the project name and passes the model to
+        /// <c>Modify.RunPartOSimulation</c>, which takes the one deep copy of the Part O run. Cloning
+        /// deeply at both would pay twice for one guarantee - and the second copy is thrown away on
+        /// adoption - so the rename relies on exactly what is asserted here.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void ShallowCopy_IsolatesTheModelsOwnStateEvenThoughItSharesTheClusterObjects()
+        {
+            AnalyticalModel analyticalModel_Source = Model();
+            analyticalModel_Source.SetValue(AnalyticalModelParameter.NorthAngle, 1.25);
+
+            AnalyticalModel analyticalModel_Working = new(analyticalModel_Source)
+            {
+                Name = "Flat1-Opt01",
+            };
+
+            analyticalModel_Working.SetValue(AnalyticalModelParameter.NorthAngle, 99.0);
+
+            //Renaming and re-parameterising the copy left the source alone.
+            Assert.Equal("Flat1", analyticalModel_Source.Name);
+            Assert.True(analyticalModel_Source.TryGetValue(AnalyticalModelParameter.NorthAngle, out double northAngle));
+            Assert.Equal(1.25, northAngle);
+
+            //Identity is carried over, which is why a rename is not a new model.
+            Assert.Equal(analyticalModel_Source.Guid, analyticalModel_Working.Guid);
+
+            //And the cluster objects are still shared - stated here so the two halves of the shallow copy's
+            //behaviour are read together rather than one of them being assumed from the other.
+            Assert.True(ReferenceEquals(
+                analyticalModel_Source.AdjacencyCluster.GetSpaces()[0],
+                analyticalModel_Working.AdjacencyCluster.GetSpaces()[0]));
+        }
+
         // -----------------------------------------------------------------------------------------------
         // The rule.
         // -----------------------------------------------------------------------------------------------
