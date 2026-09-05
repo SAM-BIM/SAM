@@ -117,6 +117,14 @@ namespace SAM.Analytical
         public string OccupancySensibleGainSeriesKey { get; set; } = Core.Query.Name(SpaceSimulationResultParameter.OccupancySensibleGain);
 
         /// <summary>
+        /// Passed straight to <c>TMOverheatingCalculator.HourCount_Expected</c> - how many hourly values a
+        /// space's series must carry to be assessed at all, or <b>0</b> to enforce nothing. See that
+        /// property for why the length a series must be is the caller's statement rather than this
+        /// calculation's assumption.
+        /// </summary>
+        public int HourCount_Expected { get; set; } = 0;
+
+        /// <summary>
         /// What each result reports as its <c>Source</c> where the model is unnamed. Passed straight to
         /// <see cref="TMOverheatingCalculator.SourceFallback"/>.
         /// <para>
@@ -364,7 +372,8 @@ namespace SAM.Analytical
                 TM52BuildingCategory = TM52BuildingCategory,
                 ResultantTemperatureSeriesKey = ResultantTemperatureSeriesKey,
                 OccupancySensibleGainSeriesKey = OccupancySensibleGainSeriesKey,
-                VentilationStrategyMap = VentilationStrategyMap
+                VentilationStrategyMap = VentilationStrategyMap,
+                HourCount_Expected = HourCount_Expected
             };
 
             //Only when the caller stated one. Left null, TMOverheatingCalculator keeps its own default rather
@@ -389,7 +398,10 @@ namespace SAM.Analytical
             IndexedDoubles indexedDoubles_Max = tMOverheatingCalculator.GetMaxIndoorComfortTemperatures(0, 364);
             IndexedDoubles indexedDoubles_Min = tMOverheatingCalculator.GetMinIndoorComfortTemperatures(0, 364);
 
-            return new TM59AssessmentResult(spaces_Temp, tMResults_MechanicalVentilation, tMResults_NaturalVentilation, tMResults_Corridor, indexedDoubles_Max, indexedDoubles_Min, tMOverheatingCalculator.VentilationStrategyRefusals);
+            //Both refusal records, so a caller totalling the criterion lists can account for every space it
+            //asked about: one refused for an unstated ventilation strategy, the other for hourly series that
+            //cannot be assessed together.
+            return new TM59AssessmentResult(spaces_Temp, tMResults_MechanicalVentilation, tMResults_NaturalVentilation, tMResults_Corridor, indexedDoubles_Max, indexedDoubles_Min, tMOverheatingCalculator.VentilationStrategyRefusals, tMOverheatingCalculator.HourlySeriesRefusals, tMOverheatingCalculator.SpaceGuids_HourlySeriesRefused);
         }
 
         /// <summary>

@@ -24,7 +24,11 @@ namespace SAM.Analytical
     {
         private readonly List<string> ventilationStrategyRefusals;
 
-        internal TM59AssessmentResult(List<Space> spaces, List<TMResult> tMResults_MechanicalVentilation, List<TMResult> tMResults_NaturalVentilation, List<TMResult> tMResults_Corridor, IndexedDoubles indexedDoubles_MaxIndoorComfortTemperatures, IndexedDoubles indexedDoubles_MinIndoorComfortTemperatures, List<string> ventilationStrategyRefusals = null)
+        private readonly List<string> hourlySeriesRefusals;
+
+        private readonly List<System.Guid> spaceGuids_HourlySeriesRefused;
+
+        internal TM59AssessmentResult(List<Space> spaces, List<TMResult> tMResults_MechanicalVentilation, List<TMResult> tMResults_NaturalVentilation, List<TMResult> tMResults_Corridor, IndexedDoubles indexedDoubles_MaxIndoorComfortTemperatures, IndexedDoubles indexedDoubles_MinIndoorComfortTemperatures, List<string> ventilationStrategyRefusals = null, List<string> hourlySeriesRefusals = null, List<System.Guid> spaceGuids_HourlySeriesRefused = null)
         {
             Spaces = spaces;
             MechanicalVentilationResults = tMResults_MechanicalVentilation;
@@ -36,6 +40,8 @@ namespace SAM.Analytical
             //in place would otherwise erase the record of which dwellings went unassessed - while the three
             //criterion lists still showed a short count, which is precisely what this list exists to explain.
             this.ventilationStrategyRefusals = ventilationStrategyRefusals == null ? [] : [.. ventilationStrategyRefusals];
+            this.hourlySeriesRefusals = hourlySeriesRefusals == null ? [] : [.. hourlySeriesRefusals];
+            this.spaceGuids_HourlySeriesRefused = spaceGuids_HourlySeriesRefused == null ? [] : [.. spaceGuids_HourlySeriesRefused];
         }
 
         /// <summary>
@@ -73,13 +79,28 @@ namespace SAM.Analytical
         /// result.
         /// </para>
         /// <para>
-        /// <b>It does not account for the whole shortfall.</b> A space whose hourly series are missing also
-        /// produces no result, and that is still silent - pre-existing behaviour, pinned rather than endorsed,
-        /// and a diagnostic for it is separate work. So a short count means "refused, or missing data", and
-        /// only the first is itemised here.
+        /// <b>It does not account for the whole shortfall on its own.</b> A space whose hourly series cannot
+        /// be assessed also produces no result, and that is itemised separately in
+        /// <see cref="HourlySeriesRefusals"/>. Read both: together they account for every space that was
+        /// asked about and is absent from all three criterion lists.
         /// </para>
         /// <para>A copy, so a reporting layer cannot edit the record of what went unassessed.</para>
         /// </summary>
         public List<string> VentilationStrategyRefusals => [.. ventilationStrategyRefusals];
+
+        /// <summary>
+        /// Spaces left out because their hourly series could not be assessed - absent, empty, or the two
+        /// series of different lengths - one sentence each. See
+        /// <c>TMOverheatingCalculator.HourlySeriesRefusals</c> for why each of those is a refusal rather
+        /// than an assessment over whatever hours survived.
+        /// <para>A copy, so a reporting layer cannot edit the record of what went unassessed.</para>
+        /// </summary>
+        public List<string> HourlySeriesRefusals => [.. hourlySeriesRefusals];
+
+        /// <summary>
+        /// The identity of every space named in <see cref="HourlySeriesRefusals"/>, so a caller can keep a
+        /// refused room out of a verdict without parsing a sentence.
+        /// </summary>
+        public List<System.Guid> SpaceGuids_HourlySeriesRefused => [.. spaceGuids_HourlySeriesRefused];
     }
 }

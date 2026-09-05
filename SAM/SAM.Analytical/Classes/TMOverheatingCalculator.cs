@@ -38,6 +38,10 @@ namespace SAM.Analytical
 
         private List<string> ventilationStrategyRefusals = [];
 
+        private List<string> hourlySeriesRefusals = [];
+
+        private List<System.Guid> spaceGuids_HourlySeriesRefused = [];
+
         public TMOverheatingCalculator(AnalyticalModel analyticalModel)
         {
             AnalyticalModel = analyticalModel;
@@ -72,6 +76,35 @@ namespace SAM.Analytical
         /// </para>
         /// </summary>
         public string OccupancySensibleGainSeriesKey { get; set; } = Core.Query.Name(SpaceSimulationResultParameter.OccupancySensibleGain);
+
+        /// <summary>
+        /// How many hourly values each series must carry for a space to be assessed at all. <b>0 - the
+        /// default - enforces nothing</b>, and every equal-length pair of series is assessed however short
+        /// it is.
+        ///
+        /// <para><b>Why this is stated by the caller and not decided here</b></para>
+        /// <para>
+        /// This class is the TM52 and TM59 calculation over whatever series it is given, and the length a
+        /// series has to be is a property of the RUN rather than of the calculation. A Grasshopper component
+        /// handed four hours of a test model, or a TM52 assessment of a summer window, is doing something
+        /// legitimate; refusing it because a year is 8760 hours long would break a calculation that is
+        /// correct for its input.
+        /// </para>
+        /// <para>
+        /// Approved Document O is the case where a full year IS the contract - its dynamic method assesses
+        /// annual and summer criteria, and a verdict from part of a year is not the verdict the document
+        /// asks for. <c>PartOTM59Assessment</c> therefore sets this from the WEATHER YEAR the results were
+        /// produced against, which is the same authority the comfort band is derived from, rather than from
+        /// a literal 8760: a year's hour count is whatever its weather data actually holds.
+        /// </para>
+        /// <para>
+        /// <b>Shorter is refused; longer is not.</b> A series with fewer hours than the run needs is missing
+        /// data. A series with more - a leap-year simulation's 8784 against a 365-day weather year - is not,
+        /// and the surplus hours are already excluded by <see cref="Collect"/>, which refuses any hour the
+        /// comfort band does not cover rather than assessing it against a 0 degC limit.
+        /// </para>
+        /// </summary>
+        public int HourCount_Expected { get; set; } = 0;
 
         /// <summary>
         /// Where a result says it came from. <b>Provenance only</b> - it names no object, owns no result and
@@ -141,6 +174,53 @@ namespace SAM.Analytical
         /// </summary>
         public List<string> VentilationStrategyRefusals => [.. ventilationStrategyRefusals];
 
+        /// <summary>
+        /// Spaces left out of the last calculation because their two hourly series could not be assessed
+        /// together, one sentence each - a series absent, a series empty, or the two series of DIFFERENT
+        /// LENGTHS.
+        ///
+        /// <para><b>What this replaces</b></para>
+        /// <para>
+        /// <see cref="Collect"/> walks both arrays with one counter and used to bound the walk by the
+        /// shorter of the two. That stopped a truncated result throwing out of the whole run - which is
+        /// worth keeping, and is kept - but it also meant a space whose resultant-temperature series ended
+        /// early was assessed over the hours the two happened to share and its verdict reported as though it
+        /// were a verdict about the space. Which of two unequal series is the truncated one is not knowable
+        /// here, so neither can be trusted, and an overheating verdict measured over part of a room's hours
+        /// is not a verdict about that room.
+        /// </para>
+        /// <para>
+        /// So the space is refused instead: no result, and a reason. Nothing throws, and every other space
+        /// in the building is still assessed - the same trade the shared-range walk was making, with the
+        /// unassessable space now visible rather than silently reported.
+        /// </para>
+        ///
+        /// <para><b>Length equality only, at this level</b></para>
+        /// <para>
+        /// Two equal-length series are assessed however long they are. This class is the TM52 and TM59
+        /// calculation over whatever series it is given, and a caller assessing a deliberately short run -
+        /// the Grasshopper components, a summer-only TM52 window - is doing something legitimate that
+        /// nothing here should refuse. Whether a series is long enough to be a full year is a question about
+        /// the RUN, and it is asked where a full year is actually the contract: Approved Document O requires
+        /// one, and <c>PartOTM59Assessment</c> refuses a short series on the strength of the weather year
+        /// the results were produced against.
+        /// </para>
+        /// <para>A copy, so a reporting layer cannot edit the record of what went unassessed.</para>
+        /// </summary>
+        public List<string> HourlySeriesRefusals => [.. hourlySeriesRefusals];
+
+        /// <summary>
+        /// The <see cref="Space.Guid"/> of every space named in <see cref="HourlySeriesRefusals"/>, in the
+        /// same order.
+        /// <para>
+        /// Identities as well as prose, because a caller that has to keep a refused room OUT of a pass needs
+        /// to name it rather than parse a sentence. <c>PartOTM59Assessment</c> maps these back to their
+        /// design spaces and counts them as unassessed, which is what stops an Approved Document O run
+        /// reporting a pass over the rooms whose data happened to survive.
+        /// </para>
+        /// </summary>
+        public List<System.Guid> SpaceGuids_HourlySeriesRefused => [.. spaceGuids_HourlySeriesRefused];
+
         public TextMap TextMap
         {
             get
@@ -156,6 +236,11 @@ namespace SAM.Analytical
 
         public List<TM52ExtendedResult> Calculate_TM52(IEnumerable<Space> spaces, int startHourOfYear = 2880, int endHourOfYear = 6528)
         {
+            //The hourly-series refusals ARE cleared here, unlike the ventilation ones: TM52 reads the same
+            //two series and so can produce these, whereas it selects no criterion and can produce none of
+            //those. Each call therefore reports its own unusable series and never an earlier call's.
+            ClearHourlySeriesRefusals();
+
             if (AnalyticalModel == null || spaces == null)
             {
                 return null;
@@ -201,6 +286,8 @@ namespace SAM.Analytical
             //Cleared even where the call is about to fail, so a stale refusal from an earlier call can never
             //be read as belonging to this one.
             ventilationStrategyRefusals = [];
+
+            ClearHourlySeriesRefusals();
 
             if (AnalyticalModel == null || spaces == null || textMap == null)
             {
@@ -336,22 +423,278 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// Both hourly series, or false where either is missing.
+        /// Both hourly series, in a state they can be assessed together in - or false, with the reason on
+        /// <see cref="HourlySeriesRefusals"/> and the space on
+        /// <see cref="SpaceGuids_HourlySeriesRefused"/>.
         /// <para>
-        /// <b>A missing series produces no assessment for that space, silently.</b> That is the behaviour
-        /// the extracted code had and it is preserved deliberately rather than improved here - changing it
-        /// during a refactor would hide whether the refactor was faithful. A space that yields nothing is
-        /// pinned by regression; giving it a diagnostic is separate work.
+        /// Four states are refused: either series absent, either series empty, and the two series of
+        /// different lengths. See <see cref="HourlySeriesRefusals"/> for why unequal lengths are a refusal
+        /// rather than a shared-range assessment, and why length equality is all that is judged here.
+        /// </para>
+        /// <para>
+        /// A refusal is REPORTED, never thrown. One space with unusable data must not cost every other
+        /// space in the building its assessment - that was the reason the walk was bounded by the shorter
+        /// series in the first place, and it still holds.
         /// </para>
         /// </summary>
         private bool TryGetHourlyValues(Space space, out JsonArray jsonArray_OccupancySensibleGain, out JsonArray jsonArray_ResultantTemperature)
         {
             jsonArray_ResultantTemperature = null;
 
-            return Core.Query.TryGetValue(space, OccupancySensibleGainSeriesKey, out jsonArray_OccupancySensibleGain)
-                && jsonArray_OccupancySensibleGain != null
-                && Core.Query.TryGetValue(space, ResultantTemperatureSeriesKey, out jsonArray_ResultantTemperature)
+            bool hasOccupancy = Core.Query.TryGetValue(space, OccupancySensibleGainSeriesKey, out jsonArray_OccupancySensibleGain)
+                && jsonArray_OccupancySensibleGain != null;
+
+            bool hasResultant = Core.Query.TryGetValue(space, ResultantTemperatureSeriesKey, out jsonArray_ResultantTemperature)
                 && jsonArray_ResultantTemperature != null;
+
+            if (!hasOccupancy || !hasResultant)
+            {
+                //Which one is missing, because "no result for this room" with no reason is what this
+                //replaces and the two have different causes: the occupancy key is the one the analytical and
+                //TAS vocabularies disagree about (see OccupancySensibleGainSeriesKey), so a whole model
+                //missing only that one is a key that was not supplied rather than a damaged results file.
+                RefuseHourlySeries(space, string.Format(
+                    "Space '{0}' carries no {1} hourly series, so it could not be assessed and was left out.",
+                    space?.Name ?? "?",
+                    !hasOccupancy && !hasResultant
+                        ? string.Format("'{0}' or '{1}'", OccupancySensibleGainSeriesKey, ResultantTemperatureSeriesKey)
+                        : string.Format("'{0}'", hasOccupancy ? ResultantTemperatureSeriesKey : OccupancySensibleGainSeriesKey)));
+
+                return false;
+            }
+
+            if (jsonArray_OccupancySensibleGain.Count == 0 || jsonArray_ResultantTemperature.Count == 0)
+            {
+                RefuseHourlySeries(space, string.Format(
+                    "Space '{0}' carries an EMPTY hourly series ('{1}' has {2} values, '{3}' has {4}), so there is nothing to assess and it was left out. An empty series is a results file that was not written for this room, not a room with no exceedances.",
+                    space?.Name ?? "?",
+                    OccupancySensibleGainSeriesKey,
+                    jsonArray_OccupancySensibleGain.Count,
+                    ResultantTemperatureSeriesKey,
+                    jsonArray_ResultantTemperature.Count));
+
+                return false;
+            }
+
+            if (jsonArray_OccupancySensibleGain.Count != jsonArray_ResultantTemperature.Count)
+            {
+                RefuseHourlySeries(space, string.Format(
+                    "Space '{0}' carries hourly series of different lengths ('{1}' has {2} values, '{3}' has {4}), so one of them is truncated and which is not knowable. It was refused rather than assessed over the {5} hours the two share, because an overheating verdict over part of a room's hours is not a verdict about that room.",
+                    space?.Name ?? "?",
+                    OccupancySensibleGainSeriesKey,
+                    jsonArray_OccupancySensibleGain.Count,
+                    ResultantTemperatureSeriesKey,
+                    jsonArray_ResultantTemperature.Count,
+                    System.Math.Min(jsonArray_OccupancySensibleGain.Count, jsonArray_ResultantTemperature.Count)));
+
+                return false;
+            }
+
+            //Length agreed; is it enough of a year? Only where the caller said what "enough" is - see
+            //HourCount_Expected. Both counts are equal here, so either may be compared.
+            if (HourCount_Expected > 0 && jsonArray_ResultantTemperature.Count < HourCount_Expected)
+            {
+                RefuseHourlySeries(space, string.Format(
+                    "Space '{0}' carries only {1} of the {2} hourly values this assessment requires, so it was refused rather than assessed over a partial year. Both of its series are this length, so nothing here is a mismatch - the results file itself is short, and neither a pass nor a failure may be produced from part of a year.",
+                    space?.Name ?? "?",
+                    jsonArray_ResultantTemperature.Count,
+                    HourCount_Expected));
+
+                return false;
+            }
+
+            //Length agreed and long enough; is every hour of it actually a number? Only where a full year
+            //was asked for - see below for why the answer differs from the ordinary path's.
+            if (HourCount_Expected > 0)
+            {
+                if (!IsUsableSeries(jsonArray_ResultantTemperature, HourCount_Expected, out int index_Unusable))
+                {
+                    RefuseHourlySeries(space, string.Format(
+                        "Space '{0}' carries an unusable value in its '{1}' hourly series at hour {2} - it is absent, not a number, or not finite. The series is the right length, so the hour is missing rather than the file being short, and the room was refused rather than assessed over the hours that survived.",
+                        space?.Name ?? "?",
+                        ResultantTemperatureSeriesKey,
+                        index_Unusable));
+
+                    return false;
+                }
+
+                if (!IsUsableSeries(jsonArray_OccupancySensibleGain, HourCount_Expected, out index_Unusable))
+                {
+                    RefuseHourlySeries(space, string.Format(
+                        "Space '{0}' carries an unusable value in its '{1}' hourly series at hour {2} - it is absent, not a number, or not finite. An hour with NO stated occupancy is not an unoccupied hour: it is an hour nothing is known about, and counting it as empty would quietly shrink the occupied hours a TM59 verdict is measured over.",
+                        space?.Name ?? "?",
+                        OccupancySensibleGainSeriesKey,
+                        index_Unusable));
+
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Whether every value in the series is a finite number, and the first index that is not.
+        ///
+        /// <para><b>Why this is asked only where a full year was requested</b></para>
+        /// <para>
+        /// <see cref="Collect"/> skips an hour whose resultant temperature will not convert or is NaN, and
+        /// treats an occupancy value it cannot read as an unoccupied hour. Both are the right behaviour for
+        /// an ordinary TM52/TM59 run over whatever a caller has: an hour with no data is not evidence of an
+        /// exceedance, and refusing a whole room over one gap would lose an assessment that is substantially
+        /// sound.
+        /// </para>
+        /// <para>
+        /// It is the wrong behaviour for Approved Document O, and silently so, because the criteria are
+        /// COUNTS. A room whose occupancy series has a hundred unreadable hours is assessed over a hundred
+        /// fewer occupied hours than it really has, and the proportion of them it may exceed in shrinks to
+        /// match - so the verdict is computed against a year the building never had, and reads as a normal
+        /// pass. The length check alone does not catch it: the file is exactly the right size.
+        /// </para>
+        /// <para>
+        /// <b>Zero occupancy is a value.</b> An empty hour is stated and usable; what is refused is an hour
+        /// that states nothing - a JSON null, a string, a NaN or an infinity - which is a different fact and
+        /// must not be read as "nobody was in".
+        /// </para>
+        /// </summary>
+        private static bool IsUsableSeries(JsonArray jsonArray, int hourCount_Expected, out int index_Unusable)
+        {
+            index_Unusable = -1;
+
+            //ONLY the hours the assessment requires. A series LONGER than the requested year - a leap-year
+            //simulation's 8784 against a 365-day one - is deliberately accepted, and Collect then excludes
+            //the surplus hours because the comfort band does not cover them. Validating them here would
+            //refuse the whole room over an hour that is never assessed, which contradicts the rule this
+            //check is part of.
+            int count = System.Math.Min(jsonArray.Count, hourCount_Expected);
+
+            for (int i = 0; i < count; i++)
+            {
+                //The node's own JSON kind FIRST, and not only whether it converts. Core.Query.TryConvert
+                //routes a JSON boolean through its bool-to-double conversion, so `true` reads as 1 and
+                //`false` as 0 - which means a corrupted series of booleans converted cleanly, passed as
+                //finite numbers, and produced an ordinary Part O verdict from occupancy and temperatures
+                //that were never measurements at all. An hourly value has to BE a number.
+                //
+                //Asked here and not in TryGetHourlyValue, which Collect shares: on the ordinary path a value
+                //that converts is read exactly as it always was, and this stricter rule applies only where a
+                //caller has asked for a complete year of evidence.
+                if (!IsUsableHour(jsonArray[i]))
+                {
+                    index_Unusable = i;
+
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Whether one hour of a series is a genuine finite numeric measurement.
+        /// <para>
+        /// The node's own JSON kind is asked FIRST, and not only whether it converts.
+        /// <c>Core.Query.TryConvert</c> routes a JSON boolean through its bool-to-double conversion, so
+        /// <c>true</c> reads as 1 and <c>false</c> as 0 - which means a corrupted series of booleans
+        /// converted cleanly, passed as finite numbers, and produced an ordinary verdict from occupancy and
+        /// temperatures that were never measurements at all. An hourly value has to <b>be</b> a number.
+        /// </para>
+        /// <para>
+        /// <c>GetValueKind()</c> is itself guarded, because it throws on the NaN and infinity a
+        /// <c>JsonArray</c> will hold - it has to decide how the value would serialize, and those do not.
+        /// See <see cref="TryGetHourlyValue"/>.
+        /// </para>
+        /// <para>
+        /// Asked here and not in <see cref="TryGetHourlyValue"/>, which <see cref="Collect"/> shares: on the
+        /// ordinary path a value that converts is read exactly as it always was, and this stricter rule
+        /// applies only where a caller has asked for a complete year of evidence.
+        /// </para>
+        /// </summary>
+        private static bool IsUsableHour(JsonNode jsonNode)
+        {
+            if (jsonNode is not JsonValue jsonValue)
+            {
+                return false;
+            }
+
+            try
+            {
+                if (jsonValue.GetValueKind() != System.Text.Json.JsonValueKind.Number)
+                {
+                    return false;
+                }
+            }
+            catch (System.ArgumentException)
+            {
+                return false;
+            }
+
+            return TryGetHourlyValue(jsonValue, out double _);
+        }
+
+        /// <summary>
+        /// One hour of a series as a usable number, or false - absent, not a number, or not finite.
+        ///
+        /// <para><b>Why the read is guarded rather than direct</b></para>
+        /// <para>
+        /// A <c>JsonArray</c> WILL hold a NaN or an infinity: <c>JsonValue.Create(double.NaN)</c> succeeds
+        /// and so does storing it. Reading it back is what fails - <c>System.Text.Json</c> throws
+        /// <see cref="System.ArgumentException"/> ("cannot be written as valid JSON") from the conversion,
+        /// because it will not serialize the value it is being asked to hand over.
+        /// </para>
+        /// <para>
+        /// So a single unrepresentable hour anywhere in a building threw out of
+        /// <see cref="Calculate_TM59"/> and lost EVERY space's assessment - the same failure the
+        /// shared-range walk in <see cref="Collect"/> was written to avoid, arriving by a different door.
+        /// Caught here, one bad hour costs at most its own room.
+        /// </para>
+        /// <para>
+        /// The rejection is the same either way: <see cref="Collect"/> already skipped an hour whose
+        /// temperature would not convert or was NaN, and this changes none of that - it stops the read
+        /// throwing before the skip can happen. Whether a skipped hour is tolerable at all is the separate
+        /// question <see cref="HourCount_Expected"/> answers.
+        /// </para>
+        /// </summary>
+        private static bool TryGetHourlyValue(JsonNode jsonNode, out double value)
+        {
+            value = double.NaN;
+
+            try
+            {
+                if (!Core.Query.TryConvert(jsonNode, out value))
+                {
+                    return false;
+                }
+            }
+            catch (System.ArgumentException)
+            {
+                value = double.NaN;
+
+                return false;
+            }
+
+            return !double.IsNaN(value) && !double.IsInfinity(value);
+        }
+
+        /// <summary>
+        /// Empties the hourly-series record, so one calculation never reports another's refusals. Called at
+        /// the top of both calculations, before either can fail.
+        /// </summary>
+        private void ClearHourlySeriesRefusals()
+        {
+            hourlySeriesRefusals = [];
+            spaceGuids_HourlySeriesRefused = [];
+        }
+
+        /// <summary>Records one space's hourly-series refusal - the sentence and the identity together.</summary>
+        private void RefuseHourlySeries(Space space, string refusal)
+        {
+            hourlySeriesRefusals.Add(refusal);
+
+            if (space != null)
+            {
+                spaceGuids_HourlySeriesRefused.Add(space.Guid);
+            }
         }
 
         /// <summary>
@@ -375,11 +718,15 @@ namespace SAM.Analytical
             maxAcceptableTemperatures = new IndexedDoubles();
             operativeTemperatures = new IndexedDoubles();
 
-            //The loop is bounded by the SHORTER of the two series. A partially written or truncated
-            //simulation result can hand over two different lengths, and the loop below indexes both arrays
-            //by one counter - so iterating the occupancy length while the resultant series is shorter
-            //would throw out of the whole TM52/TM59 run and lose every assessment in it. Hours beyond the
-            //shared range belong to whichever series is longer and are simply not assessed.
+            //The loop is bounded by the SHORTER of the two series, and both callers now REFUSE a space whose
+            //series are of different lengths before reaching here - see TryGetHourlyValues and
+            //HourlySeriesRefusals. So this bound is no longer what decides such a space's verdict; it is
+            //kept as the defence it originally was, because the loop indexes both arrays by one counter and
+            //a future caller reaching this private method without that check must still not throw out of
+            //the whole TM52/TM59 run and lose every assessment in it.
+            //
+            //It is NOT a substitute for the refusal, and must not be relied on as one: silently assessing a
+            //room over the hours two unequal series happen to share is the defect the refusal removes.
             int count = System.Math.Min(jsonArray_OccupancySensibleGain.Count, jsonArray_ResultantTemperature.Count);
 
             for (int i = 0; i < count; i++)
@@ -389,7 +736,10 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                if (!Core.Query.TryConvert(jsonArray_ResultantTemperature[i], out double resultantTemperature) || double.IsNaN(resultantTemperature))
+                //Guarded, because reading a NaN or infinity node THROWS rather than returning false - see
+                //TryGetHourlyValue. An hour that cannot be read is skipped, exactly as an unconvertible or
+                //NaN one always was.
+                if (!TryGetHourlyValue(jsonArray_ResultantTemperature[i], out double resultantTemperature))
                 {
                     continue;
                 }
@@ -407,7 +757,7 @@ namespace SAM.Analytical
                 minAcceptableTemperatures.Add(i, minIndoorComfortTemperature);
                 operativeTemperatures.Add(i, resultantTemperature);
 
-                if (!Core.Query.TryConvert(jsonArray_OccupancySensibleGain[i], out double occupancySensibleGain) || double.IsNaN(occupancySensibleGain))
+                if (!TryGetHourlyValue(jsonArray_OccupancySensibleGain[i], out double occupancySensibleGain))
                 {
                     continue;
                 }
