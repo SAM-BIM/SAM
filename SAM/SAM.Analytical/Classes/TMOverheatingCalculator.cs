@@ -249,11 +249,15 @@ namespace SAM.Analytical
             IndexedDoubles maxIndoorComfortTemperatures = GetMaxIndoorComfortTemperatures();
             IndexedDoubles minIndoorComfortTemperatures = GetMinIndoorComfortTemperatures();
 
+            //ONE resolution index for this call. See Dictionary_Space: the model's space list was rebuilt -
+            //and, on this path, every space in it copied - once per assessed room, which made a five
+            //thousand room assessment quadratic before a single hourly series had been read.
+            Dictionary<System.Guid, Space> dictionary_Space = Dictionary_Space(AnalyticalModel.GetSpaces());
+
             List<TM52ExtendedResult> result = [];
             foreach (Space space in spaces)
             {
-                Space space_Temp = AnalyticalModel.GetSpaces()?.Find(x => x.Guid == space.Guid);
-                if (space_Temp == null)
+                if (!dictionary_Space.TryGetValue(space.Guid, out Space space_Temp) || space_Temp == null)
                 {
                     continue;
                 }
@@ -301,11 +305,14 @@ namespace SAM.Analytical
 
             AdjacencyCluster adjacencyCluster = AnalyticalModel.AdjacencyCluster;
 
+            //ONE resolution index for this call, built from the single GetSpaces() the loop used to make per
+            //room. See Dictionary_Space.
+            Dictionary<System.Guid, Space> dictionary_Space = Dictionary_Space(adjacencyCluster?.GetSpaces());
+
             List<TM59ExtendedResult> result = [];
             foreach (Space space in spaces)
             {
-                Space space_Temp = adjacencyCluster?.GetSpaces()?.Find(x => x.Guid == space.Guid);
-                if (space_Temp == null)
+                if (!dictionary_Space.TryGetValue(space.Guid, out Space space_Temp) || space_Temp == null)
                 {
                     continue;
                 }
@@ -414,6 +421,55 @@ namespace SAM.Analytical
         // ------------------------------------------------------------------
         // Shared
         // ------------------------------------------------------------------
+
+        /// <summary>
+        /// One assessment's space identities, indexed once.
+        ///
+        /// <para><b>What it replaces, and why that was quadratic</b></para>
+        /// <para>
+        /// Both assessments resolve every room they are asked about against the model before reading it -
+        /// correctly, because the caller is handed the simulated space instances the map retained and those
+        /// predate <c>TM59AssessmentCalculator.RestoreDesignInternalConditions</c>, so the instance the model
+        /// now holds is the one that carries the restored design internal condition. The resolution was
+        /// <c>GetSpaces().Find(...)</c>, taken <b>inside</b> the loop over the rooms:
+        /// <c>AdjacencyCluster.GetSpaces()</c> rebuilds the whole space list on every call, and the TM52 path
+        /// went through <c>AnalyticalModel.GetSpaces()</c>, which additionally <i>copies every space in the
+        /// model</i>. A five thousand room assessment therefore built five thousand space lists - and, on
+        /// TM52, twenty five million <c>Space</c> copies - before a single hourly series had been read.
+        /// </para>
+        ///
+        /// <para><b>Identity only, and request scoped</b></para>
+        /// <para>
+        /// This holds which instance the model carries for a guid and nothing else - no series, no
+        /// classification, no criterion, no result. It is built at the top of one <c>Calculate_*</c> call
+        /// and dropped when that call returns; nothing on either loop writes to the model or to a space, so
+        /// it cannot go stale within the traversal it serves. It is the same contract
+        /// <see cref="PartFIndex"/> states, for the same reason. Nothing is cached between calls: two
+        /// assessments of one model cost exactly twice one.
+        /// </para>
+        /// <para>
+        /// <b>First occurrence wins</b>, because <c>List.Find</c> - which every one of these resolutions was
+        /// - returns the first match, so a model that somehow carried two spaces on one guid keeps answering
+        /// what it answered before.
+        /// </para>
+        /// </summary>
+        private static Dictionary<System.Guid, Space> Dictionary_Space(IEnumerable<Space> spaces)
+        {
+            Dictionary<System.Guid, Space> result = [];
+
+            foreach (Space space in spaces ?? [])
+            {
+                //A null cannot reach here from GetSpaces - RelationCluster.GetObjects<T> keeps only what IS
+                //a T - and the Find this replaces would have thrown on one. Skipped rather than indexed so
+                //a caller-supplied list cannot make a null the answer for a guid.
+                if (space != null && !result.ContainsKey(space.Guid))
+                {
+                    result[space.Guid] = space;
+                }
+            }
+
+            return result;
+        }
 
         private WeatherYear WeatherYear()
         {

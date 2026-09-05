@@ -118,8 +118,10 @@ namespace SAM.Analytical
 
                 // ---- Pass 1: re-link what is already there ------------------------------------------
 
-                foreach (VentilationTerminal ventilationTerminal in ventilationTerminals)
+                for (int i = 0; i < ventilationTerminals.Count; i++)
                 {
+                    VentilationTerminal ventilationTerminal = ventilationTerminals[i];
+
                     PartFTerminalReference partFTerminalReference = ventilationTerminal?.GetValue<PartFTerminalReference>(VentilationTerminalParameter.PartFTerminalReference);
                     if (partFTerminalReference is null)
                     {
@@ -166,6 +168,14 @@ namespace SAM.Analytical
 
                     adjacencyCluster.AddObject(ventilationTerminal_Relinked);
 
+                    //Substituted in place rather than re-read. AddObject REPLACES the terminal stored under
+                    //this guid, so re-asking the cluster for the space's terminals returned the very same
+                    //list with this very same element swapped - the relation set did not move and the
+                    //dictionary entry kept its slot. Doing that per space made this three relation reads per
+                    //room rather than two, and a relation read walks every object related to the room -
+                    //every bounding panel included - across every stored type.
+                    ventilationTerminals[i] = ventilationTerminal_Relinked;
+
                     notes.Add(string.Format(
                         "Design ventilation terminal '{0}' in space '{1}' was re-linked from Approved Document F requirement {2} to {3}, which is the same requirement recalculated - {4}.",
                         ventilationTerminal.Name,
@@ -175,8 +185,8 @@ namespace SAM.Analytical
                         partFTerminalReference.Description()));
                 }
 
-                //Re-read, so pass 2 sees the re-linked references rather than the stale ones.
-                ventilationTerminals = adjacencyCluster.VentilationTerminals(space) ?? [];
+                //Pass 2 sees the re-linked references rather than the stale ones because pass 1 substituted
+                //each one it wrote - see there.
 
                 // ---- Pass 2: create what is missing ---------------------------------------------------
 

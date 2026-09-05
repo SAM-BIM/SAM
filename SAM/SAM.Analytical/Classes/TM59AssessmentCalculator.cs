@@ -255,6 +255,12 @@ namespace SAM.Analytical
 
             List<Space> result = [];
 
+            //The de-duplication set, beside the list rather than inside it. The rule is unchanged and is
+            //still by Guid; what changed is that asking "is this room already gathered" was a linear scan of
+            //everything gathered so far, so a five thousand room scope compared twelve and a half million
+            //pairs. Request scoped: it lives for this one call and states nothing the list does not.
+            HashSet<System.Guid> guids = [];
+
             if (spaces_Design == null && zones_Design == null)
             {
                 //The whole model still means every RESOLVED simulated space. Returning an unresolved space
@@ -269,7 +275,7 @@ namespace SAM.Analytical
                         continue;
                     }
 
-                    Add(result, space);
+                    Add(result, guids, space);
                 }
             }
             else if (spaces_Design != null)
@@ -289,8 +295,35 @@ namespace SAM.Analytical
                         continue;
                     }
 
-                    Add(result, space);
+                    Add(result, guids, space);
                 }
+            }
+
+            //ONE index of the design model's zone identities, and ONE cluster to read the relations from,
+            //for the whole zone traversal below.
+            //
+            //Both were taken per zone. GetZones() rebuilds the design model's whole zone list on every call
+            //and the Find through it is linear, so resolving a block's dwellings was quadratic in its zones;
+            //and AnalyticalModel.AdjacencyCluster hands out a NEW shallow copy of the entire cluster on
+            //every read, so a five hundred dwelling scope copied the cluster five hundred times. Neither is
+            //an engineering statement: both are the same objects, reached once instead of once per zone.
+            //
+            //Request scoped, and it cannot go stale within this traversal - nothing in the loop writes to
+            //the design model. First occurrence wins, because List.Find returned the first match.
+            Dictionary<System.Guid, Zone> dictionary_Zone = [];
+            AdjacencyCluster adjacencyCluster_Design = null;
+
+            if (zones_Design != null && analyticalModel_Design != null)
+            {
+                foreach (Zone zone in analyticalModel_Design.GetZones() ?? [])
+                {
+                    if (zone != null && !dictionary_Zone.ContainsKey(zone.Guid))
+                    {
+                        dictionary_Zone[zone.Guid] = zone;
+                    }
+                }
+
+                adjacencyCluster_Design = analyticalModel_Design.AdjacencyCluster;
             }
 
             foreach (Zone zone_Design in zones_Design ?? [])
@@ -302,15 +335,14 @@ namespace SAM.Analytical
 
                 //The DESIGN model's relations, by guid. A zone is a statement about the design, and the
                 //simulated model's zones are fresh objects that no scenario can name.
-                Zone zone = analyticalModel_Design?.GetZones()?.Find(x => x != null && x.Guid == zone_Design.Guid);
-                if (zone == null)
+                if (!dictionary_Zone.TryGetValue(zone_Design.Guid, out Zone zone) || zone == null)
                 {
                     associationRefusals.Add(string.Format("Design zone '{0}' is not in the design model, so the spaces it covers cannot be identified.", zone_Design.Name));
 
                     continue;
                 }
 
-                List<Space> spaces_Zone = analyticalModel_Design.AdjacencyCluster.GetRelatedObjects<Space>(zone);
+                List<Space> spaces_Zone = adjacencyCluster_Design.GetRelatedObjects<Space>(zone);
                 if (spaces_Zone == null || spaces_Zone.Count == 0)
                 {
                     associationRefusals.Add(string.Format("Design zone '{0}' holds no spaces, so there is nothing in it to assess.", zone_Design.Name));
@@ -328,7 +360,7 @@ namespace SAM.Analytical
                         continue;
                     }
 
-                    Add(result, space);
+                    Add(result, guids, space);
                 }
             }
 
@@ -340,9 +372,13 @@ namespace SAM.Analytical
         /// flats' "Bedroom 2" are three different rooms, and de-duplicating them by name would silently assess
         /// one of them and drop the other two.
         /// </summary>
-        private static void Add(List<Space> spaces, Space space)
+        private static void Add(List<Space> spaces, HashSet<System.Guid> guids, Space space)
         {
-            if (spaces.Find(x => x != null && x.Guid == space.Guid) == null)
+            //HashSet.Add IS the test: it answers "was this guid already gathered" and records it in one
+            //step, exactly as the linear Find it replaces answered it, first occurrence winning. A null
+            //space cannot reach here - both callers resolved one through SimulationSpaceMap first - and
+            //would have thrown on the Find just the same.
+            if (guids.Add(space.Guid))
             {
                 spaces.Add(space);
             }

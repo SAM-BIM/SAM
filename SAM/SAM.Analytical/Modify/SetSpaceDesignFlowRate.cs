@@ -86,7 +86,15 @@ namespace SAM.Analytical
 
             //Taken from the cluster rather than trusted as handed in: a caller may be holding a space from
             //before the Part F rates were applied, and that one carries a different parameter set.
-            Space space_Cluster = (adjacencyCluster.GetSpaces() ?? []).Find(x => x is not null && x.Guid == space.Guid);
+            //
+            //Through the cluster's own O(1) authority, and deliberately NOT through a PartFIndex. This is a
+            //WRITE path - it replaces the space's terminals - and a snapshot shared across a loop of writes
+            //would answer with the model as it stood before them. GetObject<Space> reads the live object
+            //dictionary on every call, so a caller writing room after room is never handed a stale one, and
+            //the resolution stops being linear in the model at the same time. It answers exactly what
+            //GetSpaces().Find answers: GetSpaces() IS that dictionary flattened into a list, and the guid a
+            //space is stored under is the guid Find compares.
+            Space space_Cluster = adjacencyCluster.GetObject<Space>(space.Guid);
             if (space_Cluster is null)
             {
                 refusals.Add(string.Format("Space '{0}' is not in the model, so its design airflow could not be set.", space.Name));
@@ -109,7 +117,13 @@ namespace SAM.Analytical
             //The regulatory floor, read and never written. Null means the space was never sized, which is
             //not a floor of zero and not a reason to refuse - a designer may deliberately move air through
             //a room Approved Document F said nothing about.
-            double? requirement_Lps = adjacencyCluster.PartFRequiredFlowRate_Lps(space_Cluster, flowClassification);
+            //
+            //The ALREADY-RESOLVED reader, not the one-space query. The rule is the same one - both forms end
+            //at Query.PartFRequiredFlowRate_Lps(Space, FlowClassification), which is where the rule lives -
+            //and the only thing skipped is a second resolution of a space this method has just resolved out
+            //of the same cluster with nothing written in between. The public query would have re-run
+            //GetSpaces().Find over the whole model to arrive back at this very instance.
+            double? requirement_Lps = Query.PartFRequiredFlowRate_Lps(space_Cluster, flowClassification);
 
             if (requirement_Lps.HasValue && designFlowRate_Lps < requirement_Lps.Value)
             {

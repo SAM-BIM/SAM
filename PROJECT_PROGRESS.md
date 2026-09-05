@@ -1,21 +1,189 @@
 # Project Progress
 
 ## Branch
-`fix/2b-correctness-closeout`, branched from `sow/2026-Q3` at **`9a098b95`** (the merge of PR #99).
+`perf/large-model-lookup-closeout`, branched from `sow/2026-Q3` at **`0ab9834f`** (the merge of PR #100).
 
-This branch is **SAM-BIM/SAM#100**.
+This branch is **SAM-BIM/SAM#101**.
 
-**Companion branches: `SAM_Tas` `fix/2b-correctness-closeout` (SAM-BIM/SAM_Tas#48) and `SAM_UI`
-`fix/2b-correctness-closeout` (SAM-BIM/SAM_UI#87).** **Merge order: SAM#100 first** - neither of the others
-compiles without the constructor and the calculator properties added here. `SAM_Systems` is unchanged.
+**Companion branch: `SAM_UI` `perf/large-model-lookup-closeout` (SAM-BIM/SAM_UI#88).** **Merge order:
+SAM#101 first** - the SAM_UI branch is compiled against this assembly. `SAM_Tas` carries a
+documentation-only branch (SAM-BIM/SAM_Tas#49) and `SAM_Systems` is untouched.
 
-Everything below the entry dated 2026-09-05 is superseded history retained for context.
+Everything below the entry dated 2026-09-05 (large-model lookups) is superseded history retained for
+context.
 
 ## Last updated
-2026-09-05 - a working model that owns every object in it, a deep clone that fails rather than silently
-sharing, and a TM59 series that must be whole before it may produce a verdict.
+2026-09-05 (later) - the remaining whole-model lookups inside per-room and per-zone traversals, replaced by
+request-scoped indexes and by the cluster's own O(1) authority. No engineering result moves.
 
-## Latest (2026-09-05): Iteration 2B correctness closeout - the SAM half
+## Latest (2026-09-05, later): large-model lookup closeout - PF3-PF7 and `SetSpaceDesignFlowRate`
+
+**Status: root-caused, implemented, tested and measured. Not merged.**
+
+The pre-Iteration-3 scaling list, closed. Nothing here changes an engineering result, Part O semantics, a
+TM59 criterion, TAS simulation behaviour or the Iteration 3 architecture: every change replaces *how* an
+object is found with a cheaper way of finding **the same object**, and every one of them is pinned against
+the search it replaced.
+
+### The one defect, in six places
+
+`AdjacencyCluster.GetSpaces()` and `GetZones()` **rebuild** their whole list from the relation cluster on
+every call, and `AnalyticalModel.AdjacencyCluster` hands out a **new shallow copy of the entire cluster** on
+every read. Asked once, all three are nothing. Asked inside a loop over the model's rooms, its zones or its
+dwellings - which is what every one of the sites below did - they are quadratic in the model.
+
+| item | site | genuine? |
+|---|---|---|
+| PF3 | `SAM_UI` `Query.PartOOptimisationTargets`, `Modify.PartialAssessment` | **yes** |
+| PF4 | `TM59AssessmentCalculator.Spaces`, `OverheatingScenarioMap.Add`, `SAM_UI` `Query.PartODwellingSpaceGuids` | **yes** |
+| PF5 | `Modify.RealizePartFVentilationTerminals` | **already solved** by PR #99; one redundant relation read remained and is now gone |
+| PF6 | `Query.PartFTransferAirSpaces` | **already solved** by PR #99; nothing left to do |
+| PF7 | `TMOverheatingCalculator.Calculate_TM59` / `Calculate_TM52` | **yes, and the largest** |
+| - | `Modify.SetSpaceDesignFlowRate` | **yes** - deliberately excluded from PR #99 as a write path |
+
+### PF7 - the largest, and the one nobody had looked at
+
+Both `TMOverheatingCalculator.Calculate_TM59` and `Calculate_TM52` resolve every room they are handed
+against the model before reading it. That resolution is correct and is not removed: the caller holds the
+simulation space instances `SimulationSpaceMap` retained, and those predate
+`TM59AssessmentCalculator.RestoreDesignInternalConditions`, so the instance the model now holds is the one
+carrying the restored design internal condition. Classifying the caller's instance picks the wrong TM59
+result type.
+
+It was `GetSpaces().Find(...)`, **inside** the loop over the rooms. The TM52 path went through
+`AnalyticalModel.GetSpaces()`, which additionally **copies every space in the model** - so assessing 5,000
+rooms built 5,000 space lists and made 25,000,000 `Space` copies before a single hourly value was read.
+
+Replaced by one `Dictionary<Guid, Space>` per call, built from the single `GetSpaces()` the loop used to
+make per room and dropped when the call returns. Identity only; first occurrence wins, because `List.Find`
+did.
+
+### PF4 - the zone lookups, and a whole-cluster copy per dwelling
+
+`OverheatingScenarioMap.Add` resolved its scenario's design zone with `GetZones().Find(...)` and read that
+zone's spaces off `analyticalModel_Design.AdjacencyCluster` - **once per scenario**, and there is one
+scenario per dwelling. `TM59AssessmentCalculator.Spaces` did the same per requested zone, and de-duplicated
+the rooms it gathered with a linear `Find` over everything gathered so far.
+
+Both now build one zone index and hold one cluster reference for the traversal, and the de-duplication is a
+`HashSet<Guid>` beside the list. The cluster copy is shallow, so a hoisted one shares every `Zone` and
+`Space` instance with the model - there is nothing for it to disagree with. `OverheatingScenarioMap` no
+longer holds the design model at all, because everything it read off it is resolved once in the constructor.
+
+### PF3 - the failing-space and dwelling-zone lookups
+
+`PartOOptimisationTargets` rebuilt the model's space list once per **failing** room; `PartialAssessment`
+once per unassessed room; `PartODwellingSpaceGuids` walked the whole zone list once per **requested
+dwelling**. All three now ask `AdjacencyCluster.GetObject<Space>(guid)` / `GetObject<Zone>(guid)`, which is
+a lookup in the cluster's live object dictionary.
+
+### PF5 and PF6 - already solved, and said so
+
+PR #99 removed the quadratic space resolution from both. What remained in
+`RealizePartFVentilationTerminals` was a third relation read per room: pass 1 re-linked terminals, then the
+space's terminals were **re-read** so pass 2 would see the new references. `AddObject` replaces the terminal
+stored under that guid, so the re-read returned the same list with the same element swapped - it is now
+substituted in place, and the read is gone. `PartFTransferAirSpaces` needed nothing.
+
+### `Modify.SetSpaceDesignFlowRate` - a write path, and why the O(1) authority is the *only* safe answer
+
+PR #99 excluded it deliberately: it replaces the room's terminals, so a `PartFIndex` snapshot shared across
+a loop of writes would compute a later write's proportional split from duties an earlier one had already
+replaced. That reasoning is unchanged and no snapshot was introduced.
+
+`AdjacencyCluster.GetObject<Space>(guid)` is not a snapshot. It reads the cluster's live object dictionary
+on every call and therefore sees every write made before it, exactly as re-running `GetSpaces().Find` did.
+The requirement is then read with the internal `Query.PartFRequiredFlowRate_Lps(Space, FlowClassification)`
+- the shared reader the public one-space query and `PartFIndex` both end at - over the instance just
+resolved, instead of resolving that same instance a second time through the whole model. **Two `O(model)`
+walks per write became one `O(1)` lookup.** The rate rule is untouched; the regulatory floor is still read
+live, which `TheRegulatoryFloor_IsReadFromTheModelAsItStandsAtEachWrite` pins by recalculating Part F
+between two writes.
+
+### Equivalence, proved before anything was changed
+
+`GetObject<T>(guid)` answers what `GetXs().Find(x => x.Guid == guid)` answers, because `GetXs()` is that
+same object dictionary flattened into a list and the guid an object is stored under is the guid the `Find`
+compared. Both go through the same `AdjacencyCluster.IsValid(Type)` gate and the same
+`type.IsAssignableFrom` filter. Asserted rather than argued, **by reference**, over every space and every
+zone of models of 100 / 500 / 1,000 / 5,000 spaces, plus an unknown guid, `Guid.Empty` and a guid belonging
+to an object of the other type - `TheO1Authority_ReturnsTheSameInstanceTheLinearSearchReturns` and
+`TheO1Authority_AnswersNullForExactlyWhatTheLinearSearchAnswersNullFor`.
+
+### Operation counts, before and after (n rooms, z zones, d dwellings, k rooms gathered)
+
+| site | before | after |
+|---|---|---|
+| `Calculate_TM59` | n space-list rebuilds, n linear scans | 1 rebuild, n hash lookups |
+| `Calculate_TM52` | n rebuilds **and n x n `Space` copies** | 1 rebuild, n copies, n hash lookups |
+| `TM59AssessmentCalculator.Spaces` | z zone-list rebuilds, z cluster copies, ~k x k / 2 de-dup comparisons | 1 rebuild, 1 cluster copy, k hash inserts |
+| `OverheatingScenarioMap` | d zone-list rebuilds, d cluster copies | 1 rebuild, 1 cluster copy |
+| `SetSpaceDesignFlowRate` (per call) | 2 space-list rebuilds, 2 linear scans | 1 hash lookup |
+| `RealizePartFVentilationTerminals` (per room) | 3 relation reads | 2 relation reads |
+
+### Scaling evidence (structural; allocated bytes, no timing thresholds)
+
+Doubling ratios from `GC.GetAllocatedBytesForCurrentThread`. Linear work sits at 2, quadratic at 4; every
+test asserts only `< 2.6`.
+
+| measurement | after | the code it replaced |
+|---|---|---|
+| whole-model TM59 assessment | x1.79, x1.88 | x3.94, x3.97 |
+| whole-model TM52 assessment | x1.75, x1.86 | (same shape) |
+| `SetSpaceDesignFlowRate` write sweep | x2.00, x2.00 | x3.34, x3.61 |
+| `OverheatingScenarioMap` construction | x2.05, x2.00 | x4.12, x3.90 |
+| TM59 assessment scope resolution | x2.06, x1.95 | x4.12, x3.90 |
+
+Local wall clock, reported by `[Trait("Category", "Benchmark")]` tests that assert nothing about time:
+
+| operation | size | after | before |
+|---|---|---|---|
+| whole TM59 assessment | 5,000 rooms | **160.9 ms** | 1,749.4 ms *for the resolution alone* |
+| `SetSpaceDesignFlowRate` sweep | 5,000 rooms | **36.5 ms** | 2,935.7 ms *for the two resolutions alone* |
+| `OverheatingScenarioMap` | 1,000 dwellings / 5,000 spaces | **16.7 ms** | 2,952.9 ms |
+| TM59 assessment scope | 1,000 dwellings / 5,000 spaces | **3.9 ms** | 3,264.9 ms |
+
+### Files changed
+
+`SAM.Analytical`: `Classes/TMOverheatingCalculator.cs` (one resolution index per call),
+`Classes/TM59AssessmentCalculator.cs` (one zone index, one cluster, hashed de-duplication),
+`Classes/OverheatingScenarioMap.cs` (one zone index and one cluster for the whole map; the design model is
+no longer held), `Modify/SetSpaceDesignFlowRate.cs` (the O(1) authority and the already-resolved requirement
+reader), `Modify/RealizePartFVentilationTerminals.cs` (the redundant relation read).
+
+New tests: `SAM.Tests/TM59SpaceResolutionScalingTests.cs`, `SAM.Tests/SetSpaceDesignFlowRateLookupTests.cs`,
+`SAM.Tests/PartOZoneLookupScalingTests.cs`.
+
+### Validation
+
+| suite | result |
+| --- | --- |
+| `SAM.Tests` | **1974 passed, 0 failed** (1937 pre-existing, all passing, + 37 new) |
+| `SAM.Analytical.Tas.TM59.Tests` | **690 passed, 0 failed**, against the rebuilt `SAM.Analytical.dll` |
+| `SAM.Analytical.UI.WPF.Tests` | **528 passed, 0 failed** (510 + 18 new) |
+
+`SAM.sln` and `SAM_UI.sln` both build with 0 errors. `git diff --check` clean in both.
+
+No licensed TAS run was made, and none is owed: no engineering result changes, and the TAS-side TM59 suite -
+which builds against this assembly - is unchanged at 690 passing.
+
+### Remaining risks
+
+- The equivalence of `GetObject<T>(guid)` and `GetXs().Find(...)` would only diverge on a cluster holding
+  two objects of different stored types under one guid. That is unreachable today (objects are stored per
+  type name in a `Dictionary<Guid, X>`, and `Space` and `Zone` have no subtype in SAM) and is asserted by
+  reference at every size rather than assumed.
+- `Query.PartFRequiredFlowRate_Lps(AdjacencyCluster, Space, FlowClassification)` still resolves with
+  `GetSpaces().Find`. Left alone on purpose: it is the compatibility oracle `PartFIndexTests` measures
+  against, and every bulk caller now reaches it through `PartFIndex` or through an already-resolved space.
+
+### Remaining pre-Iteration-3 list
+
+Part O Sizing / Simulation defaults and the minimum-click workflow; weather / range / output restoration UX;
+resume 2B from a restored run; re-isolation and re-cutting; the Grasshopper variable-output updater;
+catalogue identity drift; final UI acceptance; then freeze Iterations 1-2.
+
+## Previous (2026-09-05): Iteration 2B correctness closeout - the SAM half
 
 **Status: implemented, tested and measured. Not merged.**
 
