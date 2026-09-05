@@ -45,8 +45,6 @@ namespace SAM.Analytical
     /// </summary>
     public class OverheatingScenarioMap
     {
-        private readonly AnalyticalModel analyticalModel_Design = null;
-
         private readonly SimulationSpaceMap simulationSpaceMap = null;
 
         /// <summary>Simulated space guid to the scenario governing it. One scenario, or none.</summary>
@@ -61,6 +59,34 @@ namespace SAM.Analytical
 
         private readonly VentilationStrategyMap ventilationStrategyMap = new();
 
+        /// <summary>
+        /// The design model's zone identities and the cluster its relations are read from, resolved <b>once</b>
+        /// for the whole map rather than once per scenario.
+        /// <para>
+        /// <b>What this replaces.</b> <see cref="Add(OverheatingScenario)"/> resolved its zone with
+        /// <c>analyticalModel_Design.GetZones().Find(...)</c> and then read the zone's spaces off
+        /// <c>analyticalModel_Design.AdjacencyCluster</c>. Both are per-call rebuilds: <c>GetZones()</c>
+        /// rebuilds the model's whole zone list, and the <c>AdjacencyCluster</c> property hands out a
+        /// <b>new shallow copy of the entire cluster</b> on every read. A block with one scenario per dwelling
+        /// therefore rebuilt the zone list and copied the cluster once per dwelling, which is quadratic in a
+        /// model where the dwelling count grows with the room count.
+        /// </para>
+        /// <para>
+        /// <b>Identity only, and nothing is deferred to it.</b> Which zone a scenario names, and which spaces
+        /// that zone holds, are still the design model's own answers - reached through the same objects, since
+        /// the cluster copy is shallow and shares every <c>Zone</c> and <c>Space</c> instance with the model.
+        /// The map is built in the constructor and the model is not written to anywhere in this class, so
+        /// there is nothing for it to go stale against.
+        /// </para>
+        /// <para>
+        /// <b>First occurrence wins</b>, because <c>List.Find</c> - which the resolution was - returns the
+        /// first match.
+        /// </para>
+        /// </summary>
+        private readonly Dictionary<Guid, Zone> dictionary_Zone_Design = [];
+
+        private readonly AdjacencyCluster adjacencyCluster_Design = null;
+
         /// <param name="overheatingScenarios">
         /// The scenarios being assessed - typically one per dwelling plus one per common space.
         /// </param>
@@ -71,7 +97,9 @@ namespace SAM.Analytical
         /// <param name="simulationSpaceMap">How a design space is known to be a given simulated space.</param>
         public OverheatingScenarioMap(IEnumerable<OverheatingScenario> overheatingScenarios, AnalyticalModel analyticalModel_Design, SimulationSpaceMap simulationSpaceMap)
         {
-            this.analyticalModel_Design = analyticalModel_Design;
+            //The design model itself is NOT held. Everything this class reads off it - which zones it has and
+            //which spaces they hold - is resolved once below, so keeping the model would only offer a second
+            //route to the same answers through another whole-cluster copy.
             this.simulationSpaceMap = simulationSpaceMap;
 
             if (analyticalModel_Design == null)
@@ -87,6 +115,17 @@ namespace SAM.Analytical
 
                 return;
             }
+
+            //Read once, before any scenario is placed - see dictionary_Zone_Design.
+            foreach (Zone zone in analyticalModel_Design.GetZones() ?? [])
+            {
+                if (zone != null && !dictionary_Zone_Design.ContainsKey(zone.Guid))
+                {
+                    dictionary_Zone_Design[zone.Guid] = zone;
+                }
+            }
+
+            adjacencyCluster_Design = analyticalModel_Design.AdjacencyCluster;
 
             foreach (OverheatingScenario overheatingScenario in overheatingScenarios ?? [])
             {
@@ -223,7 +262,7 @@ namespace SAM.Analytical
                 return;
             }
 
-            Zone zone_Design = analyticalModel_Design.GetZones()?.Find(x => x != null && x.Guid == overheatingScenario.ZoneGuid);
+            dictionary_Zone_Design.TryGetValue(overheatingScenario.ZoneGuid, out Zone zone_Design);
             if (zone_Design == null)
             {
                 refusals.Add(string.Format("The scenario for design zone {0} names a zone the design model does not hold, so the spaces it covers cannot be identified.", overheatingScenario.ZoneGuid));
@@ -244,7 +283,7 @@ namespace SAM.Analytical
                 return;
             }
 
-            List<Space> spaces_Design = analyticalModel_Design.AdjacencyCluster.GetRelatedObjects<Space>(zone_Design);
+            List<Space> spaces_Design = adjacencyCluster_Design.GetRelatedObjects<Space>(zone_Design);
             if (spaces_Design == null || spaces_Design.Count == 0)
             {
                 refusals.Add(string.Format("Design zone '{0}' holds no spaces, so the scenario for it covers nothing.", zone_Design.Name));
