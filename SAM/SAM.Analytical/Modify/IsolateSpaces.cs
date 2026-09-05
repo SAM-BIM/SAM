@@ -169,24 +169,25 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                if (!adjacencyCluster.Internal(panel))
+                //A cut THIS run made - or one the model was handed already carrying.
+                //
+                //The second case is not only re-isolation. AdjacencyCluster.Filter is a public API and
+                //SAMAnalytical.FilterBySpaces calls it on its own: it marks the cut but strips nothing,
+                //because removing a person's openings is not what a geometric filter is for. A model
+                //arriving from that component therefore has cuts that still carry their doors, and on the
+                //second question below no adjacency comparison can find them - they are external on both
+                //sides of it. Counting such a panel and then leaving its door on it would be the worst of
+                //the three outcomes: the disclosure would say the interface was treated as adiabatic while
+                //the derived model still opened onto the omitted space. A carried cut gets the same
+                //treatment as a fresh one, and where its apertures are already gone the work below simply
+                //finds none.
+                //
+                //The carried case is read from PanelParameter.IsolationCut, which Filter wrote when it made
+                //the cut, and NOT from PanelParameter.Adiabatic: that one an import or a person sets too,
+                //and reading it would take an authored adiabatic external wall for an interface to a space
+                //it does not touch, strip the openings it is entitled to keep, and count it in the note.
+                if (!adjacencyCluster.Internal(panel) && !Query.IsolationCut(panel))
                 {
-                    //Not a cut THIS run made - but the model handed in may itself be an isolated model, and
-                    //then its cuts are external on both sides of the comparison above and no adjacency
-                    //question can find them. They are still interfaces to excluded spaces, and the run
-                    //record has to say so: a re-prepared dwelling reporting "0 interface(s) treated as
-                    //adiabatic" over a model carrying them is a false statement about the thermal boundary
-                    //in the evidence for a Part O submission.
-                    //
-                    //Read from PanelParameter.IsolationCut, which Filter wrote when it made the cut, and
-                    //NOT from PanelParameter.Adiabatic: that one an import or a person sets too, and
-                    //counting it would take an authored adiabatic external wall for an interface to a space
-                    //it does not touch. Its apertures are already gone, so nothing is stripped again.
-                    if (Query.IsolationCut(panel))
-                    {
-                        count_Adiabatic++;
-                    }
-
                     continue;
                 }
 
