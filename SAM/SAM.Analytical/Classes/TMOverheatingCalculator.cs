@@ -503,7 +503,119 @@ namespace SAM.Analytical
                 return false;
             }
 
+            //Length agreed and long enough; is every hour of it actually a number? Only where a full year
+            //was asked for - see below for why the answer differs from the ordinary path's.
+            if (HourCount_Expected > 0)
+            {
+                if (!IsUsableSeries(jsonArray_ResultantTemperature, out int index_Unusable))
+                {
+                    RefuseHourlySeries(space, string.Format(
+                        "Space '{0}' carries an unusable value in its '{1}' hourly series at hour {2} - it is absent, not a number, or not finite. The series is the right length, so the hour is missing rather than the file being short, and the room was refused rather than assessed over the hours that survived.",
+                        space?.Name ?? "?",
+                        ResultantTemperatureSeriesKey,
+                        index_Unusable));
+
+                    return false;
+                }
+
+                if (!IsUsableSeries(jsonArray_OccupancySensibleGain, out index_Unusable))
+                {
+                    RefuseHourlySeries(space, string.Format(
+                        "Space '{0}' carries an unusable value in its '{1}' hourly series at hour {2} - it is absent, not a number, or not finite. An hour with NO stated occupancy is not an unoccupied hour: it is an hour nothing is known about, and counting it as empty would quietly shrink the occupied hours a TM59 verdict is measured over.",
+                        space?.Name ?? "?",
+                        OccupancySensibleGainSeriesKey,
+                        index_Unusable));
+
+                    return false;
+                }
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// Whether every value in the series is a finite number, and the first index that is not.
+        ///
+        /// <para><b>Why this is asked only where a full year was requested</b></para>
+        /// <para>
+        /// <see cref="Collect"/> skips an hour whose resultant temperature will not convert or is NaN, and
+        /// treats an occupancy value it cannot read as an unoccupied hour. Both are the right behaviour for
+        /// an ordinary TM52/TM59 run over whatever a caller has: an hour with no data is not evidence of an
+        /// exceedance, and refusing a whole room over one gap would lose an assessment that is substantially
+        /// sound.
+        /// </para>
+        /// <para>
+        /// It is the wrong behaviour for Approved Document O, and silently so, because the criteria are
+        /// COUNTS. A room whose occupancy series has a hundred unreadable hours is assessed over a hundred
+        /// fewer occupied hours than it really has, and the proportion of them it may exceed in shrinks to
+        /// match - so the verdict is computed against a year the building never had, and reads as a normal
+        /// pass. The length check alone does not catch it: the file is exactly the right size.
+        /// </para>
+        /// <para>
+        /// <b>Zero occupancy is a value.</b> An empty hour is stated and usable; what is refused is an hour
+        /// that states nothing - a JSON null, a string, a NaN or an infinity - which is a different fact and
+        /// must not be read as "nobody was in".
+        /// </para>
+        /// </summary>
+        private static bool IsUsableSeries(JsonArray jsonArray, out int index_Unusable)
+        {
+            index_Unusable = -1;
+
+            for (int i = 0; i < jsonArray.Count; i++)
+            {
+                if (!TryGetHourlyValue(jsonArray[i], out double _))
+                {
+                    index_Unusable = i;
+
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// One hour of a series as a usable number, or false - absent, not a number, or not finite.
+        ///
+        /// <para><b>Why the read is guarded rather than direct</b></para>
+        /// <para>
+        /// A <c>JsonArray</c> WILL hold a NaN or an infinity: <c>JsonValue.Create(double.NaN)</c> succeeds
+        /// and so does storing it. Reading it back is what fails - <c>System.Text.Json</c> throws
+        /// <see cref="System.ArgumentException"/> ("cannot be written as valid JSON") from the conversion,
+        /// because it will not serialize the value it is being asked to hand over.
+        /// </para>
+        /// <para>
+        /// So a single unrepresentable hour anywhere in a building threw out of
+        /// <see cref="Calculate_TM59"/> and lost EVERY space's assessment - the same failure the
+        /// shared-range walk in <see cref="Collect"/> was written to avoid, arriving by a different door.
+        /// Caught here, one bad hour costs at most its own room.
+        /// </para>
+        /// <para>
+        /// The rejection is the same either way: <see cref="Collect"/> already skipped an hour whose
+        /// temperature would not convert or was NaN, and this changes none of that - it stops the read
+        /// throwing before the skip can happen. Whether a skipped hour is tolerable at all is the separate
+        /// question <see cref="HourCount_Expected"/> answers.
+        /// </para>
+        /// </summary>
+        private static bool TryGetHourlyValue(JsonNode jsonNode, out double value)
+        {
+            value = double.NaN;
+
+            try
+            {
+                if (!Core.Query.TryConvert(jsonNode, out value))
+                {
+                    return false;
+                }
+            }
+            catch (System.ArgumentException)
+            {
+                value = double.NaN;
+
+                return false;
+            }
+
+            return !double.IsNaN(value) && !double.IsInfinity(value);
         }
 
         /// <summary>
@@ -566,7 +678,10 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                if (!Core.Query.TryConvert(jsonArray_ResultantTemperature[i], out double resultantTemperature) || double.IsNaN(resultantTemperature))
+                //Guarded, because reading a NaN or infinity node THROWS rather than returning false - see
+                //TryGetHourlyValue. An hour that cannot be read is skipped, exactly as an unconvertible or
+                //NaN one always was.
+                if (!TryGetHourlyValue(jsonArray_ResultantTemperature[i], out double resultantTemperature))
                 {
                     continue;
                 }
@@ -584,7 +699,7 @@ namespace SAM.Analytical
                 minAcceptableTemperatures.Add(i, minIndoorComfortTemperature);
                 operativeTemperatures.Add(i, resultantTemperature);
 
-                if (!Core.Query.TryConvert(jsonArray_OccupancySensibleGain[i], out double occupancySensibleGain) || double.IsNaN(occupancySensibleGain))
+                if (!TryGetHourlyValue(jsonArray_OccupancySensibleGain[i], out double occupancySensibleGain))
                 {
                     continue;
                 }

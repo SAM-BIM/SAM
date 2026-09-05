@@ -1,22 +1,158 @@
 # Project Progress
 
 ## Branch
-`perf/partf-bulk-context`, branched from `sow/2026-Q3` at **`366b9c6c`** (the merge of PR #94).
+`fix/2b-correctness-closeout`, branched from `sow/2026-Q3` at **`9a098b95`** (the merge of PR #99).
 
-This branch is **SAM-BIM/SAM#99**.
+This branch is **SAM-BIM/SAM#100**.
 
-**Companion branch in `SAM_UI`: `perf/partf-bulk-context` (SAM-BIM/SAM_UI#86)**, branched from its
-`sow/2026-Q3` at **`75237eb9`**. **Merge order: SAM#99 first** - the SAM_UI branch will not compile without
-`PartFIndex`. `SAM_Tas` and `SAM_Systems` are unchanged.
+**Companion branches: `SAM_Tas` `fix/2b-correctness-closeout` (SAM-BIM/SAM_Tas#48) and `SAM_UI`
+`fix/2b-correctness-closeout` (SAM-BIM/SAM_UI#87).** **Merge order: SAM#100 first** - neither of the others
+compiles without the constructor and the calculator properties added here. `SAM_Systems` is unchanged.
 
-Everything below "Previous: result review, provenance, and two report defects" is superseded history
-retained for context.
+Everything below the entry dated 2026-09-05 is superseded history retained for context.
 
 ## Last updated
-2026-09-04 - Approved Document F bulk aggregation is no longer quadratic in the model. `PartFIndex` is a
-request-scoped snapshot of the model's space identities; the engineering rules are unchanged.
+2026-09-05 - a working model that owns every object in it, a deep clone that fails rather than silently
+sharing, and a TM59 series that must be whole before it may produce a verdict.
 
-## Latest (2026-09-04): Part F large-model scaling - `PartFIndex`
+## Latest (2026-09-05): Iteration 2B correctness closeout - the SAM half
+
+**Status: implemented, tested and measured. Not merged.**
+
+Four findings from an independent DeepSeek V4 Pro Max review of the Iteration 2B production path, plus two
+defects found by Codex review of the first fix. F1/F3 and F4 are SAM's; F2 is SAM_UI's.
+
+### F1 / F3 - the working-copy ownership rule
+
+`new AnalyticalModel(analyticalModel)` and the `AdjacencyCluster` getter rebuild the cluster's dictionaries
+but store **the same** `Space`, `Panel` and `Aperture` instances - `RelationCluster(RelationCluster<X>)`
+copies `dictionary[key] = keyValuePair.Value`.
+
+That is the right default. Every operation in this assembly writes by **same-guid replacement**, and
+`Modify.EvaluateTargetedDesignAirFlows` states exactly that rule at its own boundary and relies on it.
+
+The TAS conversion does not obey it: `SAM.Analytical.Tas.Modify.UpdateIds` reads the live objects out of the
+cluster and stamps zone and building-element identity onto their parameter sets **in place**. So a caller
+that took a copy in order to be free to mutate it - the TAS workflow does, and says so in its own comment -
+was not isolated at all. On the optimisation path that caller is the retained last-valid design, so a round
+that stamped it and then failed left a model disagreeing with its own persisted
+`SimulationResultProvenance.Fingerprint_Model`.
+
+`AnalyticalModel(AnalyticalModel, bool deepClone)` is the authority that establishes:
+
+> A simulation or optimisation working model may be mutated freely, but no caller, retained last-valid
+> model or previously completed run sharing ancestry with it can observe those mutations unless that
+> working model is explicitly adopted.
+
+It is built on the `AdjacencyCluster(AdjacencyCluster, bool deepClone)` constructor that was already here
+rather than a second clone implementation. The shallow copy stays the default so no getter pays for it.
+
+### F1 follow-up (Codex P2) - the deep clone was not deep
+
+`Core.Query.Clone` resolves by reflection - an instance `Clone()`, else a single-argument constructor
+accepting the type, else a parameterless one - and returns null when it finds none. **Constructors are not
+inherited**, so a subclass of a type that has a copy constructor does not have one.
+
+Seven types accepted by `AdjacencyCluster.IsValid` were in exactly that position. The null clone was handed
+to `AddObject`, rejected, and the **original instance left in place** in the dictionary the shallow base
+constructor had already filled - so the "deep" copy silently shared those objects with its source:
+
+`ZoneSimulationResult`, `TM52Result`, `TM59Result`, `TM59CorridorResult`,
+`TM59MechanicalVentilationResult`, `TM59NaturalVentilationResult`, `TM59NaturalVentilationBedroomResult`.
+
+Each now has the same-type copy constructor its base already had. An exhaustive reflection audit over
+**every** concrete type the cluster accepts (60 in this build) asserts a clone path exists for each, so a
+type added later fails in a test rather than in a Part O run. And
+`SAMObjectRelationCluster(..., deepClone: true)` now **throws**, naming the type, rather than falling back
+to sharing: a declared deep clone may not quietly leave the source instance in place.
+
+### F4 - a partial year is refused, not clipped
+
+`TMOverheatingCalculator.Collect` bounded its walk by the **shorter** of the two hourly series. That stopped
+a truncated result throwing out of the whole run - kept - but it also assessed the room over the hours the
+two happened to share and reported the answer as the room's verdict.
+
+A space whose series are absent, empty or of unequal length is now refused with a reason, on
+`HourlySeriesRefusals` / `SpaceGuids_HourlySeriesRefused`, carried through `TM59AssessmentResult`.
+
+Whether an equal-length pair is long enough to be a **year** is a question about the run rather than the
+calculation, so the calculator asks it only where a caller states the answer - `HourCount_Expected`, default
+`0`. Every existing caller (the Grasshopper components, a summer-only TM52 window) is unchanged.
+
+### F4 follow-up (Codex P1) - length is not evidence
+
+Where a full year **is** requested, every hour of both series must be a finite number. `Collect` skips a
+temperature it cannot read and treats an unreadable occupancy value as an unoccupied hour; for Part O that
+is silently wrong, because the criteria are counts - a year with unreadable occupancy is assessed over fewer
+occupied hours than the building has, against a proportionally smaller allowance, and reads as a normal
+pass. **Zero occupancy is a value; an hour that states nothing is not.**
+
+Found while testing it: a `JsonArray` *will* hold a NaN or an infinity, and reading one back **throws**
+`ArgumentException` out of `System.Text.Json`. So a single unrepresentable hour anywhere in a building threw
+out of `Calculate_TM59` and lost every space's assessment. The read is now guarded; one bad hour costs at
+most its own room.
+
+`WeatherData.WeatherYears` returns null rather than throwing on a `WeatherData` built without years - the
+guard its neighbour `WeatherYear.WeatherDays` already has, and what every caller already reads it as.
+
+### Behaviour changes to pinned tests
+
+`AResultantSeriesShorterThanTheOccupancySeries_IsAssessedOverTheSharedRange` asserted the clipping and is
+replaced by `SeriesOfDifferentLengths_AreRefusedRatherThanAssessedOverTheSharedRange`, which keeps the half
+that still holds - nothing throws, the other rooms survive - and reverses the half that was the defect.
+`MissingRequiredSeries_ProducesNoAssessment` explicitly pinned the absence of a diagnostic as "separate
+work"; this is that work.
+
+### Changed files
+
+- `SAM/SAM.Analytical/Classes/AnalyticalModel.cs` - the ownership constructor
+- `SAM/SAM.Core/Classes/Relation/SAMObjectRelationCluster.cs` - deep clone fails rather than shares
+- `SAM/SAM.Analytical/Classes/Result/ZoneSimulationResult.cs` and the six `Result/TM/TM5*.cs` - copy
+  constructors
+- `SAM/SAM.Analytical/Classes/TMOverheatingCalculator.cs` - series refusals, `HourCount_Expected`, the
+  guarded value read
+- `SAM/SAM.Analytical/Classes/TM59AssessmentResult.cs`, `TM59AssessmentCalculator.cs` - carrying the
+  refusals through
+- `SAM/SAM.Weather/Classes/WeatherData.cs` - the null guard
+- `SAM/SAM.Tests/AnalyticalModelWorkingCopyTests.cs`, `AdjacencyClusterDeepCloneTests.cs`,
+  `TMOverheatingCalculatorTests.cs` - the regressions
+
+### Merge order
+
+1. **SAM-BIM/SAM#100** - the ownership constructor, the deep-clone completeness fix, and the TM59 series
+   rules. Nothing else compiles without it.
+2. **SAM-BIM/SAM_Tas#48** - the workflow's owned-model overload. Needs #100.
+3. **SAM-BIM/SAM_UI#87** - the Part O boundaries, the capacity-envelope name, and the full-year authority.
+   Needs #100. Independent of #48 to compile; both are needed for the F1/F3 invariant to hold end to end.
+
+`SAM_Systems` is untouched.
+
+### Validation
+
+| Suite | Result |
+| --- | --- |
+| `SAM.Tests` | 1934 passed, 0 failed |
+| `SAM.Analytical.Tas.TM59.Tests` | 690 passed, 0 failed |
+| `SAM.Analytical.UI.WPF.Tests` | 510 passed, 0 failed |
+
+`SAM.sln`, `SAM_Tas.sln` (MSBuild - COM references) and `SAM_UI.sln` all build with 0 errors.
+`git diff --check` is clean in all three repositories.
+
+Deep-clone cost, measured Release on 5,000 spaces / 30,000 panels: **250.7 ms, 136.8 MB**, against
+36.5 ms / 13.8 MB for the shallow copy. Paid **once** per Part O TAS run.
+
+### Remaining risks and next task
+
+- No licensed TAS run was made. Every invariant here is established by deterministic tests over production
+  code; what is not covered is TAS's own behaviour, which none of these changes touch.
+- `SAM.Weather.Query.RunningMeanDryBulbTemperatures` still throws on a weather year shorter than the one the
+  running mean needs, so a TSD with a damaged weather record fails loudly rather than being refused with a
+  diagnostic. Pre-existing, characterised by test, and a fix reaches wider than Part O.
+- Next: the pre-Iteration-3 list is unchanged - PF3-PF7 and `SetSpaceDesignFlowRate` indexing, the Part O
+  defaults / minimum-click audit, re-isolation, the Grasshopper variable-output updater, catalogue identity
+  drift, final UI acceptance, then freeze Iterations 1-2.
+
+## Previous (2026-09-04): Part F large-model scaling - `PartFIndex`
 
 **Status: root-caused, implemented, tested and measured. Not merged.**
 

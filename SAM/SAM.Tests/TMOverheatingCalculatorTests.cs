@@ -320,6 +320,181 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// <b>The right number of hours is not the same as a year of evidence.</b>
+        /// <para>
+        /// Where a full year is asked for, every hour of BOTH series has to be a finite number. The series
+        /// here are exactly the requested length, so the length check passes - and the room is still
+        /// refused, because <c>Collect</c> would otherwise skip the unreadable temperature and carry on,
+        /// producing a verdict over the hours that happened to survive.
+        /// </para>
+        /// <para>
+        /// The value is a JSON <b>null</b>, which is what a partially written results file actually
+        /// produces, rather than a value forced into a shape the format cannot hold.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AFullYearWithAnAbsentTemperature_IsRefused()
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5, 27.5, 29.0],
+                values_OccupancySensibleGain: [0, 80.0, 80.0, 0]);
+
+            //Hour 2 of the temperature series is present but says nothing.
+            Series(analyticalModel, key_Analytical_ResultantTemperature)[2] = null;
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+            tMOverheatingCalculator.HourCount_Expected = 4;
+
+            Assert.Empty(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+
+            string refusal = Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals);
+            Assert.Contains(key_Analytical_ResultantTemperature, refusal);
+            Assert.Contains("hour 2", refusal);
+        }
+
+        /// <summary>
+        /// The same for occupancy - and this is the one with teeth. <c>Collect</c> reads an unusable
+        /// occupancy value as an unoccupied hour, so a year with unreadable occupancy is assessed over fewer
+        /// occupied hours than the building has, against a proportionally smaller allowance, and reports a
+        /// normal pass.
+        /// </summary>
+        [Fact]
+        public void AFullYearWithAnAbsentOccupancy_IsRefused()
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5, 27.5, 29.0],
+                values_OccupancySensibleGain: [0, 80.0, 80.0, 0]);
+
+            Series(analyticalModel, key_Analytical_OccupancySensibleGain)[1] = null;
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+            tMOverheatingCalculator.HourCount_Expected = 4;
+
+            Assert.Empty(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+
+            string refusal = Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals);
+            Assert.Contains(key_Analytical_OccupancySensibleGain, refusal);
+            Assert.Contains("hour 1", refusal);
+        }
+
+        /// <summary>A value that is present but is not a number at all.</summary>
+        [Fact]
+        public void AFullYearWithANonNumericValue_IsRefused()
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5, 27.5, 29.0],
+                values_OccupancySensibleGain: [0, 80.0, 80.0, 0]);
+
+            Series(analyticalModel, key_Analytical_ResultantTemperature)[3] = JsonValue.Create("n/a");
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+            tMOverheatingCalculator.HourCount_Expected = 4;
+
+            Assert.Empty(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Contains("hour 3", Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals));
+        }
+
+        /// <summary>
+        /// <b>NaN and infinity ARE reachable, and reading one used to throw out of the whole run.</b>
+        /// <para>
+        /// A <c>JsonArray</c> holds them quite happily - <c>JsonValue.Create(double.NaN)</c> succeeds and so
+        /// does storing it. It is the read back that fails: <c>System.Text.Json</c> throws
+        /// <c>ArgumentException</c> from the conversion because it will not serialize the value it is being
+        /// asked to hand over. So one unrepresentable hour anywhere in a building threw out of
+        /// <c>Calculate_TM59</c> and lost EVERY space's assessment - the same failure the shared-range walk
+        /// exists to avoid, arriving by a different door.
+        /// </para>
+        /// <para>
+        /// Now the room is refused and the rest of the building is still assessed.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(double.NegativeInfinity)]
+        public void AFullYearWithAnUnusableNumber_IsRefused(double value)
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5, 27.5, 29.0],
+                values_OccupancySensibleGain: [0, 80.0, 80.0, 0]);
+
+            Series(analyticalModel, key_Analytical_ResultantTemperature)[1] = JsonValue.Create(value);
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+            tMOverheatingCalculator.HourCount_Expected = 4;
+
+            Assert.Empty(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Contains("hour 1", Assert.Single(tMOverheatingCalculator.HourlySeriesRefusals));
+        }
+
+        /// <summary>
+        /// And on the legacy path the same value no longer throws either: the hour is skipped, exactly as an
+        /// unconvertible one always was, and the room is still assessed. That is the pre-existing contract
+        /// restored, not widened - before this, the read threw before the skip could happen.
+        /// </summary>
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        public void AnUnusableNumber_DoesNotThrowOutOfTheWholeRun(double value)
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5, 27.5, 29.0],
+                values_OccupancySensibleGain: [0, 80.0, 80.0, 0]);
+
+            Series(analyticalModel, key_Analytical_ResultantTemperature)[1] = JsonValue.Create(value);
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+
+            Assert.Single(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Empty(tMOverheatingCalculator.HourlySeriesRefusals);
+        }
+
+        /// <summary>
+        /// <b>Zero occupancy is a value, not a gap.</b> A year of genuinely empty hours is complete evidence
+        /// and is assessed; only an hour that states nothing is refused.
+        /// </summary>
+        [Fact]
+        public void AFullYearOfZeroOccupancy_IsAssessed()
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5, 27.5, 29.0],
+                values_OccupancySensibleGain: [0, 0, 0, 0]);
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+            tMOverheatingCalculator.HourCount_Expected = 4;
+
+            Assert.Single(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Empty(tMOverheatingCalculator.HourlySeriesRefusals);
+        }
+
+        /// <summary>
+        /// The legacy path is untouched: with no year requested, an unusable hour is skipped exactly as it
+        /// always was and the room is still assessed. Every existing caller - the Grasshopper components, a
+        /// summer TM52 window - keeps the behaviour it had.
+        /// </summary>
+        [Fact]
+        public void AnUnusableValue_IsStillSkippedWhenNoYearIsRequested()
+        {
+            AnalyticalModel analyticalModel = Model(
+                key_Analytical_OccupancySensibleGain,
+                values_ResultantTemperature: [21.0, 24.5, 27.5, 29.0],
+                values_OccupancySensibleGain: [0, 80.0, 80.0, 0]);
+
+            Series(analyticalModel, key_Analytical_ResultantTemperature)[2] = null;
+
+            TMOverheatingCalculator tMOverheatingCalculator = Calculator(analyticalModel);
+
+            Assert.Single(tMOverheatingCalculator.Calculate_TM59(analyticalModel.GetSpaces()));
+            Assert.Empty(tMOverheatingCalculator.HourlySeriesRefusals);
+        }
+
+        /// <summary>
         /// A series LONGER than the stated year is not short of anything and proceeds - the leap-year
         /// simulation's 8784 hours against a 365-day weather year. Its surplus hours are already excluded
         /// by the comfort-band guard, which
@@ -459,6 +634,17 @@ namespace SAM.Tests
                     result.Add(day, hour, new Dictionary<string, double> { { WeatherDataType.DryBulbTemperature.ToString(), 20.0 } });
                 }
             }
+
+            return result;
+        }
+
+        /// <summary>
+        /// The stored series itself, so a test can damage one hour of it the way a partially written
+        /// results file does - rather than building a series that was never the right shape.
+        /// </summary>
+        private static JsonArray Series(AnalyticalModel analyticalModel, string key)
+        {
+            Assert.True(Core.Query.TryGetValue(analyticalModel.GetSpaces()[0], key, out JsonArray result));
 
             return result;
         }

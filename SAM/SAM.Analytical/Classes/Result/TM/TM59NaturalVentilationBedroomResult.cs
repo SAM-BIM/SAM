@@ -56,6 +56,29 @@ namespace SAM.Analytical
             this.nightHoursNumberExceeding26 = nightHoursNumberExceeding26;
         }
 
+        /// <summary>
+        /// A copy of this result.
+        /// <para>
+        /// Declared here rather than left to the base class's own copy constructor because constructors are
+        /// NOT inherited: <c>Core.Query.Clone</c> reflects over <c>type.GetConstructors()</c>, which returns
+        /// only this type's, so a subclass without one is uncloneable however many its base has. That
+        /// mattered silently - <c>AdjacencyCluster.IsValid</c> accepts this type, and the deep-clone
+        /// constructor <c>AnalyticalModel(AnalyticalModel, bool)</c> replaces each stored object with its
+        /// clone, so a clone that came back null left the ORIGINAL instance in the supposedly owned cluster
+        /// and the two models went on sharing it.
+        /// </para>
+        /// </summary>
+        public TM59NaturalVentilationBedroomResult(TM59NaturalVentilationBedroomResult tM59NaturalVentilationBedroomResult)
+            : base(tM59NaturalVentilationBedroomResult)
+        {
+            if (tM59NaturalVentilationBedroomResult != null)
+            {
+                annualNightOccupiedHours = tM59NaturalVentilationBedroomResult.annualNightOccupiedHours;
+                maxExceedableNightHours = tM59NaturalVentilationBedroomResult.maxExceedableNightHours;
+                nightHoursNumberExceeding26 = tM59NaturalVentilationBedroomResult.nightHoursNumberExceeding26;
+            }
+        }
+
         public int AnnualNightOccupiedHours
         {
             get

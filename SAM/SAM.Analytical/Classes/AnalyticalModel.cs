@@ -155,10 +155,11 @@ namespace SAM.Analytical
         ///
         /// <para><b>What it costs, and where that is acceptable</b></para>
         /// <para>
-        /// A five thousand space, thirty thousand panel model takes roughly a third of a second and about
-        /// 160 MB to clone, against roughly 50 ms and 14 MB for the shallow copy. That is affordable exactly
-        /// once per TAS run - a run that then spends minutes in COM - and nowhere else. It is why the
-        /// shallow copy stays the default: a getter or a UI refresh must never reach this constructor.
+        /// A five thousand space, thirty thousand panel model takes roughly 250 ms and 137 MB to clone,
+        /// against roughly 37 ms and 14 MB for the shallow copy (Release). That is affordable exactly once
+        /// per TAS run - a run that then spends minutes in COM - and nowhere else. It is why the shallow
+        /// copy stays the default: a getter or a UI refresh must never reach this constructor, and the Part
+        /// O path takes exactly ONE of these, in <c>Modify.RunPartOSimulation</c>.
         /// </para>
         /// </summary>
         /// <param name="analyticalModel">The model to copy.</param>
