@@ -25,7 +25,7 @@ namespace SAM.Analytical
         /// </para>
         /// <list type="bullet">
         /// <item><b>selected to selected</b> - two spaces in the derived cluster, so it is left as the ordinary internal partition it is.</item>
-        /// <item><b>selected to excluded</b> - one space in the derived cluster but two in the source, so it is the isolation cut and is marked <c>PanelParameter.Adiabatic</c>.</item>
+        /// <item><b>selected to excluded</b> - one space in the derived cluster but two in the source, so it is the isolation cut and is marked <c>PanelParameter.Adiabatic</c> and <c>PanelParameter.IsolationCut</c>. An air boundary on the cut is additionally re-typed from its normal, because it has nothing left to open onto.</item>
         /// <item><b>selected to outside</b> - one space in both, so it is genuinely external and is left exactly as it is: its type, construction, apertures, orientation and exposure all unchanged.</item>
         /// </list>
         /// <para>
@@ -164,7 +164,29 @@ namespace SAM.Analytical
                 //Asked this way round it also stays right where the two coincide: a source surface that
                 //was already adiabatic AND divides a selected space from an excluded one IS a cut, and
                 //does lose its apertures, because in the derived model it has nothing left to open onto.
-                if (panel is null || !result.External(panel) || !adjacencyCluster.Internal(panel))
+                if (panel is null || !result.External(panel))
+                {
+                    continue;
+                }
+
+                //A cut THIS run made - or one the model was handed already carrying.
+                //
+                //The second case is not only re-isolation. AdjacencyCluster.Filter is a public API and
+                //SAMAnalytical.FilterBySpaces calls it on its own: it marks the cut but strips nothing,
+                //because removing a person's openings is not what a geometric filter is for. A model
+                //arriving from that component therefore has cuts that still carry their doors, and on the
+                //second question below no adjacency comparison can find them - they are external on both
+                //sides of it. Counting such a panel and then leaving its door on it would be the worst of
+                //the three outcomes: the disclosure would say the interface was treated as adiabatic while
+                //the derived model still opened onto the omitted space. A carried cut gets the same
+                //treatment as a fresh one, and where its apertures are already gone the work below simply
+                //finds none.
+                //
+                //The carried case is read from PanelParameter.IsolationCut, which Filter wrote when it made
+                //the cut, and NOT from PanelParameter.Adiabatic: that one an import or a person sets too,
+                //and reading it would take an authored adiabatic external wall for an interface to a space
+                //it does not touch, strip the openings it is entitled to keep, and count it in the note.
+                if (!adjacencyCluster.Internal(panel) && !Query.IsolationCut(panel))
                 {
                     continue;
                 }

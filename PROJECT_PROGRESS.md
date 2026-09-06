@@ -1,20 +1,78 @@
 # Project Progress
 
 ## Branch
-`perf/large-model-lookup-closeout`, branched from `sow/2026-Q3` at **`0ab9834f`** (the merge of PR #100).
+`fix/codex-review-closeout`, branched from `sow/2026-Q3` at **`d5a2b07a`** (the merge of PR #104).
 
-This branch is **SAM-BIM/SAM#101**.
+`SAM_UI`, `SAM_Tas` and `SAM_Systems` are all on `sow/2026-Q3` with clean trees and are untouched by this
+branch.
 
-**Companion branch: `SAM_UI` `perf/large-model-lookup-closeout` (SAM-BIM/SAM_UI#88).** **Merge order:
-SAM#101 first** - the SAM_UI branch is compiled against this assembly. `SAM_Tas` carries a
-documentation-only branch (SAM-BIM/SAM_Tas#49) and `SAM_Systems` is untouched.
-
-Everything below the entry dated 2026-09-05 (large-model lookups) is superseded history retained for
-context.
+Everything below the entry dated 2026-09-05 (Part O closeout) is superseded history retained for context.
 
 ## Last updated
-2026-09-05 (later) - the remaining whole-model lookups inside per-room and per-zone traversals, replaced by
-request-scoped indexes and by the cluster's own O(1) authority. No engineering result moves.
+2026-09-05 (latest) - the Part O closeout merges, and the review findings raised against them.
+
+## Latest (2026-09-05, latest): Part O closeout merged, review findings addressed
+
+**Status: merged, plus one open branch for the review findings. One item HOLD.**
+
+### What is on `sow/2026-Q3`
+
+| PR | subject | merge commit |
+|---|---|---|
+| SAM_UI #89 | Part O Simulate defaults / minimum-click | `6fee4ecf2da709aa4bab132b62375e4e34104979` |
+| SAM #102 | re-isolation / re-cutting correctness | `f982880ac5649790a625603fab53483c8d9e639e` |
+| SAM #104 | catalogue identity - closed as intentionally unsupported | `d5a2b07a537708cfe73e11c56cfc33c1f4dbc66c` |
+| SAM_UI #90 | the 2B resume decision record | `149cb951ffd3f62bb309913146ebeee95fec775d` |
+
+Verified on the merged state, with `SAM.sln` rebuilt in Release first so the deployed SAM `build` folder
+that `SAM_UI` and the TM59 suite compile against carried the merged assemblies:
+
+```
+SAM.sln / SAM_UI.sln (Release)          0 errors
+SAM.Tests                               1993 passed / 0 failed / 0 skipped
+SAM.Analytical.UI.WPF.Tests              554 passed / 0 failed / 0 skipped
+SAM.Analytical.Tas.TM59.Tests             690 passed / 0 failed / 0 skipped
+Grasshopper projects (6, Release)       0 errors; 0 duplicate component GUIDs
+git diff --check                        clean in all four repositories
+```
+
+### HOLD - SAM #103, the Grasshopper variable-output updater
+
+Open, `CLEAN` against the merged branch, **not merged**. Its nine regressions cover
+`Modify.UpdateComponent` and variable-output expansion, and `SAM.Core.Grasshopper.Tests` blocks on Rhino
+initialisation in any non-Rhino session - it hangs rather than skipping, and CI does not run that project.
+**Exact next step: run those nine in a Rhino-enabled environment; merge only if they pass.** Nothing else
+blocks it.
+
+### This branch - the review findings
+
+An automated review raised six findings across #102, #103 and #104. Three were acted on; the rest are
+recorded here with the evidence, so they are not re-raised.
+
+1. **P1, acted on.** `AdjacencyCluster.Filter` is public and `SAMAnalytical.FilterBySpaces` calls it
+   directly: it marks the cut but strips nothing, because taking a person's openings off is not what a
+   geometric filter is for. A model arriving from that component therefore carries cuts that still have
+   their doors, and `IsolateSpaces` counted such a panel as a cut and then skipped the aperture cleanup -
+   the disclosure would have said the interface was treated as adiabatic while the derived model still
+   opened onto the omitted space, and the conversion would have exported that door as an opening to
+   outside. Reproduced before fixing. A carried cut now gets exactly the same treatment as a fresh one.
+   `CutFromFilterBySpaces_StillLosesItsApertures` and `AuthoredAdiabaticWall_KeepsItsAperturesThroughAReIsolation`.
+2. **P2, acted on.** `TheModelStoresTheProductIdentityAndNoCapacity` asserted a null capacity by handing
+   the lookup a null catalogue - which that lookup answers null to whatever the model stores, so the test
+   would have kept passing if capacity ever began to be persisted on the unit. It now reads the unit's own
+   serialized state.
+3. **P1 x3, acted on.** This file was not updated by #102, #103 or #104. It is now.
+4. **P1, already fixed before merge.** Re-typing a constructionless air panel: commit `e2bfcfb7`, in #102's
+   merged head, only replaces a construction where `Query.DefaultConstruction` returns a real one, so an
+   unconfigured default library no longer strips a panel's own fabric. The review read an earlier commit.
+
+Validation on this branch: `SAM.Tests` **1995 passed / 0 failed / 0 skipped**, `SAM.sln` 0 errors,
+`git diff --check` clean.
+
+### Exact next step
+
+Manual Part O UI acceptance over Iterations 1a / 1b / 2 / 2B, against a Rhino/TAS-enabled machine. Do not
+declare the iterations frozen until it has passed. Do not start Iteration 3.
 
 ## Latest (2026-09-05, later): large-model lookup closeout - PF3-PF7 and `SetSpaceDesignFlowRate`
 
@@ -179,9 +237,10 @@ which builds against this assembly - is unchanged at 690 passing.
 
 ### Remaining pre-Iteration-3 list
 
-Part O Sizing / Simulation defaults and the minimum-click workflow; weather / range / output restoration UX;
-resume 2B from a restored run; re-isolation and re-cutting; the Grasshopper variable-output updater;
-catalogue identity drift; final UI acceptance; then freeze Iterations 1-2.
+Superseded - see the 2026-09-05 (latest) entry at the top of this file. Of the list that stood here, the
+Part O defaults / minimum-click workflow, re-isolation and re-cutting, and catalogue identity drift are all
+merged and closed; the Grasshopper variable-output updater is SAM #103 and is HOLD pending a Rhino-enabled
+test run; final UI acceptance is the remaining step before Iterations 1-2 can be frozen.
 
 ## Previous (2026-09-05): Iteration 2B correctness closeout - the SAM half
 
