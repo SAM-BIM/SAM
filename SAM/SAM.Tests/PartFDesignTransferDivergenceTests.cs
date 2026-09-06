@@ -53,16 +53,11 @@ namespace SAM.Tests
         {
             (AnalyticalModel analyticalModel, double partF_Bedroom_Supply_Lps) = PreparedWithPartFBaseline();
 
-            Space space_Bedroom = SpaceByName(analyticalModel.AdjacencyCluster, name_Bedroom);
-
             //Well above the Approved Document F figure - an Approved Document O round headroom, not a
             //rounding difference.
             double designSupply_Lps = partF_Bedroom_Supply_Lps + 87.0;
 
-            analyticalModel.AdjacencyCluster.SetSpaceDesignFlowRate(space_Bedroom, FlowClassification.Supply, designSupply_Lps, out List<string> _, out List<string> refusals_Set);
-            Assert.Empty(refusals_Set);
-
-            PartOIterationPreparation preparation = RePrepare(analyticalModel);
+            PartOIterationPreparation preparation = RePrepare(WithRaisedDesignSupply(analyticalModel, name_Bedroom, designSupply_Lps));
 
             Assert.Null(preparation.Refusal);
 
@@ -95,20 +90,15 @@ namespace SAM.Tests
         {
             (AnalyticalModel analyticalModel, double partF_Bedroom_Supply_Lps) = PreparedWithPartFBaseline();
 
-            Space space_Bedroom = SpaceByName(analyticalModel.AdjacencyCluster, name_Bedroom);
-
             double designSupply_Lps = partF_Bedroom_Supply_Lps + 40.0;
 
-            analyticalModel.AdjacencyCluster.SetSpaceDesignFlowRate(space_Bedroom, FlowClassification.Supply, designSupply_Lps, out List<string> _, out List<string> refusals_Set);
-            Assert.Empty(refusals_Set);
-
-            PartOIterationPreparation preparation = RePrepare(analyticalModel);
+            PartOIterationPreparation preparation = RePrepare(WithRaisedDesignSupply(analyticalModel, name_Bedroom, designSupply_Lps));
             Assert.Null(preparation.Refusal);
 
             AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
 
             Space space_LivingRoom = SpaceByName(adjacencyCluster, name_LivingRoom);
-            space_Bedroom = SpaceByName(adjacencyCluster, name_Bedroom);
+            Space space_Bedroom = SpaceByName(adjacencyCluster, name_Bedroom);
 
             //The star topology's only route out of the bedroom is through the living room.
             double? flow_Lps = adjacencyCluster.DesignTransferFlowRate_Lps(space_Bedroom.Guid, space_LivingRoom.Guid, out Guid guid_From, out Guid guid_To);
@@ -158,12 +148,7 @@ namespace SAM.Tests
         {
             (AnalyticalModel analyticalModel, double partF_Bedroom_Supply_Lps) = PreparedWithPartFBaseline();
 
-            Space space_Bedroom = SpaceByName(analyticalModel.AdjacencyCluster, name_Bedroom);
-
-            analyticalModel.AdjacencyCluster.SetSpaceDesignFlowRate(space_Bedroom, FlowClassification.Supply, partF_Bedroom_Supply_Lps + 200.0, out List<string> _, out List<string> refusals_Set);
-            Assert.Empty(refusals_Set);
-
-            PartOIterationPreparation preparation = RePrepare(analyticalModel);
+            PartOIterationPreparation preparation = RePrepare(WithRaisedDesignSupply(analyticalModel, name_Bedroom, partF_Bedroom_Supply_Lps + 200.0));
             Assert.Null(preparation.Refusal);
 
             //A completely independent Part F calculation, over the SAME (re-prepared) model, must land on
@@ -190,12 +175,7 @@ namespace SAM.Tests
         {
             (AnalyticalModel analyticalModel, double partF_Bedroom_Supply_Lps) = PreparedWithPartFBaseline();
 
-            Space space_Bedroom = SpaceByName(analyticalModel.AdjacencyCluster, name_Bedroom);
-
-            analyticalModel.AdjacencyCluster.SetSpaceDesignFlowRate(space_Bedroom, FlowClassification.Supply, partF_Bedroom_Supply_Lps + 50.0, out List<string> _, out List<string> refusals_Set);
-            Assert.Empty(refusals_Set);
-
-            PartOIterationPreparation preparation = RePrepare(analyticalModel);
+            PartOIterationPreparation preparation = RePrepare(WithRaisedDesignSupply(analyticalModel, name_Bedroom, partF_Bedroom_Supply_Lps + 50.0));
             Assert.Null(preparation.Refusal);
 
             int count = preparation.AnalyticalModel.AdjacencyCluster.GetObjects<SpaceAirMovement>().Count;
@@ -215,6 +195,42 @@ namespace SAM.Tests
         // =================================================================================================
         // Fixture
         // =================================================================================================
+
+        /// <summary>
+        /// The model with one room's design supply duty raised to <paramref name="designSupply_Lps"/> and
+        /// the dwelling rebalanced around it - the same transaction an Approved Document O round performs.
+        /// <para>
+        /// <b>Why the targeted transaction, and not <c>Modify.SetSpaceDesignFlowRate</c>.</b> The primitive
+        /// writes exactly the terminal it is told to and rebalances nothing, so raising a bedroom's supply
+        /// through it alone leaves the dwelling gaining air it never loses - which
+        /// <c>Modify.PreparePartOIteration</c>'s conservation check rightly refuses, as
+        /// <c>PartOVentilationUnitSelectionTests.ASupplyOnlyDesignChange_RefusesRatherThanUnbalancingTheDwelling</c>
+        /// already pins. A test that raised a duty that way would be measuring an invalid design, not a
+        /// raised one. <see cref="Modify.ApplyTargetedDesignAirFlow"/> is the operation Approved Document O
+        /// optimisation is actually built on: it raises the targeted room and derives the matching extract
+        /// in one all-or-nothing step, leaving a dwelling that still balances at the new magnitude.
+        /// </para>
+        /// <para>
+        /// <b>Why this hands a model back rather than writing in place.</b>
+        /// <see cref="AnalyticalModel.AdjacencyCluster"/> returns a fresh copy on every read, so writing to
+        /// <c>analyticalModel.AdjacencyCluster</c> inline mutates a throwaway that is never put back - the
+        /// raise would silently never reach the model, and every assertion resting on it would quietly
+        /// re-measure the Approved Document F baseline it started from. The cluster is taken once, written
+        /// once and put back once, exactly as <c>Modify.PrepareBaseMVHR</c> does for the same reason.
+        /// </para>
+        /// </summary>
+        private static AnalyticalModel WithRaisedDesignSupply(AnalyticalModel analyticalModel, string spaceName, double designSupply_Lps)
+        {
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+
+            DwellingDesignAirFlowChange dwellingDesignAirFlowChange = adjacencyCluster.ApplyTargetedDesignAirFlow(SpaceByName(adjacencyCluster, spaceName), FlowClassification.Supply, designSupply_Lps);
+
+            Assert.NotNull(dwellingDesignAirFlowChange);
+            Assert.Empty(dwellingDesignAirFlowChange.Refusals);
+            Assert.True(dwellingDesignAirFlowChange.Successful);
+
+            return new AnalyticalModel(analyticalModel, adjacencyCluster);
+        }
 
         private static double OutwardTransferTotal_Lps(AdjacencyCluster adjacencyCluster, string spaceName)
         {
