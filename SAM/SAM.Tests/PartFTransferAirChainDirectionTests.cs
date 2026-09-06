@@ -10,17 +10,26 @@ using Xunit;
 namespace SAM.Tests
 {
     /// <summary>
-    /// <b>Native acceptance found both the Part F and Design transfer-air arrows pointing the wrong way in
-    /// a straight three-room chain</b> - a supplied room, an unserved room air only passes through, and an
-    /// extracted room, e.g. Living Room (supply) -&gt; Bedroom (pass-through) -&gt; Bathroom (extract).
+    /// <b>A native acceptance screenshot raised a concern</b> that both the Part F and Design transfer-air
+    /// arrows might be pointing the wrong way in a straight three-room chain - a supplied room, a
+    /// pass-through room, and an extracted room. That screenshot was traced to an invalid throwaway
+    /// fixture (an unbalanced Design duty with no confirmed pass-through room) and cannot be read as
+    /// evidence of a direction defect either way - see <c>transfer-air-direction-acceptance</c> in the
+    /// project's own notes.
     /// <para>
-    /// Every existing transfer-air fixture (<see cref="PartFTransferAirRealizationTests"/>,
-    /// <see cref="PartFTransferAirDwellingScopeTests"/>) wires its rooms through
-    /// <c>Helpers.DwellingPartitions.Star</c> - every room adjacent to one hub, never to another non-hub
-    /// room. That topology can never produce a connection whose Upstream space is itself the Downstream
-    /// space of another connection, which is exactly the shape of a genuine chain and exactly the shape in
-    /// the screenshot. This fixture is a straight line instead, so a direction defect that only shows up
-    /// over two hops in series has somewhere to fail.
+    /// What the investigation DID find real: every existing transfer-air fixture
+    /// (<see cref="PartFTransferAirRealizationTests"/>, <see cref="PartFTransferAirDwellingScopeTests"/>)
+    /// wires its rooms through <c>Helpers.DwellingPartitions.Star</c> - every room adjacent to one hub,
+    /// never to another non-hub room. That topology can never produce a connection whose Upstream space is
+    /// itself the Downstream space of another connection, which is exactly the shape of a genuine chain and
+    /// exactly the shape the screenshot's fixture was trying, and failing, to build. This fixture is a
+    /// straight line instead, built from nothing but terminal duties and the production solve, so a
+    /// direction defect that only shows up over two hops in series has somewhere real to fail.
+    /// </para>
+    /// <para>
+    /// The middle room is named <c>Hall</c> deliberately: Approved Document F's own rule set classifies a
+    /// hall as <c>Category: Transfer</c>, <c>IsTerminalSpace: false</c> - a genuine pass-through, confirmed
+    /// below from the CALCULATED state rather than assumed from the room's name.
     /// </para>
     /// </summary>
     [Collection("SAM.Analytical.ActiveSetting default Part F data")]
@@ -28,7 +37,7 @@ namespace SAM.Tests
     {
         private const string name_Supply = "Living Room";
 
-        private const string name_Through = "Bedroom 1";
+        private const string name_Through = "Hall";
 
         private const string name_Extract = "Bathroom";
 
@@ -46,6 +55,11 @@ namespace SAM.Tests
             Space space_Extract = SpaceByName(adjacencyCluster, name_Extract);
 
             PartFComplianceResult complianceResult = ComplianceResult(partFCalculator, space_Supply);
+
+            //The pass-through claim, proved from the CALCULATED state rather than assumed from the room's
+            //name: Hall carries no Part F terminal requirement of its own, so every litre it moves is
+            //transfer air passing through it, never air it is itself the source or sink for.
+            Assert.DoesNotContain(complianceResult.Terminals ?? [], x => x.SpaceGuid == space_Through.Guid);
 
             PartFDoorTransferData leg_1 = Leg(complianceResult, space_Supply, space_Through);
             PartFDoorTransferData leg_2 = Leg(complianceResult, space_Through, space_Extract);
@@ -75,6 +89,12 @@ namespace SAM.Tests
             Space space_Supply = SpaceByName(adjacencyCluster, name_Supply);
             Space space_Through = SpaceByName(adjacencyCluster, name_Through);
             Space space_Extract = SpaceByName(adjacencyCluster, name_Extract);
+
+            //The Design authority's own pass-through proof: Hall carries no Design supply or extract
+            //terminal, in either direction - confirmed from the prepared model, not assumed.
+            List<VentilationTerminal> ventilationTerminals_Through = adjacencyCluster.VentilationTerminals(space_Through);
+            Assert.Null(Analytical.Query.VentilationTerminalDesignDuty_Lps(ventilationTerminals_Through, FlowClassification.Supply));
+            Assert.Null(Analytical.Query.VentilationTerminalDesignDuty_Lps(ventilationTerminals_Through, FlowClassification.Extract));
 
             //PreparePartOIteration has already realized the transfer-air SpaceAirMovements onto this
             //adjacencyCluster (see PartFTransferAirRealizationTests) - nothing more to add here.
@@ -182,11 +202,11 @@ namespace SAM.Tests
         }
 
         /// <summary>
-        /// A straight chain, not a star: Living Room (supplied, not extracted) is adjacent only to Bedroom
-        /// 1 (no terminal at all - air only passes through it), which is adjacent only to Bathroom
-        /// (extracted, not supplied). Living Room and Bathroom share no partition of their own, so the only
-        /// route between them crosses two connections in series - the one topology a hub-and-spoke fixture
-        /// can never produce.
+        /// A straight chain, not a star: Living Room (supplied, not extracted) is adjacent only to Hall (a
+        /// circulation space Approved Document F gives no terminal to - see the class summary), which is
+        /// adjacent only to Bathroom (extracted, not supplied). Living Room and Bathroom share no partition
+        /// of their own, so the only route between them crosses two connections in series - the one
+        /// topology a hub-and-spoke fixture can never produce.
         /// </summary>
         private static (AnalyticalModel, PartFCalculator) Model()
         {
