@@ -9,6 +9,27 @@ namespace SAM.Analytical
     public static partial class Query
     {
         /// <summary>
+        /// One space-to-space <see cref="SpaceAirMovement"/> together with the two space <see cref="Guid"/>s
+        /// <see cref="DesignTransferSpaceAirMovements"/> already resolved its
+        /// <see cref="SpaceAirMovement.From"/>/<see cref="SpaceAirMovement.To"/> to.
+        /// <see cref="DesignTransferFlowRate_Lps"/> reads <see cref="FromGuid"/>/<see cref="ToGuid"/>
+        /// straight off this rather than resolving the same two endpoints a second time.
+        /// </summary>
+        public readonly struct DesignTransferAirMovement
+        {
+            public SpaceAirMovement SpaceAirMovement { get; }
+            public Guid FromGuid { get; }
+            public Guid ToGuid { get; }
+
+            public DesignTransferAirMovement(SpaceAirMovement spaceAirMovement, Guid fromGuid, Guid toGuid)
+            {
+                SpaceAirMovement = spaceAirMovement;
+                FromGuid = fromGuid;
+                ToGuid = toGuid;
+            }
+        }
+
+        /// <summary>
         /// Every space-to-space <see cref="SpaceAirMovement"/> in the model, keyed by the two spaces it
         /// connects - so a caller that needs many of them (a floor-plan overlay, one lookup per internal
         /// route) reads the model once rather than once per route.
@@ -34,6 +55,14 @@ namespace SAM.Analytical
         /// as <see cref="VentilationTerminalDesignDuty_Lps"/> reads design terminals without recomputing
         /// them.
         /// </para>
+        /// <para>
+        /// <b>O(spaces + movements), not O(spaces &#215; movements).</b> Every space is indexed once into a
+        /// <c>Dictionary&lt;Guid, Space&gt;</c> up front, and each movement's two endpoints are then resolved
+        /// against that index rather than through <c>AdjacencyCluster.GetObjects&lt;T&gt;(ObjectReference)</c>'s
+        /// per-call scan of every object of the endpoint's type - the scan a caller resolving many routes (a
+        /// floor-plan overlay, one lookup per connection) used to pay again for every route, which is what
+        /// made the whole query quadratic in the number of spaces.
+        /// </para>
         /// </summary>
         /// <param name="adjacencyCluster">The model.</param>
         /// <returns>
@@ -42,13 +71,22 @@ namespace SAM.Analytical
         /// with no <see cref="SpaceAirMovement"/> between them - because the design does not need to
         /// transfer air across that connection - is simply absent, never a zero-flow entry.
         /// </returns>
-        public static Dictionary<(Guid, Guid), SpaceAirMovement> DesignTransferSpaceAirMovements(this AdjacencyCluster adjacencyCluster)
+        public static Dictionary<(Guid, Guid), DesignTransferAirMovement> DesignTransferSpaceAirMovements(this AdjacencyCluster adjacencyCluster)
         {
-            Dictionary<(Guid, Guid), SpaceAirMovement> result = [];
+            Dictionary<(Guid, Guid), DesignTransferAirMovement> result = [];
 
             if (adjacencyCluster is null)
             {
                 return result;
+            }
+
+            Dictionary<Guid, Space> dictionary_Space = [];
+            foreach (Space space in adjacencyCluster.GetSpaces() ?? [])
+            {
+                if (space is not null)
+                {
+                    dictionary_Space[space.Guid] = space;
+                }
             }
 
             foreach (SpaceAirMovement spaceAirMovement in adjacencyCluster.GetObjects<SpaceAirMovement>() ?? [])
@@ -58,16 +96,43 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                if (adjacencyCluster.AirMovementEndpoint(spaceAirMovement.From) is not Space space_From
-                    || adjacencyCluster.AirMovementEndpoint(spaceAirMovement.To) is not Space space_To)
+                Guid? guid_From = SpaceGuid(dictionary_Space, spaceAirMovement.From);
+                Guid? guid_To = SpaceGuid(dictionary_Space, spaceAirMovement.To);
+
+                if (guid_From is null || guid_To is null)
                 {
                     continue;
                 }
 
-                result[Key(space_From.Guid, space_To.Guid)] = spaceAirMovement;
+                result[Key(guid_From.Value, guid_To.Value)] = new DesignTransferAirMovement(spaceAirMovement, guid_From.Value, guid_To.Value);
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// The space <see cref="Guid"/> an air movement endpoint reference names, indexed against a
+        /// <c>Dictionary&lt;Guid, Space&gt;</c> already built for the whole model - an O(1) lookup, unlike
+        /// <see cref="AirMovementEndpoint"/>, which resolves generically against every endpoint type and so
+        /// scans every object of the reference's type on each call. Null where the reference names nothing
+        /// (outside), or names something that is not one of this model's spaces (an
+        /// <see cref="AirHandlingUnit"/> leg, or a reference no space in <paramref name="dictionary_Space"/>
+        /// answers to).
+        /// </summary>
+        private static Guid? SpaceGuid(Dictionary<Guid, Space> dictionary_Space, string reference)
+        {
+            if (string.IsNullOrWhiteSpace(reference))
+            {
+                return null;
+            }
+
+            Core.ObjectReference objectReference = Core.Convert.ComplexReference<Core.ObjectReference>(reference);
+            if (objectReference is null || !Guid.TryParse(objectReference.Reference?.ToString(), out Guid guid))
+            {
+                return null;
+            }
+
+            return dictionary_Space.ContainsKey(guid) ? guid : null;
         }
 
         /// <summary>
@@ -84,11 +149,12 @@ namespace SAM.Analytical
         /// <param name="spaceGuid_To">The space the design air actually arrives at. <see cref="Guid.Empty"/> where none is found.</param>
         /// <param name="dictionary_SpaceAirMovement">
         /// A dictionary already built by <see cref="DesignTransferSpaceAirMovements"/>, so a caller looking
-        /// up many routes reads the model once rather than once per route. Built fresh where null - the
-        /// convenience overload for a single lookup.
+        /// up many routes reads the model once rather than once per route - and each route's endpoints,
+        /// already resolved when that dictionary was built, are never re-resolved here. Built fresh where
+        /// null - the convenience overload for a single lookup.
         /// </param>
         /// <returns>The magnitude [l/s], always non-negative - direction is carried by the out parameters, never by the sign.</returns>
-        public static double? DesignTransferFlowRate_Lps(this AdjacencyCluster adjacencyCluster, Guid spaceGuid_1, Guid spaceGuid_2, out Guid spaceGuid_From, out Guid spaceGuid_To, Dictionary<(Guid, Guid), SpaceAirMovement> dictionary_SpaceAirMovement = null)
+        public static double? DesignTransferFlowRate_Lps(this AdjacencyCluster adjacencyCluster, Guid spaceGuid_1, Guid spaceGuid_2, out Guid spaceGuid_From, out Guid spaceGuid_To, Dictionary<(Guid, Guid), DesignTransferAirMovement> dictionary_SpaceAirMovement = null)
         {
             spaceGuid_From = Guid.Empty;
             spaceGuid_To = Guid.Empty;
@@ -98,26 +164,20 @@ namespace SAM.Analytical
                 return null;
             }
 
-            Dictionary<(Guid, Guid), SpaceAirMovement> dictionary = dictionary_SpaceAirMovement ?? adjacencyCluster.DesignTransferSpaceAirMovements();
+            Dictionary<(Guid, Guid), DesignTransferAirMovement> dictionary = dictionary_SpaceAirMovement ?? adjacencyCluster.DesignTransferSpaceAirMovements();
 
-            if (!dictionary.TryGetValue(Key(spaceGuid_1, spaceGuid_2), out SpaceAirMovement spaceAirMovement) || spaceAirMovement is null)
+            if (!dictionary.TryGetValue(Key(spaceGuid_1, spaceGuid_2), out DesignTransferAirMovement designTransferAirMovement) || designTransferAirMovement.SpaceAirMovement is null)
             {
                 return null;
             }
 
-            if (adjacencyCluster.AirMovementEndpoint(spaceAirMovement.From) is not Space space_From
-                || adjacencyCluster.AirMovementEndpoint(spaceAirMovement.To) is not Space space_To)
-            {
-                return null;
-            }
-
-            spaceGuid_From = space_From.Guid;
-            spaceGuid_To = space_To.Guid;
+            spaceGuid_From = designTransferAirMovement.FromGuid;
+            spaceGuid_To = designTransferAirMovement.ToGuid;
 
             //SpaceAirMovement.AirFlow [m3/s] -> l/s. Always positive: SpaceAirMovement is already written in
             //the direction the air actually travels - see Modify.AddPartFTransferAirMovements - so there is
             //no sign left to carry; the out parameters say which way it goes.
-            return spaceAirMovement.AirFlow * 1000.0;
+            return designTransferAirMovement.SpaceAirMovement.AirFlow * 1000.0;
         }
 
         /// <summary>The two spaces' guids, ordered so the same pair always produces the same key.</summary>
