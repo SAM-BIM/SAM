@@ -9,6 +9,37 @@ for the same closeout - see the *Latest* entry - and none of them is a build dep
 Everything below the *Latest* entry is superseded history retained for context, and its forward-looking
 claims (branch names, "next step" lists) are historical rather than current.
 
+## XBC15 CLOSEOUT COMPLETE - READY FOR FINAL EQUIPMENT-SELECTION UX
+
+Merged into `sow/2026-Q3` on 2026-09-07, in dependency order, after native Iteration 2 acceptance PASSED:
+
+| Repository | PR | Merge commit | `sow/2026-Q3` head |
+| --- | --- | --- | --- |
+| `SAM_Systems` | #19 | `61cedcf52f78ef4b029a5f6ef9980759ab329b9e` | `61cedcf52f78ef4b029a5f6ef9980759ab329b9e` |
+| `SAM` | #109 | `a08c9df7c1a1513a61e17618539e037c8e6bf75c` | `a08c9df7c1a1513a61e17618539e037c8e6bf75c` |
+| `SAM_UI` | #97 | `ec0d0f624c066719e219bbf2e5e30e392aaf07f0` | `ec0d0f624c066719e219bbf2e5e30e392aaf07f0` |
+| `SAM_Tas` | - | untouched | `ec7f50543e123f8a734b6e27b2b16c0cf1f1edde` |
+
+Post-merge verification on those exact heads, rebuilt in dependency order `SAM` -> `SAM_Systems` -> `SAM_UI`:
+
+```text
+SAM.sln / SAM_Systems.sln / SAM_UI.sln Release   0 errors each
+SAM.Tests                                        2024 / 2024
+SAM.Analytical.Systems.Tests                       90 /   90
+SAM.Analytical.UI.WPF.Tests                       645 /  645
+git diff --check (all four repositories)         clean
+```
+
+The catalogue deploys with both products: the installed copy at
+`%APPDATA%\SAM\resources\Analytical\Systems\VentilationUnit\VentilationUnitCatalogue.JSON` is
+byte-identical to the merged repository copy and carries `MRXBOXAB-ECO5-AECV` (150/150 l/s) and `XBC15`
+(190/190 l/s). That is also what proves the "skip where the catalogue is not installed" guard in
+`PartOPresentationTests` does not trip on this machine, so the two-product assertions really ran.
+
+**Nothing is FROZEN.** Iterations 1a / 1b / 2 / 2B are deliberately not marked frozen: the freeze gate is
+the equipment-selection UX task that follows - allowed product pool, convert-to-manual, per-dwelling manual
+assignment - which adds the very product-list surface the native Iteration 2 check could not exercise.
+
 ## Latest (2026-09-07): the real 150 -> 190 l/s selection ladder, and the Iteration 2B closeout
 
 **Status: implemented, tested, and natively accepted.**
