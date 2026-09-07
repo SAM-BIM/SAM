@@ -3,7 +3,6 @@
 
 using Grasshopper.Kernel;
 using System;
-using System.Linq;
 
 namespace SAM.Core.Grasshopper
 {
@@ -40,26 +39,21 @@ namespace SAM.Core.Grasshopper
                             break;
                         }
 
-                        if (!(persistentData is System.Collections.IEnumerable enumerable))
+                        //A freshly-constructed replacement can already carry its own baked-in default
+                        //persistent data (e.g. a param whose registration calls SetPersistentData(...)),
+                        //so appending the old param's values one at a time (AddPersistentData(T), looped)
+                        //would double up: defaults, then the old values, instead of just the old values.
+                        //SetPersistentData(GH_Structure<T>) replaces the target's tree wholesale - correct
+                        //regardless of what the replacement started with, and it hands over the old
+                        //param's branch structure intact rather than flattening it through repeated
+                        //single-item adds.
+                        System.Reflection.MethodInfo setMethod = type.GetMethod("SetPersistentData", new[] { persistentData.GetType() });
+                        if (setMethod == null)
                         {
                             break;
                         }
 
-                        //GH_PersistentParam<T> declares AddPersistentData(T) AND AddPersistentData(object),
-                        //so an unqualified GetMethod("AddPersistentData") is ambiguous (AmbiguousMatchException)
-                        //and was being swallowed whole by the catch below - copying nothing, silently, every time.
-                        //Naming the parameter type (the generic argument, T) picks the single matching overload.
-                        Type gooType = type.GetGenericArguments().FirstOrDefault();
-                        System.Reflection.MethodInfo addMethod = gooType == null ? null : type.GetMethod("AddPersistentData", new[] { gooType });
-                        if (addMethod == null)
-                        {
-                            break;
-                        }
-
-                        foreach (object item in enumerable)
-                        {
-                            addMethod.Invoke(newParam, new[] { item });
-                        }
+                        setMethod.Invoke(newParam, new[] { persistentData });
                         break;
                     }
                     type = type.BaseType;

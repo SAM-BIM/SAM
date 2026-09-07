@@ -48,6 +48,36 @@ namespace SAM.Core.Grasshopper.Tests
         }
     }
 
+    /// <summary>A fixed-output component whose default input bakes in its own persistent data at registration,
+    /// the way <c>SAMAnalyticalCreateCaseByApertureByAzimuths</c>'s "_ratios" does.</summary>
+    public class TestDefaultPersistentDataComponent : TestComponentBase
+    {
+        public override Guid ComponentGuid => new Guid("d4e5f6a7-8b9c-4d3e-9f1a-2b3c4d5e6f70");
+
+        public override string LatestComponentVersion => "1.0.0";
+
+        public TestDefaultPersistentDataComponent()
+            : base("TestDefaultPersistentData", "TestDefaultPersistentData", "Test component whose default input ships with its own baked-in persistent data", "SAM", "Test")
+        {
+        }
+
+        protected override void RegisterInputParams(GH_InputParamManager manager)
+        {
+            Param_Number ratios = new Param_Number { Name = "ratios", NickName = "ratios", Description = "ratios", Access = GH_ParamAccess.list, Optional = true };
+            ratios.SetPersistentData(0.15, 0.2, 0.25, 0.2);
+            manager.AddParameter(ratios);
+        }
+
+        protected override void RegisterOutputParams(GH_OutputParamManager manager)
+        {
+            manager.AddParameter(new Param_String { Name = "x", NickName = "x", Description = "x", Access = GH_ParamAccess.item });
+        }
+
+        protected override void SolveInstance(IGH_DataAccess dataAccess)
+        {
+        }
+    }
+
     public class TestFailingComponent : TestComponentBase
     {
         public static bool ThrowOnConstruct;

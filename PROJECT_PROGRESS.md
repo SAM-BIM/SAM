@@ -9,9 +9,91 @@ branch.
 Everything below the entry dated 2026-09-05 (Part O closeout) is superseded history retained for context.
 
 ## Last updated
-2026-09-05 (latest) - the Part O closeout merges, and the review findings raised against them.
+2026-09-07 - SAM #103 (Grasshopper variable-output updater): the Rhino-enabled regression run is
+done, the HOLD is resolved, ready for final human review. Not merged - do not merge automatically.
 
-## Latest (2026-09-05, latest): Part O closeout merged, review findings addressed
+## Latest (2026-09-07): SAM #103 - Rhino-hosted GH test harness, regression run, two production fixes
+
+**Status: ready for review, HOLD lifted. Not merged.** Branch `fix/gh-variable-output-updater`,
+pushed. This closes out the "HOLD - SAM #103" item recorded below on 2026-09-05: the Grasshopper
+tests could not run outside a Rhino-enabled environment before this; they now do, for real.
+
+### The harness: `SAM.Core.Grasshopper.Tests` converted from xUnit to NUnit + Rhino.Testing
+
+The previous xUnit + hand-rolled NuGet-cache assembly resolver never initialized Rhino's native
+runtime, so any test touching `GH_Document` hung `dotnet test` instead of skipping. Converted to
+NUnit + McNeel's `Rhino.Testing` package, which hosts a real headless Rhino 8 + Grasshopper
+runtime in-process (`Rhino.Runtime.InProcess.RhinoCore`, configured by
+`Grasshopper/SAM.Core.Grasshopper.Tests/Rhino.Testing.Configs.xml`, pointing at the installed
+`C:\Program Files\Rhino 8\System`). Requires Rhino 8 actually installed on the machine running the
+tests; CI (`.github/workflows/test.yml`) still runs only `SAM/SAM.Tests` and does not cover this
+project.
+
+Every test method body is unchanged: `XunitCompatAssert.cs` is an xUnit-shaped `Assert`/`Skip`
+surface backed by NUnit, in the same namespace as the tests, so unqualified `Assert`/`Skip` calls
+resolve there rather than to `NUnit.Framework.Assert` - only `using`s and
+`[Fact]`/`[SkippableFact]` → `[Test]` attributes changed. Verified 1:1: same 44 test method names,
+same per-file counts, before and after.
+
+Test-fixture helper classes that derive from Grasshopper base types (`TestUpdatableComponent`,
+`TestVariableOutputComponent`, `TestDocument`, ...) moved to a new sibling project,
+`Grasshopper/SAM.Core.Grasshopper.Tests.Fixtures`. NUnit's test discovery enumerates every type in
+the discovered assembly before any `[SetUpFixture]` runs, so those classes needed Grasshopper.dll
+resolvable just to be discovered - before Rhino.Testing ever got a chance to host it. Kept out of
+the discovered assembly, they're only touched from inside a running `[Test]`, after Rhino is up. A
+`[ModuleInitializer]` bootstrap does **not** fix this - it does not run early enough to precede the
+NUnit engine's own type enumeration of the assembly; this was tried and empirically failed before
+the project-split was found.
+
+**Result: all 44 tests pass for real (0 skipped)** - required: `VariableOutputUpdateTests` 9/9,
+`ManualReconnectionTests` 11/11, `MissingConnectionsTests` 11/11 (31/31); full suite adds
+`SAMCoreUpdateContractTests` 5/5, `TryGetSAMGeometriesTests` 8/8 (44/44).
+
+### Two production defects the real run surfaced (both invisible while tests only skipped)
+
+1. **`Modify.CopyPersistentData` reflection was ambiguous, so it copied nothing.**
+   `GH_PersistentParam<T>` declares both `AddPersistentData(T)` and `AddPersistentData(object)`, so
+   the unqualified `type.GetMethod("AddPersistentData")` always threw `AmbiguousMatchException`,
+   silently swallowed by the surrounding best-effort `catch`. Persistent data was never actually
+   copied onto a replacement parameter during a component update.
+2. **Codex P1, found on this branch's own fix.** The first fix for #1 resolved the ambiguity by
+   naming the parameter type and looping `AddPersistentData(item)` per item - but a component whose
+   *default* input already ships with baked-in persistent data (e.g.
+   `SAMAnalyticalCreateCaseByApertureByAzimuths`'s `_ratios`, `SetPersistentData(0.15, 0.2, 0.25,
+   0.2)` at registration) gets a **freshly-constructed replacement parameter that already carries
+   those same defaults**. Appending the old parameter's values onto that instead of replacing it
+   doubles up: 4 baked-in defaults + N authored values, not N. Fixed properly by reflecting
+   `GH_PersistentParam<T>.SetPersistentData(GH_Structure<T>)` and handing over the old parameter's
+   whole `PersistentData` tree in one call - replaces wholesale (defaults and all) and preserves
+   branch/tree structure, rather than flattening it through repeated single-item `Add` calls.
+
+Both fixes are in `Grasshopper/SAM.Core.Grasshopper/Modify/CopyPersistentData.cs`, each a handful
+of lines. A new regression test exercises exactly the Codex-flagged scenario (default input with
+baked-in persistent data, updated to a different authored value set, asserting the replacement
+carries exactly the authored values - not defaults-plus-authored).
+
+### Files changed
+
+`Grasshopper/SAM.Core.Grasshopper.Tests/*` (converted to NUnit, `GrasshopperTestSetup.cs`,
+`XunitCompatAssert.cs`, `Rhino.Testing.Configs.xml` new; `GrasshopperTestAssembly.cs` removed);
+new project `Grasshopper/SAM.Core.Grasshopper.Tests.Fixtures/*`;
+`Grasshopper/SAM.Core.Grasshopper/Modify/CopyPersistentData.cs`.
+
+### Validation
+
+```
+SAM.Core.Grasshopper.Tests (Release)     44 passed / 0 failed / 0 skipped
+SAM.sln (Release)                        0 errors, all 21 projects
+SAM/SAM.Tests (Release)                  2017 passed / 0 failed
+git diff --check                        clean
+```
+
+### Exact next step
+
+Human final review of PR #103 (already updated: HOLD warning removed, harness and both defects
+recorded). Merge only after that review; do not merge automatically.
+
+## Previous (2026-09-05, latest): Part O closeout merged, review findings addressed
 
 **Status: merged, plus one open branch for the review findings. One item HOLD.**
 
@@ -38,11 +120,9 @@ git diff --check                        clean in all four repositories
 
 ### HOLD - SAM #103, the Grasshopper variable-output updater
 
-Open, `CLEAN` against the merged branch, **not merged**. Its nine regressions cover
-`Modify.UpdateComponent` and variable-output expansion, and `SAM.Core.Grasshopper.Tests` blocks on Rhino
-initialisation in any non-Rhino session - it hangs rather than skipping, and CI does not run that project.
-**Exact next step: run those nine in a Rhino-enabled environment; merge only if they pass.** Nothing else
-blocks it.
+**Resolved 2026-09-07 - see the entry at the top of this file.** The Rhino-enabled run this section
+called for is done (44/44 passing, 0 skipped), and it surfaced a real second defect in
+`CopyPersistentData` beyond the original nine regressions. HOLD lifted; ready for human review.
 
 ### This branch - the review findings
 
