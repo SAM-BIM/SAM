@@ -1,18 +1,120 @@
 # Project Progress
 
 ## Branch
-`fix/codex-review-closeout`, branched from `sow/2026-Q3` at **`d5a2b07a`** (the merge of PR #104).
+`test/parto-real-selection-ladder`, branched from `sow/2026-Q3` at **`c980d4c`** (the merge of PR #103).
 
-`SAM_UI`, `SAM_Tas` and `SAM_Systems` are all on `sow/2026-Q3` with clean trees and are untouched by this
-branch.
+**Tests only.** No production code changed. `SAM_UI`, `SAM_Tas` and `SAM_Systems` are on their own branches
+for the same closeout - see the *Latest* entry - and none of them is a build dependency of this one.
 
-Everything below the entry dated 2026-09-05 (Part O closeout) is superseded history retained for context.
+Everything below the *Latest* entry is superseded history retained for context, and its forward-looking
+claims (branch names, "next step" lists) are historical rather than current.
 
-## Last updated
-2026-09-07 - SAM #103 (Grasshopper variable-output updater): the Rhino-enabled regression run is
-done, the HOLD is resolved, ready for final human review. Not merged - do not merge automatically.
+## Latest (2026-09-07): the real 150 -> 190 l/s selection ladder, and the Iteration 2B closeout
 
-## Latest (2026-09-07): SAM #103 - Rhino-hosted GH test harness, regression run, two production fixes
+**Status: implemented, tested, and natively accepted.**
+Branch `test/parto-real-selection-ladder`, off `sow/2026-Q3` at **`c980d4c`** (the merge of PR #103).
+
+### Native acceptance (recorded 2026-09-07)
+
+**Iteration 2 PASSED**, observed in SAM_UI on the combined PR heads, with no TAS rerun. All three dwellings
+still automatically select `Nuaire MRXBOXAB-ECO5-AECV`; design duties remain 30/30, 63/63 and 63/63 l/s;
+selected equipment capacity remains 150/150 l/s; headroom remains 120/120, 87/87 and 87/87 l/s; Approved
+Document F and Design airflow are still shown as separate quantities and remain consistent with the
+previously accepted model; and no equipment-selection operation changed a design duty.
+
+The "catalogue reports two selectable products" assertion is **NOT APPLICABLE to the current interface**:
+SAM_UI does not expose the catalogue product list at all - `PartOIterationWindow` offers only the
+`SelectVentilationUnit` on/off checkbox - so there is no surface on which a product count could be read.
+The two-product fact is pinned in CI instead. The missing surface is an explicit usability gap carried into
+the equipment-selection UX task that follows, not a defect of this closeout.
+
+**Nothing is FROZEN.** This closeout is recorded as
+**XBC15 CLOSEOUT COMPLETE - READY FOR FINAL EQUIPMENT-SELECTION UX**.
+
+### Tests only. No production code changed.
+
+`SAM_Systems` now ships a second real product - **Nuaire XBOXER XBC15, 190/190 l/s** beside the MRXBOX's
+150/150 - which turns the Approved Document O selection ladder into a manufacturer boundary rather than a
+fixture, and gives Iteration 2B a real ~40 l/s capacity-headroom case. Nothing in `SAM.Analytical` needed to
+change for it: the generic architecture already carried it. That is the point of the seam, and these tests
+are the evidence.
+
+`SAM.Analytical` does not reference `SAM.Analytical.Systems` and must not start. The descriptors below
+therefore **state** the real identities and capacities (`Nuaire`/`MRXBOXAB-ECO5-AECV`/`MR-ECO-COOL-V` at
+150/150, `Nuaire`/`XBC15` at 190/190) rather than reading a file. That those figures are what the shipped
+catalogue actually says is `SAM_Systems`' own assertion, in `VentilationUnitCatalogueTests`. Both new
+fixtures also offer a 500 l/s product nothing may reach for, so a test proving nothing escalated is proving
+a choice rather than the absence of an alternative.
+
+### `PartOVentilationUnitSelectionTests` - three tests
+
+- `TheRealLadder_EscalatesFromMRXBOXToXBC15_AndThenRefuses` - one physical dwelling grown through the whole
+  ladder on the model: at 150 l/s the MRXBOX is exactly on its rating and re-selecting stays put; at 160 the
+  MRXBOX is **exhausted** and re-selecting from the *current* design escalates to the XBC15 with 30 l/s of
+  headroom; at 190 exactly on the XBC15's rating, still not escalated; at 191 refused, naming 190, with
+  **nothing written** - the unit keeps the selection it already had. Approved Document F never moved
+  through any of it, asserted over the whole model at the end.
+- `ExplicitlySelectingXBC15_ChangesOnlyTheEquipmentFacts` - the closeout's own question. The automatic rule
+  chooses the MRXBOX at this dwelling's duty because it is the smaller capable product; writing the XBC15's
+  identity onto the unit instead moves the identity and the capacity that identity resolves to, and moves
+  **nothing else**. Every Approved Document F requirement, every design airflow, every air movement, every
+  runtime/profile airflow and the air handling unit's own design duty are bit-identical before and after.
+- `TheXBC15Selection_StoresIdentityAndLooksTheCapacityUp` - the model stores an identity and no capacity.
+  The three identity fields survive serialization; offered the real ladder the ceiling resolves to 190;
+  offered a catalogue that does not hold the XBC15 the ceiling is **unknown** - not the MRXBOX's 150, and
+  not unlimited - and is reported as a refusal with a reason rather than as a pass.
+
+### `PartOCapacityEnvelopeTests` - four tests, the Iteration 2B closeout
+
+A new `RealLadderFixture` builds the Flat 1 shape at the design figures native acceptance recorded once the
+MRXBOX's own envelope had been taken up - **150 supply / 82.5 + 67.5 extract, balanced at 150/150** - with
+the XBC15 **deliberately selected** rather than the smaller MRXBOX, and the MRXBOX offered *first* in the
+list so an envelope that re-ran the selection rule or took the head of the list would visibly swap the plant.
+
+- `XBC15sRating_IsTheCeilingTheOneFiftyDesignGrowsWithin` - scale `190/150`, so 190 supply / 104.5 + 85.5
+  extract; `82.5/67.5 == 104.5/85.5`, the proportions survive; duty 150 -> 190 with **zero headroom left and
+  not a thousandth past the rating**; the 40 l/s spent as design airflow on both sides.
+- `TheEnvelope_KeepsXBC15Selected_EvenThoughTheSmallerProductIsStillOffered` - the premise is asserted first
+  (the automatic rule *would* pick the MRXBOX at 150/150), then the identity is shown stable on both the
+  source and the envelope cluster, the group's product is the XBC15, and every dwelling round reports
+  `Kept` rather than `Reselected`.
+- `TheEnvelopeOverXBC15_MovesDesignAirflowAndNothingElse` - the authority separation, on the real case:
+  requirements unchanged (13 l/s stays 13 l/s beside a 190 l/s design), the capacity present only on the
+  descriptor the envelope was handed, no air movement created/removed/re-rated, and the source design
+  untouched by value **and** by reference. The design did move, and the deliberate adjustments report it
+  against the design it grew from.
+- `ADesignAlreadyAtXBC15sRating_ReportsNoHeadroomRatherThanExceedingIt` - at 190/190 the existing
+  `NoHeadroom` outcome fires, no model is produced, the XBC15 is still selected, the 500 l/s product was
+  never reached for, and the design is left where it was rather than shrunk to create headroom to report.
+  **No capacity rule was relaxed to make the diagnostic produce an answer.**
+
+### Validation
+
+| Suite / build | Result |
+| --- | --- |
+| `PartOVentilationUnitSelectionTests` (focused) | **133 / 133** (was 130) |
+| `PartOCapacityEnvelopeTests` (focused) | **38 / 38** (was 34) |
+| `SAM.Tests` (full) | **2024 / 2024** (was 2017) |
+| `dotnet build SAM.sln -c Release` | **0 errors** |
+| `git diff --check` | clean |
+
+Diff is **489 insertions, 0 deletions**, across those two test files only. Sibling repositories:
+`SAM_Systems` `feature/parto-catalogue-xbc15` (the catalogue entry - the substantive change),
+`SAM_UI` `test/parto-xbc15-capacity-ceiling` (the same closeout through the production orchestration),
+`SAM_Tas` `ec7f505` unchanged. None is a build dependency of this branch.
+
+### Iteration 3 boundary
+
+Nothing here needed MRX cooling or performance data. Iteration 2B read **equipment capacity and nothing
+else** - `SelectedVentilationUnitCapacityDescriptor`, a ceiling - exactly as designed. The XBC15 entry
+deliberately carries no cooling capacity, supply-air temperature, heat-exchanger performance or controller
+ramp, because Nuaire publishes none for that range, and no architectural dependency on such data surfaced.
+
+### Next step
+
+- Human review, then merge. **Do not merge automatically.**
+
+## Superseded (2026-09-07): SAM #103 - Rhino-hosted GH test harness, regression run, two production fixes
 
 **Status: ready for review, HOLD lifted. Not merged.** Branch `fix/gh-variable-output-updater`,
 pushed. This closes out the "HOLD - SAM #103" item recorded below on 2026-09-05: the Grasshopper

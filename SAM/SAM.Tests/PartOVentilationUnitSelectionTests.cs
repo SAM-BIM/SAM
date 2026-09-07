@@ -52,6 +52,12 @@ namespace SAM.Tests
 
         private const string name_ZoneCategory = "Flats";
 
+        /// <summary>The shipped Nuaire hybrid unit's model, 150/150 l/s.</summary>
+        private const string model_MRXBOX = "MRXBOXAB-ECO5-AECV";
+
+        /// <summary>The shipped Nuaire XBOXER commercial unit's model, 190/190 l/s.</summary>
+        private const string model_XBC15 = "XBC15";
+
         // =================================================================================================
         // A. Product selection - the pure rule, over a fixture catalogue
         // =================================================================================================
@@ -3941,6 +3947,242 @@ namespace SAM.Tests
         // =================================================================================================
         // Fixtures
         // =================================================================================================
+
+        // ---- The real catalogue's own products, on a real dwelling ---------------------------------------
+        //
+        // Every other test in this file selects from fixture products, because the RULE is what they are
+        // about and SAM.Analytical owns the rule and never the product list. These three are the Approved
+        // Document O closeout case, on the two products SAM_Systems now ships: the Nuaire MRXBOX at
+        // 150/150 l/s and the Nuaire XBOXER XBC15 at 190/190 l/s.
+        //
+        // The identities and capacities are stated here rather than read from a file, because
+        // SAM.Analytical does not reference SAM.Analytical.Systems and must not start. That these figures
+        // are what the shipped catalogue actually says is SAM_Systems' own assertion, in
+        // VentilationUnitCatalogueTests.
+
+        /// <summary>
+        /// <b>The real 150 -> 190 l/s manufacturer boundary, on a model.</b> One physical dwelling grown
+        /// through the whole ladder:
+        /// <code>
+        /// duty  19.2  MRXBOX selected - the smallest capable of the two
+        /// duty 150    MRXBOX exactly on its rating, still sufficient, nothing to re-select
+        /// duty 160    MRXBOX EXHAUSTED -> re-selecting from the current design escalates to XBC15
+        /// duty 190    XBC15 exactly on its rating, and re-selecting keeps it rather than reaching higher
+        /// duty 191    nothing offered can move it: refused, and the unit keeps its previous selection
+        /// </code>
+        /// <para>
+        /// The Approved Document F requirement is never reset and never consulted by any of it - what grew
+        /// is the design. Asserted at the end, over the whole model.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void TheRealLadder_EscalatesFromMRXBOXToXBC15_AndThenRefuses()
+        {
+            AdjacencyCluster adjacencyCluster = SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out _);
+
+            Dictionary<string, string> requirements_Before = Requirements(adjacencyCluster);
+
+            //---- 150 l/s: exactly on the MRXBOX rating. Sufficient, and re-selecting stays put.
+            RaiseDutyTotalTo(adjacencyCluster, airHandlingUnit, 150);
+
+            Assert.True(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, RealLadder(), out string reason_150), reason_150);
+            Assert.Equal(model_MRXBOX, adjacencyCluster.SelectVentilationUnit(airHandlingUnit, RealLadder(), out _, out _).VentilationUnitReference?.Model);
+            Assert.Equal(model_MRXBOX, SelectedModel(adjacencyCluster));
+
+            //---- 160 l/s: the MRXBOX is exhausted and the XBC15 is what answers. THE new rung.
+            RaiseDutyTotalTo(adjacencyCluster, airHandlingUnit, 160);
+
+            Assert.False(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, RealLadder(), out string reason_160));
+            Assert.False(string.IsNullOrWhiteSpace(reason_160));
+
+            VentilationUnitSelection ventilationUnitSelection_160 = adjacencyCluster.SelectVentilationUnit(airHandlingUnit, RealLadder(), out _, out _);
+
+            Assert.True(ventilationUnitSelection_160.IsSelected);
+            Assert.Equal(model_XBC15, ventilationUnitSelection_160.VentilationUnitReference.Model);
+            Assert.Equal(model_XBC15, SelectedModel(adjacencyCluster));
+
+            //The duty it was selected against is the DESIGN duty, and the headroom is what is left over -
+            //neither is the capacity, and 160 was never written back as one.
+            Assert.Equal(160, ventilationUnitSelection_160.SupplyDuty_Lps, 6);
+            Assert.Equal(30, ventilationUnitSelection_160.SupplyHeadroom_Lps, 6);
+
+            //---- 190 l/s: exactly on the XBC15's rating. Still sufficient, still not escalated.
+            RaiseDutyTotalTo(adjacencyCluster, airHandlingUnit, 190);
+
+            Assert.True(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit, RealLadder(), out string reason_190), reason_190);
+            Assert.Equal(model_XBC15, adjacencyCluster.SelectVentilationUnit(airHandlingUnit, RealLadder(), out _, out _).VentilationUnitReference?.Model);
+
+            //---- 191 l/s: past everything the two real products can do.
+            RaiseDutyTotalTo(adjacencyCluster, airHandlingUnit, 191);
+
+            List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors_Real = RealLadder().FindAll(x => x.VentilationUnitReference.Manufacturer == "Nuaire");
+
+            VentilationUnitSelection ventilationUnitSelection_191 = adjacencyCluster.SelectVentilationUnit(airHandlingUnit, ventilationUnitCapacityDescriptors_Real, out _, out List<string> refusals_191);
+
+            Assert.False(ventilationUnitSelection_191.IsSelected);
+            Assert.Null(ventilationUnitSelection_191.Descriptor);
+            Assert.NotEmpty(refusals_191);
+            Assert.Contains("190", ventilationUnitSelection_191.Reason);
+
+            //Nothing was written on the refusal: the unit keeps the selection it already had, which is an
+            //honest state, rather than being left half-selected or downgraded.
+            Assert.Equal(model_XBC15, SelectedModel(adjacencyCluster));
+
+            //And through all of it, Approved Document F never moved.
+            Assert.Equal(requirements_Before, Requirements(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// <b>Selecting XBC15 explicitly changes equipment facts and nothing else.</b>
+        /// <para>
+        /// The automatic rule would choose the MRXBOX at this dwelling's duty, because it is the smaller of
+        /// the two capable products. Writing the XBC15's identity onto the unit instead - which is what an
+        /// engineer specifying a particular product does, and all that
+        /// <c>AirHandlingUnitParameter.VentilationUnitReference</c> holds - moves the identity and the
+        /// capacity that identity resolves to in the catalogue. It moves nothing else:
+        /// </para>
+        /// <code>
+        /// PartFRequiredAirFlow != DesignAirFlow != SelectedEquipmentCapacity != OperatingAirFlow
+        /// </code>
+        /// </summary>
+        [Fact]
+        public void ExplicitlySelectingXBC15_ChangesOnlyTheEquipmentFacts()
+        {
+            AdjacencyCluster adjacencyCluster = SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out VentilationUnitReference ventilationUnitReference_Automatic);
+
+            //The premise: automatic selection chose the smaller product, and would choose it again.
+            Assert.Equal(model_MRXBOX, ventilationUnitReference_Automatic.Model);
+            Assert.Equal(150, airHandlingUnit.SelectedVentilationUnitCapacityDescriptor(RealLadder()).MaximumSupplyFlowRate_Lps, 6);
+
+            Dictionary<string, string> requirements_Before = Requirements(adjacencyCluster);
+            Dictionary<string, double> designs_Before = Designs(adjacencyCluster);
+            List<string> runtimeAirflows_Before = RuntimeAirflows(adjacencyCluster);
+            List<string> airMovements_Before = (adjacencyCluster.GetObjects<SpaceAirMovement>() ?? []).ConvertAll(x => string.Format("{0}|{1}", x.Name, x.AirFlow));
+
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit, out double supplyDuty_Before_Lps, out double extractDuty_Before_Lps);
+
+            //---- The explicit selection. A copy, added over the model's own instance, exactly as
+            //     Modify.SelectVentilationUnit writes one - the identity, and only the identity.
+            AirHandlingUnit airHandlingUnit_XBC15 = new(airHandlingUnit);
+            airHandlingUnit_XBC15.SetValue(AirHandlingUnitParameter.VentilationUnitReference, XBC15Reference());
+
+            adjacencyCluster.AddObject(airHandlingUnit_XBC15);
+
+            //---- What changed: the identity, and the capacity it resolves to.
+            Assert.Equal(model_XBC15, SelectedModel(adjacencyCluster));
+
+            AirHandlingUnit airHandlingUnit_After = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            Assert.Equal(190, airHandlingUnit_After.SelectedVentilationUnitCapacityDescriptor(RealLadder()).MaximumSupplyFlowRate_Lps, 6);
+            Assert.Equal(190, airHandlingUnit_After.SelectedVentilationUnitCapacityDescriptor(RealLadder()).MaximumExtractFlowRate_Lps, 6);
+
+            //---- What did not: every other authority in the model.
+            Assert.Equal(requirements_Before, Requirements(adjacencyCluster));
+            Assert.Equal(designs_Before, Designs(adjacencyCluster));
+            Assert.Equal(runtimeAirflows_Before, RuntimeAirflows(adjacencyCluster));
+            Assert.Equal(airMovements_Before, (adjacencyCluster.GetObjects<SpaceAirMovement>() ?? []).ConvertAll(x => string.Format("{0}|{1}", x.Name, x.AirFlow)));
+
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit_After, out double supplyDuty_After_Lps, out double extractDuty_After_Lps);
+
+            Assert.Equal(supplyDuty_Before_Lps, supplyDuty_After_Lps, 6);
+            Assert.Equal(extractDuty_Before_Lps, extractDuty_After_Lps, 6);
+
+            //The capacity is a ceiling with room to spare, and the design duty is nowhere near it. A
+            //190 l/s unit does not make this a 190 l/s dwelling.
+            Assert.True(supplyDuty_After_Lps < 190);
+            Assert.True(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit_After, RealLadder(), out string reason), reason);
+        }
+
+        /// <summary>
+        /// The capacity of an explicitly chosen product is <b>looked up by identity, never stored</b> - so a
+        /// model carrying the XBC15 selection says which product it is and nothing about what that product
+        /// can do. Offer a catalogue without it and the ceiling is unknown, which is a reportable state and
+        /// not a silent downgrade to the product that is there.
+        /// </summary>
+        [Fact]
+        public void TheXBC15Selection_StoresIdentityAndLooksTheCapacityUp()
+        {
+            AdjacencyCluster adjacencyCluster = SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out _);
+
+            AirHandlingUnit airHandlingUnit_XBC15 = new(airHandlingUnit);
+            airHandlingUnit_XBC15.SetValue(AirHandlingUnitParameter.VentilationUnitReference, XBC15Reference());
+
+            adjacencyCluster.AddObject(airHandlingUnit_XBC15);
+
+            AirHandlingUnit airHandlingUnit_After = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            //The stored identity survives serialization with its three identity fields, and no capacity
+            //travels with it.
+            VentilationUnitReference ventilationUnitReference = airHandlingUnit_After.SelectedVentilationUnitReference();
+
+            Assert.NotNull(ventilationUnitReference);
+
+            AirHandlingUnit airHandlingUnit_RoundTripped = new(airHandlingUnit_After.ToJsonObject());
+
+            Assert.True(ventilationUnitReference.Matches(airHandlingUnit_RoundTripped.SelectedVentilationUnitReference()));
+            Assert.Equal(model_XBC15, airHandlingUnit_RoundTripped.SelectedVentilationUnitReference().Model);
+            Assert.True(string.IsNullOrEmpty(airHandlingUnit_RoundTripped.SelectedVentilationUnitReference().Reference));
+
+            //Offered the real ladder, the ceiling resolves to 190.
+            Assert.Equal(190, airHandlingUnit_After.SelectedVentilationUnitCapacityDescriptor(RealLadder()).MaximumSupplyFlowRate_Lps, 6);
+
+            //Offered a catalogue that does not hold it, the ceiling is UNKNOWN - not the MRXBOX's 150, and
+            //not unlimited. Reported as a refusal with a reason rather than as a pass.
+            List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors_WithoutXBC15 = RealLadder().FindAll(x => x.VentilationUnitReference.Model != model_XBC15);
+
+            Assert.Null(airHandlingUnit_After.SelectedVentilationUnitCapacityDescriptor(ventilationUnitCapacityDescriptors_WithoutXBC15));
+            Assert.False(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit_After, ventilationUnitCapacityDescriptors_WithoutXBC15, out string reason));
+            Assert.False(string.IsNullOrWhiteSpace(reason));
+        }
+
+        /// <summary>
+        /// The two products <c>SAM_Systems</c> ships, at their published capacities and declared ranks.
+        /// <para>
+        /// Stated rather than read: <c>SAM.Analytical</c> does not reference <c>SAM.Analytical.Systems</c>
+        /// and adding a manufacturer must never need a change here. That these figures are what the shipped
+        /// catalogue says is asserted in <c>SAM_Systems</c>' own <c>VentilationUnitCatalogueTests</c>.
+        /// </para>
+        /// <para>
+        /// A 500 l/s fixture product sits behind them so that a test which proves nothing escalated past the
+        /// real boundary is proving a choice rather than the absence of an alternative.
+        /// </para>
+        /// </summary>
+        private static List<VentilationUnitCapacityDescriptor> RealLadder()
+        {
+            return
+            [
+                new VentilationUnitCapacityDescriptor(new VentilationUnitReference("Nuaire", model_MRXBOX, "MR-ECO-COOL-V"), 150, 150, 10),
+                new VentilationUnitCapacityDescriptor(new VentilationUnitReference("Nuaire", model_XBC15, null), 190, 190, 20),
+                new VentilationUnitCapacityDescriptor(new VentilationUnitReference("Test Fixture", "Never Selected", null), 500, 500, 99),
+            ];
+        }
+
+        /// <summary>The XBC15's identity, as the catalogue states it - no reference, no cooling module.</summary>
+        private static VentilationUnitReference XBC15Reference()
+        {
+            return new VentilationUnitReference("Nuaire", model_XBC15, null);
+        }
+
+        /// <summary>
+        /// The prepared fixture dwelling with a product selected from the REAL ladder. At the fixture's
+        /// 19.2 l/s duty the smaller of the two real products answers, which is the premise the escalation
+        /// and explicit-selection tests below both start from.
+        /// </summary>
+        private static AdjacencyCluster SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out VentilationUnitReference ventilationUnitReference)
+        {
+            PartOIterationPreparation preparation = Prepared(RealLadder());
+
+            AdjacencyCluster result = preparation.AnalyticalModel.AdjacencyCluster;
+
+            airHandlingUnit = Assert.Single(result.GetObjects<AirHandlingUnit>());
+
+            ventilationUnitReference = airHandlingUnit.SelectedVentilationUnitReference();
+
+            Assert.NotNull(ventilationUnitReference);
+            Assert.Equal(model_MRXBOX, ventilationUnitReference.Model);
+
+            return result;
+        }
 
         /// <summary>
         /// The catalogue the <b>pure selection rule</b> is exercised over, at the sizes Iteration 2's

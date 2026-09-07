@@ -70,6 +70,14 @@ namespace SAM.Tests
 
         private const string name_Bathroom_Studio = "Bathroom_2";
 
+        private const string name_AirHandlingUnit_RealLadder = "MVHR-Flat1";
+
+        /// <summary>The shipped Nuaire hybrid unit's model, 150/150 l/s.</summary>
+        private const string model_MRXBOX = "MRXBOXAB-ECO5-AECV";
+
+        /// <summary>The shipped Nuaire XBOXER commercial unit's model, 190/190 l/s.</summary>
+        private const string model_XBC15 = "XBC15";
+
         // ---- 1 and 2. The brief's own example, and the proportions it turns on ---------------------------
 
         /// <summary>
@@ -1057,7 +1065,246 @@ namespace SAM.Tests
             Assert.Contains("grown proportionally", designAirFlowCapacityEnvelopeGroup.Reason);
         }
 
+        // ---- The real catalogue's own products, on the real ~150 l/s design ------------------------------
+        //
+        // Everything above is proved against fixture products, because the algorithm is what those tests are
+        // about. These four are the Approved Document O closeout case, on the two products SAM_Systems now
+        // ships and at the design figures native acceptance recorded: a ~150 l/s Flat 1 with the Nuaire
+        // XBOXER XBC15 (190/190 l/s) DELIBERATELY selected, rather than the smaller MRXBOX the automatic
+        // rule would pick, so the ~40 l/s of equipment-capacity headroom is a real product's headroom.
+        //
+        // The identities and capacities are stated here rather than read from a file: SAM.Analytical does not
+        // reference SAM_Systems and must not start. That the figures below are what the shipped catalogue
+        // actually says is SAM_Systems' own assertion, in VentilationUnitCatalogueTests.
+
+        /// <summary>
+        /// <b>The closeout case.</b> A 150/150 l/s design with XBC15's 190/190 l/s selected grows
+        /// proportionally onto 190/190 and stops there - the 40 l/s of headroom is spent as design airflow,
+        /// coherently, and not a thousandth past the rating.
+        /// <code>
+        /// last valid   Studio 1_0 supply  150      selected  Nuaire XBC15, 190/190 l/s
+        ///              Studio 1_0 extract  82.5    scale     min(190/150, 190/150) = 1.26666...
+        ///              Bathroom_2 extract  67.5    system    150/150
+        /// envelope     Studio 1_0 supply  190      system    190/190, exactly on the rating
+        ///              Studio 1_0 extract 104.5
+        ///              Bathroom_2 extract  85.5    82.5/67.5 == 104.5/85.5 - the proportions survive
+        /// </code>
+        /// </summary>
+        [Fact]
+        public void XBC15sRating_IsTheCeilingTheOneFiftyDesignGrowsWithin()
+        {
+            AdjacencyCluster adjacencyCluster = RealLadderFixture(out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            DesignAirFlowCapacityEnvelope designAirFlowCapacityEnvelope = Envelope(adjacencyCluster, Step_RealLadder(adjacencyCluster), ventilationUnitCapacityDescriptors);
+
+            Assert.True(designAirFlowCapacityEnvelope.IsScaled, designAirFlowCapacityEnvelope.Reason);
+            Assert.Equal(DesignAirFlowCapacityEnvelopeOutcome.Scaled, designAirFlowCapacityEnvelope.Outcome);
+
+            DesignAirFlowCapacityEnvelopeGroup designAirFlowCapacityEnvelopeGroup = Assert.Single(designAirFlowCapacityEnvelope.Groups);
+
+            Assert.Equal(190.0 / 150.0, designAirFlowCapacityEnvelopeGroup.Scale, 9);
+
+            //Grown onto the SELECTED product's rating, and the proportions between the two extract rooms are
+            //untouched: the same dwelling, larger.
+            Assert.Equal(190, Design(designAirFlowCapacityEnvelope.AdjacencyCluster, name_Studio, FlowClassification.Supply), 6);
+            Assert.Equal(104.5, Design(designAirFlowCapacityEnvelope.AdjacencyCluster, name_Studio, FlowClassification.Extract), 6);
+            Assert.Equal(85.5, Design(designAirFlowCapacityEnvelope.AdjacencyCluster, name_Bathroom_Studio, FlowClassification.Extract), 6);
+
+            Assert.Equal(82.5 / 67.5, 104.5 / 85.5, 9);
+
+            //On the rating, and not past it. This is the assertion that says 190 l/s acted as a CEILING.
+            Assert.Equal(150, designAirFlowCapacityEnvelopeGroup.SupplyDuty_Before_Lps, 6);
+            Assert.Equal(150, designAirFlowCapacityEnvelopeGroup.ExtractDuty_Before_Lps, 6);
+
+            Assert.Equal(190, designAirFlowCapacityEnvelopeGroup.SupplyDuty_After_Lps, 6);
+            Assert.Equal(190, designAirFlowCapacityEnvelopeGroup.ExtractDuty_After_Lps, 6);
+
+            Assert.Equal(0, designAirFlowCapacityEnvelopeGroup.SupplyHeadroom_Lps, 6);
+            Assert.Equal(0, designAirFlowCapacityEnvelopeGroup.ExtractHeadroom_Lps, 6);
+
+            //The 40 l/s the closeout is about - spent as design airflow, on both sides.
+            Assert.Equal(40, designAirFlowCapacityEnvelopeGroup.SupplyDuty_After_Lps - designAirFlowCapacityEnvelopeGroup.SupplyDuty_Before_Lps, 6);
+            Assert.Equal(40, designAirFlowCapacityEnvelopeGroup.ExtractDuty_After_Lps - designAirFlowCapacityEnvelopeGroup.ExtractDuty_Before_Lps, 6);
+        }
+
+        /// <summary>
+        /// XBC15 stays selected. The MRXBOX is on offer, is capable of the 150/150 design the envelope
+        /// started from, and is <b>smaller on both sides</b> - so an envelope that re-ran the selection rule
+        /// instead of reading the model would swap the plant for a cheaper unit and then find it had no
+        /// headroom. Buying equipment is a deliberate decision; a diagnostic is not one.
+        /// </summary>
+        [Fact]
+        public void TheEnvelope_KeepsXBC15Selected_EvenThoughTheSmallerProductIsStillOffered()
+        {
+            AdjacencyCluster adjacencyCluster = RealLadderFixture(out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            //The premise: the other product would be preferred by the automatic rule at this duty.
+            VentilationUnitCapacityDescriptor ventilationUnitCapacityDescriptor_MRXBOX = ventilationUnitCapacityDescriptors.Find(x => x.VentilationUnitReference.Model == model_MRXBOX);
+
+            Assert.NotNull(ventilationUnitCapacityDescriptor_MRXBOX);
+            Assert.True(ventilationUnitCapacityDescriptor_MRXBOX.IsSufficientFor(150, 150));
+            Assert.Equal(model_MRXBOX, Analytical.Query.SelectSmallestCapableVentilationUnit(ventilationUnitCapacityDescriptors, 150, 150).VentilationUnitReference.Model);
+
+            DesignAirFlowCapacityEnvelope designAirFlowCapacityEnvelope = Envelope(adjacencyCluster, Step_RealLadder(adjacencyCluster), ventilationUnitCapacityDescriptors);
+
+            Assert.True(designAirFlowCapacityEnvelope.IsScaled, designAirFlowCapacityEnvelope.Reason);
+
+            Assert.Equal(model_XBC15, SelectedModel(adjacencyCluster, name_AirHandlingUnit_RealLadder));
+            Assert.Equal(model_XBC15, SelectedModel(designAirFlowCapacityEnvelope.AdjacencyCluster, name_AirHandlingUnit_RealLadder));
+
+            Assert.Equal(model_XBC15, Assert.Single(designAirFlowCapacityEnvelope.Groups).VentilationUnitReference.Model);
+
+            //And nothing reports a reselection.
+            Assert.All(designAirFlowCapacityEnvelope.RoundCandidate.DwellingRounds, x => Assert.Equal(VentilationUnitSelectionOutcome.Kept, x.VentilationUnitSelectionOutcome));
+        }
+
+        /// <summary>
+        /// <b>The authority separation, on the real case.</b>
+        /// <code>
+        /// PartFRequiredAirFlow != DesignAirFlow != SelectedEquipmentCapacity != OperatingAirFlow
+        /// </code>
+        /// Design airflow moves. The Approved Document F requirements do not. The equipment capacity is read
+        /// and never written anywhere. No runtime airflow is produced. And the design the envelope was
+        /// calculated from is left exactly as it was, because an envelope is a design the ordinary
+        /// optimisation policy refused.
+        /// </summary>
+        [Fact]
+        public void TheEnvelopeOverXBC15_MovesDesignAirflowAndNothingElse()
+        {
+            AdjacencyCluster adjacencyCluster = RealLadderFixture(out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            Dictionary<string, double> requirements_Before = Requirements(adjacencyCluster);
+            Dictionary<string, double> designs_Before = Designs(adjacencyCluster);
+            List<string> airMovements_Before = AirMovements(adjacencyCluster);
+
+            DesignAirFlowCapacityEnvelope designAirFlowCapacityEnvelope = Envelope(adjacencyCluster, Step_RealLadder(adjacencyCluster), ventilationUnitCapacityDescriptors);
+
+            Assert.True(designAirFlowCapacityEnvelope.IsScaled, designAirFlowCapacityEnvelope.Reason);
+
+            //1. Approved Document F is untouched in the grown model - the requirement is a floor that was
+            //   read, never a figure that was written.
+            Assert.Equal(requirements_Before, Requirements(designAirFlowCapacityEnvelope.AdjacencyCluster));
+
+            Assert.Equal(30, Requirement(designAirFlowCapacityEnvelope.AdjacencyCluster, name_Studio, FlowClassification.Supply), 6);
+            Assert.Equal(8, Requirement(designAirFlowCapacityEnvelope.AdjacencyCluster, name_Bathroom_Studio, FlowClassification.Extract), 6);
+
+            //2. The capacity is nowhere in the model. 190 is the ceiling that bounded the growth, and the
+            //   only place it appears is the catalogue the envelope was handed.
+            Assert.Equal(190, Assert.Single(designAirFlowCapacityEnvelope.Groups).VentilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps, 6);
+
+            //3. No runtime airflow: the envelope creates, removes and re-rates no air movement.
+            Assert.Equal(airMovements_Before, AirMovements(designAirFlowCapacityEnvelope.AdjacencyCluster));
+
+            //4. The source design is untouched, by value and by reference.
+            Assert.Equal(designs_Before, Designs(adjacencyCluster));
+            Assert.NotSame(adjacencyCluster, designAirFlowCapacityEnvelope.AdjacencyCluster);
+            Assert.Equal(150, Design(adjacencyCluster, name_Studio, FlowClassification.Supply), 6);
+
+            //5. The realised design DID move, and the deliberate adjustments say so rather than leaving it
+            //   to be inferred - so a changed design transfer air is reported against a changed design
+            //   airflow, not against a capacity.
+            Assert.NotEqual(designs_Before, Designs(designAirFlowCapacityEnvelope.AdjacencyCluster));
+            Assert.Equal(150, Sum(designAirFlowCapacityEnvelope, FlowClassification.Supply), 6);
+            Assert.Equal(150, Sum(designAirFlowCapacityEnvelope, FlowClassification.Extract), 6);
+        }
+
+        /// <summary>
+        /// A design already standing on XBC15's rating has nothing left to give, and the envelope says so
+        /// rather than growing past 190 l/s or reaching for a larger product. No capacity rule is relaxed to
+        /// make the diagnostic produce an answer.
+        /// </summary>
+        [Fact]
+        public void ADesignAlreadyAtXBC15sRating_ReportsNoHeadroomRatherThanExceedingIt()
+        {
+            AdjacencyCluster adjacencyCluster = RealLadderFixture(190, 104.5, 85.5, out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors);
+
+            DesignAirFlowCapacityEnvelope designAirFlowCapacityEnvelope = Envelope(adjacencyCluster, Step_RealLadder(adjacencyCluster), ventilationUnitCapacityDescriptors);
+
+            Assert.False(designAirFlowCapacityEnvelope.IsScaled);
+            Assert.Equal(DesignAirFlowCapacityEnvelopeOutcome.NoHeadroom, designAirFlowCapacityEnvelope.Outcome);
+            Assert.Null(designAirFlowCapacityEnvelope.AdjacencyCluster);
+
+            //Still XBC15, and still not swapped for the 500 l/s product that is also on offer.
+            Assert.Equal(model_XBC15, SelectedModel(adjacencyCluster, name_AirHandlingUnit_RealLadder));
+            Assert.Equal(model_XBC15, Assert.Single(designAirFlowCapacityEnvelope.Groups).VentilationUnitReference.Model);
+
+            //And the design is left where it was rather than shrunk to create headroom to report.
+            Assert.Equal(190, Design(adjacencyCluster, name_Studio, FlowClassification.Supply), 6);
+        }
+
         // ---- Fixture ---------------------------------------------------------------------------------------
+        /// <summary>
+        /// <b>The real Flat 1 design, on the real catalogue's products.</b> The Flat 1 shape at the design
+        /// figures native acceptance recorded once the MRXBOX's own envelope had been taken up - 150 supply /
+        /// 82.5 + 67.5 extract, balanced at 150/150 - with the Nuaire XBOXER XBC15 (190/190 l/s)
+        /// <b>deliberately selected</b> rather than the smaller MRXBOX the automatic rule would choose.
+        /// <para>
+        /// Both real products are offered, and the MRXBOX is offered FIRST, so an envelope that re-ran the
+        /// selection rule or took the head of the list would visibly swap the plant.
+        /// </para>
+        /// </summary>
+        private static AdjacencyCluster RealLadderFixture(out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors)
+        {
+            return RealLadderFixture(150, 82.5, 67.5, out ventilationUnitCapacityDescriptors);
+        }
+
+        private static AdjacencyCluster RealLadderFixture(double design_Studio_Supply_Lps, double design_Studio_Extract_Lps, double design_Bathroom_Extract_Lps, out List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors)
+        {
+            ventilationUnitCapacityDescriptors = RealLadder();
+
+            AdjacencyCluster result = new();
+
+            //Selected as the XBC15 - the SECOND entry, and not the smallest capable one.
+            VentilationSystem ventilationSystem = Unit(result, ventilationUnitCapacityDescriptors[1], name_AirHandlingUnit_RealLadder, "Flat 1");
+
+            Space space_Studio = Room(result, name_Studio, PartFTerminalRole.Supply, 30);
+
+            Extract(space_Studio, 13);
+
+            Space space_Bathroom = Room(result, name_Bathroom_Studio, PartFTerminalRole.GeneralExtract, 8);
+
+            Terminal(result, ventilationSystem, space_Studio, FlowClassification.Supply, design_Studio_Supply_Lps, 0);
+            Terminal(result, ventilationSystem, space_Studio, FlowClassification.Extract, design_Studio_Extract_Lps, 1);
+            Terminal(result, ventilationSystem, space_Bathroom, FlowClassification.Extract, design_Bathroom_Extract_Lps, 0);
+
+            result.AddRelation(ventilationSystem, space_Studio);
+            result.AddRelation(ventilationSystem, space_Bathroom);
+
+            return result;
+        }
+
+        /// <summary>
+        /// The two products SAM_Systems ships, at their published capacities and declared ranks, plus the
+        /// far larger fixture product every other test in this file offers and none of them may reach for.
+        /// <para>
+        /// Stated rather than read: <c>SAM.Analytical</c> does not reference <c>SAM.Analytical.Systems</c>
+        /// and adding a manufacturer must never need a change here. That these figures are what the shipped
+        /// catalogue says is asserted in <c>SAM_Systems</c>' own <c>VentilationUnitCatalogueTests</c>.
+        /// </para>
+        /// </summary>
+        private static List<VentilationUnitCapacityDescriptor> RealLadder()
+        {
+            return
+            [
+                new VentilationUnitCapacityDescriptor(new VentilationUnitReference("Nuaire", model_MRXBOX, "MR-ECO-COOL-V"), 150, 150, 10),
+                new VentilationUnitCapacityDescriptor(new VentilationUnitReference("Nuaire", model_XBC15, null), 190, 190, 20),
+                new VentilationUnitCapacityDescriptor(new VentilationUnitReference("Test Fixture", "Never Selected", null), 500, 500, 99),
+            ];
+        }
+
+        /// <summary>
+        /// The +5 l/s step the ordinary policy would have asked for next on the real design. <b>Read for
+        /// scope only</b> - which equipment the diagnostic is about, never a figure.
+        /// </summary>
+        private static List<DesignAirFlowTarget> Step_RealLadder(AdjacencyCluster adjacencyCluster)
+        {
+            return
+            [
+                Target(adjacencyCluster, name_Studio, FlowClassification.Supply, Design(adjacencyCluster, name_Studio, FlowClassification.Supply) + 5),
+                Target(adjacencyCluster, name_Bathroom_Studio, FlowClassification.Extract, Design(adjacencyCluster, name_Bathroom_Studio, FlowClassification.Extract) + 5),
+            ];
+        }
+
 
         /// <summary>
         /// One flat, its own ventilation system and its own air handling unit, balanced at 30/30 l/s and
