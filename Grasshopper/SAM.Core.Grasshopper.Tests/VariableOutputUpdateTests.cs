@@ -6,7 +6,7 @@ using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Types;
 using System.Collections.Generic;
 using System.Drawing;
-using Xunit;
+using NUnit.Framework;
 
 namespace SAM.Core.Grasshopper.Tests
 {
@@ -26,6 +26,7 @@ namespace SAM.Core.Grasshopper.Tests
     /// position rather than by name hands its wire to the wrong output and is caught here.
     /// </para>
     /// </summary>
+    [TestFixture]
     public class VariableOutputUpdateTests
     {
         private const string SkipReason = "GH_Document requires the Rhino native runtime; run these tests in a Rhino-enabled environment.";
@@ -40,7 +41,7 @@ namespace SAM.Core.Grasshopper.Tests
         // ---- The starting point ------------------------------------------------------------------------
 
         /// <summary>A fresh instance carries its defaults and not the voluntary ones - which is what makes this hard.</summary>
-        [SkippableFact]
+        [Test]
         public void FreshComponent_CarriesOnlyItsDefaultParameters()
         {
             CreateDocumentOrSkip();
@@ -60,7 +61,7 @@ namespace SAM.Core.Grasshopper.Tests
         /// output at all, so the wire was reported dropped and the person was told to reconnect it by hand.
         /// </para>
         /// </summary>
-        [SkippableFact]
+        [Test]
         public void ConnectedVoluntaryOutput_SurvivesTheUpdate()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -89,7 +90,7 @@ namespace SAM.Core.Grasshopper.Tests
         /// index. "successful" is declared between "x" and "y", so a positional restore would attach it to
         /// "y".
         /// </summary>
-        [SkippableFact]
+        [Test]
         public void RestoredOutput_IsTheSameOutputAndNotTheOneAtItsIndex()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -119,7 +120,7 @@ namespace SAM.Core.Grasshopper.Tests
         }
 
         /// <summary>A voluntary INPUT keeps both its wire and the value typed into it.</summary>
-        [SkippableFact]
+        [Test]
         public void VoluntaryInput_KeepsItsConnectionAndItsPersistentData()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -149,7 +150,7 @@ namespace SAM.Core.Grasshopper.Tests
         }
 
         /// <summary>Persistent data on a DEFAULT input is not disturbed by the expansion.</summary>
-        [SkippableFact]
+        [Test]
         public void DefaultInput_KeepsItsPersistentData()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -171,7 +172,7 @@ namespace SAM.Core.Grasshopper.Tests
         // ---- What must not change ----------------------------------------------------------------------
 
         /// <summary>The component keeps its guid, so a saved definition still finds it.</summary>
-        [SkippableFact]
+        [Test]
         public void Update_PreservesTheComponentGuid()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -189,7 +190,7 @@ namespace SAM.Core.Grasshopper.Tests
         /// A component that never had the voluntary parameter does not acquire one. The expansion recovers
         /// what was there; it does not decide the component should have more.
         /// </summary>
-        [SkippableFact]
+        [Test]
         public void ComponentWithoutVoluntaryParameters_IsUnchanged()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -210,7 +211,7 @@ namespace SAM.Core.Grasshopper.Tests
         /// A fixed-output component is untouched by any of this: it is not variable, so there is nothing to
         /// expand, and it updates exactly as it did.
         /// </summary>
-        [SkippableFact]
+        [Test]
         public void FixedOutputComponent_StillUpdatesAndReconnects()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -235,7 +236,7 @@ namespace SAM.Core.Grasshopper.Tests
         /// A parameter the new version genuinely no longer declares is still reported, not fabricated. The
         /// expansion adds only what the declaration knows about.
         /// </summary>
-        [SkippableFact]
+        [Test]
         public void UndeclaredParameter_IsStillReportedAsDropped()
         {
             GH_Document document = CreateDocumentOrSkip();
