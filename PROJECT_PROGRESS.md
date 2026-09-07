@@ -33,7 +33,8 @@ Every test method body is unchanged: `XunitCompatAssert.cs` is an xUnit-shaped `
 surface backed by NUnit, in the same namespace as the tests, so unqualified `Assert`/`Skip` calls
 resolve there rather than to `NUnit.Framework.Assert` - only `using`s and
 `[Fact]`/`[SkippableFact]` → `[Test]` attributes changed. Verified 1:1: same 44 test method names,
-same per-file counts, before and after.
+same per-file counts, before and after (the 45th, `CopyPersistentDataReplacementTests`, is new -
+see below).
 
 Test-fixture helper classes that derive from Grasshopper base types (`TestUpdatableComponent`,
 `TestVariableOutputComponent`, `TestDocument`, ...) moved to a new sibling project,
@@ -45,9 +46,11 @@ the discovered assembly, they're only touched from inside a running `[Test]`, af
 NUnit engine's own type enumeration of the assembly; this was tried and empirically failed before
 the project-split was found.
 
-**Result: all 44 tests pass for real (0 skipped)** - required: `VariableOutputUpdateTests` 9/9,
+**Result: all 45 tests pass for real (0 skipped)** - required: `VariableOutputUpdateTests` 9/9,
 `ManualReconnectionTests` 11/11, `MissingConnectionsTests` 11/11 (31/31); full suite adds
-`SAMCoreUpdateContractTests` 5/5, `TryGetSAMGeometriesTests` 8/8 (44/44).
+`SAMCoreUpdateContractTests` 5/5, `TryGetSAMGeometriesTests` 8/8, and (new, see below)
+`CopyPersistentDataReplacementTests` 1/1 (45/45 total). Re-run and confirmed after the regression
+test was added, not carried over from an earlier checkpoint.
 
 ### Two production defects the real run surfaced (both invisible while tests only skipped)
 
@@ -74,15 +77,28 @@ carries exactly the authored values - not defaults-plus-authored).
 
 ### Files changed
 
+**This session** (the Rhino harness and the two `CopyPersistentData` fixes):
 `Grasshopper/SAM.Core.Grasshopper.Tests/*` (converted to NUnit, `GrasshopperTestSetup.cs`,
-`XunitCompatAssert.cs`, `Rhino.Testing.Configs.xml` new; `GrasshopperTestAssembly.cs` removed);
-new project `Grasshopper/SAM.Core.Grasshopper.Tests.Fixtures/*`;
+`XunitCompatAssert.cs`, `Rhino.Testing.Configs.xml`, `CopyPersistentDataReplacementTests.cs` new;
+`GrasshopperTestAssembly.cs` removed); new project
+`Grasshopper/SAM.Core.Grasshopper.Tests.Fixtures/*` (including the new
+`TestDefaultPersistentDataComponent` fixture, in `TestComponents.cs`);
 `Grasshopper/SAM.Core.Grasshopper/Modify/CopyPersistentData.cs`.
+
+**The updater fix itself** (PR #103's original commit, predates this session - recorded here
+because it was missing from this file, itself a Codex P1 finding):
+`Grasshopper/SAM.Core.Grasshopper/Classes/GH_SAMVariableOutputParameterComponent.cs` (the
+`TemplateParams(side)` internal reader), `Grasshopper/SAM.Core.Grasshopper/Modify/ExpandVariableParameters.cs`
+(rewritten around the declared template, see "What was actually wrong" / "The fix" in the PR
+description), `Grasshopper/SAM.Core.Grasshopper/Modify/UpdateComponent.cs` (wires
+`ExpandVariableParameters` into the update lifecycle, between `AddObject` and
+`RestoreConnections`); tests `Grasshopper/SAM.Core.Grasshopper.Tests.Fixtures/TestVariableOutputComponent.cs`,
+`Grasshopper/SAM.Core.Grasshopper.Tests/VariableOutputUpdateTests.cs`.
 
 ### Validation
 
 ```
-SAM.Core.Grasshopper.Tests (Release)     44 passed / 0 failed / 0 skipped
+SAM.Core.Grasshopper.Tests (Release)     45 passed / 0 failed / 0 skipped
 SAM.sln (Release)                        0 errors, all 21 projects
 SAM/SAM.Tests (Release)                  2017 passed / 0 failed
 git diff --check                        clean
@@ -121,7 +137,7 @@ git diff --check                        clean in all four repositories
 ### HOLD - SAM #103, the Grasshopper variable-output updater
 
 **Resolved 2026-09-07 - see the entry at the top of this file.** The Rhino-enabled run this section
-called for is done (44/44 passing, 0 skipped), and it surfaced a real second defect in
+called for is done (45/45 passing, 0 skipped), and it surfaced two real defects in
 `CopyPersistentData` beyond the original nine regressions. HOLD lifted; ready for human review.
 
 ### This branch - the review findings
