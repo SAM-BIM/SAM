@@ -11,8 +11,25 @@ claims (branch names, "next step" lists) are historical rather than current.
 
 ## Latest (2026-09-07): the real 150 -> 190 l/s selection ladder, and the Iteration 2B closeout
 
-**Status: implemented and tested. Not merged. Do not merge automatically.**
+**Status: implemented, tested, and natively accepted.**
 Branch `test/parto-real-selection-ladder`, off `sow/2026-Q3` at **`c980d4c`** (the merge of PR #103).
+
+### Native acceptance (recorded 2026-09-07)
+
+**Iteration 2 PASSED**, observed in SAM_UI on the combined PR heads, with no TAS rerun. All three dwellings
+still automatically select `Nuaire MRXBOXAB-ECO5-AECV`; design duties remain 30/30, 63/63 and 63/63 l/s;
+selected equipment capacity remains 150/150 l/s; headroom remains 120/120, 87/87 and 87/87 l/s; Approved
+Document F and Design airflow are still shown as separate quantities and remain consistent with the
+previously accepted model; and no equipment-selection operation changed a design duty.
+
+The "catalogue reports two selectable products" assertion is **NOT APPLICABLE to the current interface**:
+SAM_UI does not expose the catalogue product list at all - `PartOIterationWindow` offers only the
+`SelectVentilationUnit` on/off checkbox - so there is no surface on which a product count could be read.
+The two-product fact is pinned in CI instead. The missing surface is an explicit usability gap carried into
+the equipment-selection UX task that follows, not a defect of this closeout.
+
+**Nothing is FROZEN.** This closeout is recorded as
+**XBC15 CLOSEOUT COMPLETE - READY FOR FINAL EQUIPMENT-SELECTION UX**.
 
 ### Tests only. No production code changed.
 
