@@ -3,6 +3,7 @@
 
 using Grasshopper.Kernel;
 using System;
+using System.Linq;
 
 namespace SAM.Core.Grasshopper
 {
@@ -44,7 +45,12 @@ namespace SAM.Core.Grasshopper
                             break;
                         }
 
-                        System.Reflection.MethodInfo addMethod = type.GetMethod("AddPersistentData");
+                        //GH_PersistentParam<T> declares AddPersistentData(T) AND AddPersistentData(object),
+                        //so an unqualified GetMethod("AddPersistentData") is ambiguous (AmbiguousMatchException)
+                        //and was being swallowed whole by the catch below - copying nothing, silently, every time.
+                        //Naming the parameter type (the generic argument, T) picks the single matching overload.
+                        Type gooType = type.GetGenericArguments().FirstOrDefault();
+                        System.Reflection.MethodInfo addMethod = gooType == null ? null : type.GetMethod("AddPersistentData", new[] { gooType });
                         if (addMethod == null)
                         {
                             break;
