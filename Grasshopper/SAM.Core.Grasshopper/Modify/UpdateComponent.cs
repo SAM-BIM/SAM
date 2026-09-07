@@ -69,6 +69,19 @@ namespace SAM.Core.Grasshopper
                 return null;
             }
 
+            //BEFORE the wires and before the persistent data, and that order is the whole of the fix.
+            //
+            //A GH_SAMVariableOutputParameterComponent registers only its DEFAULT parameters, so a brand new
+            //instance does not carry the voluntary output somebody inserted and wired up, nor the voluntary
+            //input they typed a value into. RestoreConnections matches by name and rightly refuses to guess,
+            //so before this call every such wire was reported dropped and every such value was left behind -
+            //on exactly the components most recently modernised to declarative Inputs/Outputs, which are the
+            //ones with parameters to insert in the first place.
+            //
+            //It is also after AddObject, because a parameter is registered on a component that belongs to a
+            //document, the same way the zoomable insert on the canvas does it.
+            ExpandVariableParameters(gH_SAMComponent, result);
+
             RestoreConnections(result, capturedConnections, out Log log_Restore);
             if (log_Restore != null)
             {

@@ -7,13 +7,14 @@ using SAM.Geometry.Object.Spatial;
 using SAM.Geometry.Planar;
 using SAM.Geometry.Spatial;
 using System.Collections.Generic;
-using Xunit;
+using NUnit.Framework;
 
 namespace SAM.Core.Grasshopper.Tests
 {
+    [TestFixture]
     public class TryGetSAMGeometriesTests
     {
-        [Fact]
+        [Test]
         public void Face3D_FromDirectAndWrapped()
         {
             Point3D p1 = new Point3D(0, 0, 0);
@@ -37,7 +38,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Same(face, facesGoo[0]);
         }
 
-        [Fact]
+        [Test]
         public void Face3D_FromShellAndClosedPolyline()
         {
             Point3D p1 = new Point3D(0, 0, 0);
@@ -59,7 +60,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Single(facesFromPolyline);
         }
 
-        [Fact]
+        [Test]
         public void Polyline3D_FromFace3D_NoInvalidCastException()
         {
             Point3D p1 = new Point3D(0, 0, 0);
@@ -74,7 +75,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.NotNull(polylines[0]);
         }
 
-        [Fact]
+        [Test]
         public void Segment3D_FromFace3DAndPolyline3D()
         {
             Point3D p1 = new Point3D(0, 0, 0);
@@ -88,7 +89,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Equal(3, segments.Count);
         }
 
-        [Fact]
+        [Test]
         public void Shell_FromMultiFaceCollection()
         {
             Point3D p1 = new Point3D(0, 0, 0);
@@ -105,7 +106,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Equal(2, shells[0].Face3Ds.Count);
         }
 
-        [Fact]
+        [Test]
         public void PlaneAndPoint3D_FromFace3D()
         {
             Point3D p1 = new Point3D(0, 0, 0);
@@ -124,7 +125,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Single(points);
         }
 
-        [Fact]
+        [Test]
         public void CollectionWithFirstInvalidElement_DoesNotAbortEarly()
         {
             Point3D p1 = new Point3D(0, 0, 0);
@@ -144,7 +145,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Same(face, faces[0]);
         }
 
-        [Fact]
+        [Test]
         public void NullAndEmptyGuards()
         {
             GH_ObjectWrapper nullWrapper = null;

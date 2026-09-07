@@ -6,10 +6,11 @@ using Grasshopper.Kernel.Parameters;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Xunit;
+using NUnit.Framework;
 
 namespace SAM.Core.Grasshopper.Tests
 {
+    [TestFixture]
     public class ManualReconnectionTests
     {
         private const string SkipReason = "GH_Document requires the Rhino native runtime; run these tests in a Rhino-enabled environment.";
@@ -21,7 +22,7 @@ namespace SAM.Core.Grasshopper.Tests
             return result;
         }
 
-        [SkippableFact]
+        [Test]
         public void UpdateComponents_AllWiresRestored_NoIssues()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -45,7 +46,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Null(document.FindObject(component.InstanceGuid, true));
         }
 
-        [SkippableFact]
+        [Test]
         public void UpdateComponents_ConnectedInputRemoved_ReportsMissingInput()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -72,7 +73,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Empty(issue.MissingOutputNames);
         }
 
-        [SkippableFact]
+        [Test]
         public void UpdateComponents_ConnectedOutputRemoved_ReportsMissingOutput()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -96,7 +97,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Empty(issue.MissingInputNames);
         }
 
-        [SkippableFact]
+        [Test]
         public void UpdateComponents_RemovedUnconnectedParameter_NoIssue()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -111,7 +112,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Empty(issues);
         }
 
-        [SkippableFact]
+        [Test]
         public void UpdateComponents_SeveralMissingWires_SingleIssueWithDetails()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -140,7 +141,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Single(issue.MissingOutputNames);
         }
 
-        [SkippableFact]
+        [Test]
         public void UpdateComponents_SeveralAffectedComponents_DeterministicOrdering()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -165,7 +166,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Equal(200, issues[1].PivotY);
         }
 
-        [SkippableFact]
+        [Test]
         public void UpdateComponents_FailedReplacement_ReportsOldComponent()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -189,7 +190,7 @@ namespace SAM.Core.Grasshopper.Tests
             }
         }
 
-        [SkippableFact]
+        [Test]
         public void UpdateComponents_IssueGuid_ResolvesToReplacement()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -210,7 +211,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Same(updated[0], resolved);
         }
 
-        [SkippableFact]
+        [Test]
         public void NavigateTo_StaleGuid_ReturnsFalse()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -220,7 +221,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.False(navigated);
         }
 
-        [SkippableFact]
+        [Test]
         public void NavigateTo_NoActiveCanvas_ReturnsFalse()
         {
             GH_Document document = CreateDocumentOrSkip();
@@ -231,7 +232,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.False(navigated);
         }
 
-        [SkippableFact]
+        [Test]
         public void MissingConnections_PeerRemovedFromDocument_ReportsUnavailable()
         {
             GH_Document document = CreateDocumentOrSkip();

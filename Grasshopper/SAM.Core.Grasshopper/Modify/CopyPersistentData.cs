@@ -39,21 +39,21 @@ namespace SAM.Core.Grasshopper
                             break;
                         }
 
-                        if (!(persistentData is System.Collections.IEnumerable enumerable))
+                        //A freshly-constructed replacement can already carry its own baked-in default
+                        //persistent data (e.g. a param whose registration calls SetPersistentData(...)),
+                        //so appending the old param's values one at a time (AddPersistentData(T), looped)
+                        //would double up: defaults, then the old values, instead of just the old values.
+                        //SetPersistentData(GH_Structure<T>) replaces the target's tree wholesale - correct
+                        //regardless of what the replacement started with, and it hands over the old
+                        //param's branch structure intact rather than flattening it through repeated
+                        //single-item adds.
+                        System.Reflection.MethodInfo setMethod = type.GetMethod("SetPersistentData", new[] { persistentData.GetType() });
+                        if (setMethod == null)
                         {
                             break;
                         }
 
-                        System.Reflection.MethodInfo addMethod = type.GetMethod("AddPersistentData");
-                        if (addMethod == null)
-                        {
-                            break;
-                        }
-
-                        foreach (object item in enumerable)
-                        {
-                            addMethod.Invoke(newParam, new[] { item });
-                        }
+                        setMethod.Invoke(newParam, new[] { persistentData });
                         break;
                     }
                     type = type.BaseType;

@@ -8,7 +8,7 @@ using System.Drawing;
 
 namespace SAM.Core.Grasshopper.Tests
 {
-    internal static class TestDocument
+    public static class TestDocument
     {
         public static GH_Document TryCreate()
         {

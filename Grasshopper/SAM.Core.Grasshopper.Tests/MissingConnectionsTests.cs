@@ -6,13 +6,14 @@ using Grasshopper.Kernel.Parameters;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Xunit;
+using NUnit.Framework;
 
 namespace SAM.Core.Grasshopper.Tests
 {
+    [TestFixture]
     public class MissingConnectionsTests
     {
-        [Fact]
+        [Test]
         public void MissingConnections_WiresRestored_ReturnsEmpty()
         {
             TestUpdatableComponent component_Old = new TestUpdatableComponent();
@@ -35,7 +36,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Empty(missing);
         }
 
-        [Fact]
+        [Test]
         public void MissingConnections_InputWireNotRestored_ReportsWire()
         {
             TestUpdatableComponent component_Old = new TestUpdatableComponent();
@@ -57,7 +58,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Contains("could not be restored", missing[0].Reason);
         }
 
-        [Fact]
+        [Test]
         public void MissingConnections_ConnectedInputRemoved_ReportsMissing()
         {
             TestUpdatableComponent component_Old = new TestUpdatableComponent();
@@ -79,7 +80,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Contains("does not exist", missing[0].Reason);
         }
 
-        [Fact]
+        [Test]
         public void MissingConnections_ConnectedOutputRemoved_ReportsMissing()
         {
             TestUpdatableComponent component_Old = new TestUpdatableComponent();
@@ -101,7 +102,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Contains("does not exist", missing[0].Reason);
         }
 
-        [Fact]
+        [Test]
         public void MissingConnections_UnconnectedParameters_NotCaptured()
         {
             TestUpdatableComponent component = new TestUpdatableComponent();
@@ -114,7 +115,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Empty(snapshots);
         }
 
-        [Fact]
+        [Test]
         public void MissingConnections_SeveralMissingWires_AllReported()
         {
             TestUpdatableComponent component_Old = new TestUpdatableComponent();
@@ -141,7 +142,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Equal(1, missing.Count(x => x.Side == GH_ParameterSide.Output));
         }
 
-        [Fact]
+        [Test]
         public void MissingConnections_ReplacementUnavailable_ReportsAllWires()
         {
             TestUpdatableComponent component_Old = new TestUpdatableComponent();
@@ -157,7 +158,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Contains("not available", missing[0].Reason);
         }
 
-        [Fact]
+        [Test]
         public void SortManualReconnectionIssues_OrdersByPivotThenNameThenGuid()
         {
             ManualReconnectionIssue issue_1 = new ManualReconnectionIssue { ComponentName = "B", PivotX = 100, PivotY = 100, ComponentInstanceGuid = Guid.NewGuid() };
@@ -174,7 +175,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Same(issue_2, issues[3]);
         }
 
-        [Fact]
+        [Test]
         public void ManualReconnectionIssue_ToText_ContainsDetails()
         {
             Guid guid = Guid.NewGuid();
@@ -197,7 +198,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Contains(guid.ToString(), text);
         }
 
-        [Fact]
+        [Test]
         public void ManualReconnectionIssue_Summary_ReflectsSides()
         {
             ManualReconnectionIssue issue_Inputs = new ManualReconnectionIssue();
@@ -213,7 +214,7 @@ namespace SAM.Core.Grasshopper.Tests
             Assert.Equal("replacement failed", issue_Failed.Summary);
         }
 
-        [Fact]
+        [Test]
         public void NavigateTo_NullDocument_ReturnsFalse()
         {
             bool navigated = Modify.NavigateTo(null, Guid.NewGuid());
