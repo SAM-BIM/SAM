@@ -4135,6 +4135,251 @@ namespace SAM.Tests
             Assert.False(string.IsNullOrWhiteSpace(reason));
         }
 
+        // =================================================================================================
+        // P. Manual authority - Modify.AssignVentilationUnit. The engineer states the product, and the
+        //    statement is held: no rule runs, no airflow moves, and nothing is "corrected".
+        // =================================================================================================
+
+        /// <summary>
+        /// An explicit assignment writes the identity and <b>moves no airflow of any kind</b> - not the
+        /// Approved Document F requirement, not the design airflow, and not the runtime fields a simulation
+        /// reads. Fitting a different box is not a statement about any of them.
+        /// </summary>
+        [Fact]
+        public void AnExplicitAssignment_WritesTheIdentityAndMovesNoAirflow()
+        {
+            AdjacencyCluster adjacencyCluster = SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out _);
+
+            Dictionary<string, string> requirements_Before = Requirements(adjacencyCluster);
+            Dictionary<string, double> designs_Before = Designs(adjacencyCluster);
+            List<string> runtimeAirflows_Before = RuntimeAirflows(adjacencyCluster);
+
+            Assert.True(adjacencyCluster.AssignVentilationUnit(airHandlingUnit, XBC15Reference(), out List<string> notes, out List<string> refusals));
+
+            Assert.Empty(refusals);
+            Assert.NotEmpty(notes);
+
+            //The identity moved.
+            Assert.Equal(model_XBC15, SelectedModel(adjacencyCluster));
+
+            //Nothing else did.
+            Assert.Equal(requirements_Before, Requirements(adjacencyCluster));
+            Assert.Equal(designs_Before, Designs(adjacencyCluster));
+            Assert.Equal(runtimeAirflows_Before, RuntimeAirflows(adjacencyCluster));
+
+            AssertPartFFloorsAreMet(adjacencyCluster);
+        }
+
+        /// <summary>
+        /// A manual assignment may deliberately choose a <b>larger</b> capable product than the rule would.
+        /// Automatic selection answers MRXBOX at this duty; an engineer who assigns the XBC15 has specified
+        /// a bigger box for reasons this model knows nothing about - procurement, standardisation, a duct
+        /// run - and nothing here reverts it to the smallest capable product.
+        /// </summary>
+        [Fact]
+        public void AnExplicitAssignment_MayDeliberatelyChooseALargerCapableProduct()
+        {
+            AdjacencyCluster adjacencyCluster = SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out _);
+
+            //The rule, asked the same question, would still say MRXBOX.
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit, out double supplyDuty_Lps, out double extractDuty_Lps);
+            Assert.Equal(model_MRXBOX, RealLadder().SelectSmallestCapableVentilationUnit(supplyDuty_Lps, extractDuty_Lps).VentilationUnitReference.Model);
+
+            Assert.True(adjacencyCluster.AssignVentilationUnit(airHandlingUnit, XBC15Reference(), out _, out _));
+
+            //And the oversized choice stands, with its own ceiling resolved from the catalogue.
+            Assert.Equal(model_XBC15, SelectedModel(adjacencyCluster));
+
+            AirHandlingUnit airHandlingUnit_After = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            Assert.Equal(190, airHandlingUnit_After.SelectedVentilationUnitCapacityDescriptor(RealLadder()).MaximumSupplyFlowRate_Lps, 6);
+            Assert.True(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit_After, RealLadder(), out _));
+        }
+
+        /// <summary>
+        /// <b>An insufficient manual assignment is held, and reported.</b> A 175 l/s dwelling with the
+        /// 150 l/s MRXBOX assigned stays assigned as the MRXBOX: the design airflow is not reduced to fit
+        /// the box, the XBC15 is not substituted, and the shortfall is reported rather than hidden. The
+        /// engineer authored a design that does not work and is told so.
+        /// </summary>
+        [Fact]
+        public void AnExplicitAssignment_ToAnInsufficientProduct_IsHeldAndReported()
+        {
+            AdjacencyCluster adjacencyCluster = SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out _);
+
+            RaiseDutyTotalTo(adjacencyCluster, airHandlingUnit, 175);
+
+            Dictionary<string, string> requirements_Before = Requirements(adjacencyCluster);
+            Dictionary<string, double> designs_Before = Designs(adjacencyCluster);
+
+            Assert.True(adjacencyCluster.AssignVentilationUnit(airHandlingUnit, MRXBOXReference(), out _, out List<string> refusals));
+            Assert.Empty(refusals);
+
+            AirHandlingUnit airHandlingUnit_After = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            //Still the MRXBOX, and still rated at 150 - the identity is the engineer's and the capacity is
+            //the catalogue's.
+            Assert.Equal(model_MRXBOX, SelectedModel(adjacencyCluster));
+            Assert.Equal(150, airHandlingUnit_After.SelectedVentilationUnitCapacityDescriptor(RealLadder()).MaximumSupplyFlowRate_Lps, 6);
+
+            //Reported insufficient, by name.
+            Assert.False(adjacencyCluster.IsVentilationUnitSufficient(airHandlingUnit_After, RealLadder(), out string reason));
+            Assert.False(string.IsNullOrWhiteSpace(reason));
+
+            //And the design was not quietly cut back to 150 to make the box fit.
+            adjacencyCluster.AirHandlingUnitDesignDuty(airHandlingUnit_After, out double supplyDuty_Lps, out double extractDuty_Lps);
+
+            Assert.Equal(175, supplyDuty_Lps, 6);
+            Assert.Equal(175, extractDuty_Lps, 6);
+            Assert.Equal(requirements_Before, Requirements(adjacencyCluster));
+            Assert.Equal(designs_Before, Designs(adjacencyCluster));
+
+            //A capable alternative EXISTS - which is what makes a suggestion possible - and naming it
+            //changed nothing, because a suggestion is a value and not a write.
+            Assert.Equal(model_XBC15, RealLadder().SelectSmallestCapableVentilationUnit(supplyDuty_Lps, extractDuty_Lps).VentilationUnitReference.Model);
+            Assert.Equal(model_MRXBOX, SelectedModel(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// Assigning one dwelling's product changes that dwelling and no other. There is no cross-dwelling
+        /// equipment decision for an override to leak through.
+        /// </summary>
+        [Fact]
+        public void AnExplicitAssignment_ChangesOneDwellingAndLeavesTheOthers()
+        {
+            PartOIterationPreparation preparation = Prepare(TwoDwellingModel(), DwellingCatalogue());
+
+            Assert.Null(preparation.Refusal);
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            List<AirHandlingUnit> airHandlingUnits = adjacencyCluster.GetObjects<AirHandlingUnit>();
+            airHandlingUnits.Sort((x, y) => StringComparer.Ordinal.Compare(x.Name, y.Name));
+
+            Assert.Equal(2, airHandlingUnits.Count);
+
+            string name_Assigned = airHandlingUnits[0].Name;
+            string model_Other_Before = airHandlingUnits[1].SelectedVentilationUnitReference()?.Model;
+
+            Assert.False(string.IsNullOrWhiteSpace(model_Other_Before));
+
+            Dictionary<string, double> designs_Before = Designs(adjacencyCluster);
+
+            Assert.True(adjacencyCluster.AssignVentilationUnit(airHandlingUnits[0], XBC15Reference(), out _, out _));
+
+            List<AirHandlingUnit> airHandlingUnits_After = adjacencyCluster.GetObjects<AirHandlingUnit>();
+
+            Assert.Equal(model_XBC15, airHandlingUnits_After.Find(x => x.Name == name_Assigned).SelectedVentilationUnitReference()?.Model);
+            Assert.Equal(model_Other_Before, airHandlingUnits_After.Find(x => x.Name != name_Assigned).SelectedVentilationUnitReference()?.Model);
+
+            Assert.Equal(designs_Before, Designs(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// <b>The contract Iteration 2B rests on, at the level it actually holds.</b> An assigned identity
+        /// survives a re-preparation offered no catalogue - which is exactly how every 2B round re-prepares.
+        /// No rule runs, and the deliberately oversized XBC15 is not downgraded to the MRXBOX the rule would
+        /// pick at this duty.
+        /// </summary>
+        [Fact]
+        public void AnExplicitAssignment_SurvivesRePreparationWithNoCatalogue()
+        {
+            PartOIterationPreparation preparation = Prepared(RealLadder());
+
+            AdjacencyCluster adjacencyCluster = preparation.AnalyticalModel.AdjacencyCluster;
+
+            AirHandlingUnit airHandlingUnit = Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+
+            Assert.Equal(model_MRXBOX, airHandlingUnit.SelectedVentilationUnitReference()?.Model);
+
+            Assert.True(adjacencyCluster.AssignVentilationUnit(airHandlingUnit, XBC15Reference(), out _, out _));
+
+            //Re-prepared with NO catalogue - null is how "select nothing, keep what is there" is spelled,
+            //and what OptimisePartOTM59 passes on every round.
+            PartOIterationPreparation preparation_Again = Prepare(new AnalyticalModel(preparation.AnalyticalModel, adjacencyCluster), null);
+
+            Assert.Null(preparation_Again.Refusal);
+            Assert.Equal(model_XBC15, SelectedModel(preparation_Again.AnalyticalModel.AdjacencyCluster));
+        }
+
+        /// <summary>
+        /// An assigned identity survives serialization, so an authored assignment is still authored after
+        /// the project has been saved and reopened - and the capacity still comes from the catalogue rather
+        /// than from the file.
+        /// </summary>
+        [Fact]
+        public void AnExplicitAssignment_SurvivesTheJsonRoundTrip()
+        {
+            AdjacencyCluster adjacencyCluster = SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out _);
+
+            Assert.True(adjacencyCluster.AssignVentilationUnit(airHandlingUnit, XBC15Reference(), out _, out _));
+
+            AirHandlingUnit airHandlingUnit_RoundTripped = new(Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>()).ToJsonObject());
+
+            Assert.Equal(model_XBC15, airHandlingUnit_RoundTripped.SelectedVentilationUnitReference()?.Model);
+            Assert.Equal(190, airHandlingUnit_RoundTripped.SelectedVentilationUnitCapacityDescriptor(RealLadder()).MaximumSupplyFlowRate_Lps, 6);
+        }
+
+        /// <summary>
+        /// Assigning onto a unit the model does not contain refuses and writes nothing - the same rule, and
+        /// the same reason, as the automatic path. A selection nothing can resolve is worse than none.
+        /// </summary>
+        [Fact]
+        public void AnExplicitAssignment_OntoAUnitOutsideTheModel_RefusesAndWritesNothing()
+        {
+            AdjacencyCluster adjacencyCluster = SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out _);
+
+            Assert.False(adjacencyCluster.AssignVentilationUnit(Analytical.Create.AirHandlingUnit(airHandlingUnit.Name), XBC15Reference(), out _, out List<string> refusals));
+
+            Assert.NotEmpty(refusals);
+            Assert.Single(adjacencyCluster.GetObjects<AirHandlingUnit>());
+            Assert.Equal(model_MRXBOX, SelectedModel(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// A product that identifies nothing is refused, and the unit's existing selection is left exactly
+        /// where it was. This is not how a dwelling comes to have no product - that is a unit nothing has
+        /// been assigned to yet, which is reported as such rather than invented.
+        /// </summary>
+        [Fact]
+        public void AnIdentitylessProduct_IsRefusedAndTheExistingSelectionSurvives()
+        {
+            AdjacencyCluster adjacencyCluster = SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out _);
+
+            Assert.False(adjacencyCluster.AssignVentilationUnit(airHandlingUnit, new VentilationUnitReference(), out _, out List<string> refusals));
+            Assert.NotEmpty(refusals);
+
+            Assert.False(adjacencyCluster.AssignVentilationUnit(airHandlingUnit, null, out _, out refusals));
+            Assert.NotEmpty(refusals);
+
+            Assert.Equal(model_MRXBOX, SelectedModel(adjacencyCluster));
+        }
+
+        /// <summary>
+        /// A manually assigned product is <b>indistinguishable</b> from an automatically selected one to
+        /// everything downstream: the same parameter, read by the same query, resolved against the same
+        /// catalogue. That is what lets a manual assignment act as a ceiling in Iteration 2B without 2B
+        /// needing to know a human chose it - and it is why no second "how was this chosen" flag is stored
+        /// on the unit.
+        /// </summary>
+        [Fact]
+        public void AnAssignedProduct_IsIndistinguishableFromASelectedOne()
+        {
+            AdjacencyCluster adjacencyCluster_Selected = SelectedFromRealLadder(out _, out _);
+
+            AdjacencyCluster adjacencyCluster_Assigned = SelectedFromRealLadder(out AirHandlingUnit airHandlingUnit, out _);
+
+            Assert.True(adjacencyCluster_Assigned.AssignVentilationUnit(airHandlingUnit, MRXBOXReference(), out _, out _));
+
+            Assert.True(SelectedReference(adjacencyCluster_Selected).Matches(SelectedReference(adjacencyCluster_Assigned)));
+        }
+
+        /// <summary>The MRXBOX's identity as the catalogue states it - the hybrid combination, not a bare model.</summary>
+        private static VentilationUnitReference MRXBOXReference()
+        {
+            return new VentilationUnitReference("Nuaire", model_MRXBOX, "MR-ECO-COOL-V");
+        }
+
         /// <summary>
         /// The two products <c>SAM_Systems</c> ships, at their published capacities and declared ranks.
         /// <para>

@@ -21,5 +21,20 @@ namespace SAM.Analytical
         [ParameterProperties("Overheating Scenarios", "Overheating Scenarios"), SAMObjectParameterValue(typeof(SAMCollection<OverheatingScenario>))] OverheatingScenarios,
         [ParameterProperties("Simulation Result Provenance", "Simulation Result Provenance"), SAMObjectParameterValue(typeof(SimulationResultProvenance))] SimulationResultProvenance,
         [ParameterProperties("Part O Isolation Context", "Part O Isolation Context"), SAMObjectParameterValue(typeof(PartOIsolationContext))] PartOIsolationContext,
+
+        /// <summary>
+        /// The project's Approved Document O equipment preselection - how ventilation units are chosen, and
+        /// which products the engineer has permitted them to be chosen from. Absent until stated, which
+        /// reads as the historic default: automatic selection over the whole catalogue.
+        /// <para>
+        /// <b>Configuration, not an assignment and not a capability.</b> What each dwelling is fitted with
+        /// is <see cref="AirHandlingUnitParameter.VentilationUnitReference"/> on its own air handling unit;
+        /// what that product can move stays in the catalogue. This parameter is on the project rather than
+        /// on an engineering object because a procurement preference belongs to the project - and here
+        /// rather than in an application setting because one project's permitted products must not become
+        /// the next project's. <see cref="Analytical.PartOEquipmentSelection"/> sets that out in full.
+        /// </para>
+        /// </summary>
+        [ParameterProperties("Part O Equipment Selection", "Part O Equipment Selection"), SAMObjectParameterValue(typeof(PartOEquipmentSelection))] PartOEquipmentSelection,
     }
 }
