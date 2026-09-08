@@ -662,6 +662,55 @@ namespace SAM.Tests
             Assert.All(designAirFlowCapacityEnvelope.RoundCandidate.DwellingRounds, x => Assert.Equal(VentilationUnitSelectionOutcome.Kept, x.VentilationUnitSelectionOutcome));
         }
 
+        /// <summary>
+        /// <b>7b.</b> And the same is true of a dwelling assigned the project's own <b>test</b> ventilation
+        /// unit: its stated capacity is the ceiling Iteration 2B grows within, and no manufacturer product
+        /// is reselected to make the answer bigger.
+        /// <para>
+        /// This is the whole reason a project test product has to persist on the project. The unit stores an
+        /// identity, exactly as it would for a Nuaire box; the ceiling is looked up from the capability list
+        /// the preparation recorded. If that list did not carry the what-if, this dwelling's ceiling would
+        /// be unknown and the envelope would refuse - and the temptation would then be to reach for a real
+        /// product instead, which is exactly what must never happen.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void TheEnvelope_GrowsWithinAnAssignedProjectTestUnit_AndReselectsNoManufacturerProduct()
+        {
+            PartOProjectTestVentilationUnit partOProjectTestVentilationUnit = new("Test unit", 45, 50);
+
+            //The dwelling is fitted with the what-if, and nothing else.
+            AdjacencyCluster adjacencyCluster = new();
+
+            Dwelling(adjacencyCluster, Assert.Single(partOProjectTestVentilationUnit.CapacityDescriptors()), "AHU 1", 1, true);
+
+            //The capability lookup a preparation would have recorded: the shipped ladder PLUS the project's
+            //own test product. The shipped ladder holds units far larger, and none of them is taken.
+            List<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors = [.. RealLadder(), .. partOProjectTestVentilationUnit.CapacityDescriptors()];
+
+            DesignAirFlowCapacityEnvelope designAirFlowCapacityEnvelope = Envelope(adjacencyCluster, Step(adjacencyCluster), ventilationUnitCapacityDescriptors);
+
+            Assert.True(designAirFlowCapacityEnvelope.IsScaled, designAirFlowCapacityEnvelope.Reason);
+
+            //The identity is locked, before and after.
+            Assert.Equal("Test unit", SelectedModel(adjacencyCluster, "AHU 1"));
+            Assert.Equal("Test unit", SelectedModel(designAirFlowCapacityEnvelope.AdjacencyCluster, "AHU 1"));
+
+            DesignAirFlowCapacityEnvelopeGroup designAirFlowCapacityEnvelopeGroup = Assert.Single(designAirFlowCapacityEnvelope.Groups);
+
+            Assert.Equal("Test unit", designAirFlowCapacityEnvelopeGroup.VentilationUnitReference.Model);
+            Assert.Equal(PartOProjectTestVentilationUnit.Manufacturer, designAirFlowCapacityEnvelopeGroup.VentilationUnitReference.Manufacturer);
+
+            //The what-if's OWN two ratings are the ceiling, each side its own.
+            Assert.Equal(45, designAirFlowCapacityEnvelopeGroup.VentilationUnitCapacityDescriptor.MaximumSupplyFlowRate_Lps);
+            Assert.Equal(50, designAirFlowCapacityEnvelopeGroup.VentilationUnitCapacityDescriptor.MaximumExtractFlowRate_Lps);
+
+            //And the design stopped at 45 supply - the what-if's rating - not at 150, 190 or 500.
+            Assert.Equal(45, designAirFlowCapacityEnvelopeGroup.SupplyDuty_After_Lps, 6);
+
+            Assert.All(designAirFlowCapacityEnvelope.RoundCandidate.DwellingRounds, x => Assert.Equal(VentilationUnitSelectionOutcome.Kept, x.VentilationUnitSelectionOutcome));
+        }
+
         // ---- 9. The design the envelope was calculated from is untouched ---------------------------------
 
         /// <summary>
