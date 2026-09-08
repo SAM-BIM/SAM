@@ -139,6 +139,47 @@ namespace SAM.Analytical
         }
 
         /// <summary>
+        /// Whether two preselections say the same thing - the same authority over the same permitted
+        /// products, whatever order they were listed in.
+        ///
+        /// <para><b>Why this exists</b></para>
+        /// <para>
+        /// A prepared Part O run records the preselection it was prepared under, and Prepare &amp; Run may
+        /// reuse that preparation instead of repeating it. Reuse has to be refused when the engineer has
+        /// since changed the mode or the pool, or the run would be simulated with the products the OLD
+        /// configuration chose while the dialog reported the new one. That is a silent wrong answer, so the
+        /// comparison belongs with the type rather than being restated by whoever needs it.
+        /// </para>
+        /// <para>
+        /// <b>Order carries no meaning</b>, here or in selection: a pool ticked in the other order is the
+        /// same pool, and comparing lists positionally would refuse reuse for nothing.
+        /// </para>
+        /// </summary>
+        /// <param name="partOEquipmentSelection">The other statement. Null matches nothing.</param>
+        public bool Matches(PartOEquipmentSelection partOEquipmentSelection)
+        {
+            if (partOEquipmentSelection is null || partOEquipmentSelection.Mode != Mode)
+            {
+                return false;
+            }
+
+            if (partOEquipmentSelection.ventilationUnitReferences_Allowed.Count != ventilationUnitReferences_Allowed.Count)
+            {
+                return false;
+            }
+
+            foreach (VentilationUnitReference ventilationUnitReference in ventilationUnitReferences_Allowed)
+            {
+                if (partOEquipmentSelection.ventilationUnitReferences_Allowed.Find(x => x.Matches(ventilationUnitReference)) is null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// The candidate set an <b>automatic</b> selection is to run over, drawn from the catalogue handed
         /// in - never from anything stored here.
         /// <para>

@@ -407,6 +407,77 @@ namespace SAM.Tests
         }
 
         // =================================================================================================
+        // E2. Matches - the comparison a prepared run's reuse turns on
+        // =================================================================================================
+
+        /// <summary>
+        /// Two statements of the same authority over the same permitted products match. This is what lets
+        /// Prepare &amp; Run reuse an already-prepared iteration instead of preparing it again.
+        /// </summary>
+        [Fact]
+        public void TheSameAuthorityOverTheSameProducts_Matches()
+        {
+            Assert.True(Pool(MRXBOXReference(), XBC15Reference()).Matches(Pool(MRXBOXReference(), XBC15Reference())));
+            Assert.True(new PartOEquipmentSelection().Matches(new PartOEquipmentSelection()));
+        }
+
+        /// <summary>
+        /// <b>Order carries no meaning.</b> A pool ticked the other way round is the same pool - selection
+        /// already ignores order, so refusing a reuse over it would repeat a whole preparation for nothing.
+        /// </summary>
+        [Fact]
+        public void APoolInAnotherOrder_StillMatches()
+        {
+            Assert.True(Pool(MRXBOXReference(), XBC15Reference()).Matches(Pool(XBC15Reference(), MRXBOXReference())));
+        }
+
+        /// <summary>
+        /// <b>A different authority does not match, and this is the load-bearing case.</b> Reusing a
+        /// preparation made under one mode for a request that has since changed it would simulate the
+        /// products the OLD configuration chose while the dialog reported the new one - a wrong answer that
+        /// looks exactly like a right one.
+        /// </summary>
+        [Fact]
+        public void ADifferentAuthority_DoesNotMatch()
+        {
+            PartOEquipmentSelection partOEquipmentSelection = Pool(MRXBOXReference(), XBC15Reference());
+
+            Assert.False(partOEquipmentSelection.Matches(partOEquipmentSelection.Manual()));
+            Assert.False(partOEquipmentSelection.Matches(new PartOEquipmentSelection(PartOEquipmentSelectionMode.AutomaticAllProducts, [MRXBOXReference(), XBC15Reference()])));
+        }
+
+        /// <summary>A different pool does not match, in either direction and at either size.</summary>
+        [Fact]
+        public void ADifferentPool_DoesNotMatch()
+        {
+            Assert.False(Pool(MRXBOXReference()).Matches(Pool(XBC15Reference())));
+            Assert.False(Pool(MRXBOXReference()).Matches(Pool(MRXBOXReference(), XBC15Reference())));
+            Assert.False(Pool(MRXBOXReference(), XBC15Reference()).Matches(Pool(MRXBOXReference())));
+
+            //By full identity, so the hybrid combination is not the bare model.
+            Assert.False(Pool(MRXBOXReference()).Matches(Pool(new VentilationUnitReference("Nuaire", model_MRXBOX, null))));
+        }
+
+        /// <summary>Nothing matches null - there is no statement there to agree with.</summary>
+        [Fact]
+        public void NullMatchesNothing()
+        {
+            Assert.False(new PartOEquipmentSelection().Matches(null));
+        }
+
+        /// <summary>
+        /// A round trip through JSON still matches what it came from - so a configuration read back off a
+        /// saved project is recognised as the same one, rather than forcing a re-preparation.
+        /// </summary>
+        [Fact]
+        public void AJsonRoundTrip_StillMatches()
+        {
+            PartOEquipmentSelection partOEquipmentSelection = Pool(MRXBOXReference(), XBC15Reference());
+
+            Assert.True(partOEquipmentSelection.Matches(new PartOEquipmentSelection(partOEquipmentSelection.ToJsonObject())));
+        }
+
+        // =================================================================================================
         // F. Persistence - project scoped, and absent means the historic default
         // =================================================================================================
 
