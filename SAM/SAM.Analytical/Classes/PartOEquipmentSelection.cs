@@ -259,6 +259,78 @@ namespace SAM.Analytical
         }
 
         /// <summary>
+        /// The candidate set an <b>automatic</b> selection is to run over, where the project also states a
+        /// project test product.
+        ///
+        /// <para><b>This overload is where one rule lives, and it is the whole of the test product's automatic semantics</b></para>
+        /// <para>
+        /// <see cref="PartOEquipmentSelectionMode.AutomaticAllProducts"/> means <b>the shipped
+        /// manufacturer catalogue and nothing else</b>. A project test product is a what-if somebody
+        /// typed, and letting it into "all catalogue products" would silently change what that mode has
+        /// always meant: a project would select a made-up unit because a test capacity happened to be left
+        /// enabled, and every historic answer would move. So under that mode the test descriptors are not
+        /// offered at all, and the behaviour is identical to what it was before this feature existed.
+        /// </para>
+        /// <para>
+        /// Under <see cref="PartOEquipmentSelectionMode.AutomaticSelectedPool"/> they are offered, and then
+        /// the pool decides: the engineer has to have ticked the test product for it to be a candidate,
+        /// which is exactly the explicit act this feature requires. Under
+        /// <see cref="PartOEquipmentSelectionMode.ManualPerDwelling"/> no rule runs and the answer is
+        /// null, as ever.
+        /// </para>
+        /// <para>
+        /// <b>Nothing is stored.</b> Both sequences are parameters, as in the one-argument overload - this
+        /// type holds identities and never a capacity, and a project test product is a capacity.
+        /// </para>
+        /// </summary>
+        /// <param name="ventilationUnitCapacityDescriptors">The shipped manufacturer catalogue.</param>
+        /// <param name="ventilationUnitCapacityDescriptors_ProjectTest">
+        /// What the project's own test product contributes - normally none or one, from
+        /// <c>Query.CapacityDescriptors(PartOProjectTestVentilationUnit)</c>.
+        /// </param>
+        /// <returns>The candidates, or null where no rule is to be run.</returns>
+        public List<VentilationUnitCapacityDescriptor> CandidateDescriptors(IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors_ProjectTest)
+        {
+            //The one place the rule is written: an all-products selection is offered the catalogue alone.
+            return CandidateDescriptors(Mode == PartOEquipmentSelectionMode.AutomaticAllProducts
+                ? ventilationUnitCapacityDescriptors
+                : Offered(ventilationUnitCapacityDescriptors, ventilationUnitCapacityDescriptors_ProjectTest));
+        }
+
+        /// <summary>
+        /// The products a <b>manual</b> per-dwelling picker offers, where the project also states a project
+        /// test product - which it may pick, because picking by hand is the engineer's decision and a test
+        /// capacity they have stated is one of the things they may decide on.
+        /// <para>
+        /// The pool still applies in the pooled mode, and an un-narrowed manual pool still offers
+        /// everything - see the one-argument overload, which decides both. This adds only whether the test
+        /// product is among the things being offered, and under
+        /// <see cref="PartOEquipmentSelectionMode.AutomaticAllProducts"/> it is not: there the rows of the
+        /// table are an automatic rule's results, and the rule was never offered it.
+        /// </para>
+        /// </summary>
+        public List<VentilationUnitCapacityDescriptor> AllowedDescriptors(IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors_ProjectTest)
+        {
+            return AllowedDescriptors(Mode == PartOEquipmentSelectionMode.AutomaticAllProducts
+                ? ventilationUnitCapacityDescriptors
+                : Offered(ventilationUnitCapacityDescriptors, ventilationUnitCapacityDescriptors_ProjectTest));
+        }
+
+        /// <summary>
+        /// The two sequences as one, catalogue first. A concatenation and nothing more - the decision
+        /// about whether the second one takes part at all is made by the callers above, once each, so
+        /// that the rule is readable where it is stated rather than hidden in a helper.
+        /// </summary>
+        private static List<VentilationUnitCapacityDescriptor> Offered(IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors, IEnumerable<VentilationUnitCapacityDescriptor> ventilationUnitCapacityDescriptors_ProjectTest)
+        {
+            List<VentilationUnitCapacityDescriptor> result = [.. ventilationUnitCapacityDescriptors ?? []];
+
+            result.AddRange(ventilationUnitCapacityDescriptors_ProjectTest ?? []);
+
+            return result;
+        }
+
+        /// <summary>
         /// The same configuration with <see cref="Mode"/> set to
         /// <see cref="PartOEquipmentSelectionMode.ManualPerDwelling"/> and the pool preserved exactly.
         /// <para>

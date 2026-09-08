@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-or-later
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 namespace SAM.Analytical
@@ -151,6 +151,32 @@ namespace SAM.Analytical
                 && IsValid
                 && maximumSupplyFlowRate_Lps + tolerance_Lps >= supplyDuty_Lps
                 && maximumExtractFlowRate_Lps + tolerance_Lps >= extractDuty_Lps;
+        }
+
+        /// <summary>
+        /// This product as an <b>engineer-facing</b> label: its identity and its two maximum airflows.
+        /// <para>
+        /// <b>Deliberately without the rank</b>, which <see cref="ToString"/> carries and which this is
+        /// here to leave out. <see cref="Rank"/> is an internal catalogue tie-breaker - not an airflow,
+        /// not an efficiency, not a performance score and not an engineering output - and a product
+        /// picker that prints it invites an engineer to read a preference number as a rating. So the
+        /// picker shows this and the diagnostics show <see cref="ToString"/>.
+        /// </para>
+        /// <para>
+        /// The capacity stays <i>in</i> the label, because choosing a unit by hand is choosing a capacity
+        /// and the alternative is reading the identity here and the rating three columns away.
+        /// </para>
+        /// </summary>
+        public string Label
+        {
+            get
+            {
+                return string.Format(
+                    "{0} — {1:0.###} / {2:0.###} l/s",
+                    ventilationUnitReference is null ? "-" : ventilationUnitReference.ToString(),
+                    maximumSupplyFlowRate_Lps,
+                    maximumExtractFlowRate_Lps);
+            }
         }
 
         /// <summary>

@@ -36,5 +36,21 @@ namespace SAM.Analytical
         /// </para>
         /// </summary>
         [ParameterProperties("Part O Equipment Selection", "Part O Equipment Selection"), SAMObjectParameterValue(typeof(PartOEquipmentSelection))] PartOEquipmentSelection,
+
+        /// <summary>
+        /// One optional made-up ventilation unit this project may size dwellings against, so that "what
+        /// would a 165 l/s unit do here" can be answered without editing shipped manufacturer data or
+        /// inventing a fictional catalogue entry. Absent until stated, which is the historic behaviour.
+        /// <para>
+        /// <b>A capability, and it has to persist here.</b> A dwelling assigned this product stores only
+        /// its identity, exactly as it would a real one, so the capacity behind that identity must be
+        /// readable again after the project is reopened - otherwise a saved assignment comes back as
+        /// capacity unknown and an Iteration 2B ceiling is lost. And it must persist no wider than the
+        /// project, or one project's what-if would size the next project's dwellings, which is precisely
+        /// what an application setting would do. <see cref="Analytical.PartOProjectTestVentilationUnit"/>
+        /// sets that out in full, including why it never joins "all catalogue products".
+        /// </para>
+        /// </summary>
+        [ParameterProperties("Part O Project Test Ventilation Unit", "Part O Project Test Ventilation Unit"), SAMObjectParameterValue(typeof(PartOProjectTestVentilationUnit))] PartOProjectTestVentilationUnit,
     }
 }
