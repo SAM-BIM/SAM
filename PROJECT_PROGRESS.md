@@ -1,13 +1,157 @@
 # Project Progress
 
 ## Branch
-`test/parto-real-selection-ladder`, branched from `sow/2026-Q3` at **`c980d4c`** (the merge of PR #103).
-
-**Tests only.** No production code changed. `SAM_UI`, `SAM_Tas` and `SAM_Systems` are on their own branches
-for the same closeout - see the *Latest* entry - and none of them is a build dependency of this one.
+`sow/2026-Q3`. PR #110 (`feature/parto-equipment-selection-ux`) is merged and the Approved Document O
+iteration programme is **FROZEN** - see the entry immediately below.
 
 Everything below the *Latest* entry is superseded history retained for context, and its forward-looking
 claims (branch names, "next step" lists) are historical rather than current.
+
+## PART O ITERATIONS 1a / 1b / 2 / 2B - FROZEN (2026-09-08)
+
+Native acceptance PASSED in SAM_UI, and the equipment-selection closeout is merged into `sow/2026-Q3` in
+dependency order.
+
+| Repository | PR | Reviewed head | Merge commit | Frozen integration SHA |
+| --- | --- | --- | --- | --- |
+| `SAM` | #110 | `0f6dbaf7f9d5c490203e62ebc507ba6a8370a900` | `85d7b70d9d33cb0349be77f27a1c53b8679d09c5` | `85d7b70d9d33cb0349be77f27a1c53b8679d09c5` |
+| `SAM_UI` | #98 | `f5c6ef49631a56decf3cc08ff02b5ecdeb84564f` | `68e314a5f62dd3cd78fd832b92b1911fb4fbeaf2` | `68e314a5f62dd3cd78fd832b92b1911fb4fbeaf2` |
+| `SAM_Systems` | - | untouched | - | `9e1cd06f6031852a3c9395be476b01d8c44a1a4c` |
+| `SAM_Tas` | - | untouched | - | `ec7f50543e123f8a734b6e27b2b16c0cf1f1edde` |
+
+This documentation commit is a descendant of the frozen `SAM` SHA and changes no code. `SAM_Systems` and
+`SAM_Tas` carry **no production change** in this closeout: both are at the same SHA they were at when the
+work started, with clean trees - `VentilationUnitCatalogue.JSON` is byte-identical, which is deliberate,
+because a project test product is composed with the shipped catalogue at the point of use and never
+written into it.
+
+Post-merge verification on those exact heads, `SAM` built first so `SAM_UI` consumed the merged
+`SAM\build\SAM.Analytical.dll` rather than the old feature branch:
+
+```text
+SAM.sln Release                                  0 errors
+SAM_UI.sln Release                               0 errors
+SAM.Tests                                        2114 / 2114
+SAM.Analytical.UI.WPF.Tests                       771 /  771
+SAM.Analytical.Systems.Tests                       90 /   90
+git diff --check (all four repositories)         clean
+working trees (all four repositories)            clean
+```
+
+### The authority split this freeze protects
+
+Four quantities that share a unit and mean different things, still separate in the merged tree:
+
+```text
+PartFRequiredAirFlow  !=  DesignAirFlow  !=  SelectedEquipmentCapacity  !=  OperatingAirFlow
+```
+
+- `AirHandlingUnitParameter` has **exactly one** member, `VentilationUnitReference` - identity, never
+  capability and never duty - and no other parameter enum is associated with `AirHandlingUnit`.
+- `PartOEquipmentSelection`'s only field is `List<VentilationUnitReference>`; it serializes `Mode` and
+  `AllowedVentilationUnitReferences` and nothing numeric. `AllowedVentilationUnitReferences !=
+  SelectedVentilationUnitReference`.
+- Equipment capacity stays in a descriptor, resolved by identity, never copied onto a model.
+
+Confirmed on the merged trees, by reading them rather than by adding anything:
+
+- **Iteration 1a** remains the base mechanical MVHR design; no manufacturer selection runs where none was
+  asked for (a null catalogue means "run no rule", not "a catalogue offering nothing").
+- **Iteration 1b** remains natural ventilation and invents no mechanical topology and no continuous
+  mechanical airflow - `PartOBaseMVHRTests.TheNaturalVentilationRoute_BuildsNoMechanicalTopology`,
+  `PartOIterationPreparationTests.NVDwelling_InventsNoContinuousMechanicalSupplyOrExtract` and
+  `NVDwelling_SaysWhyNoMechanicalAirflowWasApplied_WithoutClaimingItSizedAnything`.
+- **Iteration 2** selects and assigns equipment without moving any airflow.
+- **Automatic - all catalogue products** works and means the shipped manufacturer catalogue.
+- **Automatic - selected pool** has **no fallback**: an empty pool refuses by name and is never widened.
+- **Manual per dwelling** remains authoritative - no rule runs, an insufficient assignment is held and
+  reported, and a deliberately larger product is never reduced.
+- **The project test product** is project-scoped (`AnalyticalModelParameter.PartOProjectTestVentilationUnit`,
+  no `ActiveSetting` anywhere near it) and **never joins Automatic - all**; the rule is written once, in
+  `PartOEquipmentSelection.CandidateDescriptors`.
+- **Iteration 2B** locks the selected identity and treats the selected product's capacity as a **ceiling
+  only** - `PartOCapacityEnvelopeTests.TheEnvelope_NeverReselectsTheVentilationUnit`,
+  `TheEnvelope_GrowsWithinAnAssignedProjectTestUnit_AndReselectsNoManufacturerProduct`,
+  `PartODesignAirFlowRoundTests.ACombinedRoundBeyondSelectedCapacity_IsNotAdopted`,
+  `PartOVentilationUnitSelectionTests.Candidate_BeyondSelectedCapacity_NeverReselects_EvenWhereABiggerProductIsOffered`.
+- **No silent MRXBOX <-> XBC15 <-> test-product reselection** anywhere: every dwelling round reports
+  `Kept`, never `Reselected`.
+- **Saved and reopened** equipment configuration stays project-scoped, and restored result workflows
+  trigger no reselection.
+
+**Iteration 1a FROZEN. Iteration 1b FROZEN. Iteration 2 FROZEN. Iteration 2B FROZEN.**
+
+A presentation-only UI consistency review follows separately - wording, tooltips, spacing, hierarchy,
+disabled-control visibility, table sizing. It must not reopen the engineering authority closed here.
+**Iteration 3 has not been started.**
+
+## Latest (2026-09-08): a project may state one test ventilation unit, and a picker stops printing rank
+
+**Status: implemented, tested, natively accepted, merged, frozen.**
+PR #110, branch `feature/parto-equipment-selection-ux`, off `sow/2026-Q3` at **`847a505`**.
+
+Two additions to the Part O equipment domain, both deliberately narrow.
+
+### `PartOProjectTestVentilationUnit` - one optional what-if, and where it has to live
+
+A name and two maximum airflows, so "what would a 165 l/s box do here" can be answered without editing
+shipped manufacturer data and without inventing a fictional Nuaire entry that no later report could tell
+from real data. Its identity is synthetic and says so: manufacturer is the literal words `Project test`,
+model is the name.
+
+It persists on the `AnalyticalModel`, as
+`AnalyticalModelParameter.PartOProjectTestVentilationUnit`, beside `PartOEquipmentSelection` and
+`PartOIsolationContext`. **It has to.** A dwelling assigned to it stores only an identity, so the capacity
+behind that identity must be readable again after the project is reopened - otherwise a sound saved
+dwelling returns as "capacity unknown" and Iteration 2B loses its ceiling. And it must persist **no
+wider** than the project: an application setting is process-global and would carry one project's what-if
+into the next, which is the same argument `PartOEquipmentSelection` was written for.
+
+Its capability crosses into selection through the **one existing seam** -
+`Query.VentilationUnitTemplate(PartOProjectTestVentilationUnit)` then the existing
+`Query.CapacityDescriptor` - so it is judged by the same rule a manufacturer product is, and there is no
+second mapping to drift. `Source` states in words that the figures are not manufacturer data. `Rank` is
+far beyond any shipped rank, so a test product the same size as a real one **loses** the tie rather than
+making the catalogue ambiguous: a what-if must never turn a working selection into a refusal.
+
+Two new `PartOEquipmentSelection` overloads carry the whole of its selection semantics, and the one that
+matters is stated once:
+
+- **`AutomaticAllProducts` means the MANUFACTURER catalogue.** The test product is not offered to it at
+  all, so a capacity left typed in a box cannot silently size a project and no historic answer moves.
+- **`AutomaticSelectedPool`** offers it, and then the pool decides - it has to have been ticked.
+- **`ManualPerDwelling`** may pick it.
+
+The existing single-argument methods are untouched, so every prior test still exercises the old path.
+Nothing about the type is stored in `PartOEquipmentSelection`, which still holds identities and never a
+capacity, and nothing is stored on the air handling unit, which still holds an identity and never a
+capability.
+
+### `VentilationUnitCapacityDescriptor.Label` - rank is internal
+
+`Rank` is a catalogue tie-breaker. It is not an airflow, an efficiency, a performance score or an
+engineering output, and a product picker that prints `rank 10` invites an engineer to read a preference
+number as a rating or to compare two products by it. `Label` is the engineer-facing form - identity and
+both maximums, no rank. `ToString()` is unchanged and remains the diagnostic form, because rank is the
+subject of the two refusals that embed it (a catalogue conflict, and two products of the same size and
+rank). Every ordering role of rank is untouched: `Compare`, `CapableVentilationUnits`,
+`AirHandlingUnitDesignDuty`, and the assignment set's own duplicate-identity index.
+
+### Files changed
+- `SAM/SAM/SAM.Analytical/Classes/PartOProjectTestVentilationUnit.cs` (new)
+- `SAM/SAM/SAM.Analytical/Query/ProjectTestVentilationUnit.cs` (new)
+- `SAM/SAM/SAM.Analytical/Classes/PartOEquipmentSelection.cs` (two overloads)
+- `SAM/SAM/SAM.Analytical/Classes/System/VentilationUnitCapacityDescriptor.cs` (`Label`)
+- `SAM/SAM/SAM.Analytical/Enums/Parameter/AnalyticalModelParameter.cs` (one entry)
+- `SAM/SAM/SAM.Tests/PartOProjectTestVentilationUnitTests.cs` (new, 30 tests)
+- `SAM/SAM/SAM.Tests/PartOEquipmentPresentationTests.cs` (new, 13 tests)
+- `SAM/SAM/SAM.Tests/PartOCapacityEnvelopeTests.cs` (+1: the 2B ceiling on an assigned test product)
+- `SAM/PROJECT_PROGRESS.md` (this file)
+
+### Validation
+- Focused Part O runs: 417/417 passed on the merged tree.
+- Full `SAM.Tests` Release: **2114 passed, 0 failed** (was 2070; +44 new).
+- `SAM.sln` Release: 0 errors. `git diff --check`: clean.
 
 ## XBC15 CLOSEOUT COMPLETE - READY FOR FINAL EQUIPMENT-SELECTION UX
 
