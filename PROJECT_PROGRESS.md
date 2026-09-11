@@ -2,10 +2,59 @@
 
 ## Branch
 `sow/2026-Q3`. PR #110 (`feature/parto-equipment-selection-ux`) is merged and the Approved Document O
-iteration programme is **FROZEN** - see the entry immediately below.
+iteration programme is **FROZEN** - see the second entry below. One open follow-up, not merged:
+`fix/simulation-provenance-roundtrip` - see the entry immediately below.
 
-Everything below the *Latest* entry is superseded history retained for context, and its forward-looking
+Everything below those two entries is superseded history retained for context, and its forward-looking
 claims (branch names, "next step" lists) are historical rather than current.
+
+## SIMULATION-RESULT PROVENANCE ROUND TRIP - FIX OPEN FOR REVIEW (2026-09-11)
+
+Branch `fix/simulation-provenance-roundtrip` from `sow/2026-Q3` `413215cc`; PR against `sow/2026-Q3`,
+**not merged**. `SAM#111` stays open; `SAM_UI#100` (Iteration 3, head `86a436b6`) is untouched and unmerged.
+
+**The defect.** `SimulationResultProvenance.Fingerprint(AnalyticalModel)` did not survive a TAS run's
+`.sam` save and reopen, so `PartORun.Restore` and the Iteration 3 Review refused the model their own record
+was taken from ("The model has changed since the simulation results ... were produced from it"). Measured
+on the licensed PR4 files, not assumed - there were **two independent contributors**, and TAS result series
+were neither:
+
+1. **`GroundTemperature` turned "not stated" into 0.** `ToJsonObject` omits a NaN `Depth` / `Conductivity`
+   / `Density` / `SpecificHeat`; `FromJsonObject` assigned only present keys, so an omitted one came back
+   as the C# default 0. `SAM.Weather.Tas` writes NaN for all four (TAS weather carries no soil
+   properties), so every TAS-weather run reopened as different weather. Proof: hashing the saved `.sam`
+   text reproduced the recorded fingerprint exactly (`3bcc2e42...`, `12689ed1...`); the reload's only
+   delta was those four fields. Fix: an absent field reads back NaN (the inverse of the write rule).
+2. **SAM_UI rewrites its view state on every open.** `AnalyticalWindow` (`Reload` ->
+   `UpdateUIGeometrySettings`) regenerates the legends inside the `UI Geometry Settings` model parameter
+   before `PartORun.Restore` fingerprints the model; 29 legend colours/labels were the ONLY difference
+   (captured by Save As from the running app and diffed section by section). Fix: excluded by name as
+   presentation-only, beside `CaseDescription` - it is SAM_UI's own `AnalyticalModelParameter`.
+   **Redefines the digest:** records stamped before it fail closed and their runs are re-simulated
+   (documented rule). The existing `C:\TasOut\pr4h` pairing is one of those.
+
+Files: `SAM.Weather/Classes/GroundTemperature.cs`, `SAM.Analytical/Classes/SimulationResultProvenance.cs`,
+`SAM.Tests/SimulationResultProvenanceTests.cs` (+5 tests), `SAM.Tests/WeatherTests.cs` (+1). Each new test
+failed before its fix.
+
+**Validation.** `SAM.Tests` 2120 / 2120. `SAM.sln`, `SAM_Systems.sln`, `SAM_Tas.sln` Release (VS MSBuild)
+and `SAM_UI.sln` Release 0 errors; `SAM Analytical.csproj` rebuilt `--no-incremental`, `deps.json` lists
+`SAM.Analytical.Tas.TPD`, app `SAM.*.dll` byte-identical to `SAM\build`.
+
+**Licensed acceptance in `SAM Analytical.exe`** (UI Automation, `C:\TasOut\pr5a`, canonical fixture
+SHA-256 verified, `Leeds_TRY` from `CIBSE Weather 2021.twd`): fresh Iteration 1a -> Reference A TM59 PASS,
+run model fingerprint `b523598e04ea1e4d` recorded = reopened; Iteration 3 run COMPLETE, 14 / 14 stages,
+3 systems, 8 rooms, 14 legs (3/6/5), bias +0.373 K, RMSE 0.834 K, max 2.909 K, 0 of 8 outcomes differ;
+Candidate B model `455a9cb66897497e` recorded = reopened. Review #1, Review #2 and Review after a full
+application close/reopen all COMPLETE with the same numbers; no TBD / TPD / TAS3D process (the only TAS
+processes are TSD document servers reading the two results files for the TM59 re-assessment); every
+comparison-defining file byte-identical - only the two `-TM59.txt` reports are rewritten, by design, with
+identical content across reviews. Negatives: bridge TSD write time +1 h -> REFUSED at Input naming that
+file, no TAS process, time restored exactly; north-angle-mutated Reference A -> restore refused "The model
+has changed", Review and Iteration 3 disabled.
+
+**Next step:** independent review of the SAM PR; then merge it **before** `SAM_UI#100`, and rebuild
+`SAM_UI` (app project non-incrementally) against the merged `SAM\build`.
 
 ## PART O ITERATIONS 1a / 1b / 2 / 2B - FROZEN (2026-09-08)
 

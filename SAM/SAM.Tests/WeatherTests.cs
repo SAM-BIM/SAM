@@ -74,5 +74,37 @@ namespace SAM.Tests
             double pressure = double.Parse(weatherData.DataString().Split('\n').First(line => !string.IsNullOrWhiteSpace(line)).Split(',')[9], System.Globalization.CultureInfo.InvariantCulture);
             Assert.Equal(100500.0, pressure, 6);
         }
+
+        /// <summary>
+        /// A soil property that is not stated (NaN - what TAS weather and an EPW with an empty field produce)
+        /// is omitted from the JSON, and must read back as not stated rather than as a stated 0. A stated
+        /// value, including a stated 0, reads back as itself, and so do the monthly temperatures.
+        /// </summary>
+        [Fact]
+        public void RoundTrip_GroundTemperature_KeepsUnstatedSoilPropertiesUnstated()
+        {
+            static GroundTemperature Reread(GroundTemperature groundTemperature)
+            {
+                return new GroundTemperature((System.Text.Json.Nodes.JsonObject)System.Text.Json.Nodes.JsonNode.Parse(groundTemperature.ToJsonObject().ToJsonString()));
+            }
+
+            GroundTemperature unstated = Reread(new GroundTemperature(double.NaN, double.NaN, double.NaN, double.NaN, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12));
+
+            Assert.True(double.IsNaN(unstated.Depth));
+            Assert.True(double.IsNaN(unstated.Conductivity));
+            Assert.True(double.IsNaN(unstated.Density));
+            Assert.True(double.IsNaN(unstated.SpecificHeat));
+            Assert.Equal(Enumerable.Range(1, 12).Select(x => (double)x), unstated.Temperatures);
+
+            //And re-reading what was re-read changes nothing further.
+            Assert.Equal(unstated.ToJsonObject().ToJsonString(), Reread(unstated).ToJsonObject().ToJsonString());
+
+            GroundTemperature stated = Reread(new GroundTemperature(0.0, 1.5, 1800, 840, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12));
+
+            Assert.Equal(0.0, stated.Depth);
+            Assert.Equal(1.5, stated.Conductivity);
+            Assert.Equal(1800, stated.Density);
+            Assert.Equal(840, stated.SpecificHeat);
+        }
     }
 }
