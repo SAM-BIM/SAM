@@ -5,7 +5,9 @@ using SAM.Analytical;
 using SAM.Analytical.Enums;
 using SAM.Core;
 using System;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Xunit;
 
@@ -526,6 +528,221 @@ namespace SAM.Tests
             finally
             {
                 File.Delete(path_TSD);
+            }
+        }
+
+        private static string NewDirectory()
+        {
+            string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(directory);
+
+            return directory;
+        }
+
+        /// <summary>
+        /// A ground temperature as a TAS weather year states it: twelve monthly values and NaN - not stated -
+        /// for the soil properties TAS weather does not carry. <c>SAM.Weather.Tas</c> builds exactly this for
+        /// every model simulated on TAS weather. <paramref name="conductivity"/> is varied by the tests that
+        /// state one.
+        /// </summary>
+        private static Weather.GroundTemperature GroundTemperature(double conductivity, double temperature)
+        {
+            return new Weather.GroundTemperature(double.NaN, conductivity, double.NaN, double.NaN,
+                temperature, temperature, temperature, temperature, temperature, temperature,
+                temperature, temperature, temperature, temperature, temperature, temperature);
+        }
+
+        /// <summary>A copy of <paramref name="analyticalModel"/> carrying weather with the one ground temperature given.</summary>
+        private static AnalyticalModel WithWeather(AnalyticalModel analyticalModel, Weather.GroundTemperature groundTemperature)
+        {
+            Weather.WeatherData weatherData = new("Leeds_TRY", "CIBSE Weather 2021", 53.836, -1.55, 50);
+            weatherData.SetValue(Weather.WeatherDataParameter.GroundTemperatures, new SAMCollection<Weather.GroundTemperature>([groundTemperature]));
+
+            AnalyticalModel result = new(analyticalModel);
+            result.SetValue(AnalyticalModelParameter.WeatherData, weatherData);
+
+            return result;
+        }
+
+        /// <summary>The path a real run model takes: SAM's native <c>.sam</c> writer, then the ordinary Open.</summary>
+        private static AnalyticalModel SaveAndReopen(AnalyticalModel analyticalModel, string path_Model)
+        {
+            Assert.True(Core.Convert.ToFile(analyticalModel, path_Model, SAMFileType.SAM));
+
+            return Core.Convert.ToSAM<AnalyticalModel>(path_Model).OfType<AnalyticalModel>().Single();
+        }
+
+        /// <summary>
+        /// <b>Through a real <c>.sam</c> file, not only an in-memory JSON round trip.</b> Every section is
+        /// populated, the file is written by the writer Save As uses and read back by the ordinary Open, and a
+        /// second save and reopen changes nothing further.
+        /// </summary>
+        [Fact]
+        public void Fingerprint_SurvivesASavedAndReopenedSamFile()
+        {
+            string directory = NewDirectory();
+
+            try
+            {
+                MaterialLibrary materialLibrary = new("Library");
+                materialLibrary.Add(Analytical.Create.OpaqueMaterial("Brick", "Masonry", "Brick", null, 0.77, 1000, 1700, 0.1, 1, 0.5, 0.5, 0.5, 0.5, 0.9, 0.9, false));
+
+                ProfileLibrary profileLibrary = new("Library");
+                profileLibrary.Add(new Profile("Occupancy", "Occupancy", [0.0, 0.5, 1.0]));
+
+                AnalyticalModel analyticalModel = Model("run", location: new Location("London", -0.13, 51.5, 11), materialLibrary: materialLibrary, profileLibrary: profileLibrary);
+                analyticalModel.SetValue(AnalyticalModelParameter.NorthAngle, 1.5);
+
+                string fingerprint = SimulationResultProvenance.Fingerprint(analyticalModel);
+
+                AnalyticalModel analyticalModel_Reopened = SaveAndReopen(analyticalModel, Path.Combine(directory, "run.sam"));
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel_Reopened));
+
+                AnalyticalModel analyticalModel_ReopenedAgain = SaveAndReopen(analyticalModel_Reopened, Path.Combine(directory, "run-again.sam"));
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel_ReopenedAgain));
+            }
+            finally
+            {
+                Directory.Delete(directory, true);
+            }
+        }
+
+        /// <summary>
+        /// <b>The defect Part O review reopened into.</b> A model simulated on TAS weather carries ground
+        /// temperatures whose soil properties are not stated (NaN). <c>GroundTemperature</c> omits a NaN
+        /// property from its JSON - and used to read the omission back as <c>0</c>, so every save and reopen
+        /// turned "not stated" into a stated zero. That is a real change to the model's weather, so the
+        /// fingerprint, correctly, moved with it: the record stamped before the save refused the model read
+        /// back from it ("The model has changed ..."), on every TAS-weather run, with nothing edited at all.
+        /// <para>
+        /// Pinned end to end: fingerprint, stamp, save, reopen - the reopened model digests to the recorded
+        /// value, does so again after a second save, and its own record resolves its results.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void Fingerprint_SurvivesASavedAndReopenedSamFile_WithUnstatedGroundProperties()
+        {
+            string directory = NewDirectory();
+
+            try
+            {
+                string path_TSD = WriteResults(Path.Combine(directory, "run.tsd"));
+                string path_Model = Path.Combine(directory, "run.sam");
+
+                AnalyticalModel analyticalModel = WithWeather(Model("run"), GroundTemperature(double.NaN, 8.5));
+
+                string fingerprint = SimulationResultProvenance.Fingerprint(analyticalModel);
+
+                analyticalModel.SetValue(AnalyticalModelParameter.SimulationResultProvenance, new SimulationResultProvenance(analyticalModel, path_TSD));
+
+                AnalyticalModel analyticalModel_Reopened = SaveAndReopen(analyticalModel, path_Model);
+
+                //Not stated stays not stated - which is the whole fix.
+                Assert.True(analyticalModel_Reopened.TryGetValue(AnalyticalModelParameter.WeatherData, out Weather.WeatherData weatherData));
+                Assert.True(weatherData.TryGetValue(Weather.WeatherDataParameter.GroundTemperatures, out SAMCollection<Weather.GroundTemperature> groundTemperatures));
+                Weather.GroundTemperature groundTemperature = Assert.Single(groundTemperatures!);
+                Assert.True(double.IsNaN(groundTemperature.Depth));
+                Assert.True(double.IsNaN(groundTemperature.Conductivity));
+                Assert.True(double.IsNaN(groundTemperature.Density));
+                Assert.True(double.IsNaN(groundTemperature.SpecificHeat));
+                Assert.Equal(8.5, groundTemperature[11]);
+
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel_Reopened));
+
+                //Repeatable: a second save and reopen digests to the same value again.
+                AnalyticalModel analyticalModel_ReopenedAgain = SaveAndReopen(analyticalModel_Reopened, Path.Combine(directory, "run-again.sam"));
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel_ReopenedAgain));
+
+                //And the record that travelled with the model resolves its results - the review path itself.
+                Assert.True(analyticalModel_Reopened.TryGetValue(AnalyticalModelParameter.SimulationResultProvenance, out SimulationResultProvenance provenance));
+                Assert.True(provenance.TryResolvePath_TSD(analyticalModel_Reopened, path_Model, out string path_Resolved, out string refusal), refusal);
+                Assert.Equal(path_TSD, path_Resolved);
+            }
+            finally
+            {
+                Directory.Delete(directory, true);
+            }
+        }
+
+        /// <summary>
+        /// <b>Stable is not the same as blind.</b> The weather is a simulation input and stays in the digest:
+        /// a different monthly ground temperature, a soil property newly stated, and "not stated" against a
+        /// stated zero are each a different model. And a model edited AFTER it was reopened is still refused -
+        /// the reopen no longer moves the fingerprint, an edit still does.
+        /// </summary>
+        [Fact]
+        public void Fingerprint_StillMovesWhenTheWeatherIsGenuinelyChanged()
+        {
+            string directory = NewDirectory();
+
+            try
+            {
+                AnalyticalModel analyticalModel = Model("run");
+
+                string fingerprint = SimulationResultProvenance.Fingerprint(WithWeather(analyticalModel, GroundTemperature(double.NaN, 8.5)));
+
+                Assert.NotEqual(fingerprint, SimulationResultProvenance.Fingerprint(WithWeather(analyticalModel, GroundTemperature(double.NaN, 9.5))));
+                Assert.NotEqual(fingerprint, SimulationResultProvenance.Fingerprint(WithWeather(analyticalModel, GroundTemperature(1.5, 8.5))));
+
+                //Not stated is not zero - the fix preserves the distinction rather than collapsing it.
+                Assert.NotEqual(fingerprint, SimulationResultProvenance.Fingerprint(WithWeather(analyticalModel, GroundTemperature(0.0, 8.5))));
+
+                //Stamped, saved, reopened - valid - then genuinely edited: refused, and blamed on the model.
+                string path_TSD = WriteResults(Path.Combine(directory, "run.tsd"));
+                string path_Model = Path.Combine(directory, "run.sam");
+
+                AnalyticalModel analyticalModel_Run = WithWeather(analyticalModel, GroundTemperature(double.NaN, 8.5));
+                analyticalModel_Run.SetValue(AnalyticalModelParameter.SimulationResultProvenance, new SimulationResultProvenance(analyticalModel_Run, path_TSD));
+
+                AnalyticalModel analyticalModel_Reopened = SaveAndReopen(analyticalModel_Run, path_Model);
+                Assert.True(analyticalModel_Reopened.TryGetValue(AnalyticalModelParameter.SimulationResultProvenance, out SimulationResultProvenance provenance));
+                Assert.True(provenance.TryResolvePath_TSD(analyticalModel_Reopened, path_Model, out string _, out string refusal), refusal);
+
+                AnalyticalModel analyticalModel_Edited = WithWeather(analyticalModel_Reopened, GroundTemperature(double.NaN, 9.5));
+
+                Assert.False(provenance.TryResolvePath_TSD(analyticalModel_Edited, path_Model, out string path_Edited, out string refusal_Edited));
+                Assert.Null(path_Edited);
+                Assert.Contains("The model has changed", refusal_Edited);
+            }
+            finally
+            {
+                Directory.Delete(directory, true);
+            }
+        }
+
+        /// <summary>
+        /// <b>No culture reaches the digest or the file.</b> The value is taken under the invariant culture and
+        /// again under one whose decimal separator is a comma, the model is saved under that culture and
+        /// reopened under a third - and the digest is the same throughout. A recorded value is compared on
+        /// whatever machine reopens the model, so anything culture-dependent here would refuse valid results
+        /// across a locale boundary.
+        /// </summary>
+        [Fact]
+        public void Fingerprint_DoesNotDependOnTheCultureItIsTakenOrSavedUnder()
+        {
+            string directory = NewDirectory();
+            CultureInfo cultureInfo = CultureInfo.CurrentCulture;
+
+            try
+            {
+                AnalyticalModel analyticalModel = WithWeather(Model("run"), GroundTemperature(1.25, 8.5));
+                analyticalModel.SetValue(AnalyticalModelParameter.NorthAngle, 1.5);
+
+                CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+                string fingerprint = SimulationResultProvenance.Fingerprint(analyticalModel);
+
+                CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel));
+
+                AnalyticalModel analyticalModel_Reopened = SaveAndReopen(analyticalModel, Path.Combine(directory, "run.sam"));
+
+                CultureInfo.CurrentCulture = new CultureInfo("en-US");
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel_Reopened));
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = cultureInfo;
+                Directory.Delete(directory, true);
             }
         }
     }
