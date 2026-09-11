@@ -43,11 +43,27 @@ namespace SAM.Analytical
         /// <summary>The fraction of the unit's airflow a controller calls for. Dimensionless, 0 to 1.</summary>
         public const string Name_FlowFraction = "FlowFraction";
 
+        /// <summary>
+        /// The unit's sensible heat recovery efficiency. Dimensionless, 0 to 1, on the basis
+        /// <see cref="HeatRecoveryPerformance"/> states beside it.
+        /// </summary>
+        public const string Name_SensibleHeatRecoveryEfficiency = "SensibleHeatRecoveryEfficiency";
+
+        /// <summary>
+        /// The unit's specific fan power - electrical input per unit of airflow - in
+        /// <see cref="Unit_WattsPerLitrePerSecond"/>, on the basis <see cref="FanPerformance"/> states
+        /// beside it.
+        /// </summary>
+        public const string Name_SpecificFanPower = "SpecificFanPower";
+
         /// <summary>The unit string a Celsius-denominated output is expected to declare.</summary>
         public const string Unit_DegreesCelsius = "degC";
 
         /// <summary>The unit string a kilowatt-denominated output is expected to declare.</summary>
         public const string Unit_Kilowatts = "kW";
+
+        /// <summary>The unit string a specific fan power output is expected to declare - watts per litre per second.</summary>
+        public const string Unit_WattsPerLitrePerSecond = "W/(l/s)";
 
         /// <summary>The unit string a dimensionless output - a fraction with no unit of its own - is expected to declare.</summary>
         public const string Unit_Dimensionless = "-";
