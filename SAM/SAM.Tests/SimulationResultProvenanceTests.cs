@@ -711,6 +711,102 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// A copy of <paramref name="analyticalModel"/> carrying the application's view state in the shape SAM_UI
+        /// writes it: a parameter set of its own, <c>SAM.Analytical.UI</c>, holding the one parameter
+        /// <c>UI Geometry Settings</c>, whose legend text and colours SAM_UI regenerates every time a model is
+        /// opened. Built through JSON because the type is SAM_UI's and this assembly cannot see it - which is
+        /// also exactly what a model written by SAM_UI and read by SAM alone looks like.
+        /// </summary>
+        private static AnalyticalModel WithViewSettings(AnalyticalModel analyticalModel, string legendText, int red)
+        {
+            System.Text.Json.Nodes.JsonObject jsonObject_ViewSettings = new()
+            {
+                ["_type"] = "SAM.Geometry.UI.UIGeometrySettings,SAM.Geometry.UI",
+                ["ViewSettings"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject
+                {
+                    ["Name"] = "Level 0 [0.1m] IC",
+                    ["Legend"] = new System.Text.Json.Nodes.JsonObject
+                    {
+                        ["LegendItems"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject
+                        {
+                            ["Text"] = legendText,
+                            ["Color"] = new System.Text.Json.Nodes.JsonObject { ["Red"] = red, ["Green"] = 183, ["Blue"] = 178 },
+                        }),
+                    },
+                }),
+            };
+
+            ParameterSet parameterSet = new("SAM.Analytical.UI");
+            parameterSet.Add("UI Geometry Settings", jsonObject_ViewSettings);
+
+            System.Text.Json.Nodes.JsonObject jsonObject = analyticalModel.ToJsonObject()!;
+            System.Text.Json.Nodes.JsonArray jsonArray_ParameterSets = jsonObject["ParameterSets"] as System.Text.Json.Nodes.JsonArray ?? [];
+            jsonObject["ParameterSets"] = jsonArray_ParameterSets;
+
+            //Replaced, not added beside - which is what regenerating the view state on open does.
+            foreach (System.Text.Json.Nodes.JsonNode? jsonNode in jsonArray_ParameterSets.Where(x => x?["Name"]?.GetValue<string>() == "SAM.Analytical.UI").ToList())
+            {
+                jsonArray_ParameterSets.Remove(jsonNode);
+            }
+
+            jsonArray_ParameterSets.Add(parameterSet.ToJsonObject());
+
+            return new AnalyticalModel(jsonObject);
+        }
+
+        /// <summary>
+        /// <b>The application's view state is not a simulation input.</b> SAM_UI keeps its views on the model and
+        /// regenerates their legend on every open - measured on the licensed Part O acceptance model, 29 legend
+        /// colours and labels changed between the stamped model and the one <c>PartORun.Restore</c> fingerprints,
+        /// and nothing else did - so a digest that saw them refused every reopened run, correctly by its own
+        /// definition and wrongly by its purpose. Views sit beside the model's name and case labels: presentation,
+        /// excluded by name. Pinned: views or none digest alike; a model stamped with views, saved, reopened and
+        /// given regenerated views still resolves its results; and a genuine design change made beside the views
+        /// is still refused.
+        /// </summary>
+        [Fact]
+        public void Fingerprint_IgnoresTheApplicationsViewSettings()
+        {
+            string directory = NewDirectory();
+
+            try
+            {
+                AnalyticalModel analyticalModel = WithWeather(Model("run"), GroundTemperature(double.NaN, 8.5));
+
+                string fingerprint = SimulationResultProvenance.Fingerprint(analyticalModel);
+
+                AnalyticalModel analyticalModel_Viewed = WithViewSettings(analyticalModel, "Studio - Studio 1_0 - Studio 1_0 - Studio 1_0", 118);
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(analyticalModel_Viewed));
+                Assert.Equal(fingerprint, SimulationResultProvenance.Fingerprint(WithViewSettings(analyticalModel, "Studio - Studio 1_0", 156)));
+
+                string path_TSD = WriteResults(Path.Combine(directory, "run.tsd"));
+                string path_Model = Path.Combine(directory, "run.sam");
+
+                analyticalModel_Viewed.SetValue(AnalyticalModelParameter.SimulationResultProvenance, new SimulationResultProvenance(analyticalModel_Viewed, path_TSD));
+
+                AnalyticalModel analyticalModel_Reopened = SaveAndReopen(analyticalModel_Viewed, path_Model);
+
+                //What the application does to it on open, before it asks for the results.
+                AnalyticalModel analyticalModel_Regenerated = WithViewSettings(analyticalModel_Reopened, "Studio - Studio 1_0", 156);
+
+                Assert.True(analyticalModel_Regenerated.TryGetValue(AnalyticalModelParameter.SimulationResultProvenance, out SimulationResultProvenance provenance));
+                Assert.True(provenance.TryResolvePath_TSD(analyticalModel_Regenerated, path_Model, out string path_Resolved, out string refusal), refusal);
+                Assert.Equal(path_TSD, path_Resolved);
+
+                //Views are ignored; the design beside them is not.
+                AnalyticalModel analyticalModel_Edited = new(analyticalModel_Regenerated);
+                analyticalModel_Edited.SetValue(AnalyticalModelParameter.NorthAngle, 1.5);
+
+                Assert.False(provenance.TryResolvePath_TSD(analyticalModel_Edited, path_Model, out string _, out string refusal_Edited));
+                Assert.Contains("The model has changed", refusal_Edited);
+            }
+            finally
+            {
+                Directory.Delete(directory, true);
+            }
+        }
+
+        /// <summary>
         /// <b>No culture reaches the digest or the file.</b> The value is taken under the invariant culture and
         /// again under one whose decimal separator is a comma, the model is saved under that culture and
         /// reopened under a third - and the digest is the same throughout. A recorded value is compared on

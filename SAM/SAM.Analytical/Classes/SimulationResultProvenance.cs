@@ -195,6 +195,15 @@ namespace SAM.Analytical
         /// annual run because somebody relabelled a study. The same rule as the model's own name, applied one
         /// level down.
         /// </item>
+        /// <item>
+        /// <b>The application's view state</b> - <c>UI Geometry Settings</c>, which SAM_UI keeps on the model:
+        /// its views, their visibility, cameras and legends. None of it reaches a simulation, and SAM_UI
+        /// rewrites it on its own - it regenerates the legends every time a model is opened, before the run is
+        /// restored, and every hide, isolate or view switch edits it. Digesting it refused every reopened run
+        /// in the application (measured on a licensed Part O run: 29 legend colours and labels were the ONLY
+        /// difference between the stamped model and the reopened one), and would refuse any run whose views
+        /// were touched afterwards.
+        /// </item>
         /// </list>
         /// <para>
         /// <b>A deny list and not an allow list</b>, deliberately. A parameter added later that <i>does</i>
@@ -236,7 +245,8 @@ namespace SAM.Analytical
         /// build that digested the cluster alone will fail <see cref="IsCurrent(AnalyticalModel)"/> against
         /// this one, and the model falls back to the ordinary prepare-and-simulate path. That is the
         /// fail-closed direction: the alternative - accepting a digest whose definition is unknown - is
-        /// precisely the hole this widening closes.
+        /// precisely the hole this widening closes. The same holds for the later exclusion of the view state:
+        /// a record stamped while it was still digested no longer matches, and its run is simulated again.
         /// </para>
         /// </summary>
         public static string Fingerprint(AnalyticalModel analyticalModel)
@@ -303,14 +313,17 @@ namespace SAM.Analytical
             }
 
             //Asked of the attribute rather than restated as a literal, so the exclusions cannot drift from
-            //the names the parameters are actually stored under. CaseDescription is the exception: it has no
-            //enum member - the Grasshopper case components write it by name - so the name IS its definition.
+            //the names the parameters are actually stored under. The two literals are the exceptions: neither
+            //has an enum member in this assembly - the Grasshopper case components write CaseDescription by
+            //name, and "UI Geometry Settings" is SAM_UI's own AnalyticalModelParameter - so the name IS the
+            //definition.
             List<string> names_Excluded =
             [
                 Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.SimulationResultProvenance)?.Name,
                 Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.OverheatingScenarios)?.Name,
                 Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.CaseDataCollection)?.Name,
                 "CaseDescription",
+                "UI Geometry Settings",
             ];
 
             names_Excluded.RemoveAll(string.IsNullOrEmpty);
