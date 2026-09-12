@@ -73,6 +73,8 @@ namespace SAM.Analytical
                 Rank = ventilationUnitTemplate.Rank;
                 PerformanceTable = ventilationUnitTemplate.PerformanceTable is null ? null : new VentilationUnitPerformanceTable(ventilationUnitTemplate.PerformanceTable);
                 FlowFractionByControlTemperature = ventilationUnitTemplate.FlowFractionByControlTemperature is null ? null : new FlowFractionControlCurve(ventilationUnitTemplate.FlowFractionByControlTemperature);
+                HeatRecoveryPerformance = ventilationUnitTemplate.HeatRecoveryPerformance is null ? null : new HeatRecoveryPerformance(ventilationUnitTemplate.HeatRecoveryPerformance);
+                FanPerformance = ventilationUnitTemplate.FanPerformance is null ? null : new FanPerformance(ventilationUnitTemplate.FanPerformance);
             }
         }
 
@@ -174,6 +176,25 @@ namespace SAM.Analytical
         public FlowFractionControlCurve FlowFractionByControlTemperature { get; set; }
 
         /// <summary>
+        /// The product's certified sensible heat recovery efficiency against airflow, or null where nobody
+        /// has transcribed it.
+        /// <para>
+        /// <b>Null means not stated, and nothing else</b> - not a zero efficiency, and not the efficiency a
+        /// system template happens to ship with. <c>Query.VentilationUnitOperatingParameters</c> refuses to
+        /// resolve heat recovery for a template without it. Optional: a product catalogued for selection
+        /// alone carries none, and a catalogue written before this field existed reads exactly as it did.
+        /// </para>
+        /// </summary>
+        public HeatRecoveryPerformance HeatRecoveryPerformance { get; set; }
+
+        /// <summary>
+        /// The product's certified specific fan power against airflow, or null where nobody has transcribed
+        /// it. Null means not stated - see <see cref="HeatRecoveryPerformance"/>; electrical figures quoted
+        /// in words in <see cref="Source"/> are not this.
+        /// </summary>
+        public FanPerformance FanPerformance { get; set; }
+
+        /// <summary>
         /// Whether this is a template at all: it names a product and it says where its figures came from.
         /// <para>
         /// Deliberately <b>not</b> a statement about capacity. A template with full published performance
@@ -268,6 +289,10 @@ namespace SAM.Analytical
             PerformanceTable = jsonObject["PerformanceTable"] is JsonObject jsonObject_PerformanceTable ? new VentilationUnitPerformanceTable(jsonObject_PerformanceTable) : null;
             FlowFractionByControlTemperature = jsonObject["FlowFractionByControlTemperature"] is JsonObject jsonObject_FlowFractionByControlTemperature ? new FlowFractionControlCurve(jsonObject_FlowFractionByControlTemperature) : null;
 
+            //Absent keys - every catalogue written before these fields existed - read as null, "not stated".
+            HeatRecoveryPerformance = jsonObject["HeatRecoveryPerformance"] is JsonObject jsonObject_HeatRecoveryPerformance ? new HeatRecoveryPerformance(jsonObject_HeatRecoveryPerformance) : null;
+            FanPerformance = jsonObject["FanPerformance"] is JsonObject jsonObject_FanPerformance ? new FanPerformance(jsonObject_FanPerformance) : null;
+
             return true;
         }
 
@@ -305,6 +330,17 @@ namespace SAM.Analytical
             if (FlowFractionByControlTemperature is not null)
             {
                 result["FlowFractionByControlTemperature"] = FlowFractionByControlTemperature.ToJsonObject();
+            }
+
+            //Omitted where not stated, so a template without them serializes exactly as it always did.
+            if (HeatRecoveryPerformance is not null)
+            {
+                result["HeatRecoveryPerformance"] = HeatRecoveryPerformance.ToJsonObject();
+            }
+
+            if (FanPerformance is not null)
+            {
+                result["FanPerformance"] = FanPerformance.ToJsonObject();
             }
 
             return result;

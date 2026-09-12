@@ -1,17 +1,71 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3`. PR #110 (`feature/parto-equipment-selection-ux`) is merged and the Approved Document O
-iteration programme is **FROZEN** - see the second entry below. One open follow-up, not merged:
-`fix/simulation-provenance-roundtrip` - see the entry immediately below.
+`feature/parto-pr5a-ventilation-unit-performance` from `sow/2026-Q3` `553957dc` - the **SAM slice of Part O
+Iteration 3 PR5A** (`SAM#111`), PR against `sow/2026-Q3`, **not merged** - see the entry immediately below.
+`fix/simulation-provenance-roundtrip` is merged (PR #116 -> `553957dc`) and the Iteration 1a / 1b / 2 / 2B
+programme is **FROZEN** - see the two entries after it.
 
-Everything below those two entries is superseded history retained for context, and its forward-looking
+Everything below those entries is superseded history retained for context, and its forward-looking
 claims (branch names, "next step" lists) are historical rather than current.
 
-## SIMULATION-RESULT PROVENANCE ROUND TRIP - FIX OPEN FOR REVIEW (2026-09-11)
+## PART O ITERATION 3 PR5A - SAM SLICE: MANUFACTURER VOCABULARY + COM-FREE RESOLVER (2026-09-11)
 
-Branch `fix/simulation-provenance-roundtrip` from `sow/2026-Q3` `413215cc`; PR against `sow/2026-Q3`,
-**not merged**. `SAM#111` stays open; `SAM_UI#100` (Iteration 3, head `86a436b6`) is untouched and unmerged.
+First production PR of PR5A (`SAM#111`, frozen PR5 plan §B / §K.1). PR5A merge order is SAM -> SAM_Systems ->
+SAM_Tas -> SAM_UI. **SAM only**: SAM_Systems, SAM_Tas and SAM_UI have no production change from this slice.
+
+**What was added** (all in `SAM.Analytical`, all optional, none populated):
+- `HeatRecoveryPerformance` and `FanPerformance` on `VentilationUnitTemplate`. Both are typed views of the
+  existing `VentilationUnitPerformanceTable` grammar, sharing the abstract base `VentilationUnitAirFlowPerformance`:
+  one `AirFlowRate` axis in l/s and one output, `SensibleHeatRecoveryEfficiency` [-] or `SpecificFanPower`
+  [W/(l/s)]. Each also carries a stated basis (`HeatRecoveryEfficiencyBasis.SupplyTemperatureEfficiency`,
+  `SpecificFanPowerBasis.TotalBothFans`; `Undefined` refuses), a required `Source`, and a stored domain policy.
+  The policy defaults to Refuse; only Refuse and ClampToDomain are accepted, and extrapolation makes the data
+  unusable.
+- `Query.VentilationUnitOperatingParameters(template | templates + reference, supply_Lps, extract_Lps,
+  tolerance)` returns an immutable `VentilationUnitOperatingParameters`: ε and SFP, each resolved or refused
+  independently with a sentence. It never returns null.
+- `Query.SelectedVentilationUnitTemplate(AirHandlingUnit, templates)`: identity only.
+
+**Decisions:**
+- **Absent is not zero.** A missing field refuses. It never becomes 0, never becomes MVRE's 0.7, and never
+  falls back to parity.
+- The design airflow is used only as a lookup coordinate. Capacity is never read.
+- **An unbalanced duty refuses both quantities** (tolerance default 0.001 l/s). This is the generic reason
+  certified figures are stated at balanced flow, and it matches Phase 0 X1-C, where TAS unbalanced MVHR is
+  UNKNOWN.
+- **Not added to SAM:**
+  - the plan's `SummerBypass` descriptor: nothing in PR5A consumes it and its thresholds are unpublished;
+  - the B3 supply-limit setpoint: declared scenario/route policy, downstream per plan §C;
+  - any `ExchCalcType` or other TAS concept;
+  - a catalogue schema tag, since `VentilationUnitCatalogue:v2` is the SAM_Systems reader's.
+- **E1/E2 (certified MRXBOX ε and SFP vs airflow) are still missing.** No value was transcribed; the
+  real product therefore refuses B1/B2.
+
+**Files:**
+- `SAM.Analytical/Classes/System/{VentilationUnitAirFlowPerformance,HeatRecoveryPerformance,FanPerformance,VentilationUnitOperatingParameters}.cs`
+  (new)
+- `VentilationUnitTemplate.cs` and `VentilationUnitPerformanceOutput.cs` (new constants)
+- `Enums/{HeatRecoveryEfficiencyBasis,SpecificFanPowerBasis}.cs`
+- `Query/VentilationUnitOperatingParameters.cs`
+- `SAM.Tests/PartOVentilationUnitOperatingParametersTests.cs` (+31 tests)
+
+**Validation:**
+- Focused Part O ventilation-unit, catalogue-drift, project-test, equipment and capacity-envelope suites: 348 / 348.
+- `SAM.Tests`: **2151 / 2151** (was 2120).
+- `SAM.sln` Release (VS MSBuild 18): 0 errors.
+- Note: `SAM\build` now holds this branch's binaries.
+
+**Next step:** independent review and merge of this PR. Then the **SAM_Systems PR5A slice**:
+- catalogue reader v1 + v2;
+- the E1/E2 evidence gate (transcription only from a certified source);
+- `MechanicalVentilationUnitSettings` keyed by AHU GUID;
+- DisplacementVentilation normalisation on MV -> MVRE (Phase 0 test A).
+
+## SIMULATION-RESULT PROVENANCE ROUND TRIP - MERGED (PR #116 -> `553957dc`, 2026-09-11)
+
+Branch `fix/simulation-provenance-roundtrip` from `sow/2026-Q3` `413215cc`; merged into `sow/2026-Q3` as
+`553957dc`, and `SAM_UI#100` merged after it (`736e1771`). `SAM#111` stays open for PR5.
 
 **The defect.** `SimulationResultProvenance.Fingerprint(AnalyticalModel)` did not survive a TAS run's
 `.sam` save and reopen, so `PartORun.Restore` and the Iteration 3 Review refused the model their own record
