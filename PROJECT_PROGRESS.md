@@ -1,10 +1,20 @@
 # Project Progress
 
 ## Branch
-`feature/parto-pr5a-ventilation-unit-performance` from `sow/2026-Q3` `553957dc` - the **SAM slice of Part O
-Iteration 3 PR5A** (`SAM#111`), PR against `sow/2026-Q3`, **not merged** - see the entry immediately below.
-`fix/simulation-provenance-roundtrip` is merged (PR #116 -> `553957dc`) and the Iteration 1a / 1b / 2 / 2B
-programme is **FROZEN** - see the two entries after it.
+`sow/2026-Q3` at `b4a1283f` - which **is** the PR5A merge commit
+([SAM#117](https://github.com/SAM-BIM/SAM/pull/117), `feature/parto-pr5a-ventilation-unit-performance`).
+The PR5A slice described below is therefore **MERGED**, not pending; the whole PR5/PR5B line has since
+merged in all four repos. `SAM#111` remains open as the Part O Iteration 3 tracker.
+
+**Current checkpoint: the Part O real-project licensed acceptance (2026-09-15), closed out 2026-09-16.**
+Iterations 1a / 1b / 2 / 2B / 3-B0 / 3-B4 were run end to end on a real project. Nothing passes and 3-B4
+refused; the full record, both findings and the decision taken are in
+[`documentation/PartO-TAS-VALIDATION.md`](documentation/PartO-TAS-VALIDATION.md) under *Part O real-project
+acceptance*. Repository state is in [`documentation/PartF-HANDOVER.md`](documentation/PartF-HANDOVER.md) §0,
+which is authoritative for it.
+
+`fix/simulation-provenance-roundtrip` is merged (PR #116 -> `553957dc`). The Iteration 1a / 1b / 2 / 2B
+programme is **FROZEN** - see the two entries after the PR5A one.
 
 Everything below those entries is superseded history retained for context, and its forward-looking
 claims (branch names, "next step" lists) are historical rather than current.

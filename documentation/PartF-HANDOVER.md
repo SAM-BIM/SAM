@@ -39,8 +39,16 @@ level with its remote.
 | `SAM_UI` | `sow/2026-Q3` | **`9f515c4c`** | merged |
 
 These four commits are exactly the ones the Part O real-project licensed acceptance was built from
-(`C:\TasOut\parto-final-real-project\build\binaries.txt`), so that acceptance is reproducible from the
-repositories alone.
+(`C:\TasOut\parto-final-real-project\build\binaries.txt`), so the **code revision** that acceptance ran on
+is recoverable from the repositories alone.
+
+**The run itself is not.** The source model, the harness, every `.tsd`, the per-stage extracts and the
+evidence record live only under `C:\TasOut\parto-final-real-project\`, outside every repository and on one
+machine - deliberately, since no TAS document or manufacturer table is ever checked in. A fresh checkout
+gets the binaries and nothing to run them on. Anyone repeating this needs that folder copied to them as
+well; the model is identified by SHA-256
+`a7e09a25ae29c7dbb4c690d747a96fcd9f110ca27fb4dc2abe816755368d7e4b` (the full hash, because the folder name
+differs per machine and is absent from some of them).
 
 > **The previous edition of this section was wrong in a way worth remembering.** It recorded two repos in
 > flight on `feature/parto-base-mvhr` and said "`sow/2026-Q3` is untouched everywhere". That had been true;
@@ -48,8 +56,15 @@ repositories alone.
 > predated the merge confirmed the claim with `git cat-file`, `git log` over `origin/…` and `grep -r`, and
 > concluded the code was unpushed — because all three read **local** refs. See the invariant below.
 
-Suites at these commits, Release (2026-09-16): `SAM.Tests` 2114/2114, `SAM.Analytical.Systems.Tests`
+Suites at these commits, Release (2026-09-16): `SAM.Tests` **2151/2151**, `SAM.Analytical.Systems.Tests`
 203/203, `SAM.Analytical.Tas.TM59.Tests` 922/922, `SAM.Analytical.UI.WPF.Tests` 1027/1027.
+
+> **`SAM.Tests` is not in `SAM.sln`.** Building the solution does not build it, so `dotnet test --no-build`
+> runs whatever binary happens to be on disk - which silently reported the pre-PR5A **2114** here until the
+> count was checked against this commit's own `PROJECT_PROGRESS.md`. Build the test project **by path**
+> (`MSBuild \SAM\SAM.Tests\SAM.Tests.csproj -t:Rebuild -p:Configuration=Release`) before trusting a number from
+> it. The same trap is documented for `SAM.Analytical.Tas.TM59.Tests`; unlike that one, this project is not
+> in its solution at all, so nothing warns you. The other three suites are in their solutions and do rebuild.
 
 Read [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) from § *Part O real-project acceptance — 1a / 1b /
 2 / 2B / 3-B0 / 3-B4 (2026-09-15, closed out 2026-09-16)* for the current state of the iteration set,
@@ -209,9 +224,15 @@ and the true per-class figures are 23 and +2, not 33 and +3. The 1329 total and 
 | Stage | State |
 |---|---|
 | **Iteration 0** — foundation: dwelling scope → Part F → system selection → scenario → TM59 → identity-based result association | **COMPLETE** (steps 4–9; step 10, the thin headless TAS runner, is deferred and not on the critical path) |
-| **Iteration 1** — BasePassive / unrestricted openings, MVRE at Part F continuous, TSD route | **IN PROGRESS** |
-| **Iteration 2** — AcousticRestricted: acoustic restriction + boost + summer bypass, TSD route | **DO NOT START** until Iteration 1 is explicitly accepted |
-| **Iteration 3** — CoolBreeze-class active trim cooling, full `SystemEnergyCentre` → TAS HVAC → TPD route | **DO NOT START** |
+| **Iteration 1** — BasePassive / unrestricted openings, MVRE at Part F continuous, TSD route | **FROZEN**, and run end to end in the 2026-09-15 real-project acceptance (1a and 1b) |
+| **Iteration 2** — AcousticRestricted: acoustic restriction + boost + summer bypass, TSD route | **IMPLEMENTED** and run (2 and 2B) in that acceptance |
+| **Iteration 3** — CoolBreeze-class active trim cooling, full `SystemEnergyCentre` → TAS HVAC → TPD route | **IMPLEMENTED** (PR5B) and run: 3-B0 completed, 3-B4 **refused** |
+
+> **This table was written when the programme was sequential, and is kept for its scope descriptions.**
+> The "DO NOT START" gating it used to record has been overtaken: §0 above is authoritative for what is
+> merged, and `PartO-TAS-VALIDATION.md` for what has been accepted. Nothing in the iteration set currently
+> passes on a real project, and 3-B4's refusal has a decision recorded against it - neither is a reason to
+> stop.
 
 ### Iteration 1 BasePassive — completed
 
