@@ -2045,7 +2045,19 @@ point and would mask a recurring artefact that can grow. Clamping the reported f
 addresses the actual mechanism — the law *was* saturated (T_mix 26.010 °C → 120.000 l/s), so 120.050 is a
 solver excursion on the ramp, not a commanded flow. Recording Iteration 3 as NOT YET ACCEPTED and keeping the
 refusal is also defensible: the contract failed closed on a real project, which is the designed behaviour.
-**No production change was made from this work**; the choice is open.
+**Decision taken (2026-09-16): clamp at the law's ceiling** - SAM_Tas
+[#60](https://github.com/SAM-BIM/SAM_Tas/pull/60). A flow just outside the range is reported AT the range and
+counted rather than refused, because the declared control cannot command a flow outside its own range; the
+clamp runs before the hour's duty, range, law and table coordinates are taken. The bound is a new
+`RecirculationCoolingClamp_Lps = 0.1` l/s - about twice the largest measured excursion, and recorded in its
+doc comment as a **measured and reviewable** bound rather than a derived one, since nothing structural bounds
+a controller overshoot. Every clamped hour is carried on the result (`Count_Clamped`,
+`MaximumClampedExcursion_Lps`) so the margin in use stays visible, and beyond the bound the flow is left as
+TAS answered it and still refuses. `RecirculationCoolingTolerance_Flow_Lps` keeps only the
+ventilation-deviation duty it was actually measured for.
+
+The Iteration 1b finding above is **unchanged and still investigation-only** - no production change was made
+for it.
 
 ### Notes for whoever repeats this
 
