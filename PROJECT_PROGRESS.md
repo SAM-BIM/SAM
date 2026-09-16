@@ -4,10 +4,58 @@
 `sow/2026-Q3` at `e2c0e2c0` - the merge commit of [SAM#120](https://github.com/SAM-BIM/SAM/pull/120), which
 descends from [SAM#119](https://github.com/SAM-BIM/SAM/pull/119) and
 [SAM#118](https://github.com/SAM-BIM/SAM/pull/118). `b4a1283f` (PR5A,
-[SAM#117](https://github.com/SAM-BIM/SAM/pull/117)) is an ancestor. `SAM#111` remains open as the Part O
-Iteration 3 tracker - see *Current* below for the final closeout position and why it stays open.
+[SAM#117](https://github.com/SAM-BIM/SAM/pull/117)) is an ancestor. **`SAM#111` is now CLOSED** - see
+*Current* below for the final closeout (B4 close/reopen Review acceptance, the manufacturer-ventilation
+successor tracker, and the human closure decision).
 
-## Current: Part O closeout reconciliation - four PRs merged, SAM#111 stays open (2026-09-16, later)
+## Current: SAM#111 final closeout - B4 close/reopen Review 7/7, manufacturer ventilation moved to a
+successor tracker, #111 CLOSED (2026-09-16)
+
+**What this entry is.** The last remaining SAM#111 acceptance gate - reopening the persisted B4
+(selected-product cooling) pairing in a fresh process - has now passed. Combined with a human programme
+decision, this closes out SAM#111.
+
+**B4 close/reopen Review acceptance - PASS 7/7.** A fresh SAM process reopened the preserved real-project
+B4 pairing (Reference A vs Candidate B `-It3B4`, `SelectedProductCooling`, 3 cooling modules, 3 air systems,
+8 assessed rooms, 14 ventilation legs) on the current merged binaries:
+
+1. the pairing was recovered (not rerun) - `IsRestored = true`, Review reported the reopened persisted
+   pairing, no behaviour-mode picker appeared;
+2. engineering results reproduced exactly - Reference A FAIL, Candidate B FAIL, same comparison statistics,
+   same TM59 outcomes, deep comparison of `Record`/`Comparison` produced zero engineering violations;
+3. the ledger survived - 15/15 stages present and `COMPLETED`;
+4. no refusal;
+5. no TAS simulation during Review - only TSD result-reader processes; no new TBD/TPD/TAS3D/TasConv
+   process; the pre-existing TAS-process baseline was empty;
+6. catalogue provenance revalidated - schema `VentilationUnitCatalogue:v1`, expected SHA matched disk.
+
+Review completed in seconds rather than rerunning the ~20-minute annual simulation. No production code was
+changed to obtain this result.
+
+**A separate, non-blocking evidence-archive finding from the same reopen: [#122](https://github.com/SAM-BIM/SAM/issues/122).**
+The in-session Review that produced the B4 pairing recorded 52 run-time `Notes`; the persisted record does
+not store them, so a reopen reconstructs only 1 and overwrites the standard `Iteration3-Review.txt/.json`
+archive with the thinner reconstruction (original review text ~37,811 chars, restored ~26,377 chars) -
+calculations, pairing identity, ledger, TM59 and comparison results are unaffected. This did **not** fail
+the reopen acceptance gate; it is tracked separately as an evidence/history-preservation defect only.
+
+**Human programme decision.** The proven Iteration 3 explicit Systems/TPD route, including the accepted
+selected-product cooling/B4 route, is complete. The remaining manufacturer **ventilation** behaviour -
+certified heat recovery, fan SFP/power/heat, B1/B2, and manufacturer bypass/B3 - is moved to
+[#123](https://github.com/SAM-BIM/SAM/issues/123), a separate tracker, because its acceptance is blocked on
+external manufacturer/EDSL evidence (PCDB product-variant equivalence, certified SFP, the EDSL displacement
++ active-HR question), not on anything left to implement in this repository set. This satisfies SAM#111's
+own closure rule ("close only when PR5/full Iteration 3 is accepted - unless a later human decision
+deliberately moves PR5 to a separate tracker").
+
+**SAM#111 is CLOSED.** PR1-PR4 foundation frozen; PR5A infrastructure merged; PR5B selected-product cooling
+accepted (canonical + real-project + close/reopen Review); #113 resolved and closed; #115 remains separate,
+unrelated native debt; the TM59 Criterion 1 seasonal-basis fix and the SAM_Tas diagnostic alignment are both
+merged; the four-airflow invariant is unchanged. Manufacturer ventilation behaviour continues at #123;
+restored-Review evidence narration continues at #122. Neither is a reopened blocker for the work #111
+tracked.
+
+## Previous: Part O closeout reconciliation - four PRs merged, SAM#111 stays open (2026-09-16, later)
 
 **What this entry is.** After SAM#119, SAM_Tas#61, SAM#120 (below) and
 [SAM_Tas#62](https://github.com/SAM-BIM/SAM_Tas/pull/62) all merged into `sow/2026-Q3` the same day, this is
