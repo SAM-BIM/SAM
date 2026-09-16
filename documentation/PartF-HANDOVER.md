@@ -23,25 +23,42 @@ finished while this file is behind the repositories.
 
 ## 0. Current repository state
 
-*Verified 2026-08-27. This table is the single authoritative record of repository state; nothing else in
-this file or the archive supersedes it.*
+*Verified 2026-09-16 with `git ls-remote` against the server, not against tracking refs — see the invariant
+below for why that distinction is the whole point. This table is the single authoritative record of
+repository state; nothing else in this file or the archive supersedes it.*
 
-**TWO repos are in flight.** The Part F terminal/transfer work merged everywhere; the live work is Part O.
-**`sow/2026-Q3` is never committed to directly** and is untouched everywhere.
+**Nothing is in flight.** The Part O work — including the PR5B recirculation-cooling line that drives
+Iteration 3 — has **merged into `sow/2026-Q3` in all four repos**. Every repo is on `sow/2026-Q3`, clean, and
+level with its remote.
 
-| Repo | Branch | Last CODE commit | Cut from | PR |
-|---|---|---|---|---|
-| `SAM` | `feature/parto-base-mvhr` | **`98d37adc`** | `sow/2026-Q3` @ `1db06e83` | not opened |
-| `SAM_Tas` | `feature/parto-base-mvhr` | **`2caa2f05`** | `sow/2026-Q3` @ `1b3add6a` | not opened |
+| Repo | Branch | HEAD = remote tip | PR |
+|---|---|---|---|
+| `SAM` | `sow/2026-Q3` | **`b4a1283f`** | merged |
+| `SAM_Systems` | `sow/2026-Q3` | **`05ca0c18`** | merged |
+| `SAM_Tas` | `sow/2026-Q3` | **`ac85b5c3`** | merged |
+| `SAM_UI` | `sow/2026-Q3` | **`9f515c4c`** | merged |
 
-The previous Part O branches merged: `SAM` [#76](https://github.com/SAM-BIM/SAM/pull/76) and `SAM_Tas`
-[#43](https://github.com/SAM-BIM/SAM_Tas/pull/43), both `feature/parto-nv-workflow`, both Iteration 1b.
+These four commits are exactly the ones the Part O real-project licensed acceptance was built from
+(`C:\TasOut\parto-final-real-project\build\binaries.txt`), so that acceptance is reproducible from the
+repositories alone.
 
-**Iteration 1a is committed, licensed-accepted, and has no PR open.** Suites at these commits: `SAM`
-1470/1470, `SAM_Tas` 642/642.
+> **The previous edition of this section was wrong in a way worth remembering.** It recorded two repos in
+> flight on `feature/parto-base-mvhr` and said "`sow/2026-Q3` is untouched everywhere". That had been true;
+> it stopped being true when the PR5B line merged. A session reading it on a laptop whose last `git fetch`
+> predated the merge confirmed the claim with `git cat-file`, `git log` over `origin/…` and `grep -r`, and
+> concluded the code was unpushed — because all three read **local** refs. See the invariant below.
 
-Read [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) from § *Iteration 1a / Base MVHR — the block
-resolved (2026-08-27)* onwards before touching any of it. The four things that section settles, none of
+Suites at these commits, Release (2026-09-16): `SAM.Tests` 2114/2114, `SAM.Analytical.Systems.Tests`
+203/203, `SAM.Analytical.Tas.TM59.Tests` 922/922, `SAM.Analytical.UI.WPF.Tests` 1027/1027.
+
+Read [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) from § *Part O real-project acceptance — 1a / 1b /
+2 / 2B / 3-B0 / 3-B4 (2026-09-15, closed out 2026-09-16)* for the current state of the iteration set,
+including the two open findings: **Iteration 1b simulates authored mechanical air** (its preparation is a
+no-op copy) and **Iteration 3-B4 refuses at the recirculation flow ceiling** on a real project. Both end in a
+recommendation; neither has had a production change made for it.
+
+Then read § *Iteration 1a / Base MVHR — the block resolved (2026-08-27)* onwards before touching any of it.
+The four things that section settles, none of
 which was visible from the analytical side:
 
 1. **TAS refuses a TBD in which any ONE zone's inter-zone air movements do not balance** — reported by the
@@ -100,24 +117,39 @@ last **code** commit is pinned instead.
 "HEAD descends from the recorded SHA" also passes when somebody committed code and never recorded it —
 exactly the state this file exists to prevent. Verify all three:
 
-1. every tree **clean** and every branch **level with its remote**;
+1. every tree **clean** and every branch **level with its remote** — and "its remote" means the *server*, not a tracking ref (see below);
 2. HEAD **descends from** the recorded last-code SHA;
 3. **every change between that SHA and HEAD touches only documentation.**
 
+**Read item 1 with `git ls-remote`.** `git status`, `git log`, `git cat-file`, `git ls-tree` and `grep -r` all
+read the **local** object store, the **local** tracking refs and the **checked-out** tree. On a two-machine
+project they therefore answer "is this branch level?" and "does this code exist anywhere?" with a snapshot as
+old as your last `git fetch`, and they answer it confidently. `git ls-remote` is the one that opens a
+connection to the server, and it is read-only — it fetches nothing and writes no ref, so it is safe to run
+before you have decided anything. This is not hypothetical: it is exactly how the previous edition of §0
+above came to be believed after it had gone stale.
+
 ```bash
-for r in SAM SAM_Tas; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/parto-base-mvhr; done
+for r in SAM SAM_Systems SAM_Tas SAM_UI; do echo "=== $r"; git -C $r rev-parse HEAD; git -C $r ls-remote origin refs/heads/sow/2026-Q3; done
+```
+
+```bash
+for r in SAM SAM_Systems SAM_Tas SAM_UI; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; done
 ```
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|documentation/PartO-ARCHITECTURE\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 98d37adc
-SAM_Tas 2caa2f05
+SAM b4a1283f
+SAM_Systems 05ca0c18
+SAM_Tas ac85b5c3
+SAM_UI 9f515c4c
 EOF
 ```
 
-That must print exactly **two** `descends from` lines and nothing else. The three idle repos are checked by
-confirming they are still on `sow/2026-Q3` and clean; there is nothing in flight in them to lose. **Any `UNRECORDED CODE:` or
-`DOES NOT CONTAIN` line means stop and reconcile before changing any code.**
+That must print exactly **four** `descends from` lines and nothing else. Nothing is in flight, so the pinned
+SHAs above are the merged `sow/2026-Q3` tips themselves and the only thing that may legitimately differ from
+them is documentation. **Any `UNRECORDED CODE:` or `DOES NOT CONTAIN` line means stop and reconcile before
+changing any code** - and reconcile with `git ls-remote`, not with a tracking ref.
 
 **Two reconciliation lessons worth keeping** (the incidents themselves are in the archive, where the check
 is recorded as having earned its keep five times):
