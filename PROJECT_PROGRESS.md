@@ -1,10 +1,10 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` at `b4a1283f` - which **is** the PR5A merge commit
-([SAM#117](https://github.com/SAM-BIM/SAM/pull/117), `feature/parto-pr5a-ventilation-unit-performance`).
-The PR5A slice described below is therefore **MERGED**, not pending; the whole PR5/PR5B line has since
-merged in all four repos. `SAM#111` remains open as the Part O Iteration 3 tracker.
+`sow/2026-Q3` at `192d069a` - the merge commit of [SAM#118](https://github.com/SAM-BIM/SAM/pull/118), the
+Part O real-project acceptance documentation closeout. `b4a1283f` (PR5A,
+[SAM#117](https://github.com/SAM-BIM/SAM/pull/117)) is an ancestor. `SAM#111` remains open as the Part O
+Iteration 3 tracker - see *Current* below for why it is not yet closed.
 
 ## Current: TM59 Criterion 1 (natural ventilation) annual-vs-summer basis defect - fixed (2026-09-16)
 
@@ -83,12 +83,108 @@ scope. Flagged for a dedicated follow-up.
 - `SAM.Tests/TM59NaturalVentilationCriterion1SeasonalBasisTests.cs` (new, 3 cases)
 - `PROJECT_PROGRESS.md` (this entry)
 
-**Still open before SAM#111 fully closes.** SAM#119 and SAM_Tas#61 (documentation, recording the 3-B4 rerun
-and this same defect as "found, not yet fixed") are open, mergeable and green as of this session - they
-should be updated (or superseded by this entry) once merge order is decided; this fix does not merge or edit
-those branches. No other blocker is known.
+**Merge sequencing (updated after the fact).** SAM#119 and SAM_Tas#61 (documentation, recording the 3-B4
+rerun and this same defect as "found, not yet fixed") were merged into `sow/2026-Q3` **before** this fix, per
+explicit instruction to preserve that chronology in the integration history - see the demoted entry
+immediately below. This fix's own branch was then reconciled against the post-#119 `sow/2026-Q3` tip
+(conflict confined to this file, in the "Current" section header stack; no production code touched by the
+reconciliation) and re-validated (`SAM.Tests` **2154/2154**, unchanged) before merging. No other blocker is
+known.
 
-## Previous (2026-09-16, earlier): Part O real-project acceptance closed out (2026-09-16)
+## Previous (2026-09-16): 3-B4 rerun on the merged clamp - refusal gone, Candidate B FAILS TM59 (2026-09-16)
+
+**Historical entry.** At the time this entry was written, item 0 below (natural-ventilation Criterion 1's
+annual-vs-summer hour basis) was a confirmed, unfixed defect. It was fixed and regression-covered the same
+day - see the *TM59 Criterion 1 ... - fixed (2026-09-16)* entry above. The text below is preserved unchanged
+as the historical record; its "CONFIRMED, NOT FIXED" / "must not be closed" language describes that point in
+time, not the current state.
+
+**Status.** SAM#118 and SAM_Tas#60 (the clamp that fixes the 3-B4 refusal below) are both **merged**
+(`SAM 192d069a`, `SAM_Tas 96f8ba79`). This entry is the follow-up session: rebuild all four repos at the
+merged tips, rerun Iteration 3-B4 on the same preserved real project, and confirm the fix actually closes the
+gap it was merged to close.
+
+**Work completed.**
+1. Verified starting state: all four repos on `sow/2026-Q3`, clean, level with remote (`git ls-remote`), at
+   exactly the expected merged tips; SAM#118 and SAM_Tas#60 both confirmed `MERGED` via `gh pr view`.
+2. Rebuilt Release in dependency order SAM -> SAM_Systems -> SAM_Tas -> SAM_UI (VS Framework MSBuild,
+   `-p:RunPostBuildEvent=OnOutputUpdated` on SAM_UI). Confirmed `SAM_UI\build\SAM.Analytical.Tas.TPD.dll`
+   refreshed and containing `RecirculationCoolingClamp`.
+3. Reran Iteration 3-B4 on `SAM_zoningAM-CIBSEfutureZ1.sam` (SHA-256 `a7e09a25...`) through the external
+   PowerShell UI-Automation harness (`stage.ps1 -Stage B4`, outside every repository - it drives the native
+   `SAM Analytical.exe`, not a UI-automation framework inside the repositories) - same weather, full year,
+   same 3 dwellings / 8 rooms as the 2026-09-15 acceptance. **The refusal is gone.** All 15 ledger stages
+   COMPLETED (previously 9 completed, 1 refused, 5 never run) - `PartOIteration3Stage` carries 15 stages, not
+   14, because `EquipmentResolution` was added; verified by name against the ledger, not assumed. **Candidate
+   B TM59 now exists: FAIL**, 3 of 8 rooms (`Studio 1_0`, `Kitchen_4`, `Kitchen_7`).
+4. Extracted and compared all stages (`extract-all.sh` + `compare.py --delta 3-B0:3-B4 --delta 1a:3-B4`) -
+   `3-B4` no longer prints `SKIP` or `*refused*`; real numbers throughout.
+5. Reran the coil replay (`prod B4 resolve=model stop=gen coolev=1`) on MVHR-02 (the unit that refused):
+   `Count_Clamped = 2`, `MaximumClampedExcursion_Lps = 0.050278` - matches the SAM_Tas#60 investigation's
+   `~0.0503` measurement.
+6. Updated `PartF-HANDOVER.md` §0 (both PRs merged, verification pin repinned to `96f8ba79`),
+   `PartO-TAS-VALIDATION.md` (rerun outcome + deltas), and the preserved
+   `C:\TasOut\parto-final-real-project\evidence-draft.md` §9/§14 (rerun appended, history preserved) in one
+   documentation-only PR.
+
+**Important decisions and assumptions.**
+- **The FAIL is accepted, not treated as a defect.** 3-B0 already failed 4 of 8 rooms on the same weather;
+  the clamp fixes a reporting refusal at the control-law boundary, not the building's overheating. No
+  production code was changed to obtain this result, and none should be.
+- **A genuine but unrelated anomaly was found and NOT acted on.** The same coil replay showed a different air
+  system (MVHR-03) with `Count_Clamped = 6015` at a ~170x smaller magnitude (`0.000587` l/s) than MVHR-02's -
+  consistent with floating-point-scale noise at the `36` l/s floor, not the ramp-overshoot mechanism the
+  clamp addresses. Per the session's own stop-condition ("investigate and report before making code
+  changes"), this is recorded (`PartO-TAS-VALIDATION.md` § *3-B4 rerun on the merged clamp*,
+  `evidence-draft.md` §9b) and left for a future session - it changes no TM59 result and no code was touched.
+- **The preserved extraction harness needed machine-specific repair, not a design change.** `h\p0.csproj`,
+  `tool\tool.csproj` and their `Prod.cs`/`Program.cs` AssemblyResolve hooks had `C:\Users\Virtual Machine\...`
+  hardcoded from the machine the 2026-09-15 acceptance ran on; repointed to this machine and `p0.exe`
+  rebuilt (its prebuilt `deps.json` predated the `SAM.Analytical.UI.WPF` reference its own source needs).
+  This is explicitly non-production harness plumbing.
+
+**Files changed** (documentation only, this repo): `documentation/PartF-HANDOVER.md` (§0),
+`documentation/PartO-TAS-VALIDATION.md` (new § *3-B4 rerun on the merged clamp*), `PROJECT_PROGRESS.md` (this
+entry). Outside this repo: `C:\TasOut\parto-final-real-project\evidence-draft.md` (§9b appended, §14
+appended), `06-Iteration3-B4\` (rerun evidence; the refused run preserved under `refused-2026-09-15\`),
+`replay\B4-coolev-2026-09-16\` (new coil replay), `extract\comparison.md` (regenerated), and the harness
+source path fixes above (not production code).
+
+**Validation.** All four suites rebuilt Release at the merged tips (unchanged from the closeout entry below):
+`SAM.Tests` 2151/2151, `SAM.Analytical.Systems.Tests` 203/203, `SAM.Analytical.Tas.TM59.Tests` 930/930,
+`SAM.Analytical.UI.WPF.Tests` 1027/1027. The rerun itself is licensed-TAS evidence, not a test suite result -
+see `PartO-TAS-VALIDATION.md` for the full comparison tables.
+
+**Unresolved issues, risks, blockers.**
+0. **CONFIRMED, NOT FIXED - natural-ventilation Criterion 1 Pass/Fail uses the wrong hour basis.** Found by
+   independent review during this session, confirmed by direct source inspection:
+   `TMExtendedResult.Criterion1` (`SAM.Analytical\Classes\Result\TM\TMExtendedResult.cs:240-263`) decides
+   Pass/Fail from the full-year occupied-hours basis, while `TM59AssessmentReport.NaturalVentilationChecksFor`
+   (`TM59AssessmentReport.cs:266-285`) already displays the correct May-September basis for `Actual`/`Limit`
+   - the two are never required to agree, and no test exercises a fixture where they would disagree. **Does
+   not affect this session's own B4/B0/1a results** (100% mechanical route, no analogous split) - see
+   `documentation/PartO-TAS-VALIDATION.md` § *Known open defect* for the full trace, consequence
+   classification and the smallest correct remediation (not applied). **SAM #111 must not be closed as fully
+   verified while this is open** - it bears on the natural-ventilation route's absolute Pass/Fail, not on the
+   evidence gate this session's rerun satisfies.
+1. **The MVHR-03 `Count_Clamped` anomaly above is uninvestigated beyond the observation.** Negligible
+   magnitude, no result impact, no code changed - but not yet explained down to its source line.
+2. **Iteration 1b simulates authored mechanical air** - unchanged from the closeout entry below;
+   investigation-only, no code change made or intended by this session.
+3. Everything else carried over unchanged from the closeout entry below (2B placeholder stage, clamp bound
+   is measured not derived, `SAM.Tests` not in `SAM.sln`).
+
+**Exact recommended next step (as originally written; item 0 has since been fixed - see above).** Open and
+merge the documentation-only PR from this session (branch off `sow/2026-Q3`, never commit to it directly).
+After merge, SAM#111's evidence gate for the recirculation-flow refusal is satisfied - **but #111 should not
+be closed as fully verified** until item 0 above (the Criterion 1 hour-basis defect) is either fixed
+(smallest remediation is stated in `PartO-TAS-VALIDATION.md`) or conclusively disproved by someone
+re-deriving it independently. Separately, decide whether to investigate the MVHR-03 `Count_Clamped` anomaly,
+and whether to act on Iteration 1b's standing recommendation (refuse rather than clear authored mechanical
+air). Do not start Iteration 1b, Iteration 2, the reopen-path investigation, or a clamp redesign without an
+explicit decision to do so.
+
+## Previous (2026-09-16, earliest): Part O real-project acceptance closed out
 
 **Status.** Documentation checkpoint on branch `docs/parto-real-project-acceptance-closeout`, PR
 [SAM#118](https://github.com/SAM-BIM/SAM/pull/118) against `sow/2026-Q3`, **not merged**. SAM carries no

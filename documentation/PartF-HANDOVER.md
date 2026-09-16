@@ -27,33 +27,39 @@ finished while this file is behind the repositories.
 below for why that distinction is the whole point. This table is the single authoritative record of
 repository state; nothing else in this file or the archive supersedes it.*
 
-**The PR5B line has merged** — including the recirculation-cooling work that drives Iteration 3 — in all
-four repos, and every repo is clean and level with its remote. **Two are not on `sow/2026-Q3`**: the
-branches checked out right now are those of the two in-flight PRs below. Check out `sow/2026-Q3` and the
-verification recipe will report `DOES NOT CONTAIN 602703a1` for SAM_Tas, correctly - that pin describes
-the in-flight branch.
-
-**Two things are in flight, both raised by the 2026-09-15 acceptance, neither merged:**
-
-| Repo | Branch | PR | What |
-|---|---|---|---|
-| `SAM_Tas` | `fix/parto-pr5b-recirculation-flow-clamp` @ **`77cbafd8`** (code `602703a1`) | [#60](https://github.com/SAM-BIM/SAM_Tas/pull/60) | reports a recirculation flow at its law’s range instead of refusing a one-hour ramp overshoot — the fix for the 3-B4 refusal |
-| `SAM` | `docs/parto-real-project-acceptance-closeout` (documentation only) | [#118](https://github.com/SAM-BIM/SAM/pull/118) | this documentation checkpoint |
-
-SAM_Tas#60's SHAs above are its in-flight head; the pinned tips further down are the **pre-fix acceptance**
-revisions and are a different thing. A checkout containing the reviewed clamp is one that contains SAM_Tas
-`602703a1` (its code commit; `77cbafd8` adds only the progress record).
-
-**The tips below are the pre-fix acceptance revisions, pinned deliberately.** `ac85b5c3` is the SAM_Tas
-commit the acceptance ran on, and 3-B4 refused *because* #60’s clamp was absent from it. When #60 merges,
-do not simply advance these SHAs — they describe a specific acceptance.
+**Both #118 and SAM_Tas#60 have merged. Nothing is in flight.** All four repos are on `sow/2026-Q3`, clean,
+and level with their remotes:
 
 | Repo | Branch | HEAD = remote tip | PR |
 |---|---|---|---|
-| `SAM` | `sow/2026-Q3` | **`b4a1283f`** | merged |
+| `SAM` | `sow/2026-Q3` | **`192d069a`** | [#118](https://github.com/SAM-BIM/SAM/pull/118) merged 2026-09-16 |
 | `SAM_Systems` | `sow/2026-Q3` | **`05ca0c18`** | merged |
-| `SAM_Tas` | `sow/2026-Q3` | **`ac85b5c3`** | merged |
+| `SAM_Tas` | `sow/2026-Q3` | **`96f8ba79`** | [#60](https://github.com/SAM-BIM/SAM_Tas/pull/60) merged 2026-09-16 |
 | `SAM_UI` | `sow/2026-Q3` | **`9f515c4c`** | merged |
+
+`96f8ba79` is SAM_Tas#60's merge commit — the recirculation-cooling clamp (`RecirculationCoolingClamp_Lps`)
+is now on `sow/2026-Q3` itself, not on a feature branch. `192d069a` is SAM#118's merge commit.
+
+**The clamp has since been exercised on the real project, closing the loop #60 opened.** The 2026-09-15
+acceptance ran on the pre-fix tip `ac85b5c3` and 3-B4 refused. On 2026-09-16, all four repos were rebuilt
+Release at the tips above (dependency order SAM → SAM_Systems → SAM_Tas → SAM_UI,
+`SAM_UI\build\SAM.Analytical.Tas.TPD.dll` confirmed to contain `RecirculationCoolingClamp`), and Iteration
+3-B4 was rerun on the same real project, through the same external PowerShell UI-Automation harness
+(`stage.ps1`, outside every repository - it drives the native `SAM Analytical.exe`, not a UI-automation
+framework inside the repositories), same acceptance conditions. **The
+refusal is gone. Candidate B now exists and FAILS TM59** (3 of 8 rooms: `Studio 1_0`, `Kitchen_4`,
+`Kitchen_7`) — a normal, expected result, not a defect. Full detail in
+[`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) § *Part O real-project acceptance*.
+
+**A separate defect, found the same day, has since been fixed and regression-covered (SAM#120)** — it was
+unrelated to the clamp and did not affect the rerun above (the real project's rooms are 100%
+mechanical-route, which has no analogous issue): natural-ventilation Criterion 1's Pass/Fail was computed
+from the full-year occupied-hours basis, not the May–September basis TM59:2017 requires and the report
+itself already displayed for `Actual`/`Limit`. See
+[`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) § *TM59 Criterion 1 (natural ventilation) —
+annual-vs-summer hour-basis defect, found and fixed (2026-09-16)* for the fix and its regression; § *Known
+open defect* immediately above it is the preserved historical record of the defect as first found. A related
+instance in `SAM_Tas`'s diagnostic log (not a compliance decision) is a separate, still-open follow-up.
 
 These four commits are exactly the ones the Part O real-project licensed acceptance was built from
 (`C:\TasOut\parto-final-real-project\build\binaries.txt`), so the **code revision** that acceptance ran on
@@ -78,7 +84,8 @@ differs per machine and is absent from some of them).
 > concluded the code was unpushed — because all three read **local** refs. See the invariant below.
 
 Suites at these commits, Release (2026-09-16): `SAM.Tests` **2151/2151**, `SAM.Analytical.Systems.Tests`
-203/203, `SAM.Analytical.Tas.TM59.Tests` 922/922, `SAM.Analytical.UI.WPF.Tests` 1027/1027.
+203/203, `SAM.Analytical.Tas.TM59.Tests` **930/930** (922 + SAM_Tas#60's 8), `SAM.Analytical.UI.WPF.Tests`
+1027/1027.
 
 > **`SAM.Tests` is not in `SAM.sln`.** Building the solution does not build it, so `dotnet test --no-build`
 > runs whatever binary happens to be on disk - which silently reported the pre-PR5A **2114** here until the
@@ -88,11 +95,12 @@ Suites at these commits, Release (2026-09-16): `SAM.Tests` **2151/2151**, `SAM.A
 > in its solution at all, so nothing warns you. The other three suites are in their solutions and do rebuild.
 
 Read [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) from § *Part O real-project acceptance — 1a / 1b /
-2 / 2B / 3-B0 / 3-B4 (2026-09-15, closed out 2026-09-16)* for the current state of the iteration set,
-including the two open findings: **Iteration 1b simulates authored mechanical air** (its preparation is a
-no-op copy) and **Iteration 3-B4 refuses at the recirculation flow ceiling** on a real project. Both end in a
-recommendation. **1b’s is investigation-only and deliberately unchanged.** 3-B4’s has been acted on:
-SAM_Tas#60 above is the production change for it, unmerged. Do not re-derive that work.
+2 / 2B / 3-B0 / 3-B4 (2026-09-15, closed out 2026-09-16)* for the current state of the iteration set. It
+records two findings. **Iteration 1b simulates authored mechanical air** (its preparation is a no-op copy) —
+**investigation-only, deliberately unchanged.** **Iteration 3-B4 refused at the recirculation flow ceiling**
+on the real project — fixed by SAM_Tas#60 (merged, `96f8ba79`) and **the fix has since been re-exercised on
+the same real project**: the refusal is gone, Candidate B now exists, and 3-B4 FAILS TM59 on 3 of 8 rooms
+(§ *3-B4 rerun on the merged clamp*). Do not re-derive either piece of work.
 
 Then read § *Iteration 1a / Base MVHR — the block resolved (2026-08-27)* onwards before touching any of it.
 The four things that section settles, none of
@@ -187,9 +195,9 @@ for r in SAM SAM_Systems SAM_Tas SAM_UI; do echo "=== $r ==="; git -C $r status 
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|documentation/PartO-ARCHITECTURE\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM b4a1283f
+SAM 192d069a
 SAM_Systems 05ca0c18
-SAM_Tas 602703a1
+SAM_Tas 96f8ba79
 SAM_UI 9f515c4c
 EOF
 ```
@@ -199,10 +207,10 @@ That must print exactly **four** `descends from` lines and nothing else. **Any `
 `git ls-remote`, not with a tracking ref.
 
 **The SHAs above are each repo’s recorded last-CODE commit, which is not always its acceptance tip.**
-SAM_Tas is pinned at `602703a1` (SAM_Tas#60’s code commit), not at `ac85b5c3`: with that branch checked
-out, diffing from `ac85b5c3` reports #60’s own three production files as `UNRECORDED CODE` and stops the
-next agent on a change that is recorded. `ac85b5c3` remains the acceptance provenance in §0 and is not a
-verification pin. When #60 merges, this pin moves to the new `sow/2026-Q3` tip and the two coincide again.
+SAM_Tas is now pinned at `96f8ba79` — SAM_Tas#60’s merge commit onto `sow/2026-Q3`, and (since #60 merged)
+the same commit as the repo's remote tip in the table at the top of this section: pin and tip coincide
+again. `ac85b5c3` remains the *2026-09-15 acceptance's* provenance (the pre-fix commit 3-B4 refused on),
+which is a historical fact about that specific run, not a verification pin.
 
 **Two reconciliation lessons worth keeping** (the incidents themselves are in the archive, where the check
 is recorded as having earned its keep five times):
