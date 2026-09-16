@@ -177,15 +177,20 @@ for r in SAM SAM_Systems SAM_Tas SAM_UI; do echo "=== $r ==="; git -C $r status 
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|documentation/PartO-ARCHITECTURE\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
 SAM b4a1283f
 SAM_Systems 05ca0c18
-SAM_Tas ac85b5c3
+SAM_Tas 602703a1
 SAM_UI 9f515c4c
 EOF
 ```
 
-That must print exactly **four** `descends from` lines and nothing else. Nothing is in flight, so the pinned
-SHAs above are the merged `sow/2026-Q3` tips themselves and the only thing that may legitimately differ from
-them is documentation. **Any `UNRECORDED CODE:` or `DOES NOT CONTAIN` line means stop and reconcile before
-changing any code** - and reconcile with `git ls-remote`, not with a tracking ref.
+That must print exactly **four** `descends from` lines and nothing else. **Any `UNRECORDED CODE:` or
+`DOES NOT CONTAIN` line means stop and reconcile before changing any code** - and reconcile with
+`git ls-remote`, not with a tracking ref.
+
+**The SHAs above are each repo’s recorded last-CODE commit, which is not always its acceptance tip.**
+SAM_Tas is pinned at `602703a1` (SAM_Tas#60’s code commit), not at `ac85b5c3`: with that branch checked
+out, diffing from `ac85b5c3` reports #60’s own three production files as `UNRECORDED CODE` and stops the
+next agent on a change that is recorded. `ac85b5c3` remains the acceptance provenance in §0 and is not a
+verification pin. When #60 merges, this pin moves to the new `sow/2026-Q3` tip and the two coincide again.
 
 **Two reconciliation lessons worth keeping** (the incidents themselves are in the archive, where the check
 is recorded as having earned its keep five times):
