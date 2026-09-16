@@ -27,18 +27,21 @@ finished while this file is behind the repositories.
 below for why that distinction is the whole point. This table is the single authoritative record of
 repository state; nothing else in this file or the archive supersedes it.*
 
-**Both #118 and SAM_Tas#60 have merged. Nothing is in flight.** All four repos are on `sow/2026-Q3`, clean,
-and level with their remotes:
+**#118, #119, #120, SAM_Tas#60, #61 and #62 have all merged. Nothing is in flight.** All four repos are on
+`sow/2026-Q3`, clean, and level with their remotes:
 
 | Repo | Branch | HEAD = remote tip | PR |
 |---|---|---|---|
-| `SAM` | `sow/2026-Q3` | **`192d069a`** | [#118](https://github.com/SAM-BIM/SAM/pull/118) merged 2026-09-16 |
+| `SAM` | `sow/2026-Q3` | **`e2c0e2c0`** | [#120](https://github.com/SAM-BIM/SAM/pull/120) merged 2026-09-16 |
 | `SAM_Systems` | `sow/2026-Q3` | **`05ca0c18`** | merged |
-| `SAM_Tas` | `sow/2026-Q3` | **`96f8ba79`** | [#60](https://github.com/SAM-BIM/SAM_Tas/pull/60) merged 2026-09-16 |
+| `SAM_Tas` | `sow/2026-Q3` | **`c267f52f`** | [#62](https://github.com/SAM-BIM/SAM_Tas/pull/62) merged 2026-09-16 |
 | `SAM_UI` | `sow/2026-Q3` | **`9f515c4c`** | merged |
 
-`96f8ba79` is SAM_Tas#60's merge commit — the recirculation-cooling clamp (`RecirculationCoolingClamp_Lps`)
-is now on `sow/2026-Q3` itself, not on a feature branch. `192d069a` is SAM#118's merge commit.
+`e2c0e2c0` is SAM#120's merge commit, itself a merge of `sow/2026-Q3` (which by then contained #119) into
+#120's own fix branch (docs-only reconciliation, no production conflict) - `17af3245` (SAM#119) and `192d069a`
+(SAM#118) are both its ancestors. `c267f52f` is SAM_Tas#62's merge commit, itself an ancestor chain through
+`ff862201` (SAM_Tas#61) and `96f8ba79` (SAM_Tas#60, the recirculation-cooling clamp,
+`RecirculationCoolingClamp_Lps`).
 
 **The clamp has since been exercised on the real project, closing the loop #60 opened.** The 2026-09-15
 acceptance ran on the pre-fix tip `ac85b5c3` and 3-B4 refused. On 2026-09-16, all four repos were rebuilt
@@ -59,7 +62,8 @@ itself already displayed for `Actual`/`Limit`. See
 [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) § *TM59 Criterion 1 (natural ventilation) —
 annual-vs-summer hour-basis defect, found and fixed (2026-09-16)* for the fix and its regression; § *Known
 open defect* immediately above it is the preserved historical record of the defect as first found. A related
-instance in `SAM_Tas`'s diagnostic log (not a compliance decision) is a separate, still-open follow-up.
+instance in `SAM_Tas`'s diagnostic log (not a compliance decision) has since also been fixed
+([SAM_Tas#62](https://github.com/SAM-BIM/SAM_Tas/pull/62)) - no open follow-up remains.
 
 These four commits are exactly the ones the Part O real-project licensed acceptance was built from
 (`C:\TasOut\parto-final-real-project\build\binaries.txt`), so the **code revision** that acceptance ran on
@@ -83,9 +87,9 @@ differs per machine and is absent from some of them).
 > predated the merge confirmed the claim with `git cat-file`, `git log` over `origin/…` and `grep -r`, and
 > concluded the code was unpushed — because all three read **local** refs. See the invariant below.
 
-Suites at these commits, Release (2026-09-16): `SAM.Tests` **2151/2151**, `SAM.Analytical.Systems.Tests`
-203/203, `SAM.Analytical.Tas.TM59.Tests` **930/930** (922 + SAM_Tas#60's 8), `SAM.Analytical.UI.WPF.Tests`
-1027/1027.
+Suites at these commits, Release (2026-09-16): `SAM.Tests` **2154/2154** (2151 + SAM#120's 3), `SAM.Analytical.Systems.Tests`
+203/203 (unchanged - neither `SAM_Systems` nor `SAM_UI` moved this session), `SAM.Analytical.Tas.TM59.Tests`
+**931/931** (930 + SAM_Tas#62's 1), `SAM.Analytical.UI.WPF.Tests` 1027/1027 (unchanged).
 
 > **`SAM.Tests` is not in `SAM.sln`.** Building the solution does not build it, so `dotnet test --no-build`
 > runs whatever binary happens to be on disk - which silently reported the pre-PR5A **2114** here until the
@@ -195,9 +199,9 @@ for r in SAM SAM_Systems SAM_Tas SAM_UI; do echo "=== $r ==="; git -C $r status 
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|documentation/PartO-ARCHITECTURE\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 192d069a
+SAM e2c0e2c0
 SAM_Systems 05ca0c18
-SAM_Tas 96f8ba79
+SAM_Tas c267f52f
 SAM_UI 9f515c4c
 EOF
 ```
@@ -207,10 +211,12 @@ That must print exactly **four** `descends from` lines and nothing else. **Any `
 `git ls-remote`, not with a tracking ref.
 
 **The SHAs above are each repo’s recorded last-CODE commit, which is not always its acceptance tip.**
-SAM_Tas is now pinned at `96f8ba79` — SAM_Tas#60’s merge commit onto `sow/2026-Q3`, and (since #60 merged)
-the same commit as the repo's remote tip in the table at the top of this section: pin and tip coincide
-again. `ac85b5c3` remains the *2026-09-15 acceptance's* provenance (the pre-fix commit 3-B4 refused on),
-which is a historical fact about that specific run, not a verification pin.
+SAM is now pinned at `e2c0e2c0` — SAM#120's merge commit (the TM59 Criterion 1 seasonal-basis fix), and
+SAM_Tas at `c267f52f` — SAM_Tas#62's merge commit (the matching diagnostic-log fix); both coincide with each
+repo's remote tip in the table at the top of this section since neither has moved further. `192d069a`
+(SAM#118) and `96f8ba79` (SAM_Tas#60) remain valid ancestors, just no longer the pin. `ac85b5c3` remains the
+*2026-09-15 acceptance's* provenance (the pre-fix commit 3-B4 refused on), which is a historical fact about
+that specific run, not a verification pin.
 
 **Two reconciliation lessons worth keeping** (the incidents themselves are in the archive, where the check
 is recorded as having earned its keep five times):

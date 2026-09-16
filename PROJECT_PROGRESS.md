@@ -1,12 +1,41 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` at `192d069a` - the merge commit of [SAM#118](https://github.com/SAM-BIM/SAM/pull/118), the
-Part O real-project acceptance documentation closeout. `b4a1283f` (PR5A,
+`sow/2026-Q3` at `e2c0e2c0` - the merge commit of [SAM#120](https://github.com/SAM-BIM/SAM/pull/120), which
+descends from [SAM#119](https://github.com/SAM-BIM/SAM/pull/119) and
+[SAM#118](https://github.com/SAM-BIM/SAM/pull/118). `b4a1283f` (PR5A,
 [SAM#117](https://github.com/SAM-BIM/SAM/pull/117)) is an ancestor. `SAM#111` remains open as the Part O
-Iteration 3 tracker - see *Current* below for why it is not yet closed.
+Iteration 3 tracker - see *Current* below for the final closeout position and why it stays open.
 
-## Current: TM59 Criterion 1 (natural ventilation) annual-vs-summer basis defect - fixed (2026-09-16)
+## Current: Part O closeout reconciliation - four PRs merged, SAM#111 stays open (2026-09-16, later)
+
+**What this entry is.** After SAM#119, SAM_Tas#61, SAM#120 (below) and
+[SAM_Tas#62](https://github.com/SAM-BIM/SAM_Tas/pull/62) all merged into `sow/2026-Q3` the same day, this is
+the final reconciliation pass across `PROJECT_PROGRESS.md` (both repos), `PartF-HANDOVER.md` and
+`PartO-TAS-VALIDATION.md`, and the explicit SAM#111 closure decision.
+
+**Final engineering position, distinguished as instructed:**
+1. **B4 real-project acceptance: verified.** Iteration 3 runs end to end on the real project with the
+   recirculation clamp in place (§ *3-B4 rerun on the merged clamp* below).
+2. **Recirculation-flow clamp: verified.** SAM_Tas#60, merged and re-exercised on the real project - the
+   refusal is gone.
+3. **TM59 NV Criterion 1 seasonal basis: fixed and regression-covered.** SAM#120 - see § *TM59 Criterion 1
+   ... found and fixed* below.
+4. **SAM_Tas diagnostic representation: aligned to the same summer basis.** SAM_Tas#62 - diagnostic-log-only,
+   no compliance-decision change.
+5. **Iteration 1b (authored mechanical air, investigation-only) and Iteration 2 (acoustic
+   restriction/bypass/boost placeholder), and the reopen-path investigation, remain separate, un-started
+   follow-ups** - not touched by this reconciliation, per instruction.
+
+**SAM#111 is NOT closed by this reconciliation.** Its own closure rule, stated in the issue body, is explicit:
+*"Close this issue only when PR5 / full Iteration 3 is accepted - unless a later human decision deliberately
+moves PR5 to a separate tracker."* PR5 ("manufacturer-aware behaviour") is the issue's own next milestone and
+is listed there as **unchecked/open**, with a "Potential later work" list (selected-product parameter
+overrides, justified heat recovery, fan behaviour/power, bypass/control behaviour, cooling modules, topology
+variants) that is not exhausted. Items 1-4 above are real, verified evidence *within* the PR5 line of work
+(PR5A/PR5B and this Criterion 1 slice), but they are sub-slices of PR5, not the whole of it. Closing #111 now
+would contradict the issue's own recorded closure rule without the human decision it explicitly requires, so
+it stays open. This is a genuine remaining item, not an oversight.
 
 **Status.** Branch `fix/tm59-criterion1-summer-basis` off `sow/2026-Q3` (`192d069a`), PR TBD. SAM only - the
 defect and its fix are entirely within `SAM.Analytical`; SAM_Tas, SAM_Systems and SAM_UI consume the result
@@ -66,14 +95,15 @@ including `TM59AssessmentReportTests`, `TMOverheatingCalculatorTests`, `TM59Asse
 `TM59SimplifyTests` (one assertion updated to read the new summer getter, matching the three figures already
 beside it - not reopening the rotation-order defect that test otherwise pins).
 
-**A related instance found but explicitly NOT fixed here, out of this fix's scope.**
-`SAM_Tas/SAM.Analytical.Tas.TM59/Classes/PartODiagnosticLog.cs:646` and `:655`
-(`SetCriterionSpecificFields`) log `hoursExceedingComfortRange` for the extended natural/bedroom branches
+**A related instance found but explicitly NOT fixed here, out of this fix's scope - since fixed
+(`SAM_Tas`#62).** `SAM_Tas/SAM.Analytical.Tas.TM59/Classes/PartODiagnosticLog.cs:646` and `:655`
+(`SetCriterionSpecificFields`) logged `hoursExceedingComfortRange` for the extended natural/bedroom branches
 from the same annual `GetOccupiedHoursExceedingComfortRange()` this fix moved away from, beside the
 already-summer `summerOccupiedHours`/`maxExceedableSummerHours` fields on the same record - the identical
-defect pattern, in a diagnostic evidence log rather than the assessment or report. It feeds no Pass/Fail
+defect pattern, in a diagnostic evidence log rather than the assessment or report. It fed no Pass/Fail
 decision. Left unfixed here: separate repo, its own prebuilt-DLL/TPD build chain, outside this fix's stated
-scope. Flagged for a dedicated follow-up.
+scope. Fixed the same day in [SAM_Tas#62](https://github.com/SAM-BIM/SAM_Tas/pull/62), once this fix's
+`GetSummerOccupiedHoursExceedingComfortRange()` reached a merged `SAM.Analytical.dll`.
 
 **Files changed:**
 - `SAM.Analytical/Classes/Result/TM/TM59NaturalVentilationExtendedResult.cs`

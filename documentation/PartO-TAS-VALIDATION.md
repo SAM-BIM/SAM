@@ -2318,11 +2318,13 @@ rerun was required or performed for this fix.**
 `TM59SimplifyTests` (one assertion updated to read the new summer getter, matching the three figures already
 beside it — not reopening the rotation-order defect that test otherwise pins) and `TMOverheatingCalculatorTests`.
 
-**A related instance found but NOT fixed here, out of this fix's scope.**
+**A related instance found but NOT fixed here, out of this fix's scope — since fixed (`SAM_Tas`#62).**
 `SAM_Tas\SAM.Analytical.Tas.TM59\Classes\PartODiagnosticLog.cs:646` and `:655` (`SetCriterionSpecificFields`)
-log `hoursExceedingComfortRange` for the extended natural/bedroom branches from the same annual
+logged `hoursExceedingComfortRange` for the extended natural/bedroom branches from the same annual
 `GetOccupiedHoursExceedingComfortRange()` this fix moved away from, beside the already-summer
 `summerOccupiedHours` / `maxExceedableSummerHours` fields on the same record — the identical defect pattern,
-in a diagnostic evidence log rather than the assessment or report. It does not feed any Pass/Fail decision.
+in a diagnostic evidence log rather than the assessment or report. It never fed any Pass/Fail decision.
 Left unfixed here because it is a separate repo (`SAM_Tas`) with its own prebuilt-DLL/TPD build chain,
-outside this fix's stated scope; flagged for a dedicated follow-up.
+outside this fix's stated scope; flagged for a dedicated follow-up, and fixed the same day in
+[SAM_Tas#62](https://github.com/SAM-BIM/SAM_Tas/pull/62) once this fix's `GetSummerOccupiedHoursExceedingComfortRange()`
+was available in a merged `SAM.Analytical.dll`.
