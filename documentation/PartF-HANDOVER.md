@@ -155,8 +155,15 @@ before you have decided anything. This is not hypothetical: it is exactly how th
 above came to be believed after it had gone stale.
 
 ```bash
-for r in SAM SAM_Systems SAM_Tas SAM_UI; do echo "=== $r"; git -C $r rev-parse HEAD; git -C $r ls-remote origin refs/heads/sow/2026-Q3; done
+for r in SAM SAM_Systems SAM_Tas SAM_UI; do b=$(git -C $r symbolic-ref --short HEAD); echo "=== $r on $b"; git -C $r rev-parse HEAD; git -C $r ls-remote origin "refs/heads/$b"; done
 ```
+
+It asks each repo about **its own checked-out branch**, not about a branch named here. That matters: run
+from a feature branch, a recipe hardcoding `sow/2026-Q3` compares a feature HEAD against the integration
+branch's remote tip and never queries the feature branch at all - so an unpushed commit on the branch you
+are actually working on passes the check silently, which is exactly the cross-machine handoff this section
+exists to prevent. Two lines, same SHA, means level. **An empty `ls-remote` result means the branch does
+not exist on the server at all** - it has never been pushed, and that is the loudest possible answer.
 
 ```bash
 for r in SAM SAM_Systems SAM_Tas SAM_UI; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; done
