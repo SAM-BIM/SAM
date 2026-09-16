@@ -6,12 +6,63 @@
 The PR5A slice described below is therefore **MERGED**, not pending; the whole PR5/PR5B line has since
 merged in all four repos. `SAM#111` remains open as the Part O Iteration 3 tracker.
 
-**Current checkpoint: the Part O real-project licensed acceptance (2026-09-15), closed out 2026-09-16.**
-Iterations 1a / 1b / 2 / 2B / 3-B0 / 3-B4 were run end to end on a real project. Nothing passes and 3-B4
-refused; the full record, both findings and the decision taken are in
-[`documentation/PartO-TAS-VALIDATION.md`](documentation/PartO-TAS-VALIDATION.md) under *Part O real-project
-acceptance*. Repository state is in [`documentation/PartF-HANDOVER.md`](documentation/PartF-HANDOVER.md) §0,
-which is authoritative for it.
+## Current: Part O real-project acceptance closed out (2026-09-16)
+
+**Status.** Documentation checkpoint on branch `docs/parto-real-project-acceptance-closeout`, PR
+[SAM#118](https://github.com/SAM-BIM/SAM/pull/118) against `sow/2026-Q3`, **not merged**. SAM carries no
+production change from it. The one production change the acceptance produced is in SAM_Tas
+([#60](https://github.com/SAM-BIM/SAM_Tas/pull/60)), also not merged.
+
+**Work completed.** The 2026-09-15 licensed acceptance ran Iterations 1a / 1b / 2 / 2B / 3-B0 / 3-B4 end to
+end on a real project (`SAM_zoningAM-CIBSEfutureZ1.sam`, SHA-256 `a7e09a25...`, 3 dwellings, 9 spaces of
+which 8 assessed, embedded DSY 2050s weather). **Nothing passes; 3-B4 refused.** This checkpoint recovered
+the evidence onto a second machine, completed the evidence record, and closed both investigations.
+
+**Decisions and assumptions.**
+- **3-B4's refusal**: clamp at the law's ceiling (SAM_Tas#60). A flow just outside the range is reported AT
+  the range and counted, not refused. Assumption stated in the code: `RecirculationCoolingClamp_Lps = 0.1` is
+  a **measured** bound (~2x the largest of 5 excursions in 26 280 hours), not a derived one.
+- **Iteration 1b's finding is investigation-only.** Frozen 1b behaviour is deliberately unchanged; the
+  recommendation is a refusal, not a clear, because 1b's contract is "leaves the model as authored".
+- Provenance travels **by commit**, not by binary hash: the build path is embedded in the assembly, so
+  rebuilding identical commits on another machine gives different bytes.
+
+**Files changed** (documentation only, this repo):
+- `documentation/PartO-TAS-VALIDATION.md` - the acceptance record and both investigations.
+- `documentation/PartO-ARCHITECTURE.md` - Iteration 3 is implemented; `ActiveTrimCooling` does **not** map to
+  it; section 5's "Iterations 2 and 3 ... not implemented" split, since only Iteration 2's half is still true.
+- `documentation/PartF-HANDOVER.md` - section 0 rewritten (four repos merged, two PRs in flight), the
+  verification recipe repinned to the four tips, and the "level with its remote" invariant now says to check
+  it with `git ls-remote`.
+- `PROJECT_PROGRESS.md` - this entry, and PR5A corrected from "not merged" (`b4a1283f` **is** its merge).
+
+**Validation.** All four suites Release at the pinned commits, 2026-09-16: `SAM.Tests` **2151 / 2151**,
+`SAM.Analytical.Systems.Tests` 203 / 203, `SAM.Analytical.Tas.TM59.Tests` 922 / 922 (929 with SAM_Tas#60),
+`SAM.Analytical.UI.WPF.Tests` 1027 / 1027. All four solutions rebuilt Release, 0 errors. The handover
+verification recipe was re-run and prints exactly four `descends from` lines.
+
+**Unresolved issues, risks, blockers.**
+1. **Iteration 1b simulates authored mechanical air.** `PreparePartOIteration`'s `SkipNaturalVentilation`
+   branch is a pure no-op copy: it clears nothing and refuses nothing, so an authored model's 17
+   `SpaceAirMovement`s survive and are simulated. Measured: 1b is bit-identical to 1a across all 78 840
+   readings. **No test pins removal.** Open; no change made.
+2. **The clamp bound is measured, not derived.** Nothing structural bounds a controller overshoot, so a
+   steeper model can consume more of the 0.1 l/s. Clamped hours are recorded (`Count_Clamped`,
+   `MaximumClampedExcursion_Lps`) so this stays visible; revisit with a fresh measurement, do not raise.
+3. **Iteration 2 is a placeholder stage.** Acoustic restriction / bypass / boost are not implemented, which
+   is why stage 2 is bit-identical to 1a. `AcousticRestricted` still refuses for want of an operating
+   condition.
+4. **`SAM.Tests` is not in `SAM.sln`**, so `dotnet test --no-build` silently runs a stale binary - it
+   reported 2114 here until caught. Build it by path.
+5. The licensed inputs (model, harness, every `.tsd`, evidence) exist only under
+   `C:\TasOut\parto-final-real-project\` on one machine. The repositories recover the code revision, not the
+   run.
+
+**Exact recommended next step.** Merge [SAM#118](https://github.com/SAM-BIM/SAM/pull/118) (approved), then
+review and merge [SAM_Tas#60](https://github.com/SAM-BIM/SAM_Tas/pull/60). After #60 merges, re-run the 3-B4
+stage on the real project to confirm the refusal is gone and Iteration 3 completes end to end - that run is
+what would let SAM#111 close. Then decide Iteration 1b (item 1): the recommendation on record is that 1b
+should **refuse** a model carrying authored mechanical air movement, naming the objects.
 
 `fix/simulation-provenance-roundtrip` is merged (PR #116 -> `553957dc`). The Iteration 1a / 1b / 2 / 2B
 programme is **FROZEN** - see the two entries after the PR5A one.
