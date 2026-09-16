@@ -61,7 +61,7 @@ namespace SAM.Analytical
                     tM59NaturalVentilationBedroomExtendedResult.TM52BuildingCategory,
                     tM59NaturalVentilationBedroomExtendedResult.OccupiedHours,
                     tM59NaturalVentilationBedroomExtendedResult.MaxExceedableHours,
-                    tM59NaturalVentilationBedroomExtendedResult.GetOccupiedHoursExceedingComfortRange(),
+                    tM59NaturalVentilationBedroomExtendedResult.GetSummerOccupiedHoursExceedingComfortRange(),
                     tM59NaturalVentilationBedroomExtendedResult.GetAnnualNightOccupiedHours(),
                     tM59NaturalVentilationBedroomExtendedResult.GetSummerOccupiedHours(),
                     tM59NaturalVentilationBedroomExtendedResult.GetSummerMaxExceedableHours(),
@@ -84,6 +84,11 @@ namespace SAM.Analytical
                 //The TM59 space applications are carried through: the extended result was classified from the
                 //internal condition, and dropping that here is what left the report's TM59 Application column
                 //"-" on every simplified row.
+                //
+                //hoursExceedingComfortRange is the SUMMER-restricted count (GetSummerOccupiedHoursExceedingComfortRange),
+                //matching SummerOccupiedHours/MaxExceedableSummerHours beside it and the Criterion1 verdict
+                //(Pass) baked in below - not the base type's annual GetOccupiedHoursExceedingComfortRange,
+                //which would leave this field disagreeing with the other three once flattened.
                 return new TM59NaturalVentilationResult(
                     tM59NaturalVentilationExtendedResult.Name,
                     tM59NaturalVentilationExtendedResult.Source,
@@ -93,7 +98,7 @@ namespace SAM.Analytical
                     tM59NaturalVentilationExtendedResult.MaxExceedableHours,
                     tM59NaturalVentilationExtendedResult.GetSummerOccupiedHours(),
                     tM59NaturalVentilationExtendedResult.GetSummerMaxExceedableHours(),
-                    tM59NaturalVentilationExtendedResult.GetOccupiedHoursExceedingComfortRange(),
+                    tM59NaturalVentilationExtendedResult.GetSummerOccupiedHoursExceedingComfortRange(),
                     tM59NaturalVentilationExtendedResult.Pass,
                     tM59NaturalVentilationExtendedResult.TM59SpaceApplications?.ToArray());
             }

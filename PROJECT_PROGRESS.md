@@ -6,7 +6,89 @@
 The PR5A slice described below is therefore **MERGED**, not pending; the whole PR5/PR5B line has since
 merged in all four repos. `SAM#111` remains open as the Part O Iteration 3 tracker.
 
-## Current: Part O real-project acceptance closed out (2026-09-16)
+## Current: TM59 Criterion 1 (natural ventilation) annual-vs-summer basis defect - fixed (2026-09-16)
+
+**Status.** Branch `fix/tm59-criterion1-summer-basis` off `sow/2026-Q3` (`192d069a`), PR TBD. SAM only - the
+defect and its fix are entirely within `SAM.Analytical`; SAM_Tas, SAM_Systems and SAM_UI consume the result
+types and report verbatim, with one related-but-unfixed instance noted below.
+
+**What this closes.** The Criterion 1 inconsistency flagged in the (open, unmerged) SAM#119 doc PR and
+independently pinned much earlier as **Codex 3821633849** (`## Deferred` below, previously left as "a
+regulatory decision, not a review fix" because it would change Pass/Fail on every naturally-ventilated real
+project). This session treats that decision as made, per explicit instruction, and implements it.
+
+**The defect, confirmed by direct source inspection.** `TMExtendedResult.Criterion1`
+(`SAM.Analytical/Classes/Result/TM/TMExtendedResult.cs:240-263`) decides Pass/Fail from the FULL-YEAR
+`OccupiedHours`/`GetOccupiedHoursExceedingComfortRange()`, with no date filter.
+`TM59NaturalVentilationExtendedResult` never overrode it, so it inherited the annual verdict - even though
+that same type already carried the correct summer-restricted denominator (`GetSummerOccupiedHours()` /
+`GetSummerMaxExceedableHours()`, `HourOfYear.SummerStartIndex..SummerEndIndex` = May-September, matching
+TAS). Worse than the report-only framing in SAM#119: `TM59AssessmentReport.NaturalVentilationChecksFor`
+already trusted the summer denominator for its displayed `Limit`, but read the **annual** numerator for its
+displayed `Actual` - so a report row could show three different bases (annual Actual, summer Limit, annual
+verdict) that were never required to agree.
+
+**The fix.**
+- `TM59NaturalVentilationExtendedResult` gained `GetSummerOccupiedHourIndicesExceedingComfortRange()` /
+  `GetSummerOccupiedHoursExceedingComfortRange()` and now **overrides** `Criterion1` to decide Pass/Fail from
+  these summer-restricted figures, mirroring the base implementation's own comparison (0 exceeding passes
+  trivially; otherwise strictly `<`, never `<=`) on the summer basis instead of the annual one.
+  `TM59NaturalVentilationBedroomExtendedResult` needed no change - it inherits the fix, since it never
+  overrode `Criterion1` either.
+- `TM59AssessmentReport.NaturalVentilationChecksFor`'s `actual_Criterion1` now reads the same new summer
+  getter, so Actual, Limit and the verdict share one authority.
+- `Query.Simplify`'s natural-ventilation and bedroom branches now populate the flattened plain result's
+  `HoursExceedingComfortRange` from the same summer getter, so `TM59AssessmentCalculator.Calculate(extended:
+  false)` - the default - carries the identical, internally-consistent figures through flattening instead of
+  a stale annual copy.
+
+**Regression** (`SAM.Tests/TM59NaturalVentilationCriterion1SeasonalBasisTests.cs`, new file, 3 cases):
+600 non-summer + 100 summer occupied hours (annual limit 21, summer limit 3 - can never coincide), moving
+exceedance hours between the two periods. 4 summer-only exceedances: old code passes (4 < 21), fixed code
+correctly fails (4 < 3) - a real May-September failure the annual basis hid. 2 summer + 20 non-summer
+exceedances: old code fails (22 < 21 is false), fixed code correctly passes (2 < 3) - a room wrongly failed
+by hours TM59 was never meant to count. Exactly 3 summer exceedances (== the summer limit): old code passes
+(3 < 21), fixed code correctly fails (3 < 3 is false), preserving the strict-`<` boundary intentionally. All
+three fail pre-fix, pass post-fix.
+
+**Verified NOT to affect the 3-B4 real-project result recorded above / in SAM#119.**
+`TMOverheatingCalculator.Calculate_TM59` branches per space onto either the natural-ventilation types or
+`TM59MechanicalVentilationExtendedResult` - the two never share a `Criterion1`.
+`TM59MechanicalVentilationExtendedResult.Criterion1` is its own separate override
+(`GetHoursNumberExceeding26() < MaxExceedableHours`, both annual by TM59:2017's own design for the mechanical
+`>26°C` check), untouched by this fix. Every one of the 3-B4 real project's 8 assessed rooms is on that
+mechanical route, so this fix changes none of its reported numbers. **No licensed rerun was performed or
+required.**
+
+**Test results.** `SAM.Tests` rebuilt explicitly (`dotnet build SAM.Tests/SAM.Tests.csproj -c Release`, not
+`--no-build` against a stale binary) then run in full: **2154 passed, 0 failed, 0 skipped** - no regression,
+including `TM59AssessmentReportTests`, `TMOverheatingCalculatorTests`, `TM59AssessmentCalculatorTests`, and
+`TM59SimplifyTests` (one assertion updated to read the new summer getter, matching the three figures already
+beside it - not reopening the rotation-order defect that test otherwise pins).
+
+**A related instance found but explicitly NOT fixed here, out of this fix's scope.**
+`SAM_Tas/SAM.Analytical.Tas.TM59/Classes/PartODiagnosticLog.cs:646` and `:655`
+(`SetCriterionSpecificFields`) log `hoursExceedingComfortRange` for the extended natural/bedroom branches
+from the same annual `GetOccupiedHoursExceedingComfortRange()` this fix moved away from, beside the
+already-summer `summerOccupiedHours`/`maxExceedableSummerHours` fields on the same record - the identical
+defect pattern, in a diagnostic evidence log rather than the assessment or report. It feeds no Pass/Fail
+decision. Left unfixed here: separate repo, its own prebuilt-DLL/TPD build chain, outside this fix's stated
+scope. Flagged for a dedicated follow-up.
+
+**Files changed:**
+- `SAM.Analytical/Classes/Result/TM/TM59NaturalVentilationExtendedResult.cs`
+- `SAM.Analytical/Classes/TM59AssessmentReport.cs`
+- `SAM.Analytical/Query/Simplify.cs`
+- `SAM.Tests/TM59SimplifyTests.cs` (1 assertion updated)
+- `SAM.Tests/TM59NaturalVentilationCriterion1SeasonalBasisTests.cs` (new, 3 cases)
+- `PROJECT_PROGRESS.md` (this entry)
+
+**Still open before SAM#111 fully closes.** SAM#119 and SAM_Tas#61 (documentation, recording the 3-B4 rerun
+and this same defect as "found, not yet fixed") are open, mergeable and green as of this session - they
+should be updated (or superseded by this entry) once merge order is decided; this fix does not merge or edit
+those branches. No other blocker is known.
+
+## Previous (2026-09-16, earlier): Part O real-project acceptance closed out (2026-09-16)
 
 **Status.** Documentation checkpoint on branch `docs/parto-real-project-acceptance-closeout`, PR
 [SAM#118](https://github.com/SAM-BIM/SAM/pull/118) against `sow/2026-Q3`, **not merged**. SAM carries no
@@ -3628,12 +3710,13 @@ not be folded into a review-fix commit.
   policy decision. (Today: a naturally ventilated space with no occupied hour reads zero exceedances as a
   PASS, and a bedroom's Criterion 2 passes 0 against a limit of 0; a mechanically ventilated one reads
   `0 < 0` as a FAIL.)
-- **Codex 3821633849 - Criterion 1 annual vs summer basis.** `TM59AssessmentReport` pairs the ANNUAL
-  `GetOccupiedHoursExceedingComfortRange()` with the SUMMER limit and basis, while `Pass` derives from the
-  annual count against the annual `MaxExceedableHours`, so a row can show an actual above its displayed
-  limit and still read Pass. Confirmed real. Filtering the actual and the verdict to summer would change
-  pass/fail for every naturally ventilated space (annual 262 against TAS's own 110 on the Flat1
-  BasePassive reference), so it is a regulatory decision, not a review fix.
+- **Codex 3821633849 - Criterion 1 annual vs summer basis. FIXED 2026-09-16** (see `## Current` at the top
+  of this file) - the regulatory decision this was deferred pending was made explicitly, and
+  `TM59NaturalVentilationExtendedResult.Criterion1` now decides Pass/Fail, and `TM59AssessmentReport`'s
+  `Actual`, from the summer basis, matching the `Limit` both already displayed. Originally: `TM59AssessmentReport`
+  paired the ANNUAL `GetOccupiedHoursExceedingComfortRange()` with the SUMMER limit and basis, while `Pass`
+  derived from the annual count against the annual `MaxExceedableHours`, so a row could show an actual above
+  its displayed limit and still read Pass.
 - **Codex 3802695375 - `successful` is true when no scenarios are produced.** `successful` is
   `refusals.Count == 0`, and a model with no zones adds only a warning. That case is deliberately
   supported - a single-house model carries no zones - so requiring at least one scenario would flip a
