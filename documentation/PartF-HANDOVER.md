@@ -28,7 +28,10 @@ below for why that distinction is the whole point. This table is the single auth
 repository state; nothing else in this file or the archive supersedes it.*
 
 **The PR5B line has merged** — including the recirculation-cooling work that drives Iteration 3 — in all
-four repos. Every repo is on `sow/2026-Q3`, clean, and level with its remote.
+four repos, and every repo is clean and level with its remote. **Two are not on `sow/2026-Q3`**: the
+branches checked out right now are those of the two in-flight PRs below. Check out `sow/2026-Q3` and the
+verification recipe will report `DOES NOT CONTAIN 602703a1` for SAM_Tas, correctly - that pin describes
+the in-flight branch.
 
 **Two things are in flight, both raised by the 2026-09-15 acceptance, neither merged:**
 
@@ -59,8 +62,12 @@ is recoverable from the repositories alone.
 **The run itself is not.** The source model, the harness, every `.tsd`, the per-stage extracts and the
 evidence record live only under `C:\TasOut\parto-final-real-project\`, outside every repository and on one
 machine - deliberately, since no TAS document or manufacturer table is ever checked in. A fresh checkout
-gets the binaries and nothing to run them on. Anyone repeating this needs that folder copied to them as
-well; the model is identified by SHA-256
+gets **source, not binaries** - nothing under `build/` is tracked - and a rebuild of it produces different
+bytes anyway, as above. Anyone repeating this needs that folder copied to them: it holds both the licensed
+inputs and, in `h\bin\Release\net8.0-windows`, the acceptance binaries themselves. What the repositories
+give you is the code revision.
+
+The model is identified by SHA-256
 `a7e09a25ae29c7dbb4c690d747a96fcd9f110ca27fb4dc2abe816755368d7e4b` (the full hash, because the folder name
 differs per machine and is absent from some of them).
 
@@ -215,6 +222,10 @@ is recorded as having earned its keep five times):
   repo that owns it, and a failed lookup in the wrong repo is not evidence of a typo.
 
 ### CI / test state
+
+> **HISTORICAL (2026-08-19/20).** The five PRs named below have all since merged and these suite counts
+> and SHAs are superseded; the current PRs and counts are at the top of this section. Kept as the record
+> of that checkpoint, not as current state.
 
 All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (Release)`, `test (Release)`,
 `spdx`; the other four: `build`, `spdx`. `SAM`'s three checks ran **green again on 2026-08-20** on the
