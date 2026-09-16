@@ -51,13 +51,15 @@ refusal is gone. Candidate B now exists and FAILS TM59** (3 of 8 rooms: `Studio 
 `Kitchen_7`) — a normal, expected result, not a defect. Full detail in
 [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) § *Part O real-project acceptance*.
 
-**A separate, newly-found defect must be resolved or disproved before SAM #111 closes as fully verified —
-it is unrelated to the clamp and does not affect the rerun above** (the real project's rooms are 100%
-mechanical-route, which has no analogous issue): natural-ventilation Criterion 1's Pass/Fail is computed
+**A separate defect, found the same day, has since been fixed and regression-covered (SAM#120)** — it was
+unrelated to the clamp and did not affect the rerun above (the real project's rooms are 100%
+mechanical-route, which has no analogous issue): natural-ventilation Criterion 1's Pass/Fail was computed
 from the full-year occupied-hours basis, not the May–September basis TM59:2017 requires and the report
-itself already displays for `Actual`/`Limit`. See
-[`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) § *Known open defect — natural-ventilation Criterion 1
-Pass/Fail uses the wrong hour basis*. Not fixed here — reported only, per instruction.
+itself already displayed for `Actual`/`Limit`. See
+[`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) § *TM59 Criterion 1 (natural ventilation) —
+annual-vs-summer hour-basis defect, found and fixed (2026-09-16)* for the fix and its regression; § *Known
+open defect* immediately above it is the preserved historical record of the defect as first found. A related
+instance in `SAM_Tas`'s diagnostic log (not a compliance decision) is a separate, still-open follow-up.
 
 These four commits are exactly the ones the Part O real-project licensed acceptance was built from
 (`C:\TasOut\parto-final-real-project\build\binaries.txt`), so the **code revision** that acceptance ran on

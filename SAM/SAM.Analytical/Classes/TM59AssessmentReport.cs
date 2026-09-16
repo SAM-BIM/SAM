@@ -263,13 +263,16 @@ namespace SAM.Analytical
             //explicitly - and the bedroom variant is tested before its non-bedroom parent on each branch,
             //since a bedroom result also matches the parent type.
             //
-            //Limit is deliberately the SUMMER basis (MaxExceedableSummerHours / GetSummerMaxExceedableHours),
-            //not the base type's annual MaxExceedableHours - TAS's own "Max. Exceedable Hours" column is
-            //paired with "Occupied Summer Hours", not the whole-year count, and the two differ by roughly the
-            //ratio of summer to annual occupied hours (found comparing this report's Studio 1_0 row against
-            //the real Flat1 BasePassive TAS report: annual gives 262, TAS's actual figure is 110).
+            //Actual and Limit are both deliberately the SUMMER basis (GetSummerOccupiedHoursExceedingComfortRange /
+            //MaxExceedableSummerHours), not the base type's annual GetOccupiedHoursExceedingComfortRange /
+            //MaxExceedableHours - TAS's own "Max. Exceedable Hours" column is paired with "Occupied Summer
+            //Hours", not the whole-year count, and the two differ by roughly the ratio of summer to annual
+            //occupied hours (found comparing this report's Studio 1_0 row against the real Flat1 BasePassive
+            //TAS report: annual gives 262, TAS's actual figure is 110). This is also the same authority
+            //Criterion1 itself now decides Pass/Fail from, so this row can no longer disagree with its own
+            //ComplianceStatus.
             int? actual_Criterion1 = tMResult is TM59NaturalVentilationExtendedResult extended
-                ? Count(extended.GetOccupiedHoursExceedingComfortRange())
+                ? Count(extended.GetSummerOccupiedHoursExceedingComfortRange())
                 : Count((tMResult as TM59NaturalVentilationResult)?.HoursExceedingComfortRange);
 
             int? limit_Criterion1 = tMResult is TM59NaturalVentilationExtendedResult extended_ForLimit

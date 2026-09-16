@@ -48,7 +48,11 @@ namespace SAM.Tests
             Assert.Equal(tM59NaturalVentilationExtendedResult.MaxExceedableHours, tM59NaturalVentilationResult.MaxExceedableHours);
             Assert.Equal(tM59NaturalVentilationExtendedResult.GetSummerOccupiedHours(), tM59NaturalVentilationResult.SummerOccupiedHours);
             Assert.Equal(tM59NaturalVentilationExtendedResult.GetSummerMaxExceedableHours(), tM59NaturalVentilationResult.MaxExceedableSummerHours);
-            Assert.Equal(tM59NaturalVentilationExtendedResult.GetOccupiedHoursExceedingComfortRange(), tM59NaturalVentilationResult.HoursExceedingComfortRange);
+
+            //HoursExceedingComfortRange is the SUMMER-restricted count, matching SummerOccupiedHours/
+            //MaxExceedableSummerHours beside it and the Criterion 1 verdict this fixture's Pass carries - not
+            //the annual GetOccupiedHoursExceedingComfortRange, which TM59 Criterion 1 no longer decides from.
+            Assert.Equal(tM59NaturalVentilationExtendedResult.GetSummerOccupiedHoursExceedingComfortRange(), tM59NaturalVentilationResult.HoursExceedingComfortRange);
             Assert.Equal(tM59NaturalVentilationExtendedResult.Pass, tM59NaturalVentilationResult.Pass);
         }
 
