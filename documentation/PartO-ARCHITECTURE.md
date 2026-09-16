@@ -390,9 +390,14 @@ three would be a guess — and the air-movement realization is **scoped** to the
 served by two systems is ventilated twice. What the model says is reported room by room as a warning and
 left exactly as authored. Reconciling it is design work, or Iteration 2's when it selects a real unit.
 
-Iterations 2 and 3 — acoustic restriction, summer bypass, boost, active cooling, manufacturer supply
-temperature, larger-unit selection — are recorded in §2 and not implemented. They extend the topology built
-here rather than replacing it.
+**Iteration 2** — acoustic restriction, summer bypass, boost, larger-unit selection against the derived
+duty — is recorded in §2 and **not implemented**. It extends the topology built here rather than replacing
+it. (This is why the Iteration 2 stage of the 2026-09-15 real-project acceptance came out bit-identical to
+Iteration 1a: the stage runs, but the behaviour that distinguishes it does not yet exist.)
+
+**Iteration 3** — active cooling against a manufacturer supply-temperature table — **is implemented**, by
+PR5B, and is orchestrated in `SAM_UI` rather than here; see `PartO-TAS-VALIDATION.md`. It too extends this
+topology rather than replacing it.
 
 ---
 

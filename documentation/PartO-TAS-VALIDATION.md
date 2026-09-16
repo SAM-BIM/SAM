@@ -1946,7 +1946,7 @@ the run is reconstructible from the repositories alone.
 | 1a Base MVHR | **FAIL** | 6 of 8 rooms |
 | 1b Base NV, original source | **REFUSED** (by design) | overlapping humidity limits, `Create\Log.cs:1154`; pinned by `PartOHumidistatTests.cs:72` |
 | 1b Base NV, repaired source | **FAIL** | Criterion 2 in `Bathroom_2`, `Ensuite_5`, `Ensuite_8` |
-| 2 Acoustic restricted | **FAIL** | bit-identical to 1a |
+| 2 Acoustic restricted | **FAIL** | bit-identical to 1a - acoustic restriction / bypass / boost are **not implemented**, so the stage runs without the behaviour that defines it |
 | 2B | **FAIL** | 10 rounds plus the capacity envelope; every room lowered, none converted |
 | 3-B0 Parity | **FAIL** | 4 of 8 rooms; both ensuites cross to Pass |
 | 3-B4 SelectedProduct | **REFUSED** | flow ceiling, see below. **No Candidate B exists.** |
@@ -1957,9 +1957,9 @@ acceptance runs the same geometry on `Leeds_TRY` and passes.
 ### Iteration 2 is bit-identical to 1a, and so is 1b
 
 Both were measured across all 8760 hours of the series TM59 itself read, joined on the design space guid.
-Iteration 2's equality with 1a is expected. **Iteration 1b's is a defect finding**, and it is exact rather
+Iteration 2's equality with 1a is expected, and worth stating plainly: acoustic restriction, summer bypass and boost are **not implemented** (`PartO-ARCHITECTURE.md` §5 and its status table), so the Iteration 2 stage runs the Iteration 1a case. It is a placeholder stage, not a null result. **Iteration 1b's identity is a defect finding**, and it is exact rather
 than merely small: comparing the raw resultant-temperature series value by value, all **78 840** readings
-(8 rooms × 8760 h) are identical strings — max |ΔRT| is `0.0` K, not `0.000` after rounding.
+(**9** spaces × 8760 h - the 8 assessed dwelling rooms plus `Corridor_1`, which TM59 does not assess) are identical strings — max |ΔRT| is `0.0` K, not `0.000` after rounding.
 
 The cause is in `SAM.Analytical\Modify\PreparePartOIteration.cs:172-182`. The
 `SkipNaturalVentilation` branch is a **pure no-op copy**:

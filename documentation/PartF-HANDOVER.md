@@ -27,9 +27,19 @@ finished while this file is behind the repositories.
 below for why that distinction is the whole point. This table is the single authoritative record of
 repository state; nothing else in this file or the archive supersedes it.*
 
-**Nothing is in flight.** The Part O work — including the PR5B recirculation-cooling line that drives
-Iteration 3 — has **merged into `sow/2026-Q3` in all four repos**. Every repo is on `sow/2026-Q3`, clean, and
-level with its remote.
+**The PR5B line has merged** — including the recirculation-cooling work that drives Iteration 3 — in all
+four repos. Every repo is on `sow/2026-Q3`, clean, and level with its remote.
+
+**Two things are in flight, both raised by the 2026-09-15 acceptance, neither merged:**
+
+| Repo | Branch | PR | What |
+|---|---|---|---|
+| `SAM_Tas` | `fix/parto-pr5b-recirculation-flow-clamp` | [#60](https://github.com/SAM-BIM/SAM_Tas/pull/60) | reports a recirculation flow at its law’s range instead of refusing a one-hour ramp overshoot — the fix for the 3-B4 refusal |
+| `SAM` | `docs/parto-real-project-acceptance-closeout` | [#118](https://github.com/SAM-BIM/SAM/pull/118) | this documentation checkpoint |
+
+**The tips below are the pre-fix acceptance revisions, pinned deliberately.** `ac85b5c3` is the SAM_Tas
+commit the acceptance ran on, and 3-B4 refused *because* #60’s clamp was absent from it. When #60 merges,
+do not simply advance these SHAs — they describe a specific acceptance.
 
 | Repo | Branch | HEAD = remote tip | PR |
 |---|---|---|---|
@@ -225,8 +235,8 @@ and the true per-class figures are 23 and +2, not 33 and +3. The 1329 total and 
 |---|---|
 | **Iteration 0** — foundation: dwelling scope → Part F → system selection → scenario → TM59 → identity-based result association | **COMPLETE** (steps 4–9; step 10, the thin headless TAS runner, is deferred and not on the critical path) |
 | **Iteration 1** — BasePassive / unrestricted openings, MVRE at Part F continuous, TSD route | **FROZEN**, and run end to end in the 2026-09-15 real-project acceptance (1a and 1b) |
-| **Iteration 2** — AcousticRestricted: acoustic restriction + boost + summer bypass, TSD route | **IMPLEMENTED** and run (2 and 2B) in that acceptance |
-| **Iteration 3** — CoolBreeze-class active trim cooling, full `SystemEnergyCentre` → TAS HVAC → TPD route | **IMPLEMENTED** (PR5B) and run: 3-B0 completed, 3-B4 **refused** |
+| **Iteration 2** — AcousticRestricted: acoustic restriction + boost + summer bypass, TSD route | **NOT implemented** (`PartO-ARCHITECTURE.md` §5 and its status table). The 2 and 2B *stages* ran in the 2026-09-15 acceptance, and stage 2 came out bit-identical to 1a precisely because the behaviour that distinguishes it does not yet exist. `PartOIteration.AcousticRestricted` also still refuses, for want of a settled operating condition. |
+| **Iteration 3** — CoolBreeze-class active trim cooling, full `SystemEnergyCentre` → TAS HVAC → TPD route | **IMPLEMENTED** (PR5B) and run: 3-B0 completed, 3-B4 **refused**, and the fix for that refusal is in flight as SAM_Tas#60 |
 
 > **This table was written when the programme was sequential, and is kept for its scope descriptions.**
 > The "DO NOT START" gating it used to record has been overtaken: §0 above is authoritative for what is
