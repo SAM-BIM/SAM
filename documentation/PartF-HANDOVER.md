@@ -34,8 +34,12 @@ four repos. Every repo is on `sow/2026-Q3`, clean, and level with its remote.
 
 | Repo | Branch | PR | What |
 |---|---|---|---|
-| `SAM_Tas` | `fix/parto-pr5b-recirculation-flow-clamp` | [#60](https://github.com/SAM-BIM/SAM_Tas/pull/60) | reports a recirculation flow at its law’s range instead of refusing a one-hour ramp overshoot — the fix for the 3-B4 refusal |
-| `SAM` | `docs/parto-real-project-acceptance-closeout` | [#118](https://github.com/SAM-BIM/SAM/pull/118) | this documentation checkpoint |
+| `SAM_Tas` | `fix/parto-pr5b-recirculation-flow-clamp` @ **`77cbafd8`** (code `602703a1`) | [#60](https://github.com/SAM-BIM/SAM_Tas/pull/60) | reports a recirculation flow at its law’s range instead of refusing a one-hour ramp overshoot — the fix for the 3-B4 refusal |
+| `SAM` | `docs/parto-real-project-acceptance-closeout` (documentation only) | [#118](https://github.com/SAM-BIM/SAM/pull/118) | this documentation checkpoint |
+
+SAM_Tas#60's SHAs above are its in-flight head; the pinned tips further down are the **pre-fix acceptance**
+revisions and are a different thing. A checkout containing the reviewed clamp is one that contains SAM_Tas
+`602703a1` (its code commit; `77cbafd8` adds only the progress record).
 
 **The tips below are the pre-fix acceptance revisions, pinned deliberately.** `ac85b5c3` is the SAM_Tas
 commit the acceptance ran on, and 3-B4 refused *because* #60’s clamp was absent from it. When #60 merges,
@@ -621,6 +625,12 @@ compliance.**
 
 ## 5. The precise next task
 
+> **SUPERSEDED — this section is history, not an instruction.** It describes reaching *Iteration 1
+> acceptance*, which has since happened: Iterations 1a / 1b / 2 / 2B / 3-B0 / 3-B4 were all run in the
+> 2026-09-15 real-project licensed acceptance. The current next step is in `PROJECT_PROGRESS.md` under
+> *Current*, and §0 above is authoritative for repository state. Kept for the seam it traces, which is
+> still accurate.
+
 **§1 item 1 is code-complete and the schedule foundation under it has landed (SAM `2c7bb26f`, SAM_Tas
 `2ea7b43`, post-review fixes in `5923812`). The one thing standing between here and Iteration 1
 acceptance is the real TAS run below.**
@@ -781,12 +791,14 @@ item 8's two open reviewer findings, and §3 items 1–2 (Michal's confirmations
 
 **Branch and PR discipline**
 
-- Work on `feature/partf-terminal-transfer-compliance` in **all five** repos. **Never commit to
-  `sow/2026-Q3` directly.**
+- Work on a branch per change, named for the change. **Never commit to `sow/2026-Q3` directly.**
+  (This bullet used to name `feature/partf-terminal-transfer-compliance` across five repos; that branch is
+  merged and gone. The branches currently in flight are in §0.)
 - **Never force-push; never squash or rebase published commits.** A commit message that turns out to be
   wrong is corrected *here*, not rewritten — this file is the correcting record.
-- **Do not open new PRs.** The five in §0 are open; pushing to the same branch updates them. Do not merge
-  or squash unless Michal asks.
+- **Push to an existing PR’s branch rather than opening a duplicate for the same change.** Do not merge or
+  squash unless Michal asks. (This bullet used to forbid new PRs outright, against a list of five that have
+  all since merged; §0 has the current ones.)
 - SAM first (SAM_UI and SAM_Tas CI dep-clone it). CI green **and** the Codex inline comments read.
 - **Address every valid reviewer finding regardless of authorship** — never skip one as
   pre-existing/not-my-work. Verify each against the current code rather than trusting the claim, add a
