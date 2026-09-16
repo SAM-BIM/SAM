@@ -91,7 +91,8 @@ Read [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) from § *Part O real-p
 2 / 2B / 3-B0 / 3-B4 (2026-09-15, closed out 2026-09-16)* for the current state of the iteration set,
 including the two open findings: **Iteration 1b simulates authored mechanical air** (its preparation is a
 no-op copy) and **Iteration 3-B4 refuses at the recirculation flow ceiling** on a real project. Both end in a
-recommendation; neither has had a production change made for it.
+recommendation. **1b’s is investigation-only and deliberately unchanged.** 3-B4’s has been acted on:
+SAM_Tas#60 above is the production change for it, unmerged. Do not re-derive that work.
 
 Then read § *Iteration 1a / Base MVHR — the block resolved (2026-08-27)* onwards before touching any of it.
 The four things that section settles, none of
@@ -117,6 +118,10 @@ where the same comparison before this work gave **0**. The Iteration 1b OPEN/NIG
 Still open and deliberately not this branch's: `Modify.Simulate` reports a refused simulation as success;
 the legacy `Create.IZAM` / `UpdateIZAMsBySpaceParameter` route is not unit-converted; MVHR **unit
 selection** against the derived duty is Iteration 2.
+
+> **HISTORICAL (2026-08-27).** The SHAs in the next paragraph are the Part F checkpoint’s, long superseded
+> — `SAM_Systems` and `SAM_UI` are now at `05ca0c18` and `9f515c4c` per the table at the top of this
+> section, which is authoritative. Kept for the merged-PR record.
 
 The other three are **idle on `sow/2026-Q3` with nothing in flight**, their Part F PRs merged:
 `SAM_Systems` @ `208379d` (PR #14 merged), `SAM_UI` @ `43564e6` (PR #75 merged),
