@@ -147,7 +147,15 @@ Engineering meaning is carried by **semantic names**, never by numbers:
 | `PartOIteration.BaseMVHR` *(future; today `BasePassive`)* | Iteration 1a |
 | `PartOIteration.BaseNaturalVentilation` | Iteration 1b |
 | `PartOIteration.AcousticRestricted` | Iteration 2 |
-| `PartOIteration.ActiveTrimCooling` | Iteration 3 |
+| *(no enum member)* | Iteration 3 — see below |
+
+> **Iteration 3 is not an enum member.** `PartOIteration.ActiveTrimCooling` exists in the enum but drives
+> nothing: it has no operating mode (`Query.PartOIterationOperatingMode`), no ventilation mode
+> (`Query.PartOIterationVentilationMode`) and no operating assumptions (`Query.PartOOperatingAssumptions`) —
+> all three refuse it by name — and `SAM_UI` deliberately does not offer it
+> (`PartOVentilationStrategyOption`, pinned by `PartOPresentationTests`). Iteration 3 is orchestrated
+> entirely in `SAM_UI` (`PartOIteration3Pipeline` and the A/B action). The enum member is a reserved slot
+> whose name predates the design; reading it as "the API for Iteration 3" is wrong.
 
 "1a"/"1b" must never be the only place the engineering meaning is recorded. A number in a public API is a
 fact about a document's layout, not about a building.
@@ -382,9 +390,14 @@ three would be a guess — and the air-movement realization is **scoped** to the
 served by two systems is ventilated twice. What the model says is reported room by room as a warning and
 left exactly as authored. Reconciling it is design work, or Iteration 2's when it selects a real unit.
 
-Iterations 2 and 3 — acoustic restriction, summer bypass, boost, active cooling, manufacturer supply
-temperature, larger-unit selection — are recorded in §2 and not implemented. They extend the topology built
-here rather than replacing it.
+**Iteration 2** — acoustic restriction, summer bypass, boost, larger-unit selection against the derived
+duty — is recorded in §2 and **not implemented**. It extends the topology built here rather than replacing
+it. (This is why the Iteration 2 stage of the 2026-09-15 real-project acceptance came out bit-identical to
+Iteration 1a: the stage runs, but the behaviour that distinguishes it does not yet exist.)
+
+**Iteration 3** — active cooling against a manufacturer supply-temperature table — **is implemented**, by
+PR5B, and is orchestrated in `SAM_UI` rather than here; see `PartO-TAS-VALIDATION.md`. It too extends this
+topology rather than replacing it.
 
 ---
 
@@ -518,7 +531,7 @@ ventilation system; that dependency is what `PartOVentilationMode` removes.
 | Design terminal physical placement (`Location`) | Seam present, unused — §5 |
 | Reconciling the model's own ventilation systems with the stated route | Not implemented — reported only, §5 |
 | Iteration 2 acoustic restriction / bypass / boost | Not implemented — §2 |
-| Iteration 3 active cooling / manufacturer performance | Not implemented — §2 |
+| Iteration 3 active cooling / manufacturer performance | **Implemented** (PR5B) — orchestrated in `SAM_UI`; licensed real-project acceptance 2026-09-15, see `PartO-TAS-VALIDATION.md` |
 | Per-zone (mixed NV + mechanical) airflow application | Not implemented — refuses |
 | System 1 background ventilator / purge sizing | Not implemented anywhere — §7 |
 | Intermittent wet-room extract runtime control | Not implemented — §6 |

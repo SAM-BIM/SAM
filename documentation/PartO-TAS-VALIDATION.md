@@ -1926,3 +1926,155 @@ Harness additions for this investigation (diagnostic-only, no production code to
 (`zonespaces` mode) and `INV_ZONE_ONLY` in `PartO.cs`'s `Author` method. Evidence in `C:\TasOut\p1a4\`
 (whole-model refusal, adjacency dump, 1b regression) and `C:\TasOut\single\` (Flat 1/Flat 2 isolated
 re-runs).
+
+## Part O real-project acceptance — 1a / 1b / 2 / 2B / 3-B0 / 3-B4 (2026-09-15, closed out 2026-09-16)
+
+The first end-to-end licensed acceptance of the whole Part O iteration set on a **real project** rather than
+a fixture: `SAM_zoningAM-CIBSEfutureZ1.sam` (SHA-256 `a7e09a25…`), 3 dwellings, 8 assessed rooms, on its own
+embedded `Z1_DSY1_2050s_HIGH90_CIBSE_v1.1` weather. Full evidence, every `.tsd`, the per-stage extracts and
+the harness sources are preserved outside the repositories under
+`C:\TasOut\parto-final-real-project\` (`evidence-draft.md` is the record).
+
+Built from `sow/2026-Q3` at SAM `b4a1283f`, SAM_Systems `05ca0c18`, SAM_Tas `ac85b5c3`, SAM_UI `9f515c4c` —
+each confirmed on 2026-09-16 (with `git ls-remote`) to be the **current tip** of its repo's remote branch, so
+the **code revision** is reconstructible from the repositories alone. **The run is not**: the source model,
+the harness, every `.tsd`, the per-stage extracts, the evidence record and the acceptance binaries
+themselves exist only under `C:\TasOut\parto-final-real-project\`, outside every repository and on one
+machine - deliberately, since no TAS document or manufacturer table is ever checked in. Reproducing or
+auditing this evidence needs that folder as well as the commits.
+
+### Verdicts
+
+| stage | outcome | detail |
+|---|---|---|
+| 1a Base MVHR | **FAIL** | 6 of 8 rooms |
+| 1b Base NV, original source | **REFUSED** (by design) | overlapping humidity limits, `Create\Log.cs:1154`; pinned by `PartOHumidistatTests.cs:72` |
+| 1b Base NV, repaired source | **FAIL** | Criterion 2 in `Bathroom_2`, `Ensuite_5`, `Ensuite_8` |
+| 2 Acoustic restricted | **FAIL** | bit-identical to 1a - acoustic restriction / bypass / boost are **not implemented**, so the stage runs without the behaviour that defines it |
+| 2B | **FAIL** | 10 rounds plus the capacity envelope; every room lowered, none converted |
+| 3-B0 Parity | **FAIL** | 4 of 8 rooms; both ensuites cross to Pass |
+| 3-B4 SelectedProduct | **REFUSED** | flow ceiling, see below. **No Candidate B exists.** |
+
+Nothing passes. The model is a weather-driven failing case by construction — the canonical PR4/PR5B
+acceptance runs the same geometry on `Leeds_TRY` and passes.
+
+### Iteration 2 is bit-identical to 1a, and so is 1b
+
+Both were measured across all 8760 hours of the series TM59 itself read, joined on the design space guid.
+Iteration 2's equality with 1a is expected, and worth stating plainly: acoustic restriction, summer bypass and boost are **not implemented** (`PartO-ARCHITECTURE.md` §5 and its status table), so the Iteration 2 stage runs the Iteration 1a case. It is a placeholder stage, not a null result. **Iteration 1b's identity is a defect finding**, and it is exact rather
+than merely small: comparing the raw resultant-temperature series value by value, all **78 840** readings
+(**9** spaces × 8760 h - the 8 assessed dwelling rooms plus `Corridor_1`, which TM59 does not assess) are identical strings — max |ΔRT| is `0.0` K, not `0.000` after rounding.
+
+The cause is in `SAM.Analytical\Modify\PreparePartOIteration.cs:172-182`. The
+`SkipNaturalVentilation` branch is a **pure no-op copy**:
+
+- it clears nothing — `RemoveBaseMVHRAirMovementObjects` (`:767`) has exactly one call site (`:479`), inside
+  `PrepareBaseMVHR`, i.e. the MVHR route only;
+- it refuses nothing about authored mechanical objects — the only refusals on the 1b path are route
+  resolution, iteration↔route disagreement, and isolation.
+
+So a model authored with mechanical systems keeps them: the `VentilationSystem`s, the AHUs, the 17
+`SpaceAirMovement`s and 3 `AirHandlingUnitAirMovement`s all survive into the export, and `SAM_Tas`
+`Modify.UpdateIZAMs` writes them as IZAMs. The TM59 *criterion* is still correct — `TM59\Convert\ToTM59\
+Building.cs:145-150` takes the route from the `OverheatingScenario`, not from the model's objects — so 1b is
+assessed under the adaptive criteria. But the **simulation underneath that criterion is the 1a run**: it is
+moving mechanical air.
+
+Two places state the opposite, neither of them enforcing it:
+
+- the preparation preview (`Query\PartOPartFAirflowApplication.cs:53`) says "no mechanical system was
+  **invented**", which is true and carefully worded, but a reader would not learn that 17 authored air
+  movements are about to be simulated;
+- `SAM_UI\…\Query\PartOIteration3Eligibility.cs` asserts in prose that "Iteration 1b has no mechanical
+  system to materialise at all" — an assumption the preparation never checks.
+
+No test pins removal, and the gap shows in the test name: `PartOIterationPreparationTests.cs:629`
+`NVDwelling_InventsNoContinuousMechanicalSupplyOrExtract` asserts nothing is *invented*; it says nothing
+about what was already there.
+
+**Recommendation (not applied — frozen 1b behaviour is unchanged pending a decision).** The smallest
+fail-closed change is a **refusal**, not a clear: 1b should refuse a model that carries authored mechanical
+air movement, naming the objects. Clearing would mutate authored data on a path whose contract is "leaves the
+model as authored"; refusing keeps that contract and makes the user's next action explicit. The legacy
+transposed humidity pair should **stay** a refusal for the same reason — repairing it automatically rewrites
+authored data on a guess about intent.
+
+### 3-B4 refused at the flow ceiling, and the tolerance is the thing to look at
+
+Production refused with: *"Recirculation cooling of air system `dd8a4594…` carried a recirculation airflow
+outside 36..120 l/s in 1 hour(s)."* — MVHR-02, **hour 4927 (25 July 07:00)**, Q = `120.05027770996094` l/s
+against `120 + 0.05`, over by **0.00028 l/s**. A harness replay on the same production route reproduced the
+refusal exactly.
+
+The bound is `Create\RecirculationCoolingResult.cs:137`, using
+`RecirculationCoolingTolerance_Flow_Lps = 0.05` (declared at `:17` — note the doubled `SAM_Tas\SAM_Tas\`
+path; a search from the wrong folder level misses the file).
+
+**What calibrated 0.05.** The constant's own doc comment cites "the native solver holds both to within 0.03
+l/s over a full year". That measurement is the canonical PR5B acceptance on `Leeds_TRY`
+(`SAM_UI\documentation\evidence\PR5B-PRODUCTION-ACCEPTANCE.md:138-152`), and the comment is accurate for it.
+But the constant is used for **two different quantities**, which that run bounded very differently:
+
+| quantity | canonical (Leeds TRY) | this project (DSY 2050s) |
+|---|---|---|
+| ventilation flow departing from its design | max 0.0263 l/s | 0.0023 / 0.0261 / 0.0299 l/s |
+| recirculation flow standing outside the law's range | max **0.013** l/s | 0.027 / **0.0503** / 0.001 l/s |
+
+The ventilation quantity is essentially unchanged between the two runs and sits comfortably inside 0.05. The
+**range-overshoot quantity grew about fourfold** and consumed the whole margin. The single constant was
+calibrated against the gentler of the two.
+
+**The mechanism, from the replay's own hourly series.** Across 3 units × 8760 h = 26 280 hours, only **5
+hours** exceed 120 l/s at all. Every one of them is the *first* hour the control law saturates:
+
+| unit | hour | previous hour | the hour | next hour | overshoot |
+|---|---|---|---|---|---|
+| MVHR-02 | 4572 | Q 118.729, T_mix 25.940 | Q 120.000145, T_mix 26.016 | Q 120.000000 | 0.000145 |
+| MVHR-01 | 5148 | Q 106.450, T_mix 25.355 | Q 120.000366, T_mix 26.102 | Q 119.999985 | 0.000366 |
+| MVHR-01 | 4837 | Q 99.495, T_mix 25.024 | Q 120.000587, T_mix 26.040 | Q 108.863 | 0.000587 |
+| MVHR-03 | 4859 | Q 92.780, T_mix 24.704 | Q 120.026695, T_mix 26.008 | Q 120.000000 | 0.026695 |
+| MVHR-02 | **4927** | Q 76.162, T_mix 23.912 | Q **120.050278**, T_mix 26.010 | Q 120.000000 | **0.050278** |
+
+Once saturated the value is exactly `120.000000` — 388 to 494 hours of it per unit. The overshoot appears
+only on the ramp hour, and **its size rises monotonically with the size of the approach jump** (1.3 → 13.6 →
+20.5 → 27 → 44 l/s gives 0.00014 → 0.00037 → 0.00059 → 0.0267 → 0.0503). That is a controller overshoot
+signature, not single-precision noise: it is deterministic in character, but **its magnitude is not bounded
+by anything structural** — a steeper transient produces a larger excursion.
+
+Everything else in the B4 branches held: zero heating, zero cooling below the 22 °C gate, coil at the clamped
+table to 2e-6 K, ventilation within 0.03 l/s of design.
+
+**Consequence for the fix.** Widening the tolerance to some number above 0.0503 has no principled stopping
+point and would mask a recurring artefact that can grow. Clamping the reported flow at the law's ceiling
+addresses the actual mechanism — the law *was* saturated (T_mix 26.010 °C → 120.000 l/s), so 120.050 is a
+solver excursion on the ramp, not a commanded flow. Recording Iteration 3 as NOT YET ACCEPTED and keeping the
+refusal is also defensible: the contract failed closed on a real project, which is the designed behaviour.
+**Decision taken (2026-09-16): clamp at the law's ceiling** - SAM_Tas
+[#60](https://github.com/SAM-BIM/SAM_Tas/pull/60). A flow just outside the range is reported AT the range and
+counted rather than refused, because the declared control cannot command a flow outside its own range; the
+clamp runs before the hour's duty, range, law and table coordinates are taken. The bound is a new
+`RecirculationCoolingClamp_Lps = 0.1` l/s - about twice the largest measured excursion, and recorded in its
+doc comment as a **measured and reviewable** bound rather than a derived one, since nothing structural bounds
+a controller overshoot. Every clamped hour is carried on the result (`Count_Clamped`,
+`MaximumClampedExcursion_Lps`) so the margin in use stays visible, and beyond the bound the flow is left as
+TAS answered it and still refuses. `RecirculationCoolingTolerance_Flow_Lps` keeps only the
+ventilation-deviation duty it was actually measured for.
+
+The Iteration 1b finding above is **unchanged and still investigation-only** - no production change was made
+for it.
+
+### Notes for whoever repeats this
+
+- **Provenance travels by commit, not by hash.** `build\binaries.txt`'s hashes are SHA-256 truncated to 16
+  hex characters, confirmed by re-hashing the acceptance binaries preserved in
+  `h\bin\Release\net8.0-windows` — those preserved binaries *are* the acceptance binaries, bit for bit, so a
+  replay should run on them. But the build path is embedded in the assembly, so rebuilding the identical
+  commits on another machine gives different bytes (the build is byte-reproducible only *per machine*).
+  Verify by commit and by the preserved binaries; never by re-hashing a local rebuild.
+- **Identify the source model by its SHA-256, not by a path** — it is filed under a different folder name on
+  each machine, and is absent from the second one except as the read-only `00-source` copy.
+- Iteration 3 can only be paired against **1a**, in the **same session**, over the **full year 1–365**
+  (`SAM_UI\…\Query\PartOIteration3Eligibility.cs`). A reopened project may review an existing pairing, never
+  run a new one.
+- Re-preparing a 1a-prepared model at 1b carries 1a's MVHR objects along. **1b must start from the clean
+  authored `.sam`**, which is what this run did.

@@ -23,25 +23,79 @@ finished while this file is behind the repositories.
 
 ## 0. Current repository state
 
-*Verified 2026-08-27. This table is the single authoritative record of repository state; nothing else in
-this file or the archive supersedes it.*
+*Verified 2026-09-16 with `git ls-remote` against the server, not against tracking refs — see the invariant
+below for why that distinction is the whole point. This table is the single authoritative record of
+repository state; nothing else in this file or the archive supersedes it.*
 
-**TWO repos are in flight.** The Part F terminal/transfer work merged everywhere; the live work is Part O.
-**`sow/2026-Q3` is never committed to directly** and is untouched everywhere.
+**The PR5B line has merged** — including the recirculation-cooling work that drives Iteration 3 — in all
+four repos, and every repo is clean and level with its remote. **Two are not on `sow/2026-Q3`**: the
+branches checked out right now are those of the two in-flight PRs below. Check out `sow/2026-Q3` and the
+verification recipe will report `DOES NOT CONTAIN 602703a1` for SAM_Tas, correctly - that pin describes
+the in-flight branch.
 
-| Repo | Branch | Last CODE commit | Cut from | PR |
-|---|---|---|---|---|
-| `SAM` | `feature/parto-base-mvhr` | **`98d37adc`** | `sow/2026-Q3` @ `1db06e83` | not opened |
-| `SAM_Tas` | `feature/parto-base-mvhr` | **`2caa2f05`** | `sow/2026-Q3` @ `1b3add6a` | not opened |
+**Two things are in flight, both raised by the 2026-09-15 acceptance, neither merged:**
 
-The previous Part O branches merged: `SAM` [#76](https://github.com/SAM-BIM/SAM/pull/76) and `SAM_Tas`
-[#43](https://github.com/SAM-BIM/SAM_Tas/pull/43), both `feature/parto-nv-workflow`, both Iteration 1b.
+| Repo | Branch | PR | What |
+|---|---|---|---|
+| `SAM_Tas` | `fix/parto-pr5b-recirculation-flow-clamp` @ **`77cbafd8`** (code `602703a1`) | [#60](https://github.com/SAM-BIM/SAM_Tas/pull/60) | reports a recirculation flow at its law’s range instead of refusing a one-hour ramp overshoot — the fix for the 3-B4 refusal |
+| `SAM` | `docs/parto-real-project-acceptance-closeout` (documentation only) | [#118](https://github.com/SAM-BIM/SAM/pull/118) | this documentation checkpoint |
 
-**Iteration 1a is committed, licensed-accepted, and has no PR open.** Suites at these commits: `SAM`
-1470/1470, `SAM_Tas` 642/642.
+SAM_Tas#60's SHAs above are its in-flight head; the pinned tips further down are the **pre-fix acceptance**
+revisions and are a different thing. A checkout containing the reviewed clamp is one that contains SAM_Tas
+`602703a1` (its code commit; `77cbafd8` adds only the progress record).
 
-Read [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) from § *Iteration 1a / Base MVHR — the block
-resolved (2026-08-27)* onwards before touching any of it. The four things that section settles, none of
+**The tips below are the pre-fix acceptance revisions, pinned deliberately.** `ac85b5c3` is the SAM_Tas
+commit the acceptance ran on, and 3-B4 refused *because* #60’s clamp was absent from it. When #60 merges,
+do not simply advance these SHAs — they describe a specific acceptance.
+
+| Repo | Branch | HEAD = remote tip | PR |
+|---|---|---|---|
+| `SAM` | `sow/2026-Q3` | **`b4a1283f`** | merged |
+| `SAM_Systems` | `sow/2026-Q3` | **`05ca0c18`** | merged |
+| `SAM_Tas` | `sow/2026-Q3` | **`ac85b5c3`** | merged |
+| `SAM_UI` | `sow/2026-Q3` | **`9f515c4c`** | merged |
+
+These four commits are exactly the ones the Part O real-project licensed acceptance was built from
+(`C:\TasOut\parto-final-real-project\build\binaries.txt`), so the **code revision** that acceptance ran on
+is recoverable from the repositories alone.
+
+**The run itself is not.** The source model, the harness, every `.tsd`, the per-stage extracts and the
+evidence record live only under `C:\TasOut\parto-final-real-project\`, outside every repository and on one
+machine - deliberately, since no TAS document or manufacturer table is ever checked in. A fresh checkout
+gets **source, not binaries** - nothing under `build/` is tracked - and a rebuild of it produces different
+bytes anyway, as above. Anyone repeating this needs that folder copied to them: it holds both the licensed
+inputs and, in `h\bin\Release\net8.0-windows`, the acceptance binaries themselves. What the repositories
+give you is the code revision.
+
+The model is identified by SHA-256
+`a7e09a25ae29c7dbb4c690d747a96fcd9f110ca27fb4dc2abe816755368d7e4b` (the full hash, because the folder name
+differs per machine and is absent from some of them).
+
+> **The previous edition of this section was wrong in a way worth remembering.** It recorded two repos in
+> flight on `feature/parto-base-mvhr` and said "`sow/2026-Q3` is untouched everywhere". That had been true;
+> it stopped being true when the PR5B line merged. A session reading it on a laptop whose last `git fetch`
+> predated the merge confirmed the claim with `git cat-file`, `git log` over `origin/…` and `grep -r`, and
+> concluded the code was unpushed — because all three read **local** refs. See the invariant below.
+
+Suites at these commits, Release (2026-09-16): `SAM.Tests` **2151/2151**, `SAM.Analytical.Systems.Tests`
+203/203, `SAM.Analytical.Tas.TM59.Tests` 922/922, `SAM.Analytical.UI.WPF.Tests` 1027/1027.
+
+> **`SAM.Tests` is not in `SAM.sln`.** Building the solution does not build it, so `dotnet test --no-build`
+> runs whatever binary happens to be on disk - which silently reported the pre-PR5A **2114** here until the
+> count was checked against this commit's own `PROJECT_PROGRESS.md`. Build the test project **by path**
+> (`MSBuild \SAM\SAM.Tests\SAM.Tests.csproj -t:Rebuild -p:Configuration=Release`) before trusting a number from
+> it. The same trap is documented for `SAM.Analytical.Tas.TM59.Tests`; unlike that one, this project is not
+> in its solution at all, so nothing warns you. The other three suites are in their solutions and do rebuild.
+
+Read [`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) from § *Part O real-project acceptance — 1a / 1b /
+2 / 2B / 3-B0 / 3-B4 (2026-09-15, closed out 2026-09-16)* for the current state of the iteration set,
+including the two open findings: **Iteration 1b simulates authored mechanical air** (its preparation is a
+no-op copy) and **Iteration 3-B4 refuses at the recirculation flow ceiling** on a real project. Both end in a
+recommendation. **1b’s is investigation-only and deliberately unchanged.** 3-B4’s has been acted on:
+SAM_Tas#60 above is the production change for it, unmerged. Do not re-derive that work.
+
+Then read § *Iteration 1a / Base MVHR — the block resolved (2026-08-27)* onwards before touching any of it.
+The four things that section settles, none of
 which was visible from the analytical side:
 
 1. **TAS refuses a TBD in which any ONE zone's inter-zone air movements do not balance** — reported by the
@@ -64,6 +118,10 @@ where the same comparison before this work gave **0**. The Iteration 1b OPEN/NIG
 Still open and deliberately not this branch's: `Modify.Simulate` reports a refused simulation as success;
 the legacy `Create.IZAM` / `UpdateIZAMsBySpaceParameter` route is not unit-converted; MVHR **unit
 selection** against the derived duty is Iteration 2.
+
+> **HISTORICAL (2026-08-27).** The SHAs in the next paragraph are the Part F checkpoint’s, long superseded
+> — `SAM_Systems` and `SAM_UI` are now at `05ca0c18` and `9f515c4c` per the table at the top of this
+> section, which is authoritative. Kept for the merged-PR record.
 
 The other three are **idle on `sow/2026-Q3` with nothing in flight**, their Part F PRs merged:
 `SAM_Systems` @ `208379d` (PR #14 merged), `SAM_UI` @ `43564e6` (PR #75 merged),
@@ -100,24 +158,51 @@ last **code** commit is pinned instead.
 "HEAD descends from the recorded SHA" also passes when somebody committed code and never recorded it —
 exactly the state this file exists to prevent. Verify all three:
 
-1. every tree **clean** and every branch **level with its remote**;
+1. every tree **clean** and every branch **level with its remote** — and "its remote" means the *server*, not a tracking ref (see below);
 2. HEAD **descends from** the recorded last-code SHA;
 3. **every change between that SHA and HEAD touches only documentation.**
 
+**Read item 1 with `git ls-remote`.** `git status`, `git log`, `git cat-file`, `git ls-tree` and `grep -r` all
+read the **local** object store, the **local** tracking refs and the **checked-out** tree. On a two-machine
+project they therefore answer "is this branch level?" and "does this code exist anywhere?" with a snapshot as
+old as your last `git fetch`, and they answer it confidently. `git ls-remote` is the one that opens a
+connection to the server, and it is read-only — it fetches nothing and writes no ref, so it is safe to run
+before you have decided anything. This is not hypothetical: it is exactly how the previous edition of §0
+above came to be believed after it had gone stale.
+
 ```bash
-for r in SAM SAM_Tas; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; git -C $r log --oneline -1 origin/feature/parto-base-mvhr; done
+for r in SAM SAM_Systems SAM_Tas SAM_UI; do b=$(git -C $r symbolic-ref --short HEAD); echo "=== $r on $b"; git -C $r rev-parse HEAD; git -C $r ls-remote origin "refs/heads/$b"; done
+```
+
+It asks each repo about **its own checked-out branch**, not about a branch named here. That matters: run
+from a feature branch, a recipe hardcoding `sow/2026-Q3` compares a feature HEAD against the integration
+branch's remote tip and never queries the feature branch at all - so an unpushed commit on the branch you
+are actually working on passes the check silently, which is exactly the cross-machine handoff this section
+exists to prevent. Two lines, same SHA, means level. **An empty `ls-remote` result means the branch does
+not exist on the server at all** - it has never been pushed, and that is the loudest possible answer.
+
+```bash
+for r in SAM SAM_Systems SAM_Tas SAM_UI; do echo "=== $r ==="; git -C $r status --porcelain; git -C $r log --oneline -1; done
 ```
 
 ```bash
 while read -r r sha; do git -C "$r" merge-base --is-ancestor "$sha" HEAD && echo "$r: descends from $sha" || echo "$r: DOES NOT CONTAIN $sha - STOP"; git -C "$r" diff --name-only "$sha" HEAD | grep -vE '^(documentation/PartF-HANDOVER\.md|documentation/PartF-HANDOVER-ARCHIVE\.md|documentation/PartO-TAS-VALIDATION\.md|documentation/PartO-ARCHITECTURE\.md|AGENTS\.md|PROJECT_PROGRESS\.md)$' | sed "s|^|$r UNRECORDED CODE: |"; done <<'EOF'
-SAM 98d37adc
-SAM_Tas 2caa2f05
+SAM b4a1283f
+SAM_Systems 05ca0c18
+SAM_Tas 602703a1
+SAM_UI 9f515c4c
 EOF
 ```
 
-That must print exactly **two** `descends from` lines and nothing else. The three idle repos are checked by
-confirming they are still on `sow/2026-Q3` and clean; there is nothing in flight in them to lose. **Any `UNRECORDED CODE:` or
-`DOES NOT CONTAIN` line means stop and reconcile before changing any code.**
+That must print exactly **four** `descends from` lines and nothing else. **Any `UNRECORDED CODE:` or
+`DOES NOT CONTAIN` line means stop and reconcile before changing any code** - and reconcile with
+`git ls-remote`, not with a tracking ref.
+
+**The SHAs above are each repo’s recorded last-CODE commit, which is not always its acceptance tip.**
+SAM_Tas is pinned at `602703a1` (SAM_Tas#60’s code commit), not at `ac85b5c3`: with that branch checked
+out, diffing from `ac85b5c3` reports #60’s own three production files as `UNRECORDED CODE` and stops the
+next agent on a change that is recorded. `ac85b5c3` remains the acceptance provenance in §0 and is not a
+verification pin. When #60 merges, this pin moves to the new `sow/2026-Q3` tip and the two coincide again.
 
 **Two reconciliation lessons worth keeping** (the incidents themselves are in the archive, where the check
 is recorded as having earned its keep five times):
@@ -142,6 +227,10 @@ is recorded as having earned its keep five times):
   repo that owns it, and a failed lookup in the wrong repo is not evidence of a typo.
 
 ### CI / test state
+
+> **HISTORICAL (2026-08-19/20).** The five PRs named below have all since merged and these suite counts
+> and SHAs are superseded; the current PRs and counts are at the top of this section. Kept as the record
+> of that checkpoint, not as current state.
 
 All five PRs **OPEN**, all checks **green** as of 2026-08-19 — `SAM`: `build (Release)`, `test (Release)`,
 `spdx`; the other four: `build`, `spdx`. `SAM`'s three checks ran **green again on 2026-08-20** on the
@@ -177,9 +266,15 @@ and the true per-class figures are 23 and +2, not 33 and +3. The 1329 total and 
 | Stage | State |
 |---|---|
 | **Iteration 0** — foundation: dwelling scope → Part F → system selection → scenario → TM59 → identity-based result association | **COMPLETE** (steps 4–9; step 10, the thin headless TAS runner, is deferred and not on the critical path) |
-| **Iteration 1** — BasePassive / unrestricted openings, MVRE at Part F continuous, TSD route | **IN PROGRESS** |
-| **Iteration 2** — AcousticRestricted: acoustic restriction + boost + summer bypass, TSD route | **DO NOT START** until Iteration 1 is explicitly accepted |
-| **Iteration 3** — CoolBreeze-class active trim cooling, full `SystemEnergyCentre` → TAS HVAC → TPD route | **DO NOT START** |
+| **Iteration 1** — BasePassive / unrestricted openings, MVRE at Part F continuous, TSD route | **FROZEN**, and run end to end in the 2026-09-15 real-project acceptance (1a and 1b) |
+| **Iteration 2** — AcousticRestricted: acoustic restriction + boost + summer bypass, TSD route | **NOT implemented** (`PartO-ARCHITECTURE.md` §5 and its status table). The 2 and 2B *stages* ran in the 2026-09-15 acceptance, and stage 2 came out bit-identical to 1a precisely because the behaviour that distinguishes it does not yet exist. `PartOIteration.AcousticRestricted` also still refuses, for want of a settled operating condition. |
+| **Iteration 3** — CoolBreeze-class active trim cooling, full `SystemEnergyCentre` → TAS HVAC → TPD route | **IMPLEMENTED** (PR5B) and run: 3-B0 completed, 3-B4 **refused**, and the fix for that refusal is in flight as SAM_Tas#60 |
+
+> **This table was written when the programme was sequential, and is kept for its scope descriptions.**
+> The "DO NOT START" gating it used to record has been overtaken: §0 above is authoritative for what is
+> merged, and `PartO-TAS-VALIDATION.md` for what has been accepted. Nothing in the iteration set currently
+> passes on a real project, and 3-B4's refusal has a decision recorded against it - neither is a reason to
+> stop.
 
 ### Iteration 1 BasePassive — completed
 
@@ -551,6 +646,12 @@ compliance.**
 
 ## 5. The precise next task
 
+> **SUPERSEDED — this section is history, not an instruction.** It describes reaching *Iteration 1
+> acceptance*, which has since happened: Iterations 1a / 1b / 2 / 2B / 3-B0 / 3-B4 were all run in the
+> 2026-09-15 real-project licensed acceptance. The current next step is in `PROJECT_PROGRESS.md` under
+> *Current*, and §0 above is authoritative for repository state. Kept for the seam it traces, which is
+> still accurate.
+
 **§1 item 1 is code-complete and the schedule foundation under it has landed (SAM `2c7bb26f`, SAM_Tas
 `2ea7b43`, post-review fixes in `5923812`). The one thing standing between here and Iteration 1
 acceptance is the real TAS run below.**
@@ -711,12 +812,14 @@ item 8's two open reviewer findings, and §3 items 1–2 (Michal's confirmations
 
 **Branch and PR discipline**
 
-- Work on `feature/partf-terminal-transfer-compliance` in **all five** repos. **Never commit to
-  `sow/2026-Q3` directly.**
+- Work on a branch per change, named for the change. **Never commit to `sow/2026-Q3` directly.**
+  (This bullet used to name `feature/partf-terminal-transfer-compliance` across five repos; that branch is
+  merged and gone. The branches currently in flight are in §0.)
 - **Never force-push; never squash or rebase published commits.** A commit message that turns out to be
   wrong is corrected *here*, not rewritten — this file is the correcting record.
-- **Do not open new PRs.** The five in §0 are open; pushing to the same branch updates them. Do not merge
-  or squash unless Michal asks.
+- **Push to an existing PR’s branch rather than opening a duplicate for the same change.** Do not merge or
+  squash unless Michal asks. (This bullet used to forbid new PRs outright, against a list of five that have
+  all since merged; §0 has the current ones.)
 - SAM first (SAM_UI and SAM_Tas CI dep-clone it). CI green **and** the Codex inline comments read.
 - **Address every valid reviewer finding regardless of authorship** — never skip one as
   pre-existing/not-my-work. Verify each against the current code rather than trusting the claim, add a
