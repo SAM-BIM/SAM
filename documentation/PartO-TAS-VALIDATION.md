@@ -1937,7 +1937,11 @@ the harness sources are preserved outside the repositories under
 
 Built from `sow/2026-Q3` at SAM `b4a1283f`, SAM_Systems `05ca0c18`, SAM_Tas `ac85b5c3`, SAM_UI `9f515c4c` —
 each confirmed on 2026-09-16 (with `git ls-remote`) to be the **current tip** of its repo's remote branch, so
-the run is reconstructible from the repositories alone.
+the **code revision** is reconstructible from the repositories alone. **The run is not**: the source model,
+the harness, every `.tsd`, the per-stage extracts, the evidence record and the acceptance binaries
+themselves exist only under `C:\TasOut\parto-final-real-project\`, outside every repository and on one
+machine - deliberately, since no TAS document or manufacturer table is ever checked in. Reproducing or
+auditing this evidence needs that folder as well as the commits.
 
 ### Verdicts
 
