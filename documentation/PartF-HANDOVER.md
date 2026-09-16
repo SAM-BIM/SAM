@@ -65,6 +65,18 @@ open defect* immediately above it is the preserved historical record of the defe
 instance in `SAM_Tas`'s diagnostic log (not a compliance decision) has since also been fixed
 ([SAM_Tas#62](https://github.com/SAM-BIM/SAM_Tas/pull/62)) - no open follow-up remains.
 
+**SAM#111 (Part O Iteration 3 tracker) is now CLOSED.** The last outstanding gate — reopening the persisted
+real-project B4 (selected-product cooling) pairing in a fresh process — passed 7/7 (restored not rerun;
+identical Reference A/Candidate B FAIL results and TM59 outcomes; 15/15 ledger stages; no refusal; zero TAS
+simulation processes during Review; catalogue provenance revalidated). See
+[`PartO-TAS-VALIDATION.md`](PartO-TAS-VALIDATION.md) § *B4 close/reopen Review acceptance*. A human
+programme decision moves the remaining manufacturer-ventilation behaviour (certified heat recovery, fan
+SFP/power, B1/B2, manufacturer bypass/B3 — blocked on external Nuaire/EDSL evidence) to a successor tracker,
+[SAM#123](https://github.com/SAM-BIM/SAM/issues/123); a separate, non-blocking restored-Review
+evidence-narration defect found during the reopen is tracked at
+[SAM#122](https://github.com/SAM-BIM/SAM/issues/122). Neither is a reopened blocker for the work SAM#111
+tracked.
+
 These four commits are exactly the ones the Part O real-project licensed acceptance was built from
 (`C:\TasOut\parto-final-real-project\build\binaries.txt`), so the **code revision** that acceptance ran on
 is recoverable from the repositories alone.

@@ -2328,3 +2328,47 @@ Left unfixed here because it is a separate repo (`SAM_Tas`) with its own prebuil
 outside this fix's stated scope; flagged for a dedicated follow-up, and fixed the same day in
 [SAM_Tas#62](https://github.com/SAM-BIM/SAM_Tas/pull/62) once this fix's `GetSummerOccupiedHoursExceedingComfortRange()`
 was available in a merged `SAM.Analytical.dll`.
+
+---
+
+## B4 close/reopen Review acceptance — PASS 7/7 (2026-09-16), SAM#111 final closeout
+
+**The question.** Does the persisted real-project B4 (selected-product cooling) pairing reopen correctly in
+a fresh SAM process, on the current merged binaries, reproducing the same engineering result without
+rerunning the ~20-minute annual simulation? This is the last outstanding SAM#111 acceptance gate.
+
+**Pairing.** Reference A vs Candidate B `-It3B4`, behaviour mode `SelectedProductCooling`, 3 cooling
+modules, 3 air systems, 8 assessed rooms, 14 ventilation legs — the same pairing recorded under § *3-B4
+rerun on the merged clamp* above.
+
+**Result — 7/7 acceptance criteria PASS:**
+
+1. **Restored, not rerun.** `IsRestored = true`; Review reported the reopened persisted pairing; no
+   behaviour-mode picker appeared.
+2. **Engineering results reproduced exactly.** Reference A FAIL; Candidate B FAIL; identical comparison
+   statistics; identical TM59 outcomes; a deep comparison of `Record` and `Comparison` produced zero
+   engineering violations.
+3. **Ledger survived.** 15/15 stages present and `COMPLETED`.
+4. **No refusal.**
+5. **No TAS simulation during Review.** Only TSD result-reader processes were observed; no new
+   TBD/TPD/TAS3D/TasConv process appeared; the pre-existing TAS-process baseline was empty.
+6. **Catalogue provenance revalidated.** Schema `VentilationUnitCatalogue:v1`; expected SHA matched disk.
+7. Review completed in seconds, not the ~20-minute simulation the original run required.
+
+No production code was changed to obtain this result.
+
+**A separate, non-blocking finding from the same reopen — [SAM#122](https://github.com/SAM-BIM/SAM/issues/122).**
+The in-session Review that produced the original B4 pairing recorded 52 run-time `Notes`. The persisted
+`PartOIteration3Record` does not store them, so the restored Review reconstructs only 1 note and overwrites
+the standard `Iteration3-Review.txt`/`.json` archive path with the thinner reconstruction (original review
+text ≈37,811 characters; restored ≈26,377 characters). Calculations, pairing identity, the ledger, TM59
+outcomes and comparison statistics are unaffected — only the archived narrative text is thinner after a
+reopen. This is an evidence/history-preservation defect, tracked separately, and did **not** fail this
+reopen acceptance gate.
+
+**Programme conclusion.** This was the last gate SAM#111 required. Combined with the human decision to move
+the remaining manufacturer-ventilation behaviour (certified heat recovery, fan SFP/power, B1/B2,
+manufacturer bypass/B3 — blocked on external evidence, not on anything left to build here) to
+[SAM#123](https://github.com/SAM-BIM/SAM/issues/123), SAM#111's own closure rule is satisfied and the issue
+is closed. See `PROJECT_PROGRESS.md` § *SAM#111 final closeout* and `PartF-HANDOVER.md` §0 for the
+cross-repository reconciliation.
