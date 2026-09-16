@@ -370,6 +370,74 @@ boundary for. **That converter line is covered by the manual acceptance run abov
 
 ---
 
+## Known open defect — natural-ventilation Criterion 1 Pass/Fail uses the wrong hour basis (found 2026-09-16, NOT fixed)
+
+**Do not close SAM #111 as fully verified while this is open.** It was found during independent review of
+the 3-B4 rerun above, is confirmed by direct source inspection (not assumed from the review that raised it),
+and is unrelated to the recirculation clamp — it does not affect this session's own B4/B0/1a results (see
+*Consequence* below), but it is a live, untested gap in TM59:2017 Criterion 1 itself and must be resolved or
+conclusively disproved before the natural-ventilation route's Pass/Fail can be trusted on a real project.
+
+**The defect.** `TMExtendedResult.Criterion1` (`SAM.Analytical\Classes\Result\TM\TMExtendedResult.cs:240-263`)
+compares `GetOccupiedHoursExceedingComfortRange()` against `MaxExceedableHours` — both computed from the
+**full-year** `OccupiedHourIndices` the result was constructed with (`MaxExceedableHours` at `:50-56` is
+`OccupiedHours * 0.03`, and `OccupiedHours` is `occupiedHourIndices.Count` with no date filter).
+`TM59NaturalVentilationExtendedResult` and `TM59NaturalVentilationBedroomExtendedResult` do not override
+`Criterion1`, `MaxExceedableHours` or the comfort-range hour set, so they inherit this full-year
+computation — even though `TM59NaturalVentilationExtendedResult` itself already carries the **correct**
+summer-restricted equivalents, `GetSummerOccupiedHourIndices()` / `GetSummerMaxExceedableHours()`
+(`TM59NaturalVentilationExtendedResult.cs:36-64`, filtering to `HourOfYear.SummerStartIndex..SummerEndIndex`
+— May-September, matching TAS).
+
+`TM59AssessmentReport.NaturalVentilationChecksFor` (`TM59AssessmentReport.cs:256-285`) knows this: its own
+comment at `:266-270` states *"Limit is deliberately the SUMMER basis... not the base type's annual
+MaxExceedableHours"*, and `actual_Criterion1`/`limit_Criterion1`/`basisHours_Criterion1` are all correctly
+read from the summer-restricted getters for **display**. But the `ComplianceStatus` on the same line
+(`:285`) is `tMResult.Pass ? Pass : Fail` — `Pass` is `Criterion1`, the **unfixed, full-year** computation.
+The report can therefore display a small, correct, summer-based `Actual`/`Limit` pair while deciding
+PASS/FAIL from a different, full-year pair entirely — the two are never required to agree.
+
+**Why no test caught it.** `TM59SimplifyTests.PlainNaturalVentilation_PutsEachHourCountUnderItsOwnName`
+constructs a real `TM59NaturalVentilationExtendedResult` (100 occupied hours: 40 outside summer, 60 inside,
+all at a uniformly-exceeding temperature) and asserts `extended.Pass == simplified.Pass` — but every one of
+the 100 hours exceeds by construction, so the full-year and summer-only verdicts are both `Fail` regardless
+of which basis decides it; the fixture cannot distinguish them. `TM59AssessmentReportTests`' natural-
+ventilation fixtures (`NaturalVentilation(...)`, `Bedroom(...)` helpers, `:891-899`) build the **plain**
+`TM59NaturalVentilationResult`/`TM59NaturalVentilationBedroomResult` types directly, with `pass:` injected as
+an explicit constructor argument — they test the report's formatting of an already-decided verdict, never
+the extended type's own `Criterion1` computation. No fixture anywhere sets up occupied hours where the
+full-year and summer exceedance ratios cross the 3% line on opposite sides of each other.
+
+**Consequence, classified as instructed.**
+- **This session's B4/B0/1a rerun and its deltas are unaffected.** Every one of the real project's 8
+  assessed rooms is on the **mechanical** route (`TM59MechanicalVentilationExtendedResult` /
+  `MechanicalVentilationCheckFor`), whose `>26 °C hours` criterion is correctly annual-basis by design (see
+  `ASSESSMENT BASIS` in the report: *"Mechanical ventilation check: Full year"*) and reads the *same* basis
+  for both `Actual`/`Limit` and `Pass` — no display/decision split exists on that route. The natural-
+  ventilation code path this defect lives in is not exercised anywhere in the 3-B0/3-B4 comparison.
+- **A B0-vs-B4 (or any A-vs-B) *relative* comparison stays valid even where the natural-ventilation route
+  IS exercised**, because both sides of such a comparison are decided by the same (currently wrong) authority
+  applied identically — a relative delta cancels a systematic basis error that an absolute verdict cannot.
+- **Absolute natural-ventilation PASS/FAIL may be wrong** wherever this route is exercised. The two natural-
+  ventilation acceptances already on record — Flat1 BasePassive's `Studio 1_0` (37/110, this document's
+  §*Flat1 BasePassive validation*) and the Iteration 1b NV-OPEN/NV-NIGHT A/B (0–4 exceeding hours against
+  110–262-style limits, §*Iteration 1b*) — both pass by very large margins under *either* basis, so their
+  recorded verdicts are very unlikely to flip, but this has not been checked hour-by-hour and the calculation
+  itself is confirmed wrong regardless of whether it happens to change any verdict recorded so far. A project
+  whose natural-ventilation exceedances concentrate differently across the year (e.g. outside May-September
+  but still within occupied annual hours) could see this decide the wrong way.
+
+**Smallest correct remediation, NOT applied.** Override `Criterion1` (or equivalently `MaxExceedableHours`
+and the comfort-range hour set it feeds) in `TM59NaturalVentilationExtendedResult` to compute both the
+exceedance count and the limit from `GetSummerOccupiedHourIndices()` / `GetSummerMaxExceedableHours()` —
+the same getters the report already trusts for display — rather than from the inherited full-year basis.
+`TM59NaturalVentilationBedroomExtendedResult` needs no separate change: it does not override `Criterion1`
+either, so it would inherit the fix. This mirrors, rather than reopens, the design decision already visible
+in the report layer; it does not touch Criterion 2 (night-time, correctly annual by TM59:2017's own
+definition) or the mechanical or corridor routes, which have no analogous split. **Not implemented here** —
+per instruction, this calculation is reported, not silently changed, as part of a B4 rerun whose own results
+it does not affect.
+
 ## Current confidence / limitations
 
 **What is established.**
@@ -398,6 +466,8 @@ boundary for. **That converter line is covered by the manual acceptance run abov
 - **Nothing about the design-side identity provenance.** Still name-assigned.
 - **Nothing live about the refusal path.** `unassociatedCount: 0` on every real run means the
   space-present-but-unresolved gap is unit-tested only.
+- **Natural-ventilation Criterion 1 Pass/Fail is confirmed to use the wrong (full-year, not summer) hour
+  basis** — see § *Known open defect* above. Not disproved; not yet fixed.
 
 ---
 
@@ -1953,7 +2023,7 @@ auditing this evidence needs that folder as well as the commits.
 | 2 Acoustic restricted | **FAIL** | bit-identical to 1a - acoustic restriction / bypass / boost are **not implemented**, so the stage runs without the behaviour that defines it |
 | 2B | **FAIL** | 10 rounds plus the capacity envelope; every room lowered, none converted |
 | 3-B0 Parity | **FAIL** | 4 of 8 rooms; both ensuites cross to Pass |
-| 3-B4 SelectedProduct | **REFUSED** | flow ceiling, see below. **No Candidate B exists.** |
+| 3-B4 SelectedProduct | **REFUSED**, then **FAIL** on rerun | refused at the flow ceiling on 2026-09-15; SAM_Tas#60's clamp merged 2026-09-16, rerun the same day: refusal gone, Candidate B exists, **FAIL** on 3 of 8 rooms. See [3-B4 rerun on the merged clamp](#3-b4-rerun-on-the-merged-clamp-2026-09-16) below. |
 
 Nothing passes. The model is a weather-driven failing case by construction — the canonical PR4/PR5B
 acceptance runs the same geometry on `Leeds_TRY` and passes.
@@ -2062,6 +2132,100 @@ ventilation-deviation duty it was actually measured for.
 
 The Iteration 1b finding above is **unchanged and still investigation-only** - no production change was made
 for it.
+
+### 3-B4 rerun on the merged clamp (2026-09-16)
+
+**The question.** Does the merged SAM_Tas clamp remove the previous 3-B4 refusal and allow a genuine
+Candidate B TM59 result to be produced? This section is that rerun, not a new investigation — the mechanism
+was already fully characterised above; this only exercises the fix.
+
+**Provenance.** All four repos rebuilt Release in dependency order SAM → SAM_Systems → SAM_Tas → SAM_UI at
+their current `sow/2026-Q3` tips (SAM `192d069a`, SAM_Systems `05ca0c18`, SAM_Tas `96f8ba79`, SAM_UI
+`9f515c4c` — SAM#118 and SAM_Tas#60 both merged). `SAM_UI\build\SAM.Analytical.Tas.TPD.dll` confirmed
+refreshed and containing `RecirculationCoolingClamp` before the run. Iteration 3-B4 rerun through the same
+external PowerShell UI-Automation harness (`stage.ps1 -Stage B4`, outside every repository - it drives the
+native `SAM Analytical.exe` via Windows UI Automation, not a UI-automation framework inside the
+repositories) on the same preserved real project
+(SHA-256 `a7e09a25ae29c7dbb4c690d747a96fcd9f110ca27fb4dc2abe816755368d7e4b`), the same embedded
+`Z1_DSY1_2050s_HIGH90_CIBSE_v1.1` weather, full year 1–365, the same 3 dwellings / 8 assessed rooms,
+Iteration 3 (A/B) against Reference A = Iteration 1a in the same session, Selected-product cooling module.
+Evidence at `C:\TasOut\parto-final-real-project\06-Iteration3-B4\` (the pre-fix refused run preserved
+alongside it under `refused-2026-09-15\`).
+
+**A. The previous refusal is gone.** The 2026-09-15 run refused with *"Recirculation cooling of air system
+`dd8a4594…` carried a recirculation airflow outside 36..120 l/s in 1 hour(s)"* (MVHR-02, hour 4927). The
+rerun's ledger and UI text contain no refusal of any kind.
+
+**B. Ledger completion.** All 15 named stages report `COMPLETED` (Input, Reference A, Reference A TM59,
+System scope, Equipment resolution, Materialisation, Thermal source, Systems conversion, Systems simulation,
+Zone temperature, Resultant temperature, Candidate B TM59, Reconciliation, Comparison, Persistence) — the
+same full ledger 3-B0 always completed. The refused run stopped at *Zone temperature* with 9 stages
+completed, 1 refused, 5 never run.
+
+**C. Candidate B TM59 result.** Exists for the first time.
+`000000_SAM_AnalyticalModel-It1a-futureZ1-It3B4-Bridge-TM59.txt`: **TM59 OCCUPIED-SPACE ASSESSMENT: FAIL**.
+3 of 8 rooms fail the mechanical `>26 C hours` criterion — `Studio 1_0` (344/262), `Kitchen_4` (203/142),
+`Kitchen_7` (198/142) — the other 5 (`Bathroom_2`, `Bedroom 2_3`, `Ensuite_5`, `Bedroom 2_6`, `Ensuite_8`)
+pass.
+
+**D. Final outcome.** Reference A Fail; Candidate B Fail — the expected result stated in the pre-rerun
+record: 3-B0 already failed 4 of 8 rooms, and the clamp fixes a reporting refusal at the control-law
+boundary, not the building's overheating. **This FAIL is a valid acceptance result, not a defect.** No
+production code was changed to obtain it, and none should be — the model is a weather-driven failing case by
+construction (see above).
+
+**Deltas.** 8 rooms, 70 080 hourly values each comparison, from `extract/comparison.md`
+(`--delta 3-B0:3-B4`, `--delta 1a:3-B4`):
+
+| room | 3-B0 → 3-B4 mean ΔRT (K) | 3-B0 → 3-B4 max \|ΔRT\| (K) | 1a → 3-B4 mean ΔRT (K) | 1a → 3-B4 max \|ΔRT\| (K) |
+|---|---|---|---|---|
+| Bathroom_2 | −0.783 | 4.12 | −0.562 | 3.49 |
+| Bedroom 2_3 | −0.001 | 1.02 | +0.224 | 2.71 |
+| Bedroom 2_6 | +0.004 | 0.96 | +0.212 | 2.70 |
+| Ensuite_5 | −0.108 | 3.19 | −0.505 | 3.16 |
+| Ensuite_8 | −0.202 | 3.45 | −0.947 | 3.50 |
+| Kitchen_4 | −0.072 | 0.95 | +0.406 | 2.63 |
+| Kitchen_7 | −0.083 | 0.94 | +0.297 | 2.21 |
+| Studio 1_0 | −0.013 | 1.29 | +0.020 | 3.91 |
+
+3-B0 → 3-B4 is the comparison that isolates what the selected-product cooling module changed relative to
+the Parity foundation control (both already on the merged clamp) — small (≤3.45 K max, most rooms <1.3 K),
+consistent with Selected-product cooling only engaging the same recirculation branch Parity already grounds.
+
+**`Count_Clamped` and `MaximumClampedExcursion_Lps` are not surfaced anywhere in the production route's own
+report.** Confirmed by inspecting this rerun's own `Iteration3-Review.json`: it carries `Count_OutOfRange`
+(0 for all three units) but no `Count_Clamped` or `MaximumClampedExcursion_Lps` field at all - the production
+report layer never reads them, so they exist on `RecirculationCoolingResult` but are not aggregated or
+persisted anywhere production writes to. The only way to see them is to call the production reader directly,
+which is what the read-only replay below does (no persistence code was added to production, or anywhere
+else, to obtain this).
+
+**Coil replay (`prod B4 resolve=model stop=gen coolev=1`, same static no-IZAM fixture the 2026-09-15
+investigation used).** For the air system that carried the historical refusal (`dd8a4594-…`, MVHR-02 in
+today's naming): `Count_Clamped = 2`, `MaximumClampedExcursion_Lps = 0.050278` — magnitude matches the
+investigation's measured `0.0503` almost exactly (count is 2, not the single hour named in the refusal
+message; a second, smaller near-ceiling excursion this year was below the printing cutoff of the original
+hour-by-hour table and is not itself surprising given the mechanism is weather-driven and stochastic in
+timing).
+
+**A genuine, unrelated observation from the same replay, recorded rather than acted on.** One of the other
+two air systems (`10fda386-…`) showed `Count_Clamped = 6015` — the great majority of its "below the cooling
+gate" hours — with `MaximumClampedExcursion_Lps = 0.000587`. This is not the ramp-overshoot mechanism this
+clamp was built for: the magnitude is ~170× smaller than the `0.1` l/s clamp bound and consistent with
+floating-point-scale noise at the `36` l/s floor (the pre-clamp `cooling.py` characterisation already showed
+thousands of hours legitimately sitting at-or-near that floor for every unit; this branch's specific
+arithmetic evidently lands fractionally under `36.0` rather than exactly on it). It does not change any
+TM59 result, any refusal, or this rerun's outcome, and **no production code was changed for it** — recorded
+here per the stop-condition this rerun was run under, as something to characterise further before treating
+`Count_Clamped` as a proxy for "genuine near-boundary events" without also checking excursion magnitude.
+
+**Harness provenance note.** The preserved read-only evidence-extraction harness
+(`C:\TasOut\parto-final-real-project\h\p0.csproj` and `tool\tool.csproj`) had three machine-specific paths
+hardcoded from the machine the 2026-09-15 acceptance ran on (`C:\Users\Virtual Machine\...`), plus a stale
+prebuilt `p0.exe` whose `deps.json` predated the `SAM.Analytical.UI.WPF` reference in its own `Program.cs` /
+`Prod.cs`. Both were repaired in place (paths repointed to this machine, `p0.exe` rebuilt) — this is harness
+plumbing only, explicitly marked "NOT production code" in its own source, not a change to anything under
+acceptance.
 
 ### Notes for whoever repeats this
 
