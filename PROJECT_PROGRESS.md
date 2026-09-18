@@ -1,14 +1,80 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` at `e2c0e2c0` - the merge commit of [SAM#120](https://github.com/SAM-BIM/SAM/pull/120), which
+`feature/parto-nuaire-manufacturer-guidance`, branched from `sow/2026-Q3` at `63dd763c` (the merge commit of
+[SAM#112](https://github.com/SAM-BIM/SAM/pull/112)) for the #123 manufacturer-guidance work in *Current*
+below.
+
+`sow/2026-Q3` previously at `e2c0e2c0` - the merge commit of [SAM#120](https://github.com/SAM-BIM/SAM/pull/120), which
 descends from [SAM#119](https://github.com/SAM-BIM/SAM/pull/119) and
 [SAM#118](https://github.com/SAM-BIM/SAM/pull/118). `b4a1283f` (PR5A,
 [SAM#117](https://github.com/SAM-BIM/SAM/pull/117)) is an ancestor. **`SAM#111` is now CLOSED** - see
 *Current* below for the final closeout (B4 close/reopen Review acceptance, the manufacturer-ventilation
 successor tracker, and the human closure decision).
 
-## Current: SAM#111 final closeout - B4 close/reopen Review 7/7, manufacturer ventilation moved to a
+## Current: SAM#123 - manufacturer operating-strategy vocabulary (Nuaire guidance track, 2026-09-18)
+
+**What this entry is.** Direct manufacturer modelling guidance for the Nuaire `MRXBOXAB-ECO5-AECV` /
+`MR-ECO-COOL-V` hybrid cooling unit was received on 2026-09-18 and supersedes
+[#123](https://github.com/SAM-BIM/SAM/issues/123)'s recorded position that manufacturer bypass thresholds
+are unavailable **for this product**. This entry adds the generic, product-neutral vocabulary that
+manufacturer control guidance is expressed in. It is additive: nothing existing changed behaviour.
+
+**The source pack is private.** The manufacturer's documents carry redistribution restrictions. They are
+held locally with a hashed manifest outside every repository, and are not committed, attached or quoted.
+What is committed is the generic vocabulary and, separately in SAM_Systems, one catalogue entry's
+transcribed figures with a provenance string.
+
+**New in `SAM.Analytical`:**
+
+- `VentilationUnitOperatingMode` (enum) - `HeatCoolthRecovery` / `SummerBypass` / `Cooling`, one operating
+  state per hour. Not `PartOVentilationMode`, which says how a dwelling is assessed.
+- `SupplyTemperatureRuleType` + `SupplyTemperatureRule` - how a manufacturer states the **package** supply
+  temperature in one mode: intake air, a linear blend of extract and intake, or the product's own published
+  table, with an optional stated lower limit and an explicit domain policy.
+- `VentilationUnitOperatingStrategy` - the mode thresholds, the three rules, the cooling activation
+  temperature and its permitted range, and the elevated cooling airflow and its stated range.
+- `VentilationUnitTemplate.OperatingStrategy` - optional; a template without one reads exactly as before and
+  serialises exactly as before.
+
+**Decisions.**
+
+1. **A blend fraction is manufacturer modelling guidance, never certified E1.** `SupplyTemperatureRule`
+   carries it; `HeatRecoveryPerformance` is untouched and still required by
+   `Query.VentilationUnitOperatingParameters`. A test pins that a template carrying a strategy carries no
+   certified heat-recovery or fan performance because of it. E1/E2 remain open at #123.
+2. **The control law is one ordered decision, not three independent conditions.** Manufacturers publish
+   these as separate formulae that can leave a temperature exactly on a threshold in no mode at all
+   (a source writing `to > 12` and `to < 12` leaves 12 itself unassigned). Cooling is tested first, on the
+   extract temperature alone; then bypass, requiring all of its conditions; then recovery as the default.
+   Every comparison is strict, and a sweep test proves no temperature pair is left without a mode.
+3. **The setpoint is data, and so is the elevated airflow - but they are resolved in different places.** A
+   catalogue states a manufacturer's thresholds, rules and ranges, including the default activation
+   temperature; how far up the elevated range one dwelling goes is that dwelling's decision.
+   `TemplateRefusal()` is the catalogue's question and does not require it; `Refusal()` is the operating
+   question and does. Both refuse rather than clamp.
+4. **The package supply temperature is the quantity.** Every rule produces the air leaving the whole unit -
+   not an exchanger effectiveness, not an off-coil condition, and not a figure to be corrected for fan heat
+   afterwards. It is the quantity that can be observed downstream of a unit in a simulation, which is what
+   an implementation is held to.
+
+**Files changed.** `SAM/SAM.Analytical/Enums/VentilationUnitOperatingMode.cs` (new),
+`SAM/SAM.Analytical/Enums/SupplyTemperatureRuleType.cs` (new),
+`SAM/SAM.Analytical/Classes/System/SupplyTemperatureRule.cs` (new),
+`SAM/SAM.Analytical/Classes/System/VentilationUnitOperatingStrategy.cs` (new),
+`SAM/SAM.Analytical/Classes/System/VentilationUnitTemplate.cs` (one optional property),
+`SAM/SAM.Tests/PartOVentilationUnitOperatingStrategyTests.cs` (new, 49 tests).
+
+**Validation.** `SAM.Tests` Release: **2203 passed, 0 failed, 0 skipped** - 2154 before this work plus the
+49 new ones, which pass on their own under a name filter as well. Release build of `SAM.Analytical` clean.
+`git diff --check` clean.
+
+**Unresolved / next.** The vocabulary is dormant here exactly as `PerformanceTable` and
+`FlowFractionByControlTemperature` were: nothing in SAM reads it. The catalogue entry, the materialised
+strategy and the native grounding continue in SAM_Systems, SAM_Tas and SAM_UI under #123. Certified E1/E2
+and the EDSL displacement + active-HR question are unchanged and still external.
+
+## Previous: SAM#111 final closeout - B4 close/reopen Review 7/7, manufacturer ventilation moved to a
 successor tracker, #111 CLOSED (2026-09-16)
 
 **What this entry is.** The last remaining SAM#111 acceptance gate - reopening the persisted B4
