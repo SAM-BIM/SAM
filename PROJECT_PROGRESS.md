@@ -12,6 +12,8 @@ descends from [SAM#119](https://github.com/SAM-BIM/SAM/pull/119) and
 *Current* below for the final closeout (B4 close/reopen Review acceptance, the manufacturer-ventilation
 successor tracker, and the human closure decision).
 
+`sow/2026-Q3` (at `86213eb3`, including the SAM#126/#127 .NET Framework cleanup) was merged into this branch on 2026-09-22 to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept below.
+
 ## Current: SAM#123 - manufacturer operating-strategy vocabulary (Nuaire guidance track, 2026-09-18)
 
 **What this entry is.** Direct manufacturer modelling guidance for the Nuaire `MRXBOXAB-ECO5-AECV` /
@@ -73,6 +75,53 @@ transcribed figures with a provenance string.
 `FlowFractionByControlTemperature` were: nothing in SAM reads it. The catalogue entry, the materialised
 strategy and the native grounding continue in SAM_Systems, SAM_Tas and SAM_UI under #123. Certified E1/E2
 and the EDSL displacement + active-HR question are unchanged and still external.
+
+## Also current (maintenance, sow/2026-Q3): .NET Framework leftover cleanup across the repo family - MERGED, closeout in progress (2026-09-22)
+
+**Status.** SAM#126 merged first (`6e645cab`), then all 17 sibling PRs below (merge commits), their branches
+deleted remote + local. Closeout branch `build/netfx-cleanup-closeout` in 20 repos (SAM, the 17 sibling
+repos, SAM_OpenStudio and SAM_UI) carries the remaining fixes and a `PROJECT_PROGRESS.md` update per repo:
+- SAM_OpenStudio: deleted the missed `Grasshopper/SAM.Analytical.Grasshopper.OpenStudio/app.config`.
+- SAM_UI (13 projects) and SAM_Solver (`Rhino/SAM.Analytical.Rhino.Solver`): dropped bare `<Reference>`s to
+  `System.Data.DataSetExtensions`, `Microsoft.CSharp`, `System.IO.Compression` and `PresentationFramework.Aero2`.
+  All come from the .NET 8 shared framework and were the only source of MSB3243 warnings in the full BuildAlls
+  (30 -> 15 after the first two, the remaining 15 were the last two).
+
+**What.** Branch `build/remove-netfx-appconfig-leftovers` in 18 repos deletes net472-era `app.config` files
+(binding redirects, `<supportedRuntime>`, `loadFromRemoteSources`) from projects that all target
+`netstandard2.0`/`net8.0(-windows)`, and removes bare `System.IO.Compression` references (SAM, SAM_Revit).
+Base repo: [SAM#126](https://github.com/SAM-BIM/SAM/pull/126) (`73ff9d49`, pushed earlier without a PR; opened
+2026-09-22). Siblings: SAM_Acoustic#7, SAM_AssemblyResolver#7, SAM_BHoM#7, SAM_Excel#5, SAM_GEM#7, SAM_IFC#6,
+SAM_IoT#7, SAM_LadybugTools#9, SAM_Multitasker#6, SAM_Origin#6, SAM_Revit#18, SAM_SolarCalculator#26,
+SAM_Solver#12, SAM_Systems#26, SAM_Tas_Grasshopper#5, SAM_Template#7, SAM_gbXML#7 - all into `sow/2026-Q3`.
+
+**Validation.** All PRs MERGEABLE/CLEAN, CI green where it exists (SAM_Origin has no workflows; SAM_Acoustic
+spdx only; SAM_Solver build only). Deleted lines scanned: only binding/runtime config, no appSettings; no
+`ConfigurationManager` use. Full `BuildAlls_v4.bat` (Debug RestoreCleanRebuild, all repos on the PR branches,
+emptied `%APPDATA%\SAM` first): exit 0, 0 errors, 7m22s. `%APPDATA%\SAM` repopulated (50 .gha) with no
+`SAM.*.dll.config`; the only `.dll.config` left are SAM_UI's 4 WinExe apps (intentional).
+
+**Local incident (resolved).** In all 18 local clones the checked-out branch ref had been deleted, so Git
+showed an unborn branch with every file staged ("2.9k changed files" in GitHub Desktop). Index matched the
+pushed PR head exactly; refs were recreated with `git update-ref` - no content changed.
+
+**Decision.** Merge SAM#126 first (SAM builds first; its stale `SAM.*.dll.config` otherwise ride along into every
+repo's `build/` and `%APPDATA%\SAM`), then the 17 siblings in any order.
+
+**SAM#125 conflict.** The progress entry added by SAM#126 made open SAM#125
+(`feature/parto-nuaire-manufacturer-guidance`) conflict in `PROJECT_PROGRESS.md` only; it is resolved by merging
+`sow/2026-Q3` into that branch and keeping both entries.
+
+**Stale branches.** Deleted on origin: the 15 old merged SAM branches (tips verified equal to their merged PR heads,
+no open PR). **Kept by decision:** everything in SAM_Deploy (release repo, incl. `release/2026-Q3-freeze`). Still to
+delete (user-approved, blocked for the agent by a permission check): 18 in SAM_UI, 9 in SAM_Tas, 5 in SAM_Systems,
+`chore/drop-rhino-pre-8` in SAM_AssemblyResolver/SAM_IoT/SAM_SQL/SAM_Template, and
+`feature/solar-control-context-visibility` in SAM_SolarCalculator.
+
+**Follow-ups not taken.** SAM_gbXML has two stray legacy `v4.6.1` csproj copies outside `SAM_gbXML.sln` (never built).
+
+**Next step.** Merge the `build/netfx-cleanup-closeout` PRs (full BuildAlls on those branches: exit 0, 0 errors, 0 MSB3243), delete their
+branches, then delete the remaining approved stale branches listed above.
 
 ## Previous: SAM#111 final closeout - B4 close/reopen Review 7/7, manufacturer ventilation moved to a
 successor tracker, #111 CLOSED (2026-09-16)

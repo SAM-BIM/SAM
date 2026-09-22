@@ -24,9 +24,6 @@
     <OutputPath>..\..\build\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System.IO.Compression" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\Rhino\SAM.Geometry.Rhino\SAM.Geometry.Rhino.csproj" />
     <ProjectReference Include="..\..\Rhino\SAM.Math.Rhino\SAM.Math.Rhino.csproj" />
     <ProjectReference Include="..\..\SAM\SAM.Core\SAM.Core.csproj" />
