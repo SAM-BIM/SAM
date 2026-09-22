@@ -8,7 +8,36 @@ descends from [SAM#119](https://github.com/SAM-BIM/SAM/pull/119) and
 *Current* below for the final closeout (B4 close/reopen Review acceptance, the manufacturer-ventilation
 successor tracker, and the human closure decision).
 
-## Current: SAM#111 final closeout - B4 close/reopen Review 7/7, manufacturer ventilation moved to a
+## Current: .NET Framework app.config cleanup across the repo family - SAM#126 + 17 sibling PRs, review PASS (2026-09-22)
+
+**What.** Branch `build/remove-netfx-appconfig-leftovers` in 18 repos deletes net472-era `app.config` files
+(binding redirects, `<supportedRuntime>`, `loadFromRemoteSources`) from projects that all target
+`netstandard2.0`/`net8.0(-windows)`, and removes bare `System.IO.Compression` references (SAM, SAM_Revit).
+Base repo: [SAM#126](https://github.com/SAM-BIM/SAM/pull/126) (`73ff9d49`, pushed earlier without a PR; opened
+2026-09-22). Siblings: SAM_Acoustic#7, SAM_AssemblyResolver#7, SAM_BHoM#7, SAM_Excel#5, SAM_GEM#7, SAM_IFC#6,
+SAM_IoT#7, SAM_LadybugTools#9, SAM_Multitasker#6, SAM_Origin#6, SAM_Revit#18, SAM_SolarCalculator#26,
+SAM_Solver#12, SAM_Systems#26, SAM_Tas_Grasshopper#5, SAM_Template#7, SAM_gbXML#7 - all into `sow/2026-Q3`.
+
+**Validation.** All PRs MERGEABLE/CLEAN, CI green where it exists (SAM_Origin has no workflows; SAM_Acoustic
+spdx only; SAM_Solver build only). Deleted lines scanned: only binding/runtime config, no appSettings; no
+`ConfigurationManager` use. Full `BuildAlls_v4.bat` (Debug RestoreCleanRebuild, all repos on the PR branches,
+emptied `%APPDATA%\SAM` first): exit 0, 0 errors, 7m22s. `%APPDATA%\SAM` repopulated (50 .gha) with no
+`SAM.*.dll.config`; the only `.dll.config` left are SAM_UI's 4 WinExe apps (intentional).
+
+**Local incident (resolved).** In all 18 local clones the checked-out branch ref had been deleted, so Git
+showed an unborn branch with every file staged ("2.9k changed files" in GitHub Desktop). Index matched the
+pushed PR head exactly; refs were recreated with `git update-ref` - no content changed.
+
+**Decision.** Merge SAM#126 first (SAM builds first; its stale `SAM.*.dll.config` otherwise ride along into every
+repo's `build/` and `%APPDATA%\SAM`), then the 17 siblings in any order.
+
+**Open follow-ups.** (1) SAM_OpenStudio `Grasshopper/SAM.Analytical.Grasshopper.OpenStudio/app.config` - same
+leftover, no PR yet. (2) Pre-existing MSB3243 (bare framework refs e.g. `System.Data.DataSetExtensions`) remain in
+SAM_UI projects and `SAM_Solver/Rhino/SAM.Analytical.Rhino.Solver` - not touched by these PRs.
+
+**Next step.** Merge SAM#126, then the 17 siblings; then open the SAM_OpenStudio cleanup PR.
+
+## Previous: SAM#111 final closeout - B4 close/reopen Review 7/7, manufacturer ventilation moved to a
 successor tracker, #111 CLOSED (2026-09-16)
 
 **What this entry is.** The last remaining SAM#111 acceptance gate - reopening the persisted B4
