@@ -47,7 +47,28 @@ delete (user-approved, blocked for the agent by a permission check): 18 in SAM_U
 `chore/drop-rhino-pre-8` in SAM_AssemblyResolver/SAM_IoT/SAM_SQL/SAM_Template, and
 `feature/solar-control-context-visibility` in SAM_SolarCalculator.
 
-**Follow-ups not taken.** SAM_gbXML has two stray legacy `v4.6.1` csproj copies outside `SAM_gbXML.sln` (never built).
+**Follow-ups (2026-09-23).** SAM_gbXML's two stray legacy `v4.6.1` project folders were removed (SAM_gbXML#9,
+merged). SAM_Deploy#44 then bumped every submodule to its `sow/2026-Q3` tip, and test installer run 215 passed
+(SAMVersion `2026.3.215.0`, H12 audit clean; not published, not an accepted candidate - run 214 still is).
+
+**SAM package cleanup (2026-09-23, branch `build/drop-redundant-packages`).** Removed redundant
+`<PackageReference>`s:
+- `System.ValueTuple` 4.6.2 from 9 projects. It is in-box on netstandard2.0 and net8.0.
+- `System.Data.DataSetExtensions` 4.5.0 from 9 netstandard2.0 projects. None of its APIs (`AsEnumerable()`,
+  `Field<>`, `CopyToDataTable`) are used.
+
+No other repo references either DLL from `SAM\build`. A fresh SAM build no longer emits them; a stale
+2018-dated `System.Data.DataSetExtensions.dll` left in `build/` by older builds was deleted locally. Full
+`BuildAlls_v4.bat` without them: exit 0, 0 errors, 0 MSB3243, and warnings unchanged against the previous
+baseline apart from 2 transient MSB3061. **Kept on purpose:**
+- `Microsoft.CSharp` and `System.Runtime.CompilerServices.Unsafe`: 31 downstream repos HintPath 274 / 17
+  references to their copies in `SAM\build`.
+- `System.Drawing.Common` 7.0.0: a version pin, not a cleanup.
+
+**Tried and rejected:** `<Nullable>annotations</Nullable>` on SAM.Core / SAM.Analytical /
+SAM.Analytical.Grasshopper. It removes 101 CS8632 in SAM, but it makes SAM's public API advertise
+non-nullable parameters. `SAM_UI/WPF/SAM.Analytical.UI.WPF` (nullable-enabled) then gains 131 CS8604/CS8625
+warnings. That is an API-contract change, so it needs a deliberate decision rather than a cleanup.
 
 **Next step.** Merge the `build/netfx-cleanup-closeout` PRs (full BuildAlls on those branches: exit 0, 0 errors, 0 MSB3243), delete their
 branches, then delete the remaining approved stale branches listed above.
