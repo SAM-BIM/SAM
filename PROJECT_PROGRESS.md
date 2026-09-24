@@ -1,11 +1,86 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` at `6e645cab` - the merge commit of [SAM#126](https://github.com/SAM-BIM/SAM/pull/126) (the
-app.config cleanup below). Work on it continues on `build/netfx-cleanup-closeout` (docs only in SAM). Earlier,
-`e2c0e2c0` (SAM#120) closed out SAM#111 - see *Previous* below.
+`docs/parto-regression-run-2026-09-23` off `sow/2026-Q3` at `a5db2314` (SAM#128 merge). Documentation only.
+The .NET Framework cleanup below is merged (SAM#126/#127/#128). Earlier, `e2c0e2c0` (SAM#120) closed out
+SAM#111 - see *Previous* below.
 
-## Current: .NET Framework leftover cleanup across the repo family - MERGED, closeout in progress (2026-09-22)
+## Current: Part O regression run on the current tips - Iterations 1a, 2/2B, 3-B0, 3-B4 all complete (2026-09-23/24)
+
+**Why.** To confirm the accepted Part O route still works end to end after the .NET Framework cleanup merges,
+before starting Nuaire manufacturer-guidance work (SAM#123).
+
+**What was run.** The real `SAM Analytical.exe` driven through UI Automation, no harness shortcut.
+- **Driver:** `C:\TasOut\parto-run-2026-09-23\scripts\stage.ps1`, a copy of the 2026-09-15 acceptance driver.
+- **Model:** `SAM_zoningAM-CIBSEfutureZ1.sam`, SHA-256 `a7e09a25...7e4b` (matches the recorded source).
+- **Case:** embedded weather `Z1_DSY1_2050s_HIGH90_CIBSE_v1.1`, days 1-365.
+- **Binaries:** `SAM_UI\build`, built 2026-09-23 09:56-09:59, after every tip: SAM `a5db2314`, SAM_Systems
+  `0e89114`, SAM_Tas `c267f52`, SAM_UI `5606a82`.
+- **Baseline:** 2026-09-16, on the other machine (`C:\TasOut\parto-final-real-project`, B4 at
+  `C:\TasOut\parto-rerun-B4`).
+
+| stage | time | outcome | vs baseline |
+| --- | ---: | --- | --- |
+| 1a | 1.1 min | TM59 Fail (building overheats, as before) | TM59 report identical |
+| 2 + 2B | 1.0 + 3.9 min | 10 rounds, iteration limit; capacity envelope diagnostic; Fail | all 12 TM59 reports identical (base, Opt01-10, OptMax) |
+| 3-B0 | 2.4 min | run COMPLETE; A Fail / B Fail | TM59 identical; bias 0.05 K, RMSE 0.736 K identical |
+| 3-B4 | 16.1 min | run COMPLETE; A Fail / B Fail; 3 cooling modules; 0 h cooling below gate, 0 h heating | TM59 identical; hourly comparison differs slightly (below) |
+| 3-B4 repeat | 16.5 min | run COMPLETE, same outcome | TM59 identical to the first run |
+
+"Identical" = byte-identical apart from the `Source:` path line. No refusal, no error dialog; the only message
+box was "Model successfuly converted".
+
+**Finding: 3-B4 is not bit-repeatable run to run.** The TM59 outcomes are stable, but the controlled
+recirculation cooling solve varies slightly, and only in B4:
+
+| | baseline (other machine) | run 1 | run 2 |
+| --- | --- | --- | --- |
+| MVHR-01 cooling hours | 3 628 | 3 638 | 3 628 |
+| MVHR-02 cooling hours | 2 623 | 2 769 | 2 772 |
+| MVHR-03 cooling hours | 2 763 | 2 763 | 2 763 |
+| candidate mean B | 19.513 °C | 19.503 °C | 19.503 °C |
+| RMSE vs A | 0.964 K | 0.968 K | 0.967 K |
+
+The `OperatingAirFlow` CSVs of runs 1 and 2 differ. No code between the baseline and now touches the B4
+physics: SAM_Tas#62 changes the diagnostic log only, SAM#120 affects natural ventilation Criterion 1 only, and
+the rest is build cleanup. So this is TAS's controller path, not a regression. The PR5B acceptance's
+"B4 vs re-keyed B4 bit-identical" therefore holds only within one generation; a fresh run can move a unit's
+cooling hours by a few tenths of a percent (MVHR-02 up to about 6 % against the other machine). B0 and 1a/2
+are fully repeatable.
+
+**Minor observations (not investigated).**
+- The `Reference A design fingerprint` in the Iteration 3 review differs between runs although A's results
+  are identical. It probably includes the output path.
+- The driver's clipboard copy of the B4 result window failed once; the app's own
+  `Iteration3-Review.txt/.json` were written, so nothing was lost.
+- B0 and 2B ran 3-4x faster than on the other machine, with identical results.
+
+**Evidence:** `C:\TasOut\parto-run-2026-09-23\` (per-stage `ui-driver.log`, screenshots, TM59 reports, Iteration 3
+review/record, TSD/TPD). Outside git - copy it before switching machines.
+
+**Nuaire manufacturer-guidance prototype (outside git, for SAM#123).** Stages 6-10 of the TAS-native Nuaire
+investigation are in `C:\TasOut\nuaire-guidance\REVIEW2\resume-2026-09-23\RESUME-TEST-REPORT.md`, with the final
+scratch model `Nuaire-MVHR01-FINAL-PROTOTYPE-Review.tpd`. The proven native recipe:
+- exchanger `SensibleEfficiency` 0.8 x table(ODB, EDB2) with 0 in the summer-bypass cells;
+- a DX controller with a SystemZone room sensor, `SensorArc1` assigned and a finite non-binding `CoolingDuty`;
+- `MinimumOffcoil = to - X(EFlow)`.
+
+It also found:
+- `DisplacementVent = true` makes transfer-fed wet-room outlets read the upper layer (up to 79 °C). That
+  inflates the extract and suppresses bypass.
+- Cooling at 30 l/s is outside Nuaire's published data.
+- Open PRs SAM#125 / SAM_Systems#25 need revising before merge: add a `to - X(Q)` rule, keep a separate
+  room-stat signal, drop the 16 °C floor, and report out-of-domain use.
+
+**Next step.**
+1. Merge this docs PR.
+2. Revise SAM#125 / SAM_Systems#25 as above.
+3. Prototype the one unproven piece: supply/extract raised to the elevated rate (70-90 l/s) by the room stat
+   during cooling.
+4. Then the SAM_Tas grounding and a fourth SAM_UI Iteration 3 behaviour mode ("manufacturer guidance") paired
+   against B0, with B0 kept byte-identical.
+
+## Previous: .NET Framework leftover cleanup across the repo family - MERGED (2026-09-22)
 
 **Status.** SAM#126 merged first (`6e645cab`), then all 17 sibling PRs below (merge commits), their branches
 deleted remote + local. Closeout branch `build/netfx-cleanup-closeout` in 20 repos (SAM, the 17 sibling
@@ -70,8 +145,9 @@ SAM.Analytical.Grasshopper. It removes 101 CS8632 in SAM, but it makes SAM's pub
 non-nullable parameters. `SAM_UI/WPF/SAM.Analytical.UI.WPF` (nullable-enabled) then gains 131 CS8604/CS8625
 warnings. That is an API-contract change, so it needs a deliberate decision rather than a cleanup.
 
-**Next step.** Merge the `build/netfx-cleanup-closeout` PRs (full BuildAlls on those branches: exit 0, 0 errors, 0 MSB3243), delete their
-branches, then delete the remaining approved stale branches listed above.
+**Next step (at the time).** Merge the `build/netfx-cleanup-closeout` PRs (full BuildAlls on those branches:
+exit 0, 0 errors, 0 MSB3243) - done for SAM (#127, then #128). Deleting the remaining approved stale branches
+listed above was outstanding then; not re-checked here.
 
 ## Previous: SAM#111 final closeout - B4 close/reopen Review 7/7, manufacturer ventilation moved to a
 successor tracker, #111 CLOSED (2026-09-16)
