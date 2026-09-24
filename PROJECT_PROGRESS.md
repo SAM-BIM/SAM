@@ -1,8 +1,8 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` at `875655fa` (merge of [SAM#131](https://github.com/SAM-BIM/SAM/pull/131)). The #123
-manufacturer-guidance work in *Current* below is merged, and its feature branches are deleted.
+`sow/2026-Q3` at `9e0933af` (docs merge of [SAM#132](https://github.com/SAM-BIM/SAM/pull/132)). Stage 3 work is on local `feature/parto-nuaire-reply-2026-09-24` branches (see *Current*). The #123
+manufacturer-guidance work (first *Previous* entry) is merged, and its feature branches are deleted.
 
 `sow/2026-Q3` previously at `e2c0e2c0` - the merge commit of [SAM#120](https://github.com/SAM-BIM/SAM/pull/120), which
 descends from [SAM#119](https://github.com/SAM-BIM/SAM/pull/119) and
@@ -13,7 +13,192 @@ successor tracker, and the human closure decision).
 
 `sow/2026-Q3` (at `86213eb3`, including the SAM#126/#127 .NET Framework cleanup) was merged into this branch on 2026-09-22 to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept below.
 
-## Current: SAM#123 manufacturer guidance - Iteration 3 mode "Selected product - manufacturer guidance" (2026-09-24)
+## Current: Nuaire reply (A. Nash, 2026-09-24) implemented - exchanger then DX drop, 13 C floor (Stage 3)
+
+**Status.** Implemented, closed out (three review items below), tested and accepted on a representative MG
+annual run. The branches `feature/parto-nuaire-reply-2026-09-24` in SAM, SAM_Systems, SAM_Tas and SAM_UI are
+pushed, and PRs into `sow/2026-Q3` are open in dependency order, NOT merged:
+[SAM#133](https://github.com/SAM-BIM/SAM/pull/133) -> [SAM_Systems#29](https://github.com/SAM-BIM/SAM_Systems/pull/29) ->
+[SAM_Tas#65](https://github.com/SAM-BIM/SAM_Tas/pull/65) -> [SAM_UI#107](https://github.com/SAM-BIM/SAM_UI/pull/107). The base is the validated provisional baseline (SAM `875655fa` + docs
+`9e0933af`, SAM_Systems `df5dd332`, SAM_Tas `f7d39351`, SAM_UI `4460dc3a`). This is manufacturer
+modelling guidance; Nuaire has not called it certified or approved.
+
+**Source.** The reply `.msg` is in `C:\TasOut\nuaire-guidance\REVIEW2\manufacturer data\`. Its text and
+four content images (Part F Table 1.3, a process diagram, and two presentation slides) are extracted to
+`...\manufacturer data\2026-09-24-reply-extract\`, with SHA256SUMS. The pack is private, so only figures
+are transcribed.
+
+**Evidence summary (verified against the source):**
+- `to - X` was Nuaire's simplified IES work-around, valid at 32 C outside with the room at 23-26 C only.
+  X is the component model evaluated at that one condition.
+- Nuaire's switching formula `IF(to<=19,13,IF(ta<to,0.8466ta+0.1534to-7.84,to-7.84))` is:
+  - exchanger efficiency at 90 l/s: 0.8466;
+  - net drop at 90 l/s: DX 8.485 K less fan reheat 0.65 K = 7.835 K;
+  - a 13 C floor.
+- Presentation figures at 60/80/100/120 l/s:
+  - HX 87.96/85.76/83.56/81.36 %;
+  - DX drop 9.265/8.745/8.225/7.705 K (sensible 0.67/0.84/0.99/1.12 kW);
+  - supply-motor reheat +0.3/0.5/0.8/1.1 K.
+- 13 C: Nuaire's stated low limit (the tested supply bottomed out there).
+- Bypass: To >= 12, To < Tra, Tra >= 19 C, decided by the MVHR independently of cooling.
+- Airflow:
+  - 60 l/s minimum;
+  - about 90 l/s with 220x90 flat duct; about 125 l/s with larger ducting ("from memory");
+  - 3x is a worked example, not a rule.
+- 2.2 kW is the brochure's largest COMBINED (coolth recovery + sensible, no latent) figure. It is not a
+  DX rating.
+
+**Implemented representation.**
+- The explicit TAS exchanger does bypass or recovery.
+  - Recovery fraction: 0.8 at the design airflow, eta(Q) = 0.8576 at 80 l/s.
+  - One bypass rule applies at both airflows, no longer suppressed by the cooling-stat.
+- The DX coil's `MinimumOffcoil` is a table over its OWN entering dry bulb (`EDB`):
+  `max(13, entering - (DX drop - fan rise)(Q))`. At 80 l/s the net drop is 8.245 K. Fan heat stays
+  cleared; the rise is carried in the drop.
+- The 13 C floor bounds what the coil produces. A coil cannot heat, so air already below 13 C passes
+  through.
+- The DX duty is a numerical 100 kW (`GuidanceCoolingDuty_W`), not a rating: TAS needs a finite duty, and
+  the law, not the duty, then sets the leaving temperature whenever the stat calls. No product capacity is
+  read (see close-out item 2).
+- The exchanger table has a 0.1 K grid up to 45 C on both axes (close-out item 3).
+- Elevated airflow: the dwelling's own figure, else the stated default of 80 l/s, else the midpoint.
+  The range is 60-120 l/s (the data range); outside it, refused.
+
+**Why not the literal formula.** The component form uses the TAS exchanger actually modelled, so bypass
+and recovery follow the real TAS sensors. It reproduces the formula exactly at 90 l/s (0.8466 / 7.835 K)
+and is continuous. It also removes the formula's 19 < to < 20.84 C hole.
+
+**Files changed.**
+- SAM:
+  - `SupplyTemperatureRuleType.ExchangerThenCoil`;
+  - `SupplyTemperatureRule.ExchangerThenCoil(...)`, `SupplyTemperature(..., bool exchangerBypassed)`,
+    `ExchangerExtractFraction`, `CoilNetTemperatureDrop_K`; JSON `ExtractFractions`,
+    `CoilTemperatureDrops_K`, `FanTemperatureRises_K`;
+  - `VentilationUnitOperatingStrategy.ExchangerBypassed`, `DefaultElevatedAirFlow_Lps`;
+  - `OperatingMode`: the room-stat bypass no longer requires extract <= activation;
+  - tests (section G).
+- SAM_Systems:
+  - the Nuaire catalogue entry: bypass extract 19, range 60-120, default 80, ExchangerThenCoil figures,
+    floor 13, new provenance;
+  - `Query.MechanicalVentilationGuidanceSettings` (the default airflow);
+  - catalogue tests.
+- SAM_Tas:
+  - `GroundGuidanceCooling`: recipe, exchanger table, EDB off-coil table with floor, read-back, note;
+  - `GuidanceCoolingResults`: target law, exchanger-state, floor and part-flow counts;
+  - close-out: `GuidanceCoolingDuty_W` (100 kW numerical) replaces the product-capacity read; exchanger
+    grid 0.1 K to 45 C;
+  - recipe tests.
+- SAM_UI: the `PartOIteration3GuidanceResolution` note text only.
+
+**Validation.**
+- Tests (on the branches):
+  - SAM.Tests 2250/2250 (+32);
+  - SAM.Analytical.Systems.Tests 256/256 (+5);
+  - TM59.Tests 941/941 (+3);
+  - WPF.Tests 1031/1031.
+- Framework MSBuild Debug: SAM, SAM_Systems, SAM_Tas and SAM_UI all 0 errors.
+- Native probe (Stage 12, scratch, `C:\TasOut\nrev12\`, harness mode `s12`, analysis `analyse12.py`), on a
+  copy of the Stage 11 prototype:
+  - TAS accepts the EDB table on `MinimumOffcoil`;
+  - full year: 182/182 full-flow cooling hours exact; exchanger state 100% in elevated hours;
+    0 hours at 2200 W; 0 of 57 modulating hours below the law;
+  - forced 18 C stat: 302 hours held at 13.0 C; every below-13 hour had the coil entering already
+    below 13 C.
+- Representative MG (`C:\TasOut\nuaire-reply-2026-09-24\02-Iteration3-MG\`; same model a7e09a25,
+  DSY1 2050s, real UI via `scripts\stage.ps1`):
+  - COMPLETE: 1a in 1.3 min, then Iteration 3 in 7.8 min; A Fail / B Fail.
+  - Bias 0.53 K, RMSE 1.412 K (was 0.567 / 1.477). Reference A TM59 is identical to the accepted run.
+  - Candidate B >26 C hours rise, because the supply is no longer over-cooled: Studio 320 -> 342,
+    Bathroom_2 260 -> 355 (now FAIL), bedrooms 122/120 -> 156/153, ensuites now FAIL (273/286).
+- MG read-back, per unit (`-It3BMG-OperatingAirFlow.csv`; independent check `analyse_mg.py`):
+  - MVHR-01 30 -> 80 l/s, MVHR-02/03 63 -> 80 l/s; supply = extract within 0.014 l/s.
+  - The supply law is exact in 1033/1033, 970/970 and 964/964 full-flow cooling hours (max error 0.0001 K).
+  - 0 hours at the duty bound; 0 hours cooled below 13 C by the coil.
+  - 5 h (MVHR-01) had the coil entering below 13 C (bypass at 12-13 C intake): minimum 12.3 C while the
+    stat calls.
+  - Exchanger state correct in 1028/1033, 964/970 and 958/964 elevated hours. The misses are all at 37-40 C
+    intake, where the exchanger table's breakpoints jump 35 -> 38 -> 45 C (same grid as the accepted
+    baseline); less coolth recovery there, by up to 0.8 K.
+  - 3-7 h per unit of 4-14 W "DX without signal" are proportional-band slivers with the room at 21.95 C.
+- Review-only reopen of the new MG pairing: reproduced, with only a TSD reader and no simulation.
+- The first MG summary said "0 h modulating". That was a bug in the new summary code (the modulating count
+  sat under the wrong `if`); it is fixed in the close-out.
+
+**Close-out review (2026-09-24, after the first MG run).**
+1. **Five cooling hours at 12.3-12.9 C (MVHR-01).**
+   - Each hour: part flow (33-44 l/s), room 21.95-21.97 C at the stat band edge, exchanger in BYPASS by
+     Nuaire's own rule (intake 12.3-12.9 C > 12 C), DX 0 W.
+   - The unit delivered bypassed outdoor air, as it does in 1388 background hours (minimum 12.1 C).
+   - Conclusion: Nuaire's 13 C is the DX-cooled supply floor ("supply temperature bottomed out at 13" in
+     cooling tests; "where we set the new low limit"). It is not an absolute final-supply minimum. The
+     formula's `to<=19 -> 13` branch is a simplification: it cannot hold 13 C at 12-13 C intake in bypass
+     without heating, which neither the product nor TAS provides.
+   - No model change.
+2. **2200 W ceiling removed.**
+   - It was not inert. A controlled TAS coil delivers signal x duty until the off-coil law stops it, so the
+     2.2 kW value acted as a controller gain: in part-signal hours the DX delivered only part of its drop.
+   - Evidence: Stage 13 July-August, 424 of 794 part-flow hours short of the law. On the first MG run the
+     part-flow law held in only 377/577, 45/348 and 45/351 hours.
+   - Nuaire's cooling is on/off at the room stat, and 2.2 kW is a combined figure, so the duty is now a
+     numerical 100 kW and the recipe no longer reads the product's capacity.
+3. **Exchanger grid refined.**
+   - The axes are 0.1 K from the bypass thresholds up to 45 C on both axes (334x276x2 = 184k cells,
+     about 17 s per unit to write).
+   - Stage 13 on a copy of the MG TPD, July-August (harness mode `s13`, `C:\TasOut\nrev12\s13_*`): the base
+     reproduces exactly the 17 misses (6/6/5); the refined grid has 0 misses (worst 0.021 K).
+   - The refined grid alone changes 24 hours and no airflows; removing the cap alone changes 404 airflow
+     hours.
+- **Close-out MG** (`C:\TasOut\nuaire-reply-2026-09-24\03-Iteration3-MG-closeout\`):
+  - COMPLETE, Iteration 3 in 10.6 min; A Fail / B Fail; bias 0.53 K, RMSE 1.413 K.
+  - TM59 differs from the first run only in Bathroom_2 355 -> 353 and Ensuite_5 273 -> 274. DX energy is
+    +0.5-1 %. The annual effect is immaterial.
+  - Read-back:
+    - law exact in 1033/1033, 970/970 and 964/964 full-flow hours;
+    - exchanger state exact in 1033/1033, 970/970 and 964/964;
+    - part-flow law 482/552 for MVHR-01 (was 377/577);
+    - 0 hours cooled below 13 C by the coil; 6 bypass hours below 13 C (coil entering already below);
+    - supply = extract within 0.03 l/s.
+  - Known representation artefact, in BOTH runs: hours where the room hovers at the stat band edge show
+    hour-average airflow between design and 80 l/s with the DX partly on (MVHR-01: 447 DX hours at an
+    average below 60 l/s; MVHR-02/03: about 220 DX hours near design airflow). This is the hourly average
+    of on/off cycling inside a 0.1 K proportional band, not DX running continuously at low airflow.
+  - Tests after the close-out: TM59 942/942, SAM_Systems 256/256, WPF 1031/1031, SAM 2250/2250
+    (unchanged). All builds 0 errors.
+- **PR review fixes (Codex review on the four PRs, after the close-out MG).**
+  - Bypass minimums are now INCLUSIVE, as Nuaire states them (to >= 12, extract >= 19, extract > to strict), in
+    SAM `ExchangerBypassed`, the TAS recipe and the read-back. The TAS table carries each minimum on the grid
+    with a 0.01 K step just below it.
+  - The TAS extract axis continues coarsely beyond 45 C (50/60/80/100), so a hot extract keeps the exact state
+    for any intake below 45 C. An intake above 45 C is held at the edge and documented; the DSY1 2050s peak is
+    40.3 C.
+  - The read-back summary formats a rule without a minimum as unfloored.
+  - Each of SAM_Systems, SAM_Tas and SAM_UI now has its own `PROJECT_PROGRESS.md` entry.
+  - Tests: SAM 2252, SAM_Systems 256, TM59 944, WPF 1031.
+  - By owner decision there was no further annual MG. The inclusive threshold affects only hours at exactly
+    12.0 C intake or 19.0 C extract (159 unit-hours at 12.0 C in the MG weather, background hours, so TM59
+    >26 C counts are unaffected). No MG extract exceeded 45 C (max 37.8 C).
+- B0 was NOT rerun. No code reachable from the B0/B4 routes changed: only the guidance grounding, the
+  room-stat strategy and the MG note.
+
+**Install state on this machine.** `Documents\SAM\resources\...\VentilationUnitCatalogue.JSON` is now the
+feature-branch catalogue: a SAM_Systems `dotnet test` build copies resources there. The merged v3 copy is at
+`C:\TasOut\nuaire-reply-2026-09-24\catalogue-backup\v3-sow-2026-Q3-df5dd332.json`. `SAM_UI\build` holds
+feature-branch binaries.
+
+**Residual uncertainties (manufacturer).**
+- The exact 13 C semantics near 19-21 C.
+- Recovery fraction at background airflows at or above 60 l/s (MVHR-02/03 run at 63 l/s but keep 0.8).
+- The 125 l/s upper figure (from memory).
+- No DX total-duty rating is published, so the DX has no manufacturer capacity limit in the model.
+- The flat-duct 90 l/s limit is a project ducting fact, not enforced; the refusal is at 120.
+- The DX and fan share one proportional stat (0.1 K band). Truly simultaneous on/off switching of cooling
+  and speed 3 is approximated only in hourly averages.
+
+**Exact next step.** The owner reviews and merges the four PRs in order SAM -> SAM_Systems -> SAM_Tas ->
+SAM_UI. Then delete the branches, bump the SAM_Deploy pointers, and restore or keep the installed catalogue
+as the merged one.
+
+## Previous: SAM#123 manufacturer guidance - Iteration 3 mode "Selected product - manufacturer guidance" (2026-09-24)
 
 **Merged-build acceptance (2026-09-24, later): PASSED. Technically ready to freeze, pending manufacturer
 confirmation.** This is not manufacturer approval or certification. The owner has adopted this

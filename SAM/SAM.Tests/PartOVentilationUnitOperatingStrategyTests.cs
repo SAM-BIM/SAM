@@ -52,8 +52,10 @@ namespace SAM.Tests
         [InlineData(10.0, 22.0, VentilationUnitOperatingMode.HeatCoolthRecovery)] //extract at the setpoint: not cooling
         [InlineData(15.0, 22.0, VentilationUnitOperatingMode.SummerBypass)]
         [InlineData(22.0, 22.0, VentilationUnitOperatingMode.HeatCoolthRecovery)] //extract equals intake: not bypass
-        [InlineData(15.0, 18.0, VentilationUnitOperatingMode.HeatCoolthRecovery)] //extract at the bypass limit
-        [InlineData(12.0, 20.0, VentilationUnitOperatingMode.HeatCoolthRecovery)] //intake at the bypass limit
+        [InlineData(15.0, 18.0, VentilationUnitOperatingMode.SummerBypass)] //extract at the bypass minimum: inclusive
+        [InlineData(15.0, 17.99, VentilationUnitOperatingMode.HeatCoolthRecovery)] //extract below the bypass minimum
+        [InlineData(12.0, 20.0, VentilationUnitOperatingMode.SummerBypass)] //intake at the bypass minimum: inclusive
+        [InlineData(11.99, 20.0, VentilationUnitOperatingMode.HeatCoolthRecovery)] //intake below the bypass minimum
         [InlineData(13.0, 20.0, VentilationUnitOperatingMode.SummerBypass)]
         [InlineData(10.0, 22.1, VentilationUnitOperatingMode.Cooling)]
         [InlineData(30.0, 22.1, VentilationUnitOperatingMode.Cooling)] //cooling does not depend on intake
@@ -111,10 +113,10 @@ namespace SAM.Tests
 
             Assert.Equal(VentilationUnitOperatingMode.SummerBypass, ventilationUnitOperatingStrategy.OperatingMode(15.0, 21.0));
 
-            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(12.0, 21.0)); //intake at the limit
+            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(11.99, 21.0)); //intake below the minimum
             Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(15.0, 15.0)); //extract equal to intake
             Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(15.0, 14.0)); //extract below intake
-            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(17.5, 18.0)); //extract at the limit
+            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(17.5, 17.99)); //extract below the minimum
         }
 
         /// <summary>
@@ -628,8 +630,9 @@ namespace SAM.Tests
             Assert.Equal(VentilationUnitOperatingMode.SummerBypass, ventilationUnitOperatingStrategy.OperatingMode(15.0, 20.0, 21.0));
             Assert.Equal(VentilationUnitOperatingMode.SummerBypass, ventilationUnitOperatingStrategy.OperatingMode(15.0, 20.0, 22.0));
 
-            //The bypass keeps the unit's own extract condition: a warm extract with a cool room recovers.
-            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(15.0, 25.0, 20.0));
+            //The bypass is the unit's own decision, independent of the cooling-stat (Nuaire, 24 Sep 2026): a warm
+            //extract with a cool room bypasses where the bypass conditions hold.
+            Assert.Equal(VentilationUnitOperatingMode.SummerBypass, ventilationUnitOperatingStrategy.OperatingMode(15.0, 25.0, 20.0));
         }
 
         /// <summary>
@@ -696,8 +699,192 @@ namespace SAM.Tests
         }
 
         // =================================================================================================
+        // G. Exchanger, then a coil drop, with a lower limit (Nuaire, 24 Sep 2026)
+        // =================================================================================================
+
+        /// <summary>
+        /// At 90 l/s the rule is the manufacturer's switching formula: coolth recovery at the stated fraction
+        /// then the net coil drop, or bypass then the net coil drop. The interpolated figures are 0.8466 and
+        /// 9.265..7.705 K less 0.3..1.1 K = 7.835 K, which the formula rounds to 7.84 K.
+        /// </summary>
+        [Theory]
+        [InlineData(32.0, 24.5, false)]
+        [InlineData(28.0, 24.0, false)]
+        [InlineData(25.0, 26.0, true)]
+        [InlineData(22.0, 23.0, true)]
+        public void AnExchangerThenCoil_At90Lps_IsTheManufacturerFormula(double intake_C, double extract_C, bool bypassed)
+        {
+            SupplyTemperatureRule supplyTemperatureRule = ExchangerThenCoilRule();
+
+            Assert.Null(supplyTemperatureRule.Refusal());
+            Assert.Equal(0.8466, supplyTemperatureRule.ExchangerExtractFraction(90.0), 1e-9);
+            Assert.Equal(7.835, supplyTemperatureRule.CoilNetTemperatureDrop_K(90.0), 1e-9);
+
+            double expected_C = (bypassed ? intake_C : (0.8466 * extract_C) + (0.1534 * intake_C)) - 7.835;
+            Assert.Equal(expected_C, supplyTemperatureRule.SupplyTemperature(intake_C, extract_C, 90.0, bypassed), tolerance);
+
+            double formula_C = bypassed ? intake_C - 7.84 : (0.8466 * extract_C) + (0.1534 * intake_C) - 7.84;
+            Assert.Equal(formula_C, supplyTemperatureRule.SupplyTemperature(intake_C, extract_C, 90.0, bypassed), 0.006);
+        }
+
+        /// <summary>The stated figures at the stated airflows, and linear between them.</summary>
+        [Theory]
+        [InlineData(60.0, 0.8796, 8.965)]
+        [InlineData(80.0, 0.8576, 8.245)]
+        [InlineData(100.0, 0.8356, 7.425)]
+        [InlineData(120.0, 0.8136, 6.605)]
+        [InlineData(70.0, 0.8686, 8.605)]
+        public void AnExchangerThenCoil_InterpolatesItsFiguresOverAirflow(double airFlowRate_Lps, double extractFraction, double netDrop_K)
+        {
+            SupplyTemperatureRule supplyTemperatureRule = ExchangerThenCoilRule();
+
+            Assert.Equal(extractFraction, supplyTemperatureRule.ExchangerExtractFraction(airFlowRate_Lps), 1e-9);
+            Assert.Equal(netDrop_K, supplyTemperatureRule.CoilNetTemperatureDrop_K(airFlowRate_Lps), 1e-9);
+            Assert.Null(supplyTemperatureRule.AirFlowDomainCondition(airFlowRate_Lps));
+        }
+
+        /// <summary>
+        /// The limit bounds what the coil produces, at the boundary exactly: just above the kink the full drop
+        /// applies, at and below it the coil delivers the limit, and air that already leaves the exchanger at or
+        /// below the limit passes through - a coil does not heat.
+        /// </summary>
+        [Theory]
+        [InlineData(21.345, 13.1)]
+        [InlineData(21.245, 13.0)]
+        [InlineData(20.0, 13.0)]
+        [InlineData(13.0, 13.0)]
+        [InlineData(12.5, 12.5)]
+        public void AnExchangerThenCoil_NeverCoolsBelowTheLimit_AndNeverHeats(double exchangerLeaving_C, double expected_C)
+        {
+            //Bypassed, so the exchanger leaving temperature is the intake temperature.
+            Assert.Equal(expected_C, ExchangerThenCoilRule().SupplyTemperature(exchangerLeaving_C, 30.0, 80.0, true), tolerance);
+        }
+
+        /// <summary>
+        /// Outside the stated 60-120 l/s nothing is invented: the default refuses, and the use is reported. The
+        /// table-free call answers nothing, because the answer depends on the exchanger state.
+        /// </summary>
+        [Fact]
+        public void AnExchangerThenCoil_RefusesOutsideItsAirflows_AndNeedsTheExchangerState()
+        {
+            SupplyTemperatureRule supplyTemperatureRule = ExchangerThenCoilRule();
+
+            Assert.Equal(PerformanceDomainPolicy.Refuse, supplyTemperatureRule.PerformanceDomainPolicy);
+            Assert.True(double.IsNaN(supplyTemperatureRule.SupplyTemperature(30.0, 24.0, 59.9, false)));
+            Assert.True(double.IsNaN(supplyTemperatureRule.SupplyTemperature(30.0, 24.0, 120.1, false)));
+            Assert.NotNull(supplyTemperatureRule.AirFlowDomainCondition(59.9));
+            Assert.NotNull(supplyTemperatureRule.AirFlowDomainCondition(120.1));
+            Assert.False(double.IsNaN(supplyTemperatureRule.SupplyTemperature(30.0, 24.0, 60.0, false)));
+            Assert.False(double.IsNaN(supplyTemperatureRule.SupplyTemperature(30.0, 24.0, 120.0, false)));
+
+            Assert.True(double.IsNaN(supplyTemperatureRule.SupplyTemperature(30.0, 24.0, 80.0)));
+        }
+
+        /// <summary>A mistranscribed exchanger and coil table is refused, never repaired.</summary>
+        [Theory]
+        [InlineData(new double[] { 60.0, 80.0 }, new double[] { 0.88 }, new double[] { 9.0, 8.7 }, new double[] { 0.3, 0.5 })]
+        [InlineData(new double[] { 80.0, 60.0 }, new double[] { 0.88, 0.86 }, new double[] { 9.0, 8.7 }, new double[] { 0.3, 0.5 })]
+        [InlineData(new double[] { 60.0, 80.0 }, new double[] { 1.2, 0.86 }, new double[] { 9.0, 8.7 }, new double[] { 0.3, 0.5 })]
+        [InlineData(new double[] { 60.0, 80.0 }, new double[] { 0.88, 0.86 }, new double[] { 0.2, 8.7 }, new double[] { 0.3, 0.5 })]
+        [InlineData(new double[] { 60.0, 80.0 }, new double[] { 0.88, 0.86 }, new double[] { 9.0, 8.7 }, new double[] { -0.1, 0.5 })]
+        public void AMistranscribedExchangerThenCoil_Refuses(double[] airFlowRates_Lps, double[] extractFractions, double[] coilDrops_K, double[] fanRises_K)
+        {
+            SupplyTemperatureRule supplyTemperatureRule = SupplyTemperatureRule.ExchangerThenCoil(airFlowRates_Lps, extractFractions, coilDrops_K, fanRises_K, 13.0);
+
+            Assert.NotNull(supplyTemperatureRule.Refusal());
+            Assert.True(double.IsNaN(supplyTemperatureRule.SupplyTemperature(30.0, 24.0, 70.0, false)));
+        }
+
+        /// <summary>The exchanger and coil table survives a JSON round trip, with its limit and policy.</summary>
+        [Fact]
+        public void AnExchangerThenCoil_SurvivesARoundTrip()
+        {
+            SupplyTemperatureRule supplyTemperatureRule = new(ExchangerThenCoilRule().ToJsonObject());
+
+            Assert.Equal(SupplyTemperatureRuleType.ExchangerThenCoil, supplyTemperatureRule.SupplyTemperatureRuleType);
+            Assert.Equal(new[] { 60.0, 80.0, 100.0, 120.0 }, supplyTemperatureRule.AirFlowRates_Lps);
+            Assert.Equal(new[] { 0.8796, 0.8576, 0.8356, 0.8136 }, supplyTemperatureRule.ExtractFractions);
+            Assert.Equal(new[] { 9.265, 8.745, 8.225, 7.705 }, supplyTemperatureRule.CoilTemperatureDrops_K);
+            Assert.Equal(new[] { 0.3, 0.5, 0.8, 1.1 }, supplyTemperatureRule.FanTemperatureRises_K);
+            Assert.Equal(13.0, supplyTemperatureRule.MinimumSupplyTemperature_C);
+            Assert.Equal(PerformanceDomainPolicy.Refuse, supplyTemperatureRule.PerformanceDomainPolicy);
+            Assert.Null(supplyTemperatureRule.Refusal());
+        }
+
+        /// <summary>The bypass decision alone: inclusive at both minimums, strict on extract above intake.</summary>
+        [Theory]
+        [InlineData(11.99, 20.0, false)]
+        [InlineData(12.0, 20.0, true)]
+        [InlineData(15.0, 17.99, false)]
+        [InlineData(15.0, 18.0, true)]
+        [InlineData(20.0, 20.0, false)]
+        [InlineData(26.0, 24.0, false)]
+        public void TheExchangerBypass_IsItsStatedConditionsAlone(double intake_C, double extract_C, bool expected)
+        {
+            Assert.Equal(expected, Strategy().ExchangerBypassed(intake_C, extract_C));
+        }
+
+        /// <summary>
+        /// A room-stat strategy with an exchanger-then-coil cooling rule hands the coil what the exchanger's own
+        /// state delivers: coolth recovery when the intake is warmer than the extract, bypass when the bypass
+        /// conditions hold, recovery below the bypass intake limit - then the drop, never below the limit.
+        /// </summary>
+        [Theory]
+        [InlineData(30.0, 24.0, (0.8576 * 24.0) + (0.1424 * 30.0) - 8.245)]
+        [InlineData(24.0, 25.0, 24.0 - 8.245)]
+        [InlineData(20.0, 23.0, 13.0)]
+        [InlineData(10.0, 23.0, 13.0)]
+        public void ARoomStatExchangerThenCoilStrategy_CoolsWhatTheExchangerDelivers(double intake_C, double extract_C, double expected_C)
+        {
+            VentilationUnitOperatingStrategy ventilationUnitOperatingStrategy = Strategy();
+            ventilationUnitOperatingStrategy.CoolingActivationSignal = CoolingActivationSignal.RoomTemperature;
+            ventilationUnitOperatingStrategy.MinimumElevatedAirFlow_Lps = 60.0;
+            ventilationUnitOperatingStrategy.MaximumElevatedAirFlow_Lps = 120.0;
+            ventilationUnitOperatingStrategy.CoolingSupplyTemperatureRule = ExchangerThenCoilRule();
+
+            double supply_C = ventilationUnitOperatingStrategy.SupplyTemperature(intake_C, extract_C, 23.0, 30.0, null, out VentilationUnitOperatingMode mode, out double flow_Lps);
+
+            Assert.Equal(VentilationUnitOperatingMode.Cooling, mode);
+            Assert.Equal(80.0, flow_Lps, tolerance);
+            Assert.Equal(expected_C, supply_C, tolerance);
+        }
+
+        /// <summary>
+        /// A stated default elevated airflow is a catalogue figure: it round-trips, is held to the stated range,
+        /// and does not resolve the strategy - a dwelling's own figure is still what resolves it.
+        /// </summary>
+        [Fact]
+        public void ADefaultElevatedAirflow_RoundTrips_IsHeldToTheRange_AndDoesNotResolve()
+        {
+            VentilationUnitOperatingStrategy ventilationUnitOperatingStrategy = Strategy();
+            ventilationUnitOperatingStrategy.ElevatedAirFlow_Lps = double.NaN;
+            ventilationUnitOperatingStrategy.DefaultElevatedAirFlow_Lps = 80.0;
+
+            Assert.Null(ventilationUnitOperatingStrategy.TemplateRefusal());
+            Assert.False(ventilationUnitOperatingStrategy.IsResolved);
+            Assert.Equal(80.0, new VentilationUnitOperatingStrategy(ventilationUnitOperatingStrategy.ToJsonObject()).DefaultElevatedAirFlow_Lps);
+            Assert.Equal(80.0, new VentilationUnitOperatingStrategy(ventilationUnitOperatingStrategy).DefaultElevatedAirFlow_Lps);
+
+            ventilationUnitOperatingStrategy.DefaultElevatedAirFlow_Lps = 95.0;
+            Assert.NotNull(ventilationUnitOperatingStrategy.TemplateRefusal());
+
+            ventilationUnitOperatingStrategy.DefaultElevatedAirFlow_Lps = 0.0;
+            Assert.NotNull(ventilationUnitOperatingStrategy.TemplateRefusal());
+        }
+
+        // =================================================================================================
         // Fixtures
         // =================================================================================================
+
+        /// <summary>
+        /// A fixture exchanger-then-coil rule with the figures of the Nuaire reply of 24 Sep 2026: extract fraction
+        /// 87.96 / 85.76 / 83.56 / 81.36 %, coil drop 9.265 / 8.745 / 8.225 / 7.705 K and fan rise 0.3 / 0.5 / 0.8 /
+        /// 1.1 K at 60 / 80 / 100 / 120 l/s, 13 &#176;C limit, refusing outside.
+        /// </summary>
+        private static SupplyTemperatureRule ExchangerThenCoilRule()
+        {
+            return SupplyTemperatureRule.ExchangerThenCoil([60.0, 80.0, 100.0, 120.0], [0.8796, 0.8576, 0.8356, 0.8136], [9.265, 8.745, 8.225, 7.705], [0.3, 0.5, 0.8, 1.1], 13.0);
+        }
 
         /// <summary>A fixture intake-offset rule: 15 / 14 / 13 K at 70 / 80 / 90 l/s, no floor, refusing outside.</summary>
         private static SupplyTemperatureRule IntakeOffsetRule()
