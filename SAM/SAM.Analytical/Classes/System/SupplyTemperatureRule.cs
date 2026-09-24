@@ -45,6 +45,8 @@ namespace SAM.Analytical
         private double minimumSupplyTemperature_C = double.NaN;
         private PerformanceDomainPolicy performanceDomainPolicy = PerformanceDomainPolicy.ClampToDomain;
         private bool performanceDomainPolicy_Refused = false;
+        private double[] airFlowRates_Lps = null;
+        private double[] intakeOffsets_K = null;
 
         public SupplyTemperatureRule()
         {
@@ -96,6 +98,34 @@ namespace SAM.Analytical
             };
         }
 
+        /// <summary>
+        /// The rule for a mode that delivers intake air less an offset stated per airflow -
+        /// <c>intake - X(airflow)</c> - with X interpolated linearly between the stated airflows.
+        /// </summary>
+        /// <param name="airFlowRates_Lps">The airflows [l/s] at which the offset is stated, strictly increasing.</param>
+        /// <param name="intakeOffsets_K">The offset X [K] at each of those airflows; positive cools.</param>
+        /// <param name="minimumSupplyTemperature_C">
+        /// The lowest supply temperature [&#176;C] the guidance allows, or <see cref="double.NaN"/> where it
+        /// states none.
+        /// </param>
+        /// <param name="performanceDomainPolicy">
+        /// What the lookup does at an airflow outside the stated ones. Defaults to
+        /// <see cref="PerformanceDomainPolicy.Refuse"/>: an offset nobody stated is not a figure to hold at
+        /// the nearest edge without saying so. Whichever policy applies, the use is reportable through
+        /// <see cref="AirFlowDomainCondition(double)"/>.
+        /// </param>
+        public static SupplyTemperatureRule IntakeOffset(double[] airFlowRates_Lps, double[] intakeOffsets_K, double minimumSupplyTemperature_C = double.NaN, PerformanceDomainPolicy performanceDomainPolicy = PerformanceDomainPolicy.Refuse)
+        {
+            return new SupplyTemperatureRule
+            {
+                supplyTemperatureRuleType = SupplyTemperatureRuleType.IntakeOffset,
+                airFlowRates_Lps = airFlowRates_Lps?.Clone() as double[],
+                intakeOffsets_K = intakeOffsets_K?.Clone() as double[],
+                minimumSupplyTemperature_C = minimumSupplyTemperature_C,
+                performanceDomainPolicy = performanceDomainPolicy,
+            };
+        }
+
         public SupplyTemperatureRule(SupplyTemperatureRule supplyTemperatureRule)
         {
             if (supplyTemperatureRule is not null)
@@ -105,6 +135,8 @@ namespace SAM.Analytical
                 minimumSupplyTemperature_C = supplyTemperatureRule.minimumSupplyTemperature_C;
                 performanceDomainPolicy = supplyTemperatureRule.performanceDomainPolicy;
                 performanceDomainPolicy_Refused = supplyTemperatureRule.performanceDomainPolicy_Refused;
+                airFlowRates_Lps = supplyTemperatureRule.airFlowRates_Lps?.Clone() as double[];
+                intakeOffsets_K = supplyTemperatureRule.intakeOffsets_K?.Clone() as double[];
             }
         }
 
@@ -144,6 +176,30 @@ namespace SAM.Analytical
             get
             {
                 return minimumSupplyTemperature_C;
+            }
+        }
+
+        /// <summary>
+        /// The airflows [l/s] at which an <see cref="SupplyTemperatureRuleType.IntakeOffset"/> rule states
+        /// its offset; null otherwise. A copy - the rule cannot be edited through it.
+        /// </summary>
+        public double[] AirFlowRates_Lps
+        {
+            get
+            {
+                return airFlowRates_Lps?.Clone() as double[];
+            }
+        }
+
+        /// <summary>
+        /// The offset X [K] at each of <see cref="AirFlowRates_Lps"/>, for an
+        /// <see cref="SupplyTemperatureRuleType.IntakeOffset"/> rule; null otherwise. A copy.
+        /// </summary>
+        public double[] IntakeOffsets_K
+        {
+            get
+            {
+                return intakeOffsets_K?.Clone() as double[];
             }
         }
 
@@ -193,6 +249,15 @@ namespace SAM.Analytical
                     break;
 
                 case SupplyTemperatureRuleType.PerformanceTable:
+                    break;
+
+                case SupplyTemperatureRuleType.IntakeOffset:
+                    string refusal_Offset = IntakeOffsetRefusal();
+                    if (refusal_Offset is not null)
+                    {
+                        return refusal_Offset;
+                    }
+
                     break;
 
                 default:
@@ -254,6 +319,16 @@ namespace SAM.Analytical
 
                     break;
 
+                case SupplyTemperatureRuleType.IntakeOffset:
+                    double intakeOffset_K = IntakeOffset_K(airFlowRate_Lps);
+                    if (!IsFinite(intakeOffset_K))
+                    {
+                        return double.NaN;
+                    }
+
+                    result = intakeTemperature_C - intakeOffset_K;
+                    break;
+
                 default:
                     return double.NaN;
             }
@@ -267,6 +342,110 @@ namespace SAM.Analytical
             //published cell: the published table stays exactly what the manufacturer printed, and a limit
             //its guidance states is applied by the guidance route that states it.
             return double.IsNaN(minimumSupplyTemperature_C) ? result : System.Math.Max(result, minimumSupplyTemperature_C);
+        }
+
+        /// <summary>
+        /// The offset X [K] an <see cref="SupplyTemperatureRuleType.IntakeOffset"/> rule applies at an
+        /// airflow: linear between the stated airflows; outside them held at the nearest stated one under
+        /// <see cref="PerformanceDomainPolicy.ClampToDomain"/> and <see cref="double.NaN"/> under
+        /// <see cref="PerformanceDomainPolicy.Refuse"/>. <see cref="double.NaN"/> for any other rule or a
+        /// rule that refuses.
+        /// </summary>
+        public double IntakeOffset_K(double airFlowRate_Lps)
+        {
+            if (supplyTemperatureRuleType != SupplyTemperatureRuleType.IntakeOffset || Refusal() is not null || !IsFinite(airFlowRate_Lps))
+            {
+                return double.NaN;
+            }
+
+            int count = airFlowRates_Lps.Length;
+
+            if (airFlowRate_Lps < airFlowRates_Lps[0] || airFlowRate_Lps > airFlowRates_Lps[count - 1])
+            {
+                if (performanceDomainPolicy != PerformanceDomainPolicy.ClampToDomain)
+                {
+                    return double.NaN;
+                }
+
+                return airFlowRate_Lps < airFlowRates_Lps[0] ? intakeOffsets_K[0] : intakeOffsets_K[count - 1];
+            }
+
+            for (int i = 0; i < count - 1; i++)
+            {
+                if (airFlowRate_Lps <= airFlowRates_Lps[i + 1])
+                {
+                    double fraction = (airFlowRate_Lps - airFlowRates_Lps[i]) / (airFlowRates_Lps[i + 1] - airFlowRates_Lps[i]);
+                    return intakeOffsets_K[i] + (fraction * (intakeOffsets_K[i + 1] - intakeOffsets_K[i]));
+                }
+            }
+
+            return intakeOffsets_K[count - 1];
+        }
+
+        /// <summary>
+        /// Why an airflow is outside what an <see cref="SupplyTemperatureRuleType.IntakeOffset"/> rule
+        /// states, in words, or null where the offset at that airflow is stated or interpolated between
+        /// stated airflows (and for every other rule type).
+        /// <para>
+        /// Reported whatever the <see cref="PerformanceDomainPolicy"/>: clamping answers "what number", not
+        /// "was that number stated".
+        /// </para>
+        /// </summary>
+        public string AirFlowDomainCondition(double airFlowRate_Lps)
+        {
+            if (supplyTemperatureRuleType != SupplyTemperatureRuleType.IntakeOffset || IntakeOffsetRefusal() is not null)
+            {
+                return null;
+            }
+
+            if (!IsFinite(airFlowRate_Lps))
+            {
+                return "the airflow is not a finite number.";
+            }
+
+            double minimum = airFlowRates_Lps[0];
+            double maximum = airFlowRates_Lps[airFlowRates_Lps.Length - 1];
+
+            if (airFlowRate_Lps >= minimum && airFlowRate_Lps <= maximum)
+            {
+                return null;
+            }
+
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "{0:0.###} l/s is outside the {1:0.###} to {2:0.###} l/s at which the intake offset is stated ({3}).",
+                airFlowRate_Lps,
+                minimum,
+                maximum,
+                performanceDomainPolicy == PerformanceDomainPolicy.ClampToDomain ? "held at the nearest stated offset" : "no offset is given");
+        }
+
+        private string IntakeOffsetRefusal()
+        {
+            if (airFlowRates_Lps is null || intakeOffsets_K is null || airFlowRates_Lps.Length == 0)
+            {
+                return "states an intake offset without stating the airflows and offsets it applies at.";
+            }
+
+            if (airFlowRates_Lps.Length != intakeOffsets_K.Length)
+            {
+                return string.Format("states {0} airflow(s) but {1} intake offset(s).", airFlowRates_Lps.Length, intakeOffsets_K.Length);
+            }
+
+            for (int i = 0; i < airFlowRates_Lps.Length; i++)
+            {
+                if (!IsFinite(airFlowRates_Lps[i]) || airFlowRates_Lps[i] <= 0 || !IsFinite(intakeOffsets_K[i]))
+                {
+                    return "states an intake offset airflow or offset that is not a finite number, or an airflow that is not positive.";
+                }
+
+                if (i > 0 && airFlowRates_Lps[i] <= airFlowRates_Lps[i - 1])
+                {
+                    return "states intake offset airflows that are not strictly increasing.";
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -321,6 +500,21 @@ namespace SAM.Analytical
                     result = string.Format("published table ({0} outside)", performanceDomainPolicy);
                     break;
 
+                case SupplyTemperatureRuleType.IntakeOffset:
+                    if (IntakeOffsetRefusal() is not null)
+                    {
+                        return "Invalid SupplyTemperatureRule";
+                    }
+
+                    string[] points = new string[airFlowRates_Lps.Length];
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        points[i] = string.Format(CultureInfo.InvariantCulture, "{0:0.###}:{1:0.###}", airFlowRates_Lps[i], intakeOffsets_K[i]);
+                    }
+
+                    result = string.Format("intake - X(l/s:K {0}; {1} outside)", string.Join(" ", points), performanceDomainPolicy);
+                    break;
+
                 default:
                     return "Invalid SupplyTemperatureRule";
             }
@@ -340,6 +534,8 @@ namespace SAM.Analytical
             supplyTemperatureRuleType = Core.Query.Enum<SupplyTemperatureRuleType>(PerformanceJson.Text(jsonObject, "SupplyTemperatureRuleType"));
             extractFraction = PerformanceJson.Value(jsonObject, "ExtractFraction");
             minimumSupplyTemperature_C = PerformanceJson.Value(jsonObject, "MinimumSupplyTemperature_C");
+            airFlowRates_Lps = PerformanceJson.Values(jsonObject, "AirFlowRates_Lps");
+            intakeOffsets_K = PerformanceJson.Values(jsonObject, "IntakeOffsets_K");
 
             //Absent reads as ClampToDomain, which is what a published table asked about conditions outside
             //its grid already does on the accepted cooling route. PRESENT but not one of the names is
@@ -377,6 +573,8 @@ namespace SAM.Analytical
 
             PerformanceJson.SetValue(result, "ExtractFraction", extractFraction);
             PerformanceJson.SetValue(result, "MinimumSupplyTemperature_C", minimumSupplyTemperature_C);
+            PerformanceJson.SetValues(result, "AirFlowRates_Lps", airFlowRates_Lps);
+            PerformanceJson.SetValues(result, "IntakeOffsets_K", intakeOffsets_K);
 
             result["PerformanceDomainPolicy"] = performanceDomainPolicy.ToString();
 

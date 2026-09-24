@@ -14,7 +14,46 @@ successor tracker, and the human closure decision).
 
 `sow/2026-Q3` (at `86213eb3`, including the SAM#126/#127 .NET Framework cleanup) was merged into this branch on 2026-09-22 to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept below.
 
-## Current: SAM#123 - manufacturer operating-strategy vocabulary (Nuaire guidance track, 2026-09-18)
+## Current: SAM#125 revision - intake-offset cooling rule and room cooling-stat signal (2026-09-24)
+
+**Why.** Stage 9-11 of the TAS-native Nuaire investigation changed two assumptions:
+- Nuaire's current cooling rule is `to - X(Q)`, with no floor, per the 13 Aug 2025 email. The old vocabulary
+  could not express it.
+- Cooling is switched by a wall-mounted **room** cooling-stat, while bypass/recovery use the unit's extract
+  sensor.
+
+The Stage 11 TAS prototype passed and proves the whole strategy natively. Its report is at
+`C:\TasOut\nuaire-guidance\REVIEW2\resume-2026-09-23\evidence\stage11\STAGE11-REPORT.md`, and the summary is on
+`docs/parto-regression-run-2026-09-23`. All values are provisional manufacturer guidance until Nuaire confirms.
+
+**What changed (on this branch).**
+- `SupplyTemperatureRuleType.IntakeOffset` and `SupplyTemperatureRule.IntakeOffset(airflows, offsets, min = NaN,
+  policy = Refuse)`:
+  - `SupplyTemperature = intake - X(Q)`, with X linear between the stated airflows.
+  - Outside them the policy decides: `Refuse` (the default) gives NaN, `ClampToDomain` holds the edge value.
+  - `AirFlowDomainCondition(Q)` reports out-of-domain use whatever the policy.
+  - `IntakeOffset_K(Q)` exposes X.
+  - JSON keys `AirFlowRates_Lps` / `IntakeOffsets_K`.
+- `Enums.CoolingActivationSignal { Undefined, ExtractTemperature, RoomTemperature }` and
+  `VentilationUnitOperatingStrategy.CoolingActivationSignal`:
+  - The default is `ExtractTemperature`, so existing behaviour is unchanged.
+  - New `OperatingMode(intake, extract, room)` and a `SupplyTemperature(..., room, ...)` overload.
+  - A room-stat strategy called without a room temperature selects `Undefined`; it is never quietly evaluated
+    on the extract.
+  - JSON: an absent signal reads as extract; an unknown name refuses.
+- Tests: 12 new cases in `SAM.Tests/PartOVentilationUnitOperatingStrategyTests.cs` (section F).
+
+**Validation.** `dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release`: 2218 passed, 0 failed.
+`dotnet build SAM.sln -c Release`: 0 errors.
+
+**Not done here (intentionally).** The `PerformanceTable` default stays `ClampToDomain`, because the B4 path
+uses it. The `EnteringDryBulbTemperature` axis name is unchanged.
+
+**Next step.** SAM_Systems#25: set the Nuaire entry's cooling rule to `IntakeOffset` 70/80/90/100/110 ->
+15/14.5/14/13.5/13 K, with no floor, room-stat activation, and the source citing 13 Aug 2025. Then SAM_Tas
+grounding, then the SAM_UI mode.
+
+## Previous: SAM#123 - manufacturer operating-strategy vocabulary (Nuaire guidance track, 2026-09-18)
 
 **What this entry is.** Direct manufacturer modelling guidance for the Nuaire `MRXBOXAB-ECO5-AECV` /
 `MR-ECO-COOL-V` hybrid cooling unit was received on 2026-09-18 and supersedes

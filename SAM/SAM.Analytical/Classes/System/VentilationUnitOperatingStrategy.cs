@@ -62,6 +62,7 @@ namespace SAM.Analytical
             {
                 Source = ventilationUnitOperatingStrategy.Source;
                 CoolingActivationTemperature_C = ventilationUnitOperatingStrategy.CoolingActivationTemperature_C;
+                CoolingActivationSignal = ventilationUnitOperatingStrategy.CoolingActivationSignal;
                 MinimumCoolingActivationTemperature_C = ventilationUnitOperatingStrategy.MinimumCoolingActivationTemperature_C;
                 MaximumCoolingActivationTemperature_C = ventilationUnitOperatingStrategy.MaximumCoolingActivationTemperature_C;
                 BypassMinimumIntakeTemperature_C = ventilationUnitOperatingStrategy.BypassMinimumIntakeTemperature_C;
@@ -116,6 +117,14 @@ namespace SAM.Analytical
         /// recovers instead: bypassing cold intake air would deliver it into the dwelling unrecovered.
         /// </summary>
         public double BypassMinimumIntakeTemperature_C { get; set; } = double.NaN;
+
+        /// <summary>
+        /// Which temperature is compared with <see cref="CoolingActivationTemperature_C"/> to switch cooling
+        /// on. Defaults to <see cref="Enums.CoolingActivationSignal.ExtractTemperature"/>, the one signal a
+        /// strategy that states none has always used. Bypass and recovery stay on the extract whatever this
+        /// says - see <see cref="Enums.CoolingActivationSignal"/>.
+        /// </summary>
+        public CoolingActivationSignal CoolingActivationSignal { get; set; } = CoolingActivationSignal.ExtractTemperature;
 
         /// <summary>
         /// The extract-air temperature [&#176;C] the bypass requires to be exceeded. At or below it the
@@ -209,12 +218,40 @@ namespace SAM.Analytical
         /// </returns>
         public VentilationUnitOperatingMode OperatingMode(double intakeTemperature_C, double extractTemperature_C)
         {
+            //A strategy switched by a room stat is never quietly evaluated on the extract instead.
+            if (CoolingActivationSignal != CoolingActivationSignal.ExtractTemperature)
+            {
+                return VentilationUnitOperatingMode.Undefined;
+            }
+
+            return OperatingMode(intakeTemperature_C, extractTemperature_C, double.NaN);
+        }
+
+        /// <summary>
+        /// Which mode the manufacturer's control logic selects, for one hour's intake, extract and room air
+        /// temperatures. Identical to <see cref="OperatingMode(double, double)"/> except that the cooling test
+        /// reads the temperature <see cref="CoolingActivationSignal"/> names.
+        /// </summary>
+        /// <param name="intakeTemperature_C">The outdoor / intake air temperature [&#176;C] at the unit.</param>
+        /// <param name="extractTemperature_C">The extract / return air temperature [&#176;C] at the unit.</param>
+        /// <param name="roomTemperature_C">
+        /// The air temperature [&#176;C] of the room hosting the cooling-stat. Required only when the signal is
+        /// <see cref="Enums.CoolingActivationSignal.RoomTemperature"/>.
+        /// </param>
+        public VentilationUnitOperatingMode OperatingMode(double intakeTemperature_C, double extractTemperature_C, double roomTemperature_C)
+        {
             if (Refusal() is not null || !IsFinite(intakeTemperature_C) || !IsFinite(extractTemperature_C))
             {
                 return VentilationUnitOperatingMode.Undefined;
             }
 
-            if (extractTemperature_C > CoolingActivationTemperature_C)
+            double activationTemperature_C = CoolingActivationSignal == CoolingActivationSignal.RoomTemperature ? roomTemperature_C : extractTemperature_C;
+            if (!IsFinite(activationTemperature_C))
+            {
+                return VentilationUnitOperatingMode.Undefined;
+            }
+
+            if (activationTemperature_C > CoolingActivationTemperature_C)
             {
                 return VentilationUnitOperatingMode.Cooling;
             }
@@ -299,7 +336,25 @@ namespace SAM.Analytical
             out VentilationUnitOperatingMode ventilationUnitOperatingMode,
             out double operatingAirFlowRate_Lps)
         {
-            ventilationUnitOperatingMode = OperatingMode(intakeTemperature_C, extractTemperature_C);
+            return SupplyTemperature(intakeTemperature_C, extractTemperature_C, double.NaN, designAirFlowRate_Lps, ventilationUnitPerformanceTable, out ventilationUnitOperatingMode, out operatingAirFlowRate_Lps);
+        }
+
+        /// <summary>
+        /// As <see cref="SupplyTemperature(double, double, double, VentilationUnitPerformanceTable, out VentilationUnitOperatingMode, out double)"/>,
+        /// with the room temperature a room-stat strategy switches cooling on.
+        /// </summary>
+        public double SupplyTemperature(
+            double intakeTemperature_C,
+            double extractTemperature_C,
+            double roomTemperature_C,
+            double designAirFlowRate_Lps,
+            VentilationUnitPerformanceTable ventilationUnitPerformanceTable,
+            out VentilationUnitOperatingMode ventilationUnitOperatingMode,
+            out double operatingAirFlowRate_Lps)
+        {
+            ventilationUnitOperatingMode = IsFinite(roomTemperature_C) || CoolingActivationSignal == CoolingActivationSignal.RoomTemperature
+                ? OperatingMode(intakeTemperature_C, extractTemperature_C, roomTemperature_C)
+                : OperatingMode(intakeTemperature_C, extractTemperature_C);
             operatingAirFlowRate_Lps = OperatingAirFlowRate_Lps(ventilationUnitOperatingMode, designAirFlowRate_Lps);
 
             SupplyTemperatureRule supplyTemperatureRule = SupplyTemperatureRule(ventilationUnitOperatingMode);
@@ -347,6 +402,11 @@ namespace SAM.Analytical
             if (string.IsNullOrWhiteSpace(Source))
             {
                 return "states no source, so its control logic cannot be traced to a manufacturer's own guidance.";
+            }
+
+            if (CoolingActivationSignal != CoolingActivationSignal.ExtractTemperature && CoolingActivationSignal != CoolingActivationSignal.RoomTemperature)
+            {
+                return "states a cooling activation signal that is not one of the stated names.";
             }
 
             foreach ((string name, double value) in new[]
@@ -453,7 +513,7 @@ namespace SAM.Analytical
                 ? "Invalid VentilationUnitOperatingStrategy"
                 : string.Format(
                     CultureInfo.InvariantCulture,
-                    "cooling above {0:0.###} degC at {1}; bypass above {2:0.###} degC intake and {3:0.###} degC extract; otherwise recovery",
+                    "cooling above {0:0.###} degC " + (CoolingActivationSignal == CoolingActivationSignal.RoomTemperature ? "room" : "extract") + " at {1}; bypass above {2:0.###} degC intake and {3:0.###} degC extract; otherwise recovery",
                     CoolingActivationTemperature_C,
                     IsResolved ? string.Format(CultureInfo.InvariantCulture, "{0:0.###} l/s", ElevatedAirFlow_Lps) : "an elevated airflow nobody has resolved",
                     BypassMinimumIntakeTemperature_C,
@@ -469,6 +529,11 @@ namespace SAM.Analytical
 
             Source = PerformanceJson.Text(jsonObject, "Source");
             CoolingActivationTemperature_C = PerformanceJson.Value(jsonObject, "CoolingActivationTemperature_C");
+
+            //Absent reads as the extract, which is what a strategy stating no signal has always meant. Present
+            //but not one of the names is refused rather than quietly read as the extract.
+            string text_Signal = PerformanceJson.Text(jsonObject, "CoolingActivationSignal");
+            CoolingActivationSignal = string.IsNullOrWhiteSpace(text_Signal) ? CoolingActivationSignal.ExtractTemperature : Core.Query.Enum<CoolingActivationSignal>(text_Signal);
             MinimumCoolingActivationTemperature_C = PerformanceJson.Value(jsonObject, "MinimumCoolingActivationTemperature_C");
             MaximumCoolingActivationTemperature_C = PerformanceJson.Value(jsonObject, "MaximumCoolingActivationTemperature_C");
             BypassMinimumIntakeTemperature_C = PerformanceJson.Value(jsonObject, "BypassMinimumIntakeTemperature_C");
@@ -493,6 +558,7 @@ namespace SAM.Analytical
 
             PerformanceJson.SetText(result, "Source", Source);
             PerformanceJson.SetValue(result, "CoolingActivationTemperature_C", CoolingActivationTemperature_C);
+            result["CoolingActivationSignal"] = CoolingActivationSignal.ToString();
             PerformanceJson.SetValue(result, "MinimumCoolingActivationTemperature_C", MinimumCoolingActivationTemperature_C);
             PerformanceJson.SetValue(result, "MaximumCoolingActivationTemperature_C", MaximumCoolingActivationTemperature_C);
             PerformanceJson.SetValue(result, "BypassMinimumIntakeTemperature_C", BypassMinimumIntakeTemperature_C);

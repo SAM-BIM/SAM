@@ -534,8 +534,173 @@ namespace SAM.Tests
         }
 
         // =================================================================================================
+        // F. Intake-offset cooling rule, and a cooling-stat separate from the extract
+        // =================================================================================================
+
+        /// <summary>
+        /// <c>intake - X(airflow)</c> at the stated airflows, linear between them, and applied to the intake
+        /// whatever the extract is - the package supply of a guidance rule that collapses two cooling stages
+        /// into one offset.
+        /// </summary>
+        [Theory]
+        [InlineData(30.0, 70.0, 15.0)]
+        [InlineData(30.0, 80.0, 16.0)]
+        [InlineData(30.0, 75.0, 15.5)]
+        [InlineData(13.0, 90.0, 0.0)]
+        public void AnIntakeOffset_DeliversIntakeLessTheOffsetAtTheAirflow(double intakeTemperature_C, double airFlowRate_Lps, double expected_C)
+        {
+            SupplyTemperatureRule supplyTemperatureRule = IntakeOffsetRule();
+
+            Assert.Null(supplyTemperatureRule.Refusal());
+            Assert.Equal(expected_C, supplyTemperatureRule.SupplyTemperature(intakeTemperature_C, 24.0, airFlowRate_Lps), tolerance);
+            Assert.Equal(expected_C, supplyTemperatureRule.SupplyTemperature(intakeTemperature_C, 35.0, airFlowRate_Lps), tolerance);
+            Assert.Null(supplyTemperatureRule.AirFlowDomainCondition(airFlowRate_Lps));
+        }
+
+        /// <summary>
+        /// Outside the stated airflows the default answers nothing; a rule that states clamping holds the
+        /// nearest offset - and in both cases the use is reported, because clamping says what number, not
+        /// that the number was stated.
+        /// </summary>
+        [Fact]
+        public void OutsideTheStatedAirflows_TheOffsetRefusesOrHolds_AndIsAlwaysReported()
+        {
+            SupplyTemperatureRule supplyTemperatureRule_Refuse = IntakeOffsetRule();
+            SupplyTemperatureRule supplyTemperatureRule_Clamp = SupplyTemperatureRule.IntakeOffset([70.0, 80.0, 90.0], [15.0, 14.0, 13.0], double.NaN, PerformanceDomainPolicy.ClampToDomain);
+
+            Assert.Equal(PerformanceDomainPolicy.Refuse, supplyTemperatureRule_Refuse.PerformanceDomainPolicy);
+            Assert.True(double.IsNaN(supplyTemperatureRule_Refuse.SupplyTemperature(30.0, 24.0, 30.0)));
+            Assert.Equal(15.0, supplyTemperatureRule_Clamp.SupplyTemperature(30.0, 24.0, 30.0), tolerance);
+            Assert.Equal(17.0, supplyTemperatureRule_Clamp.SupplyTemperature(30.0, 24.0, 120.0), tolerance);
+
+            Assert.NotNull(supplyTemperatureRule_Refuse.AirFlowDomainCondition(30.0));
+            Assert.NotNull(supplyTemperatureRule_Clamp.AirFlowDomainCondition(30.0));
+            Assert.NotNull(supplyTemperatureRule_Clamp.AirFlowDomainCondition(120.0));
+        }
+
+        /// <summary>No lower limit is applied unless one is stated; a stated one floors the answer.</summary>
+        [Fact]
+        public void AnIntakeOffset_HasNoFloorUnlessOneIsStated()
+        {
+            Assert.Equal(-3.0, IntakeOffsetRule().SupplyTemperature(12.0, 24.0, 70.0), tolerance);
+            Assert.Equal(10.0, SupplyTemperatureRule.IntakeOffset([70.0], [14.0], 10.0).SupplyTemperature(12.0, 24.0, 70.0), tolerance);
+        }
+
+        /// <summary>A mistranscribed offset table is refused, never repaired.</summary>
+        [Theory]
+        [InlineData(new double[] { 70.0, 80.0 }, new double[] { 15.0 })]
+        [InlineData(new double[] { 80.0, 70.0 }, new double[] { 15.0, 14.0 })]
+        [InlineData(new double[] { 0.0, 70.0 }, new double[] { 15.0, 14.0 })]
+        [InlineData(new double[] { }, new double[] { })]
+        public void AMistranscribedOffsetTable_Refuses(double[] airFlowRates_Lps, double[] intakeOffsets_K)
+        {
+            SupplyTemperatureRule supplyTemperatureRule = SupplyTemperatureRule.IntakeOffset(airFlowRates_Lps, intakeOffsets_K);
+
+            Assert.NotNull(supplyTemperatureRule.Refusal());
+            Assert.True(double.IsNaN(supplyTemperatureRule.SupplyTemperature(30.0, 24.0, 70.0)));
+        }
+
+        /// <summary>The offset table survives a JSON round trip, cell for cell, with its policy.</summary>
+        [Fact]
+        public void AnIntakeOffset_SurvivesARoundTrip()
+        {
+            SupplyTemperatureRule supplyTemperatureRule = new(IntakeOffsetRule().ToJsonObject());
+
+            Assert.Equal(SupplyTemperatureRuleType.IntakeOffset, supplyTemperatureRule.SupplyTemperatureRuleType);
+            Assert.Equal(new[] { 70.0, 80.0, 90.0 }, supplyTemperatureRule.AirFlowRates_Lps);
+            Assert.Equal(new[] { 15.0, 14.0, 13.0 }, supplyTemperatureRule.IntakeOffsets_K);
+            Assert.Equal(PerformanceDomainPolicy.Refuse, supplyTemperatureRule.PerformanceDomainPolicy);
+            Assert.True(double.IsNaN(supplyTemperatureRule.MinimumSupplyTemperature_C));
+        }
+
+        /// <summary>
+        /// A room-stat strategy cools on the room and nothing else: a warm extract with a cool room does not
+        /// cool, a warm room with a cool extract does, and bypass/recovery still read the extract.
+        /// </summary>
+        [Fact]
+        public void ARoomStatStrategy_CoolsOnTheRoom_AndBypassesOnTheExtract()
+        {
+            VentilationUnitOperatingStrategy ventilationUnitOperatingStrategy = Strategy();
+            ventilationUnitOperatingStrategy.CoolingActivationSignal = CoolingActivationSignal.RoomTemperature;
+
+            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(10.0, 25.0, 20.0));
+            Assert.Equal(VentilationUnitOperatingMode.Cooling, ventilationUnitOperatingStrategy.OperatingMode(10.0, 19.0, 22.5));
+            Assert.Equal(VentilationUnitOperatingMode.SummerBypass, ventilationUnitOperatingStrategy.OperatingMode(15.0, 20.0, 21.0));
+            Assert.Equal(VentilationUnitOperatingMode.SummerBypass, ventilationUnitOperatingStrategy.OperatingMode(15.0, 20.0, 22.0));
+        }
+
+        /// <summary>
+        /// A room-stat strategy is never quietly evaluated on the extract: without a room temperature it
+        /// selects no mode.
+        /// </summary>
+        [Fact]
+        public void ARoomStatStrategy_WithoutARoomTemperature_SelectsNoMode()
+        {
+            VentilationUnitOperatingStrategy ventilationUnitOperatingStrategy = Strategy();
+            ventilationUnitOperatingStrategy.CoolingActivationSignal = CoolingActivationSignal.RoomTemperature;
+
+            Assert.Equal(VentilationUnitOperatingMode.Undefined, ventilationUnitOperatingStrategy.OperatingMode(10.0, 25.0));
+            Assert.Equal(VentilationUnitOperatingMode.Undefined, ventilationUnitOperatingStrategy.OperatingMode(10.0, 25.0, double.NaN));
+        }
+
+        /// <summary>
+        /// The default is the extract, as before; the signal round-trips; an absent signal reads as the
+        /// extract and an unrecognised one refuses.
+        /// </summary>
+        [Fact]
+        public void TheCoolingActivationSignal_DefaultsToTheExtract_RoundTrips_AndRefusesAnUnknownName()
+        {
+            Assert.Equal(CoolingActivationSignal.ExtractTemperature, Strategy().CoolingActivationSignal);
+
+            VentilationUnitOperatingStrategy ventilationUnitOperatingStrategy = Strategy();
+            ventilationUnitOperatingStrategy.CoolingActivationSignal = CoolingActivationSignal.RoomTemperature;
+            ventilationUnitOperatingStrategy.CoolingSupplyTemperatureRule = IntakeOffsetRule();
+
+            JsonObject jsonObject = ventilationUnitOperatingStrategy.ToJsonObject();
+            VentilationUnitOperatingStrategy ventilationUnitOperatingStrategy_RoundTrip = new(jsonObject);
+
+            Assert.Equal(CoolingActivationSignal.RoomTemperature, ventilationUnitOperatingStrategy_RoundTrip.CoolingActivationSignal);
+            Assert.Equal(SupplyTemperatureRuleType.IntakeOffset, ventilationUnitOperatingStrategy_RoundTrip.CoolingSupplyTemperatureRule.SupplyTemperatureRuleType);
+            Assert.Null(ventilationUnitOperatingStrategy_RoundTrip.Refusal());
+
+            jsonObject.Remove("CoolingActivationSignal");
+            Assert.Equal(CoolingActivationSignal.ExtractTemperature, new VentilationUnitOperatingStrategy(jsonObject).CoolingActivationSignal);
+
+            jsonObject["CoolingActivationSignal"] = "Wall";
+            Assert.NotNull(new VentilationUnitOperatingStrategy(jsonObject).Refusal());
+        }
+
+        /// <summary>
+        /// A room-stat, intake-offset strategy states the supply at the elevated airflow while cooling and
+        /// the background rules otherwise.
+        /// </summary>
+        [Fact]
+        public void ARoomStatIntakeOffsetStrategy_DeliversIntakeLessXAtTheElevatedAirflow()
+        {
+            VentilationUnitOperatingStrategy ventilationUnitOperatingStrategy = Strategy();
+            ventilationUnitOperatingStrategy.CoolingActivationSignal = CoolingActivationSignal.RoomTemperature;
+            ventilationUnitOperatingStrategy.CoolingSupplyTemperatureRule = IntakeOffsetRule();
+
+            double supply_Cooling = ventilationUnitOperatingStrategy.SupplyTemperature(28.0, 24.0, 23.0, 30.0, null, out VentilationUnitOperatingMode mode_Cooling, out double flow_Cooling);
+            Assert.Equal(VentilationUnitOperatingMode.Cooling, mode_Cooling);
+            Assert.Equal(80.0, flow_Cooling, tolerance);
+            Assert.Equal(14.0, supply_Cooling, tolerance);
+
+            double supply_Recovery = ventilationUnitOperatingStrategy.SupplyTemperature(5.0, 24.0, 21.0, 30.0, null, out VentilationUnitOperatingMode mode_Recovery, out double flow_Recovery);
+            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, mode_Recovery);
+            Assert.Equal(30.0, flow_Recovery, tolerance);
+            Assert.Equal((0.8 * 24.0) + (0.2 * 5.0), supply_Recovery, tolerance);
+        }
+
+        // =================================================================================================
         // Fixtures
         // =================================================================================================
+
+        /// <summary>A fixture intake-offset rule: 15 / 14 / 13 K at 70 / 80 / 90 l/s, no floor, refusing outside.</summary>
+        private static SupplyTemperatureRule IntakeOffsetRule()
+        {
+            return SupplyTemperatureRule.IntakeOffset([70.0, 80.0, 90.0], [15.0, 14.0, 13.0]);
+        }
 
         /// <summary>
         /// A fixture strategy in the shape a hybrid cooling unit's guidance takes: cooling on the extract

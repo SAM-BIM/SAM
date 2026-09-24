@@ -51,5 +51,18 @@ namespace SAM.Analytical.Enums
         /// </para>
         /// </summary>
         [Description("Published performance table")] PerformanceTable,
+
+        /// <summary>
+        /// The unit delivers its intake air less a stated offset that depends only on the airflow it is
+        /// moving - <c>intake - X(airflow)</c>.
+        /// <para>
+        /// This is how a manufacturer's simplified modelling guidance can collapse two cooling stages (coolth
+        /// recovery and a DX coil) into one package figure. X is stated at a few airflows. Between them it is
+        /// interpolated. Outside them the rule does not invent a figure silently: the lookup follows its
+        /// <see cref="PerformanceDomainPolicy"/>, and the use is always reportable - see
+        /// <see cref="SupplyTemperatureRule.AirFlowDomainCondition(double)"/>.
+        /// </para>
+        /// </summary>
+        [Description("Intake air less an airflow-dependent offset")] IntakeOffset,
     }
 }
