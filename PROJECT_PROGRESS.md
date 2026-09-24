@@ -17,7 +17,9 @@ successor tracker, and the human closure decision).
 
 **Status.** Implemented, closed out (three review items below), tested and accepted on a representative MG
 annual run. The branches `feature/parto-nuaire-reply-2026-09-24` in SAM, SAM_Systems, SAM_Tas and SAM_UI are
-pushed, and PRs into `sow/2026-Q3` are opened in dependency order (NOT merged). The base is the validated provisional baseline (SAM `875655fa` + docs
+pushed, and PRs into `sow/2026-Q3` are open in dependency order, NOT merged:
+[SAM#133](https://github.com/SAM-BIM/SAM/pull/133) -> [SAM_Systems#29](https://github.com/SAM-BIM/SAM_Systems/pull/29) ->
+[SAM_Tas#65](https://github.com/SAM-BIM/SAM_Tas/pull/65) -> [SAM_UI#107](https://github.com/SAM-BIM/SAM_UI/pull/107). The base is the validated provisional baseline (SAM `875655fa` + docs
 `9e0933af`, SAM_Systems `df5dd332`, SAM_Tas `f7d39351`, SAM_UI `4460dc3a`). This is manufacturer
 modelling guidance; Nuaire has not called it certified or approved.
 
