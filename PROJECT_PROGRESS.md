@@ -72,13 +72,47 @@ It also found:
 - Open PRs SAM#125 / SAM_Systems#25 need revising before merge: add a `to - X(Q)` rule, keep a separate
   room-stat signal, drop the 16 °C floor, and report out-of-domain use.
 
-**Next step.**
-1. Merge this docs PR.
-2. Revise SAM#125 / SAM_Systems#25 as above.
-3. Prototype the one unproven piece: supply/extract raised to the elevated rate (70-90 l/s) by the room stat
-   during cooling.
-4. Then the SAM_Tas grounding and a fourth SAM_UI Iteration 3 behaviour mode ("manufacturer guidance") paired
-   against B0, with B0 kept byte-identical.
+**Stage 11 elevated-airflow prototype - PASS (2026-09-24, outside git).** Report:
+`C:\TasOut\nuaire-guidance\REVIEW2\resume-2026-09-23\evidence\stage11\STAGE11-REPORT.md`. Model:
+`...\resume-2026-09-23\Nuaire-MVHR01-STAGE11-ELEVATED-Prototype.tpd`. Harness `evidence\stage11\harness\RS11.cs`.
+All values are provisional Nuaire guidance; Nuaire has been emailed and has not replied yet.
+
+The recipe tested is native TAS throughout, and every value was read back after save/reopen:
+- **Room-stat controller.** Studio SystemZone, `SensorArc1`, setpoint 22.05, band 0.1. It drives the DX.
+- **Flow controller.** A second controller on the same sensor and band, Min = Qb/Qe = 30/80. It drives all
+  three dampers: supply, extract and transfer. Each damper's design flow is background x Qe/Qb as an absolute
+  Value. Both fans are variable speed.
+- **Exchanger.** Left uncontrolled. Efficiency 0.8 x table(ODB, EDB2, **EFlow**):
+  - EFlow = Qb -> the accepted AUTO bypass/recovery table;
+  - EFlow = Qe -> the cooling state: 0.8 if to > ta, else 0 (bypass).
+  - Axes are 0.1 K up to 35 C.
+- **DX.** Finite `CoolingDuty` 2200 W, no EDB gates, `MinimumOffcoil = table(ODB, EFlow) = to - X(EFlow)`.
+
+Full-year results:
+- **Airflow.** 30 <-> 80 l/s. Supply = extract exactly, and the extract split holds at 22:8 every hour.
+- **Activation.** The DX runs only with the room signal.
+- **Exchanger.** Correct in 151/151 elevated hours, and in 8438/8439 background hours against the solved
+  extract.
+- **Supply law.** DX leaving = to - X exactly (0.0000 K) in every full-flow hour that is not capacity-limited.
+- **Capacity.** It binds in 56 h, because TAS's DX duty cap is total (sensible + latent).
+
+**DisplacementVent finding.** DV changes no airflow and does not block the strategy. It inflates the extract
+*temperature*: bypass falls to 224 h, against 2748 h with DV off. It also corrupts the reported extract duct.
+DV off on the bathroom only is worse for reporting. It is a model-hygiene decision affecting every mode, B0
+included; it was not changed.
+
+**TAS limits found:**
+- `ControlSignal` is refused on exchanger `SensibleEfficiency` (plant-room error).
+- A control arc on an exchanger scales its efficiency by the signal.
+- Damper legs must scale together, or TAS reports `Sizing Flow Failed`.
+
+**Next step.** Production, in the order SAM -> SAM_Systems -> SAM_Tas -> SAM_UI. None of it is merged until
+reviewed.
+1. SAM#125: add an `IntakeOffset` rule `to - X(Q)` with reported out-of-domain use, plus a room-temperature
+   cooling-activation signal.
+2. SAM_Systems#25: Nuaire entry -> IntakeOffset (70..110 -> 15..13 K), no 16 C floor, room-stat activation.
+3. SAM_Tas: the recipe above, with read-back refusals.
+4. SAM_UI: the mode "Selected product - manufacturer guidance", paired against B0; B0 and B4 unchanged.
 
 ## Previous: .NET Framework leftover cleanup across the repo family - MERGED (2026-09-22)
 
