@@ -627,6 +627,9 @@ namespace SAM.Tests
             Assert.Equal(VentilationUnitOperatingMode.Cooling, ventilationUnitOperatingStrategy.OperatingMode(10.0, 19.0, 22.5));
             Assert.Equal(VentilationUnitOperatingMode.SummerBypass, ventilationUnitOperatingStrategy.OperatingMode(15.0, 20.0, 21.0));
             Assert.Equal(VentilationUnitOperatingMode.SummerBypass, ventilationUnitOperatingStrategy.OperatingMode(15.0, 20.0, 22.0));
+
+            //The bypass keeps the unit's own extract condition: a warm extract with a cool room recovers.
+            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(15.0, 25.0, 20.0));
         }
 
         /// <summary>

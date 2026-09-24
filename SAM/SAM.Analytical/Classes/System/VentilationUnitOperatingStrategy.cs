@@ -256,7 +256,11 @@ namespace SAM.Analytical
                 return VentilationUnitOperatingMode.Cooling;
             }
 
-            if (intakeTemperature_C > BypassMinimumIntakeTemperature_C
+            //The unit's own extract statement: bypass needs the extract at or below the activation temperature.
+            //Under an extract-switched strategy that is already implied by the cooling test above; under a
+            //room-stat strategy a warm extract with a cool room recovers rather than bypasses.
+            if (extractTemperature_C <= CoolingActivationTemperature_C
+                && intakeTemperature_C > BypassMinimumIntakeTemperature_C
                 && extractTemperature_C > intakeTemperature_C
                 && extractTemperature_C > BypassMinimumExtractTemperature_C)
             {
