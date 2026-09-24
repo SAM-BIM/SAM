@@ -14,7 +14,86 @@ successor tracker, and the human closure decision).
 
 `sow/2026-Q3` (at `86213eb3`, including the SAM#126/#127 .NET Framework cleanup) was merged into this branch on 2026-09-22 to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept below.
 
-## Current: SAM#125 revision - intake-offset cooling rule and room cooling-stat signal (2026-09-24)
+## Current: SAM#123 manufacturer guidance - Iteration 3 mode "Selected product - manufacturer guidance" (2026-09-24)
+
+**Status.** The work is implemented and accepted on the representative model. All values are provisional
+Nuaire guidance; Nuaire was emailed and has not yet confirmed. Nothing is merged. The branch is
+`feature/parto-nuaire-manufacturer-guidance` in SAM (PR #125), SAM_Systems (PR #25), SAM_Tas (new) and
+SAM_UI (new). Merge order: SAM -> SAM_Systems -> SAM_Tas -> SAM_UI.
+
+**Where it came from.**
+- The Stage 11 TAS prototype passed. Its evidence is under
+  `C:\TasOut\nuaire-guidance\REVIEW2\resume-2026-09-23\evidence\stage11\`.
+- Stage 11b, the production correction, was found on the real model:
+  - Controlled dampers do not converge when a supplied room's only outlet is a transfer damper
+    (MVHR-02/03: more than 20 min for one day, against 3 s with the controllers pinned).
+  - The elevated airflow is now carried on the fans, with the dampers uncontrolled at their elevated share.
+    Room-stat controllers drive the supply and extract fans with Min = (design/elevated)^2, because a
+    controlled fan's airflow goes as the square root of its signal.
+
+**Per repo.**
+- **SAM:**
+  - `SupplyTemperatureRule.IntakeOffset`: `to - X(Q)`, Refuse outside the stated airflows, with reported
+    domain use.
+  - `CoolingActivationSignal` (room / extract).
+  - A room-stat bypass keeps the rule's extract <= activation condition.
+- **SAM_Systems:**
+  - The Nuaire entry uses IntakeOffset 70/80/90/100/110 -> 15/14.5/14/13.5/13 K. There is no 16 C floor
+    (Nuaire, 13 Aug 2025), activation is on the room stat, and the entry is marked PROVISIONAL.
+  - `GuidanceSettings` materialisation: MVRE plus a supply DX coil after the exchanger.
+  - `MechanicalVentilationGuidanceCooling` is the record the TAS grounding reads.
+  - `Query.MechanicalVentilationGuidanceSettings`: the elevated airflow is the midpoint of the stated range
+    (80 l/s), refused above unit capacity.
+- **SAM_Tas:**
+  - `Modify.GroundGuidanceCooling` writes and reads back:
+    - DX room-stat controller: Studio/Bedroom zone, `SensorArc1`, 22.05 / 0.1 K;
+    - fan controllers;
+    - uncontrolled exchanger with an (ODB, EDB2, EFlow) state table;
+    - DX: finite 2200 W (the table's max combined capacity), no gates, `MinimumOffcoil = to - 14.5`.
+  - A disagreement refuses the grounding.
+  - `Modify.GuidanceCoolingResults` gives the hourly read-back.
+- **SAM_UI:**
+  - New mode `SelectedProductManufacturerGuidance`, with `-It3BMG` files, a resolution step with no product
+    constants, and the operation CSV and summaries persisted in the record.
+  - Review-consistency branch for the mode.
+  - Separately: Iteration 3 can start from a completed 1a reopened in a later session.
+    `<project>.prepared.sam` and `<project>.partorun.json` are bound to the TSD, so there is no need to
+    re-run Prepare & Run.
+
+**Acceptance (2026-09-24, real `SAM Analytical.exe`, `SAM_zoningAM-CIBSEfutureZ1.sam` a7e09a25, DSY1 2050s).**
+Evidence is in `C:\TasOut\parto-guidance-2026-09-24\`, outside git.
+- **B0 on the new binaries:** COMPLETE. Both TM59 reports are byte-identical to 2026-09-23; bias 0.05 K,
+  RMSE 0.736 K. So B0 is unchanged.
+- **MG:** COMPLETE in 11.7 min, A Fail / B Fail. TM59 >26 C hours against A:
+  - Studio -68 and bedrooms -101 / -96, where B0 is -6 / +8 / +12;
+  - kitchens -38;
+  - wet rooms -284 to -471 (Bathroom_2 becomes a Pass).
+  - Annual mean bias +0.57 K, RMSE 1.48 K, from heat recovery outside cooling. The DisplacementVent-inflated
+    extract (3.5-6 kh extract > 22 C while room <= 22 C) suppresses bypass. It is a model-hygiene decision
+    and not changed here.
+- **MG TAS read-back, per unit (design -> elevated):**
+  - MVHR-01: 30 -> 80 l/s, supply = extract (< 0.02 l/s). `to - 14.5` is exact in 849/849 full-flow cooling
+    hours that are not capacity-limited. 122 h are at the 2.2 kW total-duty bound.
+  - MVHR-02/03: 63 -> 80 l/s. The law holds in 699/700 and 692/693 such hours; 85 h are capacity-limited.
+  - All units: minimum supply 7.3 C; the stat room peaks at 36.9-39.3 C in a 40 C intake heatwave, with the
+    supply at exactly `to - 14.5`.
+- **Reopen:** a new session opened the saved 1a run and reviewed the MG pairing in 10.8 s with no simulation.
+- **Installed state changed on this machine:**
+  - `Documents\SAM\resources\...\VentilationUnitCatalogue.JSON` is now the v3 feature catalogue. The v1
+    backup is at `C:\TasOut\parto-guidance-2026-09-24\catalogue-backup\documents-SAM-before.json`. Restore it
+    before running `sow` binaries.
+  - `%APPDATA%\SAM\SAM.Analytical.dll`/`SAM.Core.dll` and `SAM.ghlink` were overwritten by a `SAM.sln`
+    build on 2026-09-24 09:44. Redeploy from `sow` to restore Grasshopper.
+
+**Exact next step.**
+1. Review the four `feature/parto-nuaire-manufacturer-guidance` branches.
+2. Merge in order: SAM#125 -> SAM_Systems#25 -> SAM_Tas -> SAM_UI. SAM_Tas and SAM_UI have no PR yet;
+   open them against `sow/2026-Q3`.
+3. Hold any "certified" wording until Nuaire replies (stat location, X vs airflow, low-ambient behaviour,
+   30 l/s).
+4. Separately decide the DisplacementVent hygiene for transfer-fed wet rooms (it affects every mode).
+
+## Previous: SAM#125 revision - intake-offset cooling rule and room cooling-stat signal (2026-09-24)
 
 **Why.** Stage 9-11 of the TAS-native Nuaire investigation changed two assumptions:
 - Nuaire's current cooling rule is `to - X(Q)`, with no floor, per the 13 Aug 2025 email. The old vocabulary
