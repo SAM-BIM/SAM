@@ -1,9 +1,8 @@
 # Project Progress
 
 ## Branch
-`feature/parto-nuaire-manufacturer-guidance`, branched from `sow/2026-Q3` at `63dd763c` (the merge commit of
-[SAM#112](https://github.com/SAM-BIM/SAM/pull/112)) for the #123 manufacturer-guidance work in *Current*
-below.
+`sow/2026-Q3` at `875655fa` (merge of [SAM#131](https://github.com/SAM-BIM/SAM/pull/131)). The #123
+manufacturer-guidance work in *Current* below is merged, and its feature branches are deleted.
 
 `sow/2026-Q3` previously at `e2c0e2c0` - the merge commit of [SAM#120](https://github.com/SAM-BIM/SAM/pull/120), which
 descends from [SAM#119](https://github.com/SAM-BIM/SAM/pull/119) and
@@ -15,6 +14,57 @@ successor tracker, and the human closure decision).
 `sow/2026-Q3` (at `86213eb3`, including the SAM#126/#127 .NET Framework cleanup) was merged into this branch on 2026-09-22 to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept below.
 
 ## Current: SAM#123 manufacturer guidance - Iteration 3 mode "Selected product - manufacturer guidance" (2026-09-24)
+
+**Merged-build acceptance (2026-09-24, later): PASSED. Technically ready to freeze, pending manufacturer
+confirmation.** This is not manufacturer approval or certification. It was run on clean checkouts of
+merged `sow/2026-Q3`:
+- SAM `875655fa`
+- SAM_Systems `df5dd332`
+- SAM_Tas `f7d39351`
+- SAM_UI `4460dc3a`
+
+No code was changed. Evidence is in `C:\TasOut\merged-acceptance-2026-09-24\`, outside git.
+- **Build:** Framework MSBuild (VS 18), Debug, Restore+Rebuild, as in `BuildAlls_v4`. All four solutions
+  have 0 errors.
+- **Tests:** SAM.Tests 2218/2218, SAM.Analytical.Systems.Tests 251/251, SAM.Analytical.Tas.TM59.Tests
+  938/938, SAM.Analytical.UI.WPF.Tests 1031/1031. All four equal the baselines.
+- **Deployment:** the builds' PostBuild steps redeployed `%APPDATA%\SAM`. The key binaries there are
+  byte-identical to the fresh `build/` output: SAM.Core, SAM.Analytical, SAM.Analytical.Systems,
+  SAM.Analytical.Tas, TM59, SAM.Analytical.UI.WPF and `SAM Analytical.exe`/`.dll`. No feature-branch
+  binary is left. The only older own-repo files are `SAM.Core.Rhino.dll` (not a GH project, so never
+  copied) and `SAM.Analytical.Tas.GenOpt.dll` (deployed by SAM_Tas_Grasshopper). Both are 2026-09-23 `sow`
+  builds. `Documents\SAM\resources\...\VentilationUnitCatalogue.JSON` is byte-equal to the merged
+  SAM_Systems v3 catalogue. The v1 catalogue was not restored.
+- **MG review-only reopen** (`02-Iteration3-MG`):
+  - Review COMPLETE in 14.7 s: A Fail / B Fail, bias 0.567 K, RMSE 1.477 K, max 4.121 K.
+  - No behaviour picker appeared, and no simulation ran. Only a TSD reader opened.
+  - The result window text is identical to the pre-merge reopen.
+  - The Review rewrites its TM59 and Review reports. They equal `03-Resume`'s apart from the path and
+    "review/run" wording.
+- **1a reopen / Iteration 3 readiness** (`03-Resume`):
+  - The hub restores the run ("Reopened from this model's own saved run"). Iteration 3 is enabled, as
+    "Review It. 3" because that folder holds the MG pairing.
+  - The Run path was checked by temporarily renaming only `-Iteration3.json`. Iteration 3 then read
+    "Iteration 3 (A/B)", and pressing it opened the behaviour picker (4 modes) directly, with no Prepare &
+    Run. The picker was cancelled, so nothing ran.
+  - The record was restored hash-equal, and the folder snapshot (names, sizes, write times) is unchanged.
+  - Note: a copied 1a cannot be used for this check. The saved `.sam` embeds its absolute output path, so
+    a copy restores the original folder's run. This is by design.
+- **B0 fresh rerun** (`B0-rerun`, source model a7e09a25):
+  - COMPLETE: 1a in 1.3 min, then Iteration 3 in 3.0 min; A Fail / B Fail, bias 0.05 K, RMSE 0.736 K.
+  - Both TM59 reports equal `01-Iteration3-B0` apart from the `Source:` line.
+  - The Review differs only in per-run IDs, timestamps and the Reference A design fingerprint. That
+    fingerprint also differs between each earlier fresh 1a run.
+  - Two earlier attempts were aborted by the UI driver's own guard before any simulation. The
+    output-directory field read back with stray leading characters, consistent with live keyboard input
+    reaching the focused window. The driver copy in `merged-acceptance-2026-09-24\scripts\stage.ps1` now
+    re-applies and verifies that field.
+- **SAM_Deploy:** the pointers were behind (SAM `86213eb3`, SAM_Systems `0e891145`, SAM_Tas `c267f52f`,
+  SAM_UI `5606a82d`). A minimal fast-forward bump of just these four is committed locally on SAM_Deploy
+  branch `chore/bump-parto-nuaire-merged-pointers` (`3dd413c`). It is not pushed yet. No other submodule
+  had drifted.
+- **Not touched:** DisplacementVent ([SAM#129](https://github.com/SAM-BIM/SAM/issues/129)) and the
+  hardening ([SAM#130](https://github.com/SAM-BIM/SAM/issues/130)). Neither blocked the merged workflow.
 
 **Final integration review (2026-09-24, before merge; the merges followed).** One consolidated review of all four branches
 against `sow/2026-Q3`; no blockers, no code changed at review.
@@ -104,28 +154,19 @@ Evidence is in `C:\TasOut\parto-guidance-2026-09-24\`, outside git.
 - **Resume:** a fresh 1a wrote its sidecar. A new session then opened that saved 1a run and ran Iteration 3
   (MG) with no Prepare & Run, COMPLETE in 14.0 min. The comparison matches the in-session MG run to 3 d.p.
   (bias 0.567 K, RMSE 1.477 K, max 4.121 K). Evidence: `C:\TasOut\parto-guidance-2026-09-24\03-Resume\`.
-- **Installed state changed on this machine:**
-  - `Documents\SAM\resources\...\VentilationUnitCatalogue.JSON` is now the v3 feature catalogue. The v1
-    backup is at `C:\TasOut\parto-guidance-2026-09-24\catalogue-backup\documents-SAM-before.json`. Restore it
-    before running `sow` binaries.
-  - `%APPDATA%\SAM\SAM.Analytical.dll`/`SAM.Core.dll` and `SAM.ghlink` were overwritten by a `SAM.sln`
-    build on 2026-09-24 09:44. Redeploy from `sow` to restore Grasshopper.
+- **Installed state on this machine** (updated at the merged-build acceptance):
+  - `Documents\SAM\resources\...\VentilationUnitCatalogue.JSON` is the v3 catalogue, which is also merged
+    `sow`'s. The v1 backup is at `C:\TasOut\parto-guidance-2026-09-24\catalogue-backup\documents-SAM-before.json`.
+    Restore it only to test pre-merge binaries.
+  - `%APPDATA%\SAM` was redeployed from the merged `sow/2026-Q3` builds on 2026-09-24 15:21-15:23.
 
-**Exact next step.**
-1. On a clean checkout of merged `sow/2026-Q3` (all four repos), run the minimal merged-state acceptance.
-   Reuse the saved runs; no new long simulation is needed.
-   - Build SAM, SAM_Systems, SAM_Tas (Framework MSBuild) and SAM_UI from `sow/2026-Q3`, and run the four test
-     projects.
-   - Deploy those binaries. The v3 `VentilationUnitCatalogue.JSON` must be in `Documents\SAM\resources`.
-   - In `SAM Analytical.exe`, reopen `C:\TasOut\parto-guidance-2026-09-24\03-Resume\` (1a with sidecar) and
-     `02-Iteration3-MG`. Confirm review-only reopen of the MG pairing (A Fail / B Fail, bias 0.567 K) and that
-     the reopened 1a reports that Iteration 3 can start.
-   - Optionally re-run only B0 from the reopened 1a. Its TM59 reports must equal
-     `01-Iteration3-B0` except the `Source:` line.
-2. Bump the SAM_Deploy submodule pointers to the four merge commits.
-3. Hold any "certified" wording until Nuaire replies (stat location, X vs airflow, low-ambient behaviour,
+**Exact next step.** The merged-build acceptance (step 1 of the previous plan) is done; see the top of this
+entry.
+1. Push SAM_Deploy `chore/bump-parto-nuaire-merged-pointers` and open its PR into `sow/2026-Q3`. After it
+   merges, delete the branch.
+2. Hold any "certified" wording until Nuaire replies (stat location, X vs airflow, low-ambient behaviour,
    30 l/s).
-4. Decide the DisplacementVent wet-room issue ([SAM#129](https://github.com/SAM-BIM/SAM/issues/129)) and the
+3. Decide the DisplacementVent wet-room issue ([SAM#129](https://github.com/SAM-BIM/SAM/issues/129)) and the
    non-blocking hardening ([SAM#130](https://github.com/SAM-BIM/SAM/issues/130)) separately.
 
 ## Previous: SAM#125 revision - intake-offset cooling rule and room cooling-stat signal (2026-09-24)
