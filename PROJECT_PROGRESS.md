@@ -78,6 +78,9 @@ Evidence is in `C:\TasOut\parto-guidance-2026-09-24\`, outside git.
   - All units: minimum supply 7.3 C; the stat room peaks at 36.9-39.3 C in a 40 C intake heatwave, with the
     supply at exactly `to - 14.5`.
 - **Reopen:** a new session opened the saved 1a run and reviewed the MG pairing in 10.8 s with no simulation.
+- **Resume:** a fresh 1a wrote its sidecar. A new session then opened that saved 1a run and ran Iteration 3
+  (MG) with no Prepare & Run, COMPLETE in 14.0 min. The comparison is identical to the in-session MG run
+  (bias 0.567 K, RMSE 1.477 K, max 4.121 K). Evidence: `C:\TasOut\parto-guidance-2026-09-24-Resume\`.
 - **Installed state changed on this machine:**
   - `Documents\SAM\resources\...\VentilationUnitCatalogue.JSON` is now the v3 feature catalogue. The v1
     backup is at `C:\TasOut\parto-guidance-2026-09-24\catalogue-backup\documents-SAM-before.json`. Restore it
