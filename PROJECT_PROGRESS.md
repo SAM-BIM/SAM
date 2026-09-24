@@ -16,8 +16,10 @@ successor tracker, and the human closure decision).
 ## Current: SAM#123 manufacturer guidance - Iteration 3 mode "Selected product - manufacturer guidance" (2026-09-24)
 
 **Merged-build acceptance (2026-09-24, later): PASSED. Technically ready to freeze, pending manufacturer
-confirmation.** This is not manufacturer approval or certification. It was run on clean checkouts of
-merged `sow/2026-Q3`:
+confirmation.** This is not manufacturer approval or certification. The owner has adopted this
+acceptance as the validated PROVISIONAL Nuaire baseline. New manufacturer guidance has since been received.
+It will be reconciled against this baseline in a separate, fresh session, so this is not final
+manufacturer-approved behaviour. The acceptance was run on clean checkouts of merged `sow/2026-Q3`:
 - SAM `875655fa`
 - SAM_Systems `df5dd332`
 - SAM_Tas `f7d39351`
@@ -164,8 +166,9 @@ Evidence is in `C:\TasOut\parto-guidance-2026-09-24\`, outside git.
 entry.
 1. Push SAM_Deploy `chore/bump-parto-nuaire-merged-pointers` and open its PR into `sow/2026-Q3`. After it
    merges, delete the branch.
-2. Hold any "certified" wording until Nuaire replies (stat location, X vs airflow, low-ambient behaviour,
-   30 l/s).
+2. In a fresh session, reconcile the newly received manufacturer guidance against this PROVISIONAL baseline.
+   Hold any "certified" or "approved" wording until then (stat location, X vs airflow, low-ambient
+   behaviour, 30 l/s).
 3. Decide the DisplacementVent wet-room issue ([SAM#129](https://github.com/SAM-BIM/SAM/issues/129)) and the
    non-blocking hardening ([SAM#130](https://github.com/SAM-BIM/SAM/issues/130)) separately.
 
