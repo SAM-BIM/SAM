@@ -1,7 +1,7 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` at `9e0933af` (docs merge of [SAM#132](https://github.com/SAM-BIM/SAM/pull/132)). Stage 3 work is on local `feature/parto-nuaire-reply-2026-09-24` branches (see *Current*). The #123
+`sow/2026-Q3` at `54c43438` (merge of [SAM#133](https://github.com/SAM-BIM/SAM/pull/133), the Nuaire reply work; see *Current*). The #123
 manufacturer-guidance work (first *Previous* entry) is merged, and its feature branches are deleted.
 
 `sow/2026-Q3` previously at `e2c0e2c0` - the merge commit of [SAM#120](https://github.com/SAM-BIM/SAM/pull/120), which
@@ -15,11 +15,7 @@ successor tracker, and the human closure decision).
 
 ## Current: Nuaire reply (A. Nash, 2026-09-24) implemented - exchanger then DX drop, 13 C floor (Stage 3)
 
-**Status.** Implemented, closed out (three review items below), tested and accepted on a representative MG
-annual run. The branches `feature/parto-nuaire-reply-2026-09-24` in SAM, SAM_Systems, SAM_Tas and SAM_UI are
-pushed, and PRs into `sow/2026-Q3` are open in dependency order, NOT merged:
-[SAM#133](https://github.com/SAM-BIM/SAM/pull/133) -> [SAM_Systems#29](https://github.com/SAM-BIM/SAM_Systems/pull/29) ->
-[SAM_Tas#65](https://github.com/SAM-BIM/SAM_Tas/pull/65) -> [SAM_UI#107](https://github.com/SAM-BIM/SAM_UI/pull/107). The base is the validated provisional baseline (SAM `875655fa` + docs
+**Status.** Implemented, closed out, PR-reviewed and MERGED into `sow/2026-Q3` on 2026-09-24, in order: SAM-BIM/SAM#133 (`54c43438`) -> SAM-BIM/SAM_Systems#29 (`c88c9b37`) -> SAM-BIM/SAM_Tas#65 (`1b659756`) -> SAM-BIM/SAM_UI#107 (`8f58144c`). CI green and Codex review clean (all findings fixed and answered) on every PR. The `feature/parto-nuaire-reply-2026-09-24` branches are deleted. Accepted on the representative MG annual run (closeout). The base is the validated provisional baseline (SAM `875655fa` + docs
 `9e0933af`, SAM_Systems `df5dd332`, SAM_Tas `f7d39351`, SAM_UI `4460dc3a`). This is manufacturer
 modelling guidance; Nuaire has not called it certified or approved.
 
@@ -194,9 +190,9 @@ feature-branch binaries.
 - The DX and fan share one proportional stat (0.1 K band). Truly simultaneous on/off switching of cooling
   and speed 3 is approximated only in hourly averages.
 
-**Exact next step.** The owner reviews and merges the four PRs in order SAM -> SAM_Systems -> SAM_Tas ->
-SAM_UI. Then delete the branches, bump the SAM_Deploy pointers, and restore or keep the installed catalogue
-as the merged one.
+**Exact next step.** Bump the SAM_Deploy pointers to the four merge commits above (and push the older unpushed
+`chore/bump-parto-nuaire-merged-pointers` branch or supersede it). The installed `Documents\SAM\resources` catalogue is
+already the merged one. Remaining manufacturer questions are listed under *Residual uncertainties*.
 
 ## Previous: SAM#123 manufacturer guidance - Iteration 3 mode "Selected product - manufacturer guidance" (2026-09-24)
 
