@@ -16,7 +16,7 @@ successor tracker, and the human closure decision).
 
 ## Current: SAM#123 manufacturer guidance - Iteration 3 mode "Selected product - manufacturer guidance" (2026-09-24)
 
-**Final integration review (2026-09-24, before merge).** One consolidated review of all four branches
+**Final integration review (2026-09-24, before merge; the merges followed).** One consolidated review of all four branches
 against `sow/2026-Q3`; no blockers, no code changed at review.
 - Each branch merges into current `sow/2026-Q3` without conflicts. The diffs are limited to the #123 guidance
   scope. The new public surface is additive, and a template, settings or route without guidance serialises
@@ -34,10 +34,15 @@ against `sow/2026-Q3`; no blockers, no code changed at review.
 - The DisplacementVent wet-room issue is [SAM#129](https://github.com/SAM-BIM/SAM/issues/129). It is not changed here.
 - Wording: "certified" appears only in negations; values stay PROVISIONAL pending Nuaire.
 
-**Status.** The work is implemented and accepted on the representative model. All values are provisional
-Nuaire guidance; Nuaire was emailed and has not yet confirmed. Nothing is merged. The branch is
-`feature/parto-nuaire-manufacturer-guidance` in SAM (PR #125), SAM_Systems (PR #25), SAM_Tas (new) and
-SAM_UI (new). Merge order: SAM -> SAM_Systems -> SAM_Tas -> SAM_UI.
+**Status.** MERGED into `sow/2026-Q3` on 2026-09-24, in dependency order:
+- [SAM#125](https://github.com/SAM-BIM/SAM/pull/125) -> `1f9a5b95`
+- [SAM_Systems#25](https://github.com/SAM-BIM/SAM_Systems/pull/25) -> `6c042609`
+- [SAM_Tas#63](https://github.com/SAM-BIM/SAM_Tas/pull/63) -> `83653aaa`
+- [SAM_UI#105](https://github.com/SAM-BIM/SAM_UI/pull/105) -> `620aa701`
+
+All four PRs had green CI. The `feature/parto-nuaire-manufacturer-guidance` branches are deleted. All product
+values are still PROVISIONAL Nuaire guidance: Nuaire was emailed and has not yet confirmed.
+[SAM#123](https://github.com/SAM-BIM/SAM/issues/123) stays open.
 
 **Where it came from.**
 - The Stage 11 TAS prototype passed. Its evidence is under
@@ -107,12 +112,21 @@ Evidence is in `C:\TasOut\parto-guidance-2026-09-24\`, outside git.
     build on 2026-09-24 09:44. Redeploy from `sow` to restore Grasshopper.
 
 **Exact next step.**
-1. Review the four `feature/parto-nuaire-manufacturer-guidance` branches.
-2. Merge in order: SAM#125 -> SAM_Systems#25 -> SAM_Tas -> SAM_UI. SAM_Tas and SAM_UI have no PR yet;
-   open them against `sow/2026-Q3`.
+1. On a clean checkout of merged `sow/2026-Q3` (all four repos), run the minimal merged-state acceptance.
+   Reuse the saved runs; no new long simulation is needed.
+   - Build SAM, SAM_Systems, SAM_Tas (Framework MSBuild) and SAM_UI from `sow/2026-Q3`, and run the four test
+     projects.
+   - Deploy those binaries. The v3 `VentilationUnitCatalogue.JSON` must be in `Documents\SAM\resources`.
+   - In `SAM Analytical.exe`, reopen `C:\TasOut\parto-guidance-2026-09-24\03-Resume\` (1a with sidecar) and
+     `02-Iteration3-MG`. Confirm review-only reopen of the MG pairing (A Fail / B Fail, bias 0.567 K) and that
+     the reopened 1a reports that Iteration 3 can start.
+   - Optionally re-run only B0 from the reopened 1a. Its TM59 reports must equal
+     `01-Iteration3-B0` except the `Source:` line.
+2. Bump the SAM_Deploy submodule pointers to the four merge commits.
 3. Hold any "certified" wording until Nuaire replies (stat location, X vs airflow, low-ambient behaviour,
    30 l/s).
-4. Separately decide the DisplacementVent hygiene for transfer-fed wet rooms (it affects every mode).
+4. Decide the DisplacementVent wet-room issue ([SAM#129](https://github.com/SAM-BIM/SAM/issues/129)) and the
+   non-blocking hardening ([SAM#130](https://github.com/SAM-BIM/SAM/issues/130)) separately.
 
 ## Previous: SAM#125 revision - intake-offset cooling rule and room cooling-stat signal (2026-09-24)
 
