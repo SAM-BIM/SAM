@@ -114,7 +114,7 @@ namespace SAM.Analytical
         public double MaximumCoolingActivationTemperature_C { get; set; } = double.NaN;
 
         /// <summary>
-        /// The intake-air temperature [&#176;C] the bypass requires to be exceeded. At or below it the unit
+        /// The lowest intake-air temperature [&#176;C] at which the unit may bypass (inclusive). Below it the unit
         /// recovers instead: bypassing cold intake air would deliver it into the dwelling unrecovered.
         /// </summary>
         public double BypassMinimumIntakeTemperature_C { get; set; } = double.NaN;
@@ -128,7 +128,7 @@ namespace SAM.Analytical
         public CoolingActivationSignal CoolingActivationSignal { get; set; } = CoolingActivationSignal.ExtractTemperature;
 
         /// <summary>
-        /// The extract-air temperature [&#176;C] the bypass requires to be exceeded. At or below it the
+        /// The lowest extract-air temperature [&#176;C] at which the unit may bypass (inclusive). Below it the
         /// dwelling is not warm enough for bypassing to be the useful direction.
         /// </summary>
         public double BypassMinimumExtractTemperature_C { get; set; } = double.NaN;
@@ -213,11 +213,11 @@ namespace SAM.Analytical
         /// Which mode the manufacturer's control logic selects, for one hour's intake and extract air
         /// temperatures.
         /// <para>
-        /// <b>Ordered, exclusive and strict.</b> Cooling first, on the extract temperature alone; then
+        /// <b>Ordered and exclusive.</b> Cooling first, on the extract temperature alone; then
         /// bypass, which requires every one of its stated conditions; then recovery, which is what is left.
-        /// Every comparison is strict, so a temperature exactly at a threshold is <i>not</i> above it: at
-        /// the activation temperature the unit is not cooling, at the bypass intake or extract limits it is
-        /// not bypassing, and with extract equal to intake it is not bypassing. A manufacturer writing
+        /// At the activation temperature the unit is not cooling; the bypass minimums are inclusive (at the
+        /// bypass intake or extract minimum it may bypass), and with extract equal to intake it is not
+        /// bypassing - see <see cref="ExchangerBypassed"/>. A manufacturer writing
         /// "&gt; 12" and "&lt; 12" as two separate conditions leaves 12 itself in neither; the ordering here
         /// gives that hour to the default mode rather than to no mode at all.
         /// </para>
@@ -279,9 +279,9 @@ namespace SAM.Analytical
 
         /// <summary>
         /// Whether the unit's exchanger is bypassed at one hour's intake and extract air temperatures - the
-        /// stated bypass conditions alone, all strict: intake above
-        /// <see cref="BypassMinimumIntakeTemperature_C"/>, extract above intake, and extract above
-        /// <see cref="BypassMinimumExtractTemperature_C"/>.
+        /// stated bypass conditions alone: intake at or above <see cref="BypassMinimumIntakeTemperature_C"/>,
+        /// extract strictly above intake, and extract at or above <see cref="BypassMinimumExtractTemperature_C"/> -
+        /// the comparisons the manufacturer states (Nuaire, 24 Sep 2026: to &gt;= 12, to &lt; ta, ta &gt;= 19).
         /// <para>
         /// <b>The same decision in every mode.</b> It selects <see cref="VentilationUnitOperatingMode.SummerBypass"/>
         /// over recovery when the unit is not cooling, and it is what reaches the coil of an
@@ -291,9 +291,9 @@ namespace SAM.Analytical
         /// <returns>False where either temperature is not a finite number or a threshold is not stated.</returns>
         public bool ExchangerBypassed(double intakeTemperature_C, double extractTemperature_C)
         {
-            return intakeTemperature_C > BypassMinimumIntakeTemperature_C
+            return intakeTemperature_C >= BypassMinimumIntakeTemperature_C
                 && extractTemperature_C > intakeTemperature_C
-                && extractTemperature_C > BypassMinimumExtractTemperature_C;
+                && extractTemperature_C >= BypassMinimumExtractTemperature_C;
         }
 
         /// <summary>The rule stated for one mode, or null where the mode has none.</summary>
@@ -563,7 +563,7 @@ namespace SAM.Analytical
                 ? "Invalid VentilationUnitOperatingStrategy"
                 : string.Format(
                     CultureInfo.InvariantCulture,
-                    "cooling above {0:0.###} degC " + (CoolingActivationSignal == CoolingActivationSignal.RoomTemperature ? "room" : "extract") + " at {1}; bypass above {2:0.###} degC intake and {3:0.###} degC extract; otherwise recovery",
+                    "cooling above {0:0.###} degC " + (CoolingActivationSignal == CoolingActivationSignal.RoomTemperature ? "room" : "extract") + " at {1}; bypass from {2:0.###} degC intake and {3:0.###} degC extract; otherwise recovery",
                     CoolingActivationTemperature_C,
                     IsResolved ? string.Format(CultureInfo.InvariantCulture, "{0:0.###} l/s", ElevatedAirFlow_Lps) : "an elevated airflow nobody has resolved",
                     BypassMinimumIntakeTemperature_C,

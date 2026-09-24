@@ -52,8 +52,10 @@ namespace SAM.Tests
         [InlineData(10.0, 22.0, VentilationUnitOperatingMode.HeatCoolthRecovery)] //extract at the setpoint: not cooling
         [InlineData(15.0, 22.0, VentilationUnitOperatingMode.SummerBypass)]
         [InlineData(22.0, 22.0, VentilationUnitOperatingMode.HeatCoolthRecovery)] //extract equals intake: not bypass
-        [InlineData(15.0, 18.0, VentilationUnitOperatingMode.HeatCoolthRecovery)] //extract at the bypass limit
-        [InlineData(12.0, 20.0, VentilationUnitOperatingMode.HeatCoolthRecovery)] //intake at the bypass limit
+        [InlineData(15.0, 18.0, VentilationUnitOperatingMode.SummerBypass)] //extract at the bypass minimum: inclusive
+        [InlineData(15.0, 17.99, VentilationUnitOperatingMode.HeatCoolthRecovery)] //extract below the bypass minimum
+        [InlineData(12.0, 20.0, VentilationUnitOperatingMode.SummerBypass)] //intake at the bypass minimum: inclusive
+        [InlineData(11.99, 20.0, VentilationUnitOperatingMode.HeatCoolthRecovery)] //intake below the bypass minimum
         [InlineData(13.0, 20.0, VentilationUnitOperatingMode.SummerBypass)]
         [InlineData(10.0, 22.1, VentilationUnitOperatingMode.Cooling)]
         [InlineData(30.0, 22.1, VentilationUnitOperatingMode.Cooling)] //cooling does not depend on intake
@@ -111,10 +113,10 @@ namespace SAM.Tests
 
             Assert.Equal(VentilationUnitOperatingMode.SummerBypass, ventilationUnitOperatingStrategy.OperatingMode(15.0, 21.0));
 
-            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(12.0, 21.0)); //intake at the limit
+            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(11.99, 21.0)); //intake below the minimum
             Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(15.0, 15.0)); //extract equal to intake
             Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(15.0, 14.0)); //extract below intake
-            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(17.5, 18.0)); //extract at the limit
+            Assert.Equal(VentilationUnitOperatingMode.HeatCoolthRecovery, ventilationUnitOperatingStrategy.OperatingMode(17.5, 17.99)); //extract below the minimum
         }
 
         /// <summary>
@@ -809,12 +811,12 @@ namespace SAM.Tests
             Assert.Null(supplyTemperatureRule.Refusal());
         }
 
-        /// <summary>The bypass decision alone, strict at every threshold.</summary>
+        /// <summary>The bypass decision alone: inclusive at both minimums, strict on extract above intake.</summary>
         [Theory]
-        [InlineData(12.0, 20.0, false)]
-        [InlineData(12.01, 20.0, true)]
-        [InlineData(15.0, 18.0, false)]
-        [InlineData(15.0, 18.01, true)]
+        [InlineData(11.99, 20.0, false)]
+        [InlineData(12.0, 20.0, true)]
+        [InlineData(15.0, 17.99, false)]
+        [InlineData(15.0, 18.0, true)]
         [InlineData(20.0, 20.0, false)]
         [InlineData(26.0, 24.0, false)]
         public void TheExchangerBypass_IsItsStatedConditionsAlone(double intake_C, double extract_C, bool expected)

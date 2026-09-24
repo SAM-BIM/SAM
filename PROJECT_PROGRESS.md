@@ -164,6 +164,19 @@ and is continuous. It also removes the formula's 19 < to < 20.84 C hole.
     of on/off cycling inside a 0.1 K proportional band, not DX running continuously at low airflow.
   - Tests after the close-out: TM59 942/942, SAM_Systems 256/256, WPF 1031/1031, SAM 2250/2250
     (unchanged). All builds 0 errors.
+- **PR review fixes (Codex review on the four PRs, after the close-out MG).**
+  - Bypass minimums are now INCLUSIVE, as Nuaire states them (to >= 12, extract >= 19, extract > to strict), in
+    SAM `ExchangerBypassed`, the TAS recipe and the read-back. The TAS table carries each minimum on the grid
+    with a 0.01 K step just below it.
+  - The TAS extract axis continues coarsely beyond 45 C (50/60/80/100), so a hot extract keeps the exact state
+    for any intake below 45 C. An intake above 45 C is held at the edge and documented; the DSY1 2050s peak is
+    40.3 C.
+  - The read-back summary formats a rule without a minimum as unfloored.
+  - Each of SAM_Systems, SAM_Tas and SAM_UI now has its own `PROJECT_PROGRESS.md` entry.
+  - Tests: SAM 2252, SAM_Systems 256, TM59 944, WPF 1031.
+  - By owner decision there was no further annual MG. The inclusive threshold affects only hours at exactly
+    12.0 C intake or 19.0 C extract (159 unit-hours at 12.0 C in the MG weather, background hours, so TM59
+    >26 C counts are unaffected). No MG extract exceeded 45 C (max 37.8 C).
 - B0 was NOT rerun. No code reachable from the B0/B4 routes changed: only the guidance grounding, the
   room-stat strategy and the MG note.
 
