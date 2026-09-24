@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-or-later
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using SAM.Core;
@@ -75,6 +75,7 @@ namespace SAM.Analytical
                 FlowFractionByControlTemperature = ventilationUnitTemplate.FlowFractionByControlTemperature is null ? null : new FlowFractionControlCurve(ventilationUnitTemplate.FlowFractionByControlTemperature);
                 HeatRecoveryPerformance = ventilationUnitTemplate.HeatRecoveryPerformance is null ? null : new HeatRecoveryPerformance(ventilationUnitTemplate.HeatRecoveryPerformance);
                 FanPerformance = ventilationUnitTemplate.FanPerformance is null ? null : new FanPerformance(ventilationUnitTemplate.FanPerformance);
+                OperatingStrategy = ventilationUnitTemplate.OperatingStrategy is null ? null : new VentilationUnitOperatingStrategy(ventilationUnitTemplate.OperatingStrategy);
             }
         }
 
@@ -195,6 +196,22 @@ namespace SAM.Analytical
         public FanPerformance FanPerformance { get; set; }
 
         /// <summary>
+        /// The operating strategy the manufacturer states for representing this product's control behaviour
+        /// in a dynamic thermal model, or null where nobody has transcribed one.
+        /// <para>
+        /// <b>Null means not stated, and nothing else.</b> A template without one is exactly the template it
+        /// always was; no default strategy is assumed, and no other product's strategy is substituted.
+        /// </para>
+        /// <para>
+        /// <b>Manufacturer modelling guidance, never certified performance.</b> A strategy states how the
+        /// unit is recommended to be operated in a model. It is not <see cref="HeatRecoveryPerformance"/> and
+        /// not <see cref="FanPerformance"/>, it satisfies neither, and carrying one says nothing about
+        /// whether either is available - see <see cref="VentilationUnitOperatingStrategy"/>.
+        /// </para>
+        /// </summary>
+        public VentilationUnitOperatingStrategy OperatingStrategy { get; set; }
+
+        /// <summary>
         /// Whether this is a template at all: it names a product and it says where its figures came from.
         /// <para>
         /// Deliberately <b>not</b> a statement about capacity. A template with full published performance
@@ -292,6 +309,7 @@ namespace SAM.Analytical
             //Absent keys - every catalogue written before these fields existed - read as null, "not stated".
             HeatRecoveryPerformance = jsonObject["HeatRecoveryPerformance"] is JsonObject jsonObject_HeatRecoveryPerformance ? new HeatRecoveryPerformance(jsonObject_HeatRecoveryPerformance) : null;
             FanPerformance = jsonObject["FanPerformance"] is JsonObject jsonObject_FanPerformance ? new FanPerformance(jsonObject_FanPerformance) : null;
+            OperatingStrategy = jsonObject["OperatingStrategy"] is JsonObject jsonObject_OperatingStrategy ? new VentilationUnitOperatingStrategy(jsonObject_OperatingStrategy) : null;
 
             return true;
         }
@@ -341,6 +359,11 @@ namespace SAM.Analytical
             if (FanPerformance is not null)
             {
                 result["FanPerformance"] = FanPerformance.ToJsonObject();
+            }
+
+            if (OperatingStrategy is not null)
+            {
+                result["OperatingStrategy"] = OperatingStrategy.ToJsonObject();
             }
 
             return result;
