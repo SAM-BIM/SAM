@@ -68,6 +68,7 @@ namespace SAM.Analytical
                 BypassMinimumIntakeTemperature_C = ventilationUnitOperatingStrategy.BypassMinimumIntakeTemperature_C;
                 BypassMinimumExtractTemperature_C = ventilationUnitOperatingStrategy.BypassMinimumExtractTemperature_C;
                 ElevatedAirFlow_Lps = ventilationUnitOperatingStrategy.ElevatedAirFlow_Lps;
+                DefaultElevatedAirFlow_Lps = ventilationUnitOperatingStrategy.DefaultElevatedAirFlow_Lps;
                 MinimumElevatedAirFlow_Lps = ventilationUnitOperatingStrategy.MinimumElevatedAirFlow_Lps;
                 MaximumElevatedAirFlow_Lps = ventilationUnitOperatingStrategy.MaximumElevatedAirFlow_Lps;
                 SummerBypassSupplyTemperatureRule = Copy(ventilationUnitOperatingStrategy.SummerBypassSupplyTemperatureRule);
@@ -144,6 +145,17 @@ namespace SAM.Analytical
         /// </para>
         /// </summary>
         public double ElevatedAirFlow_Lps { get; set; } = double.NaN;
+
+        /// <summary>
+        /// The elevated airflow [l/s] the manufacturer states as the default to model where a dwelling states
+        /// none, or <see cref="double.NaN"/> where it states no default.
+        /// <para>
+        /// <b>A catalogue figure, never a dwelling's resolution.</b> <see cref="ElevatedAirFlow_Lps"/> stays
+        /// unresolved on the catalogue entry; whoever resolves the strategy for a dwelling uses the dwelling's own
+        /// figure where there is one and this default otherwise - see <see cref="WithElevatedAirFlow"/>.
+        /// </para>
+        /// </summary>
+        public double DefaultElevatedAirFlow_Lps { get; set; } = double.NaN;
 
         /// <summary>The lowest elevated airflow [l/s] the manufacturer's guidance states for cooling.</summary>
         public double MinimumElevatedAirFlow_Lps { get; set; } = double.NaN;
@@ -256,18 +268,32 @@ namespace SAM.Analytical
                 return VentilationUnitOperatingMode.Cooling;
             }
 
-            //The unit's own extract statement: bypass needs the extract at or below the activation temperature.
-            //Under an extract-switched strategy that is already implied by the cooling test above; under a
-            //room-stat strategy a warm extract with a cool room recovers rather than bypasses.
-            if (extractTemperature_C <= CoolingActivationTemperature_C
-                && intakeTemperature_C > BypassMinimumIntakeTemperature_C
-                && extractTemperature_C > intakeTemperature_C
-                && extractTemperature_C > BypassMinimumExtractTemperature_C)
-            {
-                return VentilationUnitOperatingMode.SummerBypass;
-            }
+            //Under an extract-switched strategy the cooling test above already leaves only extracts at or below the
+            //activation temperature. Under a room-stat strategy the bypass is the unit's own decision on its own
+            //sensors, independent of the cooling-stat (Nuaire, 24 Sep 2026), so a warm extract with a cool room
+            //bypasses where its conditions hold.
+            return ExchangerBypassed(intakeTemperature_C, extractTemperature_C)
+                ? VentilationUnitOperatingMode.SummerBypass
+                : VentilationUnitOperatingMode.HeatCoolthRecovery;
+        }
 
-            return VentilationUnitOperatingMode.HeatCoolthRecovery;
+        /// <summary>
+        /// Whether the unit's exchanger is bypassed at one hour's intake and extract air temperatures - the
+        /// stated bypass conditions alone, all strict: intake above
+        /// <see cref="BypassMinimumIntakeTemperature_C"/>, extract above intake, and extract above
+        /// <see cref="BypassMinimumExtractTemperature_C"/>.
+        /// <para>
+        /// <b>The same decision in every mode.</b> It selects <see cref="VentilationUnitOperatingMode.SummerBypass"/>
+        /// over recovery when the unit is not cooling, and it is what reaches the coil of an
+        /// <see cref="SupplyTemperatureRuleType.ExchangerThenCoil"/> cooling rule when it is.
+        /// </para>
+        /// </summary>
+        /// <returns>False where either temperature is not a finite number or a threshold is not stated.</returns>
+        public bool ExchangerBypassed(double intakeTemperature_C, double extractTemperature_C)
+        {
+            return intakeTemperature_C > BypassMinimumIntakeTemperature_C
+                && extractTemperature_C > intakeTemperature_C
+                && extractTemperature_C > BypassMinimumExtractTemperature_C;
         }
 
         /// <summary>The rule stated for one mode, or null where the mode has none.</summary>
@@ -363,6 +389,11 @@ namespace SAM.Analytical
 
             SupplyTemperatureRule supplyTemperatureRule = SupplyTemperatureRule(ventilationUnitOperatingMode);
 
+            if (supplyTemperatureRule?.SupplyTemperatureRuleType == SupplyTemperatureRuleType.ExchangerThenCoil)
+            {
+                return supplyTemperatureRule.SupplyTemperature(intakeTemperature_C, extractTemperature_C, operatingAirFlowRate_Lps, ExchangerBypassed(intakeTemperature_C, extractTemperature_C));
+            }
+
             return supplyTemperatureRule is null
                 ? double.NaN
                 : supplyTemperatureRule.SupplyTemperature(intakeTemperature_C, extractTemperature_C, operatingAirFlowRate_Lps, ventilationUnitPerformanceTable);
@@ -457,6 +488,11 @@ namespace SAM.Analytical
                 return "states an elevated cooling airflow that is not a finite number.";
             }
 
+            if (double.IsInfinity(DefaultElevatedAirFlow_Lps) || (IsFinite(DefaultElevatedAirFlow_Lps) && DefaultElevatedAirFlow_Lps <= 0))
+            {
+                return string.Format(CultureInfo.InvariantCulture, "states a default elevated cooling airflow of {0} l/s.", DefaultElevatedAirFlow_Lps);
+            }
+
             //The advisory range is optional - a manufacturer may state a figure without stating a range -
             //but a range that is stated is enforced, and a half-stated range is a transcription mistake.
             bool hasMinimum = IsFinite(MinimumElevatedAirFlow_Lps);
@@ -484,6 +520,16 @@ namespace SAM.Analytical
                         CultureInfo.InvariantCulture,
                         "states an elevated cooling airflow of {0:0.###} l/s, outside the {1:0.###} to {2:0.###} l/s its guidance states.",
                         ElevatedAirFlow_Lps,
+                        MinimumElevatedAirFlow_Lps,
+                        MaximumElevatedAirFlow_Lps);
+                }
+
+                if (IsFinite(DefaultElevatedAirFlow_Lps) && (DefaultElevatedAirFlow_Lps < MinimumElevatedAirFlow_Lps || DefaultElevatedAirFlow_Lps > MaximumElevatedAirFlow_Lps))
+                {
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "states a default elevated cooling airflow of {0:0.###} l/s, outside the {1:0.###} to {2:0.###} l/s its guidance states.",
+                        DefaultElevatedAirFlow_Lps,
                         MinimumElevatedAirFlow_Lps,
                         MaximumElevatedAirFlow_Lps);
                 }
@@ -543,6 +589,7 @@ namespace SAM.Analytical
             BypassMinimumIntakeTemperature_C = PerformanceJson.Value(jsonObject, "BypassMinimumIntakeTemperature_C");
             BypassMinimumExtractTemperature_C = PerformanceJson.Value(jsonObject, "BypassMinimumExtractTemperature_C");
             ElevatedAirFlow_Lps = PerformanceJson.Value(jsonObject, "ElevatedAirFlow_Lps");
+            DefaultElevatedAirFlow_Lps = PerformanceJson.Value(jsonObject, "DefaultElevatedAirFlow_Lps");
             MinimumElevatedAirFlow_Lps = PerformanceJson.Value(jsonObject, "MinimumElevatedAirFlow_Lps");
             MaximumElevatedAirFlow_Lps = PerformanceJson.Value(jsonObject, "MaximumElevatedAirFlow_Lps");
 
@@ -568,6 +615,7 @@ namespace SAM.Analytical
             PerformanceJson.SetValue(result, "BypassMinimumIntakeTemperature_C", BypassMinimumIntakeTemperature_C);
             PerformanceJson.SetValue(result, "BypassMinimumExtractTemperature_C", BypassMinimumExtractTemperature_C);
             PerformanceJson.SetValue(result, "ElevatedAirFlow_Lps", ElevatedAirFlow_Lps);
+            PerformanceJson.SetValue(result, "DefaultElevatedAirFlow_Lps", DefaultElevatedAirFlow_Lps);
             PerformanceJson.SetValue(result, "MinimumElevatedAirFlow_Lps", MinimumElevatedAirFlow_Lps);
             PerformanceJson.SetValue(result, "MaximumElevatedAirFlow_Lps", MaximumElevatedAirFlow_Lps);
 

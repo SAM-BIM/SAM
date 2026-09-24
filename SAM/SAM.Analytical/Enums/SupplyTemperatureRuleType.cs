@@ -64,5 +64,20 @@ namespace SAM.Analytical.Enums
         /// </para>
         /// </summary>
         [Description("Intake air less an airflow-dependent offset")] IntakeOffset,
+
+        /// <summary>
+        /// The unit's exchanger acts first and a cooling coil then lowers what leaves it by a fixed amount -
+        /// <c>max(minimum, exchanger leaving - (coil drop - fan rise)(airflow))</c>, where the exchanger
+        /// leaving temperature is intake air while the exchanger is bypassed and
+        /// <c>fraction(airflow) * extract + (1 - fraction(airflow)) * intake</c> otherwise.
+        /// <para>
+        /// This is the component process that an <see cref="IntakeOffset"/> figure averages: the same
+        /// three stated steps (exchanger, fan motor heat, coil), kept apart so that the result follows the
+        /// exchanger state and the intake and extract temperatures of every hour instead of one reference
+        /// condition. Whether the exchanger is bypassed is the operating strategy's decision, not the rule's -
+        /// see <see cref="SupplyTemperatureRule.SupplyTemperature(double, double, double, bool)"/>.
+        /// </para>
+        /// </summary>
+        [Description("Exchanger, then a coil drop, with a lower limit")] ExchangerThenCoil,
     }
 }

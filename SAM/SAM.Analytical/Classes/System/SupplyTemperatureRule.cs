@@ -47,6 +47,9 @@ namespace SAM.Analytical
         private bool performanceDomainPolicy_Refused = false;
         private double[] airFlowRates_Lps = null;
         private double[] intakeOffsets_K = null;
+        private double[] extractFractions = null;
+        private double[] coilTemperatureDrops_K = null;
+        private double[] fanTemperatureRises_K = null;
 
         public SupplyTemperatureRule()
         {
@@ -126,6 +129,48 @@ namespace SAM.Analytical
             };
         }
 
+        /// <summary>
+        /// The rule for a mode in which the unit's exchanger acts first and a cooling coil then lowers what
+        /// leaves it - the stated component process behind an <see cref="IntakeOffset"/> figure. Every figure
+        /// is stated per airflow and interpolated linearly between the stated airflows.
+        /// <para>
+        /// The exchanger delivers intake air while bypassed, otherwise
+        /// <c>extractFraction * extract + (1 - extractFraction) * intake</c>. The coil then lowers that by its
+        /// stated drop, less the stated temperature rise of the fan motor heat the air picks up on the way,
+        /// and never below <paramref name="minimumSupplyTemperature_C"/>. <b>A coil only cools</b>: where the
+        /// exchanger already delivers air at or below the limit, the coil does nothing and that air is what
+        /// the unit supplies - the limit bounds what the coil produces, it is not a heater.
+        /// </para>
+        /// <para>
+        /// The fraction is manufacturer modelling guidance, <b>not a certified heat-recovery efficiency</b> -
+        /// read the type remarks.
+        /// </para>
+        /// </summary>
+        /// <param name="airFlowRates_Lps">The airflows [l/s] at which the figures are stated, strictly increasing.</param>
+        /// <param name="extractFractions">The exchanger's extract fraction [-] at each airflow while it is not bypassed.</param>
+        /// <param name="coilTemperatureDrops_K">The coil's temperature drop [K] at each airflow; positive cools.</param>
+        /// <param name="fanTemperatureRises_K">The fan motor heat's temperature rise [K] at each airflow.</param>
+        /// <param name="minimumSupplyTemperature_C">
+        /// The lowest temperature [&#176;C] the coil delivers, or <see cref="double.NaN"/> where none is stated.
+        /// </param>
+        /// <param name="performanceDomainPolicy">
+        /// What the lookup does at an airflow outside the stated ones. Defaults to
+        /// <see cref="PerformanceDomainPolicy.Refuse"/>, as for <see cref="IntakeOffset"/>.
+        /// </param>
+        public static SupplyTemperatureRule ExchangerThenCoil(double[] airFlowRates_Lps, double[] extractFractions, double[] coilTemperatureDrops_K, double[] fanTemperatureRises_K, double minimumSupplyTemperature_C = double.NaN, PerformanceDomainPolicy performanceDomainPolicy = PerformanceDomainPolicy.Refuse)
+        {
+            return new SupplyTemperatureRule
+            {
+                supplyTemperatureRuleType = SupplyTemperatureRuleType.ExchangerThenCoil,
+                airFlowRates_Lps = airFlowRates_Lps?.Clone() as double[],
+                extractFractions = extractFractions?.Clone() as double[],
+                coilTemperatureDrops_K = coilTemperatureDrops_K?.Clone() as double[],
+                fanTemperatureRises_K = fanTemperatureRises_K?.Clone() as double[],
+                minimumSupplyTemperature_C = minimumSupplyTemperature_C,
+                performanceDomainPolicy = performanceDomainPolicy,
+            };
+        }
+
         public SupplyTemperatureRule(SupplyTemperatureRule supplyTemperatureRule)
         {
             if (supplyTemperatureRule is not null)
@@ -137,6 +182,9 @@ namespace SAM.Analytical
                 performanceDomainPolicy_Refused = supplyTemperatureRule.performanceDomainPolicy_Refused;
                 airFlowRates_Lps = supplyTemperatureRule.airFlowRates_Lps?.Clone() as double[];
                 intakeOffsets_K = supplyTemperatureRule.intakeOffsets_K?.Clone() as double[];
+                extractFractions = supplyTemperatureRule.extractFractions?.Clone() as double[];
+                coilTemperatureDrops_K = supplyTemperatureRule.coilTemperatureDrops_K?.Clone() as double[];
+                fanTemperatureRises_K = supplyTemperatureRule.fanTemperatureRises_K?.Clone() as double[];
             }
         }
 
@@ -203,6 +251,43 @@ namespace SAM.Analytical
             }
         }
 
+        /// <summary>
+        /// The exchanger's extract fraction [-] at each of <see cref="AirFlowRates_Lps"/>, for an
+        /// <see cref="SupplyTemperatureRuleType.ExchangerThenCoil"/> rule; null otherwise. A copy.
+        /// <b>Not a certified heat-recovery efficiency</b> - see the type remarks.
+        /// </summary>
+        public double[] ExtractFractions
+        {
+            get
+            {
+                return extractFractions?.Clone() as double[];
+            }
+        }
+
+        /// <summary>
+        /// The coil's temperature drop [K] at each of <see cref="AirFlowRates_Lps"/>, for an
+        /// <see cref="SupplyTemperatureRuleType.ExchangerThenCoil"/> rule; null otherwise. A copy.
+        /// </summary>
+        public double[] CoilTemperatureDrops_K
+        {
+            get
+            {
+                return coilTemperatureDrops_K?.Clone() as double[];
+            }
+        }
+
+        /// <summary>
+        /// The fan motor heat's temperature rise [K] at each of <see cref="AirFlowRates_Lps"/>, for an
+        /// <see cref="SupplyTemperatureRuleType.ExchangerThenCoil"/> rule; null otherwise. A copy.
+        /// </summary>
+        public double[] FanTemperatureRises_K
+        {
+            get
+            {
+                return fanTemperatureRises_K?.Clone() as double[];
+            }
+        }
+
         /// <summary>What a table lookup does outside the published grid.</summary>
         public PerformanceDomainPolicy PerformanceDomainPolicy
         {
@@ -260,6 +345,15 @@ namespace SAM.Analytical
 
                     break;
 
+                case SupplyTemperatureRuleType.ExchangerThenCoil:
+                    string refusal_Coil = ExchangerThenCoilRefusal();
+                    if (refusal_Coil is not null)
+                    {
+                        return refusal_Coil;
+                    }
+
+                    break;
+
                 default:
                     return string.Format("states the unrecognised supply-temperature rule '{0}'.", supplyTemperatureRuleType);
             }
@@ -285,7 +379,9 @@ namespace SAM.Analytical
         /// </param>
         /// <returns>
         /// The supply temperature, or <see cref="double.NaN"/> where the rule refuses, an input is not a
-        /// finite number, or the table cannot answer.
+        /// finite number, or the table cannot answer - and always for an
+        /// <see cref="SupplyTemperatureRuleType.ExchangerThenCoil"/> rule, whose answer depends on whether the
+        /// exchanger is bypassed: use <see cref="SupplyTemperature(double, double, double, bool)"/>.
         /// </returns>
         public double SupplyTemperature(double intakeTemperature_C, double extractTemperature_C, double airFlowRate_Lps, VentilationUnitPerformanceTable ventilationUnitPerformanceTable = null)
         {
@@ -353,7 +449,97 @@ namespace SAM.Analytical
         /// </summary>
         public double IntakeOffset_K(double airFlowRate_Lps)
         {
-            if (supplyTemperatureRuleType != SupplyTemperatureRuleType.IntakeOffset || Refusal() is not null || !IsFinite(airFlowRate_Lps))
+            if (supplyTemperatureRuleType != SupplyTemperatureRuleType.IntakeOffset || Refusal() is not null)
+            {
+                return double.NaN;
+            }
+
+            return Interpolate(intakeOffsets_K, airFlowRate_Lps);
+        }
+
+        /// <summary>
+        /// The package supply temperature [&#176;C] this rule states for one hour, given whether the unit's
+        /// exchanger is bypassed in that hour. For an <see cref="SupplyTemperatureRuleType.ExchangerThenCoil"/>
+        /// rule the exchanger state decides what reaches the coil; every other rule ignores it and answers as
+        /// <see cref="SupplyTemperature(double, double, double, VentilationUnitPerformanceTable)"/> does
+        /// without a table.
+        /// </summary>
+        /// <param name="intakeTemperature_C">The outdoor / intake air temperature [&#176;C] at the unit.</param>
+        /// <param name="extractTemperature_C">The extract / return air temperature [&#176;C] at the unit.</param>
+        /// <param name="airFlowRate_Lps">The airflow [l/s] the unit is moving in this mode.</param>
+        /// <param name="exchangerBypassed">Whether the exchanger is bypassed in this hour.</param>
+        public double SupplyTemperature(double intakeTemperature_C, double extractTemperature_C, double airFlowRate_Lps, bool exchangerBypassed)
+        {
+            if (supplyTemperatureRuleType != SupplyTemperatureRuleType.ExchangerThenCoil)
+            {
+                return SupplyTemperature(intakeTemperature_C, extractTemperature_C, airFlowRate_Lps);
+            }
+
+            if (Refusal() is not null || !IsFinite(intakeTemperature_C) || !IsFinite(extractTemperature_C))
+            {
+                return double.NaN;
+            }
+
+            double coilDrop_K = CoilNetTemperatureDrop_K(airFlowRate_Lps);
+            double extractFraction_Airflow = exchangerBypassed ? 0.0 : ExchangerExtractFraction(airFlowRate_Lps);
+            if (!IsFinite(coilDrop_K) || !IsFinite(extractFraction_Airflow))
+            {
+                return double.NaN;
+            }
+
+            double exchangerLeaving_C = (extractFraction_Airflow * extractTemperature_C) + ((1 - extractFraction_Airflow) * intakeTemperature_C);
+            double result = exchangerLeaving_C - coilDrop_K;
+
+            //The limit bounds what the coil produces. A coil only cools, so air that already leaves the exchanger
+            //at or below the limit passes through unchanged rather than being warmed up to it.
+            if (!double.IsNaN(minimumSupplyTemperature_C))
+            {
+                result = System.Math.Min(exchangerLeaving_C, System.Math.Max(result, minimumSupplyTemperature_C));
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// The exchanger's extract fraction [-] an <see cref="SupplyTemperatureRuleType.ExchangerThenCoil"/> rule
+        /// applies at an airflow while the exchanger is not bypassed - linear between the stated airflows,
+        /// outside them per <see cref="PerformanceDomainPolicy"/>. <see cref="double.NaN"/> for any other rule
+        /// or a rule that refuses.
+        /// </summary>
+        public double ExchangerExtractFraction(double airFlowRate_Lps)
+        {
+            if (supplyTemperatureRuleType != SupplyTemperatureRuleType.ExchangerThenCoil || Refusal() is not null)
+            {
+                return double.NaN;
+            }
+
+            return Interpolate(extractFractions, airFlowRate_Lps);
+        }
+
+        /// <summary>
+        /// What an <see cref="SupplyTemperatureRuleType.ExchangerThenCoil"/> rule's coil takes off the air at an
+        /// airflow [K]: the coil drop less the fan motor heat's rise, each interpolated as
+        /// <see cref="ExchangerExtractFraction(double)"/> is. <see cref="double.NaN"/> for any other rule or a
+        /// rule that refuses.
+        /// </summary>
+        public double CoilNetTemperatureDrop_K(double airFlowRate_Lps)
+        {
+            if (supplyTemperatureRuleType != SupplyTemperatureRuleType.ExchangerThenCoil || Refusal() is not null)
+            {
+                return double.NaN;
+            }
+
+            return Interpolate(coilTemperatureDrops_K, airFlowRate_Lps) - Interpolate(fanTemperatureRises_K, airFlowRate_Lps);
+        }
+
+        /// <summary>
+        /// One figure stated per airflow, at an airflow: linear between the stated airflows; outside them held at
+        /// the nearest stated one under <see cref="PerformanceDomainPolicy.ClampToDomain"/> and
+        /// <see cref="double.NaN"/> otherwise.
+        /// </summary>
+        private double Interpolate(double[] values, double airFlowRate_Lps)
+        {
+            if (!IsFinite(airFlowRate_Lps))
             {
                 return double.NaN;
             }
@@ -367,7 +553,7 @@ namespace SAM.Analytical
                     return double.NaN;
                 }
 
-                return airFlowRate_Lps < airFlowRates_Lps[0] ? intakeOffsets_K[0] : intakeOffsets_K[count - 1];
+                return airFlowRate_Lps < airFlowRates_Lps[0] ? values[0] : values[count - 1];
             }
 
             for (int i = 0; i < count - 1; i++)
@@ -375,11 +561,11 @@ namespace SAM.Analytical
                 if (airFlowRate_Lps <= airFlowRates_Lps[i + 1])
                 {
                     double fraction = (airFlowRate_Lps - airFlowRates_Lps[i]) / (airFlowRates_Lps[i + 1] - airFlowRates_Lps[i]);
-                    return intakeOffsets_K[i] + (fraction * (intakeOffsets_K[i + 1] - intakeOffsets_K[i]));
+                    return values[i] + (fraction * (values[i + 1] - values[i]));
                 }
             }
 
-            return intakeOffsets_K[count - 1];
+            return values[count - 1];
         }
 
         /// <summary>
@@ -393,7 +579,8 @@ namespace SAM.Analytical
         /// </summary>
         public string AirFlowDomainCondition(double airFlowRate_Lps)
         {
-            if (supplyTemperatureRuleType != SupplyTemperatureRuleType.IntakeOffset || IntakeOffsetRefusal() is not null)
+            bool isOffset = supplyTemperatureRuleType == SupplyTemperatureRuleType.IntakeOffset;
+            if (isOffset ? IntakeOffsetRefusal() is not null : (supplyTemperatureRuleType != SupplyTemperatureRuleType.ExchangerThenCoil || ExchangerThenCoilRefusal() is not null))
             {
                 return null;
             }
@@ -413,11 +600,53 @@ namespace SAM.Analytical
 
             return string.Format(
                 CultureInfo.InvariantCulture,
-                "{0:0.###} l/s is outside the {1:0.###} to {2:0.###} l/s at which the intake offset is stated ({3}).",
+                "{0:0.###} l/s is outside the {1:0.###} to {2:0.###} l/s at which the {3} stated ({4}).",
                 airFlowRate_Lps,
                 minimum,
                 maximum,
-                performanceDomainPolicy == PerformanceDomainPolicy.ClampToDomain ? "held at the nearest stated offset" : "no offset is given");
+                isOffset ? "intake offset is" : "exchanger and coil figures are",
+                performanceDomainPolicy == PerformanceDomainPolicy.ClampToDomain
+                    ? (isOffset ? "held at the nearest stated offset" : "held at the nearest stated figures")
+                    : (isOffset ? "no offset is given" : "no figure is given"));
+        }
+
+        private string ExchangerThenCoilRefusal()
+        {
+            if (airFlowRates_Lps is null || extractFractions is null || coilTemperatureDrops_K is null || fanTemperatureRises_K is null || airFlowRates_Lps.Length == 0)
+            {
+                return "states an exchanger and coil without stating the airflows, extract fractions, coil drops and fan rises they apply at.";
+            }
+
+            int count = airFlowRates_Lps.Length;
+            if (extractFractions.Length != count || coilTemperatureDrops_K.Length != count || fanTemperatureRises_K.Length != count)
+            {
+                return string.Format("states {0} airflow(s) but {1} extract fraction(s), {2} coil drop(s) and {3} fan rise(s).", count, extractFractions.Length, coilTemperatureDrops_K.Length, fanTemperatureRises_K.Length);
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                if (!IsFinite(airFlowRates_Lps[i]) || airFlowRates_Lps[i] <= 0 || !IsFinite(extractFractions[i]) || !IsFinite(coilTemperatureDrops_K[i]) || !IsFinite(fanTemperatureRises_K[i]))
+                {
+                    return "states an exchanger and coil figure that is not a finite number, or an airflow that is not positive.";
+                }
+
+                if (i > 0 && airFlowRates_Lps[i] <= airFlowRates_Lps[i - 1])
+                {
+                    return "states exchanger and coil airflows that are not strictly increasing.";
+                }
+
+                if (extractFractions[i] < 0 || extractFractions[i] > 1)
+                {
+                    return string.Format(CultureInfo.InvariantCulture, "states an exchanger extract fraction of {0}; a blend of two air streams lies between 0 and 1.", extractFractions[i]);
+                }
+
+                if (fanTemperatureRises_K[i] < 0 || coilTemperatureDrops_K[i] < fanTemperatureRises_K[i])
+                {
+                    return string.Format(CultureInfo.InvariantCulture, "states a coil drop of {0} K after a fan rise of {1} K at {2} l/s; a cooling coil states at least the fan heat it follows, and a fan does not cool.", coilTemperatureDrops_K[i], fanTemperatureRises_K[i], airFlowRates_Lps[i]);
+                }
+            }
+
+            return null;
         }
 
         private string IntakeOffsetRefusal()
@@ -515,6 +744,21 @@ namespace SAM.Analytical
                     result = string.Format("intake - X(l/s:K {0}; {1} outside)", string.Join(" ", points), performanceDomainPolicy);
                     break;
 
+                case SupplyTemperatureRuleType.ExchangerThenCoil:
+                    if (ExchangerThenCoilRefusal() is not null)
+                    {
+                        return "Invalid SupplyTemperatureRule";
+                    }
+
+                    string[] figures = new string[airFlowRates_Lps.Length];
+                    for (int i = 0; i < figures.Length; i++)
+                    {
+                        figures[i] = string.Format(CultureInfo.InvariantCulture, "{0:0.###}:{1:0.####}/{2:0.###}-{3:0.###}", airFlowRates_Lps[i], extractFractions[i], coilTemperatureDrops_K[i], fanTemperatureRises_K[i]);
+                    }
+
+                    result = string.Format("exchanger (bypass or fraction) then coil drop less fan rise (l/s:fraction/drop-rise {0}; {1} outside)", string.Join(" ", figures), performanceDomainPolicy);
+                    break;
+
                 default:
                     return "Invalid SupplyTemperatureRule";
             }
@@ -536,6 +780,9 @@ namespace SAM.Analytical
             minimumSupplyTemperature_C = PerformanceJson.Value(jsonObject, "MinimumSupplyTemperature_C");
             airFlowRates_Lps = PerformanceJson.Values(jsonObject, "AirFlowRates_Lps");
             intakeOffsets_K = PerformanceJson.Values(jsonObject, "IntakeOffsets_K");
+            extractFractions = PerformanceJson.Values(jsonObject, "ExtractFractions");
+            coilTemperatureDrops_K = PerformanceJson.Values(jsonObject, "CoilTemperatureDrops_K");
+            fanTemperatureRises_K = PerformanceJson.Values(jsonObject, "FanTemperatureRises_K");
 
             //Absent reads as ClampToDomain, which is what a published table asked about conditions outside
             //its grid already does on the accepted cooling route. PRESENT but not one of the names is
@@ -575,6 +822,9 @@ namespace SAM.Analytical
             PerformanceJson.SetValue(result, "MinimumSupplyTemperature_C", minimumSupplyTemperature_C);
             PerformanceJson.SetValues(result, "AirFlowRates_Lps", airFlowRates_Lps);
             PerformanceJson.SetValues(result, "IntakeOffsets_K", intakeOffsets_K);
+            PerformanceJson.SetValues(result, "ExtractFractions", extractFractions);
+            PerformanceJson.SetValues(result, "CoilTemperatureDrops_K", coilTemperatureDrops_K);
+            PerformanceJson.SetValues(result, "FanTemperatureRises_K", fanTemperatureRises_K);
 
             result["PerformanceDomainPolicy"] = performanceDomainPolicy.ToString();
 
