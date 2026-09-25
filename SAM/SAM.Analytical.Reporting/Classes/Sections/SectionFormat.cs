@@ -40,9 +40,9 @@ namespace SAM.Analytical.Reporting
             return quantityFormatter.SelectDisplayUnit(unitCategory, quantities);
         }
 
-        public static KeyValueRow Row(string label, FormattedValue formattedValue)
+        public static KeyValueRow Row(string label, FormattedValue formattedValue, string subLabel = null)
         {
-            return new KeyValueRow(label, formattedValue);
+            return new KeyValueRow(label, formattedValue, subLabel);
         }
 
         /// <summary>

@@ -16,6 +16,11 @@ namespace SAM.Analytical.Reporting
         private const string NoInternalCondition = "No internal condition assigned";
 
         /// <summary>
+        /// Reason on a Sizing multiplier set neither on the space nor on the model (reported as NotApplicable).
+        /// </summary>
+        public const string SizingFactorNotSet = "Not set: SAM_Tas applies no sizing multiplier";
+
+        /// <summary>
         /// Collects the Phase 1 assumptions of one space from the saved model: identity, geometry, internal condition,
         /// design criteria, ventilation, systems, fabric and persisted design loads. No simulation results are read.
         /// <para>
@@ -723,7 +728,9 @@ namespace SAM.Analytical.Reporting
                     return result.HasValue ? ReportValue<Quantity>.Available(result.Value, ReportValueSource.SAM, note: "Model default") : result;
                 }
 
-                return ReportValue<Quantity>.NotAvailable("No sizing factor set");
+                // Set neither on the space nor on the model: SAM_Tas (Modify.UpdateSizingFactors) then leaves the zone
+                // load unscaled. That is a known "no multiplier", not missing data.
+                return ReportValue<Quantity>.NotApplicable(SizingFactorNotSet);
             }
         }
     }

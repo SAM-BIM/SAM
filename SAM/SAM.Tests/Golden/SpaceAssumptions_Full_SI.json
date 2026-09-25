@@ -124,15 +124,6 @@
               }
             },
             {
-              "label": "Profile",
-              "value": {
-                "text": "Occ 8to19",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "SAM"
-              }
-            },
-            {
               "label": "Occupied hours per year",
               "value": {
                 "text": "4,015",
@@ -450,7 +441,8 @@
           "title": "Room humidity",
           "rows": [
             {
-              "label": "Humidification set point (lower RH limit)",
+              "label": "Humidification set point",
+              "subLabel": "lower RH limit",
               "value": {
                 "text": "40",
                 "unit": "%",
@@ -461,7 +453,8 @@
               }
             },
             {
-              "label": "Dehumidification set point (upper RH limit)",
+              "label": "Dehumidification set point",
+              "subLabel": "upper RH limit",
               "value": {
                 "text": "60",
                 "unit": "%",
@@ -673,26 +666,6 @@
             ],
             [
               {
-                "text": "Windows (frame)",
-                "availability": "Available"
-              },
-              {
-                "text": "0.0",
-                "unit": "m²",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived"
-              },
-              {
-                "text": "0.0",
-                "unit": "m²",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived"
-              }
-            ],
-            [
-              {
                 "text": "Doors (pane)",
                 "availability": "Available"
               },
@@ -705,26 +678,6 @@
               },
               {
                 "text": "1.8",
-                "unit": "m²",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived"
-              }
-            ],
-            [
-              {
-                "text": "Doors (frame)",
-                "availability": "Available"
-              },
-              {
-                "text": "0.0",
-                "unit": "m²",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived"
-              },
-              {
-                "text": "0.0",
                 "unit": "m²",
                 "availability": "Available",
                 "freshness": "Current",
@@ -770,28 +723,14 @@
                 "freshness": "Current",
                 "source": "Derived"
               }
-            ],
-            [
-              {
-                "text": "Other floors",
-                "availability": "Available"
-              },
-              {
-                "text": "0.0",
-                "unit": "m²",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived"
-              },
-              {
-                "text": "0.0",
-                "unit": "m²",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived"
-              }
             ]
           ]
+        },
+        {
+          "type": "NoticeBlock",
+          "id": "fabric-not-present",
+          "level": "Information",
+          "text": "Not present (zero area): Windows (frame), Doors (frame), Other floors"
         }
       ]
     },
@@ -888,13 +827,7 @@
           "type": "NoticeBlock",
           "id": "sizing-status",
           "level": "Information",
-          "text": "Design loads: from Tas sizing — date/currency not recorded"
-        },
-        {
-          "type": "NoticeBlock",
-          "id": "sizing-multiplier",
-          "level": "Information",
-          "text": "Whether the design loads above already include the sizing multiplier is not recorded"
+          "text": "Design loads: from Tas sizing — date/currency not recorded; whether they include the Sizing multiplier is not recorded"
         }
       ]
     }

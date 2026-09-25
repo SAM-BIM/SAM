@@ -79,11 +79,11 @@ namespace SAM.Analytical.Reporting
             IQuantityFormatter quantityFormatter = documentContext.Formatter;
             SpaceOccupancyData spaceOccupancyData = data.Occupancy;
 
+            // The occupancy profile is not repeated here: the gains table already shows it on both occupancy rows.
             KeyValueBlock keyValueBlock_Occupancy = new KeyValueBlock("occupancy", "Occupancy", new[]
             {
                 SectionFormat.Row("People", quantityFormatter.Format(spaceOccupancyData.People)),
                 SectionFormat.Row("Area per person", quantityFormatter.Format(spaceOccupancyData.AreaPerPerson)),
-                SectionFormat.Row("Profile", quantityFormatter.Format(spaceOccupancyData.Profile)),
                 SectionFormat.Row("Occupied hours per year", quantityFormatter.Format(spaceOccupancyData.OccupiedHoursPerYear)),
             });
 
@@ -172,11 +172,12 @@ namespace SAM.Analytical.Reporting
 
             // Humidity control is not tied to heating or cooling: Tas holds a lower RH limit (humidification) and an
             // upper RH limit (dehumidification), so they are listed by what they are, outside the heating/cooling table.
+            // The limit is named in the sub-label so the primary label fits one line in a half-width column.
             FormattedValue[] humidity = SectionFormat.Group(quantityFormatter, UnitCategory.Ratio, spaceDesignCriteriaData.HumidificationSetPoint, spaceDesignCriteriaData.DehumidificationSetPoint);
             KeyValueBlock keyValueBlock = new KeyValueBlock("room-humidity", "Room humidity", new[]
             {
-                SectionFormat.Row("Humidification set point (lower RH limit)", humidity[0]),
-                SectionFormat.Row("Dehumidification set point (upper RH limit)", humidity[1]),
+                SectionFormat.Row("Humidification set point", humidity[0], "lower RH limit"),
+                SectionFormat.Row("Dehumidification set point", humidity[1], "upper RH limit"),
             });
 
             return new DocumentSection(Id, "Design Criteria", new DocumentBlock[] { tableBlock, keyValueBlock }, SectionWidth.Half);
@@ -260,10 +261,16 @@ namespace SAM.Analytical.Reporting
     }
 
     /// <summary>
-    /// Section 7: fabric areas by exposure, all in one shared area unit.
+    /// Section 7: fabric areas by exposure, all in one shared area unit. Rows with zero area are named in one note
+    /// rather than listed as zeros.
     /// </summary>
     public sealed class SpaceFabricSectionBuilder : ISectionBuilder<SpaceDocumentData>
     {
+        /// <summary>
+        /// Starts the note naming the omitted zero-area elements. It carries no unit, so it reads the same in SI and IP.
+        /// </summary>
+        public const string NotPresentPrefix = "Not present (zero area): ";
+
         public string Id => "fabric";
 
         public DocumentSection Build(SpaceDocumentData data, DocumentContext documentContext)
@@ -276,38 +283,59 @@ namespace SAM.Analytical.Reporting
                 return new DocumentSection(Id, title, new DocumentBlock[] { new NoticeBlock("fabric-missing", "No panels bound this space", NoticeLevel.Warning) });
             }
 
-            IQuantityFormatter quantityFormatter = documentContext.Formatter;
-
-            DisplayUnit displayUnit = SectionFormat.Unit(quantityFormatter, UnitCategory.Area, fabricAreaRows.SelectMany(x => new[] { x.ExternalArea, x.InternalArea, x.ExternalFrameArea, x.InternalFrameArea }));
-
-            List<TableRow> tableRows = new List<TableRow>();
+            // Display rows: one per opaque category; a pane and a frame row per opening category.
+            List<(FabricCategory Category, string Label, ReportValue<Quantity> External, ReportValue<Quantity> Internal)> rows = new List<(FabricCategory, string, ReportValue<Quantity>, ReportValue<Quantity>)>();
             foreach (FabricAreaRow fabricAreaRow in fabricAreaRows)
             {
-                bool opening = fabricAreaRow.Category == FabricCategory.Windows || fabricAreaRow.Category == FabricCategory.Doors;
                 string label = Label(fabricAreaRow.Category);
-
-                tableRows.Add(new TableRow(
-                    SectionFormat.Label(opening ? label + " (pane)" : label),
-                    quantityFormatter.Format(fabricAreaRow.ExternalArea, displayUnit),
-                    quantityFormatter.Format(fabricAreaRow.InternalArea, displayUnit)));
-
-                if (opening)
+                if (fabricAreaRow.Category == FabricCategory.Windows || fabricAreaRow.Category == FabricCategory.Doors)
                 {
-                    tableRows.Add(new TableRow(
-                        SectionFormat.Label(label + " (frame)"),
-                        quantityFormatter.Format(fabricAreaRow.ExternalFrameArea, displayUnit),
-                        quantityFormatter.Format(fabricAreaRow.InternalFrameArea, displayUnit)));
+                    rows.Add((fabricAreaRow.Category, label + " (pane)", fabricAreaRow.ExternalArea, fabricAreaRow.InternalArea));
+                    rows.Add((fabricAreaRow.Category, label + " (frame)", fabricAreaRow.ExternalFrameArea, fabricAreaRow.InternalFrameArea));
+                }
+                else
+                {
+                    rows.Add((fabricAreaRow.Category, label, fabricAreaRow.ExternalArea, fabricAreaRow.InternalArea));
                 }
             }
 
-            TableBlock tableBlock = new TableBlock("fabric", null, new[]
+            // A row whose areas are both explicitly zero is left out and named in one note: by its category when the
+            // whole category is zero ("Windows"), else by the row ("Doors (frame)"). A missing area is never treated as
+            // zero, so such a row stays.
+            List<string> notPresent = new List<string>();
+            foreach (IGrouping<FabricCategory, (FabricCategory Category, string Label, ReportValue<Quantity> External, ReportValue<Quantity> Internal)> grouping in rows.GroupBy(x => x.Category))
             {
-                new TableColumn("Element", alignment: ColumnAlignment.Left),
-                new TableColumn("External", displayUnit.Symbol),
-                new TableColumn("Internal", displayUnit.Symbol),
-            }, tableRows, true);
+                List<string> labels = grouping.Where(x => IsZero(x.External) && IsZero(x.Internal)).Select(x => x.Label).ToList();
+                notPresent.AddRange(labels.Count == grouping.Count() ? new[] { Label(grouping.Key) } : labels);
+            }
 
-            return new DocumentSection(Id, title, new DocumentBlock[] { tableBlock });
+            rows = rows.Where(x => !(IsZero(x.External) && IsZero(x.Internal))).ToList();
+
+            List<DocumentBlock> documentBlocks = new List<DocumentBlock>();
+            if (rows.Count != 0)
+            {
+                IQuantityFormatter quantityFormatter = documentContext.Formatter;
+                DisplayUnit displayUnit = SectionFormat.Unit(quantityFormatter, UnitCategory.Area, rows.SelectMany(x => new[] { x.External, x.Internal }));
+
+                documentBlocks.Add(new TableBlock("fabric", null, new[]
+                {
+                    new TableColumn("Element", alignment: ColumnAlignment.Left),
+                    new TableColumn("External", displayUnit.Symbol),
+                    new TableColumn("Internal", displayUnit.Symbol),
+                }, rows.Select(x => new TableRow(SectionFormat.Label(x.Label), quantityFormatter.Format(x.External, displayUnit), quantityFormatter.Format(x.Internal, displayUnit))), true));
+            }
+
+            if (notPresent.Count != 0)
+            {
+                documentBlocks.Add(new NoticeBlock("fabric-not-present", NotPresentPrefix + string.Join(", ", notPresent)));
+            }
+
+            return new DocumentSection(Id, title, documentBlocks);
+        }
+
+        private static bool IsZero(ReportValue<Quantity> reportValue)
+        {
+            return reportValue != null && reportValue.TryGetValue(out Quantity quantity) && quantity.Value == 0;
         }
 
         private static string Label(FabricCategory fabricCategory)
@@ -344,7 +372,18 @@ namespace SAM.Analytical.Reporting
     {
         public const string DesignLoadsUnknownNotice = "Design loads: from Tas sizing — date/currency not recorded";
         public const string DesignLoadsNoneNotice = "No Tas design loads in model";
-        public const string SizingMultiplierNotice = "Whether the design loads above already include the sizing multiplier is not recorded";
+
+        /// <summary>
+        /// The one sizing notice when design loads and a Sizing multiplier are both present: SAM_Tas multiplies the TBD
+        /// design load by the factor only on some sizing paths, and the persisted load does not record whether it did.
+        /// </summary>
+        public const string DesignLoadsUnknownSizingMultiplierNotice = DesignLoadsUnknownNotice + "; whether they include the Sizing multiplier is not recorded";
+
+        /// <summary>
+        /// Shown for a Sizing multiplier that is set neither on the space nor on the model: SAM_Tas then applies no
+        /// multiplier, which is a known state, not missing data.
+        /// </summary>
+        public const string SizingMultiplierNotSetText = "not set";
 
         /// <summary>
         /// A dimensionless multiplier shown as a plain number with two decimals ("1.20").
@@ -368,7 +407,7 @@ namespace SAM.Analytical.Reporting
                 SpaceDesignCriteriaSectionBuilder.Pair(quantityFormatter, "Design load", UnitCategory.Power, spaceSizingData.DesignHeatingLoad, spaceSizingData.DesignCoolingLoad),
                 SpaceDesignCriteriaSectionBuilder.Pair(quantityFormatter, "Design load per area", UnitCategory.SpecificPower, spaceSizingData.DesignHeatingLoadPerArea, spaceSizingData.DesignCoolingLoadPerArea),
                 // The stored factor multiplies the Tas design load (1.2 = ×1.20), so it is shown as a plain multiplier.
-                new TableRow(SectionFormat.Label("Sizing multiplier"), quantityFormatter.Format(spaceSizingData.HeatingSizingFactor, Multiplier), quantityFormatter.Format(spaceSizingData.CoolingSizingFactor, Multiplier)),
+                new TableRow(SectionFormat.Label("Sizing multiplier"), SizingMultiplier(quantityFormatter, spaceSizingData.HeatingSizingFactor), SizingMultiplier(quantityFormatter, spaceSizingData.CoolingSizingFactor)),
             };
 
             TableBlock tableBlock = new TableBlock("sizing", null, new[]
@@ -378,19 +417,28 @@ namespace SAM.Analytical.Reporting
                 new TableColumn("Cooling"),
             }, tableRows);
 
-            NoticeBlock noticeBlock = spaceSizingData.DesignLoadStatus == DesignLoadStatus.None
-                ? new NoticeBlock("sizing-status", DesignLoadsNoneNotice)
-                : new NoticeBlock("sizing-status", DesignLoadsUnknownNotice);
-
-            List<DocumentBlock> documentBlocks = new List<DocumentBlock>() { tableBlock, noticeBlock };
-            if (spaceSizingData.DesignLoadStatus != DesignLoadStatus.None && (spaceSizingData.HeatingSizingFactor.HasValue || spaceSizingData.CoolingSizingFactor.HasValue))
+            // One notice: the design-load status, plus the multiplier caveat when a multiplier is set.
+            string notice = DesignLoadsNoneNotice;
+            if (spaceSizingData.DesignLoadStatus != DesignLoadStatus.None)
             {
-                // SAM_Tas multiplies the TBD design load by the factor only on some sizing paths, and the persisted
-                // load does not record whether that happened.
-                documentBlocks.Add(new NoticeBlock("sizing-multiplier", SizingMultiplierNotice));
+                notice = spaceSizingData.HeatingSizingFactor.HasValue || spaceSizingData.CoolingSizingFactor.HasValue ? DesignLoadsUnknownSizingMultiplierNotice : DesignLoadsUnknownNotice;
             }
 
-            return new DocumentSection(Id, "Sizing (Tas design loads)", documentBlocks);
+            return new DocumentSection(Id, "Sizing (Tas design loads)", new DocumentBlock[] { tableBlock, new NoticeBlock("sizing-status", notice) });
+        }
+
+        /// <summary>
+        /// The multiplier as "1.20"; "not set" when the collector reports it not applicable (set nowhere, so SAM_Tas
+        /// applies none); "—" when it is missing or invalid.
+        /// </summary>
+        private static FormattedValue SizingMultiplier(IQuantityFormatter quantityFormatter, ReportValue<Quantity> sizingFactor)
+        {
+            if (sizingFactor != null && sizingFactor.Availability == Availability.NotApplicable)
+            {
+                return new FormattedValue(SizingMultiplierNotSetText, null, Availability.NotApplicable, note: sizingFactor.Note);
+            }
+
+            return quantityFormatter.Format(sizingFactor, Multiplier);
         }
     }
 

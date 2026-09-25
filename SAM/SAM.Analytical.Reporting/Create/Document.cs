@@ -63,12 +63,14 @@ namespace SAM.Analytical.Reporting
 
             List<FormattedValue> formattedValues = document.FormattedValues().ToList();
             List<string> legend = new List<string>();
-            if (formattedValues.Any(x => x.Availability == Availability.NotAvailable))
+            // The legend explains the markers printed, so a not-applicable value with its own text ("not set") adds none.
+            IQuantityFormatter quantityFormatter = documentContext.Formatter;
+            if (formattedValues.Any(x => x.Availability == Availability.NotAvailable && x.Text == quantityFormatter.NotAvailableText))
             {
                 legend.Add(LegendNotAvailable);
             }
 
-            if (formattedValues.Any(x => x.Availability == Availability.NotApplicable))
+            if (formattedValues.Any(x => x.Availability == Availability.NotApplicable && x.Text == quantityFormatter.NotApplicableText))
             {
                 legend.Add(LegendNotApplicable);
             }

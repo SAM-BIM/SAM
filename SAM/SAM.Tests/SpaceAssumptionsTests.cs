@@ -178,6 +178,11 @@ namespace SAM.Tests
             Assert.Equal(Availability.NotAvailable, data.Occupancy.LatentGain.Availability);
             Assert.Equal("No occupancy latent gain authored", data.Occupancy.LatentGain.Note);
             AssertQuantity(data.Occupancy.SensibleGain, 0, UnitCategory.Power, ReportValueSource.Derived);
+
+            // In the document: a missing gain prints "—", an authored zero prints "0".
+            TableBlock gains = Table(Build(analyticalModel, UnitStyle.SI, out _), "internal-condition", "gains");
+            Assert.Equal(new[] { "0", "—" }, gains.Rows.Take(2).Select(x => x.Cells[3].Text));
+            Assert.Equal(new[] { Availability.Available, Availability.NotAvailable }, gains.Rows.Take(2).Select(x => x.Cells[3].Availability));
         }
 
         // ---------- set points and humidity ----------
@@ -217,6 +222,10 @@ namespace SAM.Tests
 
             Assert.Equal(Availability.NotApplicable, data.DesignCriteria.HumidificationSetPoint.Availability);
             Assert.Equal(Availability.NotApplicable, data.DesignCriteria.DehumidificationSetPoint.Availability);
+
+            KeyValueBlock keyValueBlock = Build(WithProfiles(ReportingFixture.Full(out _), humidification, dehumidification), UnitStyle.SI, out _)
+                .Sections.Single(x => x.Id == "design-criteria").Blocks.OfType<KeyValueBlock>().Single(x => x.Id == "room-humidity");
+            Assert.Equal(new[] { "n/a", "n/a" }, keyValueBlock.Rows.Select(x => x.Value.Text));
         }
 
         [Fact]
@@ -226,7 +235,8 @@ namespace SAM.Tests
 
             DocumentSection documentSection = document.Sections.Single(x => x.Id == "design-criteria");
             KeyValueBlock keyValueBlock = documentSection.Blocks.OfType<KeyValueBlock>().Single(x => x.Id == "room-humidity");
-            Assert.Equal(new[] { "Humidification set point (lower RH limit)", "Dehumidification set point (upper RH limit)" }, keyValueBlock.Rows.Select(x => x.Label));
+            Assert.Equal(new[] { "Humidification set point", "Dehumidification set point" }, keyValueBlock.Rows.Select(x => x.Label));
+            Assert.Equal(new[] { "lower RH limit", "upper RH limit" }, keyValueBlock.Rows.Select(x => x.SubLabel));
             Assert.Equal(new[] { "40", "60" }, keyValueBlock.Rows.Select(x => x.Value.Text));
 
             TableBlock tableBlock = Table(document, "design-criteria", "design-criteria");
@@ -414,11 +424,138 @@ namespace SAM.Tests
         }
 
         [Fact]
-        public void Sizing_SaysWhetherLoadsIncludeTheMultiplierIsNotRecorded()
+        public void Sizing_HasOneNotice_SayingFreshnessAndMultiplierInclusionAreNotRecorded()
         {
             DocumentSection documentSection = Build(ReportingFixture.Full(out _), UnitStyle.SI, out _).Sections.Single(x => x.Id == "sizing");
 
-            Assert.Contains(documentSection.Blocks.OfType<NoticeBlock>(), x => x.Text == SpaceSizingSectionBuilder.SizingMultiplierNotice);
+            NoticeBlock noticeBlock = Assert.Single(documentSection.Blocks.OfType<NoticeBlock>());
+            Assert.Equal(SpaceSizingSectionBuilder.DesignLoadsUnknownSizingMultiplierNotice, noticeBlock.Text);
+            Assert.Contains("date/currency not recorded", noticeBlock.Text);
+            Assert.Contains("Sizing multiplier", noticeBlock.Text);
+        }
+
+        [Fact]
+        public void SizingMultiplier_SetNowhere_IsNotSet_NotMissing()
+        {
+            // SAM_Tas Modify.UpdateSizingFactors: a space factor of 0 / unset falls back to the model factor, and with
+            // neither set the zone design load is left unscaled - a known "no multiplier", not unknown data.
+            AnalyticalModel analyticalModel = ReportingFixture.Full(out _);
+            Space space = ReportingFixture.Stored(analyticalModel);
+            Assert.True(space.SetValue(SpaceParameter.HeatingSizingFactor, 0.0));
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+            adjacencyCluster.AddObject(space);
+            analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+            analyticalModel.RemoveValue(AnalyticalModelParameter.CoolingSizingFactor);
+
+            SpaceDocumentData data = Collect(analyticalModel, UnitStyle.SI, out _);
+            Assert.Equal(Availability.NotApplicable, data.Sizing.HeatingSizingFactor.Availability);
+            Assert.Equal(ReportingCreate.SizingFactorNotSet, data.Sizing.HeatingSizingFactor.Note);
+            Assert.Equal(Availability.NotApplicable, data.Sizing.CoolingSizingFactor.Availability);
+
+            Document document = Build(analyticalModel, UnitStyle.SI, out _);
+            TableRow multiplier = Table(document, "sizing", "sizing").Rows[2];
+            Assert.Equal(new[] { SpaceSizingSectionBuilder.SizingMultiplierNotSetText, SpaceSizingSectionBuilder.SizingMultiplierNotSetText }, multiplier.Cells.Skip(1).Select(x => x.Text));
+
+            // No multiplier is applied, so the notice does not raise the inclusion question, and the design loads
+            // keep their Unknown freshness.
+            NoticeBlock noticeBlock = Assert.Single(document.Sections.Single(x => x.Id == "sizing").Blocks.OfType<NoticeBlock>());
+            Assert.Equal(SpaceSizingSectionBuilder.DesignLoadsUnknownNotice, noticeBlock.Text);
+            Assert.Equal(Freshness.Unknown, Table(document, "sizing", "sizing").Rows[0].Cells[1].Freshness);
+        }
+
+        [Fact]
+        public void SizingMultiplier_Invalid_StaysNotAvailable()
+        {
+            // An invalid stored factor is unknown data: "—", never "not set", and it does not fall back to the model.
+            AnalyticalModel analyticalModel = ReportingFixture.Full(out _);
+            Space space = ReportingFixture.Stored(analyticalModel);
+            Assert.True(space.SetValue(SpaceParameter.HeatingSizingFactor, double.PositiveInfinity));
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+            adjacencyCluster.AddObject(space);
+            analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+
+            TableRow multiplier = Table(Build(analyticalModel, UnitStyle.SI, out _), "sizing", "sizing").Rows[2];
+            Assert.Equal(new[] { "—", "1.10" }, multiplier.Cells.Skip(1).Select(x => x.Text));
+            Assert.Equal(Availability.NotAvailable, multiplier.Cells[1].Availability);
+        }
+
+        [Fact]
+        public void Occupancy_ProfileIsShownOnce_InTheGainsTable()
+        {
+            Document document = Build(ReportingFixture.Full(out _), UnitStyle.SI, out _);
+
+            KeyValueBlock occupancy = document.Sections.Single(x => x.Id == "internal-condition").Blocks.OfType<KeyValueBlock>().Single(x => x.Id == "occupancy");
+            Assert.DoesNotContain(occupancy.Rows, x => x.Label == "Profile");
+            Assert.Equal(new[] { "People", "Area per person", "Occupied hours per year" }, occupancy.Rows.Select(x => x.Label));
+
+            TableBlock gains = Table(document, "internal-condition", "gains");
+            Assert.Equal(new[] { "Occ 8to19", "Occ 8to19" }, gains.Rows.Take(2).Select(x => x.Cells[1].Text));
+        }
+
+        [Theory]
+        [InlineData(UnitStyle.SI, "m²")]
+        [InlineData(UnitStyle.Imperial, "ft²")]
+        public void Fabric_ZeroAreaCategories_AreNamedInANote_NotListed(UnitStyle unitStyle, string areaUnit)
+        {
+            // The fixture has no intermediate floor ("Other floors" is zero on both sides), and its window and door
+            // apertures have no frame.
+            DocumentSection documentSection = Build(ReportingFixture.Full(out _), unitStyle, out _).Sections.Single(x => x.Id == "fabric");
+
+            TableBlock tableBlock = documentSection.Blocks.OfType<TableBlock>().Single();
+            List<string> labels = tableBlock.Rows.Select(x => x.Cells[0].Text).ToList();
+            Assert.Equal(new[] { "Walls", "Windows (pane)", "Doors (pane)", "Roofs / ceilings", "Ground floors" }, labels);
+
+            // Windows are internal-zero but external-present, so the row stays with its explicit zero.
+            Assert.Matches(@"^0(\.0+)?$", tableBlock.Rows[1].Cells[2].Text);
+
+            NoticeBlock noticeBlock = documentSection.Blocks.OfType<NoticeBlock>().Single(x => x.Id == "fabric-not-present");
+            Assert.Equal(SpaceFabricSectionBuilder.NotPresentPrefix + "Windows (frame), Doors (frame), Other floors", noticeBlock.Text);
+
+            // The selected area unit is kept, and the note names no unit.
+            Assert.All(tableBlock.Columns.Skip(1), x => Assert.Equal(areaUnit, x.Unit));
+            Assert.DoesNotContain("m²", noticeBlock.Text);
+            Assert.DoesNotContain("ft²", noticeBlock.Text);
+        }
+
+        [Fact]
+        public void Fabric_WholeZeroOpening_IsNamedOnce_AndMissingAreaIsNotZero()
+        {
+            DocumentContext documentContext = ReportingCreate.DocumentContext(ReportingFixture.Full(out _), ReportingFixture.Options());
+            ReportValue<Quantity> zero = ReportValue<Quantity>.Available(new Quantity(0, UnitType.SquareMeter), ReportValueSource.Derived);
+            ReportValue<Quantity> ten = ReportValue<Quantity>.Available(new Quantity(10, UnitType.SquareMeter), ReportValueSource.Derived);
+            ReportValue<Quantity> missing = ReportValue<Quantity>.NotAvailable("not computed");
+            ReportValue<Quantity> opaque = ReportValue<Quantity>.NotApplicable("Opaque element");
+
+            SpaceDocumentData data = new SpaceDocumentData()
+            {
+                Fabric = new SpaceFabricData()
+                {
+                    Rows = new List<FabricAreaRow>()
+                    {
+                        new FabricAreaRow() { Category = FabricCategory.Walls, ExternalArea = ten, InternalArea = zero, ExternalFrameArea = opaque, InternalFrameArea = opaque },
+                        new FabricAreaRow() { Category = FabricCategory.Windows, ExternalArea = zero, InternalArea = zero, ExternalFrameArea = zero, InternalFrameArea = zero },
+                        new FabricAreaRow() { Category = FabricCategory.GroundFloors, ExternalArea = missing, InternalArea = zero, ExternalFrameArea = opaque, InternalFrameArea = opaque },
+                    }.AsReadOnly(),
+                },
+            };
+
+            DocumentSection documentSection = new SpaceFabricSectionBuilder().Build(data, documentContext);
+
+            TableBlock tableBlock = documentSection.Blocks.OfType<TableBlock>().Single();
+            Assert.Equal(new[] { "Walls", "Ground floors" }, tableBlock.Rows.Select(x => x.Cells[0].Text));
+            Assert.Equal("—", tableBlock.Rows[1].Cells[1].Text);
+            Assert.Equal(SpaceFabricSectionBuilder.NotPresentPrefix + "Windows", documentSection.Blocks.OfType<NoticeBlock>().Single().Text);
+        }
+
+        [Fact]
+        public void Imperial_Document_LeaksNoSIUnit()
+        {
+            string json = Build(ReportingFixture.Full(out _), UnitStyle.Imperial, out _).ToJson();
+
+            foreach (string symbol in new[] { "m²", "m³", "°C", "l/s", "W/m²", "W/person", "\"W\"", "\"kW\"", "lux" })
+            {
+                Assert.DoesNotContain(symbol, json);
+            }
         }
 
         [Fact]

@@ -12,13 +12,19 @@ namespace SAM.Core.Reporting
     /// </summary>
     public sealed class KeyValueRow
     {
-        public KeyValueRow(string label, FormattedValue value)
+        public KeyValueRow(string label, FormattedValue value, string subLabel = null)
         {
             Label = label;
             Value = value ?? throw new ArgumentNullException(nameof(value));
+            SubLabel = subLabel;
         }
 
         public string Label { get; }
+
+        /// <summary>
+        /// Optional supporting text printed under the label in a smaller size, for example "lower RH limit".
+        /// </summary>
+        public string SubLabel { get; }
 
         public FormattedValue Value { get; }
     }
