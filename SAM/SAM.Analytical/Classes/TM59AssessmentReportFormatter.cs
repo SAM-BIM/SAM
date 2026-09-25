@@ -97,8 +97,8 @@ namespace SAM.Analytical
             stringBuilder.AppendLine(string.Format("TM59 COMMUNAL-CORRIDOR RISK: {0}", Display(tM59AssessmentReport.CorridorRiskStatus)));
 
             AppendAssessmentBasisSection(stringBuilder, tM59AssessmentReport.AnnualHours);
-            AppendNaturalVentilationSection(stringBuilder, tM59AssessmentReport.NaturalVentilationChecks);
-            AppendAssessmentHoursSection(stringBuilder, tM59AssessmentReport.NaturalVentilationChecks);
+            AppendNaturalVentilationSection(stringBuilder, tM59AssessmentReport);
+            AppendAssessmentHoursSection(stringBuilder, tM59AssessmentReport);
             AppendMechanicalVentilationSection(stringBuilder, tM59AssessmentReport.MechanicalVentilationChecks);
             AppendRiskSection(stringBuilder, Heading_CommunalCorridorRisk, tM59AssessmentReport.CorridorChecks);
             AppendRiskSection(stringBuilder, Heading_Supplementary, tM59AssessmentReport.SupplementaryChecks);
@@ -131,16 +131,20 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// One row per space - Criterion 1 and Criterion 2 side by side, grouped by
-        /// <see cref="TM59AssessmentReportCheck.Reference"/> (the simulated space's Guid), never by
-        /// <see cref="TM59AssessmentReportCheck.SpaceName"/>. Two dwellings can share a room name; they
-        /// cannot share a Guid.
+        /// One row per space - Criterion 1 and Criterion 2 side by side - for each
+        /// <see cref="TM59AssessmentReport.OccupiedSpaces"/> entry that carries natural-ventilation checks. Those
+        /// are grouped by <see cref="TM59AssessmentReportCheck.Reference"/> (the simulated space's Guid), never by
+        /// <see cref="TM59AssessmentReportCheck.SpaceName"/>: two dwellings can share a room name, not a Guid. The
+        /// Overall column is that entry's own <see cref="TM59AssessmentReportSpace.ComplianceStatus"/>, not
+        /// worked out here.
         /// </summary>
-        private static void AppendNaturalVentilationSection(StringBuilder stringBuilder, List<TM59AssessmentReportCheck> tM59AssessmentReportChecks)
+        private static void AppendNaturalVentilationSection(StringBuilder stringBuilder, TM59AssessmentReport tM59AssessmentReport)
         {
             AppendHeading(stringBuilder, Heading_NaturalVentilation);
 
-            if (tM59AssessmentReportChecks.Count == 0)
+            List<TM59AssessmentReportSpace> spaces = NaturalVentilationSpaces(tM59AssessmentReport);
+
+            if (spaces.Count == 0)
             {
                 stringBuilder.AppendLine("No space was assessed against this criterion.");
                 return;
@@ -151,11 +155,11 @@ namespace SAM.Analytical
                 ["Space", "Internal Condition", "TM59 Application", "Criterion 1", "Criterion 2", "Overall"],
             ];
 
-            foreach (IGrouping<string, TM59AssessmentReportCheck> group in GroupBySpace(tM59AssessmentReportChecks))
+            foreach (TM59AssessmentReportSpace space in spaces)
             {
-                TM59AssessmentReportCheck check_Criterion1 = group.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion1);
-                TM59AssessmentReportCheck check_Criterion2 = group.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion2);
-                TM59AssessmentReportCheck any = check_Criterion1 ?? check_Criterion2 ?? group.First();
+                TM59AssessmentReportCheck check_Criterion1 = space.Checks.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion1);
+                TM59AssessmentReportCheck check_Criterion2 = space.Checks.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion2);
+                TM59AssessmentReportCheck any = check_Criterion1 ?? check_Criterion2 ?? space.Checks.First();
 
                 rows.Add(
                 [
@@ -164,7 +168,7 @@ namespace SAM.Analytical
                     any.Use ?? "-",
                     CriterionCell(check_Criterion1),
                     CriterionCell(check_Criterion2),
-                    Display(CombineForDisplay(check_Criterion1, check_Criterion2)),
+                    Display(space.ComplianceStatus),
                 ]);
             }
 
@@ -240,11 +244,13 @@ namespace SAM.Analytical
         /// compact - one row per space, grouped exactly as <see cref="AppendNaturalVentilationSection"/>
         /// groups them.
         /// </summary>
-        private static void AppendAssessmentHoursSection(StringBuilder stringBuilder, List<TM59AssessmentReportCheck> tM59AssessmentReportChecks)
+        private static void AppendAssessmentHoursSection(StringBuilder stringBuilder, TM59AssessmentReport tM59AssessmentReport)
         {
             AppendHeading(stringBuilder, Heading_AssessmentHours);
 
-            if (tM59AssessmentReportChecks.Count == 0)
+            List<TM59AssessmentReportSpace> spaces = NaturalVentilationSpaces(tM59AssessmentReport);
+
+            if (spaces.Count == 0)
             {
                 stringBuilder.AppendLine("No space was assessed against this criterion.");
                 return;
@@ -255,11 +261,11 @@ namespace SAM.Analytical
                 ["Space", "Occupied Summer Hours", "Annual Night Occupied Hours"],
             ];
 
-            foreach (IGrouping<string, TM59AssessmentReportCheck> group in GroupBySpace(tM59AssessmentReportChecks))
+            foreach (TM59AssessmentReportSpace space in spaces)
             {
-                TM59AssessmentReportCheck check_Criterion1 = group.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion1);
-                TM59AssessmentReportCheck check_Criterion2 = group.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion2);
-                TM59AssessmentReportCheck any = check_Criterion1 ?? check_Criterion2 ?? group.First();
+                TM59AssessmentReportCheck check_Criterion1 = space.Checks.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion1);
+                TM59AssessmentReportCheck check_Criterion2 = space.Checks.FirstOrDefault(x => x.Check == TM59AssessmentReport.Check_Criterion2);
+                TM59AssessmentReportCheck any = check_Criterion1 ?? check_Criterion2 ?? space.Checks.First();
 
                 rows.Add([any.SpaceName ?? "-", Number(check_Criterion1?.BasisHours), Number(check_Criterion2?.BasisHours)]);
             }
@@ -306,13 +312,14 @@ namespace SAM.Analytical
         }
 
         /// <summary>
-        /// Groups by <see cref="TM59AssessmentReportCheck.Reference"/> - the stable identity every row from
-        /// a real assessment carries - preserving first-seen order so the table reads in the same order the
-        /// assessment produced its results.
+        /// The occupied spaces assessed under natural ventilation, in the order the assessment produced them -
+        /// the <see cref="TM59AssessmentReport.OccupiedSpaces"/> entries that carry a natural-ventilation check.
         /// </summary>
-        private static IEnumerable<IGrouping<string, TM59AssessmentReportCheck>> GroupBySpace(List<TM59AssessmentReportCheck> tM59AssessmentReportChecks)
+        private static List<TM59AssessmentReportSpace> NaturalVentilationSpaces(TM59AssessmentReport tM59AssessmentReport)
         {
-            return tM59AssessmentReportChecks.GroupBy(x => x.Reference);
+            HashSet<TM59AssessmentReportCheck> checks_Natural = [.. tM59AssessmentReport.NaturalVentilationChecks];
+
+            return [.. tM59AssessmentReport.OccupiedSpaces.Where(x => x.Checks.Exists(checks_Natural.Contains))];
         }
 
         private static string CriterionCell(TM59AssessmentReportCheck check)
@@ -323,27 +330,6 @@ namespace SAM.Analytical
             }
 
             return string.Format(CultureInfo.InvariantCulture, "{0}/{1} ({2}) {3}", Number(check.Actual), Number(check.Limit), Margin(check.Margin), Display(check.ComplianceStatus));
-        }
-
-        /// <summary>
-        /// The per-space Overall verdict: any failure fails the row; a row with nothing applicable (both
-        /// criteria N/A) is <c>NotApplicable</c> rather than a vacuous pass. The same combining rule
-        /// <see cref="TM59AssessmentReport"/> already applies across a whole section, applied here to the
-        /// one or two checks a single space carries.
-        /// </summary>
-        private static TM59ComplianceStatus CombineForDisplay(TM59AssessmentReportCheck check_Criterion1, TM59AssessmentReportCheck check_Criterion2)
-        {
-            TM59ComplianceStatus[] statuses = new[] { check_Criterion1?.ComplianceStatus, check_Criterion2?.ComplianceStatus }
-                .Where(x => x.HasValue)
-                .Select(x => x.Value)
-                .ToArray();
-
-            if (statuses.Contains(TM59ComplianceStatus.Fail))
-            {
-                return TM59ComplianceStatus.Fail;
-            }
-
-            return statuses.Contains(TM59ComplianceStatus.Pass) ? TM59ComplianceStatus.Pass : TM59ComplianceStatus.NotApplicable;
         }
 
         private static void AppendHeading(StringBuilder stringBuilder, string heading)
