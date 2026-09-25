@@ -159,9 +159,8 @@ namespace SAM.Analytical.Reporting
             List<TableRow> tableRows = new List<TableRow>()
             {
                 Pair(quantityFormatter, "Room set point", UnitCategory.Temperature, spaceDesignCriteriaData.HeatingSetPoint, spaceDesignCriteriaData.CoolingSetPoint),
-                Pair(quantityFormatter, "Room RH limit", UnitCategory.Ratio, spaceDesignCriteriaData.HumidificationSetPoint, spaceDesignCriteriaData.DehumidificationSetPoint),
                 Pair(quantityFormatter, "Outdoor dry bulb", UnitCategory.Temperature, spaceDesignCriteriaData.OutdoorHeatingDryBulb, spaceDesignCriteriaData.OutdoorCoolingDryBulb),
-                Pair(quantityFormatter, "Outdoor RH", UnitCategory.Ratio, spaceDesignCriteriaData.OutdoorHeatingRelativeHumidity, spaceDesignCriteriaData.OutdoorCoolingRelativeHumidity),
+                Pair(quantityFormatter, "Outdoor RH (coincident)", UnitCategory.Ratio, spaceDesignCriteriaData.OutdoorHeatingRelativeHumidity, spaceDesignCriteriaData.OutdoorCoolingRelativeHumidity),
             };
 
             TableBlock tableBlock = new TableBlock("design-criteria", null, new[]
@@ -171,7 +170,16 @@ namespace SAM.Analytical.Reporting
                 new TableColumn("Cooling"),
             }, tableRows);
 
-            return new DocumentSection(Id, "Design Criteria", new DocumentBlock[] { tableBlock }, SectionWidth.Half);
+            // Humidity control is not tied to heating or cooling: Tas holds a lower RH limit (humidification) and an
+            // upper RH limit (dehumidification), so they are listed by what they are, outside the heating/cooling table.
+            FormattedValue[] humidity = SectionFormat.Group(quantityFormatter, UnitCategory.Ratio, spaceDesignCriteriaData.HumidificationSetPoint, spaceDesignCriteriaData.DehumidificationSetPoint);
+            KeyValueBlock keyValueBlock = new KeyValueBlock("room-humidity", "Room humidity", new[]
+            {
+                SectionFormat.Row("Humidification set point (lower RH limit)", humidity[0]),
+                SectionFormat.Row("Dehumidification set point (upper RH limit)", humidity[1]),
+            });
+
+            return new DocumentSection(Id, "Design Criteria", new DocumentBlock[] { tableBlock, keyValueBlock }, SectionWidth.Half);
         }
 
         internal static TableRow Pair(IQuantityFormatter quantityFormatter, string label, UnitCategory unitCategory, ReportValue<Quantity> heating, ReportValue<Quantity> cooling)
@@ -336,6 +344,12 @@ namespace SAM.Analytical.Reporting
     {
         public const string DesignLoadsUnknownNotice = "Design loads: from Tas sizing — date/currency not recorded";
         public const string DesignLoadsNoneNotice = "No Tas design loads in model";
+        public const string SizingMultiplierNotice = "Whether the design loads above already include the sizing multiplier is not recorded";
+
+        /// <summary>
+        /// A dimensionless multiplier shown as a plain number with two decimals ("1.20").
+        /// </summary>
+        private static readonly DisplayUnit Multiplier = new DisplayUnit(UnitType.Unitless, null, 2);
 
         public string Id => "sizing";
 
@@ -353,7 +367,8 @@ namespace SAM.Analytical.Reporting
             {
                 SpaceDesignCriteriaSectionBuilder.Pair(quantityFormatter, "Design load", UnitCategory.Power, spaceSizingData.DesignHeatingLoad, spaceSizingData.DesignCoolingLoad),
                 SpaceDesignCriteriaSectionBuilder.Pair(quantityFormatter, "Design load per area", UnitCategory.SpecificPower, spaceSizingData.DesignHeatingLoadPerArea, spaceSizingData.DesignCoolingLoadPerArea),
-                SpaceDesignCriteriaSectionBuilder.Pair(quantityFormatter, "Sizing factor", UnitCategory.Ratio, spaceSizingData.HeatingSizingFactor, spaceSizingData.CoolingSizingFactor),
+                // The stored factor multiplies the Tas design load (1.2 = ×1.20), so it is shown as a plain multiplier.
+                new TableRow(SectionFormat.Label("Sizing multiplier"), quantityFormatter.Format(spaceSizingData.HeatingSizingFactor, Multiplier), quantityFormatter.Format(spaceSizingData.CoolingSizingFactor, Multiplier)),
             };
 
             TableBlock tableBlock = new TableBlock("sizing", null, new[]
@@ -367,7 +382,15 @@ namespace SAM.Analytical.Reporting
                 ? new NoticeBlock("sizing-status", DesignLoadsNoneNotice)
                 : new NoticeBlock("sizing-status", DesignLoadsUnknownNotice);
 
-            return new DocumentSection(Id, "Sizing (Tas design loads)", new DocumentBlock[] { tableBlock, noticeBlock });
+            List<DocumentBlock> documentBlocks = new List<DocumentBlock>() { tableBlock, noticeBlock };
+            if (spaceSizingData.DesignLoadStatus != DesignLoadStatus.None && (spaceSizingData.HeatingSizingFactor.HasValue || spaceSizingData.CoolingSizingFactor.HasValue))
+            {
+                // SAM_Tas multiplies the TBD design load by the factor only on some sizing paths, and the persisted
+                // load does not record whether that happened.
+                documentBlocks.Add(new NoticeBlock("sizing-multiplier", SizingMultiplierNotice));
+            }
+
+            return new DocumentSection(Id, "Sizing (Tas design loads)", documentBlocks);
         }
     }
 

@@ -13,24 +13,24 @@ namespace SAM.Analytical.Reporting
     public sealed class SpaceDesignCriteriaData
     {
         /// <summary>
-        /// Heating set point [°C]: maximum of the heating profile.
+        /// Heating set point [°C]: yearly maximum of the heating profile.
         /// </summary>
         public ReportValue<Quantity> HeatingSetPoint { get; init; }
 
         /// <summary>
-        /// Cooling set point [°C]: minimum of the cooling profile.
+        /// Cooling set point [°C]: yearly minimum of the cooling profile.
         /// </summary>
         public ReportValue<Quantity> CoolingSetPoint { get; init; }
 
         /// <summary>
-        /// Humidification set point [%RH], the lower RH limit that applies in heating: maximum of the humidification
-        /// profile.
+        /// Humidification set point [%RH]: the zone humidity lower limit (Tas ticHLL), the yearly maximum of the
+        /// humidification profile. Not applicable when the limit is 0 % (Tas "no humidification").
         /// </summary>
         public ReportValue<Quantity> HumidificationSetPoint { get; init; }
 
         /// <summary>
-        /// Dehumidification set point [%RH], the upper RH limit that applies in cooling: minimum of the
-        /// dehumidification profile.
+        /// Dehumidification set point [%RH]: the zone humidity upper limit (Tas ticHUL), the yearly minimum of the
+        /// dehumidification profile. Not applicable when the limit is 100 % (Tas "no dehumidification").
         /// </summary>
         public ReportValue<Quantity> DehumidificationSetPoint { get; init; }
 

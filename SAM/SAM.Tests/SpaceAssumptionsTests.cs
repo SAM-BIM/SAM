@@ -72,6 +72,8 @@ namespace SAM.Tests
             AssertQuantity(data.EquipmentSensible.Gain, 750, UnitCategory.Power, ReportValueSource.Derived);
             Assert.Equal(Availability.NotApplicable, data.EquipmentSensible.Illuminance.Availability);
             Assert.Equal(Availability.NotAvailable, data.EquipmentLatent.GainPerArea.Availability);
+            Assert.Equal(Availability.NotAvailable, data.EquipmentLatent.Gain.Availability);
+            Assert.Equal("No equipment latent gain authored", data.EquipmentLatent.Gain.Note);
 
             AssertQuantity(data.Infiltration.AirChangeRate, 0.2, UnitCategory.AirChangeRate, ReportValueSource.SAM);
             AssertQuantity(data.Infiltration.AirFlow, 90 * 0.2 / 3600, UnitCategory.AirFlow, ReportValueSource.Derived);
@@ -127,6 +129,108 @@ namespace SAM.Tests
 
             AssertQuantity(rows[FabricCategory.GroundFloors].ExternalArea, 30, UnitCategory.Area, ReportValueSource.Derived, 1e-6);
             AssertQuantity(rows[FabricCategory.RoofsAndCeilings].ExternalArea, 30, UnitCategory.Area, ReportValueSource.Derived, 1e-6);
+        }
+
+        [Fact]
+        public void EquipmentLatent_AuthoredZero_StaysZero_NotAuthored_IsNotAvailable()
+        {
+            // SAM's CalculatedEquipmentLatentGain returns 0 W both when nothing is authored and when 0 is authored; the
+            // internal condition itself still tells them apart, and the report follows the internal condition.
+            AnalyticalModel analyticalModel = ReportingFixture.Full(out _);
+            Space space = ReportingFixture.Stored(analyticalModel);
+            Assert.Equal(0, Analytical.Query.CalculatedEquipmentLatentGain(space));
+
+            InternalCondition internalCondition = space.InternalCondition;
+            internalCondition.SetValue(InternalConditionParameter.EquipmentLatentGainPerArea, 0.0);
+            space.InternalCondition = internalCondition;
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+            adjacencyCluster.AddObject(space);
+            analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+
+            SpaceDocumentData data = Collect(analyticalModel, UnitStyle.SI, out _);
+
+            AssertQuantity(data.EquipmentLatent.Gain, 0, UnitCategory.Power, ReportValueSource.Derived);
+            AssertQuantity(data.EquipmentLatent.GainPerArea, 0, UnitCategory.SpecificPower, ReportValueSource.SAM);
+        }
+
+        // ---------- set points and humidity ----------
+
+        [Fact]
+        public void SetPoints_UseTheYearlyExpansion_ForProfilesMadeOfProfiles()
+        {
+            // Profile.MinValue takes the maximum of each child profile, so a week built from day profiles would report
+            // the night set-back (28 C) as the cooling set point, and 100 % (control off) as the dehumidification limit.
+            Profile day_Cooling = new Profile("Cool day", ProfileType.Cooling, Enumerable.Range(0, 24).Select(x => x >= 7 && x < 19 ? 24.0 : 28.0));
+            Profile cooling = new Profile("Cool week", ProfileType.Cooling);
+            Profile day_Dehumidification = new Profile("Dehum day", ProfileType.Dehumidification, Enumerable.Range(0, 24).Select(x => x >= 7 && x < 19 ? 60.0 : 100.0));
+            Profile dehumidification = new Profile("Dehum week", ProfileType.Dehumidification);
+            for (int i = 0; i < 7; i++)
+            {
+                cooling.Add(day_Cooling);
+                dehumidification.Add(day_Dehumidification);
+            }
+
+            // The defect this test guards the report against.
+            Assert.Equal(28, cooling.MinValue);
+
+            SpaceDocumentData data = Collect(WithProfiles(ReportingFixture.Full(out _), cooling, dehumidification), UnitStyle.SI, out _);
+
+            AssertQuantity(data.DesignCriteria.CoolingSetPoint, 24, UnitCategory.Temperature, ReportValueSource.Derived);
+            AssertQuantity(data.DesignCriteria.DehumidificationSetPoint, 60, UnitCategory.Ratio, ReportValueSource.Derived);
+        }
+
+        [Fact]
+        public void HumidityControlOff_IsNotApplicable()
+        {
+            // Tas convention: "No Humidification" is a 0 % lower limit, "No Dehumidification" a 100 % upper limit.
+            Profile humidification = new Profile("No Humidification", ProfileType.Humidification, Enumerable.Repeat(0.0, 24));
+            Profile dehumidification = new Profile("No Dehumidification", ProfileType.Dehumidification, Enumerable.Repeat(100.0, 24));
+
+            SpaceDocumentData data = Collect(WithProfiles(ReportingFixture.Full(out _), humidification, dehumidification), UnitStyle.SI, out _);
+
+            Assert.Equal(Availability.NotApplicable, data.DesignCriteria.HumidificationSetPoint.Availability);
+            Assert.Equal(Availability.NotApplicable, data.DesignCriteria.DehumidificationSetPoint.Availability);
+        }
+
+        [Fact]
+        public void RoomHumidity_IsLabelledByControl_NotByHeatingOrCooling()
+        {
+            Document document = Build(ReportingFixture.Full(out _), UnitStyle.SI, out _);
+
+            DocumentSection documentSection = document.Sections.Single(x => x.Id == "design-criteria");
+            KeyValueBlock keyValueBlock = documentSection.Blocks.OfType<KeyValueBlock>().Single(x => x.Id == "room-humidity");
+            Assert.Equal(new[] { "Humidification set point (lower RH limit)", "Dehumidification set point (upper RH limit)" }, keyValueBlock.Rows.Select(x => x.Label));
+            Assert.Equal(new[] { "40", "60" }, keyValueBlock.Rows.Select(x => x.Value.Text));
+
+            TableBlock tableBlock = Table(document, "design-criteria", "design-criteria");
+            Assert.DoesNotContain(tableBlock.Rows, x => x.Cells[0].Text.Contains("Room RH"));
+        }
+
+        /// <summary>
+        /// The model with its internal condition pointing at the given cooling / humidification / dehumidification
+        /// profiles, which are added to the profile library.
+        /// </summary>
+        private static AnalyticalModel WithProfiles(AnalyticalModel analyticalModel, params Profile[] profiles)
+        {
+            ProfileLibrary profileLibrary = analyticalModel.ProfileLibrary;
+            Space space = ReportingFixture.Stored(analyticalModel);
+            InternalCondition internalCondition = space.InternalCondition;
+            foreach (Profile profile in profiles)
+            {
+                profileLibrary.Add(profile);
+
+                InternalConditionParameter internalConditionParameter = profile.ProfileType == ProfileType.Cooling ? InternalConditionParameter.CoolingProfileName
+                    : profile.ProfileType == ProfileType.Humidification ? InternalConditionParameter.HumidificationProfileName
+                    : InternalConditionParameter.DehumidificationProfileName;
+
+                internalCondition.SetValue(internalConditionParameter, profile.Name);
+            }
+
+            space.InternalCondition = internalCondition;
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+            adjacencyCluster.AddObject(space);
+
+            return new AnalyticalModel(analyticalModel.Name, null, null, null, adjacencyCluster, null, profileLibrary);
         }
 
         // ---------- design-load freshness ----------
@@ -274,6 +378,20 @@ namespace SAM.Tests
             Assert.Equal("12.40", load.Cells[2].Text);
             Assert.All(load.Cells.Skip(1), x => Assert.Equal("kW", x.Unit));
             Assert.All(load.Cells.Skip(1), x => Assert.Equal(Freshness.Unknown, x.Freshness));
+
+            // The stored factor multiplies the design load: 1.2 is shown as the multiplier 1.20, not as a percentage.
+            TableRow multiplier = tableBlock.Rows[2];
+            Assert.Equal("Sizing multiplier", multiplier.Cells[0].Text);
+            Assert.Equal(new[] { "1.20", "1.10" }, multiplier.Cells.Skip(1).Select(x => x.Text));
+            Assert.All(multiplier.Cells.Skip(1), x => Assert.Null(x.Unit));
+        }
+
+        [Fact]
+        public void Sizing_SaysWhetherLoadsIncludeTheMultiplierIsNotRecorded()
+        {
+            DocumentSection documentSection = Build(ReportingFixture.Full(out _), UnitStyle.SI, out _).Sections.Single(x => x.Id == "sizing");
+
+            Assert.Contains(documentSection.Blocks.OfType<NoticeBlock>(), x => x.Text == SpaceSizingSectionBuilder.SizingMultiplierNotice);
         }
 
         [Fact]
@@ -305,8 +423,7 @@ namespace SAM.Tests
             TableBlock tableBlock = Table(Build(ReportingFixture.Full(out _), UnitStyle.SI, out _), "internal-condition", "gains");
 
             Assert.Equal("W", tableBlock.Columns[3].Unit);
-            // SAM derives 0 W equipment latent gain when none is authored, while the per-area value is missing.
-            Assert.Equal(new[] { "225", "165", "240", "750", "0" }, tableBlock.Rows.Select(x => x.Cells[3].Text));
+            Assert.Equal(new[] { "225", "165", "240", "750", "—" }, tableBlock.Rows.Select(x => x.Cells[3].Text));
             Assert.Equal("W/person", tableBlock.Rows[0].Cells[2].Unit);
             Assert.Equal("W/m²", tableBlock.Rows[2].Cells[2].Unit);
         }

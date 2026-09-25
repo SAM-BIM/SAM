@@ -290,11 +290,9 @@
                 "note": "No equipment latent gain per area"
               },
               {
-                "text": "0",
-                "unit": "Btu/h",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived"
+                "text": "—",
+                "availability": "NotAvailable",
+                "note": "No equipment latent gain authored"
               }
             ]
           ]
@@ -402,28 +400,6 @@
             ],
             [
               {
-                "text": "Room RH limit",
-                "availability": "Available"
-              },
-              {
-                "text": "40",
-                "unit": "%",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived",
-                "note": "Maximum of profile Hum 40"
-              },
-              {
-                "text": "60",
-                "unit": "%",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived",
-                "note": "Minimum of profile Dehum 60"
-              }
-            ],
-            [
-              {
                 "text": "Outdoor dry bulb",
                 "availability": "Available"
               },
@@ -446,7 +422,7 @@
             ],
             [
               {
-                "text": "Outdoor RH",
+                "text": "Outdoor RH (coincident)",
                 "availability": "Available"
               },
               {
@@ -466,6 +442,35 @@
                 "note": "Coincident with the dry bulb"
               }
             ]
+          ]
+        },
+        {
+          "type": "KeyValueBlock",
+          "id": "room-humidity",
+          "title": "Room humidity",
+          "rows": [
+            {
+              "label": "Humidification set point (lower RH limit)",
+              "value": {
+                "text": "40",
+                "unit": "%",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "Derived",
+                "note": "Maximum of profile Hum 40"
+              }
+            },
+            {
+              "label": "Dehumidification set point (upper RH limit)",
+              "value": {
+                "text": "60",
+                "unit": "%",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "Derived",
+                "note": "Minimum of profile Dehum 60"
+              }
+            }
           ]
         }
       ]
@@ -860,19 +865,17 @@
             ],
             [
               {
-                "text": "Sizing factor",
+                "text": "Sizing multiplier",
                 "availability": "Available"
               },
               {
-                "text": "120",
-                "unit": "%",
+                "text": "1.20",
                 "availability": "Available",
                 "freshness": "Current",
                 "source": "SAM"
               },
               {
-                "text": "110",
-                "unit": "%",
+                "text": "1.10",
                 "availability": "Available",
                 "freshness": "Current",
                 "source": "SAM",
@@ -886,6 +889,12 @@
           "id": "sizing-status",
           "level": "Information",
           "text": "Design loads: from Tas sizing — date/currency not recorded"
+        },
+        {
+          "type": "NoticeBlock",
+          "id": "sizing-multiplier",
+          "level": "Information",
+          "text": "Whether the design loads above already include the sizing multiplier is not recorded"
         }
       ]
     }

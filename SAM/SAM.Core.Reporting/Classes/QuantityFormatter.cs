@@ -5,7 +5,6 @@ using SAM.Units;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 
 namespace SAM.Core.Reporting
 {
@@ -224,7 +223,7 @@ namespace SAM.Core.Reporting
         /// Formats a number with a fixed number of decimals and the culture's separators. A value that rounds to zero
         /// prints as zero, never as "-0.0".
         /// </summary>
-        public string FormatNumber(double value, int decimals)
+        private string FormatNumber(double value, int decimals)
         {
             double rounded = System.Math.Round(value, decimals, MidpointRounding.AwayFromZero);
             if (rounded == 0)
@@ -243,17 +242,6 @@ namespace SAM.Core.Reporting
         public static string FormatDateTime(DateTime dateTime)
         {
             return dateTime.ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
-        }
-
-        /// <summary>
-        /// Display units for several groups at once, one per category, each chosen from its own values.
-        /// </summary>
-        public Dictionary<UnitCategory, DisplayUnit> SelectDisplayUnits(IEnumerable<Quantity> quantities)
-        {
-            return (quantities ?? Enumerable.Empty<Quantity>())
-                .Where(x => x.IsValid)
-                .GroupBy(x => x.Category)
-                .ToDictionary(x => x.Key, x => SelectDisplayUnit(x.Key, x));
         }
 
         private FormattedValue Placeholder(IReportValue reportValue)

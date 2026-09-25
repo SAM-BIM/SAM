@@ -27,8 +27,9 @@ namespace SAM.Analytical.Reporting
         public ReportValue<Quantity> DesignCoolingLoadPerArea { get; init; }
 
         /// <summary>
-        /// Heating sizing factor, a load multiplier (1.2 = +20 %). The space value wins; 0 means not set, in which
-        /// case the model value applies, as in the Tas export.
+        /// Heating sizing factor: a multiplier on the Tas design load (SAM_Tas sets maxHeatingLoad × factor), so 1.2
+        /// means ×1.20. The space value wins; 0 means not set, in which case the model value applies, as in the Tas
+        /// export. Whether the persisted design load already includes it is not recorded.
         /// </summary>
         public ReportValue<Quantity> HeatingSizingFactor { get; init; }
 

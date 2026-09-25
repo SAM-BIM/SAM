@@ -86,21 +86,44 @@ dependencies):
   the ventilation air flows.
 
 **Decisions and discoveries (for review):**
-- **Humidity set points.** `Query.HeatingDesignRelativeHumidity` reads the *dehumidification* profile, and
-  `CoolingDesignRelativeHumidity` reads the *humidification* profile. Their names look swapped. The collector does
-  not use them. It reads Humidification (the maximum, the lower RH limit, shown in the heating column) and
-  Dehumidification (the minimum, the upper limit, cooling column), and names them by what they are. The queries
-  themselves are unchanged; that fix needs its own review.
-- **Sizing factor.** It is a load multiplier: Tas does `maxLoad × factor`. The space value wins; a value of 0 means
-  "not set" and falls back to the model value, as in the SAM_Tas export. It is shown as a percentage
-  (1.2 → "120 %"), and a model fallback carries the note "Model default".
+- **Humidity set points** (confirmed in the final review from the SAM_Tas mappings `UpdateInternalCondition`,
+  `UpdateInternalConditionTemplate`, `ProfileReuseIndex` and `ToSAM/InternalCondition`):
+  - Humidification is the TBD thermostat `ticHLL`, the zone humidity LOWER limit. Tas "No Humidification" = 0 %.
+  - Dehumidification is `ticHUL`, the UPPER limit. Tas "No Dehumidification" = 100 %.
+  - Neither is tied to heating or cooling. The report lists them in their own "Room humidity" block, as
+    "Humidification set point (lower RH limit)" and "Dehumidification set point (upper RH limit)", not in the
+    heating/cooling table.
+  - A 0 % lower limit or a 100 % upper limit is reported as NotApplicable ("No humidification" / "No
+    dehumidification").
+  - `Query.HeatingDesignRelativeHumidity` returns the dehumidification minimum, and `CoolingDesignRelativeHumidity`
+    the humidification maximum. Their names do not match what they read. The Grasshopper ReportSpaces component
+    uses them consistently with the profiles, but SAM_Mollier `AirHandlingUnitResult` uses them as heating/cooling
+    design RH. The reporting code does not use them; they are left unchanged and recorded as a follow-up.
+- **`Profile.MinValue` defect.** `Profile.GetMinValue()` takes each child profile's MAXIMUM, so MinValue is wrong
+  for a profile built from other profiles. `Query.CoolingDesignTemperature` inherits the defect. The collector
+  therefore takes min/max over `Profile.GetYearlyValues()`, which expands child profiles correctly. This is covered
+  by a regression test; `Profile` itself is unchanged and the defect is recorded as a follow-up.
+- **Sizing multiplier.** The stored factor is a multiplier: SAM_Tas `UpdateSizingFactors` sets
+  `zone.maxLoad = maxLoad × factor`.
+  - The space value wins; a value of 0 means "not set" and falls back to the model value.
+  - It is displayed as "Sizing multiplier 1.20", not as 120 % or +20 %: those read as a margin, and a factor
+    below 1 is possible.
+  - SAM_Tas applies it to the TBD loads only on the `GenerateHDDCDDFile` sizing path, so the persisted
+    `DesignHeating/CoolingLoad` may or may not include it. The sizing section says so in a notice.
 - **Occupancy count** is displayed with 1 decimal ("3.0 persons"), not as an integer, so fractional occupancy is not
   hidden.
 - **Imperial temperature difference** uses the symbol "Δ°F", to distinguish it from absolute °F.
-- **Equipment latent gain.** SAM's `CalculatedEquipmentLatentGain` returns 0 W, not NaN, when nothing is authored,
-  so the total shows "0" while the per-area value shows "—".
+- **Internal gain totals.** SAM CAN distinguish "not authored" from an authored 0, because
+  `InternalCondition.TryGetValue` returns false for an absent parameter.
+  - `CalculatedEquipmentLatentGain`, `CalculatedEquipmentSensibleGain` and `CalculatedLightingGain` lose that
+    distinction: their `TryGetValue(..., out gain_2)` overwrites the NaN default with 0, so "nothing authored"
+    returns 0 W.
+  - The collector reads authorship from the internal condition parameters. No gain parameter at all is
+    NotAvailable ("No ... gain authored"); an authored 0 shows "0".
+  - The queries are unchanged; this is recorded as a follow-up.
 - **Negative values.** SAM parameter validation rejects negative area and volume at `SetValue`, so the data-defect
   path is exercised with +∞.
+- **Follow-up:** all three SAM defects above (RH query names, `Profile.MinValue`, `Calculated*Gain` returning 0 when nothing is authored) are recorded in [SAM#138](https://github.com/SAM-BIM/SAM/issues/138).
 - **Formatter API.** The formatter has `Format` overloads for `Quantity`, string and `DateTime`, and a
   `DisplayUnit(category)` method, instead of a generic `Format<T>` and `UnitText`.
 - **`FormattedValue`** carries Availability plus Freshness, following Rev 3 R3.2, rather than the Rev 2 `Status`.
@@ -113,7 +136,12 @@ dependencies):
     m³/s and cfm; the 10 kW and 100 kBtu/h shared-unit pairs; W/m² ↔ Btu/h·ft²; placeholders; culture.
   - `SpaceAssumptionsTests`: typed collector values; fabric; design-load freshness Unknown, including against a
     current TSD provenance; the minimal model; the invalid value; the injected fault; section order; IP
-    conversions; shared units.
+    conversions; shared units. The final review added:
+    - a composite-profile set point regression;
+    - humidity control off → n/a;
+    - room-humidity labels;
+    - latent gain authored-zero vs not authored;
+    - the sizing multiplier "1.20" and its notice.
 - Fixtures: `Helpers/ReportingFixture.cs` (Full and Minimal models, fixed GUID, time and version) and
   `Helpers/Golden.cs`.
 - Goldens in `SAM.Tests/Golden/*.json` (Full SI, Full IP, Minimal SI) are copied to the test output. To regenerate,
@@ -121,7 +149,14 @@ dependencies):
 
 **Validation (2026-09-25):**
 - `dotnet build SAM.sln` (Debug): 0 errors, and no warnings from the new code.
-- `SAM.Tests`, rebuilt explicitly (it is not in `SAM.sln`): 2420/2420 in Debug and 2420/2420 in Release.
+- `SAM.Tests`, rebuilt explicitly (it is not in `SAM.sln`): 2425/2425 in Debug and 2425/2425 in Release, after the
+  final review. CI on the first head (`0972b837`) was green: build, test and SPDX.
+- Final review:
+  - no PDF, MigraDoc or SAM_UI dependency, and no `SpaceSimulationResult` or TSD read;
+  - design-load freshness is always Unknown;
+  - `ReportValue<T>` has no public setters or constructor;
+  - the goldens are deterministic;
+  - unused public API was removed (`QuantityFormatter.SelectDisplayUnits`; `FormatNumber` is now private).
 
 **Next step.** The owner reviews the PR1 PR; merge only on the owner's go-ahead. After that comes the §10 design
 gate (an HTML/PNG mock-up from the fixture data), then PR2 (the renderer spike plus `SAM.Core.Reporting.Pdf`).

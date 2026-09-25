@@ -177,7 +177,7 @@ namespace SAM.Analytical.Reporting
                 return new SpaceGainData()
                 {
                     GainPerArea = Parameter(InternalConditionParameter.LightingGainPerArea, UnitType.WattPerSquareMeter, "No lighting gain per area"),
-                    Gain = Measure(Analytical.Query.CalculatedLightingGain(space), UnitType.Watt, ReportValueSource.Derived, "Lighting gain", "No lighting gain"),
+                    Gain = AuthoredGain(Analytical.Query.CalculatedLightingGain(space), "Lighting gain", "No lighting gain authored", InternalConditionParameter.LightingGainPerArea, InternalConditionParameter.LightingGain, InternalConditionParameter.LightingGainPerPerson),
                     Illuminance = Parameter(InternalConditionParameter.LightingLevel, UnitType.Lux, "No lighting level"),
                     Profile = ProfileName(InternalConditionParameter.LightingProfileName),
                 };
@@ -193,7 +193,7 @@ namespace SAM.Analytical.Reporting
                 return new SpaceGainData()
                 {
                     GainPerArea = Parameter(InternalConditionParameter.EquipmentSensibleGainPerArea, UnitType.WattPerSquareMeter, "No equipment sensible gain per area"),
-                    Gain = Measure(Analytical.Query.CalculatedEquipmentSensibleGain(space), UnitType.Watt, ReportValueSource.Derived, "Equipment sensible gain", "No equipment sensible gain"),
+                    Gain = AuthoredGain(Analytical.Query.CalculatedEquipmentSensibleGain(space), "Equipment sensible gain", "No equipment sensible gain authored", InternalConditionParameter.EquipmentSensibleGainPerArea, InternalConditionParameter.EquipmentSensibleGain, InternalConditionParameter.EquipmentSensibleGainPerPerson),
                     Illuminance = ReportValue<Quantity>.NotApplicable("Equipment gain"),
                     Profile = ProfileName(InternalConditionParameter.EquipmentSensibleProfileName),
                 };
@@ -209,7 +209,7 @@ namespace SAM.Analytical.Reporting
                 return new SpaceGainData()
                 {
                     GainPerArea = Parameter(InternalConditionParameter.EquipmentLatentGainPerArea, UnitType.WattPerSquareMeter, "No equipment latent gain per area"),
-                    Gain = Measure(Analytical.Query.CalculatedEquipmentLatentGain(space), UnitType.Watt, ReportValueSource.Derived, "Equipment latent gain", "No equipment latent gain"),
+                    Gain = AuthoredGain(Analytical.Query.CalculatedEquipmentLatentGain(space), "Equipment latent gain", "No equipment latent gain authored", InternalConditionParameter.EquipmentLatentGainPerArea, InternalConditionParameter.EquipmentLatentGain),
                     Illuminance = ReportValue<Quantity>.NotApplicable("Equipment gain"),
                     Profile = ProfileName(InternalConditionParameter.EquipmentLatentProfileName),
                 };
@@ -239,16 +239,18 @@ namespace SAM.Analytical.Reporting
             {
                 ProfileLibrary profileLibrary = documentContext.ProfileLibrary;
 
-                // Set points are read from the internal condition profiles directly, with the humidity limits named
-                // for what they are. Query.HeatingDesignRelativeHumidity / CoolingDesignRelativeHumidity pair the
-                // dehumidification profile with heating and the humidification profile with cooling, so they are not
-                // used here.
+                // Set points are read from the internal condition profiles directly. In Tas the humidification profile
+                // is the zone's humidity lower limit (TBD ticHLL; "no humidification" = 0 %) and the dehumidification
+                // profile its upper limit (ticHUL; "no dehumidification" = 100 %), so they are reported as the
+                // humidification / dehumidification set points, not as heating / cooling RH. The SAM queries
+                // HeatingDesignRelativeHumidity / CoolingDesignRelativeHumidity are not used: their names do not match
+                // the profiles they read.
                 return new SpaceDesignCriteriaData()
                 {
-                    HeatingSetPoint = ProfileValue(profileLibrary, ProfileType.Heating, true, UnitType.Celsius, "No heating profile"),
-                    CoolingSetPoint = ProfileValue(profileLibrary, ProfileType.Cooling, false, UnitType.Celsius, "No cooling profile"),
-                    HumidificationSetPoint = ProfileValue(profileLibrary, ProfileType.Humidification, true, UnitType.Percent, "No humidification profile"),
-                    DehumidificationSetPoint = ProfileValue(profileLibrary, ProfileType.Dehumidification, false, UnitType.Percent, "No dehumidification profile"),
+                    HeatingSetPoint = ProfileValue(profileLibrary, ProfileType.Heating, true, UnitType.Celsius, "No heating profile", null),
+                    CoolingSetPoint = ProfileValue(profileLibrary, ProfileType.Cooling, false, UnitType.Celsius, "No cooling profile", null),
+                    HumidificationSetPoint = ProfileValue(profileLibrary, ProfileType.Humidification, true, UnitType.Percent, "No humidification profile", x => x <= 0 ? "No humidification (lower RH limit 0 %)" : null),
+                    DehumidificationSetPoint = ProfileValue(profileLibrary, ProfileType.Dehumidification, false, UnitType.Percent, "No dehumidification profile", x => x >= 100 ? "No dehumidification (upper RH limit 100 %)" : null),
                     OutdoorHeatingDryBulb = DesignDayExtreme(AnalyticalModelParameter.HeatingDesignDays, false, out ReportValue<Quantity> heatingRelativeHumidity),
                     OutdoorHeatingRelativeHumidity = heatingRelativeHumidity,
                     OutdoorCoolingDryBulb = DesignDayExtreme(AnalyticalModelParameter.CoolingDesignDays, true, out ReportValue<Quantity> coolingRelativeHumidity),
@@ -467,6 +469,22 @@ namespace SAM.Analytical.Reporting
                 return Measure(value, unitType, ReportValueSource.SAM, internalConditionParameter.ToString(), reason);
             }
 
+            /// <summary>
+            /// A total internal gain. SAM's Calculated*Gain queries return 0 W when nothing is authored (their
+            /// TryGetValue out-parameter overwrites the NaN default), so authorship is read from the internal condition
+            /// itself: no gain parameter at all is NotAvailable, while an authored 0 stays 0.
+            /// </summary>
+            private ReportValue<Quantity> AuthoredGain(double value, string what, string reason, params InternalConditionParameter[] internalConditionParameters)
+            {
+                bool authored = internalConditionParameters.Any(x => internalCondition.TryGetValue(x, out double value_Parameter) && !double.IsNaN(value_Parameter));
+                if (!authored)
+                {
+                    return ReportValue<Quantity>.NotAvailable(reason);
+                }
+
+                return Measure(value, UnitType.Watt, ReportValueSource.Derived, what, reason);
+            }
+
             private ReportValue<string> ProfileName(InternalConditionParameter internalConditionParameter)
             {
                 return internalCondition.TryGetValue(internalConditionParameter, out string name) ? Text(name, ReportValueSource.SAM, "No profile") : ReportValue<string>.NotAvailable("No profile");
@@ -495,7 +513,13 @@ namespace SAM.Analytical.Reporting
                 };
             }
 
-            private ReportValue<Quantity> ProfileValue(ProfileLibrary profileLibrary, ProfileType profileType, bool maximum, UnitType unitType, string reason)
+            /// <summary>
+            /// The maximum or minimum of a profile over the year. The yearly expansion is used rather than
+            /// Profile.MaxValue / MinValue because MinValue takes the maximum of each child profile, which is wrong for
+            /// a profile built from other profiles (for example a year of day profiles). A value for which
+            /// <paramref name="notApplicable"/> returns a reason means the control is off (Tas convention).
+            /// </summary>
+            private ReportValue<Quantity> ProfileValue(ProfileLibrary profileLibrary, ProfileType profileType, bool maximum, UnitType unitType, string reason, Func<double, string> notApplicable)
             {
                 if (internalCondition == null)
                 {
@@ -508,10 +532,18 @@ namespace SAM.Analytical.Reporting
                     return ReportValue<Quantity>.NotAvailable(reason);
                 }
 
-                double value = maximum ? profile.MaxValue : profile.MinValue;
-                if (double.IsNaN(value) || double.IsInfinity(value))
+                double[] values = profile.GetYearlyValues()?.Where(x => !double.IsNaN(x) && !double.IsInfinity(x)).ToArray();
+                if (values == null || values.Length == 0)
                 {
                     return ReportValue<Quantity>.NotAvailable(reason);
+                }
+
+                double value = maximum ? values.Max() : values.Min();
+
+                string reason_NotApplicable = notApplicable?.Invoke(value);
+                if (reason_NotApplicable != null)
+                {
+                    return ReportValue<Quantity>.NotApplicable(reason_NotApplicable);
                 }
 
                 return ReportValue<Quantity>.Available(new Quantity(value, unitType), ReportValueSource.Derived, note: string.Format("{0} of profile {1}", maximum ? "Maximum" : "Minimum", profile.Name));
