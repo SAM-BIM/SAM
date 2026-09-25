@@ -1,0 +1,452 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
+
+using SAM.Analytical;
+using SAM.Analytical.Reporting;
+using SAM.Core;
+using SAM.Core.Reporting;
+using SAM.Tests.Helpers;
+using SAM.Units;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Xunit;
+using ReportingCreate = SAM.Analytical.Reporting.Create;
+
+namespace SAM.Tests
+{
+    /// <summary>
+    /// The Phase 1 Space Assumptions document: typed collector values, section order, missing data, design-load
+    /// freshness, and deterministic golden JSON snapshots in SI and Imperial.
+    /// </summary>
+    public class SpaceAssumptionsTests
+    {
+        private static SpaceDocumentData Collect(AnalyticalModel analyticalModel, UnitStyle unitStyle, out DocumentContext documentContext)
+        {
+            documentContext = ReportingCreate.DocumentContext(analyticalModel, ReportingFixture.Options(unitStyle));
+            return ReportingCreate.SpaceDocumentData(documentContext, ReportingFixture.Stored(analyticalModel));
+        }
+
+        private static Document Build(AnalyticalModel analyticalModel, UnitStyle unitStyle, out DocumentContext documentContext)
+        {
+            documentContext = ReportingCreate.DocumentContext(analyticalModel, ReportingFixture.Options(unitStyle));
+            return ReportingCreate.SpaceAssumptions(documentContext, ReportingFixture.Stored(analyticalModel));
+        }
+
+        private static void AssertQuantity(ReportValue<Quantity> reportValue, double expected, UnitCategory unitCategory, ReportValueSource reportValueSource, double tolerance = 1e-9)
+        {
+            Assert.True(reportValue.HasValue, reportValue.Note);
+            Assert.Equal(unitCategory, reportValue.Value.Category);
+            Assert.Equal(reportValueSource, reportValue.Source);
+            Assert.Equal(expected, reportValue.Value.Value, tolerance);
+        }
+
+        // ---------- typed collector values ----------
+
+        [Fact]
+        public void Collector_Full_ReadsTypedValuesInCanonicalUnits()
+        {
+            SpaceDocumentData data = Collect(ReportingFixture.Full(out _), UnitStyle.SI, out _);
+
+            Assert.Equal(ReportingFixture.SpaceGuid, data.Identity.Guid);
+            Assert.Equal(ReportingFixture.SpaceName, data.Identity.Name.Value);
+            Assert.Equal("Level 00", data.Identity.LevelName.Value);
+            Assert.Equal("S39_OfficeOpen", data.Identity.InternalConditionName.Value);
+
+            AssertQuantity(data.Geometry.Area, 30, UnitCategory.Area, ReportValueSource.SAM);
+            AssertQuantity(data.Geometry.Volume, 90, UnitCategory.Volume, ReportValueSource.SAM);
+            AssertQuantity(data.Geometry.AverageHeight, 3, UnitCategory.Length, ReportValueSource.Derived);
+
+            AssertQuantity(data.Occupancy.People, 3, UnitCategory.Count, ReportValueSource.Derived);
+            AssertQuantity(data.Occupancy.AreaPerPerson, 10, UnitCategory.AreaPerPerson, ReportValueSource.SAM);
+            AssertQuantity(data.Occupancy.SensibleGainPerPerson, 75, UnitCategory.PowerPerPerson, ReportValueSource.SAM);
+            AssertQuantity(data.Occupancy.SensibleGain, 225, UnitCategory.Power, ReportValueSource.Derived);
+            AssertQuantity(data.Occupancy.LatentGain, 165, UnitCategory.Power, ReportValueSource.Derived);
+            AssertQuantity(data.Occupancy.OccupiedHoursPerYear, 11 * 365, UnitCategory.Time, ReportValueSource.Derived);
+            Assert.Equal("Occ 8to19", data.Occupancy.Profile.Value);
+
+            AssertQuantity(data.Lighting.GainPerArea, 8, UnitCategory.SpecificPower, ReportValueSource.SAM);
+            AssertQuantity(data.Lighting.Gain, 240, UnitCategory.Power, ReportValueSource.Derived);
+            AssertQuantity(data.Lighting.Illuminance, 500, UnitCategory.Illuminance, ReportValueSource.SAM);
+            AssertQuantity(data.EquipmentSensible.Gain, 750, UnitCategory.Power, ReportValueSource.Derived);
+            Assert.Equal(Availability.NotApplicable, data.EquipmentSensible.Illuminance.Availability);
+            Assert.Equal(Availability.NotAvailable, data.EquipmentLatent.GainPerArea.Availability);
+            Assert.Equal(Availability.NotAvailable, data.EquipmentLatent.Gain.Availability);
+            Assert.Equal("No equipment latent gain authored", data.EquipmentLatent.Gain.Note);
+
+            AssertQuantity(data.Infiltration.AirChangeRate, 0.2, UnitCategory.AirChangeRate, ReportValueSource.SAM);
+            AssertQuantity(data.Infiltration.AirFlow, 90 * 0.2 / 3600, UnitCategory.AirFlow, ReportValueSource.Derived);
+
+            AssertQuantity(data.DesignCriteria.HeatingSetPoint, 21, UnitCategory.Temperature, ReportValueSource.Derived);
+            AssertQuantity(data.DesignCriteria.CoolingSetPoint, 24, UnitCategory.Temperature, ReportValueSource.Derived);
+            AssertQuantity(data.DesignCriteria.HumidificationSetPoint, 40, UnitCategory.Ratio, ReportValueSource.Derived);
+            AssertQuantity(data.DesignCriteria.DehumidificationSetPoint, 60, UnitCategory.Ratio, ReportValueSource.Derived);
+            AssertQuantity(data.DesignCriteria.OutdoorHeatingDryBulb, -3, UnitCategory.Temperature, ReportValueSource.SAM);
+            AssertQuantity(data.DesignCriteria.OutdoorHeatingRelativeHumidity, 86.9, UnitCategory.Ratio, ReportValueSource.SAM);
+            AssertQuantity(data.DesignCriteria.OutdoorCoolingDryBulb, 32.1, UnitCategory.Temperature, ReportValueSource.SAM);
+            AssertQuantity(data.DesignCriteria.OutdoorCoolingRelativeHumidity, 35.9, UnitCategory.Ratio, ReportValueSource.SAM);
+
+            AssertQuantity(data.Ventilation.SupplyAirFlow, 0.198, UnitCategory.AirFlow, ReportValueSource.SAM);
+            AssertQuantity(data.Ventilation.ExtractAirFlow, 0.180, UnitCategory.AirFlow, ReportValueSource.SAM);
+            AssertQuantity(data.Ventilation.OutsideAirFlow, 0.040, UnitCategory.AirFlow, ReportValueSource.SAM);
+            AssertQuantity(data.Ventilation.SupplyAirChangeRate, 0.198 * 3600 / 90, UnitCategory.AirChangeRate, ReportValueSource.Derived);
+            Assert.Equal("VAV", data.Ventilation.SystemType.Value);
+            Assert.Equal("AHU1S", data.Ventilation.SupplyUnit.Value);
+            Assert.Equal("AHU1E", data.Ventilation.ExtractUnit.Value);
+
+            Assert.Equal("UFH", data.Systems.HeatingSystem.Value);
+            Assert.Equal("FCU", data.Systems.CoolingSystem.Value);
+            Assert.Equal("V R1", data.Systems.VentilationRiser.Value);
+            Assert.False(data.Systems.CoolingRiser.HasValue);
+
+            AssertQuantity(data.Sizing.HeatingSizingFactor, 1.2, UnitCategory.Ratio, ReportValueSource.SAM);
+            AssertQuantity(data.Sizing.CoolingSizingFactor, 1.1, UnitCategory.Ratio, ReportValueSource.SAM);
+            Assert.Equal("Model default", data.Sizing.CoolingSizingFactor.Note);
+        }
+
+        [Fact]
+        public void Collector_Fabric_SplitsByExposure_AndSeparatesPaneAndFrame()
+        {
+            SpaceDocumentData data = Collect(ReportingFixture.Full(out _), UnitStyle.SI, out _);
+
+            Dictionary<FabricCategory, FabricAreaRow> rows = data.Fabric.Rows.ToDictionary(x => x.Category);
+            Assert.Equal(Enum.GetValues(typeof(FabricCategory)).Length, rows.Count);
+
+            // External wall 12 m² less the 2.4 m² window; internal wall 12 m² less the 1.8 m² door.
+            AssertQuantity(rows[FabricCategory.Walls].ExternalArea, 9.6, UnitCategory.Area, ReportValueSource.Derived, 1e-6);
+            AssertQuantity(rows[FabricCategory.Walls].InternalArea, 10.2, UnitCategory.Area, ReportValueSource.Derived, 1e-6);
+            Assert.Equal(Availability.NotApplicable, rows[FabricCategory.Walls].ExternalFrameArea.Availability);
+
+            double windowPane = rows[FabricCategory.Windows].ExternalArea.Value.Value;
+            double windowFrame = rows[FabricCategory.Windows].ExternalFrameArea.Value.Value;
+            Assert.Equal(2.4, windowPane + windowFrame, 6);
+            Assert.Equal(0, rows[FabricCategory.Windows].InternalArea.Value.Value, 9);
+
+            double doorPane = rows[FabricCategory.Doors].InternalArea.Value.Value;
+            double doorFrame = rows[FabricCategory.Doors].InternalFrameArea.Value.Value;
+            Assert.Equal(1.8, doorPane + doorFrame, 6);
+
+            AssertQuantity(rows[FabricCategory.GroundFloors].ExternalArea, 30, UnitCategory.Area, ReportValueSource.Derived, 1e-6);
+            AssertQuantity(rows[FabricCategory.RoofsAndCeilings].ExternalArea, 30, UnitCategory.Area, ReportValueSource.Derived, 1e-6);
+        }
+
+        [Fact]
+        public void EquipmentLatent_AuthoredZero_StaysZero_NotAuthored_IsNotAvailable()
+        {
+            // SAM's CalculatedEquipmentLatentGain returns 0 W both when nothing is authored and when 0 is authored; the
+            // internal condition itself still tells them apart, and the report follows the internal condition.
+            AnalyticalModel analyticalModel = ReportingFixture.Full(out _);
+            Space space = ReportingFixture.Stored(analyticalModel);
+            Assert.Equal(0, Analytical.Query.CalculatedEquipmentLatentGain(space));
+
+            InternalCondition internalCondition = space.InternalCondition;
+            internalCondition.SetValue(InternalConditionParameter.EquipmentLatentGainPerArea, 0.0);
+            space.InternalCondition = internalCondition;
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+            adjacencyCluster.AddObject(space);
+            analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+
+            SpaceDocumentData data = Collect(analyticalModel, UnitStyle.SI, out _);
+
+            AssertQuantity(data.EquipmentLatent.Gain, 0, UnitCategory.Power, ReportValueSource.Derived);
+            AssertQuantity(data.EquipmentLatent.GainPerArea, 0, UnitCategory.SpecificPower, ReportValueSource.SAM);
+        }
+
+        // ---------- set points and humidity ----------
+
+        [Fact]
+        public void SetPoints_UseTheYearlyExpansion_ForProfilesMadeOfProfiles()
+        {
+            // Profile.MinValue takes the maximum of each child profile, so a week built from day profiles would report
+            // the night set-back (28 C) as the cooling set point, and 100 % (control off) as the dehumidification limit.
+            Profile day_Cooling = new Profile("Cool day", ProfileType.Cooling, Enumerable.Range(0, 24).Select(x => x >= 7 && x < 19 ? 24.0 : 28.0));
+            Profile cooling = new Profile("Cool week", ProfileType.Cooling);
+            Profile day_Dehumidification = new Profile("Dehum day", ProfileType.Dehumidification, Enumerable.Range(0, 24).Select(x => x >= 7 && x < 19 ? 60.0 : 100.0));
+            Profile dehumidification = new Profile("Dehum week", ProfileType.Dehumidification);
+            for (int i = 0; i < 7; i++)
+            {
+                cooling.Add(day_Cooling);
+                dehumidification.Add(day_Dehumidification);
+            }
+
+            // The defect this test guards the report against.
+            Assert.Equal(28, cooling.MinValue);
+
+            SpaceDocumentData data = Collect(WithProfiles(ReportingFixture.Full(out _), cooling, dehumidification), UnitStyle.SI, out _);
+
+            AssertQuantity(data.DesignCriteria.CoolingSetPoint, 24, UnitCategory.Temperature, ReportValueSource.Derived);
+            AssertQuantity(data.DesignCriteria.DehumidificationSetPoint, 60, UnitCategory.Ratio, ReportValueSource.Derived);
+        }
+
+        [Fact]
+        public void HumidityControlOff_IsNotApplicable()
+        {
+            // Tas convention: "No Humidification" is a 0 % lower limit, "No Dehumidification" a 100 % upper limit.
+            Profile humidification = new Profile("No Humidification", ProfileType.Humidification, Enumerable.Repeat(0.0, 24));
+            Profile dehumidification = new Profile("No Dehumidification", ProfileType.Dehumidification, Enumerable.Repeat(100.0, 24));
+
+            SpaceDocumentData data = Collect(WithProfiles(ReportingFixture.Full(out _), humidification, dehumidification), UnitStyle.SI, out _);
+
+            Assert.Equal(Availability.NotApplicable, data.DesignCriteria.HumidificationSetPoint.Availability);
+            Assert.Equal(Availability.NotApplicable, data.DesignCriteria.DehumidificationSetPoint.Availability);
+        }
+
+        [Fact]
+        public void RoomHumidity_IsLabelledByControl_NotByHeatingOrCooling()
+        {
+            Document document = Build(ReportingFixture.Full(out _), UnitStyle.SI, out _);
+
+            DocumentSection documentSection = document.Sections.Single(x => x.Id == "design-criteria");
+            KeyValueBlock keyValueBlock = documentSection.Blocks.OfType<KeyValueBlock>().Single(x => x.Id == "room-humidity");
+            Assert.Equal(new[] { "Humidification set point (lower RH limit)", "Dehumidification set point (upper RH limit)" }, keyValueBlock.Rows.Select(x => x.Label));
+            Assert.Equal(new[] { "40", "60" }, keyValueBlock.Rows.Select(x => x.Value.Text));
+
+            TableBlock tableBlock = Table(document, "design-criteria", "design-criteria");
+            Assert.DoesNotContain(tableBlock.Rows, x => x.Cells[0].Text.Contains("Room RH"));
+        }
+
+        /// <summary>
+        /// The model with its internal condition pointing at the given cooling / humidification / dehumidification
+        /// profiles, which are added to the profile library.
+        /// </summary>
+        private static AnalyticalModel WithProfiles(AnalyticalModel analyticalModel, params Profile[] profiles)
+        {
+            ProfileLibrary profileLibrary = analyticalModel.ProfileLibrary;
+            Space space = ReportingFixture.Stored(analyticalModel);
+            InternalCondition internalCondition = space.InternalCondition;
+            foreach (Profile profile in profiles)
+            {
+                profileLibrary.Add(profile);
+
+                InternalConditionParameter internalConditionParameter = profile.ProfileType == ProfileType.Cooling ? InternalConditionParameter.CoolingProfileName
+                    : profile.ProfileType == ProfileType.Humidification ? InternalConditionParameter.HumidificationProfileName
+                    : InternalConditionParameter.DehumidificationProfileName;
+
+                internalCondition.SetValue(internalConditionParameter, profile.Name);
+            }
+
+            space.InternalCondition = internalCondition;
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+            adjacencyCluster.AddObject(space);
+
+            return new AnalyticalModel(analyticalModel.Name, null, null, null, adjacencyCluster, null, profileLibrary);
+        }
+
+        // ---------- design-load freshness ----------
+
+        [Fact]
+        public void DesignLoads_AreFromTBD_WithUnknownFreshness()
+        {
+            SpaceDocumentData data = Collect(ReportingFixture.Full(out _), UnitStyle.SI, out _);
+
+            Assert.Equal(DesignLoadStatus.Unknown, data.Sizing.DesignLoadStatus);
+            foreach (ReportValue<Quantity> reportValue in new[] { data.Sizing.DesignHeatingLoad, data.Sizing.DesignCoolingLoad, data.Sizing.DesignHeatingLoadPerArea, data.Sizing.DesignCoolingLoadPerArea })
+            {
+                Assert.True(reportValue.HasValue);
+                Assert.Equal(Freshness.Unknown, reportValue.Freshness);
+            }
+
+            Assert.Equal(ReportValueSource.TBD, data.Sizing.DesignHeatingLoad.Source);
+            AssertQuantity(data.Sizing.DesignHeatingLoad, 779, UnitCategory.Power, ReportValueSource.TBD);
+            AssertQuantity(data.Sizing.DesignCoolingLoadPerArea, 12400.0 / 30, UnitCategory.SpecificPower, ReportValueSource.Derived);
+        }
+
+        [Fact]
+        public void DesignLoads_StayUnknown_EvenWithCurrentTsdProvenanceAndSimulationResults()
+        {
+            AnalyticalModel analyticalModel = ReportingFixture.Full(out _);
+
+            // A simulation result with a different load, and a TSD provenance stamp that is current for this model:
+            // neither may leak into Phase 1 (no SpaceSimulationResult is read; TSD provenance never implies TBD
+            // freshness).
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+            SpaceSimulationResult spaceSimulationResult = new SpaceSimulationResult(ReportingFixture.SpaceName, "Tas", ReportingFixture.SpaceGuid.ToString());
+            spaceSimulationResult.SetValue(SpaceSimulationResultParameter.Load, 99999.0);
+            spaceSimulationResult.SetValue(SpaceSimulationResultParameter.LoadType, LoadType.Heating.ToString());
+            adjacencyCluster.AddObject(spaceSimulationResult);
+            adjacencyCluster.AddRelation(ReportingFixture.Stored(analyticalModel), spaceSimulationResult);
+            analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+
+            string path_TSD = Path.GetTempFileName();
+            try
+            {
+                analyticalModel.SetValue(AnalyticalModelParameter.SimulationResultProvenance, new SimulationResultProvenance(analyticalModel, path_TSD));
+
+                SpaceDocumentData data = Collect(analyticalModel, UnitStyle.SI, out _);
+
+                Assert.Equal(779, data.Sizing.DesignHeatingLoad.Value.Value);
+                Assert.Equal(Freshness.Unknown, data.Sizing.DesignHeatingLoad.Freshness);
+                Assert.Equal(Freshness.Unknown, data.Sizing.DesignCoolingLoad.Freshness);
+            }
+            finally
+            {
+                File.Delete(path_TSD);
+            }
+        }
+
+        // ---------- missing / not applicable ----------
+
+        [Fact]
+        public void Minimal_Model_ProducesAValidDocument_WithNoticesAndWarnings()
+        {
+            Document document = Build(ReportingFixture.Minimal(out _), UnitStyle.SI, out DocumentContext documentContext);
+
+            Assert.Equal(SpaceDocumentDefinitions.SpaceAssumptions.Sections.Select(x => x.Id), document.Sections.Select(x => x.Id));
+
+            List<string> notices = document.Sections.SelectMany(x => x.Blocks).OfType<NoticeBlock>().Select(x => x.Text).ToList();
+            Assert.Contains("No internal condition assigned", notices);
+            Assert.Contains("No panels bound this space", notices);
+            Assert.Contains("No floor area or volume in model", notices);
+            Assert.Contains(SpaceSizingSectionBuilder.DesignLoadsNoneNotice, notices);
+            Assert.Contains("No set point profiles and no design days in model", notices);
+            Assert.Contains("No heating or cooling system assigned", notices);
+
+            // A section with no data at all is one notice, not a block of placeholders.
+            foreach (string id in new[] { "geometry", "internal-condition", "design-criteria", "ventilation", "systems", "fabric", "sizing" })
+            {
+                Assert.All(document.Sections.Single(x => x.Id == id).Blocks, x => Assert.IsType<NoticeBlock>(x));
+            }
+
+            Assert.Contains(ReportingCreate.LegendNotAvailable, document.Footer.Legend);
+            Assert.Contains(document.Footer.Lines, x => x.Contains("Design loads: none in model"));
+
+            List<LogRecord> warnings = documentContext.Diagnostics.Where(x => x.LogRecordType == LogRecordType.Warning).ToList();
+            Assert.Contains(warnings, x => x.Text.Contains("no design loads"));
+            Assert.Contains(warnings, x => x.Text.Contains("no ventilation system"));
+            Assert.Contains(warnings, x => x.Text.Contains("no heating design day"));
+        }
+
+        [Fact]
+        public void InvalidModelValue_BecomesNotAvailable_WithAWarning()
+        {
+            AnalyticalModel analyticalModel = ReportingFixture.Full(out _);
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+            Space space = ReportingFixture.Stored(analyticalModel);
+            // SAM rejects a negative volume at SetValue (minimum 0), but an infinite one gets through.
+            Assert.True(space.SetValue(SpaceParameter.Volume, double.PositiveInfinity));
+            adjacencyCluster.AddObject(space);
+            analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+
+            SpaceDocumentData data = Collect(analyticalModel, UnitStyle.SI, out DocumentContext documentContext);
+
+            Assert.Equal(Availability.NotAvailable, data.Geometry.Volume.Availability);
+            Assert.Equal("invalid value in model", data.Geometry.Volume.Note);
+            Assert.Contains(documentContext.Diagnostics, x => x.LogRecordType == LogRecordType.Warning && x.Text.Contains("invalid value in model"));
+        }
+
+        [Fact]
+        public void SoftwareFailure_Propagates_AndProducesNoDocument()
+        {
+            DocumentDefinition<SpaceDocumentData> documentDefinition = new DocumentDefinition<SpaceDocumentData>(
+                "faulty", "Faulty", DocumentScope.Space, new ISectionBuilder<SpaceDocumentData>[] { new SpaceIdentitySectionBuilder(), new ThrowingSectionBuilder() }, null, null);
+
+            AnalyticalModel analyticalModel = ReportingFixture.Full(out _);
+            DocumentContext documentContext = ReportingCreate.DocumentContext(analyticalModel, ReportingFixture.Options());
+            SpaceDocumentData data = ReportingCreate.SpaceDocumentData(documentContext, ReportingFixture.Stored(analyticalModel));
+
+            Assert.Throws<NotImplementedException>(() => ReportingCreate.Document(documentDefinition, data, documentContext));
+        }
+
+        private sealed class ThrowingSectionBuilder : ISectionBuilder<SpaceDocumentData>
+        {
+            public string Id => "throws";
+
+            public DocumentSection Build(SpaceDocumentData data, DocumentContext documentContext) => throw new NotImplementedException("injected fault");
+        }
+
+        // ---------- sections and formatting ----------
+
+        [Fact]
+        public void Sections_AreInTheApprovedOrder()
+        {
+            Document document = Build(ReportingFixture.Full(out _), UnitStyle.SI, out _);
+
+            Assert.Equal(new[] { "identity", "geometry", "internal-condition", "design-criteria", "ventilation", "systems", "fabric", "sizing" }, document.Sections.Select(x => x.Id));
+            Assert.Equal("Space Assumptions", document.Metadata.Title);
+            Assert.Equal(ReportingFixture.SpaceName, document.Metadata.Subject);
+            Assert.Equal("Test Project", document.Metadata.ProjectName);
+        }
+
+        [Fact]
+        public void Sizing_HeatingCoolingPair_SharesOneUnit_SI()
+        {
+            TableBlock tableBlock = Table(Build(ReportingFixture.Full(out _), UnitStyle.SI, out _), "sizing", "sizing");
+
+            TableRow load = tableBlock.Rows[0];
+            Assert.Equal("0.78", load.Cells[1].Text);
+            Assert.Equal("12.40", load.Cells[2].Text);
+            Assert.All(load.Cells.Skip(1), x => Assert.Equal("kW", x.Unit));
+            Assert.All(load.Cells.Skip(1), x => Assert.Equal(Freshness.Unknown, x.Freshness));
+
+            // The stored factor multiplies the design load: 1.2 is shown as the multiplier 1.20, not as a percentage.
+            TableRow multiplier = tableBlock.Rows[2];
+            Assert.Equal("Sizing multiplier", multiplier.Cells[0].Text);
+            Assert.Equal(new[] { "1.20", "1.10" }, multiplier.Cells.Skip(1).Select(x => x.Text));
+            Assert.All(multiplier.Cells.Skip(1), x => Assert.Null(x.Unit));
+        }
+
+        [Fact]
+        public void Sizing_SaysWhetherLoadsIncludeTheMultiplierIsNotRecorded()
+        {
+            DocumentSection documentSection = Build(ReportingFixture.Full(out _), UnitStyle.SI, out _).Sections.Single(x => x.Id == "sizing");
+
+            Assert.Contains(documentSection.Blocks.OfType<NoticeBlock>(), x => x.Text == SpaceSizingSectionBuilder.SizingMultiplierNotice);
+        }
+
+        [Fact]
+        public void Imperial_Document_ConvertsEveryCategory()
+        {
+            Document document = Build(ReportingFixture.Full(out _), UnitStyle.Imperial, out _);
+
+            KeyValueBlock geometry = document.Sections.Single(x => x.Id == "geometry").Blocks.OfType<KeyValueBlock>().Single();
+            Assert.Equal("323", geometry.Rows[0].Value.Text);
+            Assert.Equal("ft²", geometry.Rows[0].Value.Unit);
+
+            KeyValueBlock ventilation = document.Sections.Single(x => x.Id == "ventilation").Blocks.OfType<KeyValueBlock>().Single();
+            Assert.Equal("420", ventilation.Rows[0].Value.Text);
+            Assert.All(ventilation.Rows.Take(3), x => Assert.Equal("cfm", x.Value.Unit));
+
+            TableBlock designCriteria = Table(document, "design-criteria", "design-criteria");
+            Assert.Equal("69.8", designCriteria.Rows[0].Cells[1].Text);
+            Assert.Equal("°F", designCriteria.Rows[0].Cells[1].Unit);
+
+            TableBlock sizing = Table(document, "sizing", "sizing");
+            Assert.Equal("Btu/h", sizing.Rows[0].Cells[1].Unit);
+            Assert.Equal("Btu/h", sizing.Rows[0].Cells[2].Unit);
+            Assert.Equal("Btu/h·ft²", sizing.Rows[1].Cells[1].Unit);
+        }
+
+        [Fact]
+        public void Gains_TotalColumn_SharesOneUnit()
+        {
+            TableBlock tableBlock = Table(Build(ReportingFixture.Full(out _), UnitStyle.SI, out _), "internal-condition", "gains");
+
+            Assert.Equal("W", tableBlock.Columns[3].Unit);
+            Assert.Equal(new[] { "225", "165", "240", "750", "—" }, tableBlock.Rows.Select(x => x.Cells[3].Text));
+            Assert.Equal("W/person", tableBlock.Rows[0].Cells[2].Unit);
+            Assert.Equal("W/m²", tableBlock.Rows[2].Cells[2].Unit);
+        }
+
+        private static TableBlock Table(Document document, string sectionId, string blockId)
+        {
+            return document.Sections.Single(x => x.Id == sectionId).Blocks.OfType<TableBlock>().Single(x => x.Id == blockId);
+        }
+
+        // ---------- golden snapshots ----------
+
+        [Theory]
+        [InlineData("SpaceAssumptions_Full_SI.json", false, UnitStyle.SI)]
+        [InlineData("SpaceAssumptions_Full_IP.json", false, UnitStyle.Imperial)]
+        [InlineData("SpaceAssumptions_Minimal_SI.json", true, UnitStyle.SI)]
+        public void Snapshot_MatchesGolden(string fileName, bool minimal, UnitStyle unitStyle)
+        {
+            string json = Build(minimal ? ReportingFixture.Minimal(out _) : ReportingFixture.Full(out _), unitStyle, out _).ToJson();
+
+            // Deterministic: a second build of the same input gives the same bytes.
+            Assert.Equal(json, Build(minimal ? ReportingFixture.Minimal(out _) : ReportingFixture.Full(out _), unitStyle, out _).ToJson());
+
+            Golden.AssertMatches(fileName, json);
+        }
+    }
+}

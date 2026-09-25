@@ -20,6 +20,8 @@
     <ProjectReference Include="..\SAM.Analytical\SAM.Analytical.csproj" />
     <ProjectReference Include="..\SAM.Architectural\SAM.Architectural.csproj" />
     <ProjectReference Include="..\SAM.Units\SAM.Units.csproj" />
+    <ProjectReference Include="..\SAM.Core.Reporting\SAM.Core.Reporting.csproj" />
+    <ProjectReference Include="..\SAM.Analytical.Reporting\SAM.Analytical.Reporting.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -64,6 +66,13 @@
     </None>
     <None Include="..\..\files\resources\Analytical\SAM_ApertureConstructionLibrary.JSON">
       <Link>Resources\SAM_ApertureConstructionLibrary.JSON</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Golden JSON snapshots of the reporting documents; see Helpers/Golden.cs to update them. -->
+    <None Include="Golden\**\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

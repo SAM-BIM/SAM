@@ -1,6 +1,18 @@
 # Project Progress
 
-## Current: TM59 per-space overall status, structured (25 Sep 2026) - PR open, NOT merged
+## Branch
+`feature/reporting-pr1-domain`, cut from `sow/2026-Q3` at `4e027f55` (the merge of PR0,
+[SAM#135](https://github.com/SAM-BIM/SAM/pull/135)), holds the documentation-framework PR1 (the reporting domain and
+analytical collector; see *Current*). It targets `sow/2026-Q3` and is NOT merged: it awaits owner review.
+
+`sow/2026-Q3` is at `7dbeb2e4`: PR0 merged as SAM#135 (`4e027f55`), then the TM59 per-space status work merged as
+[SAM#137](https://github.com/SAM-BIM/SAM/pull/137) (next entry). The PR1 branch merged `sow/2026-Q3` at `7dbeb2e4`
+to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept. `feature/reporting-pr0-units` is merged.
+
+## Also current: TM59 per-space overall status, structured (25 Sep 2026) - MERGED as SAM#137 (`7dbeb2e4`)
+
+**Merge note.** The status paragraph below was written before the merge. SAM#137 is now merged into `sow/2026-Q3`;
+SAM_UI#114 is next in the stated merge order.
 
 **Status.** On `feature/parto-tm59-result-ux-2026-09-25`, from `sow/2026-Q3` `4e027f55` (#135, PR0 units, is merged).
 A PR is open against `sow/2026-Q3` and stopped before merge. It pairs with SAM-BIM/SAM_UI#114 (the same branch name,
@@ -32,9 +44,6 @@ authoritative rule, in SAM.
 
 **Next step.** Owner reviews, then merges this before SAM_UI#114. Then move SAM_Deploy's SAM pointer.
 
-## Previous branch note (superseded: PR0 merged as #135)
-`feature/reporting-pr0-units`, cut from `sow/2026-Q3` at `80b01052` (merge of SAM#134, docs only), holds the
-documentation-framework PR0 (`SAM.Units` extension; see *Current*). It targets `sow/2026-Q3` and is not merged.
 
 `sow/2026-Q3` at `54c43438` (merge of [SAM#133](https://github.com/SAM-BIM/SAM/pull/133), the Nuaire reply work; see the first *Previous*). The #123
 manufacturer-guidance work (first *Previous* entry) is merged, and its feature branches are deleted.
@@ -48,13 +57,160 @@ successor tracker, and the human closure decision).
 
 `sow/2026-Q3` (at `86213eb3`, including the SAM#126/#127 .NET Framework cleanup) was merged into this branch on 2026-09-22 to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept below.
 
-## Current: SAM Documentation Framework PR0 - `SAM.Units` extension (2026-09-25)
+## Current: SAM Documentation Framework PR1 - reporting domain + analytical collector (2026-09-25)
 
-**Status.** Implemented, validated and committed locally on `feature/reporting-pr0-units`. It is not yet pushed, PR'd or merged.
-The plan is the owner-approved *SAM Documentation Framework* Revision 3, §R3.4 (kept outside git at
-`Documents\SAM_daily\2026-09-25-Reporting\SAM Documentation Framework_rev3.md`). PR0 changes SAM.Units only: there
-is no reporting code. **PR1 (the `SAM.Core.Reporting` / `SAM.Analytical.Reporting` domain) has NOT started**, and
-must wait until PR0 is merged.
+**Status.** Implemented and validated on `feature/reporting-pr1-domain`, which is pushed with a PR open to
+`sow/2026-Q3`. It is **not merged**: it awaits owner review. The plan is the owner-approved *SAM Documentation
+Framework* Revision 3, where the Rev 3 section overrides the Rev 2 body. The plan file is kept outside git at
+`Documents\SAM_daily\2026-09-25-Reporting\SAM Documentation Framework_rev3.md`.
+
+Out of scope and **not started**: PR2 (the MigraDoc/PDF renderer, font, spike), the design-gate mock-up, and PR3
+(SAM_UI integration, deploy lists).
+
+**New projects** (netstandard2.0, output to `build/`, both added to `SAM.sln` under the SAM folder, no third-party
+dependencies):
+- `SAM/SAM.Core.Reporting` depends on SAM.Units and System.Text.Json only.
+  - `ReportValue<T>`: a private constructor and factories only.
+    - `Available` rejects null, NaN, infinity and an invalid `Quantity` with `ArgumentException`.
+    - `NotAvailable` / `NotApplicable` require a reason.
+    - `Availability` is derived from the factory. `Source`, `Freshness` and `SourceTimestamp` are null unless the
+      value is available.
+    - `WithFreshness` returns a new instance and throws on a value that is not available.
+    - `Value` throws when the value is not available; `TryGetValue` does not.
+    - The value-independent part is exposed through `IReportValue`.
+  - `FormattedValue`: text, unit, availability, freshness, source, timestamp, note, and `IsOutOfDate`.
+  - `DisplayUnit`: unit type, symbol and decimals.
+  - `IQuantityFormatter` / `QuantityFormatter`:
+    - a display policy per `UnitCategory` for SI and Imperial;
+    - `SelectDisplayUnit(category, quantities)` gives one unit per group. Power switches from W to kW at 10 kW (SI),
+      and from Btu/h to kBtu/h at 100 kBtu/h (Imperial);
+    - placeholders are "—" and "n/a";
+    - numbers use the culture's separators, and negative zero is suppressed;
+    - dates are formatted with invariant month names.
+  - `DocumentOptions`: unit system, culture, SI air flow unit (l/s by default), metadata, style, and fixed
+    `GeneratedAt` / `SoftwareVersion` for tests.
+  - `DocumentMetadata`, `DocumentStyle`.
+  - Blocks: `KeyValueBlock` (and its rows), `TableBlock` / `TableColumn` / `TableRow`, `NoticeBlock`, `TextBlock`,
+    `ImageBlock`.
+  - `DocumentSection`, `DocumentFooter` (lines plus the legend of markers actually used), `Document`,
+    `IDocumentRenderer`.
+  - `Convert.ToJson(Document)`: deterministic JSON with a fixed property order, "\n" line endings and readable
+    non-ASCII text.
+- `SAM/SAM.Analytical.Reporting` depends on SAM.Analytical, SAM.Core, SAM.Core.Reporting, SAM.Units and SAM.Weather.
+  - `DocumentContext` and `DocumentProvenance`.
+  - `Create.DocumentContext(model, options)`.
+  - `SpaceDocumentData` and its typed records: Identity, Geometry, Occupancy, three gain records (lighting,
+    equipment sensible, equipment latent), Infiltration, DesignCriteria, Ventilation, Systems, Fabric (with
+    `FabricAreaRow` and `FabricCategory`), Sizing (with `DesignLoadStatus`), and Provenance.
+  - The collector `Create.SpaceDocumentData(context, space)`.
+  - Section builders: identity, geometry, internal-condition, design-criteria, ventilation, systems, fabric,
+    sizing, plus `SpaceFooterBuilder`.
+  - `ISectionBuilder<T>`, `IFooterBuilder<T>`, `DocumentDefinition<T>`,
+    `SpaceDocumentDefinitions.SpaceAssumptions`, `Create.Document(...)` and `Create.SpaceAssumptions(context,
+    space)`.
+
+**Phase 1 rules as implemented:**
+- No `SpaceSimulationResult` and no TSD data is read.
+- Design loads come from `SpaceParameter.DesignHeating/CoolingLoad`. They are reported as Available, Source = TBD,
+  Freshness = Unknown, and the footer reads "Design loads: from Tas sizing — date/currency not recorded".
+- `SimulationResultProvenance` is never consulted. A test stamps a current TSD provenance plus a conflicting
+  simulation result, and the loads stay 779 W / Unknown.
+- Expected missing data becomes NotAvailable or NotApplicable with a reason, plus a `Log` warning. A section whose
+  values are all missing renders one `NoticeBlock`.
+- A value that is present but invalid (infinite, negative) becomes NotAvailable("invalid value in model"), plus a
+  warning.
+- Builder exceptions propagate, which aborts the document (tested with an injected fault).
+- Comparable values share one display unit: heating/cooling pairs, the gains "Total" column, the fabric columns and
+  the ventilation air flows.
+
+**Decisions and discoveries (for review):**
+- **Humidity set points** (confirmed in the final review from the SAM_Tas mappings `UpdateInternalCondition`,
+  `UpdateInternalConditionTemplate`, `ProfileReuseIndex` and `ToSAM/InternalCondition`):
+  - Humidification is the TBD thermostat `ticHLL`, the zone humidity LOWER limit. Tas "No Humidification" = 0 %.
+  - Dehumidification is `ticHUL`, the UPPER limit. Tas "No Dehumidification" = 100 %.
+  - Neither is tied to heating or cooling. The report lists them in their own "Room humidity" block, as
+    "Humidification set point (lower RH limit)" and "Dehumidification set point (upper RH limit)", not in the
+    heating/cooling table.
+  - A 0 % lower limit or a 100 % upper limit is reported as NotApplicable ("No humidification" / "No
+    dehumidification").
+  - `Query.HeatingDesignRelativeHumidity` returns the dehumidification minimum, and `CoolingDesignRelativeHumidity`
+    the humidification maximum. Their names do not match what they read. The Grasshopper ReportSpaces component
+    uses them consistently with the profiles, but SAM_Mollier `AirHandlingUnitResult` uses them as heating/cooling
+    design RH. The reporting code does not use them; they are left unchanged and recorded as a follow-up.
+- **`Profile.MinValue` defect.** `Profile.GetMinValue()` takes each child profile's MAXIMUM, so MinValue is wrong
+  for a profile built from other profiles. `Query.CoolingDesignTemperature` inherits the defect. The collector
+  therefore takes min/max over `Profile.GetYearlyValues()`, which expands child profiles correctly. This is covered
+  by a regression test; `Profile` itself is unchanged and the defect is recorded as a follow-up.
+- **Sizing multiplier.** The stored factor is a multiplier: SAM_Tas `UpdateSizingFactors` sets
+  `zone.maxLoad = maxLoad × factor`.
+  - The space value wins; a value of 0 means "not set" and falls back to the model value.
+  - It is displayed as "Sizing multiplier 1.20", not as 120 % or +20 %: those read as a margin, and a factor
+    below 1 is possible.
+  - SAM_Tas applies it to the TBD loads only on the `GenerateHDDCDDFile` sizing path, so the persisted
+    `DesignHeating/CoolingLoad` may or may not include it. The sizing section says so in a notice.
+- **Occupancy count** is displayed with 1 decimal ("3.0 persons"), not as an integer, so fractional occupancy is not
+  hidden.
+- **Imperial temperature difference** uses the symbol "Δ°F", to distinguish it from absolute °F.
+- **Internal gain totals.** SAM CAN distinguish "not authored" from an authored 0, because
+  `InternalCondition.TryGetValue` returns false for an absent parameter.
+  - `CalculatedEquipmentLatentGain`, `CalculatedEquipmentSensibleGain` and `CalculatedLightingGain` lose that
+    distinction: their `TryGetValue(..., out gain_2)` overwrites the NaN default with 0, so "nothing authored"
+    returns 0 W.
+  - The collector reads authorship from the internal condition parameters. No gain parameter at all is
+    NotAvailable ("No ... gain authored"); an authored 0 shows "0".
+  - The queries are unchanged; this is recorded as a follow-up.
+- **Negative values.** SAM parameter validation rejects negative area and volume at `SetValue`, so the data-defect
+  path is exercised with +∞.
+- **Follow-up:** all three SAM defects above (RH query names, `Profile.MinValue`, `Calculated*Gain` returning 0 when nothing is authored) are recorded in [SAM#138](https://github.com/SAM-BIM/SAM/issues/138).
+- **Formatter API.** The formatter has `Format` overloads for `Quantity`, string and `DateTime`, and a
+  `DisplayUnit(category)` method, instead of a generic `Format<T>` and `UnitText`.
+- **`FormattedValue`** carries Availability plus Freshness, following Rev 3 R3.2, rather than the Rev 2 `Status`.
+
+**Tests:**
+- New test files:
+  - `ReportValueTests`: every factory has no contradictory state; rejects NaN, null and invalid values;
+    immutability.
+  - `QuantityFormatterTests`: SI and IP values for every category; absolute temperature vs difference; l/s,
+    m³/s and cfm; the 10 kW and 100 kBtu/h shared-unit pairs; W/m² ↔ Btu/h·ft²; placeholders; culture.
+  - `SpaceAssumptionsTests`: typed collector values; fabric; design-load freshness Unknown, including against a
+    current TSD provenance; the minimal model; the invalid value; the injected fault; section order; IP
+    conversions; shared units. The final review added:
+    - a composite-profile set point regression;
+    - humidity control off → n/a;
+    - room-humidity labels;
+    - latent gain authored-zero vs not authored;
+    - the sizing multiplier "1.20" and its notice.
+- Fixtures: `Helpers/ReportingFixture.cs` (Full and Minimal models, fixed GUID, time and version) and
+  `Helpers/Golden.cs`.
+- Goldens in `SAM.Tests/Golden/*.json` (Full SI, Full IP, Minimal SI) are copied to the test output. To regenerate,
+  set `SAM_UPDATE_GOLDEN=1`, run the tests, rebuild, and review the diff.
+
+**Validation (2026-09-25):**
+- `dotnet build SAM.sln` (Debug): 0 errors, and no warnings from the new code.
+- `SAM.Tests`, rebuilt explicitly (it is not in `SAM.sln`): 2425/2425 in Debug and 2425/2425 in Release, after the
+  final review. CI on the first head (`0972b837`) was green: build, test and SPDX.
+- After merging `sow/2026-Q3` at `7dbeb2e4` (SAM#137): `SAM.sln` Release has 0 errors, and `SAM.Tests` passes 2432/2432 in Debug and Release (2425 + 7 TM59).
+- Final review:
+  - no PDF, MigraDoc or SAM_UI dependency, and no `SpaceSimulationResult` or TSD read;
+  - design-load freshness is always Unknown;
+  - `ReportValue<T>` has no public setters or constructor;
+  - the goldens are deterministic;
+  - unused public API was removed (`QuantityFormatter.SelectDisplayUnits`; `FormatNumber` is now private).
+
+**Next step.** The owner reviews the PR1 PR; merge only on the owner's go-ahead. After that comes the §10 design
+gate (an HTML/PNG mock-up from the fixture data), then PR2 (the renderer spike plus `SAM.Core.Reporting.Pdf`).
+
+## Previous: SAM Documentation Framework PR0 - `SAM.Units` extension (2026-09-25) - MERGED
+
+**Status.** MERGED into `sow/2026-Q3` as [SAM#135](https://github.com/SAM-BIM/SAM/pull/135), merge commit
+`4e027f55`, head `2005ba37`, on 2026-09-25. CI was green (build, test, SPDX). The focused final review found no
+material issue:
+- factor directions were verified against independent reference values;
+- the linear fallback only runs after the explicit switch;
+- every pair that changed from NaN to a value is intended;
+- no consumer switches over `UnitType` or `UnitCategory`.
+
+No automated Codex review was posted within about 25 minutes.
 
 **What changed (`SAM/SAM.Units`, append-only enums):**
 - `UnitCategory` gains these members (appended; existing ordinals unchanged): Area, Volume, Length,
@@ -134,8 +290,7 @@ Coverage:
 
 Psychrometrics and Multitasker reference the DLL without using it. None of these consumers hits a changed path.
 
-**Next step.** Commit, push, open the PR to `sow/2026-Q3`, and wait for CI and review. After the merge, rebuild SAM
-before SAM_UI (stale sibling `build/` DLLs). Only then start PR1 (Rev 3 §R3.2/§R3.3 and Rev 2 §4-§7).
+After the merge, rebuild SAM before SAM_UI, or SAM_UI picks up stale sibling `build/` DLLs.
 
 ## Previous: Nuaire reply (A. Nash, 2026-09-24) implemented - exchanger then DX drop, 13 C floor (Stage 3)
 
