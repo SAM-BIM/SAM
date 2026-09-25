@@ -1,18 +1,106 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` is at `e1fbbb72`, the merge of [SAM#139](https://github.com/SAM-BIM/SAM/pull/139): the occupancy-gain
-follow-up to PR1. A missing occupancy gain now prints "—", and an authored zero prints "0". The branch also contains:
+`sow/2026-Q3` is at `3ec76eca`, the merge of [SAM#140](https://github.com/SAM-BIM/SAM/pull/140): the reporting
+visual-polish PR, the approved v2 builder changes. It also contains:
+- [SAM#139](https://github.com/SAM-BIM/SAM/pull/139) (`e1fbbb72`): the occupancy-gain follow-up;
 - PR1 ([SAM#136](https://github.com/SAM-BIM/SAM/pull/136), `7daf0d32`);
 - PR0 ([SAM#135](https://github.com/SAM-BIM/SAM/pull/135), `4e027f55`);
 - the TM59 per-space status work ([SAM#137](https://github.com/SAM-BIM/SAM/pull/137), `7dbeb2e4`).
 
-`feature/reporting-visual-polish` has a PR open to `sow/2026-Q3`. It is NOT merged and is awaiting owner review.
-It carries this progress update. See *Current*.
+`feature/reporting-pr2-pdf-renderer`, branched from `3ec76eca`, carries **PR2**, with a PR open to `sow/2026-Q3`.
+It is NOT merged. See *Current*.
 
-**PR2 has NOT started.** It waits for the owner's review of the polish PR.
+## Current: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - PR open, not merged
 
-## Current: reporting visual-polish PR - approved v2 builder changes (2026-09-25) - PR open, not merged
+**Status.** Implemented and validated. It stops at the open PR: the owner reviews it. Out of scope and not started:
+SAM_UI integration (PR3), HTML/Excel renderers, other documents, and any engineering change.
+
+**Feasibility spike (passed, not committed).** PDFsharp-MigraDoc 6.2.0 was checked on netstandard2.0, consumed from
+net8.0:
+- Noto Sans is embedded as a subset through a custom font resolver;
+- a PNG loads from a `base64:` source;
+- a table with a repeated header row works;
+- the footer prints "Page n / N";
+- automatic flow reached 3 pages;
+- A4 is 210 × 297 mm.
+
+Two findings:
+- MigraDoc resolves its predefined error font, Courier New, on every render. The resolver therefore falls back to
+  Noto Sans.
+- A table cannot be nested in a cell. Side-by-side sections use frames of measured height instead.
+
+There was no blocker.
+
+**What was added.**
+- New project `SAM/SAM.Core.Reporting.Pdf` (netstandard2.0, output to `build/`, in `SAM.sln` under SAM).
+  - Package: `PDFsharp-MigraDoc` 6.2.0 (MIT), matching SAM_Revit's PDFsharp 6.2.0.
+  - Dependencies are one-way: `SAM.Core.Reporting` has no PDF reference.
+  - `PdfRenderer : IDocumentRenderer`, `NotoSansFontResolver`, and the internal `MigraDocBuilder`, `PdfLayout` and
+    `TextMeasure`.
+  - `Fonts/NotoSans-{Regular,Bold}.ttf` are embedded, from the official Noto repository, with `OFL.txt`.
+  - `InternalsVisibleTo("SAM.Tests")`.
+- Layout is generic, with no engineering logic:
+  - the `identity` section goes in the header band;
+  - consecutive `Half` sections pair up; titled key/value blocks in a full section sit side by side (up to 3);
+  - side-by-side content taller than half the body height is stacked, so it paginates and never clips;
+  - tables are sized to their content, and a column unit goes in the header;
+  - value and unit columns are aligned;
+  - the footer carries the lines, the legend and "Page n / N"; pages 2 and later get a running header;
+  - the SAM mark is drawn as vector shapes; the company logo is optional.
+- Builder hints changed in `SAM.Analytical.Reporting`. No value changed; the goldens were checked semantically:
+  - the section order is identity, geometry, design-criteria, internal-condition, ventilation, systems, fabric, sizing;
+  - fabric and sizing are `SectionWidth.Half`;
+  - the internal-condition blocks are ordered gains, occupancy, lighting, infiltration;
+  - the fabric "Not present" note uses the new `NoticeLevel.Note`, which is additive in `SAM.Core.Reporting`.
+
+**Files.**
+- `SAM/SAM.Core.Reporting.Pdf/**` (new).
+- `SAM/SAM.Core.Reporting/Enums/NoticeLevel.cs`.
+- `SAM/SAM.Analytical.Reporting/Classes/{SpaceDocumentDefinitions.cs,Sections/SpaceSectionBuilders.cs}`.
+- `SAM.sln`.
+- `SAM/SAM.Tests/`:
+  - `SAM.Tests.csproj`: the reference to the Pdf project;
+  - `PdfRendererTests.cs` (new): 21 tests;
+  - `Helpers/ReportingDesignGateFixture.cs` (new): the design-gate office, atrium and sparse models, ported from
+    the throwaway generator, with fixed GUIDs;
+  - `SpaceAssumptionsTests.cs`: order, width and note-level assertions;
+  - `Golden/SpaceAssumptions_{Full_SI,Full_IP,Minimal_SI}.json`, regenerated.
+- `documentation/Reporting-PDF.md` (new), `documentation/Reporting-LAYOUT.md`, `THIRD_PARTY.md` (new) and this file.
+
+**Validation.**
+- `SAM.sln` Release: 0 errors. There are no warnings in the reporting projects; the 12 warnings are pre-existing
+  (Core, Geometry, Grasshopper).
+- Full `SAM.Tests`: **2461/2461**, the test project built explicitly first. That is 2440 + 21.
+- Representative PDFs are written by `DesignGate_RendersOneA4Page` to `SAM/SAM.Tests/bin/Release/net8.0/ReportingPdf/`.
+  All four are **1 page A4**, which matches the mock-up:
+  - `SpaceAssumptions_{office_SI,office_IP,atrium_SI,sparse_SI}.pdf`;
+  - also `SpaceAssumptions_office_SI_logo.pdf` (1 page), `BlockTypes.pdf` (1 page) and `LongContent.pdf` (6 pages).
+- They were inspected visually, rasterised with the Windows.Data.Pdf API through a scratch tool that is not
+  committed:
+  - Office SI, Office IP, Atrium and Sparse are all readable, with no overlap or clipping;
+  - the units align, and the IP output has no SI symbol;
+  - `n/a`, `not set`, `—` and `0` are distinct;
+  - the humidity sub-labels are readable;
+  - notices are compact;
+  - the footer and legend are correct;
+  - long content paginates, with the table headers repeated.
+- Spare space on page 1 is about 15 mm for the office and the atrium, against about 35 mm in the HTML mock-up. MigraDoc
+  uses the full Noto Sans line height.
+
+**Decisions / limitations (documented in `documentation/Reporting-PDF.md`).**
+- PDFsharp has one global font resolver per process. Ours is installed if none is set. A foreign resolver is kept if
+  it resolves Noto Sans; otherwise `Render` throws a clear error.
+- PDFs are not byte-deterministic (PDFsharp writes a creation time and a file id). The tests check structure: pages,
+  A4 size, fonts, and the text of the MigraDoc model.
+- The differences from the mock-up are listed in `Reporting-LAYOUT.md` §Implementation.
+- **PR3 must deploy** `SAM.Core.Reporting.Pdf.dll`, `MigraDoc.*.dll`, `PdfSharp*.dll`, their Microsoft dependencies,
+  and `OFL.txt` with SAM_UI. A netstandard library does not copy package DLLs to `build/`.
+
+**Next step.** The owner reviews the PR2 PR. After it merges: PR3, the SAM_UI integration (report command, save
+dialog, deploy list including the PDF DLLs and `OFL.txt`).
+
+## Previous: reporting visual-polish PR - approved v2 builder changes (2026-09-25) - MERGED as SAM#140 (`3ec76eca`)
 
 **Status.** The v2 layout was approved at the design gate as the Phase-1 direction. This small PR implements its
 builder and spec changes (T1-T4 of the mock-up) from `sow/2026-Q3` `e1fbbb72`. Out of scope: MigraDoc/PDFsharp,
@@ -73,8 +161,7 @@ Outside `SAM/`: `documentation/Reporting-LAYOUT.md` and this file.
   All 4 v2 cases, office SI/IP, atrium SI and sparse SI, print to **1 page** A4. The pre-polish output is kept
   alongside.
 
-**Next step.** The owner reviews the polish PR. After it merges: PR2, the MigraDoc spike, then
-`SAM.Core.Reporting.Pdf`, following `documentation/Reporting-LAYOUT.md`.
+**Next step (done).** Merged as SAM#140; PR2 followed (see *Current*).
 
 ## Also current: TM59 per-space overall status, structured (25 Sep 2026) - MERGED as SAM#137 (`7dbeb2e4`)
 

@@ -61,19 +61,6 @@
       ]
     },
     {
-      "id": "internal-condition",
-      "title": "Internal Condition",
-      "width": "Full",
-      "blocks": [
-        {
-          "type": "NoticeBlock",
-          "id": "internal-condition-missing",
-          "level": "Warning",
-          "text": "No internal condition assigned"
-        }
-      ]
-    },
-    {
       "id": "design-criteria",
       "title": "Design Criteria",
       "width": "Half",
@@ -83,6 +70,19 @@
           "id": "design-criteria-missing",
           "level": "Warning",
           "text": "No set point profiles and no design days in model"
+        }
+      ]
+    },
+    {
+      "id": "internal-condition",
+      "title": "Internal Condition",
+      "width": "Full",
+      "blocks": [
+        {
+          "type": "NoticeBlock",
+          "id": "internal-condition-missing",
+          "level": "Warning",
+          "text": "No internal condition assigned"
         }
       ]
     },
@@ -115,7 +115,7 @@
     {
       "id": "fabric",
       "title": "Fabric / Exposure",
-      "width": "Full",
+      "width": "Half",
       "blocks": [
         {
           "type": "NoticeBlock",
@@ -128,7 +128,7 @@
     {
       "id": "sizing",
       "title": "Sizing (Tas design loads)",
-      "width": "Full",
+      "width": "Half",
       "blocks": [
         {
           "type": "NoticeBlock",

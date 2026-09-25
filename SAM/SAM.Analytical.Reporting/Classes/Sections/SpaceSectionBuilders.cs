@@ -135,7 +135,8 @@ namespace SAM.Analytical.Reporting
                 SectionFormat.Row("Profile", quantityFormatter.Format(spaceInfiltrationData.Profile)),
             });
 
-            return new DocumentSection(Id, title, new DocumentBlock[] { keyValueBlock_Occupancy, tableBlock_Gains, keyValueBlock_Lighting, keyValueBlock_Infiltration });
+            // The gains table first, then the three titled key/value blocks, which a renderer may set side by side.
+            return new DocumentSection(Id, title, new DocumentBlock[] { tableBlock_Gains, keyValueBlock_Occupancy, keyValueBlock_Lighting, keyValueBlock_Infiltration });
         }
     }
 
@@ -280,7 +281,7 @@ namespace SAM.Analytical.Reporting
             IReadOnlyList<FabricAreaRow> fabricAreaRows = data.Fabric.Rows;
             if (fabricAreaRows == null || fabricAreaRows.Count == 0)
             {
-                return new DocumentSection(Id, title, new DocumentBlock[] { new NoticeBlock("fabric-missing", "No panels bound this space", NoticeLevel.Warning) });
+                return new DocumentSection(Id, title, new DocumentBlock[] { new NoticeBlock("fabric-missing", "No panels bound this space", NoticeLevel.Warning) }, SectionWidth.Half);
             }
 
             // Display rows: one per opaque category; a pane and a frame row per opening category.
@@ -327,10 +328,10 @@ namespace SAM.Analytical.Reporting
 
             if (notPresent.Count != 0)
             {
-                documentBlocks.Add(new NoticeBlock("fabric-not-present", NotPresentPrefix + string.Join(", ", notPresent)));
+                documentBlocks.Add(new NoticeBlock("fabric-not-present", NotPresentPrefix + string.Join(", ", notPresent), NoticeLevel.Note));
             }
 
-            return new DocumentSection(Id, title, documentBlocks);
+            return new DocumentSection(Id, title, documentBlocks, SectionWidth.Half);
         }
 
         private static bool IsZero(ReportValue<Quantity> reportValue)
@@ -399,7 +400,7 @@ namespace SAM.Analytical.Reporting
 
             if (SectionFormat.AllMissing(spaceSizingData.DesignHeatingLoad, spaceSizingData.DesignCoolingLoad, spaceSizingData.HeatingSizingFactor, spaceSizingData.CoolingSizingFactor))
             {
-                return new DocumentSection(Id, "Sizing (Tas design loads)", new DocumentBlock[] { new NoticeBlock("sizing-status", DesignLoadsNoneNotice) });
+                return new DocumentSection(Id, "Sizing (Tas design loads)", new DocumentBlock[] { new NoticeBlock("sizing-status", DesignLoadsNoneNotice) }, SectionWidth.Half);
             }
 
             List<TableRow> tableRows = new List<TableRow>()
@@ -424,7 +425,7 @@ namespace SAM.Analytical.Reporting
                 notice = spaceSizingData.HeatingSizingFactor.HasValue || spaceSizingData.CoolingSizingFactor.HasValue ? DesignLoadsUnknownSizingMultiplierNotice : DesignLoadsUnknownNotice;
             }
 
-            return new DocumentSection(Id, "Sizing (Tas design loads)", new DocumentBlock[] { tableBlock, new NoticeBlock("sizing-status", notice) });
+            return new DocumentSection(Id, "Sizing (Tas design loads)", new DocumentBlock[] { tableBlock, new NoticeBlock("sizing-status", notice) }, SectionWidth.Half);
         }
 
         /// <summary>

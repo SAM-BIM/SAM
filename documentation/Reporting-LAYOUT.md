@@ -66,6 +66,27 @@ are laid out in this order:
   ("0" or "0.0", at the unit's decimals), never as a placeholder. The footer legend lists only the markers the page
   actually prints.
 
+## Implementation (PR2)
+The production renderer is `SAM.Core.Reporting.Pdf` (MigraDoc + PDFsharp); see [Reporting-PDF.md](Reporting-PDF.md).
+It derives the grid above from generic hints only:
+- the section order and `SectionWidth` (consecutive `Half` sections pair up);
+- titled key/value blocks side by side in a full-width section;
+- the `identity` section in the header band.
+
+The Space Assumptions definition therefore orders its sections as the grid reads: geometry, design criteria,
+internal condition, ventilation, systems, fabric, sizing, with fabric and sizing marked `Half`. The internal-condition
+blocks come gains first. The fabric note is `NoticeLevel.Note`.
+
+All four reference cases print on **one A4 page**. The spare space is about 15 mm for the office and the atrium,
+against about 35 mm in the HTML mock-up: MigraDoc sets Noto Sans with its full line height.
+
+Differences from the static mock-up:
+- The identity line keeps its labels ("Level: … · Internal condition: …"). It wraps to a second line for long
+  condition names.
+- The SAM mark has square corners.
+- The gains-table profile column is printed in the body colour.
+- In the three-column block, the unit column is sized to its widest unit rather than a fixed 12 mm.
+
 ## Reference mock-ups
 The static mock-ups are kept outside git, in `Documents\SAM_daily\2026-09-25-Reporting\mockup\`. They are
 `render_mockup_v2.py` with HTML, PDF and PNG output, rendered from the builder JSON. The v2 renderer applies no

@@ -12,5 +12,10 @@ namespace SAM.Core.Reporting
     {
         [Description("Information")] Information,
         [Description("Warning")] Warning,
+        /// <summary>
+        /// A supporting remark under a block (for example the fabric "Not present" list), printed small rather than
+        /// as a callout.
+        /// </summary>
+        [Description("Note")] Note,
     }
 }
