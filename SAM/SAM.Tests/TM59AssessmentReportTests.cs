@@ -411,6 +411,105 @@ namespace SAM.Tests
         }
 
         // ---------------------------------------------------------------------------------------------
+        // Per-space overall status - one structured value, the one the text prints
+        // ---------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// Every occupied space is one <c>OccupiedSpaces</c> entry with its own overall status: a bedroom that
+        /// passes Criterion 1 and fails Criterion 2 fails; a non-bedroom whose Criterion 2 is N/A passes on
+        /// Criterion 1; a mechanical space is its &gt;26 °C check. A corridor or supplementary row is not an
+        /// occupied-space verdict and is not there.
+        /// </summary>
+        [Fact]
+        public void OccupiedSpaces_CarryEachSpacesOverallStatus_AndNoCorridor()
+        {
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                naturalVentilation:
+                [
+                    Bedroom("Bedroom 1", hoursExceedingComfortRange: 10, maxExceedableSummerHours: 110, nightHoursNumberExceeding26: 40, maxExceedableNightHours: 32, pass: true, reference: "bedroom"),
+                    NaturalVentilation("Living 1", hoursExceedingComfortRange: 10, maxExceedableSummerHours: 110, pass: true, reference: "living"),
+                ],
+                mechanicalVentilation: [Mechanical("Kitchen 1", hoursExceeding26: 300, maxExceedableHours: 142, pass: false, reference: "kitchen")],
+                corridor: [Corridor("Corridor 1", hoursExceeding28: 400, maxExceedableHours: 87, pass: false, reference: "corridor")]);
+
+            Assert.Equal(["bedroom", "living", "kitchen"], tM59AssessmentReport.OccupiedSpaces.Select(x => x.Reference));
+            Assert.Equal(TM59ComplianceStatus.Fail, Space(tM59AssessmentReport, "bedroom").ComplianceStatus);
+            Assert.Equal(TM59ComplianceStatus.Pass, Space(tM59AssessmentReport, "living").ComplianceStatus);
+            Assert.Equal(TM59ComplianceStatus.Fail, Space(tM59AssessmentReport, "kitchen").ComplianceStatus);
+            Assert.Equal(2, Space(tM59AssessmentReport, "bedroom").Checks.Count);
+        }
+
+        /// <summary>
+        /// The text report's per-space Overall column and the structured status agree, space by space: the
+        /// formatter prints the structured value rather than working out its own.
+        /// </summary>
+        [Theory]
+        [InlineData(10, 110, 11, 32, true)]
+        [InlineData(10, 110, 40, 32, true)]
+        [InlineData(200, 110, 11, 32, false)]
+        [InlineData(200, 110, 40, 32, false)]
+        public void TheOverallColumn_IsTheStructuredSpaceStatus(int hoursExceedingComfortRange, int maxExceedableSummerHours, int nightHoursNumberExceeding26, int maxExceedableNightHours, bool pass)
+        {
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                naturalVentilation:
+                [
+                    Bedroom("Bedroom 1", hoursExceedingComfortRange, maxExceedableSummerHours, nightHoursNumberExceeding26, maxExceedableNightHours, pass, reference: "bedroom"),
+                    NaturalVentilation("Living 1", hoursExceedingComfortRange, maxExceedableSummerHours, pass, reference: "living"),
+                ]);
+
+            string naturalVentilationSection = Section(tM59AssessmentReport.ToString(), TM59AssessmentReportFormatter.Heading_NaturalVentilation, TM59AssessmentReportFormatter.Heading_AssessmentHours);
+
+            foreach (TM59AssessmentReportSpace space in tM59AssessmentReport.OccupiedSpaces)
+            {
+                string line = naturalVentilationSection.Split('\n').Single(x => x.StartsWith(space.SpaceName));
+
+                string expected = space.ComplianceStatus switch
+                {
+                    TM59ComplianceStatus.Pass => "PASS",
+                    TM59ComplianceStatus.Fail => "FAIL",
+                    _ => "N/A",
+                };
+
+                Assert.EndsWith(expected, line.TrimEnd());
+            }
+
+            //And the whole-report verdict is those spaces combined.
+            Assert.Equal(
+                tM59AssessmentReport.OccupiedSpaces.Exists(x => x.ComplianceStatus == TM59ComplianceStatus.Fail) ? TM59ComplianceStatus.Fail : TM59ComplianceStatus.Pass,
+                tM59AssessmentReport.OccupiedSpaceComplianceStatus);
+        }
+
+        /// <summary>Two dwellings' "Bedroom 2" are two spaces with two statuses, not one merged entry.</summary>
+        [Fact]
+        public void OccupiedSpaces_AreGroupedByReference_NotByName()
+        {
+            TM59AssessmentReport tM59AssessmentReport = Report(
+                mechanicalVentilation:
+                [
+                    Mechanical("Bedroom 2", hoursExceeding26: 100, maxExceedableHours: 262, pass: true, reference: "flat-a"),
+                    Mechanical("Bedroom 2", hoursExceeding26: 300, maxExceedableHours: 262, pass: false, reference: "flat-b"),
+                ]);
+
+            Assert.Equal(2, tM59AssessmentReport.OccupiedSpaces.Count);
+            Assert.Equal(TM59ComplianceStatus.Pass, Space(tM59AssessmentReport, "flat-a").ComplianceStatus);
+            Assert.Equal(TM59ComplianceStatus.Fail, Space(tM59AssessmentReport, "flat-b").ComplianceStatus);
+        }
+
+        [Fact]
+        public void OccupiedSpaces_IsEmpty_WhereNoOccupiedSpaceWasAssessed()
+        {
+            TM59AssessmentReport tM59AssessmentReport = Report(corridor: [Corridor("Corridor 1", hoursExceeding28: 10, maxExceedableHours: 87, pass: true, reference: "corridor")]);
+
+            Assert.Empty(tM59AssessmentReport.OccupiedSpaces);
+            Assert.Equal(TM59ComplianceStatus.NotApplicable, tM59AssessmentReport.OccupiedSpaceComplianceStatus);
+        }
+
+        private static TM59AssessmentReportSpace Space(TM59AssessmentReport tM59AssessmentReport, string reference)
+        {
+            return tM59AssessmentReport.OccupiedSpaces.Single(x => x.Reference == reference);
+        }
+
+        // ---------------------------------------------------------------------------------------------
         // Communal corridor - positively identified by InternalCondition, never by Space name
         // ---------------------------------------------------------------------------------------------
 

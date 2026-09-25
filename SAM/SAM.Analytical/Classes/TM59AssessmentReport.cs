@@ -121,6 +121,13 @@ namespace SAM.Analytical
             CorridorChecks = [.. corridorBucketChecks.Where(x => x.InternalCondition == TM59InternalConditionResolver.CommunalCorridorInternalConditionName)];
             SupplementaryChecks = [.. corridorBucketChecks.Where(x => x.InternalCondition != TM59InternalConditionResolver.CommunalCorridorInternalConditionName)];
 
+            //One entry per occupied space, grouped by identity in report order - natural ventilation first,
+            //then mechanical, the order the text report lays them out in. A space is assessed under one
+            //ventilation strategy, so its checks all come from one of the two lists.
+            OccupiedSpaces = [.. NaturalVentilationChecks.Concat(MechanicalVentilationChecks)
+                .GroupBy(x => x.Reference)
+                .Select(x => new TM59AssessmentReportSpace(x.Key, x.First().SpaceName, [.. x], Combine([.. x])))];
+
             NaturalVentilationComplianceStatus = Combine(NaturalVentilationChecks);
             MechanicalVentilationComplianceStatus = Combine(MechanicalVentilationChecks);
             OccupiedSpaceComplianceStatus = Combine([.. NaturalVentilationChecks, .. MechanicalVentilationChecks]);
@@ -202,6 +209,13 @@ namespace SAM.Analytical
         /// assessment's own refusals. Empty where every space produced a result.
         /// </summary>
         public List<string> UnassessedSpaces { get; }
+
+        /// <summary>
+        /// Every occupied space the report holds a natural- or mechanical-ventilation check for, with its
+        /// overall outcome - the per-space verdict the text report's "Overall" column prints. Corridor and
+        /// supplementary &gt;28 °C rows are not occupied-space verdicts and are not here.
+        /// </summary>
+        public List<TM59AssessmentReportSpace> OccupiedSpaces { get; }
 
         /// <summary>Every applicable natural-ventilation criterion, combined.</summary>
         public TM59ComplianceStatus NaturalVentilationComplianceStatus { get; }
@@ -385,7 +399,8 @@ namespace SAM.Analytical
 
         /// <summary>
         /// Any failure fails the group; a group with nothing applicable to it is <c>NotApplicable</c> rather
-        /// than a vacuous pass.
+        /// than a vacuous pass. The one combining rule: a section, the occupied spaces as a whole, and each
+        /// space in <see cref="OccupiedSpaces"/>.
         /// </summary>
         private static TM59ComplianceStatus Combine(List<TM59AssessmentReportCheck> tM59AssessmentReportChecks)
         {
