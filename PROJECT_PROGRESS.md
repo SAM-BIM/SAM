@@ -1,7 +1,10 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` at `54c43438` (merge of [SAM#133](https://github.com/SAM-BIM/SAM/pull/133), the Nuaire reply work; see *Current*). The #123
+`feature/reporting-pr0-units`, cut from `sow/2026-Q3` at `80b01052` (merge of SAM#134, docs only), holds the
+documentation-framework PR0 (`SAM.Units` extension; see *Current*). It targets `sow/2026-Q3` and is not merged.
+
+`sow/2026-Q3` at `54c43438` (merge of [SAM#133](https://github.com/SAM-BIM/SAM/pull/133), the Nuaire reply work; see the first *Previous*). The #123
 manufacturer-guidance work (first *Previous* entry) is merged, and its feature branches are deleted.
 
 `sow/2026-Q3` previously at `e2c0e2c0` - the merge commit of [SAM#120](https://github.com/SAM-BIM/SAM/pull/120), which
@@ -13,7 +16,96 @@ successor tracker, and the human closure decision).
 
 `sow/2026-Q3` (at `86213eb3`, including the SAM#126/#127 .NET Framework cleanup) was merged into this branch on 2026-09-22 to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept below.
 
-## Current: Nuaire reply (A. Nash, 2026-09-24) implemented - exchanger then DX drop, 13 C floor (Stage 3)
+## Current: SAM Documentation Framework PR0 - `SAM.Units` extension (2026-09-25)
+
+**Status.** Implemented, validated and committed locally on `feature/reporting-pr0-units`. It is not yet pushed, PR'd or merged.
+The plan is the owner-approved *SAM Documentation Framework* Revision 3, §R3.4 (kept outside git at
+`Documents\SAM_daily\2026-09-25-Reporting\SAM Documentation Framework_rev3.md`). PR0 changes SAM.Units only: there
+is no reporting code. **PR1 (the `SAM.Core.Reporting` / `SAM.Analytical.Reporting` domain) has NOT started**, and
+must wait until PR0 is merged.
+
+**What changed (`SAM/SAM.Units`, append-only enums):**
+- `UnitCategory` gains these members (appended; existing ordinals unchanged): Area, Volume, Length,
+  TemperatureDifference, AirChangeRate, SpecificPower, PowerPerPerson, AreaPerPerson, Illuminance,
+  ThermalTransmittance, Time, Count, Ratio and Angle. `AirFlow` stays the volumetric-flow category.
+- `UnitType` gains 24 appended members, each with a unique ASCII abbreviation:
+  - area and volume: m2, ft2, m3, ft3;
+  - flow and power: cfm, Btu/h, kBtu/h;
+  - specific power: W/m2, Btu/h.ft2;
+  - temperature difference: dK, dF;
+  - per person: W/person, Btu/h.person, m2/person, ft2/person;
+  - other: ac/h, lx, fc, W/m2K, Btu/h.ft2.F, person, h, deg, rad.
+- `Factor` gains the new named constants. The derived ones (area, volume) are computed from `MetersToFeet`.
+- `Convert.ByUnitType`:
+  - **Fix:** Fahrenheit→Celsius now divides by 1.8 (it divided by 18). This also fixes F→K and `ToSI(F)`.
+  - **Fix:** GramPerGram→GramPerKilogram multiplies by 1000, and the reverse divides by 1000 (both were
+    inverted).
+  - Pairs the explicit switch does not handle fall through to a private linear-factor table (`ByLinearFactor`).
+    - Each unit has a factor to its family base.
+    - The family is `Query.UnitCategory(unit)`.
+    - Absolute temperatures stay in the switch only.
+    - Cross-category or unsupported conversions still return NaN.
+- `ToSI` / `ToImperial` cover every new type, plus the existing types that previously returned NaN (W, kW, l/s, N/m2,
+  g/g, J/kg, kJ/kg, kg/m3; Imperial for m3/s, m3/h, l/s, W, kW).
+- `Query.UnitType(style, category)`:
+  - SI results for the existing categories are unchanged; the Mollier UI depends on them.
+  - New Imperial results: Temperature→F, AirFlow→cfm, Power→Btu/h.
+  - Every new category resolves in both styles.
+- `Query.UnitType(string)`: **Fix** in the case-insensitive fallback. It indexed a two-texts-per-unit list against
+  the enum array, so "METER" parsed to Celsius. Each text now keeps its own unit, and the fallback uses
+  `ToUpperInvariant`.
+- `Query.UnitTypes` gains lists for the new categories, cfm and Btu/h/kBtu/h Imperial entries, and l/s under SI.
+- New `Query.UnitCategory(UnitType)` returns the primary category: Unitless/Percent→Ratio, Kelvin→Temperature.
+  - Because the method shadows the enum inside `Query`, `Query/UnitType.cs` and `UnitTypes.cs` now write
+    `Units.UnitCategory.X`. This follows the files' existing `Units.UnitType.X` convention.
+- New `Classes/Quantity.cs`:
+  - `readonly struct` with `Value`, `Unit`, `Category`, `IsValid` (finite and unit defined), and
+    `ConvertTo(UnitType)` (NaN when unsupported).
+  - `ToString` uses the invariant culture plus the abbreviation.
+  - It holds no formatting policy.
+- `SAM.Units.csproj`: removed a dead `<Compile Remove="Classes\**">` group. There was no `Classes` folder, and the group
+  would have silently excluded `Quantity.cs`.
+
+**Tests.** New `SAM/SAM.Tests/UnitsTests.cs` (109 cases), plus a `SAM.Units` ProjectReference in `SAM.Tests.csproj`.
+Coverage:
+- ordinal locks;
+- reference values per family;
+- every-pair round trip;
+- same-category-convertible and cross-category-NaN closure;
+- °C/°F/K, including −40 and 32/0, and the `/18` regression;
+- temperature difference has no offset;
+- the g/g regressions;
+- every abbreviation is unique and parses back, both exactly and upper/lower-case;
+- the parser regression;
+- `UnitCategory` is defined for every unit;
+- the SI compatibility lock;
+- both styles resolve for every new category;
+- `Quantity`.
+
+**Validation (2026-09-25):**
+- `dotnet build SAM.sln -c Debug`: 0 errors, 208 warnings (the same count as before the change, and none in
+  SAM.Units or the new tests).
+- **`SAM.Tests` is not in `SAM.sln`.** Build it explicitly: `dotnet build SAM/SAM.Tests/SAM.Tests.csproj`. Otherwise
+  `dotnet test --no-build` runs a stale DLL.
+- `dotnet test SAM/SAM.Tests`: 2361/2361 passed.
+- Behaviour baseline: the pre-change DLL was diffed against the new one over every legacy pair, ToSI/ToImperial,
+  both parser paths and `UnitType(style, category)`. The only differences are the three fixes, NaN→value additions,
+  and the three new Imperial results.
+- SAM_UI `SAM.Core.Mollier.UI.WPF` (at SAM_UI `d123f3da`) compiled against the new `SAM\build\SAM.Units.dll`
+  (Release, output redirected to a scratch folder): 0 errors.
+
+**Compatibility.** Consumers on disk use:
+- Revit: `ToSI(Feet)` and `ToDegrees`;
+- Tas: `ToDegrees`;
+- LadybugTools: `ToRadians`;
+- Mollier UI: `UnitType(SI, …)`, `Abbreviation` and `DefaultTolerance`.
+
+Psychrometrics and Multitasker reference the DLL without using it. None of these consumers hits a changed path.
+
+**Next step.** Commit, push, open the PR to `sow/2026-Q3`, and wait for CI and review. After the merge, rebuild SAM
+before SAM_UI (stale sibling `build/` DLLs). Only then start PR1 (Rev 3 §R3.2/§R3.3 and Rev 2 §4-§7).
+
+## Previous: Nuaire reply (A. Nash, 2026-09-24) implemented - exchanger then DX drop, 13 C floor (Stage 3)
 
 **Status.** Implemented, closed out, PR-reviewed and MERGED into `sow/2026-Q3` on 2026-09-24, in order: SAM-BIM/SAM#133 (`54c43438`) -> SAM-BIM/SAM_Systems#29 (`c88c9b37`) -> SAM-BIM/SAM_Tas#65 (`1b659756`) -> SAM-BIM/SAM_UI#107 (`8f58144c`). CI green and Codex review clean (all findings fixed and answered) on every PR. The `feature/parto-nuaire-reply-2026-09-24` branches are deleted. Accepted on the representative MG annual run (closeout). The base is the validated provisional baseline (SAM `875655fa` + docs
 `9e0933af`, SAM_Systems `df5dd332`, SAM_Tas `f7d39351`, SAM_UI `4460dc3a`). This is manufacturer
