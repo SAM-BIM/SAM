@@ -1,13 +1,16 @@
 # Project Progress
 
 ## Branch
-`feature/reporting-pr1-domain`, cut from `sow/2026-Q3` at `4e027f55` (the merge of PR0,
-[SAM#135](https://github.com/SAM-BIM/SAM/pull/135)), holds the documentation-framework PR1 (the reporting domain and
-analytical collector; see *Current*). It targets `sow/2026-Q3` and is NOT merged: it awaits owner review.
+`sow/2026-Q3` is at `7daf0d32`, the merge of documentation-framework PR1
+([SAM#136](https://github.com/SAM-BIM/SAM/pull/136)). It contains:
+- PR0 ([SAM#135](https://github.com/SAM-BIM/SAM/pull/135), `4e027f55`);
+- the TM59 per-space status work ([SAM#137](https://github.com/SAM-BIM/SAM/pull/137), `7dbeb2e4`, next entry).
 
-`sow/2026-Q3` is at `7dbeb2e4`: PR0 merged as SAM#135 (`4e027f55`), then the TM59 per-space status work merged as
-[SAM#137](https://github.com/SAM-BIM/SAM/pull/137) (next entry). The PR1 branch merged `sow/2026-Q3` at `7dbeb2e4`
-to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept. `feature/reporting-pr0-units` is merged.
+`fix/reporting-occupancy-gain-authored` ([SAM#139](https://github.com/SAM-BIM/SAM/pull/139)) is a small PR1
+follow-up, open and NOT merged. It also carries this progress update.
+
+**Next: design gate.** The static Space Assumptions mock-up is done and awaits owner approval. PR2 has NOT started.
+See *Current*.
 
 ## Also current: TM59 per-space overall status, structured (25 Sep 2026) - MERGED as SAM#137 (`7dbeb2e4`)
 
@@ -57,7 +60,39 @@ successor tracker, and the human closure decision).
 
 `sow/2026-Q3` (at `86213eb3`, including the SAM#126/#127 .NET Framework cleanup) was merged into this branch on 2026-09-22 to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept below.
 
-## Current: SAM Documentation Framework PR1 - reporting domain + analytical collector (2026-09-25)
+## Current: Space Assumptions visual design gate (2026-09-25) - mock-up delivered, awaiting owner approval
+
+**Status.** This is a design and review task only, before PR2. It adds no MigraDoc/PDFsharp, no
+`SAM.Core.Reporting.Pdf` and no SAM_UI change. **PR2 must not start until the owner approves the mock-up.**
+
+**Where.** The mock-up lives outside git, next to the plan, in
+`Documents\SAM_daily\2026-09-25-Reporting\mockup\`. See its `README.md`. The folder contains:
+- `generator/`: a throwaway .NET 8 exporter that builds representative spaces with the merged PR1 code and writes
+  `Document` JSON;
+- `render_mockup.py`: the Rev 3 layout as specified (v1);
+- `render_mockup_v2.py`: the proposed layout (v2);
+- `print_all.ps1`: headless Edge prints to `pdf/` and screenshots to `png/`.
+
+**Finding.** Printed to A4 with the Rev 3 type sizes (Noto Sans, 9 pt body), the v1 layout overflows to **2 pages**
+for realistic data: the office in SI and IP, and the atrium. The proposed v2 fits all four cases on **1 page** with
+about 35 mm to spare, at the same type sizes.
+- v2 layout: paired half-width rows, the internal condition in three columns, and a fixed-width unit column.
+- The one-page fit is robust, because every Phase 1 section has a fixed maximum row count. The fabric table has at
+  most 8 rows, and the gains table 5.
+- v2 also simulates four builder changes (T1-T4): drop the duplicated occupancy profile row; omit all-zero fabric
+  rows with a "Not present" note; merge the two sizing notices; shorten the humidity labels and add sub-labels.
+
+**PR1 follow-up found while building the mock-up.** `Query.OccupancySensibleGain` / `OccupancyLatentGain` return
+0 W when the per-person gain is not authored, the same out-parameter defect as SAM#138. PR1 guarded lighting and
+equipment but not occupancy. The fix is in SAM#139 (not merged; SAM.Tests 2433/2433), and SAM#138 is updated with a
+comment.
+
+**Next step.** The owner approves v2, or asks for changes. If approved:
+1. Apply T1-T4 in the PR1 section builders as a small reporting PR, and regenerate the goldens.
+2. Amend the Rev 3 §10 visual specification.
+3. Start PR2: the MigraDoc spike, then `SAM.Core.Reporting.Pdf`.
+
+## Previous: SAM Documentation Framework PR1 - reporting domain + analytical collector (2026-09-25) - MERGED as SAM#136 (`7daf0d32`)
 
 **Status.** Implemented and validated on `feature/reporting-pr1-domain`, which is pushed with a PR open to
 `sow/2026-Q3`. It is **not merged**: it awaits owner review. The plan is the owner-approved *SAM Documentation
