@@ -153,6 +153,33 @@ namespace SAM.Tests
             AssertQuantity(data.EquipmentLatent.GainPerArea, 0, UnitCategory.SpecificPower, ReportValueSource.SAM);
         }
 
+        [Fact]
+        public void OccupancyGain_NotAuthored_IsNotAvailable_AuthoredZero_StaysZero()
+        {
+            // Query.OccupancySensibleGain / OccupancyLatentGain return 0 W when the per-person gain is not authored
+            // (their TryGetValue out-parameter overwrites the NaN default), so the total must follow the internal
+            // condition, like the per-person value beside it.
+            AnalyticalModel analyticalModel = ReportingFixture.Full(out _);
+            Space space = ReportingFixture.Stored(analyticalModel);
+            InternalCondition internalCondition = space.InternalCondition;
+            internalCondition.RemoveValue(InternalConditionParameter.OccupancyLatentGainPerPerson);
+            internalCondition.SetValue(InternalConditionParameter.OccupancySensibleGainPerPerson, 0.0);
+            space.InternalCondition = internalCondition;
+            AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+            adjacencyCluster.AddObject(space);
+            analyticalModel = new AnalyticalModel(analyticalModel, adjacencyCluster);
+
+            Space space_Stored = ReportingFixture.Stored(analyticalModel);
+            Assert.Equal(0, Analytical.Query.OccupancyLatentGain(space_Stored));
+
+            SpaceDocumentData data = Collect(analyticalModel, UnitStyle.SI, out _);
+
+            Assert.Equal(Availability.NotAvailable, data.Occupancy.LatentGainPerPerson.Availability);
+            Assert.Equal(Availability.NotAvailable, data.Occupancy.LatentGain.Availability);
+            Assert.Equal("No occupancy latent gain authored", data.Occupancy.LatentGain.Note);
+            AssertQuantity(data.Occupancy.SensibleGain, 0, UnitCategory.Power, ReportValueSource.Derived);
+        }
+
         // ---------- set points and humidity ----------
 
         [Fact]

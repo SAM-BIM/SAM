@@ -160,8 +160,8 @@ namespace SAM.Analytical.Reporting
                     AreaPerPerson = areaPerPerson,
                     SensibleGainPerPerson = Parameter(InternalConditionParameter.OccupancySensibleGainPerPerson, UnitType.WattPerPerson, "No occupancy sensible gain"),
                     LatentGainPerPerson = Parameter(InternalConditionParameter.OccupancyLatentGainPerPerson, UnitType.WattPerPerson, "No occupancy latent gain"),
-                    SensibleGain = Measure(Analytical.Query.OccupancySensibleGain(space), UnitType.Watt, ReportValueSource.Derived, "Occupancy sensible gain", "No occupancy sensible gain"),
-                    LatentGain = Measure(Analytical.Query.OccupancyLatentGain(space), UnitType.Watt, ReportValueSource.Derived, "Occupancy latent gain", "No occupancy latent gain"),
+                    SensibleGain = AuthoredGain(Analytical.Query.OccupancySensibleGain(space), "Occupancy sensible gain", "No occupancy sensible gain authored", InternalConditionParameter.OccupancySensibleGainPerPerson),
+                    LatentGain = AuthoredGain(Analytical.Query.OccupancyLatentGain(space), "Occupancy latent gain", "No occupancy latent gain authored", InternalConditionParameter.OccupancyLatentGainPerPerson),
                     Profile = ProfileName(InternalConditionParameter.OccupancyProfileName),
                     OccupiedHoursPerYear = OccupiedHoursPerYear(),
                 };
@@ -470,7 +470,7 @@ namespace SAM.Analytical.Reporting
             }
 
             /// <summary>
-            /// A total internal gain. SAM's Calculated*Gain queries return 0 W when nothing is authored (their
+            /// A total internal gain. SAM's Calculated*Gain and Occupancy*Gain queries return 0 W when nothing is authored (their
             /// TryGetValue out-parameter overwrites the NaN default), so authorship is read from the internal condition
             /// itself: no gain parameter at all is NotAvailable, while an authored 0 stays 0.
             /// </summary>
