@@ -8,10 +8,10 @@ visual-polish PR, the approved v2 builder changes. It also contains:
 - PR0 ([SAM#135](https://github.com/SAM-BIM/SAM/pull/135), `4e027f55`);
 - the TM59 per-space status work ([SAM#137](https://github.com/SAM-BIM/SAM/pull/137), `7dbeb2e4`).
 
-`feature/reporting-pr2-pdf-renderer`, branched from `3ec76eca`, carries **PR2**, with a PR open to `sow/2026-Q3`.
+`feature/reporting-pr2-pdf-renderer`, branched from `3ec76eca`, carries **PR2**, open as [SAM#141](https://github.com/SAM-BIM/SAM/pull/141) to `sow/2026-Q3`.
 It is NOT merged. See *Current*.
 
-## Current: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - PR open, not merged
+## Current: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - SAM#141 open, not merged
 
 **Status.** Implemented and validated. It stops at the open PR: the owner reviews it. Out of scope and not started:
 SAM_UI integration (PR3), HTML/Excel renderers, other documents, and any engineering change.
@@ -97,7 +97,7 @@ There was no blocker.
 - **PR3 must deploy** `SAM.Core.Reporting.Pdf.dll`, `MigraDoc.*.dll`, `PdfSharp*.dll`, their Microsoft dependencies,
   and `OFL.txt` with SAM_UI. A netstandard library does not copy package DLLs to `build/`.
 
-**Next step.** The owner reviews the PR2 PR. After it merges: PR3, the SAM_UI integration (report command, save
+**Next step.** The owner reviews SAM#141. After it merges: PR3, the SAM_UI integration (report command, save
 dialog, deploy list including the PDF DLLs and `OFL.txt`).
 
 ## Previous: reporting visual-polish PR - approved v2 builder changes (2026-09-25) - MERGED as SAM#140 (`3ec76eca`)
