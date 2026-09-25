@@ -110,6 +110,7 @@ namespace SAM.Core.Reporting
                     {
                         utf8JsonWriter.WriteStartObject();
                         utf8JsonWriter.WriteString("label", keyValueRow.Label);
+                        WriteString(utf8JsonWriter, "subLabel", keyValueRow.SubLabel);
                         utf8JsonWriter.WritePropertyName("value");
                         Write(utf8JsonWriter, keyValueRow.Value);
                         utf8JsonWriter.WriteEndObject();

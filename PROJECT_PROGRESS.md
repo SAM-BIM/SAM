@@ -1,16 +1,80 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` is at `7daf0d32`, the merge of documentation-framework PR1
-([SAM#136](https://github.com/SAM-BIM/SAM/pull/136)). It contains:
+`sow/2026-Q3` is at `e1fbbb72`, the merge of [SAM#139](https://github.com/SAM-BIM/SAM/pull/139): the occupancy-gain
+follow-up to PR1. A missing occupancy gain now prints "—", and an authored zero prints "0". The branch also contains:
+- PR1 ([SAM#136](https://github.com/SAM-BIM/SAM/pull/136), `7daf0d32`);
 - PR0 ([SAM#135](https://github.com/SAM-BIM/SAM/pull/135), `4e027f55`);
-- the TM59 per-space status work ([SAM#137](https://github.com/SAM-BIM/SAM/pull/137), `7dbeb2e4`, next entry).
+- the TM59 per-space status work ([SAM#137](https://github.com/SAM-BIM/SAM/pull/137), `7dbeb2e4`).
 
-`fix/reporting-occupancy-gain-authored` ([SAM#139](https://github.com/SAM-BIM/SAM/pull/139)) is a small PR1
-follow-up, open and NOT merged. It also carries this progress update.
+`feature/reporting-visual-polish` has a PR open to `sow/2026-Q3`. It is NOT merged and is awaiting owner review.
+It carries this progress update. See *Current*.
 
-**Next: design gate.** The static Space Assumptions mock-up is done and awaits owner approval. PR2 has NOT started.
-See *Current*.
+**PR2 has NOT started.** It waits for the owner's review of the polish PR.
+
+## Current: reporting visual-polish PR - approved v2 builder changes (2026-09-25) - PR open, not merged
+
+**Status.** The v2 layout was approved at the design gate as the Phase-1 direction. This small PR implements its
+builder and spec changes (T1-T4 of the mock-up) from `sow/2026-Q3` `e1fbbb72`. Out of scope: MigraDoc/PDFsharp,
+`SAM.Core.Reporting.Pdf`, SAM_UI changes and PR2.
+
+**Changes.**
+- `SAM.Core.Reporting`:
+  - `KeyValueRow.SubLabel`: optional supporting text under a label.
+  - JSON writes `subLabel` only when it is set.
+- Occupancy: the duplicate `Profile` row is removed. The profile remains in the gains table.
+- Fabric:
+  - a display row whose external and internal areas are both *explicitly* zero is omitted;
+  - the omitted rows are named in one `NoticeBlock` `fabric-not-present`, "Not present (zero area): ...". A wholly
+    zero category is named once ("Windows"); otherwise the row is named ("Doors (frame)");
+  - a missing area is never treated as zero;
+  - the note has no unit, and the table keeps the selected SI/IP area unit.
+- Sizing:
+  - One `sizing-status` notice replaces the two notices. Its text is
+    `DesignLoadsUnknownSizingMultiplierNotice` when loads and a multiplier are present, else
+    `DesignLoadsUnknownNotice` / `DesignLoadsNoneNotice`. `SizingMultiplierNotice` is removed.
+  - Sizing multiplier set nowhere: the collector returns NotApplicable (`Create.SizingFactorNotSet`), and the
+    builder prints `not set`. An invalid stored value stays NotAvailable ("—").
+- **Semantic, verified in SAM_Tas `Modify/UpdateSizingFactors.cs`:** a space factor of 0 or unset falls back to the
+  model factor. With neither set, `zone.maxHeating/CoolingLoad` is left unscaled, so no multiplier applies.
+- Room humidity labels are "Humidification set point" and "Dehumidification set point", with the sub-labels
+  "lower RH limit" and "upper RH limit". Disabled control still prints `n/a`.
+- Footer legend: an entry is added only for a marker actually printed (`—` or `n/a`). A `not set` cell (NotApplicable
+  with its own text) adds none.
+- New `documentation/Reporting-LAYOUT.md`: the approved v2 layout.
+  - A4 portrait; Noto Sans at about 9 pt; paired sections; a fixed unit column; the three-column
+    occupancy/lighting/infiltration block.
+  - One page is the normal target, not an invariant: exceptional content paginates naturally.
+  - Rev 3 §10 (outside git) now carries a pointer to this file.
+
+**Files.** Under `SAM/`:
+- `SAM.Core.Reporting/Classes/Blocks/KeyValueBlock.cs`, `SAM.Core.Reporting/Convert/ToJson.cs`;
+- `SAM.Analytical.Reporting/Classes/Sections/{SpaceSectionBuilders,SectionFormat}.cs`,
+  `SAM.Analytical.Reporting/Classes/Data/SpaceSizingData.cs`,
+  `SAM.Analytical.Reporting/Create/{SpaceDocumentData,Document}.cs`;
+- `SAM.Tests/SpaceAssumptionsTests.cs`, and the goldens `SpaceAssumptions_Full_{SI,IP}.json` (Minimal is unchanged).
+
+Outside `SAM/`: `documentation/Reporting-LAYOUT.md` and this file.
+
+**Validation.**
+- Focused `SpaceAssumptionsTests` + `ReportValueTests`: 38/38.
+- Full `SAM.Tests`: **2440/2440**, up from 2433. The test project was built explicitly first; it is not in `SAM.sln`.
+- `SAM.sln` Release: 0 errors, and no warnings in the reporting projects.
+- New or extended tests cover:
+  - missing gain → "—" and authored zero → "0" in the document;
+  - disabled humidity → "n/a";
+  - `not set` versus invalid "—";
+  - one sizing notice, with loads staying `Unknown`;
+  - no occupancy Profile row;
+  - fabric omission and the note in SI and IP;
+  - whole-category naming, and missing ≠ zero;
+  - the IP JSON contains no SI symbol.
+- Mock-ups: regenerated from the builder JSON with no transforms (`render_mockup_v2.py` now only asserts T1-T4).
+  All 4 v2 cases, office SI/IP, atrium SI and sparse SI, print to **1 page** A4. The pre-polish output is kept
+  alongside.
+
+**Next step.** The owner reviews the polish PR. After it merges: PR2, the MigraDoc spike, then
+`SAM.Core.Reporting.Pdf`, following `documentation/Reporting-LAYOUT.md`.
 
 ## Also current: TM59 per-space overall status, structured (25 Sep 2026) - MERGED as SAM#137 (`7dbeb2e4`)
 
@@ -60,7 +124,7 @@ successor tracker, and the human closure decision).
 
 `sow/2026-Q3` (at `86213eb3`, including the SAM#126/#127 .NET Framework cleanup) was merged into this branch on 2026-09-22 to resolve a `PROJECT_PROGRESS.md`-only conflict; both entries are kept below.
 
-## Current: Space Assumptions visual design gate (2026-09-25) - mock-up delivered, awaiting owner approval
+## Previous: Space Assumptions visual design gate (2026-09-25) - v2 APPROVED; T1-T4 implemented by the polish PR
 
 **Status.** This is a design and review task only, before PR2. It adds no MigraDoc/PDFsharp, no
 `SAM.Core.Reporting.Pdf` and no SAM_UI change. **PR2 must not start until the owner approves the mock-up.**
@@ -84,7 +148,7 @@ about 35 mm to spare, at the same type sizes.
 
 **PR1 follow-up found while building the mock-up.** `Query.OccupancySensibleGain` / `OccupancyLatentGain` return
 0 W when the per-person gain is not authored, the same out-parameter defect as SAM#138. PR1 guarded lighting and
-equipment but not occupancy. The fix is in SAM#139 (not merged; SAM.Tests 2433/2433), and SAM#138 is updated with a
+equipment but not occupancy. The fix is SAM#139, merged as `e1fbbb72` (SAM.Tests 2433/2433), and SAM#138 is updated with a
 comment.
 
 **Next step.** The owner approves v2, or asks for changes. If approved:
