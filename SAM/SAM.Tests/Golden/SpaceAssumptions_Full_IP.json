@@ -94,48 +94,135 @@
       ]
     },
     {
+      "id": "design-criteria",
+      "title": "Design Criteria",
+      "width": "Half",
+      "blocks": [
+        {
+          "type": "TableBlock",
+          "id": "design-criteria",
+          "repeatHeader": true,
+          "columns": [
+            {
+              "header": "",
+              "alignment": "Left"
+            },
+            {
+              "header": "Heating",
+              "alignment": "Right"
+            },
+            {
+              "header": "Cooling",
+              "alignment": "Right"
+            }
+          ],
+          "rows": [
+            [
+              {
+                "text": "Room set point",
+                "availability": "Available"
+              },
+              {
+                "text": "69.8",
+                "unit": "°F",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "Derived",
+                "note": "Maximum of profile Heat 21"
+              },
+              {
+                "text": "75.2",
+                "unit": "°F",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "Derived",
+                "note": "Minimum of profile Cool 24"
+              }
+            ],
+            [
+              {
+                "text": "Outdoor dry bulb",
+                "availability": "Available"
+              },
+              {
+                "text": "26.6",
+                "unit": "°F",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "SAM",
+                "note": "Minimum of design day Winter DD"
+              },
+              {
+                "text": "89.8",
+                "unit": "°F",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "SAM",
+                "note": "Maximum of design day Summer DD"
+              }
+            ],
+            [
+              {
+                "text": "Outdoor RH (coincident)",
+                "availability": "Available"
+              },
+              {
+                "text": "87",
+                "unit": "%",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "SAM",
+                "note": "Coincident with the dry bulb"
+              },
+              {
+                "text": "36",
+                "unit": "%",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "SAM",
+                "note": "Coincident with the dry bulb"
+              }
+            ]
+          ]
+        },
+        {
+          "type": "KeyValueBlock",
+          "id": "room-humidity",
+          "title": "Room humidity",
+          "rows": [
+            {
+              "label": "Humidification set point",
+              "subLabel": "lower RH limit",
+              "value": {
+                "text": "40",
+                "unit": "%",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "Derived",
+                "note": "Maximum of profile Hum 40"
+              }
+            },
+            {
+              "label": "Dehumidification set point",
+              "subLabel": "upper RH limit",
+              "value": {
+                "text": "60",
+                "unit": "%",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "Derived",
+                "note": "Minimum of profile Dehum 60"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "internal-condition",
       "title": "Internal Condition",
       "width": "Full",
       "blocks": [
-        {
-          "type": "KeyValueBlock",
-          "id": "occupancy",
-          "title": "Occupancy",
-          "rows": [
-            {
-              "label": "People",
-              "value": {
-                "text": "3.0",
-                "unit": "persons",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived"
-              }
-            },
-            {
-              "label": "Area per person",
-              "value": {
-                "text": "108",
-                "unit": "ft²/person",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "SAM"
-              }
-            },
-            {
-              "label": "Occupied hours per year",
-              "value": {
-                "text": "4,015",
-                "unit": "h",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived",
-                "note": "Hours with non-zero occupancy"
-              }
-            }
-          ]
-        },
         {
           "type": "TableBlock",
           "id": "gains",
@@ -290,6 +377,44 @@
         },
         {
           "type": "KeyValueBlock",
+          "id": "occupancy",
+          "title": "Occupancy",
+          "rows": [
+            {
+              "label": "People",
+              "value": {
+                "text": "3.0",
+                "unit": "persons",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "Derived"
+              }
+            },
+            {
+              "label": "Area per person",
+              "value": {
+                "text": "108",
+                "unit": "ft²/person",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "SAM"
+              }
+            },
+            {
+              "label": "Occupied hours per year",
+              "value": {
+                "text": "4,015",
+                "unit": "h",
+                "availability": "Available",
+                "freshness": "Current",
+                "source": "Derived",
+                "note": "Hours with non-zero occupancy"
+              }
+            }
+          ]
+        },
+        {
+          "type": "KeyValueBlock",
           "id": "lighting",
           "title": "Lighting",
           "rows": [
@@ -337,131 +462,6 @@
                 "availability": "Available",
                 "freshness": "Current",
                 "source": "SAM"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "design-criteria",
-      "title": "Design Criteria",
-      "width": "Half",
-      "blocks": [
-        {
-          "type": "TableBlock",
-          "id": "design-criteria",
-          "repeatHeader": true,
-          "columns": [
-            {
-              "header": "",
-              "alignment": "Left"
-            },
-            {
-              "header": "Heating",
-              "alignment": "Right"
-            },
-            {
-              "header": "Cooling",
-              "alignment": "Right"
-            }
-          ],
-          "rows": [
-            [
-              {
-                "text": "Room set point",
-                "availability": "Available"
-              },
-              {
-                "text": "69.8",
-                "unit": "°F",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived",
-                "note": "Maximum of profile Heat 21"
-              },
-              {
-                "text": "75.2",
-                "unit": "°F",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived",
-                "note": "Minimum of profile Cool 24"
-              }
-            ],
-            [
-              {
-                "text": "Outdoor dry bulb",
-                "availability": "Available"
-              },
-              {
-                "text": "26.6",
-                "unit": "°F",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "SAM",
-                "note": "Minimum of design day Winter DD"
-              },
-              {
-                "text": "89.8",
-                "unit": "°F",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "SAM",
-                "note": "Maximum of design day Summer DD"
-              }
-            ],
-            [
-              {
-                "text": "Outdoor RH (coincident)",
-                "availability": "Available"
-              },
-              {
-                "text": "87",
-                "unit": "%",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "SAM",
-                "note": "Coincident with the dry bulb"
-              },
-              {
-                "text": "36",
-                "unit": "%",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "SAM",
-                "note": "Coincident with the dry bulb"
-              }
-            ]
-          ]
-        },
-        {
-          "type": "KeyValueBlock",
-          "id": "room-humidity",
-          "title": "Room humidity",
-          "rows": [
-            {
-              "label": "Humidification set point",
-              "subLabel": "lower RH limit",
-              "value": {
-                "text": "40",
-                "unit": "%",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived",
-                "note": "Maximum of profile Hum 40"
-              }
-            },
-            {
-              "label": "Dehumidification set point",
-              "subLabel": "upper RH limit",
-              "value": {
-                "text": "60",
-                "unit": "%",
-                "availability": "Available",
-                "freshness": "Current",
-                "source": "Derived",
-                "note": "Minimum of profile Dehum 60"
               }
             }
           ]
@@ -601,7 +601,7 @@
     {
       "id": "fabric",
       "title": "Fabric / Exposure",
-      "width": "Full",
+      "width": "Half",
       "blocks": [
         {
           "type": "TableBlock",
@@ -729,7 +729,7 @@
         {
           "type": "NoticeBlock",
           "id": "fabric-not-present",
-          "level": "Information",
+          "level": "Note",
           "text": "Not present (zero area): Windows (frame), Doors (frame), Other floors"
         }
       ]
@@ -737,7 +737,7 @@
     {
       "id": "sizing",
       "title": "Sizing (Tas design loads)",
-      "width": "Full",
+      "width": "Half",
       "blocks": [
         {
           "type": "TableBlock",

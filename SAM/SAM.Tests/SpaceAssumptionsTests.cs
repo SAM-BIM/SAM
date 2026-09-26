@@ -399,7 +399,14 @@ namespace SAM.Tests
         {
             Document document = Build(ReportingFixture.Full(out _), UnitStyle.SI, out _);
 
-            Assert.Equal(new[] { "identity", "geometry", "internal-condition", "design-criteria", "ventilation", "systems", "fabric", "sizing" }, document.Sections.Select(x => x.Id));
+            Assert.Equal(new[] { "identity", "geometry", "design-criteria", "internal-condition", "ventilation", "systems", "fabric", "sizing" }, document.Sections.Select(x => x.Id));
+
+            // The v2 layout hints: consecutive half-width sections are paired (Geometry | Design criteria,
+            // Ventilation | Systems, Fabric | Sizing); the internal condition is full width with the gains table
+            // first, then its three titled key/value blocks.
+            Assert.Equal(new[] { SectionWidth.Full, SectionWidth.Half, SectionWidth.Half, SectionWidth.Full, SectionWidth.Half, SectionWidth.Half, SectionWidth.Half, SectionWidth.Half }, document.Sections.Select(x => x.Width));
+            Assert.Equal(new[] { "gains", "occupancy", "lighting", "infiltration" }, document.Sections.Single(x => x.Id == "internal-condition").Blocks.Select(x => x.Id));
+
             Assert.Equal("Space Assumptions", document.Metadata.Title);
             Assert.Equal(ReportingFixture.SpaceName, document.Metadata.Subject);
             Assert.Equal("Test Project", document.Metadata.ProjectName);
@@ -510,6 +517,7 @@ namespace SAM.Tests
 
             NoticeBlock noticeBlock = documentSection.Blocks.OfType<NoticeBlock>().Single(x => x.Id == "fabric-not-present");
             Assert.Equal(SpaceFabricSectionBuilder.NotPresentPrefix + "Windows (frame), Doors (frame), Other floors", noticeBlock.Text);
+            Assert.Equal(NoticeLevel.Note, noticeBlock.Level);
 
             // The selected area unit is kept, and the note names no unit.
             Assert.All(tableBlock.Columns.Skip(1), x => Assert.Equal(areaUnit, x.Unit));
