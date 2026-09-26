@@ -178,12 +178,24 @@ restore what was never recorded, and the lost values are the ones `ticV` reads (
 **Rules.**
 - Materialisation never writes into the baseline. The materialised model exists only as a run artefact, the
   way Iteration 3's Candidate B already does.
-- PR1 adds `Query.PartOMaterialisationState(model)`, which **refuses** a model that carries materialisation.
-  Its tests are the Part O MVHR type guid, Part O air movements, and Part F rates on internal conditions of
-  sized spaces. A false positive only refuses, which is the safe direction.
-- Existing projects whose open model was already overwritten by a 1a/2/2B run must reopen their
+- PR1 adds `Query.PartOMaterialisationState(model)`. It **refuses** any model that carries anything in the
+  "is not" list above, both **materialisation** and **run outputs**. Its signals are:
+  - *materialisation:* the Part O MVHR type guid, Part O air movements, and Part F rates on internal
+    conditions of sized spaces;
+  - *run outputs:* an `AnalyticalModelParameter.OverheatingScenarios` value, a `SimulationResultProvenance`,
+    or any simulation-result object in the cluster (`SpaceSimulationResult`, `ZoneSimulationResult`,
+    surface/panel results).
+  - The second group matters on its own. A previously simulated **all-NV** model carries no MVHR object,
+    air movement or Part F rate, yet it holds scenarios, provenance and results (and TAS-written design-day
+    records). Accepting it would feed a run output back in as input, which is the `DesignDay` /
+    `ZoneSimulationResult` accumulation class.
+  - Whether the cluster's `DesignDay` records are authored design data or run output is a PR1 rule to pin
+    by test. Until it is pinned, the result, provenance and scenario signals already refuse every simulated
+    output model.
+  - A false positive only refuses, which is the safe direction.
+- Existing projects whose open model was already overwritten by a Part O run (1a/1b/2/2B) must reopen their
   pre-Part-O source. This is a migration consequence (G), not a sanitiser.
-- A lossy "adopt" operation for such projects is **optional and not recommended**.
+- **No lossy "adopt" or undo operation** (owner decision 1).
 
 ### D2. Materialisation
 
@@ -225,8 +237,8 @@ restore what was never recorded, and the lost values are the ones `ticV` reads (
      miss a capacity or rank correction that changes which unit is selected;
    - the prepared-system guids, which closes C5.
 
-It never takes a previous output as input, so the DesignDay / ZoneSimulationResult accumulation class cannot
-arise from it. P10 shows the engineering state is reproducible. Guids are not, and do not need to be, because
+It never takes a previous output as input: `PartOMaterialisationState` refuses a result-, provenance- or
+scenario-bearing model (D1). So the DesignDay / ZoneSimulationResult accumulation class cannot arise from it. P10 shows the engineering state is reproducible. Guids are not, and do not need to be, because
 identity for staleness is the record plus the model fingerprint.
 
 ### D3. Retained 2B design airflow — the least duplicative persistence
@@ -343,14 +355,14 @@ PartODwellingStrategy          -- intent, on the BASELINE
     (classified from state, not names), with the iteration-neutral common-space identity of D2.5;
   - the materialisation record, including the full catalogue fingerprint;
   - refusals: cooling (recorded, refused), NV + cooling, NV + `RetainedDesign`, shared systems, a
-    materialised baseline, a stale or unbalanced retained design.
+    materialised or result-bearing baseline, a stale or unbalanced retained design.
 - **Tests:** the PR0 proof matrix promoted and inverted to the target behaviour:
   - P1: an NV dwelling stays clean;
   - P4: MVHR→NV on the same baseline gives no mechanical state;
   - P2/P10: order-independent and reproducible, with names now equal;
   - P3: a manual product is kept under an automatic neighbour;
   - P5: the retained design is kept, or refused when stale;
-  - P11: a materialised input is refused.
+  - P11: a materialised input is refused, and so is a simulated all-NV model (scenarios, provenance or results present).
   - Legacy `PreparePartOIteration` tests unchanged.
 - **Dependencies:** none.
 - **Acceptance:**
