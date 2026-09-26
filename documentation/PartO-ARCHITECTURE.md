@@ -532,7 +532,7 @@ ventilation system; that dependency is what `PartOVentilationMode` removes.
 | Reconciling the model's own ventilation systems with the stated route | Not implemented — reported only, §5 |
 | Iteration 2 acoustic restriction / bypass / boost | Not implemented — §2 |
 | Iteration 3 active cooling / manufacturer performance | **Implemented** (PR5B) — orchestrated in `SAM_UI`; licensed real-project acceptance 2026-09-15, see `PartO-TAS-VALIDATION.md` |
-| Per-zone (mixed NV + mechanical) airflow application | Not implemented — refuses |
+| Per-zone (mixed NV + mechanical) airflow application | Not implemented — refuses. Investigated (PR0, 2026-09-26): [`PartO-MixedDwellingStrategies-PR0.md`](PartO-MixedDwellingStrategies-PR0.md) |
 | System 1 background ventilator / purge sizing | Not implemented anywhere — §7 |
 | Intermittent wet-room extract runtime control | Not implemented — §6 |
 | `OverheatingScenario:v2` | Deferred — §8 |
