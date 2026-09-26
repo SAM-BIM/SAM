@@ -1,7 +1,63 @@
 # Reporting: the PDF renderer (`SAM.Core.Reporting.Pdf`)
 
-Status: PR2 of the *SAM Documentation Framework*. The renderer implements the approved v2 layout in
-[Reporting-LAYOUT.md](Reporting-LAYOUT.md). It is not yet called from SAM_UI; that integration is PR3.
+Status: PR2 of the *SAM Documentation Framework* (SAM#141). The renderer implements the approved v2 layout in
+[Reporting-LAYOUT.md](Reporting-LAYOUT.md). SAM_UI calls it (SAM_UI#121); Phase 1 is complete (see below).
+
+## Phase 1 status (closeout 2026-09-26)
+
+```text
+SAM Documentation Framework — Phase 1
+Status: COMPLETE
+```
+
+**Phase 1 = the Space Assumptions PDF.** The production chain is merged and deployed:
+
+```text
+AnalyticalModel
+    ↓  SAM.Analytical.Reporting (collector)
+SpaceDocumentData            typed ReportValue<T> + Quantity
+    ↓  builders + QuantityFormatter (SI/IP)
+generic Document             SAM.Core.Reporting
+    ↓
+SAM.Core.Reporting.Pdf       MigraDoc/PDFsharp 6.2.0
+    ↓
+SAM_UI                       Edit › Reports › Space Assumptions PDF   (SAM_UI#121, 7e7de033)
+    ↓
+SAM_Deploy / installed       installer payload gate + installed smoke test   (SAM_Deploy#51, 8e6740af)
+```
+
+SAM PRs: #135 (SAM.Units), #136 (domain and analytical collector), #139 (occupancy missing-gain correction), #140
+(visual polish), #141 (this renderer), #143 (airflow `L/s`, `22f9c743`).
+
+**Delivered.**
+- One selected Space gives one PDF; SAM_UI reports SI.
+- The default SI airflow symbol is `L/s`. It is defined once, in `QuantityFormatter`.
+- Reporting data is typed (`ReportValue<T>`, `Quantity`), and the reporting core can produce SI or IP.
+- MigraDoc/PDFsharp renderer: Noto Sans embedded, SAM branding, A4, natural pagination with repeated table headers.
+- Missing / zero / `n/a` / `not set` semantics are preserved end to end. The renderer never reinterprets them.
+- Production installer packaging: SAM_Deploy's *Assert reporting/PDF payload* gate, and licences
+  `licenses\NotoSans\OFL.txt` and `licenses\PDFsharp-MigraDoc\LICENSE.txt`.
+- The real installed `SAM Analytical.exe` produced a valid 1-page PDF showing `L/s`. With PdfSharp removed, it fails
+  cleanly and writes no file.
+
+**Intentionally outside Phase 1.**
+- Space Design Load Summary / simulation results.
+- TSD peak load, time and gain breakdown.
+- Building Summary.
+- HVAC/AHU reports.
+- Batch Space reporting.
+- HTML and Excel renderers.
+- A report preview UI.
+- Removing legacy Print RDS.
+
+**Kept visible.**
+- [SAM#138](https://github.com/SAM-BIM/SAM/issues/138), **open**, was deliberately kept out of the Phase-1 PRs:
+  - RH query naming/mapping;
+  - composite `Profile.MinValue`;
+  - gain queries returning 0 when nothing is authored.
+- Legacy **Print RDS** stays in SAM_UI. Decision: *retain legacy Print RDS until Phase 2 reaches sufficient parity*.
+- Unit systems: the core supports SI and IP. SAM_UI exposes SI only, because it has no global unit-system
+  preference yet. No IP selector was added.
 
 ## Pipeline and responsibility
 
@@ -84,8 +140,8 @@ PR2. No value changed; the goldens were verified semantically:
 - PDFsharp allows **one** global resolver per process, set before the first font is used. If another resolver is
   already installed, it is kept when it can resolve "Noto Sans"; otherwise `Render` throws a clear
   `InvalidOperationException`. Only SAM_Revit uses PDFsharp today, and it installs no resolver.
-- PDFs embed a subset of each font; the OFL permits this. An installer that ships the DLL should ship `OFL.txt` too
-  (PR3).
+- PDFs embed a subset of each font; the OFL permits this. SAM_UI ships `OFL.txt` with the DLL, and SAM_Deploy's
+  payload gate checks for it.
 
 ## Images and branding
 - **SAM mark:** drawn as vector shapes, a 13 mm accent square with "SAM" in white bold. It is crisp at any zoom and

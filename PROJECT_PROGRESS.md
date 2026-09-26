@@ -1,20 +1,35 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` is at `78a57466`, the merge of [SAM#142](https://github.com/SAM-BIM/SAM/pull/142): the deep-clone
-fix for Guid-less objects. Before that, `3ec76eca` merged [SAM#140](https://github.com/SAM-BIM/SAM/pull/140), the
-reporting visual-polish PR with the approved v2 builder changes. It also contains:
-- [SAM#139](https://github.com/SAM-BIM/SAM/pull/139) (`e1fbbb72`): the occupancy-gain follow-up;
-- PR1 ([SAM#136](https://github.com/SAM-BIM/SAM/pull/136), `7daf0d32`);
-- PR0 ([SAM#135](https://github.com/SAM-BIM/SAM/pull/135), `4e027f55`);
-- the TM59 per-space status work ([SAM#137](https://github.com/SAM-BIM/SAM/pull/137), `7dbeb2e4`).
+`sow/2026-Q3` is at `22f9c743`, the merge of [SAM#143](https://github.com/SAM-BIM/SAM/pull/143) (airflow symbol `L/s`).
+Below it: [SAM#141](https://github.com/SAM-BIM/SAM/pull/141) PDF renderer (`ba343bfb`), [SAM#142](https://github.com/SAM-BIM/SAM/pull/142)
+deep-clone fix (`78a57466`), [SAM#140](https://github.com/SAM-BIM/SAM/pull/140) visual polish (`3ec76eca`),
+[SAM#139](https://github.com/SAM-BIM/SAM/pull/139) occupancy gain (`e1fbbb72`), [SAM#137](https://github.com/SAM-BIM/SAM/pull/137)
+TM59 per-space status (`7dbeb2e4`), PR1 [SAM#136](https://github.com/SAM-BIM/SAM/pull/136) (`7daf0d32`) and PR0
+[SAM#135](https://github.com/SAM-BIM/SAM/pull/135) (`4e027f55`).
 
-`feature/reporting-pr2-pdf-renderer`, branched from `3ec76eca`, carries **PR2** as
-[SAM#141](https://github.com/SAM-BIM/SAM/pull/141) to `sow/2026-Q3`. `sow/2026-Q3` (`78a57466`) was merged into it; the
-only conflict was this file. The owner approved merging SAM#141 once CI is green; the merge commit is recorded in
-git. See *Current*.
+## Current: SAM Documentation Framework Phase 1 - COMPLETE (closeout 2026-09-26)
 
-## Current: reporting airflow symbol `L/s` (2026-09-26) - PR3 closeout
+```text
+SAM Documentation Framework — Phase 1
+Status: COMPLETE
+```
+
+Phase 1 = the **Space Assumptions PDF**. All of it is merged and deployed:
+- SAM: SAM#135, #136, #139, #140, #141, #143 (last merge `22f9c743`). Full `SAM.Tests` 2469/2469.
+- SAM_UI: SAM_UI#121 merged as `7e7de033` (Edit › Reports › Space Assumptions PDF; legacy Print RDS kept).
+- SAM_Deploy: SAM_Deploy#51 merged as `8e6740af` (pins SAM `22f9c743`, SAM_UI `7e7de033`; installer payload
+  gate; installed-product smoke test passed).
+
+The completion record (production chain, delivered capabilities, what is outside Phase 1, follow-ups) is in
+`documentation/Reporting-PDF.md` › *Phase 1 status*.
+
+**Still open, deliberately outside Phase 1:** [SAM#138](https://github.com/SAM-BIM/SAM/issues/138) (RH query
+naming/mapping, composite `Profile.MinValue`, gain queries returning 0 when nothing is authored) stays OPEN.
+
+**Next step.** Phase 2 planning (not started).
+
+## Previous: reporting airflow symbol `L/s` (2026-09-26) - MERGED as SAM#143 (`22f9c743`)
 
 `sow/2026-Q3` is at `ba343bfb`, the merge of SAM#141 (PR2). Branch `fix/reporting-airflow-symbol-L-per-s` changes the
 SI airflow display symbol from `l/s` to the approved Phase-1 convention `L/s`. The symbol is defined once, in
@@ -25,12 +40,12 @@ the PDF renderer need no change. `SAM.Units`, Part F/Part O labels and `Ventilat
   `AirFlow_SIDefault_UsesCapitalLitreSymbol`; SI theory row), `PdfRendererTests.cs` (IP no-SI-symbol list now `L/s`).
 - Also the `SpaceAssumptions_Full_SI.json` golden (4 `unit` entries; caught by CI, not by the first local filter).
 - Tests: full `SAM.Tests` 2469/2469 (Release, built explicitly).
-- Next: merge on green CI; SAM_UI PR3 (SAM_UI#121) picks it up from the rebuilt `build/`.
+- Merged as `22f9c743` on green CI; SAM_UI#121 (`7e7de033`) and SAM_Deploy#51 (`8e6740af`) consume it.
 
-## Current: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - SAM#141, approved to merge on green CI
+## Previous: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - MERGED as SAM#141 (`ba343bfb`)
 
-**Status.** Implemented and validated. It stops at the open PR: the owner reviews it. Out of scope and not started:
-SAM_UI integration (PR3), HTML/Excel renderers, other documents, and any engineering change.
+**Status.** Merged as `ba343bfb`. Out of scope for PR2: SAM_UI integration (done since in SAM_UI#121), HTML/Excel
+renderers, other documents, and any engineering change.
 
 **Feasibility spike (passed, not committed).** PDFsharp-MigraDoc 6.2.0 was checked on netstandard2.0, consumed from
 net8.0:
@@ -137,8 +152,7 @@ There was no blocker.
 - **PR3 must deploy** `SAM.Core.Reporting.Pdf.dll`, `MigraDoc.*.dll`, `PdfSharp*.dll`, their Microsoft dependencies,
   and `OFL.txt` with SAM_UI. A netstandard library does not copy package DLLs to `build/`.
 
-**Next step.** The owner reviews SAM#141. After it merges: PR3, the SAM_UI integration (report command, save
-dialog, deploy list including the PDF DLLs and `OFL.txt`).
+**Outcome.** SAM#141 merged; PR3 (SAM_UI#121) and the deployment (SAM_Deploy#51) followed. See *Current*.
 
 ## Previous: deep clone doubled Guid-less cluster objects (26 Sep 2026) - MERGED as SAM#142 (`78a57466`)
 
