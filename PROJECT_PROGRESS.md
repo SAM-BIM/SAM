@@ -1,17 +1,20 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` is at `3ec76eca`, the merge of [SAM#140](https://github.com/SAM-BIM/SAM/pull/140): the reporting
-visual-polish PR, the approved v2 builder changes. It also contains:
+`sow/2026-Q3` is at `78a57466`, the merge of [SAM#142](https://github.com/SAM-BIM/SAM/pull/142): the deep-clone
+fix for Guid-less objects. Before that, `3ec76eca` merged [SAM#140](https://github.com/SAM-BIM/SAM/pull/140), the
+reporting visual-polish PR with the approved v2 builder changes. It also contains:
 - [SAM#139](https://github.com/SAM-BIM/SAM/pull/139) (`e1fbbb72`): the occupancy-gain follow-up;
 - PR1 ([SAM#136](https://github.com/SAM-BIM/SAM/pull/136), `7daf0d32`);
 - PR0 ([SAM#135](https://github.com/SAM-BIM/SAM/pull/135), `4e027f55`);
 - the TM59 per-space status work ([SAM#137](https://github.com/SAM-BIM/SAM/pull/137), `7dbeb2e4`).
 
-`feature/reporting-pr2-pdf-renderer`, branched from `3ec76eca`, carries **PR2**, open as [SAM#141](https://github.com/SAM-BIM/SAM/pull/141) to `sow/2026-Q3`.
-It is NOT merged: it is pending the owner's final review. See *Current*.
+`feature/reporting-pr2-pdf-renderer`, branched from `3ec76eca`, carries **PR2** as
+[SAM#141](https://github.com/SAM-BIM/SAM/pull/141) to `sow/2026-Q3`. `sow/2026-Q3` (`78a57466`) was merged into it; the
+only conflict was this file. The owner approved merging SAM#141 once CI is green; the merge commit is recorded in
+git. See *Current*.
 
-## Current: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - SAM#141 open, pending final review
+## Current: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - SAM#141, approved to merge on green CI
 
 **Status.** Implemented and validated. It stops at the open PR: the owner reviews it. Out of scope and not started:
 SAM_UI integration (PR3), HTML/Excel renderers, other documents, and any engineering change.
@@ -123,6 +126,28 @@ There was no blocker.
 
 **Next step.** The owner reviews SAM#141. After it merges: PR3, the SAM_UI integration (report command, save
 dialog, deploy list including the PDF DLLs and `OFL.txt`).
+
+## Previous: deep clone doubled Guid-less cluster objects (26 Sep 2026) - MERGED as SAM#142 (`78a57466`)
+
+**Status.** Branch `fix/deepclone-guidless-objects-2026-09-26` from `sow/2026-Q3` `3ec76eca`; commit `685599dc`. First of
+three coordinated PRs (SAM -> SAM_Tas `fix/parto-replace-run-records-2026-09-26` -> SAM_UI
+`feature/parto-2b-sam-growth-2026-09-26`). Full record: SAM_UI `documentation/evidence/parto-2b-sam-growth/GROWTH.md`.
+
+**Defect.** `SAMObjectRelationCluster(cluster, deepClone: true)` (from `bdcfe5df`) re-added each clone via `AddObject`.
+An object with no Guid of its own - `Analytical.DesignDay` is a `WeatherDay` - is re-found only by `Equals` (reference
+equality), so its clone got a NEW key beside the original, which stayed shared with the source. Every deep copy
+doubled the design days; Part O takes one per TAS run, so the 2B live run's model went 12 -> 57,342 design days
+(172 KB -> 3.7 MB). Engineering results unaffected (nothing sizes or simulates from those records).
+
+**Fix.** `RelationCluster.ReplaceObjects(Func<X, X>)` (protected) swaps each object in its own slot (same bucket, same
+key, relations intact); both deep-clone constructors use it; `DeepCloneObject` now returns the clone and keeps the
+throw-rather-than-share guard. Files: `SAM.Core/Classes/Relation/RelationCluster.cs`, `SAMObjectRelationCluster.cs`,
+`SAM.Tests/AdjacencyClusterDeepCloneTests.cs`.
+
+**Validation.** SAM.Tests 2441/2441; new `DeepCopy_OfObjectsWithNoGuid_NeitherDuplicatesNorSharesThem` fails pre-fix
+(2 -> 64 after five copies). `SAM.sln` Release exit 0. Live 2B re-run: see SAM_UI.
+
+**Next step.** Merged as SAM#142 (`78a57466`). Then SAM_Tas, then SAM_UI; then SAM_Deploy pointers.
 
 ## Previous: reporting visual-polish PR - approved v2 builder changes (2026-09-25) - MERGED as SAM#140 (`3ec76eca`)
 

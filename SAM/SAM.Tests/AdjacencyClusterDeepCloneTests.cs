@@ -240,6 +240,68 @@ namespace SAM.Tests
             Assert.Single(analyticalModel_Shallow.AdjacencyCluster.GetObjects<UncloneableResult>());
         }
 
+        /// <summary>
+        /// <b>An object with no Guid of its own is replaced by its clone, not joined by it.</b>
+        /// <para>
+        /// A <c>DesignDay</c> is a <c>WeatherDay</c>, not a <c>SAMObject</c>, so the cluster keys it by a Guid
+        /// it generated. The deep copy re-added each clone through <c>AddObject</c>, which could not find that
+        /// key again (a clone is not <c>Equals</c> its original) and stored the clone under a NEW key beside
+        /// the original - doubling every design day on every deep copy and still sharing the originals. The
+        /// Part O 2B live run (26 Sep 2026) grew from 12 design days to 57,342 over eleven rounds this way,
+        /// one deep copy per TAS run.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void DeepCopy_OfObjectsWithNoGuid_NeitherDuplicatesNorSharesThem()
+        {
+            AdjacencyCluster adjacencyCluster = new();
+
+            Zone zone = new("Flat 1");
+            adjacencyCluster.AddObject(zone);
+
+            DesignDay designDay_Cooling = new(new DesignDay("Cooling", 2018, 7, 1), LoadType.Cooling);
+            DesignDay designDay_Heating = new(new DesignDay("Heating", 2018, 1, 1), LoadType.Heating);
+            adjacencyCluster.AddObject(designDay_Cooling);
+            adjacencyCluster.AddObject(designDay_Heating);
+            adjacencyCluster.AddRelation(zone, designDay_Cooling);
+
+            Guid guid_Cooling = adjacencyCluster.GetGuid(designDay_Cooling);
+            Guid guid_Heating = adjacencyCluster.GetGuid(designDay_Heating);
+
+            AnalyticalModel analyticalModel_Source = new("Flat1", null, null, null, adjacencyCluster);
+
+            //Repeated, as every TAS run in an optimisation does to the model the previous run returned.
+            AnalyticalModel analyticalModel_Working = analyticalModel_Source;
+            for (int i = 0; i < 5; i++)
+            {
+                analyticalModel_Working = new AnalyticalModel(analyticalModel_Working, true);
+            }
+
+            AdjacencyCluster adjacencyCluster_Working = analyticalModel_Working.AdjacencyCluster;
+
+            List<DesignDay> designDays_Working = adjacencyCluster_Working.GetObjects<DesignDay>();
+            Assert.Equal(2, designDays_Working.Count);
+
+            //Same keys, so anything related by Guid still finds them.
+            Assert.Equal(new HashSet<Guid> { guid_Cooling, guid_Heating }, designDays_Working.ConvertAll(adjacencyCluster_Working.GetGuid).ToHashSet());
+
+            //Owned, not shared.
+            DesignDay designDay_Cooling_Working = adjacencyCluster_Working.GetObject<DesignDay>(guid_Cooling);
+            Assert.NotNull(designDay_Cooling_Working);
+            Assert.False(ReferenceEquals(designDay_Cooling, designDay_Cooling_Working));
+            Assert.False(ReferenceEquals(designDay_Heating, adjacencyCluster_Working.GetObject<DesignDay>(guid_Heating)));
+            Assert.Equal("Cooling", designDay_Cooling_Working.Name);
+
+            //And the relation follows the copy's own instance.
+            List<DesignDay> designDays_Related = adjacencyCluster_Working.GetRelatedObjects<DesignDay>(adjacencyCluster_Working.GetObjects<Zone>()[0]);
+            Assert.Single(designDays_Related);
+            Assert.True(ReferenceEquals(designDay_Cooling_Working, designDays_Related[0]));
+
+            //The source is untouched.
+            Assert.Equal(2, adjacencyCluster.GetObjects<DesignDay>().Count);
+            Assert.True(ReferenceEquals(designDay_Cooling, adjacencyCluster.GetObject<DesignDay>(guid_Cooling)));
+        }
+
         // -----------------------------------------------------------------------------------------------
 
         /// <summary>
