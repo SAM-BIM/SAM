@@ -12,7 +12,7 @@ deep-clone fix (`78a57466`), [SAM#140](https://github.com/SAM-BIM/SAM/pull/140) 
 TM59 per-space status (`7dbeb2e4`), PR1 [SAM#136](https://github.com/SAM-BIM/SAM/pull/136) (`7daf0d32`) and PR0
 [SAM#135](https://github.com/SAM-BIM/SAM/pull/135) (`4e027f55`).
 
-## Current: Part O mixed dwelling strategies - PR1 SAM authority + NV/MVHR materialisation (2026-09-27) - PR OPEN, awaiting review
+## Current: Part O mixed dwelling strategies - PR1 SAM authority + NV/MVHR materialisation (2026-09-27) - PR [SAM#150](https://github.com/SAM-BIM/SAM/pull/150) OPEN, awaiting review
 
 Implementation following the approved PR0 (§D-§F + owner decisions). Branch `feature/parto-mixed-strategies-pr1` from
 `sow/2026-Q3` `444d2db3`. SAM only; SAM_UI (`c96ac19a`), SAM_Tas (`aa00ff91`), SAM_Systems (`22133736`) unchanged.
