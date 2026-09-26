@@ -209,6 +209,14 @@ restore what was never recorded, and the lost values are the ones `ticV` reads (
    and balance. **Unit names are derived from the dwelling**, not from call order (P2).
 4. **NV dwellings: materialisation writes nothing and strips nothing.**
    - No Part F internal-condition rates, no generated terminals, and no system, unit or movement.
+   - **An NV strategy over authored mechanical design refuses.** If any space of the dwelling is served by
+     an authored `VentilationSystem` carrying effective mechanical duty (a connected terminal with a positive
+     design flow, as in Iteration 3's `IsEffectiveMechanicalDuty`), or by an air handling unit, NV refuses
+     and names the system, even when that system is local to the dwelling. The authored design says
+     "mechanical"; the strategy says NV; one of the two is wrong, and removing the system would delete
+     authored design data (owner decision 1).
+   - A space-related system with no duty (e.g. an `NV`/`UV` template assignment) is metadata. It passes
+     through untouched, with a note.
    - A check asserts this, with `AssertNoContinuousMechanicalAirflow` semantics.
    - **Baseline design terminals already in an NV dwelling** (designer-authored; D1 allows them) are copied
      through **unconnected and inert**, and reported by name. NV materialisation never deletes design data.
@@ -251,10 +259,20 @@ after 2B (P5).
 - **One store for design airflow: the baseline's design terminals.** The terminal is already the design
   object. `RealizePartFVentilationTerminals` re-links it and never resizes it (P5), so a terminal on the
   baseline survives every materialisation unchanged.
-- **Accepting a 2B outcome is an explicit design edit.** The designer accepts it for a dwelling. The balanced
-  terminal set from the last valid round is written onto that dwelling's baseline terminals through the
-  existing `SetSpaceDesignFlowRate` (same-guid replacement). Nothing is accepted automatically. P5 shows a
-  partial set is refused, so acceptance is whole-dwelling.
+- **Accepting a 2B outcome is an explicit design edit.** The designer accepts it for a dwelling. Nothing is
+  accepted automatically, and acceptance is whole-dwelling (P5 shows a partial set is refused). Two steps,
+  both on the **baseline**:
+  1. **Ensure the dwelling's design terminals exist on the baseline.** A normal clean baseline has Part F
+     requirements but no terminals; those exist only on the run copy, and `SetSpaceDesignFlowRate` refuses a
+     space with none. Acceptance first calls `RealizePartFVentilationTerminals` scoped to **that dwelling's
+     spaces**. It creates one terminal per continuous requirement and writes only terminals, never internal
+     conditions or systems, so it does not bring back the lossy rewrite of D1.
+  2. **Write the balanced set.** It is matched to the run copy's terminals by requirement lineage
+     (`PartFTerminalReference`: space, role, paragraph), never by guid, because the run copy's terminals are
+     regenerated. `SetSpaceDesignFlowRate` then writes the set (same-guid replacement). An unmatched or
+     ambiguous terminal **refuses**, following the existing lineage rules.
+  - The baseline stays acceptable afterwards: D1 allows design terminals, and unconnected terminals are
+    inert.
 - **The strategy records only intent and a guard:** `DesignAirFlowBasis` ∈ {`PartFRequirement`,
   `RetainedDesign`}, plus a fingerprint of that dwelling's terminal set at the moment it was accepted.
   - `PartFRequirement` with terminals that differ from the requirement **refuses**; it does not reset them
@@ -354,14 +372,14 @@ PartODwellingStrategy          -- intent, on the BASELINE
   - per-zone scenarios, including automatic `CommonSpace` scenarios for assessed common spaces
     (classified from state, not names), with the iteration-neutral common-space identity of D2.5;
   - the materialisation record, including the full catalogue fingerprint;
-  - refusals: cooling (recorded, refused), NV + cooling, NV + `RetainedDesign`, shared systems, a
+  - refusals: cooling (recorded, refused), NV + cooling, NV + `RetainedDesign`, NV over authored mechanical duty, shared systems, a
     materialised or result-bearing baseline, a stale or unbalanced retained design.
 - **Tests:** the PR0 proof matrix promoted and inverted to the target behaviour:
   - P1: an NV dwelling stays clean;
   - P4: MVHR→NV on the same baseline gives no mechanical state;
   - P2/P10: order-independent and reproducible, with names now equal;
   - P3: a manual product is kept under an automatic neighbour;
-  - P5: the retained design is kept, or refused when stale;
+  - P5: the retained design is kept, or refused when stale; accepting 2B on a terminal-less baseline realises that dwelling's terminals first;
   - P11: a materialised input is refused, and so is a simulated all-NV model (scenarios, provenance or results present).
   - Legacy `PreparePartOIteration` tests unchanged.
 - **Dependencies:** none.
