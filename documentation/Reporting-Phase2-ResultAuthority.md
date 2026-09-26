@@ -1,11 +1,14 @@
 # Reporting Phase 2 — Space Design Load Summary: result-authority audit and design gate
 
-Status: **investigation + design-definition only (26 Sep 2026). No product code changed.**
+Status: **investigation + design-definition (26 Sep 2026).** The audit itself changed no product code. Since then,
+B0 has been fixed by [SAM#147](https://github.com/SAM-BIM/SAM/pull/147) (merge `00db4b85`, see §3.1).
 
 ```text
 Phase 2 result authority: BLOCKED
-Next PR: PR2A-0 (SAM.Core / SAM.Analytical) — stale TBD design-load read from duplicate parameter sets,
-         then PR2A (SAM_Tas) — Convert.ToSAM_Results peak-load correctness
+B0: FIXED (SAM#147, 00db4b85)
+Current blockers: B1–B6 / SAM_Tas result contract
+PR2B reporting implementation: NOT STARTED
+Next PR: PR2A (SAM_Tas) — Convert.ToSAM_Results peak-load correctness
 ```
 
 Phase 2 must report *persisted* results. The audit found that the persisted per-space load results are
@@ -62,13 +65,31 @@ Freshness and provenance:
 
 | # | Where | Defect | Evidence | Blocks |
 |---|---|---|---|---|
-| **B0** | SAM.Core parameter sets / `SpaceParameter.DesignHeating/CoolingLoad` | A Space can carry **several `SAM.Analytical` ParameterSets**, each with a `Design Heating Load`. One more is appended per run made with a different build. `TryGetValue` takes the set with the current assembly GUID (`e5c2659a…`), else the first set named `SAM.Analytical`, else the **first** set containing the name. A file with no current-GUID set therefore reads the **oldest** value. | `final1b/open_out.sam` Bathroom_2: sets `cc94e7a1` = 0.0 and `feae3a10` = 1139.87 W; the result's `DesignLoad` = 1139.87 W. The Phase-1 collector (production DLLs) reports **0 W**. Scan of `C:\TasOut`: **51 of 988** spaces-with-results in **17** files read stale. These are exactly the spaces with a non-zero load. | TBD design load, sizing comparison. **Also affects shipped Phase 1.** Root cause of the appending is not yet determined. |
+| **B0** — **FIXED** (SAM#147, `00db4b85`; §3.1) | SAM.Core parameter sets / `SpaceParameter.DesignHeating/CoolingLoad` | A Space can carry **several `SAM.Analytical` ParameterSets**, each with a `Design Heating Load`. One more is appended per run made with a different build. `TryGetValue` takes the set with the current assembly GUID (`e5c2659a…`), else the first set named `SAM.Analytical`, else the **first** set containing the name. A file with no current-GUID set therefore reads the **oldest** value. | `final1b/open_out.sam` Bathroom_2: sets `cc94e7a1` = 0.0 and `feae3a10` = 1139.87 W; the result's `DesignLoad` = 1139.87 W. The Phase-1 collector (production DLLs) reports **0 W**. Scan of `C:\TasOut`: **51 of 988** spaces-with-results in **17** files read stale. These are exactly the spaces with a non-zero load. | TBD design load, sizing comparison. **Also affected shipped Phase 1.** Root cause and fix: §3.1. |
 | **B1** | SAM_Tas `Convert/ToSAM/Results.cs`, heating block | When the annual heating peak beats the HDD peak, the code assigns `zoneData_Cooling`, `coolingLoad` and `coolingIndex` instead of the heating variables. The heating result is then labelled `Simulation` but carries the HDD load, state and index, with outdoor T/RH taken at the *annual* index. With no HDD at all, there is no heating result. | Code (present since `ea0b1e8f`). Not triggered in any local fixture, because HDD always won there. | Heating peak, time, conditions, components |
 | **B2** | same, plus `Create.SpaceSimulationResult(ZoneData, index, …)` | A zero peak returns index **0**. Tas hourly arrays are **1-based**, so `GetHourlyZoneResult(0, …)` returns the Tas **−1** "invalid" sentinel. `Load = −1`, every temperature = −1, every component = −1 and `LoadIndex = 0` are then persisted as real numbers. A genuine −1 W component cannot be told apart from the sentinel. | Every free-running space in every local fixture (e.g. Studio 1_0: `Load −1, LoadIndex 0, DB −1 …`). TSD probe: index 0 → all −1 (HDD) or garbage (annual: ext T 65 °C, RH 300 %). | Zero vs missing; every peak field |
 | **B3** | same | The max() discards the loser. The **annual simulated peak is not persisted** whenever the design day wins, and it won in every local fixture. `Load` is therefore *either* a design-day or an annual value. | Bathroom_2: persisted 1139.80 W (HDD) vs annual TSD peak **104.01 W @ 8554**, which is not persisted. | "TSD simulated peak" as its own concept; the TBD-vs-TSD comparison |
 | **B4** | SAM.Analytical `LoadIndex` | The base differs by engine. Tas writes a **1-based** hour of year (verified). OpenStudio writes a **0-based** interval index (`Core.Query.IntervalHourOfYear`). `MaxDryBulbTemperatureIndex` is 0-based in the *same* Tas object. For a design-day winner the index is Tas's internal calendar slot for the design day (the HDD in the fixture occupies hours 1585–1608, i.e. "8 Mar"), not a weather date. | TSD probe: HDD valid only at 1585–1608; annual valid at 1–8760, invalid at 0. OpenStudio `Convert/ToSAM/SimulationResults.cs` + `SAM.Core Query.IntervalHourOfYear`. | Peak time |
 | **B5** | same | The heating components omit solar, lighting, occupancy and equipment, and the heating result has no RH. For an annual-simulation heating peak those gains can be non-zero, so the stored subset may not close the balance. | Code. The balance does close for HDD, where the internal gains are zero. | Heating breakdown when `Simulation` wins |
 | **B6** | evidence gap | **No persisted cooling peak exists in any local fixture.** Cooling-load composition is therefore unverified: does it include latent, and do the stored terms close? | Fixture scan: `C:\TasOut`, `SAM_daily`, `Nextcloud`, SAM_Validation benchmark — every cooling `Load` is −1 or absent. | Cooling breakdown, cooling time |
+
+### 3.1 B0 closeout (SAM#147, merge `00db4b85`, issue SAM#146)
+
+- **Root cause.** `SAM.Analytical` has had no `[assembly: Guid]` since `49069d9c` (the old value was `fbbd5ce9-…`), so
+  its ParameterSet GUID is the per-build MVID. `Modify.Add` matched by GUID only. SAM_Tas `Query.UpdateT3D` adds a
+  `SAM.Analytical` zone set on each run, so a run on a new build **appended** a set and wrote that run's design loads
+  into it. A reader on another build fell through to the **first** set holding the key, which was the oldest.
+- **Fix, central in SAM.Core. No reporting, SAM_UI or SAM_Tas change:**
+  - At most one ParameterSet per name on an object. On load, same-name legacy and current sets are merged
+    deterministically in stored order, and the **later persisted value wins**.
+  - Future `Modify.Add` writes update the existing same-name set rather than appending another.
+  - Files without duplicates load unchanged. Explicit 0 stays 0, and a missing value stays missing.
+- **Result:**
+  - Bathroom_2 now resolves **1139.87 W** (was 0 W), and the Phase-1 Space Assumptions collector reports the same value.
+  - Real-fixture rescan (`C:\TasOut`, 198 files, production `Convert.ToSAM`): stale mismatches went from **51 to 0**.
+  - The "later wins" rule matched the persisted `SpaceSimulationResult.DesignLoad` in all 229 scanned files.
+  - Harness: `evidence/reporting-phase2-gate/harness/pr2a0_rescan.cs.txt`.
+- The Phase-1 fix reaches users through a SAM_Deploy SAM-pointer bump.
 
 Not a blocker, but recorded:
 - The legacy Print RDS formats the cooling `LoadIndex` with `Convert.ToDateTime(index, 2018)` even for a design-day
@@ -84,8 +105,8 @@ Not a blocker, but recorded:
 
 | Item | Source / API | Persistence | Availability semantics today | Freshness / provenance | Sign | Confidence |
 |---|---|---|---|---|---|---|
-| TBD heating design load | `SpaceParameter.DesignHeatingLoad`. The same TBD value is also on `SpaceSimulationResult.DesignLoad` (Heating). | Space parameter set(s). The result copy is written only when the Simulate step ran. | 0 is ambiguous: an unconditioned space and a stale duplicate set both read 0 (B0). | Unknown. No record binds it to the TBD. | + magnitude, W | **Low until B0 is fixed** |
-| TBD cooling design load | as above (Cooling) | as above | as above | Unknown | + magnitude | Low (B0) |
+| TBD heating design load | `SpaceParameter.DesignHeatingLoad`. The same TBD value is also on `SpaceSimulationResult.DesignLoad` (Heating). | Space parameter set(s). The result copy is written only when the Simulate step ran. | 0 is ambiguous: an unconditioned space and a stale duplicate set both read 0 (B0). | Unknown. No record binds it to the TBD. | + magnitude, W | Medium: B0 fixed (SAM#147); provenance still Unknown |
+| TBD cooling design load | as above (Cooling) | as above | as above | Unknown | + magnitude | Medium (B0 fixed) |
 | Sizing multiplier | `SpaceParameter` / model factor (Phase 1) | model | Phase-1 rules (value 0 = not set) | model assumption | dimensionless | High (Phase 1) |
 | TSD heating peak | `SpaceSimulationResult` (Tas source, Heating).`Load` + `SizingMethod` | result object | Mixed: design day **or** annual (B3). Zero → −1 (B2). Heating `Simulation` branch wrong (B1). | `Result.DateTime` = converted-at. Part O only: `SimulationResultProvenance.IsCurrent(model)`. | Tas `heatingLoad` ≥ 0 | **Blocked** |
 | TSD cooling peak | same (Cooling) | result object | Mixed (B3); zero → −1 (B2); no fixture (B6) | as above | Tas `coolingLoad` ≥ 0 | **Blocked** |
@@ -111,7 +132,7 @@ Leeds TRY, free-running Part O model. Heating and cooling design days: `Leeds_TR
 
 | Quantity | Persisted (production API) | TSD (read-only reader) |
 |---|---|---|
-| TBD design heating load | `SpaceParameter.DesignHeatingLoad` → **0.0 W** (stale set, B0); `SpaceSimulationResult.DesignLoad` → **1139.87 W** | — |
+| TBD design heating load | `SpaceParameter.DesignHeatingLoad` → **0.0 W** at audit time (stale set, B0); **1139.87 W** after SAM#147; `SpaceSimulationResult.DesignLoad` → **1139.87 W** | — |
 | Heating peak | `Load` 1139.796 W, `SizingMethod` HDD, `LoadIndex` 1608 | HDD `GetPeakZoneGains` = 1139.796 @ 1608 (HDD hours 1585–1608). **Annual** peak 104.010 W @ **8554** (23 Dec 09:00–10:00): not persisted (B3). |
 | Room state at heating peak | DB 16.0, resultant 13.87 °C, humidity ratio 0.00221 | HDD @1608 identical. Annual @8554: DB 16.0, resultant 15.93 °C, RH 35.0 %, outdoor −2.3 °C / 100 %. |
 | Heating components @ HDD peak | inf/vent −111.737, BHT −1023.256, opaque −4.803, glazing 0, air movement 0 W | identical; **Σ = −1139.796 = −Load** |
@@ -225,7 +246,7 @@ Findings:
 
 ## 10. Recommended PR sequence
 
-1. **PR2A-0 — SAM (SAM.Core/SAM.Analytical): stale design-load read (B0).**
+1. **PR2A-0 — SAM (SAM.Core/SAM.Analytical): stale design-load read (B0).** **DONE:** SAM#147, merge `00db4b85` (§3.1).
    - Open a SAM issue first.
    - Find why duplicate `SAM.Analytical` sets are appended.
    - Make the read/write deterministic: one set per assembly name on load, or read and write the same set.
