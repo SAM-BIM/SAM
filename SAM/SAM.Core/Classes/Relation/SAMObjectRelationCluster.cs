@@ -32,10 +32,15 @@ namespace SAM.Core
         /// fix when this throws is to give the named type the copy support its siblings have, not to catch
         /// it: see <c>ZoneSimulationResult</c> and the <c>TM5x</c> results for the shape.
         /// </para>
+        /// <para>
+        /// The clone is returned for the caller to store <b>in the original's own slot</b> (see
+        /// <c>RelationCluster.ReplaceObjects</c>), not re-added: re-adding keyed it afresh, and an object with
+        /// no Guid of its own then landed beside the original rather than over it.
+        /// </para>
         /// </summary>
         /// <exception cref="System.InvalidOperationException">The object could not be cloned, or the clone
         /// could not be stored.</exception>
-        internal static void DeepCloneObject(IJSAMObject @object, System.Func<IJSAMObject, bool> add)
+        internal static T DeepCloneObject<T>(T @object, System.Func<T, bool> isValid) where T : IJSAMObject
         {
             IJSAMObject clone = @object.Clone();
             if (clone == null)
@@ -45,12 +50,14 @@ namespace SAM.Core
                     @object.GetType().FullName));
             }
 
-            if (!add(clone))
+            if (clone is not T clone_T || !isValid(clone_T))
             {
                 throw new System.InvalidOperationException(string.Format(
                     "A deep copy of this cluster could not be made: the clone of '{0}' could not be stored, so the original would have been left in its place and shared with the model this was copied from.",
                     @object.GetType().FullName));
             }
+
+            return clone_T;
         }
 
         public SAMObjectRelationCluster()
@@ -74,17 +81,7 @@ namespace SAM.Core
         {
             if (deepClone)
             {
-                List<IJSAMObject> objects = GetObjects();
-                if (objects != null)
-                {
-                    foreach (object @object in objects)
-                    {
-                        if (@object is IJSAMObject)
-                        {
-                            DeepCloneObject((IJSAMObject)@object, AddObject);
-                        }
-                    }
-                }
+                ReplaceObjects(x => x == null ? x : DeepCloneObject(x, IsValid));
             }
         }
     }
@@ -112,17 +109,7 @@ namespace SAM.Core
         {
             if (deepClone)
             {
-                List<T> objects = GetObjects();
-                if (objects != null)
-                {
-                    foreach (object @object in objects)
-                    {
-                        if (@object is IJSAMObject)
-                        {
-                            SAMObjectRelationCluster.DeepCloneObject((T)@object, x => AddObject((T)x));
-                        }
-                    }
-                }
+                ReplaceObjects(x => x == null ? x : SAMObjectRelationCluster.DeepCloneObject(x, IsValid));
             }
         }
 
