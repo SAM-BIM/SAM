@@ -12,6 +12,28 @@ It carries this progress update. See *Current*.
 
 **PR2 has NOT started.** It waits for the owner's review of the polish PR.
 
+## Current: deep clone doubled Guid-less cluster objects (26 Sep 2026) - PR OPEN, not merged
+
+**Status.** Branch `fix/deepclone-guidless-objects-2026-09-26` from `sow/2026-Q3` `3ec76eca`; commit `685599dc`. First of
+three coordinated PRs (SAM -> SAM_Tas `fix/parto-replace-run-records-2026-09-26` -> SAM_UI
+`feature/parto-2b-sam-growth-2026-09-26`). Full record: SAM_UI `documentation/evidence/parto-2b-sam-growth/GROWTH.md`.
+
+**Defect.** `SAMObjectRelationCluster(cluster, deepClone: true)` (from `bdcfe5df`) re-added each clone via `AddObject`.
+An object with no Guid of its own - `Analytical.DesignDay` is a `WeatherDay` - is re-found only by `Equals` (reference
+equality), so its clone got a NEW key beside the original, which stayed shared with the source. Every deep copy
+doubled the design days; Part O takes one per TAS run, so the 2B live run's model went 12 -> 57,342 design days
+(172 KB -> 3.7 MB). Engineering results unaffected (nothing sizes or simulates from those records).
+
+**Fix.** `RelationCluster.ReplaceObjects(Func<X, X>)` (protected) swaps each object in its own slot (same bucket, same
+key, relations intact); both deep-clone constructors use it; `DeepCloneObject` now returns the clone and keeps the
+throw-rather-than-share guard. Files: `SAM.Core/Classes/Relation/RelationCluster.cs`, `SAMObjectRelationCluster.cs`,
+`SAM.Tests/AdjacencyClusterDeepCloneTests.cs`.
+
+**Validation.** SAM.Tests 2441/2441; new `DeepCopy_OfObjectsWithNoGuid_NeitherDuplicatesNorSharesThem` fails pre-fix
+(2 -> 64 after five copies). `SAM.sln` Release exit 0. Live 2B re-run: see SAM_UI.
+
+**Next step.** Owner review; CI green; merge this first, then SAM_Tas, then SAM_UI; then SAM_Deploy pointers.
+
 ## Current: reporting visual-polish PR - approved v2 builder changes (2026-09-25) - PR open, not merged
 
 **Status.** The v2 layout was approved at the design gate as the Phase-1 direction. This small PR implements its
