@@ -322,6 +322,84 @@ namespace SAM.Tests
             }
         }
 
+        [Fact]
+        public void DesignLoads_FromASavedModelWithLegacyDuplicateParameterSets_AreTheLatestPersistedValues()
+        {
+            // SAM#146 / Phase-2 audit B0: a saved model whose space carries one "SAM.Analytical" set per Tas run
+            // (open_out.sam Bathroom_2 shape). Phase 1 printed the first run's 0 W; the latest run wrote 1139.87 W.
+            AnalyticalModel analyticalModel = ReportingFixture.Full(out _);
+            string name = SAM.Core.Query.Name(typeof(Space).Assembly);
+
+            System.Text.Json.Nodes.JsonObject jsonObject_Model = analyticalModel.ToJsonObject();
+            System.Text.Json.Nodes.JsonObject jsonObject_Space = FindSpace(jsonObject_Model, ReportingFixture.SpaceGuid);
+            Assert.NotNull(jsonObject_Space);
+
+            System.Text.Json.Nodes.JsonArray jsonArray_ParameterSets = (System.Text.Json.Nodes.JsonArray)jsonObject_Space["ParameterSets"];
+            System.Text.Json.Nodes.JsonObject jsonObject_Authoring = (System.Text.Json.Nodes.JsonObject)jsonArray_ParameterSets.Single(x => (string)x["Name"] == name);
+            jsonObject_Authoring["Guid"] = "990f1c57-aca9-4e09-8c0e-d5d538b111b1";
+            System.Text.Json.Nodes.JsonArray jsonArray_Parameters = (System.Text.Json.Nodes.JsonArray)jsonObject_Authoring["Parameters"];
+            foreach (System.Text.Json.Nodes.JsonNode jsonNode in jsonArray_Parameters.Where(x => (string)x["Name"] is "Design Heating Load" or "Design Cooling Load").ToList())
+            {
+                jsonArray_Parameters.Remove(jsonNode);
+            }
+
+            foreach ((string guid, double designHeatingLoad) in new[] { ("cc94e7a1-faf2-40de-b400-82b7e8a573fc", 0.0), ("feae3a10-9c31-4413-8d20-797b65029737", 1139.87451171875) })
+            {
+                ParameterSet parameterSet = new ParameterSet(new Guid(guid), name);
+                parameterSet.Add("IsUsed", true);
+                parameterSet.Add("Design Heating Load", designHeatingLoad);
+                parameterSet.Add("Design Cooling Load", 0.0);
+                jsonArray_ParameterSets.Add(parameterSet.ToJsonObject());
+            }
+
+            AnalyticalModel analyticalModel_Saved = SAM.Core.Create.IJSAMObject<AnalyticalModel>(jsonObject_Model.ToJsonString());
+
+            SpaceDocumentData data = Collect(analyticalModel_Saved, UnitStyle.SI, out _);
+
+            AssertQuantity(data.Sizing.DesignHeatingLoad, 1139.87451171875, UnitCategory.Power, ReportValueSource.TBD);
+            AssertQuantity(data.Sizing.DesignCoolingLoad, 0.0, UnitCategory.Power, ReportValueSource.TBD);
+            AssertQuantity(data.Sizing.DesignHeatingLoadPerArea, 1139.87451171875 / 30, UnitCategory.SpecificPower, ReportValueSource.Derived);
+            Assert.Equal(DesignLoadStatus.Unknown, data.Sizing.DesignLoadStatus);
+        }
+
+        private static System.Text.Json.Nodes.JsonObject FindSpace(System.Text.Json.Nodes.JsonNode jsonNode, Guid guid)
+        {
+            switch (jsonNode)
+            {
+                case System.Text.Json.Nodes.JsonObject jsonObject:
+                    if (((string)jsonObject["_type"])?.StartsWith("SAM.Analytical.Space,") == true && (string)jsonObject["Guid"] == guid.ToString())
+                    {
+                        return jsonObject;
+                    }
+
+                    foreach (KeyValuePair<string, System.Text.Json.Nodes.JsonNode> keyValuePair in jsonObject)
+                    {
+                        System.Text.Json.Nodes.JsonObject result = keyValuePair.Value == null ? null : FindSpace(keyValuePair.Value, guid);
+                        if (result != null)
+                        {
+                            return result;
+                        }
+                    }
+
+                    return null;
+
+                case System.Text.Json.Nodes.JsonArray jsonArray:
+                    foreach (System.Text.Json.Nodes.JsonNode jsonNode_Item in jsonArray)
+                    {
+                        System.Text.Json.Nodes.JsonObject result = jsonNode_Item == null ? null : FindSpace(jsonNode_Item, guid);
+                        if (result != null)
+                        {
+                            return result;
+                        }
+                    }
+
+                    return null;
+
+                default:
+                    return null;
+            }
+        }
+
         // ---------- missing / not applicable ----------
 
         [Fact]
