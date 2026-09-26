@@ -49,9 +49,9 @@ safe design is an explicit, persisted per-dwelling **intent** in SAM, with **det
 a clean baseline** in one SAM call. Active cooling should be recorded but gated until the TAS Systems (TPD)
 route has licensed proof.
 
-Evidence: `SAM/SAM.Tests/PartOMixedStrategyProofTests.cs` has 12 tests, `[Trait("Category","PR0Investigation")]`,
+Evidence: `SAM/SAM.Tests/PartOMixedStrategyProofTests.cs` has 13 tests, `[Trait("Category","PR0Investigation")]`,
 all passing. They assert **observed** behaviour, including behaviour classified below as a defect. The existing
-Part O/Part F suite is 1236/1236 green including them.
+Part O/Part F suite is 1238/1238 green including them.
 
 ---
 
@@ -116,6 +116,7 @@ model parameters).
 | 18 | NV + cooling | **Must refuse.** The only cooling path is on the MVHR supply. | code |
 | 19 | Cooled and non-cooled mechanical dwellings in one simulation | **Unresolved; gated.** Any cooling forces the TPD route on the *whole* building, because the no-IZAM source strips all IZAMs and ticV. Non-cooled MVHR dwellings are then simulated through TPD without their internal transfer-air network, a different representation from their IZAM screening. NV rooms are unbound and free-run in the bridge. Needs licensed TAS proof. | code |
 | 20 | The open model as baseline | **Blocker.** Prepare, Simulate and 2B each `SetJSAMObject` the prepared model into the open model. After one run the open model is no longer a baseline (see #10). | SAM_UI code |
+| 21 | An authored conditioned unit reused for an MVHR dwelling | **Unsafe: breaks the cooling gate.** When the dwelling's design terminals are already connected to an authored system, `AddPartOBaseMVHRSystem` reuses that system and unit, and **keeps its supply temperatures**. Only the create path sets them to NaN (`Modify/AddPartOBaseMVHRSystem.cs:291-292`). `AddAirMovementObjects` then emits a cooling profile from a finite `SummerSupplyTemperature` (`Modify/AddAirMovementObjects.cs:256-258`). The result is active supply-air cooling under a `BasePassive` scenario that asserts none. This also affects today's legacy 1a path over such a model. | P12 |
 
 ---
 
@@ -133,6 +134,7 @@ model parameters).
 | C8 | `PartOWorkflowRequest.VentilationStrategies()`, `PartORun` | Fans one word out to every zone; one iteration per run | SAM_UI |
 | C9 | `PartODiagnosticLog` | Single iteration per log (minor) | SAM_Tas |
 | C10 | `PartOEquipmentSelection` mode | Per call, not per dwelling: an automatic scope overwrites a manual choice (#3) | SAM |
+| C11 | `Modify.AddPartOBaseMVHRSystem` reuse path | Keeps an authored unit's supply temperatures, so a reused conditioned unit delivers cooling behind the gate (#21, P12) | SAM |
 
 ---
 
@@ -203,7 +205,11 @@ restore what was never recorded, and the lost values are the ones `ticV` reads (
 `Modify.MaterialisePartODwellingStrategies(baseline, strategies, descriptors)`, one call, pure:
 1. **Refuse on:** a materialised baseline (D1); a strategy for a non-dwelling zone; a dwelling with no
    strategy while others have one; an authored shared or legacy mechanical system serving a mixed scope (P7);
-   NV + cooling; cooling while gated (D5); a retained airflow set that does not resolve or does not balance.
+   NV + cooling; cooling while gated (D5); a retained airflow set that does not resolve or does not balance;
+   and, for an MVHR dwelling with `ActiveCooling = None`, a **reused authored unit that states a finite
+   summer or winter supply temperature** (#21, P12). Materialisation never clears an authored setpoint;
+   that would be a silent engineering change. It refuses and names the unit, so the designer either removes
+   the conditioning from the baseline or waits for the cooling authority (PR3).
 2. Apply Part F rates and realise terminals **only on the spaces of MVHR dwellings**. This needs scoped
    overloads of the two whole-model calls; the existing whole-model behaviour stays for legacy callers.
 3. Run the existing per-dwelling loop for each MVHR dwelling: system, unit, product, movements, transfer air
@@ -382,7 +388,7 @@ PartODwellingStrategy          -- intent, on the BASELINE
   - per-zone scenarios, including automatic `CommonSpace` scenarios for assessed common spaces
     (classified from state, not names), with the iteration-neutral common-space identity of D2.5;
   - the materialisation record, including the full catalogue fingerprint;
-  - refusals: cooling (recorded, refused), NV + cooling, NV + `RetainedDesign`, NV over authored mechanical duty, shared systems, a
+  - refusals: cooling (recorded, refused), NV + cooling, NV + `RetainedDesign`, NV over authored mechanical duty, a reused conditioned unit under `ActiveCooling = None`, shared systems, a
     materialised or result-bearing baseline, a stale or unbalanced retained design.
 - **Tests:** the PR0 proof matrix promoted and inverted to the target behaviour:
   - P1: an NV dwelling stays clean;
@@ -390,12 +396,13 @@ PartODwellingStrategy          -- intent, on the BASELINE
   - P2/P10: order-independent and reproducible, with names now equal;
   - P3: a manual product is kept under an automatic neighbour;
   - P5: the retained design is kept, or refused when stale; accepting 2B on a terminal-less baseline realises that dwelling's terminals first;
-  - P11: a materialised input is refused, and so is a simulated all-NV model (scenarios, provenance or results present).
+  - P11: a materialised input is refused, and so is a simulated all-NV model (scenarios, provenance or results present);
+  - P12: a reused conditioned unit under `ActiveCooling = None` is refused, and a materialised movement never carries cooling.
   - Legacy `PreparePartOIteration` tests unchanged.
 - **Dependencies:** none.
 - **Acceptance:**
   - all green;
-  - legacy callers bit-identical (existing 1236 tests);
+  - legacy callers bit-identical (the existing Part O/Part F tests);
   - an NV dwelling has no Part F internal-condition rates, no materialisation-generated or connected
     terminals, and no system, unit or movement after materialisation;
   - its baseline design terminals, if any, are unchanged, unconnected and reported (D2.4);
@@ -529,9 +536,10 @@ normalised to the dwelling they serve.
 | P9 | The composed model round-trips through JSON |
 | P10 | Two independent baseline clones give equal engineering state and different guids |
 | P11 | MVHR preparation irreversibly rewrites an unassessed dwelling's internal condition |
+| P12 | A reused authored unit keeps its 18 °C summer supply, and the rebuilt movement carries a cooling profile |
 
-Run: `dotnet test SAM/SAM.Tests/SAM.Tests.csproj --filter Category=PR0Investigation` → 12/12 passed.
-Existing suite: `--filter "FullyQualifiedName~PartO|FullyQualifiedName~PartF"` → 1236/1236 passed.
+Run: `dotnet test SAM/SAM.Tests/SAM.Tests.csproj --filter Category=PR0Investigation` → 13/13 passed.
+Existing suite: `--filter "FullyQualifiedName~PartO|FullyQualifiedName~PartF"` → 1238/1238 passed.
 
 **The proof tests are disposable.** They pin *today's* behaviour. PR1 should delete or invert them, not keep
 them as regression pins.

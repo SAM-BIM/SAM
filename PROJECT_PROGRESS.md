@@ -17,13 +17,13 @@ different final Part O strategy per dwelling in ONE analytical model, with ONE a
 final authority. **PR0 is investigation only: no production code changes.**
 
 - **Report (authoritative):** `documentation/PartO-MixedDwellingStrategies-PR0.md`, linked from
-  `PartO-ARCHITECTURE.md` §9. It contains the mutation map, 20 verdicts, blockers C1-C10, the architecture and
+  `PartO-ARCHITECTURE.md` §9. It contains the mutation map, 21 verdicts, blockers C1-C11, the architecture and
   authority model, the PR sequence with gates, migration notes, and the **binding owner decisions** at the top.
-- **Evidence:** `SAM/SAM.Tests/PartOMixedStrategyProofTests.cs`, 12 DISPOSABLE tests (`Category=PR0Investigation`)
+- **Evidence:** `SAM/SAM.Tests/PartOMixedStrategyProofTests.cs`, 13 DISPOSABLE tests (`Category=PR0Investigation`)
   that pin today's behaviour. PR1 inverts or removes them.
 - **Validation:**
-  - PR0 filter: 12/12 pass.
-  - `FullyQualifiedName~PartO|FullyQualifiedName~PartF`: 1236/1236 pass.
+  - PR0 filter: 13/13 pass.
+  - `FullyQualifiedName~PartO|FullyQualifiedName~PartF`: 1238/1238 pass.
   - CI on #149: build, test and spdx all green.
 - **Owner decisions, binding:**
   1. A clean pre-Part-O baseline is mandatory. There is no undo or adopt path, and

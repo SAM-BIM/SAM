@@ -410,6 +410,40 @@ namespace SAM.Tests
             Assert.Equal(0.008, supply_After, 6);
         }
 
+        // -------------------------------------------------------------------------------------------------
+        // P12. A reused unit keeps its authored supply temperature - active cooling behind the gate.
+        // -------------------------------------------------------------------------------------------------
+
+        [Fact]
+        public void P12_AReusedConditionedUnit_KeepsItsSupplyTemperature_AndTheMovementCarriesCooling()
+        {
+            AnalyticalModel baseline = Baseline();
+
+            //A freshly built Base MVHR unit states no supply temperature, so its movement carries no cooling.
+            AnalyticalModel model_Built = Prepare(baseline, PartOIteration.BasePassive, "MVRE", null, Flat1).AnalyticalModel;
+            AirHandlingUnit airHandlingUnit = UnitOf(model_Built, Flat1);
+            Assert.True(double.IsNaN(airHandlingUnit.SummerSupplyTemperature));
+            Assert.Null(model_Built.AdjacencyCluster.GetRelatedObjects<AirHandlingUnitAirMovement>(airHandlingUnit).Single().Cooling);
+
+            //The same system and unit, now carrying an authored 18 degC summer supply - an authored,
+            //conditioned, dwelling-local unit connected to the dwelling's design terminals.
+            AdjacencyCluster adjacencyCluster = model_Built.AdjacencyCluster;
+            AirHandlingUnit airHandlingUnit_Conditioned = new(airHandlingUnit) { SummerSupplyTemperature = 18.0 };
+            adjacencyCluster.AddObject(airHandlingUnit_Conditioned);
+            AnalyticalModel model_Conditioned = new(model_Built, adjacencyCluster);
+
+            AnalyticalModel model_Reprepared = Prepare(model_Conditioned, PartOIteration.BasePassive, "MVRE", null, Flat1).AnalyticalModel;
+            AirHandlingUnit airHandlingUnit_After = UnitOf(model_Reprepared, Flat1);
+            AirHandlingUnitAirMovement airHandlingUnitAirMovement = model_Reprepared.AdjacencyCluster.GetRelatedObjects<AirHandlingUnitAirMovement>(airHandlingUnit_After).Single();
+
+            //FACT (defect for the gate): the reuse path keeps the authored 18 degC, and the rebuilt movement
+            //carries a cooling profile - active supply-air cooling under a BasePassive scenario that asserts
+            //none, and under a future strategy with ActiveCooling = None.
+            Assert.Equal(18.0, airHandlingUnit_After.SummerSupplyTemperature);
+            Assert.NotNull(airHandlingUnitAirMovement.Cooling);
+            output.WriteLine("cooling profile: " + airHandlingUnitAirMovement.Cooling.Name + " = " + string.Join(",", airHandlingUnitAirMovement.Cooling.GetValues()));
+        }
+
         // =================================================================================================
         // Fixture
         // =================================================================================================
