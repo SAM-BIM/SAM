@@ -23,7 +23,8 @@ the PDF renderer need no change. `SAM.Units`, Part F/Part O labels and `Ventilat
 (source-data metadata) are deliberately untouched.
 - Files: `QuantityFormatter.cs`, `DocumentOptions.cs` (doc comment), `QuantityFormatterTests.cs` (new
   `AirFlow_SIDefault_UsesCapitalLitreSymbol`; SI theory row), `PdfRendererTests.cs` (IP no-SI-symbol list now `L/s`).
-- Tests: reporting filters (QuantityFormatter, PdfRenderer, ReportValue, Reporting, TM59Assessment) 131/131.
+- Also the `SpaceAssumptions_Full_SI.json` golden (4 `unit` entries; caught by CI, not by the first local filter).
+- Tests: full `SAM.Tests` 2469/2469 (Release, built explicitly).
 - Next: merge on green CI; SAM_UI PR3 (SAM_UI#121) picks it up from the rebuilt `build/`.
 
 ## Current: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - SAM#141, approved to merge on green CI
