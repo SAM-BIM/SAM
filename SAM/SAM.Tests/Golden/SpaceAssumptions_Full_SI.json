@@ -449,7 +449,7 @@
               "label": "Air flow",
               "value": {
                 "text": "5",
-                "unit": "l/s",
+                "unit": "L/s",
                 "availability": "Available",
                 "freshness": "Current",
                 "source": "Derived"
@@ -481,7 +481,7 @@
               "label": "Supply air",
               "value": {
                 "text": "198",
-                "unit": "l/s",
+                "unit": "L/s",
                 "availability": "Available",
                 "freshness": "Current",
                 "source": "SAM"
@@ -491,7 +491,7 @@
               "label": "Extract air",
               "value": {
                 "text": "180",
-                "unit": "l/s",
+                "unit": "L/s",
                 "availability": "Available",
                 "freshness": "Current",
                 "source": "SAM"
@@ -501,7 +501,7 @@
               "label": "Outside air",
               "value": {
                 "text": "40",
-                "unit": "l/s",
+                "unit": "L/s",
                 "availability": "Available",
                 "freshness": "Current",
                 "source": "SAM"

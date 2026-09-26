@@ -43,7 +43,7 @@ namespace SAM.Core.Reporting
         public CultureInfo Culture { get; set; } = CultureInfo.GetCultureInfo("en-GB");
 
         /// <summary>
-        /// SI air flow display unit: l/s (default) or m³/s. Imperial always uses cfm.
+        /// SI air flow display unit: L/s (default) or m³/s. Imperial always uses cfm.
         /// </summary>
         public AirFlowDisplay SIAirFlow { get; set; } = AirFlowDisplay.LitersPerSecond;
 

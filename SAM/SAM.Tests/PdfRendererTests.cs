@@ -91,7 +91,7 @@ namespace SAM.Tests
             Document document = ReportingDesignGateFixture.Document("office_IP");
             string text = Text(document);
 
-            foreach (string symbol in new[] { "m²", "m³", "°C", "l/s", "W/m²", "lx", "kW" })
+            foreach (string symbol in new[] { "m²", "m³", "°C", "L/s", "W/m²", "lx", "kW" })
             {
                 Assert.DoesNotContain(symbol, text);
             }

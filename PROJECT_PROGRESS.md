@@ -14,6 +14,19 @@ reporting visual-polish PR with the approved v2 builder changes. It also contain
 only conflict was this file. The owner approved merging SAM#141 once CI is green; the merge commit is recorded in
 git. See *Current*.
 
+## Current: reporting airflow symbol `L/s` (2026-09-26) - PR3 closeout
+
+`sow/2026-Q3` is at `ba343bfb`, the merge of SAM#141 (PR2). Branch `fix/reporting-airflow-symbol-L-per-s` changes the
+SI airflow display symbol from `l/s` to the approved Phase-1 convention `L/s`. The symbol is defined once, in
+`QuantityFormatter.DisplayUnit(UnitCategory.AirFlow)` (SAM.Core.Reporting); only reporting consumes it, so SAM_UI and
+the PDF renderer need no change. `SAM.Units`, Part F/Part O labels and `VentilationUnitPerformanceAxis.Unit_LitresPerSecond`
+(source-data metadata) are deliberately untouched.
+- Files: `QuantityFormatter.cs`, `DocumentOptions.cs` (doc comment), `QuantityFormatterTests.cs` (new
+  `AirFlow_SIDefault_UsesCapitalLitreSymbol`; SI theory row), `PdfRendererTests.cs` (IP no-SI-symbol list now `L/s`).
+- Also the `SpaceAssumptions_Full_SI.json` golden (4 `unit` entries; caught by CI, not by the first local filter).
+- Tests: full `SAM.Tests` 2469/2469 (Release, built explicitly).
+- Next: merge on green CI; SAM_UI PR3 (SAM_UI#121) picks it up from the rebuilt `build/`.
+
 ## Current: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - SAM#141, approved to merge on green CI
 
 **Status.** Implemented and validated. It stops at the open PR: the owner reviews it. Out of scope and not started:
@@ -325,7 +338,7 @@ dependencies):
     - placeholders are "—" and "n/a";
     - numbers use the culture's separators, and negative zero is suppressed;
     - dates are formatted with invariant month names.
-  - `DocumentOptions`: unit system, culture, SI air flow unit (l/s by default), metadata, style, and fixed
+  - `DocumentOptions`: unit system, culture, SI air flow unit (L/s by default), metadata, style, and fixed
     `GeneratedAt` / `SoftwareVersion` for tests.
   - `DocumentMetadata`, `DocumentStyle`.
   - Blocks: `KeyValueBlock` (and its rows), `TableBlock` / `TableColumn` / `TableRow`, `NoticeBlock`, `TextBlock`,
@@ -408,7 +421,7 @@ dependencies):
 - New test files:
   - `ReportValueTests`: every factory has no contradictory state; rejects NaN, null and invalid values;
     immutability.
-  - `QuantityFormatterTests`: SI and IP values for every category; absolute temperature vs difference; l/s,
+  - `QuantityFormatterTests`: SI and IP values for every category; absolute temperature vs difference; L/s,
     m³/s and cfm; the 10 kW and 100 kBtu/h shared-unit pairs; W/m² ↔ Btu/h·ft²; placeholders; culture.
   - `SpaceAssumptionsTests`: typed collector values; fabric; design-load freshness Unknown, including against a
     current TSD provenance; the minimal model; the invalid value; the injected fault; section order; IP
