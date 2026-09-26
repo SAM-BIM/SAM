@@ -13,8 +13,9 @@
 2. **Common / corridor spaces are included automatically.** Assessed common spaces (e.g. a
    `TM59_Communal Corridor` internal condition) take part in the final mixed annual run. They are **not**
    dwelling strategy rows. Their scenario and classification are derived from authoritative internal
-   condition / zone state (`IsDwelling`, the TM59 internal-condition resolver), **never from space names**.
-   This closes #12.
+   condition / zone state (`IsDwelling` and the space's **assigned** internal condition), **never from
+   space names**. This closes #12. PR1 must not use `TM59InternalConditionResolver` for it: that resolver
+   classifies from `space.Name` (D2.5).
 3. **Project-wide constraints live at project level.** Rules such as "all dwellings MVHR" and the allowed
    product pool are project settings (beside `PartOEquipmentSelection`). The dwelling grid consumes them.
    They are **not** duplicated into each `PartODwellingStrategy`.
@@ -100,7 +101,7 @@ model parameters).
 | 3 | A different product per dwelling | **Safe with constraints.** The product lives per AHU. An automatic call whose scope covers a manually assigned dwelling **silently re-selects it**. | P3 |
 | 4 | NV dwelling beside an MVHR dwelling | **Unsafe: isolation.** Preparing *any* MVHR dwelling writes Part F supply/extract onto *every* sized space, including NV and unassessed dwellings. It also creates unconnected terminals there. Their data reaches TAS through `ticV` whenever the NV room's internal condition carries a Ventilation profile that resolves (`SAM_Tas Modify/UpdateInternalCondition.cs:273-302`). In that case a neighbour's Part F rate is simulated as mechanical ventilation in an NV flat. Otherwise it is inert, but the model on disk misstates the NV flat. | P1 (Flat 2 *and* the unassessed Flat 3 both polluted), P11 |
 | 5 | Switching a dwelling MVHR → NV | **Unsafe: blocker.** NV preparation succeeds, returns the full MVHR design unchanged, and states an NV scenario. TM59 would assess a mechanically ventilated flat against the NV criterion. | P4 |
-| 6 | Order independence (A→B→C vs C→A→B) | **Engineering state equal; identity not.** Generic unit names follow call order (`MVHR-01`/`-02` swap). The name is the system→unit link (`VentilationSystemParameter.SupplyUnitName`). | P2 |
+| 6 | Order independence (A→B→C vs C→A→B) | **Engineering state equal; identity not.** All values are equal, including the unit movements' control profiles. Generic unit names follow call order (`MVHR-01`/`-02` swap). The name is the system→unit link (`VentilationSystemParameter.SupplyUnitName`), and it also leaks into the unit movement's profile names (`MVHR-01 Humidification`). | P2 |
 | 7 | Idempotence of one dwelling | **Already safe** | P6 |
 | 8 | A retained 2B design airflow | **Safe with constraints.** It survives preparing other dwellings and re-preparing its own. It must be a **balanced set**: a single raised value is refused, not rescaled. | P5 |
 | 9 | Deterministic reconstruction | **Engineering state reproducible; guids not.** Two independent clones of one baseline with the same strategy set give equal signatures. Every generated object has a new guid, so the model fingerprint differs and prior results are never reused. That fails closed. | P10 |
@@ -235,8 +236,17 @@ restore what was never recorded, and the lost values are the ones `ticV` reads (
    - PR1 must therefore define an iteration-neutral common-space identity: scope `CommonSpace`, strategy
      `UV` or the corridor criterion, and assumptions that assert nothing about dwelling ventilation. That is a
      **new key**, never a reinterpretation of old ones (G).
-   - The corridor internal condition is recognised through `TM59InternalConditionResolver`
-     (`CommunalCorridorInternalConditionName`), not the space name.
+   - **The corridor is recognised from the space's assigned internal condition, not through
+     `TM59InternalConditionResolver`.** That resolver's `ClassifyCore` classifies from `space.Name`, and its
+     `Resolve` uses the result to pick a library condition. It never inspects the condition the space
+     actually carries. Using it would drop a correctly assigned communal-corridor condition on an unusually
+     named space, and accept a corridor-like name that has no authoritative condition.
+     - PR1 either adds a query that reads the **assigned** `InternalCondition` and matches it exactly against
+       `TM59InternalConditionResolver.CommunalCorridorInternalConditionName`, or makes that exact-condition
+       check inline.
+     - Pin it with a regression test on a **non-corridor-named** space that carries the corridor condition,
+       and a corridor-named space that does not.
+     - The dwelling / common split itself stays `IsDwelling` (`PartOClassifyAssessmentZones`).
 6. Stamp a **materialisation record** containing:
    - the baseline fingerprint (reuse `SimulationResultProvenance.Fingerprint` over the baseline);
    - the strategy-set fingerprint;
@@ -498,13 +508,18 @@ automatically; project-wide constraints are project settings.
 
 The fixture is Flats 1–2 from `PartOIterationPreparationTests.ModelWithTwoAssessedDwellings` (by reflection,
 so the two cannot drift), plus an authored Flat 3 and a communal corridor zone (`IsDwelling=false`) adjacent
-to Flats 1 and 2. Every test compares a GUID-insensitive signature labelled by dwelling.
+to Flats 1 and 2. Every test compares a GUID-insensitive signature labelled by dwelling. The signature
+covers systems and their served spaces; units and their products; internal-condition supply and extract;
+terminals with flow and connection; every `SpaceAirMovement` with its endpoints, flow and profile; and every
+`AirHandlingUnitAirMovement` with its unit relation and its heating, cooling, humidification,
+dehumidification and density profiles (name, type, length and value sum). Unit names inside profile names are
+normalised to the dwelling they serve.
 
 | Test | Fact pinned |
 |---|---|
 | P0 | A mixed-route call is refused with no model |
 | P1 | MVHR then NV: A intact; B and the unassessed C carry Part F rates and unconnected terminals |
-| P2 | Reordering keeps the engineering state; unit names swap with call order |
+| P2 | Reordering keeps the engineering state, profiles included; unit names, and the profile names built from them, swap with call order |
 | P3 | Products stay per dwelling; an automatic scope over a manual dwelling re-selects it |
 | P4 | Re-stating MVHR as NV keeps the whole mechanical design under an NV scenario |
 | P5 | A retained airflow survives; a single raise is refused as unbalanced; the internal condition disagrees with the terminal |

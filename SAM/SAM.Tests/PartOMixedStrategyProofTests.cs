@@ -113,7 +113,12 @@ namespace SAM.Tests
             AnalyticalModel model_X = Chain(baseline, (Flat1, "MVRE"), (Flat2, "NV"), (Flat3, "MVRE"));
             AnalyticalModel model_Y = Chain(baseline, (Flat3, "MVRE"), (Flat1, "MVRE"), (Flat2, "NV"));
 
-            Assert.Equal(Signature(model_X), Signature(model_Y));
+            List<string> signature_X = Signature(model_X);
+            List<string> signature_Y = Signature(model_Y);
+            signature_X.Except(signature_Y).ToList().ForEach(x => output.WriteLine("only X: " + x));
+            signature_Y.Except(signature_X).ToList().ForEach(x => output.WriteLine("only Y: " + x));
+
+            Assert.Equal(signature_X, signature_Y);
 
             //FACT: generic unit names are handed out in call order, so the same dwelling's unit is named
             //differently depending on the order. The name is also the system -> unit link
@@ -123,6 +128,18 @@ namespace SAM.Tests
             output.WriteLine("X: " + string.Join(", ", names_X.Select(x => x.Key + "=" + x.Value)));
             output.WriteLine("Y: " + string.Join(", ", names_Y.Select(x => x.Key + "=" + x.Value)));
             Assert.NotEqual(names_X[Flat1], names_Y[Flat1]);
+
+            //FACT: the order-dependent name also leaks into the unit movement's control profile names
+            //("MVHR-01 Humidification"), while their values are identical in both orders.
+            string ProfileName_Flat1(AnalyticalModel analyticalModel)
+            {
+                AdjacencyCluster adjacencyCluster = analyticalModel.AdjacencyCluster;
+                AirHandlingUnitAirMovement airHandlingUnitAirMovement = adjacencyCluster.GetRelatedObjects<AirHandlingUnitAirMovement>(UnitOf(analyticalModel, Flat1)).Single();
+                return airHandlingUnitAirMovement.Humidification?.Name;
+            }
+
+            output.WriteLine("Flat 1 humidification profile: X '" + ProfileName_Flat1(model_X) + "', Y '" + ProfileName_Flat1(model_Y) + "'");
+            Assert.NotEqual(ProfileName_Flat1(model_X), ProfileName_Flat1(model_Y));
         }
 
         // -------------------------------------------------------------------------------------------------
@@ -643,10 +660,47 @@ namespace SAM.Tests
                 return space == null ? null : DwellingOf(space);
             }
 
+            //A profile by name, type, length and value sum - enough to see it lost, swapped or altered. The unit
+            //movement's profiles are NAMED after the generic unit ("MVHR-01 Humidification"), and those names
+            //follow call order (P2), so a unit name inside a profile name is replaced by the dwelling it serves.
+            string ProfileText(Profile profile)
+            {
+                if (profile == null)
+                {
+                    return "-";
+                }
+
+                string name = profile.Name ?? string.Empty;
+                foreach (KeyValuePair<string, string> keyValuePair in label_Unit.OrderByDescending(x => x.Key.Length))
+                {
+                    name = name.Replace(keyValuePair.Key, "unit[" + keyValuePair.Value + "]");
+                }
+
+                double[] values = profile.GetValues() ?? [];
+                return string.Format("{0}/{1}[{2}:{3}]", name, profile.ProfileType, values.Length, F(values.Sum()));
+            }
+
             foreach (SpaceAirMovement spaceAirMovement in adjacencyCluster.GetObjects<SpaceAirMovement>() ?? [])
             {
                 string dwelling = DwellingOfReference(spaceAirMovement.To) ?? DwellingOfReference(spaceAirMovement.From) ?? "(none)";
-                result.Add(string.Format("{0}|movement|{1} -> {2}|{3} l/s", dwelling, Resolve(spaceAirMovement.From), Resolve(spaceAirMovement.To), F(spaceAirMovement.AirFlow * 1000)));
+                result.Add(string.Format("{0}|movement|{1} -> {2}|{3} l/s|profile {4}", dwelling, Resolve(spaceAirMovement.From), Resolve(spaceAirMovement.To), F(spaceAirMovement.AirFlow * 1000), ProfileText(spaceAirMovement.Profile)));
+            }
+
+            //The unit's own movement carries the plant-zone supply condition TAS is given (heating, cooling,
+            //humidity limits and density), so it is part of the engineering state, not decoration.
+            foreach (AirHandlingUnitAirMovement airHandlingUnitAirMovement in adjacencyCluster.GetObjects<AirHandlingUnitAirMovement>() ?? [])
+            {
+                List<AirHandlingUnit> airHandlingUnits = adjacencyCluster.GetRelatedObjects<AirHandlingUnit>(airHandlingUnitAirMovement) ?? [];
+                string label = string.Join("+", airHandlingUnits.Select(x => label_Unit.TryGetValue(x.Name, out string value) ? value : "(unlinked)").OrderBy(x => x, StringComparer.Ordinal));
+                result.Add(string.Format(
+                    "{0}|unit-movement|units {1}|heating {2} cooling {3} humidification {4} dehumidification {5} density {6}",
+                    label.Length == 0 ? "(none)" : label,
+                    airHandlingUnits.Count,
+                    ProfileText(airHandlingUnitAirMovement.Heating),
+                    ProfileText(airHandlingUnitAirMovement.Cooling),
+                    ProfileText(airHandlingUnitAirMovement.Humidification),
+                    ProfileText(airHandlingUnitAirMovement.Dehumidification),
+                    ProfileText(airHandlingUnitAirMovement.Density)));
             }
 
             result.Sort(StringComparer.Ordinal);
