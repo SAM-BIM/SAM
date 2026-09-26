@@ -1,7 +1,8 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` is at `af0356a4`, the merge of [SAM#145](https://github.com/SAM-BIM/SAM/pull/145) (Phase-2 audit docs). Below it are
+`sow/2026-Q3` is at `00db4b85`, the merge of [SAM#147](https://github.com/SAM-BIM/SAM/pull/147) (PR2A-0, below). Below it is
+`af0356a4`, the merge of [SAM#145](https://github.com/SAM-BIM/SAM/pull/145) (Phase-2 audit docs). Below that are
 SAM#144 (Phase-1 closeout docs, `a947c5a3`) and `22f9c743`, the merge of [SAM#143](https://github.com/SAM-BIM/SAM/pull/143) (airflow symbol `L/s`).
 Below it: [SAM#141](https://github.com/SAM-BIM/SAM/pull/141) PDF renderer (`ba343bfb`), [SAM#142](https://github.com/SAM-BIM/SAM/pull/142)
 deep-clone fix (`78a57466`), [SAM#140](https://github.com/SAM-BIM/SAM/pull/140) visual polish (`3ec76eca`),
@@ -9,7 +10,38 @@ deep-clone fix (`78a57466`), [SAM#140](https://github.com/SAM-BIM/SAM/pull/140) 
 TM59 per-space status (`7dbeb2e4`), PR1 [SAM#136](https://github.com/SAM-BIM/SAM/pull/136) (`7daf0d32`) and PR0
 [SAM#135](https://github.com/SAM-BIM/SAM/pull/135) (`4e027f55`).
 
-## Current: PR2A-0 - duplicate `SAM.Analytical` ParameterSets / stale TBD design-load read (2026-09-26) - PR OPEN, not merged
+## Current: Part O mixed dwelling strategies - PR0 architecture investigation (2026-09-26) - APPROVED; PR [SAM#149](https://github.com/SAM-BIM/SAM/pull/149)
+
+This is a new programme, separate from the closed Part O UX programme and from Phase 2 reporting. Goal: a
+different final Part O strategy per dwelling in ONE analytical model, with ONE annual TAS run and TM59 as the
+final authority. **PR0 is investigation only: no production code changes.**
+
+- **Report (authoritative):** `documentation/PartO-MixedDwellingStrategies-PR0.md`, linked from
+  `PartO-ARCHITECTURE.md` §9. It contains the mutation map, 20 verdicts, blockers C1-C10, the architecture and
+  authority model, the PR sequence with gates, migration notes, and the **binding owner decisions** at the top.
+- **Evidence:** `SAM/SAM.Tests/PartOMixedStrategyProofTests.cs`, 12 DISPOSABLE tests (`Category=PR0Investigation`)
+  that pin today's behaviour. PR1 inverts or removes them.
+- **Validation:**
+  - PR0 filter: 12/12 pass.
+  - `FullyQualifiedName~PartO|FullyQualifiedName~PartF`: 1236/1236 pass.
+  - CI on #149: build, test and spdx all green.
+- **Owner decisions, binding:**
+  1. A clean pre-Part-O baseline is mandatory. There is no undo or adopt path, and
+     `MaterialisePartODwellingStrategies` fails explicitly on a non-baseline model.
+  2. Assessed common/corridor spaces are included automatically. They are not strategy rows, and they are
+     classified from state, never from names.
+  3. Project-wide constraints (all-MVHR, product pools) are project settings.
+  4. The accepted 2B airflow lives only on `VentilationTerminal`; the strategy holds a reference or fingerprint.
+  5. Cooling is recorded and refused in PR1 until the PR3 licensed TPD proof.
+- **Order:**
+  - PR1 SAM: per-dwelling authority + deterministic NV/MVHR materialisation.
+  - PR2 SAM_UI: dwelling assignment + mixed run.
+  - PR3 SAM + SAM_Tas: cooling + licensed proof.
+  - PR4: acceptance + deploy.
+- **Next step:** merge #149, then SAM_UI#125. PR1 starts in a fresh session from the merged `sow/2026-Q3`,
+  following report §D-§F and the owner decisions.
+
+## Previous: PR2A-0 - duplicate `SAM.Analytical` ParameterSets / stale TBD design-load read (2026-09-26) - MERGED ([SAM#147](https://github.com/SAM-BIM/SAM/pull/147), `00db4b85`)
 
 ```text
 Phase 2 result authority: BLOCKED
