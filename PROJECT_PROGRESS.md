@@ -8,7 +8,49 @@ deep-clone fix (`78a57466`), [SAM#140](https://github.com/SAM-BIM/SAM/pull/140) 
 TM59 per-space status (`7dbeb2e4`), PR1 [SAM#136](https://github.com/SAM-BIM/SAM/pull/136) (`7daf0d32`) and PR0
 [SAM#135](https://github.com/SAM-BIM/SAM/pull/135) (`4e027f55`).
 
-## Current: SAM Documentation Framework Phase 1 - COMPLETE (closeout 2026-09-26)
+## Current: Reporting Phase 2 (Space Design Load Summary) - result-authority audit + design gate (2026-09-26) - BLOCKED on prerequisites
+
+Branch `docs/reporting-phase2-result-authority-2026-09-26`, from `sow/2026-Q3` `a947c5a3` (SAM#144 merged).
+Docs/evidence only; **no product code changed**. Full record: `documentation/Reporting-Phase2-ResultAuthority.md`;
+gate PDFs, `Document` JSON and scratch harness in `documentation/evidence/reporting-phase2-gate/`.
+
+```text
+Phase 2 result authority: BLOCKED
+Next PR: PR2A-0 (SAM) stale TBD design-load read, then PR2A (SAM_Tas) Convert.ToSAM_Results peak correctness
+```
+
+- **State:** the Phase-1 closeout docs PRs were open during the audit and merged afterwards: SAM#144 `a947c5a3`,
+  SAM_UI#123 `6d2f2d6b` (after resolving a `PROJECT_PROGRESS.md` conflict with SAM_UI#122), SAM_Deploy#52
+  `8fe17f64`. Inspected: SAM `sow/2026-Q3` `22f9c743`, SAM_Tas `aa00ff91`, SAM_UI `7e7de033`.
+- **Method:**
+  - production path traced: `RunWorkflow` → `WorkflowCalculator` → `AddResults`/`ToSAM_Results` → `UpdateDesignLoads`;
+  - fixture scans of `C:\TasOut`, `SAM_daily`, `Nextcloud` and the SAM_Validation benchmark;
+  - a **read-only** TSD reader on a copy of `C:\TasOut\final1b\open.tsd`;
+  - a design gate rendered with the production `PdfRenderer` from the real `.sam`.
+  - No simulation was run.
+- **Blockers found:**
+  - **B0 (SAM, affects shipped Phase 1):** duplicate `SAM.Analytical` parameter sets make `SpaceParameter.DesignHeatingLoad`
+    read a stale value (Bathroom_2: 0 W read vs 1139.87 W current; 51/988 spaces in 17 fixture files). Root cause of
+    the appending not yet determined.
+  - **B1:** the heating `Simulation` branch writes the cooling variables.
+  - **B2:** a zero peak is persisted as the Tas −1 sentinel with `LoadIndex` 0.
+  - **B3:** `Load` = max(design day, annual); the annual peak is discarded (Bathroom_2 annual 104 W @ 8554 is lost).
+  - **B4:** the `LoadIndex` base is Tas 1-based but OpenStudio 0-based.
+  - **B5:** the heating results omit the internal gains and RH.
+  - **B6:** no persisted cooling peak exists in any fixture.
+- **Settled:**
+  - Tas hour index is 1-based, 365-day, no DST.
+  - A design-day peak has no calendar date.
+  - `Load` is a magnitude ≥ 0. Components are + gain / − loss, and heating Σ terms = −load exactly (HDD and annual).
+  - Outdoor state must come from the TSD: the model's weather differed from the run's.
+- **Design gate:**
+  - normal case 1 page, SI and IP;
+  - stress case 2 pages (only the net row spills);
+  - a single-column group header wraps, so PR2C uses 4-column tables.
+- **Next step:** open a SAM issue for B0 and do PR2A-0. Then PR2A in SAM_Tas (B1–B5, plus one short licensed design-day
+  run of a small cooled model for B6). PR2B–PR2E only after that (sequence in the doc, §10).
+
+## Previous: SAM Documentation Framework Phase 1 - COMPLETE (closeout 2026-09-26)
 
 ```text
 SAM Documentation Framework — Phase 1
@@ -27,7 +69,7 @@ The completion record (production chain, delivered capabilities, what is outside
 **Still open, deliberately outside Phase 1:** [SAM#138](https://github.com/SAM-BIM/SAM/issues/138) (RH query
 naming/mapping, composite `Profile.MinValue`, gain queries returning 0 when nothing is authored) stays OPEN.
 
-**Next step.** Phase 2 planning (not started).
+**Next step.** Phase 2 planning (started: see the Current section above).
 
 ## Previous: reporting airflow symbol `L/s` (2026-09-26) - MERGED as SAM#143 (`22f9c743`)
 
