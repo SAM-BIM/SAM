@@ -43,9 +43,12 @@ final authority. **PR0 is investigation only: no production code changes.**
 
 ## Previous: PR2A-0 - duplicate `SAM.Analytical` ParameterSets / stale TBD design-load read (2026-09-26) - MERGED ([SAM#147](https://github.com/SAM-BIM/SAM/pull/147), `00db4b85`)
 
+*Historical record of the PR2A-0 checkpoint. The PR has since merged as #147 (`00db4b85`). The block and
+"Next step" below describe the state at the time; the follow-ups are listed at the end of this section.*
+
 ```text
-Phase 2 result authority: BLOCKED
-Current blocker being addressed: PR2A-0
+(at the time) Phase 2 result authority: BLOCKED
+(at the time) Blocker being addressed: PR2A-0 - since MERGED (#147)
 PR2B reporting implementation: NOT STARTED
 ```
 
@@ -101,8 +104,12 @@ Issue [SAM#146](https://github.com/SAM-BIM/SAM/issues/146) (audit B0). Branch `f
   - SAM#138;
   - restoring a stable `[assembly: Guid]` (optional and unneeded);
   - the SAM_Deploy pointer bump, which is how users get the fix.
-- **Next step:** review and merge the PR2A-0 PR. Then bump SAM_Deploy (with a Phase-1 regression smoke test) and update
-  the audit doc's B0 row to "fixed". After that, PR2A in SAM_Tas (B1–B5).
+- **Follow-ups, still open as far as this file records:**
+  - bump SAM_Deploy, with a Phase-1 regression smoke test;
+  - update the audit doc's B0 row to "fixed";
+  - then PR2A in SAM_Tas (B1–B5).
+  These belong to Reporting Phase 2, not to the Part O mixed-strategies programme. Check SAM_Deploy and
+  `Reporting-Phase2-ResultAuthority.md` for their current state before resuming.
 
 ## Previous: Reporting Phase 2 (Space Design Load Summary) - result-authority audit + design gate (2026-09-26) - MERGED as SAM#145 (`af0356a4`)
 

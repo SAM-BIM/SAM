@@ -195,14 +195,35 @@ restore what was never recorded, and the lost values are the ones `ticV` reads (
    overloads of the two whole-model calls; the existing whole-model behaviour stays for legacy callers.
 3. Run the existing per-dwelling loop for each MVHR dwelling: system, unit, product, movements, transfer air
    and balance. **Unit names are derived from the dwelling**, not from call order (P2).
-4. NV dwellings: nothing written, and a check asserts nothing was (`AssertNoContinuousMechanicalAirflow`
-   semantics).
-5. Scenarios per zone, each zone with its own iteration (`BaseNaturalVentilation` or `BasePassive`).
+4. **NV dwellings: materialisation writes nothing and strips nothing.**
+   - No Part F internal-condition rates, no generated terminals, and no system, unit or movement.
+   - A check asserts this, with `AssertNoContinuousMechanicalAirflow` semantics.
+   - **Baseline design terminals already in an NV dwelling** (designer-authored; D1 allows them) are copied
+     through **unconnected and inert**, and reported by name. NV materialisation never deletes design data.
+   - An NV strategy whose `DesignAirFlowBasis` is `RetainedDesign` is a contradiction, so it **refuses**.
+5. Scenarios per zone. Each dwelling zone gets its own iteration (`BaseNaturalVentilation` or `BasePassive`).
    Assessed common spaces get a `CommonSpace` scenario **automatically** (owner decision 2). That
-   classification is derived from `IsDwelling` / internal-condition state, never from names (#12).
-6. Stamp a **materialisation record**: baseline fingerprint (reuse `SimulationResultProvenance.Fingerprint`
-   over the baseline), strategy-set fingerprint, catalogue descriptor identities, and the prepared-system
-   guids (which closes C5).
+   classification is derived from `IsDwelling` / internal-condition state (`PartOClassifyAssessmentZones`),
+   never from names (#12).
+   - **The identity of a common-space scenario is a PR1 design gate, not settled here.**
+   - Today `Create.OverheatingScenarios` gives a common space scope `CommonSpace`, the strategy it is handed
+     (`UV` selects the TM59 corridor criterion, `TMOverheatingCalculator.cs:359-361`), and **the call's own
+     dwelling iteration**, with that iteration's operating assumptions inside the key.
+   - That was harmless when every call had one iteration. In a mixed model it would assert, for example,
+     `BasePassive`'s "mechanical ventilation at design rate" about a corridor. SAM itself says common spaces
+     are covered by neither base iteration (`Query/PartOVentilationMode.cs:74-80`).
+   - PR1 must therefore define an iteration-neutral common-space identity: scope `CommonSpace`, strategy
+     `UV` or the corridor criterion, and assumptions that assert nothing about dwelling ventilation. That is a
+     **new key**, never a reinterpretation of old ones (G).
+   - The corridor internal condition is recognised through `TM59InternalConditionResolver`
+     (`CommunalCorridorInternalConditionName`), not the space name.
+6. Stamp a **materialisation record** containing:
+   - the baseline fingerprint (reuse `SimulationResultProvenance.Fingerprint` over the baseline);
+   - the strategy-set fingerprint;
+   - a **catalogue fingerprint over every selection-relevant descriptor field**: reference (manufacturer,
+     model, reference), maximum supply, maximum extract and rank, in a stable order. Identities alone would
+     miss a capacity or rank correction that changes which unit is selected;
+   - the prepared-system guids, which closes C5.
 
 It never takes a previous output as input, so the DesignDay / ZoneSimulationResult accumulation class cannot
 arise from it. P10 shows the engineering state is reproducible. Guids are not, and do not need to be, because
@@ -302,7 +323,8 @@ PartODwellingStrategy          -- intent, on the BASELINE
 - **Provenance** is the materialisation record (D2.6), plus the existing `SimulationResultProvenance`.
 - **Staleness** fails closed at three levels:
   - baseline fingerprint ≠ record → re-materialise;
-  - strategy set ≠ record → re-materialise;
+  - strategy set or catalogue fingerprint (every selection-relevant descriptor field) ≠ record →
+    re-materialise;
   - model fingerprint ≠ provenance → re-simulate (existing).
 
 ---
@@ -318,10 +340,10 @@ PartODwellingStrategy          -- intent, on the BASELINE
   - `Modify.MaterialisePartODwellingStrategies`;
   - dwelling-derived unit names;
   - per-zone scenarios, including automatic `CommonSpace` scenarios for assessed common spaces
-    (classified from state, not names);
-  - the materialisation record;
-  - refusals: cooling (recorded, refused), NV + cooling, shared systems, a materialised baseline, a stale or
-    unbalanced retained design.
+    (classified from state, not names), with the iteration-neutral common-space identity of D2.5;
+  - the materialisation record, including the full catalogue fingerprint;
+  - refusals: cooling (recorded, refused), NV + cooling, NV + `RetainedDesign`, shared systems, a
+    materialised baseline, a stale or unbalanced retained design.
 - **Tests:** the PR0 proof matrix promoted and inverted to the target behaviour:
   - P1: an NV dwelling stays clean;
   - P4: MVHR→NV on the same baseline gives no mechanical state;
@@ -334,7 +356,11 @@ PartODwellingStrategy          -- intent, on the BASELINE
 - **Acceptance:**
   - all green;
   - legacy callers bit-identical (existing 1236 tests);
-  - an NV dwelling has no Part F rates, terminals or movements after materialisation.
+  - an NV dwelling has no Part F internal-condition rates, no materialisation-generated or connected
+    terminals, and no system, unit or movement after materialisation;
+  - its baseline design terminals, if any, are unchanged, unconnected and reported (D2.4);
+  - the common-space scenario identity (D2.5) is defined, tested and keyed iteration-neutrally;
+  - a changed descriptor capacity or rank makes the materialisation record stale.
 
 **PR2 — SAM_UI: dwelling-strategy assignment and the mixed-model workflow (NV / MVHR / product / retained
 design; the IZAM route).**
@@ -416,6 +442,8 @@ the evidence shows SAM_Tas needs **no change** for NV/MVHR mixing (#15).
 3. Cooled mixed operation (D5 a–c) → PR3 licensed proof. **Unresolved until then.**
 4. Legacy projects whose open model is already materialised need their pre-Part-O source. **Accepted by the
    owner** (decision 1); no adopt tool.
+5. The identity of the automatic common-space scenario (iteration-neutral, D2.5) → PR1 design gate. It must
+   be defined before any mixed model is keyed.
 
 **Owner decisions taken 2026-09-26** (see the top of this document): common spaces are included
 automatically; project-wide constraints are project settings.
