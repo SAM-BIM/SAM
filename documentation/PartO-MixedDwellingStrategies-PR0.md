@@ -186,8 +186,13 @@ restore what was never recorded, and the lost values are the ones `ticV` reads (
   - *materialisation:* the Part O MVHR type guid, Part O air movements, and Part F rates on internal
     conditions of sized spaces;
   - *run outputs:* an `AnalyticalModelParameter.OverheatingScenarios` value, a `SimulationResultProvenance`,
-    or any simulation-result object in the cluster (`SpaceSimulationResult`, `ZoneSimulationResult`,
-    surface/panel results).
+    or **any object in the cluster, or on the model, deriving from `Core.Result` (`Core.IResult`)**. The
+    check is over the base type, not a list. SAM's result types today are `SpaceSimulationResult`,
+    `ZoneSimulationResult`, `SurfaceSimulationResult`, `OpeningSimulationResult`, `PartitionSimulationResult`,
+    `AdjacencyClusterSimulationResult`, `AnalyticalModelSimulationResult`, `BuildingModelSimulationResult`,
+    `TMResult` and its TM52/TM59 subtypes, and `UncloneableResult`, and a later subtype is covered
+    automatically. A legacy or imported model that holds only an `AnalyticalModelSimulationResult`, with no
+    scenarios or provenance, is refused too.
   - The second group matters on its own. A previously simulated **all-NV** model carries no MVHR object,
     air movement or Part F rate, yet it holds scenarios, provenance and results (and TAS-written design-day
     records). Accepting it would feed a run output back in as input, which is the `DesignDay` /
