@@ -104,8 +104,10 @@ the B0 closeout (branch `docs/reporting-phase2-b0-fixed-2026-09-26`). Issue [SAM
   - SAM#138;
   - restoring a stable `[assembly: Guid]` (optional and unneeded);
   - the SAM_Deploy pointer bump, which is how users get the fix.
-- **Next step:** merge the audit-doc B0 closeout and the SAM_Deploy SAM-pointer bump to `00db4b85`, which carries the
-  Phase-1 correction to users. Then PR2A in SAM_Tas (B1–B5).
+- **Next step (Reporting Phase 2 stream):**
+  - the audit-doc B0 closeout is merged as SAM#148 (`872adb5f`);
+  - merge the SAM_Deploy SAM-pointer bump to `00db4b85`, which carries the Phase-1 correction to users;
+  - then PR2A in SAM_Tas (B1–B5).
 
 ## Previous: Reporting Phase 2 (Space Design Load Summary) - result-authority audit + design gate (2026-09-26) - MERGED as SAM#145 (`af0356a4`)
 
