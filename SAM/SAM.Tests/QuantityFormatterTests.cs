@@ -31,7 +31,7 @@ namespace SAM.Tests
         [InlineData(UnitStyle.SI, 174.7, UnitType.CubicMeter, "174.7", "m³")]
         [InlineData(UnitStyle.SI, 21.0, UnitType.Celsius, "21.0", "°C")]
         [InlineData(UnitStyle.SI, 10.0, UnitType.KelvinDifference, "10.0", "K")]
-        [InlineData(UnitStyle.SI, 0.198, UnitType.CubicMeterPerSecond, "198", "l/s")]
+        [InlineData(UnitStyle.SI, 0.198, UnitType.CubicMeterPerSecond, "198", "L/s")]
         [InlineData(UnitStyle.SI, 779.0, UnitType.Watt, "779", "W")]
         [InlineData(UnitStyle.SI, 25.0, UnitType.WattPerSquareMeter, "25.0", "W/m²")]
         [InlineData(UnitStyle.SI, 0.2, UnitType.AirChangesPerHour, "0.20", "ac/h")]
@@ -70,6 +70,16 @@ namespace SAM.Tests
             Assert.Equal("0.0", quantityFormatter.Format(Value(0, UnitType.KelvinDifference)).Text);
             Assert.Equal("°F", quantityFormatter.Format(Value(0, UnitType.Celsius)).Unit);
             Assert.Equal("Δ°F", quantityFormatter.Format(Value(0, UnitType.KelvinDifference)).Unit);
+        }
+
+        [Fact]
+        public void AirFlow_SIDefault_UsesCapitalLitreSymbol()
+        {
+            // Approved Phase-1 convention: capital L, so the litre is never misread as the digit 1.
+            QuantityFormatter quantityFormatter = Formatter(UnitStyle.SI);
+
+            Assert.Equal("L/s", quantityFormatter.DisplayUnit(UnitCategory.AirFlow).Symbol);
+            Assert.Equal("L/s", quantityFormatter.Format(Value(0.198, UnitType.CubicMeterPerSecond)).Unit);
         }
 
         [Fact]

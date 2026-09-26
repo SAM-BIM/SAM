@@ -69,7 +69,7 @@ namespace SAM.Core.Reporting
                         return new DisplayUnit(UnitType.CubicFootPerMinute, "cfm", 0);
                     }
 
-                    return airFlowDisplay == AirFlowDisplay.CubicMetersPerSecond ? new DisplayUnit(UnitType.CubicMeterPerSecond, "m³/s", 3) : new DisplayUnit(UnitType.LitersPerSecond, "l/s", 0);
+                    return airFlowDisplay == AirFlowDisplay.CubicMetersPerSecond ? new DisplayUnit(UnitType.CubicMeterPerSecond, "m³/s", 3) : new DisplayUnit(UnitType.LitersPerSecond, "L/s", 0);
 
                 case UnitCategory.Power:
                     return si ? new DisplayUnit(UnitType.Watt, "W", 0) : new DisplayUnit(UnitType.BtuPerHour, "Btu/h", 0);
