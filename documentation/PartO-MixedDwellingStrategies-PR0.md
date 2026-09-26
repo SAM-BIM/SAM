@@ -3,7 +3,34 @@
 
 # Part O — mixed dwelling strategies: PR0 architecture investigation
 
-**Status: PR0 complete, awaiting owner review. No production code was changed.** Investigation date
+**Status: PR0 complete and APPROVED by the owner (2026-09-26). No production code was changed.**
+
+### Owner decisions (binding for PR1–PR4)
+
+1. **A clean baseline is mandatory.** Mixed materialisation starts from a clean pre-Part-O analytical model.
+   PR1 adds **no** lossy Part O undo or adoption mechanism. `MaterialisePartODwellingStrategies` **fails
+   explicitly** if the supplied model is not an acceptable baseline (D1).
+2. **Common / corridor spaces are included automatically.** Assessed common spaces (e.g. a
+   `TM59_Communal Corridor` internal condition) take part in the final mixed annual run. They are **not**
+   dwelling strategy rows. Their scenario and classification are derived from authoritative internal
+   condition / zone state (`IsDwelling`, the TM59 internal-condition resolver), **never from space names**.
+   This closes #12.
+3. **Project-wide constraints live at project level.** Rules such as "all dwellings MVHR" and the allowed
+   product pool are project settings (beside `PartOEquipmentSelection`). The dwelling grid consumes them.
+   They are **not** duplicated into each `PartODwellingStrategy`.
+4. **2B airflow authority stays singular.** No copy of terminal airflow values in `PartODwellingStrategy`.
+   The accepted design airflow lives on `VentilationTerminal`. The strategy holds only the
+   reference / intent / fingerprint that identifies the accepted design (D3).
+5. **Cooling stays gated.** PR1 does not materialise active cooling. It records it and refuses it
+   structurally until the PR3 licensed TPD proof settles the final authority (D5).
+
+**Accepted order:**
+- PR1 — SAM: per-dwelling authority + deterministic NV/MVHR materialisation.
+- PR2 — SAM_UI: scalable dwelling strategy assignment + mixed run.
+- PR3 — SAM + SAM_Tas: cooling authority with licensed TAS proof.
+- PR4 — real-project TAS acceptance + deploy.
+
+Investigation date
 2026-09-26. Evidence base: SAM `sow/2026-Q3` `00db4b85`, SAM_Tas `sow/2026-Q3` `aa00ff9`, SAM_UI `4b773f3e`
 (Pass 6), SAM_Systems `2213373`. The production pins (SAM `22f9c743`, SAM_Tas `b32c0808`) differ only in
 changes outside Part O preparation.
@@ -170,8 +197,9 @@ restore what was never recorded, and the lost values are the ones `ticV` reads (
    and balance. **Unit names are derived from the dwelling**, not from call order (P2).
 4. NV dwellings: nothing written, and a check asserts nothing was (`AssertNoContinuousMechanicalAirflow`
    semantics).
-5. Scenarios per zone, each zone with its own iteration (`BaseNaturalVentilation` or `BasePassive`). A
-   communal-corridor `CommonSpace` scenario where the project has one (#12).
+5. Scenarios per zone, each zone with its own iteration (`BaseNaturalVentilation` or `BasePassive`).
+   Assessed common spaces get a `CommonSpace` scenario **automatically** (owner decision 2). That
+   classification is derived from `IsDwelling` / internal-condition state, never from names (#12).
 6. Stamp a **materialisation record**: baseline fingerprint (reuse `SimulationResultProvenance.Fingerprint`
    over the baseline), strategy-set fingerprint, catalogue descriptor identities, and the prepared-system
    guids (which closes C5).
@@ -289,7 +317,8 @@ PartODwellingStrategy          -- intent, on the BASELINE
   - `Query.PartOMaterialisationState`;
   - `Modify.MaterialisePartODwellingStrategies`;
   - dwelling-derived unit names;
-  - per-zone scenarios, including an optional `CommonSpace` corridor scenario;
+  - per-zone scenarios, including automatic `CommonSpace` scenarios for assessed common spaces
+    (classified from state, not names);
   - the materialisation record;
   - refusals: cooling (recorded, refused), NV + cooling, shared systems, a materialised baseline, a stale or
     unbalanced retained design.
@@ -385,12 +414,11 @@ the evidence shows SAM_Tas needs **no change** for NV/MVHR mixing (#15).
 1. C2/C3, NV pollution and no dematerialisation → PR1.
 2. C7, the open model is overwritten → PR2.
 3. Cooled mixed operation (D5 a–c) → PR3 licensed proof. **Unresolved until then.**
-4. Legacy projects whose open model is already materialised need their pre-Part-O source. **Owner to confirm
-   this is acceptable, or ask for a lossy adopt tool.**
+4. Legacy projects whose open model is already materialised need their pre-Part-O source. **Accepted by the
+   owner** (decision 1); no adopt tool.
 
-**Needs an owner decision before PR1:**
-1. Whether the corridor/common-space scenario is part of the mixed run by default (#12).
-2. Whether "all MVHR" project constraints belong to the strategy grid (PR2) or to project settings.
+**Owner decisions taken 2026-09-26** (see the top of this document): common spaces are included
+automatically; project-wide constraints are project settings.
 
 **Optional improvements (not blockers):**
 1. `PartODiagnosticLog` single-iteration field (C9).
