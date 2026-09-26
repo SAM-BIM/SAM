@@ -1,8 +1,9 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` is at `00db4b85`, the merge of [SAM#147](https://github.com/SAM-BIM/SAM/pull/147) (PR2A-0, below). Below it is
-`af0356a4`, the merge of [SAM#145](https://github.com/SAM-BIM/SAM/pull/145) (Phase-2 audit docs). Below that are
+`sow/2026-Q3` is at `872adb5f`, the merge of [SAM#148](https://github.com/SAM-BIM/SAM/pull/148) (Phase-2 B0 closeout docs). Below it:
+`00db4b85`, the merge of [SAM#147](https://github.com/SAM-BIM/SAM/pull/147) (PR2A-0, B0 fix); `af0356a4`
+(SAM#145, Phase-2 audit docs),
 SAM#144 (Phase-1 closeout docs, `a947c5a3`) and `22f9c743`, the merge of [SAM#143](https://github.com/SAM-BIM/SAM/pull/143) (airflow symbol `L/s`).
 Below it: [SAM#141](https://github.com/SAM-BIM/SAM/pull/141) PDF renderer (`ba343bfb`), [SAM#142](https://github.com/SAM-BIM/SAM/pull/142)
 deep-clone fix (`78a57466`), [SAM#140](https://github.com/SAM-BIM/SAM/pull/140) visual polish (`3ec76eca`),
@@ -41,18 +42,17 @@ final authority. **PR0 is investigation only: no production code changes.**
 - **Next step:** merge #149, then SAM_UI#125. PR1 starts in a fresh session from the merged `sow/2026-Q3`,
   following report §D-§F and the owner decisions.
 
-## Previous: PR2A-0 - duplicate `SAM.Analytical` ParameterSets / stale TBD design-load read (2026-09-26) - MERGED ([SAM#147](https://github.com/SAM-BIM/SAM/pull/147), `00db4b85`)
-
-*Historical record of the PR2A-0 checkpoint. The PR has since merged as #147 (`00db4b85`). The block and
-"Next step" below describe the state at the time; the follow-ups are listed at the end of this section.*
+## Previous (Reporting Phase 2 stream): PR2A-0 - duplicate `SAM.Analytical` ParameterSets / stale TBD design-load read (2026-09-26) - MERGED as SAM#147 (`00db4b85`); B0 closeout docs SAM#148 (`872adb5f`)
 
 ```text
-(at the time) Phase 2 result authority: BLOCKED
-(at the time) Blocker being addressed: PR2A-0 - since MERGED (#147)
+Phase 2 result authority: BLOCKED
+B0: FIXED (SAM#147, 00db4b85)
+Current blockers: B1–B6 / SAM_Tas result contract
 PR2B reporting implementation: NOT STARTED
 ```
 
-Issue [SAM#146](https://github.com/SAM-BIM/SAM/issues/146) (audit B0). Branch `fix/parameterset-identity-pr2a0-2026-09-26` from
+Merged 2026-09-26 on green CI (build, test, SPDX); no Codex review was posted (as for SAM#135). Audit doc §3.1 records
+the B0 closeout (branch `docs/reporting-phase2-b0-fixed-2026-09-26`). Issue [SAM#146](https://github.com/SAM-BIM/SAM/issues/146) (audit B0). Branch `fix/parameterset-identity-pr2a0-2026-09-26` from
 `sow/2026-Q3` `af0356a4`. **SAM.Core only.** SAM_Tas, SAM_UI and the reporting collector are unchanged.
 
 - **Root cause (demonstrated):**
@@ -104,12 +104,8 @@ Issue [SAM#146](https://github.com/SAM-BIM/SAM/issues/146) (audit B0). Branch `f
   - SAM#138;
   - restoring a stable `[assembly: Guid]` (optional and unneeded);
   - the SAM_Deploy pointer bump, which is how users get the fix.
-- **Follow-ups, still open as far as this file records:**
-  - bump SAM_Deploy, with a Phase-1 regression smoke test;
-  - update the audit doc's B0 row to "fixed";
-  - then PR2A in SAM_Tas (B1–B5).
-  These belong to Reporting Phase 2, not to the Part O mixed-strategies programme. Check SAM_Deploy and
-  `Reporting-Phase2-ResultAuthority.md` for their current state before resuming.
+- **Next step:** merge the audit-doc B0 closeout and the SAM_Deploy SAM-pointer bump to `00db4b85`, which carries the
+  Phase-1 correction to users. Then PR2A in SAM_Tas (B1–B5).
 
 ## Previous: Reporting Phase 2 (Space Design Load Summary) - result-authority audit + design gate (2026-09-26) - MERGED as SAM#145 (`af0356a4`)
 
