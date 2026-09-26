@@ -1,14 +1,78 @@
 # Project Progress
 
 ## Branch
-`sow/2026-Q3` is at `22f9c743`, the merge of [SAM#143](https://github.com/SAM-BIM/SAM/pull/143) (airflow symbol `L/s`).
+`sow/2026-Q3` is at `af0356a4`, the merge of [SAM#145](https://github.com/SAM-BIM/SAM/pull/145) (Phase-2 audit docs). Below it are
+SAM#144 (Phase-1 closeout docs, `a947c5a3`) and `22f9c743`, the merge of [SAM#143](https://github.com/SAM-BIM/SAM/pull/143) (airflow symbol `L/s`).
 Below it: [SAM#141](https://github.com/SAM-BIM/SAM/pull/141) PDF renderer (`ba343bfb`), [SAM#142](https://github.com/SAM-BIM/SAM/pull/142)
 deep-clone fix (`78a57466`), [SAM#140](https://github.com/SAM-BIM/SAM/pull/140) visual polish (`3ec76eca`),
 [SAM#139](https://github.com/SAM-BIM/SAM/pull/139) occupancy gain (`e1fbbb72`), [SAM#137](https://github.com/SAM-BIM/SAM/pull/137)
 TM59 per-space status (`7dbeb2e4`), PR1 [SAM#136](https://github.com/SAM-BIM/SAM/pull/136) (`7daf0d32`) and PR0
 [SAM#135](https://github.com/SAM-BIM/SAM/pull/135) (`4e027f55`).
 
-## Current: Reporting Phase 2 (Space Design Load Summary) - result-authority audit + design gate (2026-09-26) - BLOCKED on prerequisites
+## Current: PR2A-0 - duplicate `SAM.Analytical` ParameterSets / stale TBD design-load read (2026-09-26) - PR OPEN, not merged
+
+```text
+Phase 2 result authority: BLOCKED
+Current blocker being addressed: PR2A-0
+PR2B reporting implementation: NOT STARTED
+```
+
+Issue [SAM#146](https://github.com/SAM-BIM/SAM/issues/146) (audit B0). Branch `fix/parameterset-identity-pr2a0-2026-09-26` from
+`sow/2026-Q3` `af0356a4`. **SAM.Core only.** SAM_Tas, SAM_UI and the reporting collector are unchanged.
+
+- **Root cause (demonstrated):**
+  - `SAM.Analytical` has had no `[assembly: Guid]` since `49069d9c` (2024-05-10); its stable GUID was `fbbd5ce9-…`, which
+    old library `InternalCondition`s still carry. `Core.Query.Guid(Assembly)` therefore returns the per-build MVID.
+  - `Core.Modify.Add(List<ParameterSet>, …)` matched **by GUID only**.
+  - SAM_Tas `Query.UpdateT3D` (line ~91) does `space.Add(Create.ParameterSet(setting, TAS3D.Zone))`. That set is named
+    `SAM.Analytical` and carries the current MVID, so a workflow run on a new build **appended** a set. The run's
+    `UpdateFacingExternal`/`UpdateDesignLoads` then wrote into it by GUID match.
+  - A reader on another build misses the GUID. It falls back to the first set by name, which lacks the key, and then to
+    the **first** set containing the key, i.e. the oldest run.
+  - Bathroom_2 (`C:\TasOut\final1b\open_out.sam`) has three sets: `990f1c57` authoring, `cc94e7a1` = 0 and
+    `feae3a10` = 1139.87 W.
+- **Fix:**
+  - The name is the identity of a set; the GUID is a hint.
+  - `Modify.Add` matches by GUID, else by non-empty name, and merges into that set (`Copy`, later values override).
+  - `ParameterizedSAMObject.FromJsonObject` and the `IEnumerable<ParameterSet>` constructor go through `Modify.Add`.
+    Legacy same-name sets therefore collapse on load, in stored order: the first set keeps its GUID and position, a
+    later set overrides an earlier one for a key, and keys only in earlier sets survive.
+  - Invariant: at most one set per non-empty name on an object. So read, write and re-save all hit the same set, and a
+    Tas re-run updates rather than appends. That is Defect B, fixed at the SAM seam, so **no SAM_Tas change** is needed.
+  - A file with no duplicates loads and re-saves unchanged.
+  - `SAMCollection`'s own sets are untouched (round-trip only, with no read API).
+- **Precedence evidence:** the rule "later stored set wins" was checked against the persisted
+  `SpaceSimulationResult.DesignLoad` over 229 files (`C:\TasOut` 198, `SAM_daily` 22, Nextcloud 9). It gave
+  **0 mismatches**; today's first-containing read gave 51. Conflicting values only ever occur in appended sets; the
+  first set never conflicts.
+- **Files:**
+  - `SAM/SAM.Core/Modify/Add.cs`;
+  - `SAM/SAM.Core/Classes/Base/ParameterizedSAMObject.cs`;
+  - tests: `SAM/SAM.Tests/ParameterSetIdentityTests.cs` (new, 15), and `SpaceAssumptionsTests.cs` (+1 Phase-1 regression
+    through the model JSON);
+  - harness: `documentation/evidence/reporting-phase2-gate/harness/pr2a0_rescan.cs.txt`.
+- **Validation:**
+  - Focused tests pass. Red check: with the SAM.Core change stashed, 11 of them fail, including the Space Assumptions
+    one (0 W).
+  - Full `SAM.Tests`: **2485/2485** (Release, test project built explicitly).
+  - `SAM.sln` Release: 0 errors.
+  - SAM_Tas tests against the new SAM `build/`: TM59 947/947, Benchmark 16/16.
+  - Real fixtures, read-only (`open_out.sam` md5 unchanged), with the production `Convert.ToSAM` and the Phase-1
+    collector: **before**, Bathroom_2 read 0 W (PDF 0 W), and 51 stale in 17 of 198 files. **After**, Bathroom_2 reads
+    1139.87451171875 W (collector likewise), with **0 stale** over 2056 heating and cooling comparisons. No space holds
+    more than one `SAM.Analytical` set after load or after an in-memory re-save.
+- **Residual risk:** suppose an old build without its own set wrote a key into the *first* set while a later set still
+  held an older copy. The later copy would now win. This pattern was not seen in any of the 229 files.
+- **Not in this PR:**
+  - audit B1–B6;
+  - the Phase-1 set-point sentinels;
+  - SAM#138;
+  - restoring a stable `[assembly: Guid]` (optional and unneeded);
+  - the SAM_Deploy pointer bump, which is how users get the fix.
+- **Next step:** review and merge the PR2A-0 PR. Then bump SAM_Deploy (with a Phase-1 regression smoke test) and update
+  the audit doc's B0 row to "fixed". After that, PR2A in SAM_Tas (B1–B5).
+
+## Previous: Reporting Phase 2 (Space Design Load Summary) - result-authority audit + design gate (2026-09-26) - MERGED as SAM#145 (`af0356a4`)
 
 Branch `docs/reporting-phase2-result-authority-2026-09-26`, from `sow/2026-Q3` `a947c5a3` (SAM#144 merged).
 Docs/evidence only; **no product code changed**. Full record: `documentation/Reporting-Phase2-ResultAuthority.md`;
