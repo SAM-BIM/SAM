@@ -9,9 +9,9 @@ visual-polish PR, the approved v2 builder changes. It also contains:
 - the TM59 per-space status work ([SAM#137](https://github.com/SAM-BIM/SAM/pull/137), `7dbeb2e4`).
 
 `feature/reporting-pr2-pdf-renderer`, branched from `3ec76eca`, carries **PR2**, open as [SAM#141](https://github.com/SAM-BIM/SAM/pull/141) to `sow/2026-Q3`.
-It is NOT merged. See *Current*.
+It is NOT merged: it is pending the owner's final review. See *Current*.
 
-## Current: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - SAM#141 open, not merged
+## Current: SAM Documentation Framework PR2 - MigraDoc/PDFsharp PDF renderer (2026-09-25) - SAM#141 open, pending final review
 
 **Status.** Implemented and validated. It stops at the open PR: the owner reviews it. Out of scope and not started:
 SAM_UI integration (PR3), HTML/Excel renderers, other documents, and any engineering change.
@@ -87,6 +87,30 @@ There was no blocker.
   - long content paginates, with the table headers repeated.
 - Spare space on page 1 is about 15 mm for the office and the atrium, against about 35 mm in the HTML mock-up. MigraDoc
   uses the full Noto Sans line height.
+
+**Final correction pass (2026-09-26, on SAM#141).**
+- Long unbroken text can no longer overflow a column or frame.
+  - MigraDoc breaks lines only at spaces. The renderer therefore measures each space-delimited token against the
+    width it is printed in.
+  - A token that does not fit is split into pieces, preferably after `_ - / \ . , ; : ) ] } | + &`. With no such
+    character, it splits after the last character that fits. A forced line break goes between the pieces.
+  - This is generic, with no engineering logic. No character is dropped or added, and the font size is unchanged.
+  - A token that fits is never touched, and normal text is added exactly as before.
+  - It applies to every text path: labels, values, units, table cells and headers, notices, notes, text, captions,
+    headings, the header band and the footer.
+- Tests (+6):
+  - `LongTokens_WrapWithinTheirColumns_AndKeepTheFullText`: a long underscore name and a 120-character unbroken
+    token placed everywhere text can go. Every word of every line is measured against its cell, frame or page width,
+    and the full text is kept.
+  - `LongTokens_BreakAfterSeparators_ElseByCharacter`.
+  - `DesignGate_NoForcedBreaks_AndNothingEscapes` (4 cases): no forced break is inserted and no word escapes.
+- Validation:
+  - Focused (PdfRenderer, SpaceAssumptions, ReportValue): 65/65.
+  - Full `SAM.Tests`: 2467/2467, with the test project built explicitly first.
+  - The four design-gate pages are **pixel-identical** to the previous PR head (rasterised and diffed), and each is
+    still 1 page.
+  - `LongContent.pdf` still runs to 6 pages, with the headers repeated.
+  - `LongTokens.pdf` is 1 page. It was inspected visually, and nothing escapes its column or frame.
 
 **Decisions / limitations (documented in `documentation/Reporting-PDF.md`).**
 - PDFsharp has one global font resolver per process. Ours is installed if none is set. A foreign resolver is kept if
@@ -214,7 +238,8 @@ successor tracker, and the human closure decision).
 ## Previous: Space Assumptions visual design gate (2026-09-25) - v2 APPROVED; T1-T4 implemented by the polish PR
 
 **Status.** This is a design and review task only, before PR2. It adds no MigraDoc/PDFsharp, no
-`SAM.Core.Reporting.Pdf` and no SAM_UI change. **PR2 must not start until the owner approves the mock-up.**
+`SAM.Core.Reporting.Pdf` and no SAM_UI change. The owner has since approved v2. T1-T4 merged as SAM#140 (`3ec76eca`), and PR2 is
+SAM#141 (see *Current*).
 
 **Where.** The mock-up lives outside git, next to the plan, in
 `Documents\SAM_daily\2026-09-25-Reporting\mockup\`. See its `README.md`. The folder contains:
@@ -243,14 +268,16 @@ comment.
 2. Amend the Rev 3 §10 visual specification.
 3. Start PR2: the MigraDoc spike, then `SAM.Core.Reporting.Pdf`.
 
+(Done: steps 1 and 2 as SAM#140, step 3 as SAM#141.)
+
 ## Previous: SAM Documentation Framework PR1 - reporting domain + analytical collector (2026-09-25) - MERGED as SAM#136 (`7daf0d32`)
 
-**Status.** Implemented and validated on `feature/reporting-pr1-domain`, which is pushed with a PR open to
-`sow/2026-Q3`. It is **not merged**: it awaits owner review. The plan is the owner-approved *SAM Documentation
+**Status.** Implemented and validated on `feature/reporting-pr1-domain`, and merged into `sow/2026-Q3` as SAM#136
+(`7daf0d32`). The plan is the owner-approved *SAM Documentation
 Framework* Revision 3, where the Rev 3 section overrides the Rev 2 body. The plan file is kept outside git at
 `Documents\SAM_daily\2026-09-25-Reporting\SAM Documentation Framework_rev3.md`.
 
-Out of scope and **not started**: PR2 (the MigraDoc/PDF renderer, font, spike), the design-gate mock-up, and PR3
+Out of scope of PR1: PR2 (the MigraDoc/PDF renderer, font, spike; now SAM#141), the design-gate mock-up, and PR3
 (SAM_UI integration, deploy lists).
 
 **New projects** (netstandard2.0, output to `build/`, both added to `SAM.sln` under the SAM folder, no third-party
@@ -385,6 +412,7 @@ dependencies):
 
 **Next step.** The owner reviews the PR1 PR; merge only on the owner's go-ahead. After that comes the §10 design
 gate (an HTML/PNG mock-up from the fixture data), then PR2 (the renderer spike plus `SAM.Core.Reporting.Pdf`).
+(Done: merged as SAM#136; the gate approved v2; PR2 is SAM#141.)
 
 ## Previous: SAM Documentation Framework PR0 - `SAM.Units` extension (2026-09-25) - MERGED
 

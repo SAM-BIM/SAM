@@ -29,6 +29,21 @@ namespace SAM.Core.Reporting.Pdf
         private const string DaggerSuffix = " †";
         private const int MaxColumns = 3;
 
+        /// <summary>
+        /// Horizontal padding of a notice callout, in mm.
+        /// </summary>
+        private const double NoticePadding = 2;
+
+        /// <summary>
+        /// Characters after which an over-long token is preferably broken (the character stays on the first line).
+        /// </summary>
+        private const string BreakAfter = "_-/\\.,;:)]}|+&";
+
+        /// <summary>
+        /// Allowance for rounding between this measurement and MigraDoc's, in mm.
+        /// </summary>
+        private const double MeasureTolerance = 0.3;
+
         private readonly Document document;
         private readonly DocumentMetadata metadata;
         private readonly Color accent;
@@ -162,14 +177,15 @@ namespace SAM.Core.Reporting.Pdf
                 index += 2;
             }
 
+            double titleWidth = PdfLayout.ContentWidth - rightWidth - (mark ? markWidth + markGap : 0);
             Cell cell = row.Cells[index];
-            Paragraph paragraph = cell.AddParagraph((metadata.Title ?? string.Empty).ToUpper(CultureInfo.InvariantCulture));
+            Paragraph paragraph = AddWrappedText(cell.AddParagraph(), (metadata.Title ?? string.Empty).ToUpper(CultureInfo.InvariantCulture), titleWidth, PdfLayout.Title, true);
             paragraph.Format.Font.Size = Unit.FromPoint(PdfLayout.Title);
             paragraph.Format.Font.Bold = true;
 
             if (!string.IsNullOrWhiteSpace(metadata.Subject))
             {
-                paragraph = cell.AddParagraph(metadata.Subject);
+                paragraph = AddWrappedText(cell.AddParagraph(), metadata.Subject, titleWidth, PdfLayout.Subject, true);
                 paragraph.Format.Font.Size = Unit.FromPoint(PdfLayout.Subject);
                 paragraph.Format.Font.Bold = true;
                 paragraph.Format.SpaceBefore = Unit.FromMillimeter(0.5);
@@ -192,7 +208,7 @@ namespace SAM.Core.Reporting.Pdf
 
             if (identity.Count != 0)
             {
-                paragraph = cell.AddParagraph(string.Join("  ·  ", identity));
+                paragraph = AddWrappedText(cell.AddParagraph(), string.Join("  ·  ", identity), titleWidth);
                 paragraph.Format.Font.Color = PdfLayout.Muted;
                 paragraph.Format.SpaceBefore = Unit.FromMillimeter(0.8);
             }
@@ -212,7 +228,7 @@ namespace SAM.Core.Reporting.Pdf
 
             if (!string.IsNullOrWhiteSpace(metadata.ProjectName))
             {
-                paragraph = cell.AddParagraph(metadata.ProjectName);
+                paragraph = AddWrappedText(cell.AddParagraph(), metadata.ProjectName, rightWidth, 9.5, true);
                 paragraph.Format.Font.Bold = true;
                 paragraph.Format.Font.Size = Unit.FromPoint(9.5);
             }
@@ -226,7 +242,7 @@ namespace SAM.Core.Reporting.Pdf
             {
                 if (text != null)
                 {
-                    cell.AddParagraph(text);
+                    AddWrappedText(cell.AddParagraph(), text, rightWidth);
                 }
             }
 
@@ -268,7 +284,7 @@ namespace SAM.Core.Reporting.Pdf
         private void AddRunningHeader(HeaderFooter headerFooter)
         {
             string text = string.IsNullOrWhiteSpace(metadata.Subject) ? metadata.Title : string.Format("{0}  ·  {1}", metadata.Title, metadata.Subject);
-            Paragraph paragraph = headerFooter.AddParagraph(text ?? string.Empty);
+            Paragraph paragraph = AddWrappedText(headerFooter.AddParagraph(), text, PdfLayout.ContentWidth, PdfLayout.Footer);
             paragraph.Format.Font.Size = Unit.FromPoint(PdfLayout.Footer);
             paragraph.Format.Font.Color = PdfLayout.Muted;
             paragraph.Format.Borders.Bottom.Width = Unit.FromPoint(0.5);
@@ -297,14 +313,14 @@ namespace SAM.Core.Reporting.Pdf
 
             foreach (string line in document.Footer.Lines)
             {
-                row.Cells[0].AddParagraph(line);
+                AddWrappedText(row.Cells[0].AddParagraph(), line, PdfLayout.ContentWidth - rightWidth, PdfLayout.Footer);
             }
 
             Cell cell = row.Cells[1];
             cell.Format.Alignment = ParagraphAlignment.Right;
             foreach (string legend in document.Footer.Legend)
             {
-                cell.AddParagraph(legend);
+                AddWrappedText(cell.AddParagraph(), legend, rightWidth, PdfLayout.Footer);
             }
 
             Paragraph paragraph = cell.AddParagraph("Page ");
@@ -317,7 +333,7 @@ namespace SAM.Core.Reporting.Pdf
 
         private void AddSection(DocumentElements elements, DocumentSection documentSection, double width)
         {
-            Paragraph paragraph = elements.AddParagraph((documentSection.Title ?? string.Empty).ToUpper(CultureInfo.InvariantCulture));
+            Paragraph paragraph = AddWrappedText(elements.AddParagraph(), (documentSection.Title ?? string.Empty).ToUpper(CultureInfo.InvariantCulture), width, PdfLayout.SectionHeading, true);
             paragraph.Format.Font.Size = Unit.FromPoint(PdfLayout.SectionHeading);
             paragraph.Format.Font.Bold = true;
             paragraph.Format.Font.Color = accent;
@@ -485,7 +501,7 @@ namespace SAM.Core.Reporting.Pdf
                     break;
 
                 case TextBlock textBlock:
-                    elements.AddParagraph(textBlock.Text ?? string.Empty);
+                    AddWrappedText(elements.AddParagraph(), textBlock.Text, width);
                     break;
 
                 case ImageBlock imageBlock:
@@ -497,9 +513,9 @@ namespace SAM.Core.Reporting.Pdf
             }
         }
 
-        private void AddBlockHeading(DocumentElements elements, string title)
+        private void AddBlockHeading(DocumentElements elements, string title, double width)
         {
-            Paragraph paragraph = elements.AddParagraph(title.ToUpper(CultureInfo.InvariantCulture));
+            Paragraph paragraph = AddWrappedText(elements.AddParagraph(), title.ToUpper(CultureInfo.InvariantCulture), width, PdfLayout.BlockHeading, true);
             paragraph.Format.Font.Size = Unit.FromPoint(PdfLayout.BlockHeading);
             paragraph.Format.Font.Bold = true;
             paragraph.Format.Font.Color = PdfLayout.Muted;
@@ -515,7 +531,7 @@ namespace SAM.Core.Reporting.Pdf
         {
             if (!string.IsNullOrWhiteSpace(keyValueBlock.Title))
             {
-                AddBlockHeading(elements, keyValueBlock.Title);
+                AddBlockHeading(elements, keyValueBlock.Title, width);
             }
 
             if (keyValueBlock.Rows.Count == 0)
@@ -540,10 +556,10 @@ namespace SAM.Core.Reporting.Pdf
                     RowRule(row);
                 }
 
-                row.Cells[0].AddParagraph(keyValueRow.Label ?? string.Empty);
+                AddWrappedText(row.Cells[0].AddParagraph(), keyValueRow.Label, label - (2 * PdfLayout.CellPadding));
                 if (!string.IsNullOrWhiteSpace(keyValueRow.SubLabel))
                 {
-                    Paragraph paragraph = row.Cells[0].AddParagraph(keyValueRow.SubLabel);
+                    Paragraph paragraph = AddWrappedText(row.Cells[0].AddParagraph(), keyValueRow.SubLabel, label - (2 * PdfLayout.CellPadding), PdfLayout.SubLabel);
                     paragraph.Format.Font.Size = Unit.FromPoint(PdfLayout.SubLabel);
                     paragraph.Format.Font.Color = PdfLayout.Muted;
                 }
@@ -554,10 +570,10 @@ namespace SAM.Core.Reporting.Pdf
                     row.Cells[1].MergeRight = 1;
                 }
 
-                AddValue(row.Cells[1], formattedValue);
+                AddValue(row.Cells[1], formattedValue, (IsText(formattedValue) ? value + unit : value) - (2 * PdfLayout.CellPadding));
                 if (!IsText(formattedValue))
                 {
-                    AddUnit(row.Cells[2], formattedValue.Unit);
+                    AddUnit(row.Cells[2], formattedValue.Unit, unit - (2 * PdfLayout.CellPadding));
                 }
             }
         }
@@ -605,7 +621,7 @@ namespace SAM.Core.Reporting.Pdf
         {
             if (!string.IsNullOrWhiteSpace(tableBlock.Title))
             {
-                AddBlockHeading(elements, tableBlock.Title);
+                AddBlockHeading(elements, tableBlock.Title, width);
             }
 
             if (tableBlock.Columns.Count == 0)
@@ -671,7 +687,7 @@ namespace SAM.Core.Reporting.Pdf
                     Cell cell = row.Cells[k];
                     cell.MergeRight = cells - 1;
                     cell.Format.Alignment = ParagraphAlignment.Center;
-                    cell.AddParagraph(columns[j].Group ?? string.Empty);
+                    AddWrappedText(cell.AddParagraph(), columns[j].Group, widths.Skip(k).Take(cells).Sum() - (2 * PdfLayout.CellPadding), PdfLayout.TableHeader, true);
                     k += cells;
                     j += span;
                 }
@@ -684,7 +700,7 @@ namespace SAM.Core.Reporting.Pdf
             {
                 Cell cell = row_Header.Cells[k];
                 cell.Format.Alignment = Alignment(columns[j].Alignment, j);
-                Paragraph paragraph = cell.AddParagraph(columns[j].Header ?? string.Empty);
+                Paragraph paragraph = AddWrappedText(cell.AddParagraph(), columns[j].Header, widths.Skip(k).Take(split[j] ? 2 : 1).Sum() - (2 * PdfLayout.CellPadding), PdfLayout.TableHeader, true);
                 if (!string.IsNullOrWhiteSpace(columns[j].Unit))
                 {
                     FormattedText formattedText = paragraph.AddFormattedText(" (" + columns[j].Unit + ")");
@@ -715,13 +731,13 @@ namespace SAM.Core.Reporting.Pdf
                     FormattedValue formattedValue = rows[i].Cells[j];
                     if (split[j])
                     {
-                        AddValue(row.Cells[k], formattedValue);
-                        AddUnit(row.Cells[k + 1], CellUnit(columns[j], formattedValue));
+                        AddValue(row.Cells[k], formattedValue, widths[k] - (2 * PdfLayout.CellPadding));
+                        AddUnit(row.Cells[k + 1], CellUnit(columns[j], formattedValue), widths[k + 1] - (2 * PdfLayout.CellPadding));
                         k += 2;
                     }
                     else
                     {
-                        AddValue(row.Cells[k], formattedValue, CellUnit(columns[j], formattedValue));
+                        AddValue(row.Cells[k], formattedValue, widths[k] - (2 * PdfLayout.CellPadding), CellUnit(columns[j], formattedValue));
                         k += 1;
                     }
                 }
@@ -773,7 +789,7 @@ namespace SAM.Core.Reporting.Pdf
         {
             if (noticeBlock.Level == NoticeLevel.Note)
             {
-                Paragraph paragraph = elements.AddParagraph(noticeBlock.Text ?? string.Empty);
+                Paragraph paragraph = AddWrappedText(elements.AddParagraph(), noticeBlock.Text, width - PdfLayout.CellPadding, PdfLayout.Note);
                 paragraph.Format.Font.Size = Unit.FromPoint(PdfLayout.Note);
                 paragraph.Format.Font.Color = PdfLayout.Muted;
                 paragraph.Format.SpaceBefore = Unit.FromMillimeter(0.8);
@@ -784,13 +800,13 @@ namespace SAM.Core.Reporting.Pdf
             bool warning = noticeBlock.Level == NoticeLevel.Warning;
 
             Table table = elements.AddTable();
-            SetPadding(table, 2, 1.1);
+            SetPadding(table, NoticePadding, 1.1);
             table.AddColumn(Unit.FromMillimeter(width));
             Row row = table.AddRow();
             row.Shading.Color = warning ? PdfLayout.WarningShading : PdfLayout.NoticeShading;
             row.Borders.Left.Width = Unit.FromPoint(1.5);
             row.Borders.Left.Color = warning ? PdfLayout.WarningBar : accent;
-            Paragraph paragraph_Notice = row.Cells[0].AddParagraph(noticeBlock.Text ?? string.Empty);
+            Paragraph paragraph_Notice = AddWrappedText(row.Cells[0].AddParagraph(), noticeBlock.Text, width - (2 * NoticePadding), PdfLayout.NoticeText);
             paragraph_Notice.Format.Font.Size = Unit.FromPoint(PdfLayout.NoticeText);
         }
 
@@ -809,7 +825,7 @@ namespace SAM.Core.Reporting.Pdf
 
             if (!string.IsNullOrWhiteSpace(imageBlock.Caption))
             {
-                Paragraph paragraph = elements.AddParagraph(imageBlock.Caption);
+                Paragraph paragraph = AddWrappedText(elements.AddParagraph(), imageBlock.Caption, width, PdfLayout.BlockHeading);
                 paragraph.Format.Font.Size = Unit.FromPoint(PdfLayout.BlockHeading);
                 paragraph.Format.Font.Color = PdfLayout.Muted;
                 paragraph.Format.SpaceBefore = Unit.FromMillimeter(0.8);
@@ -859,9 +875,9 @@ namespace SAM.Core.Reporting.Pdf
             return string.IsNullOrWhiteSpace(tableColumn.Unit) ? tableColumn.Header ?? string.Empty : string.Format("{0} ({1})", tableColumn.Header, tableColumn.Unit);
         }
 
-        private static void AddValue(Cell cell, FormattedValue formattedValue, string unit = null)
+        private void AddValue(Cell cell, FormattedValue formattedValue, double width, string unit = null)
         {
-            Paragraph paragraph = cell.AddParagraph(ValueText(formattedValue, false));
+            Paragraph paragraph = AddWrappedText(cell.AddParagraph(), ValueText(formattedValue, false), width);
             if (formattedValue.Availability != Availability.Available)
             {
                 paragraph.Format.Font.Color = PdfLayout.Muted;
@@ -874,13 +890,127 @@ namespace SAM.Core.Reporting.Pdf
             }
         }
 
-        private static void AddUnit(Cell cell, string unit)
+        private void AddUnit(Cell cell, string unit, double width)
         {
             if (!string.IsNullOrEmpty(unit))
             {
-                Paragraph paragraph = cell.AddParagraph(unit);
+                Paragraph paragraph = AddWrappedText(cell.AddParagraph(), unit, width);
                 paragraph.Format.Font.Color = PdfLayout.Muted;
             }
+        }
+
+        // ------------------------------------------------------------------ long tokens
+
+        /// <summary>
+        /// Adds text to a paragraph so that it cannot run past the given width (mm). MigraDoc breaks lines only at
+        /// spaces, so a single token wider than the space available (a long underscore-delimited name, a path, a
+        /// run of characters with no break) would overflow its column. Such a token is split into pieces that each
+        /// fit, preferably after a separator (<see cref="BreakAfter"/>), otherwise after the last character that
+        /// fits, with a line break between the pieces. No character is removed or added and the font size is
+        /// unchanged. Text whose tokens all fit is added unchanged, as one text element.
+        /// </summary>
+        private Paragraph AddWrappedText(Paragraph paragraph, string text, double width, double size = PdfLayout.Body, bool bold = false)
+        {
+            List<string> lines = BreakLongTokens(text ?? string.Empty, width, size, bold);
+            for (int i = 0; i < lines.Count; i++)
+            {
+                if (i != 0)
+                {
+                    paragraph.AddLineBreak();
+                }
+
+                if (lines[i].Length != 0)
+                {
+                    paragraph.AddText(lines[i]);
+                }
+            }
+
+            return paragraph;
+        }
+
+        /// <summary>
+        /// The text as runs separated by forced line breaks: a single run, the text itself, when every
+        /// space-delimited token fits the width (mm). A token that does not fit is cut to pieces a little narrower
+        /// than the width (<see cref="MeasureTolerance"/>); a token that fits is never touched.
+        /// </summary>
+        private List<string> BreakLongTokens(string text, double width, double size, bool bold)
+        {
+            string[] tokens = text.Split(' ');
+            if (width <= MeasureTolerance || tokens.All(x => Fits(x, width, size, bold)))
+            {
+                return new List<string>() { text };
+            }
+
+            List<string> result = new List<string>();
+            System.Text.StringBuilder current = new System.Text.StringBuilder();
+            for (int i = 0; i < tokens.Length; i++)
+            {
+                if (i != 0)
+                {
+                    current.Append(' ');
+                }
+
+                List<string> pieces = Fits(tokens[i], width, size, bold) ? new List<string>() { tokens[i] } : Pieces(tokens[i], width - MeasureTolerance, size, bold);
+                for (int j = 0; j < pieces.Count; j++)
+                {
+                    if (j != 0)
+                    {
+                        result.Add(current.ToString());
+                        current.Clear();
+                    }
+
+                    current.Append(pieces[j]);
+                }
+            }
+
+            result.Add(current.ToString());
+            return result;
+        }
+
+        /// <summary>
+        /// True when the token fits the width; the small allowance absorbs rounding in widths that were sized to this
+        /// same measurement (a column exactly as wide as its widest unit).
+        /// </summary>
+        private bool Fits(string token, double width, double size, bool bold)
+        {
+            return textMeasure.Width(token, size, bold) <= width + 0.01;
+        }
+
+        /// <summary>
+        /// A token cut into pieces no wider than the width: each piece is as long as fits, ending after the last
+        /// separator that fits when there is one, else after the last character that fits (at least one character).
+        /// </summary>
+        private List<string> Pieces(string token, double width, double size, bool bold)
+        {
+            List<string> result = new List<string>();
+            int start = 0;
+            while (start < token.Length)
+            {
+                int end = start + 1;
+                int lastBreak = -1;
+                while (end <= token.Length && textMeasure.Width(token.Substring(start, end - start), size, bold) <= width)
+                {
+                    if (end < token.Length && BreakAfter.IndexOf(token[end - 1]) >= 0)
+                    {
+                        lastBreak = end;
+                    }
+
+                    end++;
+                }
+
+                int fit = end - 1;
+                if (fit >= token.Length)
+                {
+                    result.Add(token.Substring(start));
+                    break;
+                }
+
+                int cut = lastBreak > start ? lastBreak : Math.Max(fit, start + 1);
+                result.Add(token.Substring(start, cut - start));
+                start = cut;
+            }
+
+            return result;
         }
 
         // ------------------------------------------------------------------ helpers

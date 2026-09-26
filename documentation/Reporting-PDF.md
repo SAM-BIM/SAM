@@ -94,6 +94,21 @@ PR2. No value changed; the goldens were verified semantically:
   The layout is unchanged without it. PNG data is required; other data throws `ArgumentException`.
 - No Tas or EDSL branding. The renderer has no dependency on SAM_UI resources.
 
+## Long unbroken text
+MigraDoc breaks lines only at spaces, so on its own a token wider than its column would run past the column edge.
+Examples are a long underscore-delimited name, a path, or a run of characters with no break. Every text the renderer
+prints therefore goes through one generic step (`MigraDocBuilder.AddWrappedText`):
+- each space-delimited token is measured with the paragraph's font against the width it is printed in (a cell, a
+  merged cell, a frame or the page column);
+- a token that fits is left alone, so normal text is added exactly as before;
+- a token that does not fit is split into pieces that fit (with a 0.3 mm margin). A piece ends preferably after
+  `_ - / \ . , ; : ) ] } | + &`, the separator staying on the first line; with no separator it ends after the last
+  character that fits;
+- a forced line break is placed between the pieces.
+
+No character is removed or added, no hyphen is inserted, and the font size is unchanged. The text read back from the
+paragraph, with the line breaks removed, is exactly the supplied text.
+
 ## Pagination
 - Content flows naturally onto further pages. Tables break between rows, and their headers repeat.
 - A side-by-side row (a half-section pair, or the three-column block) is placed as one unit, each part in a frame of
@@ -121,6 +136,13 @@ API and with fixed GUIDs, and gives the office in SI and IP, the atrium in SI an
 - Long content runs to several A4 pages. An over-tall half pair is stacked rather than framed. A long table keeps
   every row, and its header repeats.
 - The office sets its short half sections side by side.
+- Long tokens:
+  - a long underscore name and a 120-character unbroken token are placed in the header band, labels, values, a
+    table cell, a notice, a note, text and the footer;
+  - every word of every line fits its cell, frame or page width, measured with the paragraph's own font;
+  - the full text is kept;
+  - underscore names break after `_`.
+- The design-gate documents get no forced break, and nothing in them escapes its column.
 
 The tests write the PDFs to `SAM.Tests/bin/<config>/net8.0/ReportingPdf/`, or to `SAM_REPORTING_PDF_DIR` when that is
 set, for visual review. PDFs are not compared byte for byte: PDFsharp writes a creation time and a random file id.
@@ -128,7 +150,6 @@ set, for visual review. PDFs are not compared byte for byte: PDFsharp writes a c
 ## Known limitations
 - A half section or column block that breaks across pages (the stacked fallback) is printed full width.
 - Table header rows repeat only for tables in the normal flow, not inside a side-by-side frame; frames never break.
-- A single word too long for its table column (no spaces) can overflow the column; MigraDoc does not hyphenate.
-  Column sizing gives numeric columns their full natural width, so values are not affected.
+- A token broken by the fallback is split between two characters with no hyphen, so the break is not marked.
 - Only PNG images are accepted, matching `ImageBlock`/`DocumentStyle`.
 - The fixed renderer text ("Project no.", "Prepared by", "Page n / N") is English.

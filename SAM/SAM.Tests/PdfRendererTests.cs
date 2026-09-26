@@ -5,6 +5,7 @@ using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Fields;
 using MigraDoc.DocumentObjectModel.Shapes;
 using MigraDoc.DocumentObjectModel.Tables;
+using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.Advanced;
 using PdfSharp.Pdf.IO;
@@ -308,6 +309,244 @@ namespace SAM.Tests
             Assert.Equal(10, textFrames.Count);
         }
 
+        // ---------- long unbroken text ----------
+
+        private const string LongUnderscoreName = "S12_Reception_Atrium_NCM_CirculationArea_Level02_ZoneB_NorthWing_DoubleHeight_Extended";
+
+        /// <summary>
+        /// 120 characters with no space and no separator: only the character-level fallback can break it.
+        /// </summary>
+        private static readonly string LongUnbrokenToken = string.Concat(Enumerable.Repeat("ABCDEFGHIJ", 12));
+
+        /// <summary>
+        /// A document that puts both long tokens everywhere text can go: the header band, key/value labels and
+        /// values in a half section (a side-by-side frame), a table cell, a notice, a note, a text paragraph and
+        /// the footer.
+        /// </summary>
+        private static Document LongTokenDocument()
+        {
+            DocumentMetadata documentMetadata = Metadata();
+            documentMetadata.Subject = LongUnderscoreName;
+
+            return new Document("test", documentMetadata, new[]
+            {
+                new DocumentSection(PdfRenderer.HeaderSectionId, "Identity", new DocumentBlock[] { new KeyValueBlock("identity", null, new[] { new KeyValueRow("Internal condition", FormattedValue.Label(LongUnbrokenToken)) }) }),
+                new DocumentSection("left", "Left", new DocumentBlock[]
+                {
+                    new KeyValueBlock("kv", null, new[]
+                    {
+                        new KeyValueRow("System", FormattedValue.Label(LongUnderscoreName)),
+                        new KeyValueRow(LongUnbrokenToken, new FormattedValue("12.5", "m²", Availability.Available)),
+                        new KeyValueRow("Riser", FormattedValue.Label(LongUnbrokenToken)),
+                    }),
+                }, SectionWidth.Half),
+                new DocumentSection("right", "Right", new DocumentBlock[]
+                {
+                    new NoticeBlock("notice", "Notice about " + LongUnbrokenToken),
+                    new NoticeBlock("note", "Not present: " + LongUnderscoreName, NoticeLevel.Note),
+                }, SectionWidth.Half),
+                new DocumentSection("table", "Table", new DocumentBlock[]
+                {
+                    new TableBlock("table", null, new[] { new TableColumn("Element", alignment: ColumnAlignment.Left), new TableColumn("Profile", alignment: ColumnAlignment.Left), new TableColumn("Area", "m²") }, new[]
+                    {
+                        new TableRow(FormattedValue.Label("Walls"), FormattedValue.Label(LongUnderscoreName), new FormattedValue("50.9", "m²", Availability.Available)),
+                        new TableRow(FormattedValue.Label(LongUnbrokenToken), FormattedValue.Label("Short"), new FormattedValue("5.3", "m²", Availability.Available)),
+                    }),
+                    new TextBlock("text", "Before " + LongUnbrokenToken + LongUnbrokenToken + " after."),
+                }),
+            }, new DocumentFooter(new[] { "Footer " + LongUnderscoreName }));
+        }
+
+        /// <summary>
+        /// Long tokens are broken so that no line escapes its column or frame, and the full text is kept: the
+        /// paragraph text (line breaks removed) is exactly the supplied text.
+        /// </summary>
+        [Fact]
+        public void LongTokens_WrapWithinTheirColumns_AndKeepTheFullText()
+        {
+            Document document = LongTokenDocument();
+            MigraDocument migraDocument = MigraDocBuilder.Build(document);
+
+            AssertNoLineEscapes(migraDocument);
+
+            List<string> paragraphs = Paragraphs(document);
+            foreach (string expected in new[] { LongUnderscoreName, LongUnbrokenToken, "Notice about " + LongUnbrokenToken, "Not present: " + LongUnderscoreName, "Before " + LongUnbrokenToken + LongUnbrokenToken + " after.", "Footer " + LongUnderscoreName })
+            {
+                Assert.Contains(expected, paragraphs);
+            }
+
+            byte[] bytes = new PdfRenderer().Render(document);
+            Save("LongTokens.pdf", bytes);
+            PdfDocument pdfDocument = Open(bytes);
+            Assert.All(pdfDocument.Pages.Cast<PdfPage>(), AssertA4);
+        }
+
+        /// <summary>
+        /// An underscore-delimited name breaks after an underscore, never inside a part; a token with no separator
+        /// is broken by the character fallback, and its pieces join back to the whole token.
+        /// </summary>
+        [Fact]
+        public void LongTokens_BreakAfterSeparators_ElseByCharacter()
+        {
+            MigraDocument migraDocument = MigraDocBuilder.Build(LongTokenDocument());
+            List<Paragraph> paragraphs = Objects(migraDocument).OfType<Paragraph>().ToList();
+
+            List<List<string>> underscore = paragraphs.Where(x => ParagraphText(x) == LongUnderscoreName).Select(Lines).ToList();
+            Assert.NotEmpty(underscore);
+            Assert.Contains(underscore, x => x.Count > 1);
+            Assert.All(underscore, x => Assert.All(x.Take(x.Count - 1), y => Assert.EndsWith("_", y)));
+
+            List<List<string>> unbroken = paragraphs.Where(x => ParagraphText(x) == LongUnbrokenToken).Select(Lines).ToList();
+            Assert.NotEmpty(unbroken);
+            Assert.All(unbroken, x => Assert.True(x.Count > 1));
+            Assert.All(unbroken, x => Assert.Equal(LongUnbrokenToken, string.Concat(x)));
+        }
+
+        /// <summary>
+        /// Normal documents are unchanged: every design-gate text fits, so no line break is inserted anywhere, and
+        /// nothing escapes its column.
+        /// </summary>
+        [Theory]
+        [MemberData(nameof(DesignGateCases))]
+        public void DesignGate_NoForcedBreaks_AndNothingEscapes(string name)
+        {
+            MigraDocument migraDocument = MigraDocBuilder.Build(ReportingDesignGateFixture.Document(name));
+
+            AssertNoLineEscapes(migraDocument);
+            Assert.All(Objects(migraDocument).OfType<Paragraph>(), x => Assert.True(Lines(x).Count == 1, string.Join(" | ", Lines(x))));
+        }
+
+        /// <summary>
+        /// Every word of every line (MigraDoc breaks only at spaces and forced breaks) fits the width of the cell,
+        /// frame or page column that holds its paragraph, measured with the paragraph's own font.
+        /// </summary>
+        private static void AssertNoLineEscapes(MigraDocument migraDocument)
+        {
+            NotoSansFontResolver.Register();
+            XGraphics xGraphics = XGraphics.CreateMeasureContext(new XSize(2000, 2000), XGraphicsUnit.Point, XPageDirection.Downwards);
+
+            int checkedWords = 0;
+            foreach ((Paragraph paragraph, double width, double size, bool bold) in Placed(migraDocument))
+            {
+                XFont xFont = new XFont(NotoSansFontResolver.FamilyName, size, bold ? XFontStyleEx.Bold : XFontStyleEx.Regular);
+                double available = width - paragraph.Format.LeftIndent.Millimeter - paragraph.Format.RightIndent.Millimeter;
+                foreach (string word in Lines(paragraph).SelectMany(x => x.Split(' ')).Where(x => x.Length != 0))
+                {
+                    double wordWidth = xGraphics.MeasureString(word, xFont).Width * 25.4 / 72.0;
+                    Assert.True(wordWidth <= available + 0.01, string.Format("\"{0}\" is {1:0.00} mm wide in {2:0.00} mm", word, wordWidth, available));
+                    checkedWords++;
+                }
+            }
+
+            Assert.True(checkedWords > 0);
+        }
+
+        /// <summary>
+        /// Each paragraph with the width it is laid out in (mm) and its effective font size (pt) and weight.
+        /// </summary>
+        private static IEnumerable<(Paragraph Paragraph, double Width, double Size, bool Bold)> Placed(MigraDocument migraDocument)
+        {
+            const double contentWidth = 180;
+            foreach (Section section in migraDocument.Sections.OfType<Section>())
+            {
+                foreach (DocumentElements documentElements in new[] { section.Headers.Primary.Elements, section.Headers.FirstPage.Elements, section.Footers.Primary.Elements, section.Footers.FirstPage.Elements, section.Elements })
+                {
+                    foreach ((Paragraph, double, double, bool) placed in Placed(documentElements, contentWidth, 9, false))
+                    {
+                        yield return placed;
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<(Paragraph Paragraph, double Width, double Size, bool Bold)> Placed(DocumentElements documentElements, double width, double size, bool bold)
+        {
+            foreach (DocumentObject documentObject in documentElements.OfType<DocumentObject>())
+            {
+                switch (documentObject)
+                {
+                    case Paragraph paragraph:
+                        yield return (paragraph, width, Size(paragraph.Format, size), Bold(paragraph.Format, bold));
+                        break;
+
+                    case TextFrame textFrame:
+                        foreach ((Paragraph, double, double, bool) placed in Placed(textFrame.Elements, FrameWidth(textFrame), size, bold))
+                        {
+                            yield return placed;
+                        }
+
+                        break;
+
+                    case Table table:
+                        double table_Size = Size(table.Format, size);
+                        bool table_Bold = Bold(table.Format, bold);
+                        foreach (Row row in table.Rows.OfType<Row>())
+                        {
+                            double row_Size = Size(row.Format, table_Size);
+                            bool row_Bold = Bold(row.Format, table_Bold);
+                            foreach (Cell cell in row.Cells.OfType<Cell>())
+                            {
+                                double cell_Width = Enumerable.Range(cell.Column!.Index, cell.MergeRight + 1).Sum(x => table.Columns[x]!.Width.Millimeter) - table.LeftPadding.Millimeter - table.RightPadding.Millimeter;
+                                foreach (DocumentObject child in cell.Elements.OfType<DocumentObject>())
+                                {
+                                    if (child is Paragraph paragraph)
+                                    {
+                                        yield return (paragraph, cell_Width, Size(paragraph.Format, Size(cell.Format, row_Size)), Bold(paragraph.Format, Bold(cell.Format, row_Bold)));
+                                    }
+                                    else if (child is TextFrame textFrame)
+                                    {
+                                        foreach ((Paragraph, double, double, bool) placed in Placed(textFrame.Elements, FrameWidth(textFrame), row_Size, row_Bold))
+                                        {
+                                            yield return placed;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        private static double FrameWidth(TextFrame textFrame)
+        {
+            return textFrame.Width.Millimeter - textFrame.MarginLeft.Millimeter - textFrame.MarginRight.Millimeter;
+        }
+
+        private static double Size(ParagraphFormat paragraphFormat, double inherited)
+        {
+            Unit? unit = paragraphFormat.Font.Values.Size;
+            return unit.HasValue && !unit.Value.IsEmpty ? unit.Value.Point : inherited;
+        }
+
+        private static bool Bold(ParagraphFormat paragraphFormat, bool inherited)
+        {
+            return paragraphFormat.Font.Values.Bold ?? inherited;
+        }
+
+        /// <summary>
+        /// The lines of a paragraph as set by forced line breaks.
+        /// </summary>
+        private static List<string> Lines(Paragraph paragraph)
+        {
+            List<string> result = new List<string>() { string.Empty };
+            foreach (DocumentObject documentObject in paragraph.Elements.OfType<DocumentObject>())
+            {
+                if (documentObject is Character character && character.SymbolName == SymbolName.LineBreak)
+                {
+                    result.Add(string.Empty);
+                    continue;
+                }
+
+                StringBuilder stringBuilder = new StringBuilder();
+                AppendText(stringBuilder, new[] { documentObject });
+                result[result.Count - 1] += stringBuilder.ToString();
+            }
+
+            return result;
+        }
+
         // ---------- helpers ----------
 
         /// <summary>
@@ -494,11 +733,11 @@ namespace SAM.Tests
         private static string ParagraphText(Paragraph paragraph)
         {
             StringBuilder stringBuilder = new StringBuilder();
-            AppendText(stringBuilder, paragraph.Elements);
+            AppendText(stringBuilder, paragraph.Elements.Cast<DocumentObject>());
             return stringBuilder.ToString();
         }
 
-        private static void AppendText(StringBuilder stringBuilder, ParagraphElements paragraphElements)
+        private static void AppendText(StringBuilder stringBuilder, IEnumerable<DocumentObject> paragraphElements)
         {
             foreach (DocumentObject documentObject in paragraphElements)
             {
@@ -509,7 +748,10 @@ namespace SAM.Tests
                         break;
 
                     case FormattedText formattedText:
-                        AppendText(stringBuilder, formattedText.Elements);
+                        AppendText(stringBuilder, formattedText.Elements.Cast<DocumentObject>());
+                        break;
+
+                    case Character character when character.SymbolName == SymbolName.LineBreak:
                         break;
 
                     case Character character:
