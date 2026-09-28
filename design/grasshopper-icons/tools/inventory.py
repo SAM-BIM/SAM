@@ -1,4 +1,4 @@
-﻿"""Inventory every Grasshopper document object (components + params) in SAM/Grasshopper.
+"""Inventory every Grasshopper document object (components + params) in SAM/Grasshopper.
 
 Parses C# source (no build needed). Writes manifest_raw.json next to this tool's parent.
 An object is inventoried when a non-abstract class declares `ComponentGuid`.
@@ -14,7 +14,7 @@ REPO = os.path.dirname(os.path.dirname(DESIGN))
 GH = os.path.join(REPO, "Grasshopper")
 
 CLASS_RE = re.compile(r"^\s*(?:\[[^\]]*\]\s*)*((?:public|internal|private|protected|abstract|sealed|static|partial|\s)+)class\s+(\w+)(?:<[^>{]*>)?\s*(?::\s*([^{\n]+))?", re.M)
-GUID_RE = re.compile(r"ComponentGuid\s*(?:=>|\{\s*get\s*\{\s*return)\s*new\s+Guid\(\s*\"([0-9a-fA-F-]+)\"")
+GUID_RE = re.compile(r"ComponentGuid\s*(?:=>|\{\s*get\s*\{\s*return)\s*new\s*(?:Guid\s*)?\(\s*\"([0-9a-fA-F-]+)\"")  # new Guid("..") and target-typed new("..")
 ICON_RE = re.compile(r"override\s+(?:System\.Drawing\.)?Bitmap\s+Icon\b(.{0,300})", re.S)
 EXPOSURE_RE = re.compile(r"override\s+GH_Exposure\s+Exposure\s*=>\s*([^;]+);")
 def base_args(text, pos):
