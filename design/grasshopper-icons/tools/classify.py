@@ -254,6 +254,12 @@ OVERRIDES = {
     "SAMAnalytical.FilterByElevation": ("panel", "filter", "plural"), "SAMAnalytical.SnapByElevations": ("panel", "snap", "plural"),
     "SAMAnalytical.FilterByBoundaryType": ("panel", "filter", "plural"), "SAMAnalytical.FilterByPanelType": ("panel", "filter", "plural"),
     "SAMAnalytical.FilterByPanelAreaAndThinnessRatio": ("panel", "filter", "plural"), "SAMAnalytical.SnapByPoints": ("panel", "snap", "plural"),
+    "SAMAnalytical.CheckPartFCompliance": ("openingProperties", "validate", None),
+    "SAMAnalytical.SetPartFCommissioningData": ("openingProperties", "set", None),
+    "SAMAnalytical.CreateCaseByApertureByAzimuths": ("case", "create", None), "SAMAnalytical.CreateCaseByApertureConstruction": ("case", "create", None),
+    "SAMAnalytical.CreateCaseByOpening": ("case", "create", None), "SAMAnalytical.CreateCaseByWeather": ("case", "create", None),
+    "SAMAnalytical.FilterByAzimuth": ("panel", "filter", "plural"), "SAMAnalytical.FilterByGeometry": ("object", "filter", None),
+    "SAMAnalytical.FilterByPoints": ("object", "filter", None), "SAMCore.Samples": ("folder", "list", None),
     # --- geometry
     "Create.SAMTransform3DOriginToPlane": ("transform3D", "create", None), "Create.SAMTransform3DPlaneToOrigin": ("transform3D", "create", None),
     "Create.SAMTransform3DPlaneToPlane": ("transform3D", "create", None),

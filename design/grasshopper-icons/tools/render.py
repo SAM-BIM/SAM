@@ -15,16 +15,50 @@ PITCH = 32  # sprite cell (icons placed at integer offsets -> no resampling)
 
 
 def _shot(html_path, png_path, w, h, scale=1):
+    profile = tempfile.mkdtemp(prefix="edge-prof-")  # isolated profile: safe to run in parallel
+    try:
+        _shot_with(html_path, png_path, w, h, scale, profile)
+    finally:
+        import shutil
+        shutil.rmtree(profile, ignore_errors=True)
+
+
+def _shot_with(html_path, png_path, w, h, scale, profile):
     subprocess.run([
-        EDGE, "--headless=new", "--disable-gpu", "--hide-scrollbars",
+        EDGE, "--headless=new", "--disable-gpu", "--hide-scrollbars", f"--user-data-dir={profile}",
         f"--force-device-scale-factor={scale}", "--default-background-color=00000000",
         "--allow-file-access-from-files", f"--window-size={w},{h}", "--virtual-time-budget=5000",
         f"--screenshot={png_path}", "file:///" + html_path.replace("\\", "/"),
     ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def rasterise(svg_paths, out_paths, size=24):
-    """svg_paths[i] -> out_paths[i] at size x size."""
+def rasterise(svg_paths, out_paths, size=24, workers=8):
+    """svg_paths[i] -> out_paths[i] at size x size.
+
+    Each icon is rendered alone at the same page position (0,0), so its pixels depend only on its
+    own SVG. (A shared sprite made antialiasing depend on the icon's position in the sprite.)
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(pair):
+        svg, out = pair
+        with tempfile.TemporaryDirectory() as tmp:
+            page = os.path.join(tmp, "one.html")
+            src = "file:///" + os.path.abspath(svg).replace("\\", "/")
+            open(page, "w", encoding="utf-8").write(
+                "<!DOCTYPE html><html><body style='margin:0;background:transparent'>"
+                f"<img src=\"{src}\" width=\"{size}\" height=\"{size}\" style=\"position:absolute;left:0;top:0\"></body></html>")
+            shot = os.path.join(tmp, "one.png")
+            _shot(page, shot, 64, 64)
+            os.makedirs(os.path.dirname(out), exist_ok=True)
+            Image.open(shot).convert("RGBA").crop((0, 0, size, size)).save(out, optimize=True)
+
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        list(ex.map(one, zip(svg_paths, out_paths)))
+
+
+def rasterise_sprite(svg_paths, out_paths, size=24):
+    """Legacy sprite rasteriser (position-sensitive antialiasing; kept for reference only)."""
     cols = 40
     rows = (len(svg_paths) + cols - 1) // cols
     with tempfile.TemporaryDirectory() as tmp:

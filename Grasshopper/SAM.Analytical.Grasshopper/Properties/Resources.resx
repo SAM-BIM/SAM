@@ -352,6 +352,9 @@
   <data name="SAM_GH_FanAdd" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_FanAdd.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="SAM_GH_FanPluralModify" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Icons\SAM_GH_FanPluralModify.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="SAM_GH_FileList" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_FileList.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -402,6 +405,9 @@
   </data>
   <data name="SAM_GH_InternalConditionLibraryGet" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_InternalConditionLibraryGet.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SAM_GH_InternalConditionModify" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Icons\SAM_GH_InternalConditionModify.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="SAM_GH_InternalConditionPluralUpdate" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_InternalConditionPluralUpdate.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -528,6 +534,12 @@
   </data>
   <data name="SAM_GH_OpeningPropertiesRemove" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_OpeningPropertiesRemove.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SAM_GH_OpeningPropertiesSet" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Icons\SAM_GH_OpeningPropertiesSet.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SAM_GH_OpeningPropertiesValidate" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Icons\SAM_GH_OpeningPropertiesValidate.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="SAM_GH_Panel" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_Panel.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -670,6 +682,9 @@
   <data name="SAM_GH_ResultAdd" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_ResultAdd.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="SAM_GH_ResultCreate" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Icons\SAM_GH_ResultCreate.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="SAM_GH_SectionBox" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_SectionBox.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -684,6 +699,9 @@
   </data>
   <data name="SAM_GH_Shade" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_Shade.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SAM_GH_ShadeAdd" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Icons\SAM_GH_ShadeAdd.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="SAM_GH_ShadeCreate" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_ShadeCreate.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -807,6 +825,9 @@
   </data>
   <data name="SAM_GH_ZonePluralGet" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_ZonePluralGet.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SAM_GH_ZoneUpdate" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Icons\SAM_GH_ZoneUpdate.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="SAM_GH_ZoneValue" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Icons\SAM_GH_ZoneValue.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>

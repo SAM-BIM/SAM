@@ -104,7 +104,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_OpeningPropertiesValidate);
 
         public SAMAnalyticalCheckPartFCompliance()
           : base("SAMAnalytical.CheckPartFCompliance", "SAMAnalytical.CheckPartFCompliance",
