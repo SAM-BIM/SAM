@@ -82,5 +82,2295 @@ namespace SAM.Analytical.Grasshopper.Properties {
                 return ((byte[])(obj));
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Ahu {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Ahu", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_AhuPluralModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_AhuPluralModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_AirflowCalculate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_AirflowCalculate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_AirflowModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_AirflowModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_AirflowSet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_AirflowSet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_AirflowUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_AirflowUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Aperture {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Aperture", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureAdd {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureAdd", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureCalculate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureCalculate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstruction {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstruction", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstructionCalculate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstructionCalculate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstructionCopy {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstructionCopy", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstructionCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstructionCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstructionLibrary {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstructionLibrary", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstructionLibraryCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstructionLibraryCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstructionLibraryGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstructionLibraryGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstructionPluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstructionPluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstructionPluralUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstructionPluralUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstructionSet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstructionSet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureConstructionUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureConstructionUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_AperturePluralCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_AperturePluralCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_AperturePluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_AperturePluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_AperturePluralMerge {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_AperturePluralMerge", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_AperturePluralOffset {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_AperturePluralOffset", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_AperturePluralRemove {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_AperturePluralRemove", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ApertureValue {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ApertureValue", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_CaseCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_CaseCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_CaseModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_CaseModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ClockConvert {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ClockConvert", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Cluster {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Cluster", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ClusterCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ClusterCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ClusterGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ClusterGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ClusterList {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ClusterList", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ClusterMerge {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ClusterMerge", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ClusterModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ClusterModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ClusterUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ClusterUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ColourGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ColourGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_CompassModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_CompassModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Construction {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Construction", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionCopy {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionCopy", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionLayer {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionLayer", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionLayerPluralCopy {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionLayerPluralCopy", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionLayerPluralCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionLayerPluralCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionLayerPluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionLayerPluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionLayerPluralSet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionLayerPluralSet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionLayerSet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionLayerSet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionLibrary {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionLibrary", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionLibraryCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionLibraryCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionLibraryGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionLibraryGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionManager {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionManager", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionManagerCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionManagerCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionManagerGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionManagerGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionManagerRemove {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionManagerRemove", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionManagerUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionManagerUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionPluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionPluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionPluralUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionPluralUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionSet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionSet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ConstructionUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ConstructionUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_DaylightAnalyse {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_DaylightAnalyse", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_DaylightCalculate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_DaylightCalculate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_DegreeOfActivity {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_DegreeOfActivity", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_DegreeOfActivityCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_DegreeOfActivityCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_DegreeOfActivityLibrary {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_DegreeOfActivityLibrary", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_DegreeOfActivityLibraryGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_DegreeOfActivityLibraryGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_DesignDay {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_DesignDay", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_DesignDayPluralCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_DesignDayPluralCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Equipment {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Equipment", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_EquipmentUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_EquipmentUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ExternalSpace {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ExternalSpace", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ExternalSpacePluralRemove {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ExternalSpacePluralRemove", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ExternalSpacePluralSet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ExternalSpacePluralSet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Face {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Face", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_FaceGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_FaceGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_FanAdd {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_FanAdd", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_FileList {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_FileList", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_FloorCalculate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_FloorCalculate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_FolderList {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_FolderList", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_GasMaterialCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_GasMaterialCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_GasMaterialPluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_GasMaterialPluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_GasMaterialValue {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_GasMaterialValue", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_GeometryConvert {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_GeometryConvert", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_GeometryUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_GeometryUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_GridCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_GridCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_HeatCalculate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_HeatCalculate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_HeatUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_HeatUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_HeatValue {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_HeatValue", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_InfiltrationUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_InfiltrationUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_InternalCondition {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_InternalCondition", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_InternalConditionCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_InternalConditionCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_InternalConditionLibrary {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_InternalConditionLibrary", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_InternalConditionLibraryGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_InternalConditionLibraryGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_InternalConditionPluralUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_InternalConditionPluralUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_InternalConditionSet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_InternalConditionSet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_InternalConditionUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_InternalConditionUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_InternalConditionValue {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_InternalConditionValue", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_IzamCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_IzamCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_IzamRemove {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_IzamRemove", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_LevelPluralCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_LevelPluralCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_LightingUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_LightingUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_LightingValue {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_LightingValue", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ListSort {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ListSort", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_LocationSet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_LocationSet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_MaterialCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_MaterialCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_MaterialLayerPluralCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_MaterialLayerPluralCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_MaterialLibraryAdd {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_MaterialLibraryAdd", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_MaterialLibraryGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_MaterialLibraryGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_MaterialPluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_MaterialPluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Model {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Model", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ModelCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ModelCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ModelExport {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ModelExport", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ModelMerge {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ModelMerge", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ModelModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ModelModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ModelTransform {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ModelTransform", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ModelUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ModelUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ModelValidate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ModelValidate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_NameModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_NameModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_NamePluralUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_NamePluralUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_NameUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_NameUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_NormalDisplay {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_NormalDisplay", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_NormalFlip {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_NormalFlip", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_NormalUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_NormalUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Object {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Object", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ObjectFilter {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ObjectFilter", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ObjectLibraryGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ObjectLibraryGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ObjectLibraryUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ObjectLibraryUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ObjectModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ObjectModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ObjectPluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ObjectPluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ObjectRemove {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ObjectRemove", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ObjectUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ObjectUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ObjectValidate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ObjectValidate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_OpeningProperties {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_OpeningProperties", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_OpeningPropertiesAdd {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_OpeningPropertiesAdd", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_OpeningPropertiesRemove {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_OpeningPropertiesRemove", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Panel {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Panel", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelAdd {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelAdd", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelAlign {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelAlign", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelCalculate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelCalculate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelConvert {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelConvert", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelDifference {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelDifference", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelDisplay {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelDisplay", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelExtend {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelExtend", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelIntersect {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelIntersect", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelOffset {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelOffset", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralAlign {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralAlign", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralCalculate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralCalculate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralExtend {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralExtend", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralFilter {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralFilter", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralMerge {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralMerge", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralSnap {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralSnap", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralSplit {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralSplit", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelPluralUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelPluralUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelRemove {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelRemove", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelSet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelSet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelSplit {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelSplit", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelTransform {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelTransform", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelTriangulate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelTriangulate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PanelValue {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PanelValue", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PlaneIntersect {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PlaneIntersect", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PointsSnap {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PointsSnap", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_PollutantUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_PollutantUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Profile {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Profile", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ProfileCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ProfileCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ProfileDivide {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ProfileDivide", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ProfileGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ProfileGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ProfileLibrary {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ProfileLibrary", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ProfileLibraryAdd {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ProfileLibraryAdd", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ProfileLibraryGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ProfileLibraryGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ProfileModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ProfileModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ProfileMultiply {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ProfileMultiply", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ProfileSum {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ProfileSum", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ProfileValue {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ProfileValue", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_RelationPluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_RelationPluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ResultAdd {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ResultAdd", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SectionBox {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SectionBox", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SectionBoxSection {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SectionBoxSection", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Settings {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Settings", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SettingsCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SettingsCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Shade {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Shade", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ShadeCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ShadeCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ShellPluralCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ShellPluralCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Space {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Space", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpaceAdd {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpaceAdd", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpaceAlign {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpaceAlign", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpaceCalculate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpaceCalculate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpaceCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpaceCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpaceDisplay {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpaceDisplay", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpaceFilter {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpaceFilter", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpaceGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpaceGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpacePluralFilter {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpacePluralFilter", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpacePluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpacePluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpacePluralList {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpacePluralList", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpacePluralMerge {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpacePluralMerge", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpacePluralModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpacePluralModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpacePluralRemove {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpacePluralRemove", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpacePluralUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpacePluralUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpaceUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpaceUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SpaceValidate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SpaceValidate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SystemAdd {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SystemAdd", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SystemLibraryGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SystemLibraryGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SystemPluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SystemPluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SystemPluralModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SystemPluralModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SystemSet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SystemSet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_SystemValue {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_SystemValue", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_Text {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_Text", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_TextMapGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_TextMapGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ThermometerAnalyse {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ThermometerAnalyse", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ThermometerCalculate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ThermometerCalculate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ThermometerUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ThermometerUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ThermometerValue {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ThermometerValue", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_TransparentMaterialCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_TransparentMaterialCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_TreeConvert {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_TreeConvert", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_TypeUpdate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_TypeUpdate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ValuePluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ValuePluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_VectorGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_VectorGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_WeatherDataImport {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_WeatherDataImport", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_WeatherDataPluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_WeatherDataPluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ZoneModify {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ZoneModify", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ZonePluralCreate {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ZonePluralCreate", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ZonePluralGet {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ZonePluralGet", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] SAM_GH_ZoneValue {
+            get {
+                object obj = ResourceManager.GetObject("SAM_GH_ZoneValue", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
     }
 }

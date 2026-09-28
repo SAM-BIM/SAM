@@ -35,7 +35,7 @@ namespace SAM.Core.Grasshopper
 
         public override GH_Exposure Exposure => GH_Exposure.hidden;
 
-        protected override System.Drawing.Bitmap Icon => Resources.SAM_Small;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_GH_Address;
 
         public GooAddressParam()
             : base(typeof(Address).Name, typeof(Address).Name, typeof(Address).FullName.Replace(".", " "), "Params", "SAM")

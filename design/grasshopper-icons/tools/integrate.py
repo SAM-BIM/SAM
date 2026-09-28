@@ -68,9 +68,14 @@ def update_designer(path, names, as_bytes):
 CLASS_DECL = r"^\s*(?:\[[^\]]*\]\s*)*(?:public|internal)[\w\s]*\bclass\s+{}\b"
 
 
-def update_icon(src_path, cls, resource, analytical):
+def update_icon(src_path, cls, resource, analytical, guid):
     text, bom, nl = read(src_path)
-    m = re.search(CLASS_DECL.format(cls), text, re.M)
+    # locate the class by its (unique) ComponentGuid: a file may declare the same class name twice
+    gpos = re.search(r'ComponentGuid[^\n]*"' + re.escape(guid) + '"', text, re.I)
+    assert gpos, (src_path, cls, guid)
+    m = None
+    for mm in re.finditer(CLASS_DECL.format(cls), text[:gpos.start()], re.M):
+        m = mm
     assert m, (src_path, cls)
     nxt = re.search(r"^\s*(?:public|internal)[\w\s]*\bclass\s+\w+", text[m.end():], re.M)
     end = m.end() + nxt.start() if nxt else len(text)
@@ -79,19 +84,43 @@ def update_icon(src_path, cls, resource, analytical):
     if ic:
         seg_start = ic.end()
         seg = body[seg_start: seg_start + 300]
-        new_seg, n = re.subn(r"\bResources\.\w+", "Resources." + resource, seg, count=1)
-        assert n == 1, (src_path, cls)
+        # first Resources.X that is not inside a // comment
+        hit = next((mm for mm in re.finditer(r"\bResources\.\w+", seg)
+                    if "//" not in seg[seg.rfind("\n", 0, mm.start()) + 1: mm.start()]), None)
+        assert hit, (src_path, cls)
+        new_seg = seg[:hit.start()] + "Resources." + resource + seg[hit.end():]
         body = body[:seg_start] + new_seg + body[seg_start + 300:]
     else:
         # class with no Icon override (inherits GH default): add one line after ComponentGuid, same style as siblings
-        g = re.search(r"\n(\s*)public override Guid ComponentGuid[^\n]*\n", body)
+        g = re.search(r"\n([ \t]*)public override Guid ComponentGuid[^\n]*\n", body)
         assert g, (src_path, cls)
         ind = g.group(1)
-        expr = f"Core.Convert.ToBitmap(Resources.{resource})" if analytical else f"Resources.{resource}"
-        line = f"\n{ind}protected override System.Drawing.Bitmap Icon => {expr};\n"
+        expr = f"Core.Convert.ToBitmap(Properties.Resources.{resource})" if analytical else f"Properties.Resources.{resource}"
+        line = f"{ind}protected override System.Drawing.Bitmap Icon => {expr};\n"
         body = body[:g.end()] + line + body[g.end():]
     text = text[:m.end()] + body + text[end:]
     write(src_path, text, bom, nl)
+
+
+def verify(rows):
+    """Re-parse the C# source: every object must now reference its manifest resource, and it must exist."""
+    import subprocess
+    import sys
+    raw_path = os.path.join(DESIGN, "manifest_raw.json")
+    original = open(raw_path, "rb").read()  # keep the pre-redesign inventory (records the old icons)
+    try:
+        subprocess.run([sys.executable, os.path.join(HERE, "inventory.py")], check=True, stdout=subprocess.DEVNULL)
+        now = {r["guid"]: r for r in json.load(open(raw_path, encoding="utf-8"))}
+    finally:
+        open(raw_path, "wb").write(original)
+    bad = []
+    for r in rows:
+        cur = now[r["guid"]]["icon_expr"]
+        png = os.path.join(REPO, "Grasshopper", r["project"], "Resources", "Icons", r["resource"] + ".png")
+        if cur != r["resource"] or not os.path.isfile(png):
+            bad.append((r["class"], cur, r["resource"]))
+    assert not bad, bad
+    print(f"verified: {len(rows)}/{len(rows)} objects reference their SAM_GH_* icon resource")
 
 
 def main():
@@ -114,9 +143,10 @@ def main():
         update_resx(os.path.join(pdir, "Properties", "Resources.resx"), names, as_bytes)
         update_designer(os.path.join(pdir, "Properties", "Resources.Designer.cs"), names, as_bytes)
         for r in items:
-            update_icon(os.path.join(REPO, r["source"]), r["class"], r["resource"], as_bytes)
+            update_icon(os.path.join(REPO, r["source"]), r["class"], r["resource"], as_bytes, r["guid"])
             r["status"] = "integrated"
         print(f"{proj}: {len(items)} objects, {len(names)} icon resources")
+    verify(rows)
     json.dump(rows, open(os.path.join(DESIGN, "manifest.json"), "w", encoding="utf-8"), indent=1)
     import csv
     with open(os.path.join(DESIGN, "manifest.csv"), "w", newline="", encoding="utf-8") as fh:
