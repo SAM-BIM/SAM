@@ -22,7 +22,7 @@
   "resource": "SAM_GH_CaseCreate",
   "icon_file": "svg/case_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateCaseByShade1",
@@ -47,7 +47,7 @@
   "resource": "SAM_GH_CaseCreate",
   "icon_file": "svg/case_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateCaseByVentilation",
@@ -72,7 +72,7 @@
   "resource": "SAM_GH_CaseCreate",
   "icon_file": "svg/case_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateCaseByWindowSize",
@@ -97,7 +97,7 @@
   "resource": "SAM_GH_CaseCreate",
   "icon_file": "svg/case_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateOverheatingScenarios",
@@ -122,7 +122,7 @@
   "resource": "SAM_GH_CaseCreate",
   "icon_file": "svg/case_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPreparePartOIteration",
@@ -147,7 +147,7 @@
   "resource": "SAM_GH_CaseModify",
   "icon_file": "svg/case_modify.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateAdjacencyCluster",
@@ -172,7 +172,7 @@
   "resource": "SAM_GH_ClusterCreate",
   "icon_file": "svg/cluster_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateAdjacencyClusterByBreps",
@@ -197,7 +197,7 @@
   "resource": "SAM_GH_ClusterCreate",
   "icon_file": "svg/cluster_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateAdjacencyClusterByBrepsAndNames",
@@ -222,7 +222,7 @@
   "resource": "SAM_GH_ClusterCreate",
   "icon_file": "svg/cluster_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateAdjacencyClusterByElevations",
@@ -247,7 +247,7 @@
   "resource": "SAM_GH_ClusterCreate",
   "icon_file": "svg/cluster_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateAdjacencyClusterByPanelsAndSpaces",
@@ -272,7 +272,7 @@
   "resource": "SAM_GH_ClusterCreate",
   "icon_file": "svg/cluster_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateAdjacencyClusterByShells",
@@ -297,7 +297,7 @@
   "resource": "SAM_GH_ClusterCreate",
   "icon_file": "svg/cluster_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAdjacentSpaces",
@@ -322,7 +322,7 @@
   "resource": "SAM_GH_ClusterGet",
   "icon_file": "svg/cluster_get.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetAdjacentSpaceNames",
@@ -347,7 +347,7 @@
   "resource": "SAM_GH_ClusterList",
   "icon_file": "svg/cluster_list.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeAdjacencyCluster",
@@ -372,7 +372,7 @@
   "resource": "SAM_GH_ClusterMerge",
   "icon_file": "svg/cluster_merge.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFixAdjacencyCluster",
@@ -397,7 +397,7 @@
   "resource": "SAM_GH_ClusterModify",
   "icon_file": "svg/cluster_modify.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateObjects",
@@ -422,7 +422,7 @@
   "resource": "SAM_GH_ClusterUpdate",
   "icon_file": "svg/cluster_update.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMapAdjacencyCluster",
@@ -447,7 +447,7 @@
   "resource": "SAM_GH_ClusterUpdate",
   "icon_file": "svg/cluster_update.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateLevels",
@@ -472,7 +472,7 @@
   "resource": "SAM_GH_LevelPluralCreate",
   "icon_file": "svg/level_plural_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMArchitecturalCreateLevel",
@@ -497,7 +497,7 @@
   "resource": "SAM_GH_LevelCreate",
   "icon_file": "svg/level_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateAnalyticalModelBySpaces",
@@ -522,7 +522,7 @@
   "resource": "SAM_GH_ModelCreate",
   "icon_file": "svg/model_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateBuildingModelBy2DGeometries",
@@ -547,7 +547,7 @@
   "resource": "SAM_GH_ModelCreate",
   "icon_file": "svg/model_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateBuildingModelByShells",
@@ -572,7 +572,7 @@
   "resource": "SAM_GH_ModelCreate",
   "icon_file": "svg/model_create.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalBake",
@@ -597,7 +597,7 @@
   "resource": "SAM_GH_ModelExport",
   "icon_file": "svg/model_export.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMerge",
@@ -622,7 +622,7 @@
   "resource": "SAM_GH_ModelMerge",
   "icon_file": "svg/model_merge.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRenameAnalyticalModel",
@@ -647,7 +647,7 @@
   "resource": "SAM_GH_ModelModify",
   "icon_file": "svg/model_modify.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalTransform",
@@ -672,7 +672,7 @@
   "resource": "SAM_GH_ModelTransform",
   "icon_file": "svg/model_transform.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateBuildingModel",
@@ -697,7 +697,7 @@
   "resource": "SAM_GH_ModelUpdate",
   "icon_file": "svg/model_update.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateByModel",
@@ -722,7 +722,7 @@
   "resource": "SAM_GH_ModelUpdate",
   "icon_file": "svg/model_update.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCheck",
@@ -747,7 +747,7 @@
   "resource": "SAM_GH_ModelValidate",
   "icon_file": "svg/model_validate.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSection",
@@ -772,7 +772,7 @@
   "resource": "SAM_GH_SectionBoxSection",
   "icon_file": "svg/sectionBox_section.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometrySectionByFace3D",
@@ -797,7 +797,7 @@
   "resource": "SAM_GH_SectionBoxSection",
   "icon_file": "svg/sectionBox_section.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometrySectionByShell",
@@ -822,7 +822,7 @@
   "resource": "SAM_GH_SectionBoxSection",
   "icon_file": "svg/sectionBox_section.svg",
   "batch": "01 Model, cluster & cases",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRemoveExternalSpaces",
@@ -847,7 +847,7 @@
   "resource": "SAM_GH_ExternalSpacePluralRemove",
   "icon_file": "svg/externalSpace_plural_remove.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetExternalSpaces",
@@ -872,7 +872,7 @@
   "resource": "SAM_GH_ExternalSpacePluralSet",
   "icon_file": "svg/externalSpace_plural_set.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCalculateFloorArea",
@@ -897,7 +897,7 @@
   "resource": "SAM_GH_FloorCalculate",
   "icon_file": "svg/floor_calculate.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateIZAM",
@@ -922,7 +922,7 @@
   "resource": "SAM_GH_IzamCreate",
   "icon_file": "svg/izam_create.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateIZAMBySetPoint",
@@ -947,7 +947,7 @@
   "resource": "SAM_GH_IzamCreate",
   "icon_file": "svg/izam_create.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateIZAMBySpaces",
@@ -972,7 +972,7 @@
   "resource": "SAM_GH_IzamCreate",
   "icon_file": "svg/izam_create.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRemoveAirMovementObjects",
@@ -997,7 +997,7 @@
   "resource": "SAM_GH_IzamRemove",
   "icon_file": "svg/izam_remove.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddSpace",
@@ -1022,7 +1022,7 @@
   "resource": "SAM_GH_SpaceAdd",
   "icon_file": "svg/space_add.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddSpacesByBrep",
@@ -1047,7 +1047,7 @@
   "resource": "SAM_GH_SpaceAdd",
   "icon_file": "svg/space_add.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAlignSpaceLocation",
@@ -1072,7 +1072,7 @@
   "resource": "SAM_GH_SpaceAlign",
   "icon_file": "svg/space_align.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCalculateSpacePanelArea",
@@ -1097,7 +1097,7 @@
   "resource": "SAM_GH_SpaceCalculate",
   "icon_file": "svg/space_calculate.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateSpace",
@@ -1122,7 +1122,7 @@
   "resource": "SAM_GH_SpaceCreate",
   "icon_file": "svg/space_create.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalLabelSpace",
@@ -1147,7 +1147,7 @@
   "resource": "SAM_GH_SpaceDisplay",
   "icon_file": "svg/space_display.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFilterBySpaces",
@@ -1172,7 +1172,7 @@
   "resource": "SAM_GH_SpaceFilter",
   "icon_file": "svg/space_filter.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPerimeterSpaces",
@@ -1197,7 +1197,7 @@
   "resource": "SAM_GH_SpacePluralFilter",
   "icon_file": "svg/space_plural_filter.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetSpacesByName",
@@ -1222,7 +1222,7 @@
   "resource": "SAM_GH_SpaceGet",
   "icon_file": "svg/space_get.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetSpaces",
@@ -1247,7 +1247,7 @@
   "resource": "SAM_GH_SpacePluralGet",
   "icon_file": "svg/space_plural_get.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalReportRooms",
@@ -1272,7 +1272,7 @@
   "resource": "SAM_GH_SpacePluralList",
   "icon_file": "svg/space_plural_list.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalReportRoomsList",
@@ -1297,7 +1297,7 @@
   "resource": "SAM_GH_SpacePluralList",
   "icon_file": "svg/space_plural_list.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalReportSpaces",
@@ -1322,7 +1322,7 @@
   "resource": "SAM_GH_SpacePluralList",
   "icon_file": "svg/space_plural_list.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalJoinSpacesByPanels",
@@ -1347,7 +1347,7 @@
   "resource": "SAM_GH_SpacePluralMerge",
   "icon_file": "svg/space_plural_merge.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeSpacesByAirPanels",
@@ -1372,7 +1372,7 @@
   "resource": "SAM_GH_SpacePluralMerge",
   "icon_file": "svg/space_plural_merge.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeSpacesByPanels",
@@ -1397,7 +1397,7 @@
   "resource": "SAM_GH_SpacePluralMerge",
   "icon_file": "svg/space_plural_merge.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeSpacesByZones",
@@ -1422,7 +1422,7 @@
   "resource": "SAM_GH_SpacePluralMerge",
   "icon_file": "svg/space_plural_merge.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalModifySpaces",
@@ -1447,7 +1447,7 @@
   "resource": "SAM_GH_SpacePluralModify",
   "icon_file": "svg/space_plural_modify.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRemoveSpaces",
@@ -1472,7 +1472,7 @@
   "resource": "SAM_GH_SpacePluralRemove",
   "icon_file": "svg/space_plural_remove.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRemoveSpacesByBrep",
@@ -1497,7 +1497,7 @@
   "resource": "SAM_GH_SpacePluralRemove",
   "icon_file": "svg/space_plural_remove.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateSpaceByLocationAndName",
@@ -1522,7 +1522,7 @@
   "resource": "SAM_GH_SpaceUpdate",
   "icon_file": "svg/space_update.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateSpaceLoactionPoint",
@@ -1547,7 +1547,7 @@
   "resource": "SAM_GH_SpaceUpdate",
   "icon_file": "svg/space_update.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateSpaces",
@@ -1572,7 +1572,7 @@
   "resource": "SAM_GH_SpacePluralUpdate",
   "icon_file": "svg/space_plural_update.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalInsideSpace",
@@ -1597,7 +1597,7 @@
   "resource": "SAM_GH_SpaceValidate",
   "icon_file": "svg/space_validate.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreatePerimeterZones",
@@ -1622,7 +1622,7 @@
   "resource": "SAM_GH_ZonePluralCreate",
   "icon_file": "svg/zone_plural_create.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreatePerimeterZones_2",
@@ -1647,7 +1647,7 @@
   "resource": "SAM_GH_ZonePluralCreate",
   "icon_file": "svg/zone_plural_create.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetZonesByName",
@@ -1672,7 +1672,7 @@
   "resource": "SAM_GH_ZonePluralGet",
   "icon_file": "svg/zone_plural_get.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetZonesBySpace",
@@ -1697,7 +1697,7 @@
   "resource": "SAM_GH_ZonePluralGet",
   "icon_file": "svg/zone_plural_get.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalModifyZonesCategoryName",
@@ -1722,7 +1722,7 @@
   "resource": "SAM_GH_ZoneModify",
   "icon_file": "svg/zone_modify.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalZoneType",
@@ -1747,7 +1747,7 @@
   "resource": "SAM_GH_ZoneValue",
   "icon_file": "svg/zone_value.svg",
   "batch": "02 Spaces & zones",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddAperturesByAperture",
@@ -1772,7 +1772,7 @@
   "resource": "SAM_GH_ApertureAdd",
   "icon_file": "svg/aperture_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddAperturesByGeometryAndApertureType",
@@ -1797,7 +1797,7 @@
   "resource": "SAM_GH_ApertureAdd",
   "icon_file": "svg/aperture_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddAperturesByGeometryAndConstructionManager",
@@ -1822,7 +1822,7 @@
   "resource": "SAM_GH_ApertureAdd",
   "icon_file": "svg/aperture_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddAperturesByGeometryApertureConstruction",
@@ -1847,7 +1847,7 @@
   "resource": "SAM_GH_ApertureAdd",
   "icon_file": "svg/aperture_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddAperturesByRatio",
@@ -1872,7 +1872,7 @@
   "resource": "SAM_GH_ApertureAdd",
   "icon_file": "svg/aperture_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddOpenings",
@@ -1897,7 +1897,7 @@
   "resource": "SAM_GH_ApertureAdd",
   "icon_file": "svg/aperture_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddOpeningsByAzimuth",
@@ -1922,7 +1922,7 @@
   "resource": "SAM_GH_ApertureAdd",
   "icon_file": "svg/aperture_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCalculateGlazingValueByAperture",
@@ -1947,7 +1947,7 @@
   "resource": "SAM_GH_ApertureCalculate",
   "icon_file": "svg/aperture_calculate.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateOpeningsBy3DGeometry",
@@ -1972,7 +1972,7 @@
   "resource": "SAM_GH_AperturePluralCreate",
   "icon_file": "svg/aperture_plural_create.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetApertures",
@@ -1997,7 +1997,7 @@
   "resource": "SAM_GH_AperturePluralGet",
   "icon_file": "svg/aperture_plural_get.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeAperturesByMinRectangle",
@@ -2022,7 +2022,7 @@
   "resource": "SAM_GH_AperturePluralMerge",
   "icon_file": "svg/aperture_plural_merge.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeCoplanarApertures",
@@ -2047,7 +2047,7 @@
   "resource": "SAM_GH_AperturePluralMerge",
   "icon_file": "svg/aperture_plural_merge.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeOverlapApertures",
@@ -2072,7 +2072,7 @@
   "resource": "SAM_GH_AperturePluralMerge",
   "icon_file": "svg/aperture_plural_merge.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalOffsetAperturesOnEdge",
@@ -2097,7 +2097,7 @@
   "resource": "SAM_GH_AperturePluralOffset",
   "icon_file": "svg/aperture_plural_offset.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRemoveOverlapApertures",
@@ -2122,7 +2122,7 @@
   "resource": "SAM_GH_AperturePluralRemove",
   "icon_file": "svg/aperture_plural_remove.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalApertureType",
@@ -2147,7 +2147,7 @@
   "resource": "SAM_GH_ApertureValue",
   "icon_file": "svg/aperture_value.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalNormalsDisplay",
@@ -2172,7 +2172,7 @@
   "resource": "SAM_GH_NormalDisplay",
   "icon_file": "svg/normal_display.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFlipPanel",
@@ -2197,7 +2197,7 @@
   "resource": "SAM_GH_NormalFlip",
   "icon_file": "svg/normal_flip.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryFlipNormal",
@@ -2222,7 +2222,7 @@
   "resource": "SAM_GH_NormalFlip",
   "icon_file": "svg/normal_flip.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateNormals",
@@ -2247,7 +2247,7 @@
   "resource": "SAM_GH_NormalUpdate",
   "icon_file": "svg/normal_update.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddOpeningProperties",
@@ -2272,7 +2272,7 @@
   "resource": "SAM_GH_OpeningPropertiesAdd",
   "icon_file": "svg/openingProperties_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddOpeningPropertiesByPartO",
@@ -2297,7 +2297,7 @@
   "resource": "SAM_GH_OpeningPropertiesAdd",
   "icon_file": "svg/openingProperties_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRemoveOpeningProperties",
@@ -2322,7 +2322,7 @@
   "resource": "SAM_GH_OpeningPropertiesRemove",
   "icon_file": "svg/openingProperties_remove.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddAirPanels",
@@ -2347,7 +2347,7 @@
   "resource": "SAM_GH_PanelAdd",
   "icon_file": "svg/panel_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddAirPartitions",
@@ -2372,7 +2372,7 @@
   "resource": "SAM_GH_PanelAdd",
   "icon_file": "svg/panel_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddPanels",
@@ -2397,7 +2397,7 @@
   "resource": "SAM_GH_PanelAdd",
   "icon_file": "svg/panel_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFillFloorsAndRoofs",
@@ -2422,7 +2422,7 @@
   "resource": "SAM_GH_PanelAdd",
   "icon_file": "svg/panel_add.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAlignHorizontalPanelByElevations",
@@ -2447,7 +2447,7 @@
   "resource": "SAM_GH_PanelAlign",
   "icon_file": "svg/panel_align.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAlignPanels",
@@ -2472,7 +2472,7 @@
   "resource": "SAM_GH_PanelPluralAlign",
   "icon_file": "svg/panel_plural_align.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAlignPanelsByLowerAndUpperElevation",
@@ -2497,7 +2497,7 @@
   "resource": "SAM_GH_PanelPluralAlign",
   "icon_file": "svg/panel_plural_align.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPanelDistance",
@@ -2522,7 +2522,7 @@
   "resource": "SAM_GH_PanelCalculate",
   "icon_file": "svg/panel_calculate.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPanelSpacing",
@@ -2547,7 +2547,7 @@
   "resource": "SAM_GH_PanelPluralCalculate",
   "icon_file": "svg/panel_plural_calculate.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPanelTypeByText",
@@ -2572,7 +2572,7 @@
   "resource": "SAM_GH_PanelConvert",
   "icon_file": "svg/panel_convert.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateHostPartitionBy3DGeometry",
@@ -2597,7 +2597,7 @@
   "resource": "SAM_GH_PanelCreate",
   "icon_file": "svg/panel_create.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreatePanelByBottomAndHeight",
@@ -2622,7 +2622,7 @@
   "resource": "SAM_GH_PanelCreate",
   "icon_file": "svg/panel_create.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreatePanelByPanels",
@@ -2647,7 +2647,7 @@
   "resource": "SAM_GH_PanelCreate",
   "icon_file": "svg/panel_create.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreatePanelsByPlane",
@@ -2672,7 +2672,7 @@
   "resource": "SAM_GH_PanelPluralCreate",
   "icon_file": "svg/panel_plural_create.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreatePanelsByShell",
@@ -2697,7 +2697,7 @@
   "resource": "SAM_GH_PanelPluralCreate",
   "icon_file": "svg/panel_plural_create.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPanelsDifference",
@@ -2722,7 +2722,7 @@
   "resource": "SAM_GH_PanelDifference",
   "icon_file": "svg/panel_difference.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalLabelPanel",
@@ -2747,7 +2747,7 @@
   "resource": "SAM_GH_PanelDisplay",
   "icon_file": "svg/panel_display.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalExtendExternalPanels",
@@ -2772,7 +2772,7 @@
   "resource": "SAM_GH_PanelPluralExtend",
   "icon_file": "svg/panel_plural_extend.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalExtendPanelByPanels",
@@ -2797,7 +2797,7 @@
   "resource": "SAM_GH_PanelExtend",
   "icon_file": "svg/panel_extend.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalExtendPanelByPlane",
@@ -2822,7 +2822,7 @@
   "resource": "SAM_GH_PanelExtend",
   "icon_file": "svg/panel_extend.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalExtendPanels",
@@ -2847,7 +2847,7 @@
   "resource": "SAM_GH_PanelPluralExtend",
   "icon_file": "svg/panel_plural_extend.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalExternalPanels",
@@ -2872,7 +2872,7 @@
   "resource": "SAM_GH_PanelPluralFilter",
   "icon_file": "svg/panel_plural_filter.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFilterByBoundaryType",
@@ -2897,7 +2897,7 @@
   "resource": "SAM_GH_PanelPluralFilter",
   "icon_file": "svg/panel_plural_filter.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFilterByElevation",
@@ -2922,7 +2922,7 @@
   "resource": "SAM_GH_PanelPluralFilter",
   "icon_file": "svg/panel_plural_filter.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFilterByMaxRectangle3D",
@@ -2947,7 +2947,7 @@
   "resource": "SAM_GH_PanelPluralFilter",
   "icon_file": "svg/panel_plural_filter.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFilterByPanelAreaAndThinnessRatio",
@@ -2972,7 +2972,7 @@
   "resource": "SAM_GH_PanelPluralFilter",
   "icon_file": "svg/panel_plural_filter.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFilterByPanelType",
@@ -2997,7 +2997,7 @@
   "resource": "SAM_GH_PanelPluralFilter",
   "icon_file": "svg/panel_plural_filter.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFilterPanelsByZone",
@@ -3022,7 +3022,7 @@
   "resource": "SAM_GH_PanelPluralFilter",
   "icon_file": "svg/panel_plural_filter.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetPanels",
@@ -3047,7 +3047,7 @@
   "resource": "SAM_GH_PanelPluralGet",
   "icon_file": "svg/panel_plural_get.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetPanelsByConstruction",
@@ -3072,7 +3072,7 @@
   "resource": "SAM_GH_PanelPluralGet",
   "icon_file": "svg/panel_plural_get.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPanelLocation",
@@ -3097,7 +3097,7 @@
   "resource": "SAM_GH_PanelGet",
   "icon_file": "svg/panel_get.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalOverlapPanels",
@@ -3122,7 +3122,7 @@
   "resource": "SAM_GH_PanelIntersect",
   "icon_file": "svg/panel_intersect.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPanelsIntersection",
@@ -3147,7 +3147,7 @@
   "resource": "SAM_GH_PanelIntersect",
   "icon_file": "svg/panel_intersect.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalJoinPanels",
@@ -3172,7 +3172,7 @@
   "resource": "SAM_GH_PanelPluralMerge",
   "icon_file": "svg/panel_plural_merge.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeCoplanarPanels",
@@ -3197,7 +3197,7 @@
   "resource": "SAM_GH_PanelPluralMerge",
   "icon_file": "svg/panel_plural_merge.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeCoplanarPanelsBySpace",
@@ -3222,7 +3222,7 @@
   "resource": "SAM_GH_PanelPluralMerge",
   "icon_file": "svg/panel_plural_merge.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeOverlapPanels",
@@ -3247,7 +3247,7 @@
   "resource": "SAM_GH_PanelPluralMerge",
   "icon_file": "svg/panel_plural_merge.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergePanels",
@@ -3272,7 +3272,7 @@
   "resource": "SAM_GH_PanelPluralMerge",
   "icon_file": "svg/panel_plural_merge.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAdjustPanels",
@@ -3297,7 +3297,7 @@
   "resource": "SAM_GH_PanelPluralModify",
   "icon_file": "svg/panel_plural_modify.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAdjustRoofs",
@@ -3322,7 +3322,7 @@
   "resource": "SAM_GH_PanelModify",
   "icon_file": "svg/panel_modify.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalConvex",
@@ -3347,7 +3347,7 @@
   "resource": "SAM_GH_PanelModify",
   "icon_file": "svg/panel_modify.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalOffsetPanel",
@@ -3372,7 +3372,7 @@
   "resource": "SAM_GH_PanelOffset",
   "icon_file": "svg/panel_offset.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRemoveInternalEdges",
@@ -3397,7 +3397,7 @@
   "resource": "SAM_GH_PanelRemove",
   "icon_file": "svg/panel_remove.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetAdiabatic",
@@ -3422,7 +3422,7 @@
   "resource": "SAM_GH_PanelSet",
   "icon_file": "svg/panel_set.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetPanelType",
@@ -3447,7 +3447,7 @@
   "resource": "SAM_GH_PanelSet",
   "icon_file": "svg/panel_set.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSnapByElevations",
@@ -3472,7 +3472,7 @@
   "resource": "SAM_GH_PanelPluralSnap",
   "icon_file": "svg/panel_plural_snap.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSnapByLines",
@@ -3497,7 +3497,7 @@
   "resource": "SAM_GH_PanelPluralSnap",
   "icon_file": "svg/panel_plural_snap.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSnapByOffset",
@@ -3522,7 +3522,7 @@
   "resource": "SAM_GH_PanelPluralSnap",
   "icon_file": "svg/panel_plural_snap.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSnapByPoints",
@@ -3547,7 +3547,7 @@
   "resource": "SAM_GH_PanelPluralSnap",
   "icon_file": "svg/panel_plural_snap.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSnapByPlanes",
@@ -3572,7 +3572,7 @@
   "resource": "SAM_GH_PanelPluralSnap",
   "icon_file": "svg/panel_plural_snap.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSplitByInternalEdges",
@@ -3597,7 +3597,7 @@
   "resource": "SAM_GH_PanelSplit",
   "icon_file": "svg/panel_split.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSplitPanelByElevations",
@@ -3622,7 +3622,7 @@
   "resource": "SAM_GH_PanelSplit",
   "icon_file": "svg/panel_split.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSplitPanelsByElevations",
@@ -3647,7 +3647,7 @@
   "resource": "SAM_GH_PanelPluralSplit",
   "icon_file": "svg/panel_plural_split.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSplitPanelsByGeometries",
@@ -3672,7 +3672,7 @@
   "resource": "SAM_GH_PanelPluralSplit",
   "icon_file": "svg/panel_plural_split.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSplitPanelsByPanels",
@@ -3697,7 +3697,7 @@
   "resource": "SAM_GH_PanelPluralSplit",
   "icon_file": "svg/panel_plural_split.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalTrimPanels",
@@ -3722,7 +3722,7 @@
   "resource": "SAM_GH_PanelPluralSplit",
   "icon_file": "svg/panel_plural_split.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMovePanel",
@@ -3747,7 +3747,7 @@
   "resource": "SAM_GH_PanelTransform",
   "icon_file": "svg/panel_transform.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalTriangulateConcavePanels",
@@ -3772,7 +3772,7 @@
   "resource": "SAM_GH_PanelTriangulate",
   "icon_file": "svg/panel_triangulate.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdatePanelType",
@@ -3797,7 +3797,7 @@
   "resource": "SAM_GH_PanelUpdate",
   "icon_file": "svg/panel_update.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdatePanelType",
@@ -3822,7 +3822,7 @@
   "resource": "SAM_GH_PanelUpdate",
   "icon_file": "svg/panel_update.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMapPanels",
@@ -3847,7 +3847,7 @@
   "resource": "SAM_GH_PanelPluralUpdate",
   "icon_file": "svg/panel_plural_update.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdatePanelTypes",
@@ -3872,7 +3872,7 @@
   "resource": "SAM_GH_PanelPluralUpdate",
   "icon_file": "svg/panel_plural_update.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalHostPartitionCategory",
@@ -3897,7 +3897,7 @@
   "resource": "SAM_GH_PanelValue",
   "icon_file": "svg/panel_value.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPanelGroup",
@@ -3922,7 +3922,7 @@
   "resource": "SAM_GH_PanelValue",
   "icon_file": "svg/panel_value.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPanelType",
@@ -3947,7 +3947,7 @@
   "resource": "SAM_GH_PanelValue",
   "icon_file": "svg/panel_value.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateShade",
@@ -3972,7 +3972,7 @@
   "resource": "SAM_GH_ShadeCreate",
   "icon_file": "svg/shade_create.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateShadeByFeatureShade",
@@ -3997,7 +3997,7 @@
   "resource": "SAM_GH_ShadeCreate",
   "icon_file": "svg/shade_create.svg",
   "batch": "03 Panels, apertures & shading",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCalculateGlazingValueByConstruction",
@@ -4022,7 +4022,7 @@
   "resource": "SAM_GH_ApertureConstructionCalculate",
   "icon_file": "svg/apertureConstruction_calculate.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCopyApertureConstructionLayers",
@@ -4047,7 +4047,7 @@
   "resource": "SAM_GH_ApertureConstructionCopy",
   "icon_file": "svg/apertureConstruction_copy.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateApertureConstruction",
@@ -4072,7 +4072,7 @@
   "resource": "SAM_GH_ApertureConstructionCreate",
   "icon_file": "svg/apertureConstruction_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateApertureConstructionByAperture",
@@ -4097,7 +4097,7 @@
   "resource": "SAM_GH_ApertureConstructionCreate",
   "icon_file": "svg/apertureConstruction_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateApertureConstructionLibrary",
@@ -4122,7 +4122,7 @@
   "resource": "SAM_GH_ApertureConstructionLibraryCreate",
   "icon_file": "svg/apertureConstruction_library_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalApertureConstructions",
@@ -4147,7 +4147,7 @@
   "resource": "SAM_GH_ApertureConstructionPluralGet",
   "icon_file": "svg/apertureConstruction_plural_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultApertureConstructionLibrary",
@@ -4172,7 +4172,7 @@
   "resource": "SAM_GH_ApertureConstructionLibraryGet",
   "icon_file": "svg/apertureConstruction_library_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultApertureConstructions",
@@ -4197,7 +4197,7 @@
   "resource": "SAM_GH_ApertureConstructionPluralGet",
   "icon_file": "svg/apertureConstruction_plural_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetDefaultApertureConstruction",
@@ -4222,7 +4222,7 @@
   "resource": "SAM_GH_ApertureConstructionSet",
   "icon_file": "svg/apertureConstruction_set.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetDefaultApertureConstructionLayers",
@@ -4247,7 +4247,7 @@
   "resource": "SAM_GH_ApertureConstructionSet",
   "icon_file": "svg/apertureConstruction_set.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetApertureConstruction",
@@ -4272,7 +4272,7 @@
   "resource": "SAM_GH_ApertureConstructionSet",
   "icon_file": "svg/apertureConstruction_set.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetApertureConstructionByAnalyticalModel",
@@ -4297,7 +4297,7 @@
   "resource": "SAM_GH_ApertureConstructionSet",
   "icon_file": "svg/apertureConstruction_set.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateApertureConstruction",
@@ -4322,7 +4322,7 @@
   "resource": "SAM_GH_ApertureConstructionUpdate",
   "icon_file": "svg/apertureConstruction_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateApertureConstructionsByName",
@@ -4347,7 +4347,7 @@
   "resource": "SAM_GH_ApertureConstructionPluralUpdate",
   "icon_file": "svg/apertureConstruction_plural_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateApertureConstructionsByPanelType",
@@ -4372,7 +4372,7 @@
   "resource": "SAM_GH_ApertureConstructionPluralUpdate",
   "icon_file": "svg/apertureConstruction_plural_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalDuplicateConstructionByPanelType",
@@ -4397,7 +4397,7 @@
   "resource": "SAM_GH_ConstructionCopy",
   "icon_file": "svg/construction_copy.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateConstruction",
@@ -4422,7 +4422,7 @@
   "resource": "SAM_GH_ConstructionCreate",
   "icon_file": "svg/construction_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateConstructionLibrary",
@@ -4447,7 +4447,7 @@
   "resource": "SAM_GH_ConstructionLibraryCreate",
   "icon_file": "svg/construction_library_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateHostPartitionType",
@@ -4472,7 +4472,7 @@
   "resource": "SAM_GH_ConstructionCreate",
   "icon_file": "svg/construction_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultConstructionLibrary",
@@ -4497,7 +4497,7 @@
   "resource": "SAM_GH_ConstructionLibraryGet",
   "icon_file": "svg/construction_library_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultConstructions",
@@ -4522,7 +4522,7 @@
   "resource": "SAM_GH_ConstructionPluralGet",
   "icon_file": "svg/construction_plural_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRenameConstruction",
@@ -4547,7 +4547,7 @@
   "resource": "SAM_GH_ConstructionModify",
   "icon_file": "svg/construction_modify.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetConstruction",
@@ -4572,7 +4572,7 @@
   "resource": "SAM_GH_ConstructionSet",
   "icon_file": "svg/construction_set.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetConstructionByCsv",
@@ -4597,7 +4597,7 @@
   "resource": "SAM_GH_ConstructionSet",
   "icon_file": "svg/construction_set.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetDefaultConstructionByPanelType",
@@ -4622,7 +4622,7 @@
   "resource": "SAM_GH_ConstructionSet",
   "icon_file": "svg/construction_set.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateConstructionsByConstructionManager",
@@ -4647,7 +4647,7 @@
   "resource": "SAM_GH_ConstructionPluralUpdate",
   "icon_file": "svg/construction_plural_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateConstructionsByConstructionManagerAndPanels",
@@ -4672,7 +4672,7 @@
   "resource": "SAM_GH_ConstructionPluralUpdate",
   "icon_file": "svg/construction_plural_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateConstructionsByMap",
@@ -4697,7 +4697,7 @@
   "resource": "SAM_GH_ConstructionPluralUpdate",
   "icon_file": "svg/construction_plural_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateConstructionsByName",
@@ -4722,7 +4722,7 @@
   "resource": "SAM_GH_ConstructionPluralUpdate",
   "icon_file": "svg/construction_plural_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateConstructionsByPanelType",
@@ -4747,7 +4747,7 @@
   "resource": "SAM_GH_ConstructionPluralUpdate",
   "icon_file": "svg/construction_plural_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateConstructionsByPanels",
@@ -4772,7 +4772,7 @@
   "resource": "SAM_GH_ConstructionPluralUpdate",
   "icon_file": "svg/construction_plural_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateHostPartitionType",
@@ -4797,7 +4797,7 @@
   "resource": "SAM_GH_ConstructionUpdate",
   "icon_file": "svg/construction_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCopyConstructionLayers",
@@ -4822,7 +4822,7 @@
   "resource": "SAM_GH_ConstructionLayerPluralCopy",
   "icon_file": "svg/constructionLayer_plural_copy.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateConstructionLayersByMaterials",
@@ -4847,7 +4847,7 @@
   "resource": "SAM_GH_ConstructionLayerPluralCreate",
   "icon_file": "svg/constructionLayer_plural_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateConstructionLayersByNames",
@@ -4872,7 +4872,7 @@
   "resource": "SAM_GH_ConstructionLayerPluralCreate",
   "icon_file": "svg/constructionLayer_plural_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetInternalConstructionLayers",
@@ -4897,7 +4897,7 @@
   "resource": "SAM_GH_ConstructionLayerPluralGet",
   "icon_file": "svg/constructionLayer_plural_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetConstructionLayersByPanelType",
@@ -4922,7 +4922,7 @@
   "resource": "SAM_GH_ConstructionLayerPluralSet",
   "icon_file": "svg/constructionLayer_plural_set.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetDefaultConstructionLayerByPanelType",
@@ -4947,7 +4947,7 @@
   "resource": "SAM_GH_ConstructionLayerSet",
   "icon_file": "svg/constructionLayer_set.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateConstructionManager",
@@ -4972,7 +4972,7 @@
   "resource": "SAM_GH_ConstructionManagerCreate",
   "icon_file": "svg/constructionManager_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateConstructionManagerByPanelAperture",
@@ -4997,7 +4997,7 @@
   "resource": "SAM_GH_ConstructionManagerCreate",
   "icon_file": "svg/constructionManager_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateConstructionManagerByPanelType",
@@ -5022,7 +5022,7 @@
   "resource": "SAM_GH_ConstructionManagerCreate",
   "icon_file": "svg/constructionManager_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalDefaultConstructionManager",
@@ -5047,7 +5047,7 @@
   "resource": "SAM_GH_ConstructionManagerGet",
   "icon_file": "svg/constructionManager_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRemoveFromConstructionManager",
@@ -5072,7 +5072,7 @@
   "resource": "SAM_GH_ConstructionManagerRemove",
   "icon_file": "svg/constructionManager_remove.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateConstructionManager",
@@ -5097,7 +5097,7 @@
   "resource": "SAM_GH_ConstructionManagerUpdate",
   "icon_file": "svg/constructionManager_update.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateGasMaterial",
@@ -5122,7 +5122,7 @@
   "resource": "SAM_GH_GasMaterialCreate",
   "icon_file": "svg/gasMaterial_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCreateGasMaterial",
@@ -5147,7 +5147,7 @@
   "resource": "SAM_GH_GasMaterialCreate",
   "icon_file": "svg/gasMaterial_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultGasMaterials",
@@ -5172,7 +5172,7 @@
   "resource": "SAM_GH_GasMaterialPluralGet",
   "icon_file": "svg/gasMaterial_plural_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalDefaultGasType",
@@ -5197,7 +5197,7 @@
   "resource": "SAM_GH_GasMaterialValue",
   "icon_file": "svg/gasMaterial_value.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddMaterials",
@@ -5222,7 +5222,7 @@
   "resource": "SAM_GH_MaterialLibraryAdd",
   "icon_file": "svg/material_library_add.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAddMissingMaterials",
@@ -5247,7 +5247,7 @@
   "resource": "SAM_GH_MaterialLibraryAdd",
   "icon_file": "svg/material_library_add.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreAddMaterials",
@@ -5272,7 +5272,7 @@
   "resource": "SAM_GH_MaterialLibraryAdd",
   "icon_file": "svg/material_library_add.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCopyMaterials",
@@ -5297,7 +5297,7 @@
   "resource": "SAM_GH_MaterialLibraryCopy",
   "icon_file": "svg/material_library_copy.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateOpaqueMaterial",
@@ -5322,7 +5322,7 @@
   "resource": "SAM_GH_MaterialCreate",
   "icon_file": "svg/material_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCreateMaterialLibrary",
@@ -5347,7 +5347,7 @@
   "resource": "SAM_GH_MaterialLibraryCreate",
   "icon_file": "svg/material_library_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCreateOpaqueMaterial",
@@ -5372,7 +5372,7 @@
   "resource": "SAM_GH_MaterialCreate",
   "icon_file": "svg/material_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreSaveMaterialLibrary",
@@ -5397,7 +5397,7 @@
   "resource": "SAM_GH_MaterialLibraryExport",
   "icon_file": "svg/material_library_export.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultMaterialLibrary",
@@ -5422,7 +5422,7 @@
   "resource": "SAM_GH_MaterialLibraryGet",
   "icon_file": "svg/material_library_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetExternalMaterials",
@@ -5447,7 +5447,7 @@
   "resource": "SAM_GH_MaterialPluralGet",
   "icon_file": "svg/material_plural_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetInternalMaterials",
@@ -5472,7 +5472,7 @@
   "resource": "SAM_GH_MaterialPluralGet",
   "icon_file": "svg/material_plural_get.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreLoadMaterialLibrary",
@@ -5497,7 +5497,7 @@
   "resource": "SAM_GH_MaterialLibraryImport",
   "icon_file": "svg/material_library_import.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateMaterialLayersByNames",
@@ -5522,7 +5522,7 @@
   "resource": "SAM_GH_MaterialLayerPluralCreate",
   "icon_file": "svg/materialLayer_plural_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateTransparentMaterial",
@@ -5547,7 +5547,7 @@
   "resource": "SAM_GH_TransparentMaterialCreate",
   "icon_file": "svg/transparentMaterial_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCreateTransparentMaterial",
@@ -5572,7 +5572,7 @@
   "resource": "SAM_GH_TransparentMaterialCreate",
   "icon_file": "svg/transparentMaterial_create.svg",
   "batch": "04 Constructions & materials",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateDegreeOfActivityByTemperature",
@@ -5597,7 +5597,7 @@
   "resource": "SAM_GH_DegreeOfActivityCreate",
   "icon_file": "svg/degreeOfActivity_create.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultDegreeOfActivityLibrary",
@@ -5622,7 +5622,7 @@
   "resource": "SAM_GH_DegreeOfActivityLibraryGet",
   "icon_file": "svg/degreeOfActivity_library_get.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateEquipmentGains",
@@ -5647,7 +5647,7 @@
   "resource": "SAM_GH_EquipmentUpdate",
   "icon_file": "svg/equipment_update.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateInfiltrationGains",
@@ -5672,7 +5672,7 @@
   "resource": "SAM_GH_InfiltrationUpdate",
   "icon_file": "svg/infiltration_update.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateInternalCondition",
@@ -5697,7 +5697,7 @@
   "resource": "SAM_GH_InternalConditionCreate",
   "icon_file": "svg/internalCondition_create.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateInternalConditionByProfiles",
@@ -5722,7 +5722,7 @@
   "resource": "SAM_GH_InternalConditionCreate",
   "icon_file": "svg/internalCondition_create.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultInternalConditionLibrary",
@@ -5747,7 +5747,7 @@
   "resource": "SAM_GH_InternalConditionLibraryGet",
   "icon_file": "svg/internalCondition_library_get.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetInternalCondition",
@@ -5772,7 +5772,7 @@
   "resource": "SAM_GH_InternalConditionSet",
   "icon_file": "svg/internalCondition_set.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetInternalConditionByInternalConditionLibrary",
@@ -5797,7 +5797,7 @@
   "resource": "SAM_GH_InternalConditionSet",
   "icon_file": "svg/internalCondition_set.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetInternalConditionPerArea",
@@ -5822,7 +5822,7 @@
   "resource": "SAM_GH_InternalConditionSet",
   "icon_file": "svg/internalCondition_set.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetOccupancyGains",
@@ -5847,7 +5847,7 @@
   "resource": "SAM_GH_InternalConditionSet",
   "icon_file": "svg/internalCondition_set.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMapInternalConditions",
@@ -5872,7 +5872,7 @@
   "resource": "SAM_GH_InternalConditionPluralUpdate",
   "icon_file": "svg/internalCondition_plural_update.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateInternalCondition",
@@ -5897,7 +5897,7 @@
   "resource": "SAM_GH_InternalConditionUpdate",
   "icon_file": "svg/internalCondition_update.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateInternalConditionList",
@@ -5922,7 +5922,7 @@
   "resource": "SAM_GH_InternalConditionUpdate",
   "icon_file": "svg/internalCondition_update.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateNCM",
@@ -5947,7 +5947,7 @@
   "resource": "SAM_GH_InternalConditionUpdate",
   "icon_file": "svg/internalCondition_update.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateOccupancyGains",
@@ -5972,7 +5972,7 @@
   "resource": "SAM_GH_InternalConditionUpdate",
   "icon_file": "svg/internalCondition_update.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalInternalConditionParameter",
@@ -5997,7 +5997,7 @@
   "resource": "SAM_GH_InternalConditionValue",
   "icon_file": "svg/internalCondition_value.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateLightingGains",
@@ -6022,7 +6022,7 @@
   "resource": "SAM_GH_LightingUpdate",
   "icon_file": "svg/lighting_update.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalLightingOccupancyControls",
@@ -6047,7 +6047,7 @@
   "resource": "SAM_GH_LightingValue",
   "icon_file": "svg/lighting_value.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalLightingPhotoelectricControls",
@@ -6072,7 +6072,7 @@
   "resource": "SAM_GH_LightingValue",
   "icon_file": "svg/lighting_value.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdatePollutantGains",
@@ -6097,7 +6097,7 @@
   "resource": "SAM_GH_PollutantUpdate",
   "icon_file": "svg/pollutant_update.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAddMissingProfiles",
@@ -6122,7 +6122,7 @@
   "resource": "SAM_GH_ProfileLibraryAdd",
   "icon_file": "svg/profile_library_add.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateProfileByBooleans",
@@ -6147,7 +6147,7 @@
   "resource": "SAM_GH_ProfileCreate",
   "icon_file": "svg/profile_create.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateProfileByBooleansAndValues",
@@ -6172,7 +6172,7 @@
   "resource": "SAM_GH_ProfileCreate",
   "icon_file": "svg/profile_create.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateProfileByProfiles",
@@ -6197,7 +6197,7 @@
   "resource": "SAM_GH_ProfileCreate",
   "icon_file": "svg/profile_create.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateProfileByValues",
@@ -6222,7 +6222,7 @@
   "resource": "SAM_GH_ProfileCreate",
   "icon_file": "svg/profile_create.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateProfileByWeatherYear",
@@ -6247,7 +6247,7 @@
   "resource": "SAM_GH_ProfileCreate",
   "icon_file": "svg/profile_create.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSeasonProfileBySetPoint",
@@ -6272,7 +6272,7 @@
   "resource": "SAM_GH_ProfileCreate",
   "icon_file": "svg/profile_create.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalProfileDivide",
@@ -6297,7 +6297,7 @@
   "resource": "SAM_GH_ProfileDivide",
   "icon_file": "svg/profile_divide.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultProfileLibrary",
@@ -6322,7 +6322,7 @@
   "resource": "SAM_GH_ProfileLibraryGet",
   "icon_file": "svg/profile_library_get.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalProfileBySpace",
@@ -6347,7 +6347,7 @@
   "resource": "SAM_GH_ProfileGet",
   "icon_file": "svg/profile_get.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalModifyProfileByNumberComparison",
@@ -6372,7 +6372,7 @@
   "resource": "SAM_GH_ProfileModify",
   "icon_file": "svg/profile_modify.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalProfileMultiply",
@@ -6397,7 +6397,7 @@
   "resource": "SAM_GH_ProfileMultiply",
   "icon_file": "svg/profile_multiply.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalProfileSum",
@@ -6422,7 +6422,7 @@
   "resource": "SAM_GH_ProfileSum",
   "icon_file": "svg/profile_sum.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalProfileGroup",
@@ -6447,7 +6447,7 @@
   "resource": "SAM_GH_ProfileValue",
   "icon_file": "svg/profile_value.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalProfileType",
@@ -6472,7 +6472,7 @@
   "resource": "SAM_GH_ProfileValue",
   "icon_file": "svg/profile_value.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalTM52SpaceExtendedResultByDaysOfYear",
@@ -6497,7 +6497,7 @@
   "resource": "SAM_GH_ThermometerAnalyse",
   "icon_file": "svg/thermometer_analyse.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalDailyIndoorComfortTemperatures",
@@ -6522,7 +6522,7 @@
   "resource": "SAM_GH_ThermometerCalculate",
   "icon_file": "svg/thermometer_calculate.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMWeatherAdaptiveSetpointACCI",
@@ -6547,7 +6547,7 @@
   "resource": "SAM_GH_ThermometerCalculate",
   "icon_file": "svg/thermometer_calculate.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMWeatherAdaptiveSetpointACCIByTemperature",
@@ -6572,7 +6572,7 @@
   "resource": "SAM_GH_ThermometerCalculate",
   "icon_file": "svg/thermometer_calculate.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMWeatherPrevailingMeanOutdoorAirTemperatures",
@@ -6597,7 +6597,7 @@
   "resource": "SAM_GH_ThermometerPluralCalculate",
   "icon_file": "svg/thermometer_plural_calculate.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateSetPoint",
@@ -6622,7 +6622,7 @@
   "resource": "SAM_GH_ThermometerUpdate",
   "icon_file": "svg/thermometer_update.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalTM52BuildingCategory",
@@ -6647,7 +6647,7 @@
   "resource": "SAM_GH_ThermometerValue",
   "icon_file": "svg/thermometer_value.svg",
   "batch": "05 Profiles, internal conditions & gains",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalModifyAirHandlingUnits",
@@ -6672,7 +6672,7 @@
   "resource": "SAM_GH_AhuPluralModify",
   "icon_file": "svg/ahu_plural_modify.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAirflow",
@@ -6697,7 +6697,7 @@
   "resource": "SAM_GH_AirflowCalculate",
   "icon_file": "svg/airflow_calculate.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalResolveTargetedDesignAirFlow",
@@ -6722,7 +6722,7 @@
   "resource": "SAM_GH_AirflowCalculate",
   "icon_file": "svg/airflow_calculate.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalModifyVentilationProfileByFunction",
@@ -6747,7 +6747,7 @@
   "resource": "SAM_GH_AirflowModify",
   "icon_file": "svg/airflow_modify.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalApplyTargetedDesignAirFlow",
@@ -6772,7 +6772,7 @@
   "resource": "SAM_GH_AirflowSet",
   "icon_file": "svg/airflow_set.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetAirflow",
@@ -6797,7 +6797,7 @@
   "resource": "SAM_GH_AirflowSet",
   "icon_file": "svg/airflow_set.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateVentilationProfile",
@@ -6822,7 +6822,7 @@
   "resource": "SAM_GH_AirflowUpdate",
   "icon_file": "svg/airflow_update.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalDaylightFactor",
@@ -6847,7 +6847,7 @@
   "resource": "SAM_GH_DaylightAnalyse",
   "icon_file": "svg/daylight_analyse.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCalculateDaylightFactor",
@@ -6872,7 +6872,7 @@
   "resource": "SAM_GH_DaylightCalculate",
   "icon_file": "svg/daylight_calculate.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddVentilationSystem",
@@ -6897,7 +6897,7 @@
   "resource": "SAM_GH_FanAdd",
   "icon_file": "svg/fan_add.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddVentilationSystemsByZones",
@@ -6922,7 +6922,7 @@
   "resource": "SAM_GH_FanAdd",
   "icon_file": "svg/fan_add.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalHeatTransferCoefficientByDefaultGasType",
@@ -6947,7 +6947,7 @@
   "resource": "SAM_GH_HeatCalculate",
   "icon_file": "svg/heat_calculate.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateHeatTransferCoefficients",
@@ -6972,7 +6972,7 @@
   "resource": "SAM_GH_HeatUpdate",
   "icon_file": "svg/heat_update.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalHeatFlowDirection",
@@ -6997,7 +6997,7 @@
   "resource": "SAM_GH_HeatValue",
   "icon_file": "svg/heat_value.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddMechanicalSystems",
@@ -7022,7 +7022,7 @@
   "resource": "SAM_GH_SystemAdd",
   "icon_file": "svg/system_add.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultSystemTypeLibrary",
@@ -7047,7 +7047,7 @@
   "resource": "SAM_GH_SystemLibraryGet",
   "icon_file": "svg/system_library_get.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMechanicalSystemTypes",
@@ -7072,7 +7072,7 @@
   "resource": "SAM_GH_SystemPluralGet",
   "icon_file": "svg/system_plural_get.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalModifyMechanicalSystems",
@@ -7097,7 +7097,7 @@
   "resource": "SAM_GH_SystemPluralModify",
   "icon_file": "svg/system_plural_modify.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetSystemTypeNames",
@@ -7122,7 +7122,7 @@
   "resource": "SAM_GH_SystemSet",
   "icon_file": "svg/system_set.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalNCMSystemType",
@@ -7147,7 +7147,7 @@
   "resource": "SAM_GH_SystemValue",
   "icon_file": "svg/system_value.svg",
   "batch": "06 Systems & airflow",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryFace3DSpacing",
@@ -7172,7 +7172,7 @@
   "resource": "SAM_GH_FaceCalculate",
   "icon_file": "svg/face_calculate.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryThinnessRatio",
@@ -7197,7 +7197,7 @@
   "resource": "SAM_GH_FaceCalculate",
   "icon_file": "svg/face_calculate.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPlanarBoundary3D",
@@ -7222,7 +7222,7 @@
   "resource": "SAM_GH_FaceGet",
   "icon_file": "svg/face_get.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryMergeOverlaps",
@@ -7247,7 +7247,7 @@
   "resource": "SAM_GH_FaceMerge",
   "icon_file": "svg/face_merge.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryFill",
@@ -7272,7 +7272,7 @@
   "resource": "SAM_GH_FaceModify",
   "icon_file": "svg/face_modify.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryShellsSplitFace3Ds",
@@ -7297,7 +7297,7 @@
   "resource": "SAM_GH_FaceSplit",
   "icon_file": "svg/face_split.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometrySplitCoplanarFace3Ds",
@@ -7322,7 +7322,7 @@
   "resource": "SAM_GH_FaceSplit",
   "icon_file": "svg/face_split.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryTriangulate",
@@ -7347,7 +7347,7 @@
   "resource": "SAM_GH_FaceTriangulate",
   "icon_file": "svg/face_triangulate.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometrySAMGeometry",
@@ -7372,7 +7372,7 @@
   "resource": "SAM_GH_GeometryConvert",
   "icon_file": "svg/geometry_convert.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGeometry",
@@ -7397,7 +7397,7 @@
   "resource": "SAM_GH_GeometryConvert",
   "icon_file": "svg/geometry_convert.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryGeometry",
@@ -7422,7 +7422,7 @@
   "resource": "SAM_GH_GeometryConvert",
   "icon_file": "svg/geometry_convert.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometrySnapByDistance",
@@ -7447,7 +7447,7 @@
   "resource": "SAM_GH_GeometrySnap",
   "icon_file": "svg/geometry_snap.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometrySnapByPoints",
@@ -7472,7 +7472,7 @@
   "resource": "SAM_GH_GeometrySnap",
   "icon_file": "svg/geometry_snap.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometrySplit",
@@ -7497,7 +7497,7 @@
   "resource": "SAM_GH_GeometrySplit",
   "icon_file": "svg/geometry_split.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryTransform",
@@ -7522,7 +7522,7 @@
   "resource": "SAM_GH_GeometryTransform",
   "icon_file": "svg/geometry_transform.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateGeometry",
@@ -7547,7 +7547,7 @@
   "resource": "SAM_GH_GeometryUpdate",
   "icon_file": "svg/geometry_update.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "NTSSAMGeometry2D",
@@ -7572,7 +7572,7 @@
   "resource": "SAM_GH_Geometry2DConvert",
   "icon_file": "svg/geometry2D_convert.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometrySAMGeometry2D",
@@ -7597,7 +7597,7 @@
   "resource": "SAM_GH_Geometry2DConvert",
   "icon_file": "svg/geometry2D_convert.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometry2DSAMGeometry",
@@ -7622,7 +7622,7 @@
   "resource": "SAM_GH_Geometry2DConvert",
   "icon_file": "svg/geometry2D_convert.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometry2DToNTS",
@@ -7647,7 +7647,7 @@
   "resource": "SAM_GH_Geometry2DConvert",
   "icon_file": "svg/geometry2D_convert.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGrid",
@@ -7672,7 +7672,7 @@
   "resource": "SAM_GH_GridCreate",
   "icon_file": "svg/grid_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryMeshClose",
@@ -7697,7 +7697,7 @@
   "resource": "SAM_GH_MeshModify",
   "icon_file": "svg/mesh_modify.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryMeshReduce",
@@ -7722,7 +7722,7 @@
   "resource": "SAM_GH_MeshModify",
   "icon_file": "svg/mesh_modify.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryCreatePlane",
@@ -7747,7 +7747,7 @@
   "resource": "SAM_GH_PlaneCreate",
   "icon_file": "svg/plane_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPlaneIntersection",
@@ -7772,7 +7772,7 @@
   "resource": "SAM_GH_PlaneIntersect",
   "icon_file": "svg/plane_intersect.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryPlaneIntersection",
@@ -7797,7 +7797,7 @@
   "resource": "SAM_GH_PlaneIntersect",
   "icon_file": "svg/plane_intersect.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSnapPoints",
@@ -7822,7 +7822,7 @@
   "resource": "SAM_GH_PointsSnap",
   "icon_file": "svg/points_snap.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryPolycurveLoop2D",
@@ -7847,7 +7847,7 @@
   "resource": "SAM_GH_PolyloopCreate",
   "icon_file": "svg/polyloop_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryShellNakedSegment3Ds",
@@ -7872,7 +7872,7 @@
   "resource": "SAM_GH_SegmentPluralGet",
   "icon_file": "svg/segment_plural_get.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometrySegment2DIntersection",
@@ -7897,7 +7897,7 @@
   "resource": "SAM_GH_SegmentIntersect",
   "icon_file": "svg/segment_intersect.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryCreateShell",
@@ -7922,7 +7922,7 @@
   "resource": "SAM_GH_ShellCreate",
   "icon_file": "svg/shell_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryCreateShellsByTopAndBottom",
@@ -7947,7 +7947,7 @@
   "resource": "SAM_GH_ShellPluralCreate",
   "icon_file": "svg/shell_plural_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateShells",
@@ -7972,7 +7972,7 @@
   "resource": "SAM_GH_ShellPluralCreate",
   "icon_file": "svg/shell_plural_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateShellsByElevations",
@@ -7997,7 +7997,7 @@
   "resource": "SAM_GH_ShellPluralCreate",
   "icon_file": "svg/shell_plural_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalCreateShellsByElevationsAndAuxiliaryElevations",
@@ -8022,7 +8022,7 @@
   "resource": "SAM_GH_ShellPluralCreate",
   "icon_file": "svg/shell_plural_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryCreateShellsByElevations",
@@ -8047,7 +8047,7 @@
   "resource": "SAM_GH_ShellPluralCreate",
   "icon_file": "svg/shell_plural_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryModifyDifference",
@@ -8072,7 +8072,7 @@
   "resource": "SAM_GH_ShellDifference",
   "icon_file": "svg/shell_difference.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryShellDifference",
@@ -8097,7 +8097,7 @@
   "resource": "SAM_GH_ShellDifference",
   "icon_file": "svg/shell_difference.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryFilterShells",
@@ -8122,7 +8122,7 @@
   "resource": "SAM_GH_ShellPluralFilter",
   "icon_file": "svg/shell_plural_filter.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryGetShellsByPoint3D",
@@ -8147,7 +8147,7 @@
   "resource": "SAM_GH_ShellPluralGet",
   "icon_file": "svg/shell_plural_get.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryGetShellsByPoint3Ds",
@@ -8172,7 +8172,7 @@
   "resource": "SAM_GH_ShellPluralGet",
   "icon_file": "svg/shell_plural_get.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryModifyIntersection",
@@ -8197,7 +8197,7 @@
   "resource": "SAM_GH_ShellIntersect",
   "icon_file": "svg/shell_intersect.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryShellIntersection",
@@ -8222,7 +8222,7 @@
   "resource": "SAM_GH_ShellIntersect",
   "icon_file": "svg/shell_intersect.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryCreateShellsByOffset",
@@ -8247,7 +8247,7 @@
   "resource": "SAM_GH_ShellOffset",
   "icon_file": "svg/shell_offset.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryCutShell",
@@ -8272,7 +8272,7 @@
   "resource": "SAM_GH_ShellSplit",
   "icon_file": "svg/shell_split.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryShellsSplit",
@@ -8297,7 +8297,7 @@
   "resource": "SAM_GH_ShellSplit",
   "icon_file": "svg/shell_split.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryShellsSplitByFace3Ds",
@@ -8322,7 +8322,7 @@
   "resource": "SAM_GH_ShellSplit",
   "icon_file": "svg/shell_split.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GeometryModifyUnion",
@@ -8347,7 +8347,7 @@
   "resource": "SAM_GH_ShellPluralUnion",
   "icon_file": "svg/shell_plural_union.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryShellsUnion",
@@ -8372,7 +8372,7 @@
   "resource": "SAM_GH_ShellPluralUnion",
   "icon_file": "svg/shell_plural_union.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryIsClosed",
@@ -8397,7 +8397,7 @@
   "resource": "SAM_GH_ShellValidate",
   "icon_file": "svg/shell_validate.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMGeometryShellContains",
@@ -8422,7 +8422,7 @@
   "resource": "SAM_GH_ShellValidate",
   "icon_file": "svg/shell_validate.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "CreateSAMTransform3DOriginToPlane",
@@ -8447,7 +8447,7 @@
   "resource": "SAM_GH_Transform3DCreate",
   "icon_file": "svg/transform3D_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "CreateSAMTransform3DPlaneToOrigin",
@@ -8472,7 +8472,7 @@
   "resource": "SAM_GH_Transform3DCreate",
   "icon_file": "svg/transform3D_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "CreateSAMTransform3DPlaneToPlane",
@@ -8497,7 +8497,7 @@
   "resource": "SAM_GH_Transform3DCreate",
   "icon_file": "svg/transform3D_create.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalExternalVector3D",
@@ -8522,7 +8522,7 @@
   "resource": "SAM_GH_VectorGet",
   "icon_file": "svg/vector_get.svg",
   "batch": "07 Geometry",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCreateAddress",
@@ -8547,7 +8547,7 @@
   "resource": "SAM_GH_AddressCreate",
   "icon_file": "svg/address_create.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreDayOfYearToHourOfYear",
@@ -8572,7 +8572,7 @@
   "resource": "SAM_GH_CalendarConvert",
   "icon_file": "svg/calendar_convert.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalHourOfYearToDateTime",
@@ -8597,7 +8597,7 @@
   "resource": "SAM_GH_ClockConvert",
   "icon_file": "svg/clock_convert.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreDateTimeToHourOfYear",
@@ -8622,7 +8622,7 @@
   "resource": "SAM_GH_ClockConvert",
   "icon_file": "svg/clock_convert.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCorePeriod",
@@ -8647,7 +8647,7 @@
   "resource": "SAM_GH_ClockValue",
   "icon_file": "svg/clock_value.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRoundAzimuth",
@@ -8672,7 +8672,7 @@
   "resource": "SAM_GH_CompassModify",
   "icon_file": "svg/compass_modify.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreDirection",
@@ -8697,7 +8697,7 @@
   "resource": "SAM_GH_CompassValue",
   "icon_file": "svg/compass_value.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalDesignDays",
@@ -8722,7 +8722,7 @@
   "resource": "SAM_GH_DesignDayPluralCreate",
   "icon_file": "svg/designDay_plural_create.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCreateLocation",
@@ -8747,7 +8747,7 @@
   "resource": "SAM_GH_LocationCreate",
   "icon_file": "svg/location_create.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalSetLocation",
@@ -8772,7 +8772,7 @@
   "resource": "SAM_GH_LocationSet",
   "icon_file": "svg/location_set.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCoutryCode",
@@ -8797,7 +8797,7 @@
   "resource": "SAM_GH_LocationValue",
   "icon_file": "svg/location_value.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMWeatherWeatherHoursByHourOfYear",
@@ -8822,7 +8822,7 @@
   "resource": "SAM_GH_WeatherDataFilter",
   "icon_file": "svg/weatherData_filter.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMWeatherWeatherHoursByPercentage",
@@ -8847,7 +8847,7 @@
   "resource": "SAM_GH_WeatherDataFilter",
   "icon_file": "svg/weatherData_filter.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalHourlyValues",
@@ -8872,7 +8872,7 @@
   "resource": "SAM_GH_WeatherDataPluralGet",
   "icon_file": "svg/weatherData_plural_get.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMWeatherHourlyValue",
@@ -8897,7 +8897,7 @@
   "resource": "SAM_GH_WeatherDataGet",
   "icon_file": "svg/weatherData_get.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMWeatherHourlyValues",
@@ -8922,7 +8922,7 @@
   "resource": "SAM_GH_WeatherDataPluralGet",
   "icon_file": "svg/weatherData_plural_get.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalLoadWeatherData",
@@ -8947,7 +8947,7 @@
   "resource": "SAM_GH_WeatherDataImport",
   "icon_file": "svg/weatherData_import.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMWeatherHourlyModifyWeatherData",
@@ -8972,7 +8972,7 @@
   "resource": "SAM_GH_WeatherDataModify",
   "icon_file": "svg/weatherData_modify.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalWeatherDataType",
@@ -8997,7 +8997,7 @@
   "resource": "SAM_GH_WeatherDataValue",
   "icon_file": "svg/weatherData_value.svg",
   "batch": "08 Weather, location & time",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreARGBToUint",
@@ -9022,7 +9022,7 @@
   "resource": "SAM_GH_ColourConvert",
   "icon_file": "svg/colour_convert.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreColorToUint",
@@ -9047,7 +9047,7 @@
   "resource": "SAM_GH_ColourConvert",
   "icon_file": "svg/colour_convert.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreUintToARGB",
@@ -9072,7 +9072,7 @@
   "resource": "SAM_GH_ColourConvert",
   "icon_file": "svg/colour_convert.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreUintToColor",
@@ -9097,7 +9097,7 @@
   "resource": "SAM_GH_ColourConvert",
   "icon_file": "svg/colour_convert.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalDefaultColorByPanelType",
@@ -9122,7 +9122,7 @@
   "resource": "SAM_GH_ColourGet",
   "icon_file": "svg/colour_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMHydraExportFile",
@@ -9147,7 +9147,7 @@
   "resource": "SAM_GH_FileExport",
   "icon_file": "svg/file_export.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreToFile",
@@ -9172,7 +9172,7 @@
   "resource": "SAM_GH_FileExport",
   "icon_file": "svg/file_export.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreFromFile",
@@ -9197,7 +9197,7 @@
   "resource": "SAM_GH_FileImport",
   "icon_file": "svg/file_import.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFiles",
@@ -9222,7 +9222,7 @@
   "resource": "SAM_GH_FileList",
   "icon_file": "svg/file_list.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalPaths",
@@ -9247,7 +9247,7 @@
   "resource": "SAM_GH_FolderList",
   "icon_file": "svg/folder_list.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMVersion",
@@ -9272,7 +9272,7 @@
   "resource": "SAM_GH_InfoGet",
   "icon_file": "svg/info_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreAbout",
@@ -9297,7 +9297,7 @@
   "resource": "SAM_GH_InfoValue",
   "icon_file": "svg/info_value.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreToJson",
@@ -9322,7 +9322,7 @@
   "resource": "SAM_GH_JsonExport",
   "icon_file": "svg/json_export.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreFromJson",
@@ -9347,7 +9347,7 @@
   "resource": "SAM_GH_JsonImport",
   "icon_file": "svg/json_import.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreToList",
@@ -9372,7 +9372,7 @@
   "resource": "SAM_GH_ListConvert",
   "icon_file": "svg/list_convert.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetSortedKeys",
@@ -9397,7 +9397,7 @@
   "resource": "SAM_GH_ListSort",
   "icon_file": "svg/list_sort.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreError",
@@ -9422,7 +9422,7 @@
   "resource": "SAM_GH_LogError",
   "icon_file": "svg/log_error.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreLogToFile",
@@ -9447,7 +9447,7 @@
   "resource": "SAM_GH_LogExport",
   "icon_file": "svg/log_export.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreSelectByName",
@@ -9472,7 +9472,7 @@
   "resource": "SAM_GH_NameFilter",
   "icon_file": "svg/name_filter.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreGetNames",
@@ -9497,7 +9497,7 @@
   "resource": "SAM_GH_NameGet",
   "icon_file": "svg/name_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFixNames",
@@ -9522,7 +9522,7 @@
   "resource": "SAM_GH_NameModify",
   "icon_file": "svg/name_modify.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateName",
@@ -9547,7 +9547,7 @@
   "resource": "SAM_GH_NameUpdate",
   "icon_file": "svg/name_update.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateSpaceNames",
@@ -9572,7 +9572,7 @@
   "resource": "SAM_GH_NamePluralUpdate",
   "icon_file": "svg/name_plural_update.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreNumberFilter",
@@ -9597,7 +9597,7 @@
   "resource": "SAM_GH_NumberFilter",
   "icon_file": "svg/number_filter.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreRound",
@@ -9622,7 +9622,7 @@
   "resource": "SAM_GH_NumberModify",
   "icon_file": "svg/number_modify.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreNumberComparisonType",
@@ -9647,7 +9647,7 @@
   "resource": "SAM_GH_NumberValue",
   "icon_file": "svg/number_value.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreSAMLibraryAddObjects",
@@ -9672,7 +9672,7 @@
   "resource": "SAM_GH_ObjectLibraryAdd",
   "icon_file": "svg/object_library_add.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreConvert",
@@ -9697,7 +9697,7 @@
   "resource": "SAM_GH_ObjectConvert",
   "icon_file": "svg/object_convert.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalFilter",
@@ -9722,7 +9722,7 @@
   "resource": "SAM_GH_ObjectFilter",
   "icon_file": "svg/object_filter.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetDefaultLibrary",
@@ -9747,7 +9747,7 @@
   "resource": "SAM_GH_ObjectLibraryGet",
   "icon_file": "svg/object_library_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalObjects",
@@ -9772,7 +9772,7 @@
   "resource": "SAM_GH_ObjectPluralGet",
   "icon_file": "svg/object_plural_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreInspect",
@@ -9797,7 +9797,7 @@
   "resource": "SAM_GH_ObjectInspect",
   "icon_file": "svg/object_inspect.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalModifyObject",
@@ -9822,7 +9822,7 @@
   "resource": "SAM_GH_ObjectModify",
   "icon_file": "svg/object_modify.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRemove",
@@ -9847,7 +9847,7 @@
   "resource": "SAM_GH_ObjectRemove",
   "icon_file": "svg/object_remove.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalReplaceObject",
@@ -9872,7 +9872,7 @@
   "resource": "SAM_GH_ObjectUpdate",
   "icon_file": "svg/object_update.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateLibraries",
@@ -9897,7 +9897,7 @@
   "resource": "SAM_GH_ObjectLibraryUpdate",
   "icon_file": "svg/object_library_update.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreReplaceByGuid",
@@ -9922,7 +9922,7 @@
   "resource": "SAM_GH_ObjectUpdate",
   "icon_file": "svg/object_update.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreUpdate",
@@ -9947,7 +9947,7 @@
   "resource": "SAM_GH_ObjectUpdate",
   "icon_file": "svg/object_update.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "A_SAMAnalytical",
@@ -9972,7 +9972,7 @@
   "resource": "SAM_GH_ObjectValidate",
   "icon_file": "svg/object_validate.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreRelationClusterAddObjects",
@@ -9997,7 +9997,7 @@
   "resource": "SAM_GH_RelationAdd",
   "icon_file": "svg/relation_add.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalRelatedObjects",
@@ -10022,7 +10022,7 @@
   "resource": "SAM_GH_RelationPluralGet",
   "icon_file": "svg/relation_plural_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreObjects",
@@ -10047,7 +10047,7 @@
   "resource": "SAM_GH_RelationGet",
   "icon_file": "svg/relation_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreRelatedObjects",
@@ -10072,7 +10072,7 @@
   "resource": "SAM_GH_RelationPluralGet",
   "icon_file": "svg/relation_plural_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMArchitecturalRelatedObjects",
@@ -10097,7 +10097,7 @@
   "resource": "SAM_GH_RelationPluralGet",
   "icon_file": "svg/relation_plural_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalAddResults",
@@ -10122,7 +10122,7 @@
   "resource": "SAM_GH_ResultAdd",
   "icon_file": "svg/result_add.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCombineResults",
@@ -10147,7 +10147,7 @@
   "resource": "SAM_GH_ResultMerge",
   "icon_file": "svg/result_merge.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalMergeSettings",
@@ -10172,7 +10172,7 @@
   "resource": "SAM_GH_SettingsCreate",
   "icon_file": "svg/settings_create.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalTypeMergeSettings",
@@ -10197,7 +10197,7 @@
   "resource": "SAM_GH_SettingsCreate",
   "icon_file": "svg/settings_create.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCombineType",
@@ -10222,7 +10222,7 @@
   "resource": "SAM_GH_SettingsValue",
   "icon_file": "svg/settings_value.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCreateDelimitedFileTableBySAMObjects",
@@ -10247,7 +10247,7 @@
   "resource": "SAM_GH_TableCreate",
   "icon_file": "svg/table_create.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreTableModifier",
@@ -10272,7 +10272,7 @@
   "resource": "SAM_GH_TableCreate",
   "icon_file": "svg/table_create.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreToCsv",
@@ -10297,7 +10297,7 @@
   "resource": "SAM_GH_TableExport",
   "icon_file": "svg/table_export.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreDelimitedFileTableGetValue",
@@ -10322,7 +10322,7 @@
   "resource": "SAM_GH_TableGet",
   "icon_file": "svg/table_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCsvToDelimitedFileTable",
@@ -10347,7 +10347,7 @@
   "resource": "SAM_GH_TableImport",
   "icon_file": "svg/table_import.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreDelimitedFileTableSetColumnNames",
@@ -10372,7 +10372,7 @@
   "resource": "SAM_GH_TableSet",
   "icon_file": "svg/table_set.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreDelimitedFileTableSetValue",
@@ -10397,7 +10397,7 @@
   "resource": "SAM_GH_TableSet",
   "icon_file": "svg/table_set.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreDelimitedFileTableSort",
@@ -10422,7 +10422,7 @@
   "resource": "SAM_GH_TableSort",
   "icon_file": "svg/table_sort.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreDelimitedFileTableMap",
@@ -10447,7 +10447,7 @@
   "resource": "SAM_GH_TableUpdate",
   "icon_file": "svg/table_update.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreStringReplace",
@@ -10472,7 +10472,7 @@
   "resource": "SAM_GH_TextUpdate",
   "icon_file": "svg/text_update.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreTextComparisonType",
@@ -10497,7 +10497,7 @@
   "resource": "SAM_GH_TextValue",
   "icon_file": "svg/text_value.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreCreateTextMap",
@@ -10522,7 +10522,7 @@
   "resource": "SAM_GH_TextMapCreate",
   "icon_file": "svg/textMap_create.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetInternalConditionTextMap",
@@ -10547,7 +10547,7 @@
   "resource": "SAM_GH_TextMapGet",
   "icon_file": "svg/textMap_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreTextMapValues",
@@ -10572,7 +10572,7 @@
   "resource": "SAM_GH_TextMapGet",
   "icon_file": "svg/textMap_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalDataTree",
@@ -10597,7 +10597,7 @@
   "resource": "SAM_GH_TreeConvert",
   "icon_file": "svg/tree_convert.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreFilterByType",
@@ -10622,7 +10622,7 @@
   "resource": "SAM_GH_TypeFilter",
   "icon_file": "svg/type_filter.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreGetType",
@@ -10647,7 +10647,7 @@
   "resource": "SAM_GH_TypeGet",
   "icon_file": "svg/type_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateTypesByMap",
@@ -10672,7 +10672,7 @@
   "resource": "SAM_GH_TypeUpdate",
   "icon_file": "svg/type_update.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalUpdateTypesByName",
@@ -10697,7 +10697,7 @@
   "resource": "SAM_GH_TypeUpdate",
   "icon_file": "svg/type_update.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreFilter",
@@ -10722,7 +10722,7 @@
   "resource": "SAM_GH_ValueFilter",
   "icon_file": "svg/value_filter.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreGetValue",
@@ -10747,7 +10747,7 @@
   "resource": "SAM_GH_ValueGet",
   "icon_file": "svg/value_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMAnalyticalGetValuesByReference",
@@ -10772,7 +10772,7 @@
   "resource": "SAM_GH_ValuePluralGet",
   "icon_file": "svg/value_plural_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreParameterByType",
@@ -10797,7 +10797,7 @@
   "resource": "SAM_GH_ValueGet",
   "icon_file": "svg/value_get.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreRemoveValue",
@@ -10822,7 +10822,7 @@
   "resource": "SAM_GH_ValueRemove",
   "icon_file": "svg/value_remove.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreSetValue",
@@ -10847,7 +10847,7 @@
   "resource": "SAM_GH_ValueSet",
   "icon_file": "svg/value_set.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreSetValues",
@@ -10872,7 +10872,7 @@
   "resource": "SAM_GH_ValuePluralSet",
   "icon_file": "svg/value_plural_set.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "SAMCoreParameterType",
@@ -10897,7 +10897,7 @@
   "resource": "SAM_GH_ValueValue",
   "icon_file": "svg/value_value.svg",
   "batch": "09 Data, IO & utilities",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooAddressParam",
@@ -10922,7 +10922,7 @@
   "resource": "SAM_GH_Address",
   "icon_file": "svg/address.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooAirHandlingUnitParam",
@@ -10947,7 +10947,7 @@
   "resource": "SAM_GH_Ahu",
   "icon_file": "svg/ahu.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooAirMovementObjectParam",
@@ -10972,7 +10972,7 @@
   "resource": "SAM_GH_Ahu",
   "icon_file": "svg/ahu.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooApertureParam",
@@ -10997,7 +10997,7 @@
   "resource": "SAM_GH_Aperture",
   "icon_file": "svg/aperture.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooOpeningParam",
@@ -11022,7 +11022,7 @@
   "resource": "SAM_GH_Aperture",
   "icon_file": "svg/aperture.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooApertureConstructionParam",
@@ -11047,7 +11047,7 @@
   "resource": "SAM_GH_ApertureConstruction",
   "icon_file": "svg/apertureConstruction.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooApertureConstructionLibraryParam",
@@ -11072,7 +11072,7 @@
   "resource": "SAM_GH_ApertureConstructionLibrary",
   "icon_file": "svg/apertureConstruction_library.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooOpeningTypeParam",
@@ -11097,7 +11097,7 @@
   "resource": "SAM_GH_ApertureConstruction",
   "icon_file": "svg/apertureConstruction.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooAdjacencyClusterParam",
@@ -11122,7 +11122,7 @@
   "resource": "SAM_GH_Cluster",
   "icon_file": "svg/cluster.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooConstructionParam",
@@ -11147,7 +11147,7 @@
   "resource": "SAM_GH_Construction",
   "icon_file": "svg/construction.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooConstructionLibraryParam",
@@ -11172,7 +11172,7 @@
   "resource": "SAM_GH_ConstructionLibrary",
   "icon_file": "svg/construction_library.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooFloorTypeParam",
@@ -11197,7 +11197,7 @@
   "resource": "SAM_GH_Construction",
   "icon_file": "svg/construction.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooHostPartitionTypeParam",
@@ -11222,7 +11222,7 @@
   "resource": "SAM_GH_Construction",
   "icon_file": "svg/construction.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooRoofTypeParam",
@@ -11247,7 +11247,7 @@
   "resource": "SAM_GH_Construction",
   "icon_file": "svg/construction.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooWallTypeParam",
@@ -11272,7 +11272,7 @@
   "resource": "SAM_GH_Construction",
   "icon_file": "svg/construction.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooConstructionLayerParam",
@@ -11297,7 +11297,7 @@
   "resource": "SAM_GH_ConstructionLayer",
   "icon_file": "svg/constructionLayer.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooConstructionManagerParam",
@@ -11322,7 +11322,7 @@
   "resource": "SAM_GH_ConstructionManager",
   "icon_file": "svg/constructionManager.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooDegreeOfActivityParam",
@@ -11347,7 +11347,7 @@
   "resource": "SAM_GH_DegreeOfActivity",
   "icon_file": "svg/degreeOfActivity.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooDegreeOfActivityLibraryParam",
@@ -11372,7 +11372,7 @@
   "resource": "SAM_GH_DegreeOfActivityLibrary",
   "icon_file": "svg/degreeOfActivity_library.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooDesignDayParam",
@@ -11397,7 +11397,7 @@
   "resource": "SAM_GH_DesignDay",
   "icon_file": "svg/designDay.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooAnalyticalEquipmentParam",
@@ -11422,7 +11422,7 @@
   "resource": "SAM_GH_Equipment",
   "icon_file": "svg/equipment.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooExternalSpaceParam",
@@ -11447,7 +11447,7 @@
   "resource": "SAM_GH_ExternalSpace",
   "icon_file": "svg/externalSpace.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooPlanarBoundary3DParam",
@@ -11472,7 +11472,7 @@
   "resource": "SAM_GH_Face",
   "icon_file": "svg/face.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooSAMGeometryParam",
@@ -11497,7 +11497,7 @@
   "resource": "SAM_GH_Geometry",
   "icon_file": "svg/geometry.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooGroupParam",
@@ -11522,7 +11522,7 @@
   "resource": "SAM_GH_Group",
   "icon_file": "svg/group.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooIndexedObjectsParam",
@@ -11547,7 +11547,7 @@
   "resource": "SAM_GH_Indexed",
   "icon_file": "svg/indexed.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooInternalConditionParam",
@@ -11572,7 +11572,7 @@
   "resource": "SAM_GH_InternalCondition",
   "icon_file": "svg/internalCondition.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooInternalConditionLibraryParam",
@@ -11597,7 +11597,7 @@
   "resource": "SAM_GH_InternalConditionLibrary",
   "icon_file": "svg/internalCondition_library.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooLevelParam",
@@ -11622,7 +11622,7 @@
   "resource": "SAM_GH_Level",
   "icon_file": "svg/level.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooLocationParam",
@@ -11647,7 +11647,7 @@
   "resource": "SAM_GH_Location",
   "icon_file": "svg/location.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooLogParam",
@@ -11672,7 +11672,7 @@
   "resource": "SAM_GH_Log",
   "icon_file": "svg/log.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooMaterialParam",
@@ -11697,7 +11697,7 @@
   "resource": "SAM_GH_Material",
   "icon_file": "svg/material.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooMaterialLibraryParam",
@@ -11722,7 +11722,7 @@
   "resource": "SAM_GH_MaterialLibrary",
   "icon_file": "svg/material_library.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooMaterialLayerParam",
@@ -11747,7 +11747,7 @@
   "resource": "SAM_GH_MaterialLayer",
   "icon_file": "svg/materialLayer.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooMatrixParam",
@@ -11772,7 +11772,7 @@
   "resource": "SAM_GH_Matrix",
   "icon_file": "svg/matrix.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooAnalyticalModelParam",
@@ -11797,7 +11797,7 @@
   "resource": "SAM_GH_Model",
   "icon_file": "svg/model.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooBuildingModelParam",
@@ -11822,7 +11822,7 @@
   "resource": "SAM_GH_Model",
   "icon_file": "svg/model.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooObjectParam",
@@ -11847,7 +11847,7 @@
   "resource": "SAM_GH_Object",
   "icon_file": "svg/object.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooAnalyticalObjectParam",
@@ -11872,7 +11872,7 @@
   "resource": "SAM_GH_Object",
   "icon_file": "svg/object.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooSAMObjectParam",
@@ -11897,7 +11897,7 @@
   "resource": "SAM_GH_Object",
   "icon_file": "svg/object.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooJSAMObjectParam",
@@ -11922,7 +11922,7 @@
   "resource": "SAM_GH_Object",
   "icon_file": "svg/object.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooOpeningPropertiesParam",
@@ -11947,7 +11947,7 @@
   "resource": "SAM_GH_OpeningProperties",
   "icon_file": "svg/openingProperties.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooPartitionParam",
@@ -11972,7 +11972,7 @@
   "resource": "SAM_GH_Panel",
   "icon_file": "svg/panel.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooPanelParam",
@@ -11997,7 +11997,7 @@
   "resource": "SAM_GH_Panel",
   "icon_file": "svg/panel.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooProfileParam",
@@ -12022,7 +12022,7 @@
   "resource": "SAM_GH_Profile",
   "icon_file": "svg/profile.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooProfileLibraryParam",
@@ -12047,7 +12047,7 @@
   "resource": "SAM_GH_ProfileLibrary",
   "icon_file": "svg/profile_library.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooRelationClusterParam",
@@ -12072,7 +12072,7 @@
   "resource": "SAM_GH_Relation",
   "icon_file": "svg/relation.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooResultParam",
@@ -12097,7 +12097,7 @@
   "resource": "SAM_GH_Result",
   "icon_file": "svg/result.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooSectionParam",
@@ -12122,7 +12122,7 @@
   "resource": "SAM_GH_SectionBox",
   "icon_file": "svg/sectionBox.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooMergeSettingsParam",
@@ -12147,7 +12147,7 @@
   "resource": "SAM_GH_Settings",
   "icon_file": "svg/settings.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooTypeMergeSettingsParam",
@@ -12172,7 +12172,7 @@
   "resource": "SAM_GH_Settings",
   "icon_file": "svg/settings.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooFeatureShadeParam",
@@ -12197,7 +12197,7 @@
   "resource": "SAM_GH_Shade",
   "icon_file": "svg/shade.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooSpaceParam",
@@ -12222,7 +12222,7 @@
   "resource": "SAM_GH_Space",
   "icon_file": "svg/space.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooSystemParam",
@@ -12247,7 +12247,7 @@
   "resource": "SAM_GH_System",
   "icon_file": "svg/system.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooSystemTypeParam",
@@ -12272,7 +12272,7 @@
   "resource": "SAM_GH_System",
   "icon_file": "svg/system.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooSystemTypeLibraryParam",
@@ -12297,7 +12297,7 @@
   "resource": "SAM_GH_SystemLibrary",
   "icon_file": "svg/system_library.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooTableModifierParam",
@@ -12322,7 +12322,7 @@
   "resource": "SAM_GH_Table",
   "icon_file": "svg/table.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooDelimitedFileTableParam",
@@ -12347,7 +12347,7 @@
   "resource": "SAM_GH_Table",
   "icon_file": "svg/table.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooText3DParam",
@@ -12372,7 +12372,7 @@
   "resource": "SAM_GH_Text",
   "icon_file": "svg/text.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooTextMapParam",
@@ -12397,7 +12397,7 @@
   "resource": "SAM_GH_TextMap",
   "icon_file": "svg/textMap.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooTransform3DParam",
@@ -12422,7 +12422,7 @@
   "resource": "SAM_GH_Transform3D",
   "icon_file": "svg/transform3D.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooWeatherObjectParam",
@@ -12447,7 +12447,7 @@
   "resource": "SAM_GH_Weather",
   "icon_file": "svg/weather.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooWeatherDataParam",
@@ -12472,7 +12472,7 @@
   "resource": "SAM_GH_WeatherData",
   "icon_file": "svg/weatherData.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  },
  {
   "class": "GooWeatherYearParam",
@@ -12497,6 +12497,6 @@
   "resource": "SAM_GH_WeatherYear",
   "icon_file": "svg/weatherYear.svg",
   "batch": "11 Parameters",
-  "status": "redesigned"
+  "status": "integrated"
  }
 ]

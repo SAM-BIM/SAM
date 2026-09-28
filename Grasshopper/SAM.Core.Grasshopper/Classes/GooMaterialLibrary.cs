@@ -33,7 +33,7 @@ namespace SAM.Core.Grasshopper
     {
         public override Guid ComponentGuid => new Guid("986d8a7b-4a1f-4f5d-a507-d45c535518a7");
 
-        protected override System.Drawing.Bitmap Icon => Resources.SAM_Small;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_GH_MaterialLibrary;
 
         public GooMaterialLibraryParam()
             : base(typeof(MaterialLibrary).Name, typeof(MaterialLibrary).Name, typeof(MaterialLibrary).FullName.Replace(".", " "), "Params", "SAM")

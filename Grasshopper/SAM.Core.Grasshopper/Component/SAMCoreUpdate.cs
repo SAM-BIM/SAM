@@ -15,7 +15,7 @@ namespace SAM.Core.Grasshopper
 
         public override string LatestComponentVersion => "1.1.0";
 
-        protected override System.Drawing.Bitmap Icon => Resources.SAM_Small;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_GH_ObjectUpdate;
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
