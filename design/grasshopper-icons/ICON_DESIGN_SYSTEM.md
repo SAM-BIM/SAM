@@ -128,6 +128,8 @@ Outline weight stays 1.1 px under every scale: `scaled()` compensates the stroke
 4. Minimal detail: no element under ~1.5 px, and no text inside icons.
 5. On light Grasshopper bodies the ink outline carries the silhouette. On dark bodies the light/green fills carry it. The white badge ring separates the badge on both.
 6. Qualifiers (`…By<X>`) are not drawn. Variants that differ only by qualifier share one icon **intentionally**.
+7. **Badge glyph weight** (from the live Rhino review): line glyphs use a stroke of at least 1.6 px (outline shapes at least 1.3 px). Arrows use filled heads. Transfer badges use one bold solid arrow (↓ import, ↑ export, ⇄ convert) and no base line. Thinner glyphs collapsed to a dot at native size.
+8. Review every icon on all three Grasshopper body states: normal grey, **orange warning** (the default for a freshly placed component with unconnected inputs) and a dark skin. The yellow Change disc keeps its white ring, so it still reads on the orange warning body.
 
 ## 7. Collision rules
 
@@ -151,7 +153,11 @@ tools/classify.py    -> manifest.json / .csv  (rules + explicit OVERRIDES table)
 tools/build.py       -> svg/  png/24/  review/batch_*.png  SAM_GH_ICON_LIBRARY.png  (+ identical-pixel check)
 tools/integrate.py   -> Grasshopper/<proj>/Resources/Icons/*.png, Resources.resx, Resources.Designer.cs, Icon getters
 tools/catalogue.py   -> review/_catalogue/   (all glyphs, badges and modifiers)
+tools/check_assemblies.py <build dir>        (every required icon embedded at 24x24 in the built DLLs)
+tools/live_review_rhino.py                   (real Rhino 8 / GH canvas capture, light + dark; see file header)
 ```
+
+The rasteriser renders each SVG alone at a fixed page position, so an icon's PNG depends only on its own SVG. Adding icons never changes existing PNGs.
 
 Requirements: Python 3 with Pillow, and Microsoft Edge (headless) as the SVG rasteriser.
 `svg/` is the canonical editable source. The PNGs are generated, never hand-edited.
