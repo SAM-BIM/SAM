@@ -98,7 +98,7 @@ namespace SAM.Analytical.Grasshopper
     {
         public override Guid ComponentGuid => new("84d34834-8ce0-42cb-a3de-7366337bac4a");
         public override string LatestComponentVersion => "1.0.11";
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_ApertureAdd);
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
         public SAMAnalyticalAddAperturesByAzimuths()

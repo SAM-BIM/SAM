@@ -28,7 +28,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM3);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_ApertureConstructionCalculate);
 
 
         public override GH_Exposure Exposure => GH_Exposure.tertiary;

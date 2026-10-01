@@ -27,7 +27,7 @@ namespace SAM.Geometry.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon => Resources.SAM_Geometry;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_GH_GeometrySplit;
 
         public override GH_Exposure Exposure => GH_Exposure.tertiary | GH_Exposure.hidden;
 
