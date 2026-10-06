@@ -41,7 +41,9 @@ namespace SAM.Analytical
 
         private SpaceSemanticsResolver spaceSemanticsResolver = null;
 
-        private Dictionary<SpaceUse, PartFCategory> dictionary_SpaceUse = null;
+        private volatile Dictionary<SpaceUse, PartFCategory> dictionary_SpaceUse = null;
+
+        private readonly object lock_SpaceUse = new();
 
         private TextMap textMap_Legacy = null;
 
@@ -306,26 +308,40 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (dictionary_SpaceUse is null)
+            //One PartFData is shared by every caller of ActiveSetting, so this lookup can be reached from
+            //several threads at once. The map is built in a local and published only once complete, under
+            //a lock, so no caller ever sees it half filled or enumerates it while another thread writes to
+            //it; once published it is never modified, so concurrent reads need no lock.
+            Dictionary<SpaceUse, PartFCategory> dictionary = dictionary_SpaceUse;
+            if (dictionary is null)
             {
-                dictionary_SpaceUse = [];
-                foreach (PartFCategory partFCategory in PartFCategories?.Values ?? Enumerable.Empty<PartFCategory>())
+                lock (lock_SpaceUse)
                 {
-                    if (partFCategory is null || partFCategory.SpaceUse == SpaceUse.Undefined)
+                    dictionary = dictionary_SpaceUse;
+                    if (dictionary is null)
                     {
-                        continue;
-                    }
+                        dictionary = [];
+                        foreach (PartFCategory partFCategory in PartFCategories?.Values ?? Enumerable.Empty<PartFCategory>())
+                        {
+                            if (partFCategory is null || partFCategory.SpaceUse == SpaceUse.Undefined)
+                            {
+                                continue;
+                            }
 
-                    //First category wins, so a rule set that maps two categories onto one space use
-                    //behaves predictably rather than depending on dictionary ordering.
-                    if (!dictionary_SpaceUse.ContainsKey(partFCategory.SpaceUse))
-                    {
-                        dictionary_SpaceUse[partFCategory.SpaceUse] = partFCategory;
+                            //First category wins, so a rule set that maps two categories onto one space use
+                            //behaves predictably rather than depending on dictionary ordering.
+                            if (!dictionary.ContainsKey(partFCategory.SpaceUse))
+                            {
+                                dictionary[partFCategory.SpaceUse] = partFCategory;
+                            }
+                        }
+
+                        dictionary_SpaceUse = dictionary;
                     }
                 }
             }
 
-            return dictionary_SpaceUse.TryGetValue(spaceUse, out PartFCategory result) ? result : null;
+            return dictionary.TryGetValue(spaceUse, out PartFCategory result) ? result : null;
         }
 
         /// <summary>
