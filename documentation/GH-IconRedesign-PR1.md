@@ -1,6 +1,6 @@
 # SAM Grasshopper icon redesign — PR1 record
 
-Branch `feature/sam-gh-icon-redesign`, based on `sow/2026-Q3` @ `bc85ba61`. PR SAM-BIM/SAM#166.
+Branch `feature/sam-gh-icon-redesign-q4`, based on `sow/2026-Q4` @ `5f57055d`. PR SAM-BIM/SAM#179. Q4 migration of SAM-BIM/SAM#166 (`feature/sam-gh-icon-redesign` @ `cf4d924a`, based on `sow/2026-Q3` @ `bc85ba61`, kept open for provenance): the same commits replayed onto `sow/2026-Q4`; Q3 history was not imported.
 
 ## Current status
 All **522** SAM Grasshopper objects (458 components + 64 params) now use redesigned icons: **522 / 522**.
@@ -61,4 +61,7 @@ Known build noise, not caused by this PR:
 - **Unused legacy PNGs**: `SAM_Filter3` and `SAM_Get.Filterpng` are pre-existing 24×25 files, now unused by components. They were left untouched.
 
 ## Recommended next step
-Final PR review of SAM-BIM/SAM#166, then merge (by the maintainer). After merge, add the `PROJECT_PROGRESS.md` closeout entry on `sow/2026-Q3` with the merge SHA.
+Final PR review of SAM-BIM/SAM#179, then merge (by the maintainer). After merge, add the `PROJECT_PROGRESS.md` closeout entry on `sow/2026-Q4` with the merge SHA.
+
+## Q4 migration validation
+Re-validated on `sow/2026-Q4` @ `5f57055d`: the replay-only tip `cbf392f8` has the same tree as the net-diff merge of the Q3 PR onto Q4, and the same patch-id, file set, numstat and blobs as the Q3 PR's feature diff. `Grasshopper/` is unchanged between the Q3 base and Q4, so no newer work is overwritten. SAM_UI kit `check_source.py origin/sow/2026-Q4`: 521 icon-token swaps, ComponentGuid declarations unchanged (527/527); its only flag is the `Icon` line added to `A_SAMAnalytical` (recorded above). `msbuild SAM.sln /t:Rebuild /p:Configuration=Release` succeeded with 0 errors; `check_assemblies.py build` OK. The Rhino-hosted `SAM.Core.Grasshopper.Tests` were not re-run (Rhino does not start under the redirected build profile).
