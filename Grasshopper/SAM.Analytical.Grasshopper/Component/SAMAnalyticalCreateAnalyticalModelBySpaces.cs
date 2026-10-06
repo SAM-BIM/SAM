@@ -54,7 +54,7 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
                 param_String = new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "_description_", NickName = "_description_", Description = "SAM Description", Access = GH_ParamAccess.item };
-                param_String.SetPersistentData(string.Format("Delivered by SAM https://github.com/HoareLea/SAM [{0}]", DateTime.Now.ToString("yyyy/MM/dd")));
+                param_String.SetPersistentData(string.Format("Delivered by SAM https://github.com/SAM-BIM/SAM [{0}]", DateTime.Now.ToString("yyyy/MM/dd")));
                 result.Add(new GH_SAMParam(param_String, ParamVisibility.Binding));
 
                 result.Add(new GH_SAMParam(new GooWeatherDataParam() { Name = "weatherData_", NickName = "weatherData_", Description = "SAM WeatherData", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));

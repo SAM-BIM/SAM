@@ -11,7 +11,7 @@ namespace SAM.Core
     {
         public static string LatestVersion()
         {
-            string url = @"https://api.github.com/repos/HoareLea/SAM_Deploy/releases/latest";
+            string url = @"https://api.github.com/repos/SAM-BIM/SAM_Deploy/releases/latest";
 
             HttpWebRequest httpWebRequest = WebRequest.CreateHttp(url);
             if (httpWebRequest == null)
