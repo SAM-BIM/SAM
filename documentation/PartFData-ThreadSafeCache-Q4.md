@@ -4,7 +4,7 @@ Branch `fix/partfdata-thread-safe-cache-q4` -> base `sow/2026-Q4` (cut from `fe1
 
 ## Current status
 
-PR open, **not merged**. One product file and one new test file. No change to classification behaviour,
+PR SAM-BIM/SAM#181 open, **not merged**. One product file and one new test file. No change to classification behaviour,
 the test collections, `.gitmodules`, gitlinks, workflows, `master`, `sow/2026-Q3`, icon PRs, runtime-URL
 work or release/installer files.
 
@@ -80,7 +80,7 @@ extract" symptom, which is this race.
   /p:UseSharedCompilation=false`: 0 errors. 110 pre-existing warnings (101 CS8632, 2 CS8073, 2 CS0661,
   2 CS0659, 2 CS0108, 1 CS0162); none in the changed files. The Grasshopper post-build copy wrote into the
   redirected APPDATA, not the real SAM install.
-- PR CI (`build`, `test`, `spdx`): see the PR.
+- PR CI (`build`, `test`, `spdx`): reported on SAM-BIM/SAM#181.
 
 ## Unresolved issues, risks
 
