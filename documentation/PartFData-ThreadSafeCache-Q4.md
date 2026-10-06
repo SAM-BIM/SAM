@@ -1,98 +1,142 @@
-# PartFData thread-safe space use cache (Q4) - SAM
+# PartFData thread-safe classification caches (Q4) - SAM
 
 Branch `fix/partfdata-thread-safe-cache-q4` -> base `sow/2026-Q4` (cut from `fe1d60b5`). Record date: 2026-10-07.
 
 ## Current status
 
-PR SAM-BIM/SAM#181 open, **not merged**. One product file and one new test file. No change to classification behaviour,
-the test collections, `.gitmodules`, gitlinks, workflows, `master`, `sow/2026-Q3`, icon PRs, runtime-URL
-work or release/installer files.
+PR SAM-BIM/SAM#181 open, **not merged**. All three unsynchronised shared collections on the Part F room
+classification path are fixed: the two lazy caches in `PartFData` (`dictionary_SpaceUse`, `textMap_Legacy`)
+and the per-space cache of the `SpaceSemanticsResolver` that `PartFData` holds. Two product files and one
+new test file. No change to classification results, the test collections, `.gitmodules`, gitlinks,
+workflows, `master`, `sow/2026-Q3`, icon PRs, runtime-URL work or release/installer files.
 
-## Defect
-
-`PartFData.GetPartFCategory(SpaceUse)` built its `SpaceUse -> PartFCategory` map lazily and **published it
-before filling it**:
-
-```csharp
-if (dictionary_SpaceUse is null)
-{
-    dictionary_SpaceUse = [];              // published empty
-    foreach (...) dictionary_SpaceUse[...] = ...;   // then filled in place
-}
-return dictionary_SpaceUse.TryGetValue(...);
-```
+## Shared state
 
 One `PartFData` is shared by every caller of `ActiveSetting` (`Query.DefaultPartFData()` /
-`DefaultPartFCalculator()`), and xUnit runs test classes in parallel. A second thread that arrived after
-the assignment but before the loop ended saw a non-null map and skipped the build, then either:
+`DefaultPartFCalculator()`), and xUnit runs test classes in parallel, so `PartFCalculator.Classify` ->
+`PartFData.GetPartFCategory(Space, out SpaceSemantics)` runs on several threads at once. That call touches:
 
-- read a half-filled map, getting `null` for a space use not yet added (a wet room classified as nothing,
-  so sized with no extract); or
-- read it while the first thread was writing, which .NET's `Dictionary` detects as
-  `InvalidOperationException: Operations that change non-concurrent collections must have exclusive access`.
+1. `SpaceSemanticsResolver.Resolve(space)` on the resolver the `PartFData` holds;
+2. `GetPartFCategory(SpaceUse)` -> `dictionary_SpaceUse`;
+3. where that gives null, `GetLegacyPartFCategory(name)` -> `textMap_Legacy`.
 
-Observed once in a full parallel run (1/2819, `PartODwellingStrategyMaterialisationTests.SystemsScope_ScaffoldingIsTheAddMechanicalSystemsShape`
-via `PartOIterationPreparationTests.Model` -> `PartFCalculator.Classify`). That class reads the default Part F
-data but is not in the `"SAM.Analytical.ActiveSetting default Part F data"` xUnit collection that serialises
-the other nine readers; that collection's own remarks already record the "wet room intermittently sized no
-extract" symptom, which is this race.
+## Defects
+
+### 1. `dictionary_SpaceUse` (observed failure)
+
+Built lazily and **published before it was filled** (`dictionary_SpaceUse = [];` then
+`dictionary_SpaceUse[...] = ...` through the field). A second thread could see the non-null field, skip the
+build and read a half-filled map (`null` for a wet room, so no extract), or two builders could write into the
+same dictionary. The one failure seen in a full parallel run (1/2819,
+`PartODwellingStrategyMaterialisationTests.SystemsScope_ScaffoldingIsTheAddMechanicalSystemsShape`) threw
+`InvalidOperationException: Operations that change non-concurrent collections must have exclusive access`
+from `Dictionary.TryInsert` <- `set_Item` <- `PartFData.GetPartFCategory(SpaceUse)` line 323, the field write
+(confirmed from the captured test log). That class reads the default Part F data but is outside the
+`"SAM.Analytical.ActiveSetting default Part F data"` xUnit collection, whose remarks already describe the
+"wet room intermittently sized no extract" symptom.
+
+### 2. `textMap_Legacy` (same pattern)
+
+Declared `private TextMap textMap_Legacy`; created only in `GetLegacyPartFCategory`, which assigned
+`textMap_Legacy = Core.Create.TextMap("PartFLegacy")` (internal dictionary still null) and then called
+`textMap_Legacy.Add(...)` per legacy category **through the field**; the lookup is
+`textMap_Legacy.SemanticBestTextMapKey(name)`, which enumerates `TextMap.Keys` (the internal `Dictionary`)
+and reads each key's values. Concurrently that gives:
+
+- partial results: an empty or half-filled map returns null for a legacy room that has a category;
+- wrong category: the matcher picks the longest phrase and returns null on a top-rank tie, so a half-filled
+  map can return a shorter, generic match, or one side of a tie instead of null;
+- `InvalidOperationException: Collection was modified` (enumeration during `Add`), or corruption when two
+  builders `Add` into the same TextMap after one overwrote the field.
+
+### 3. `SpaceSemanticsResolver` cache (same path, different class)
+
+`Resolve` reads and then writes two plain dictionaries (`cache`, `cacheKey`, keyed by space Guid) on every
+call. `PartFData` holds one resolver, so concurrent classification inserts into them from many threads:
+reproduced at roughly 440 exceptions per 20-round run, including the exact message above and
+`IndexOutOfRangeException` from the corrupted dictionary. Outside `PartFData.cs`; included at the owner's
+decision because it is the same defect on the same call path. Everything else in the resolver (`textMap`,
+`keys`) is set in the constructor and only read afterwards.
 
 ## Fix
 
-`SAM/SAM.Analytical/Classes/PartF/PartFData.cs` only: double-checked locking with build-then-publish.
+- `PartFData.cs`, both lazy caches, same shape: double-checked locking, build-then-publish. Built in a local
+  under a private lock (`lock_SpaceUse`, `lock_Legacy`), assigned to the now `volatile` field only once
+  complete, never modified afterwards, so reads need no lock. One build per instance.
+- The build loops are unchanged apart from writing to the local, so semantics are identical:
+  `dictionary_SpaceUse` - skip null/`Undefined`, `ContainsKey` guard, first category per space use in
+  `PartFCategories.Values` order wins; `textMap_Legacy` - only categories with a name and `SpaceUse.Undefined`,
+  synonyms or else the name, keyed by category name; lookup still longest phrase wins, tie gives null, then
+  `PartFCategories.TryGetValue(key)`. Both remain snapshots taken at first use, as before.
+- `SpaceSemanticsResolver.cs`: the cache read and the cache write in `Resolve` are each under a private
+  `lock_Cache`; `ResolveCore` stays outside the lock (it only reads the Space and the TextMap). The cache
+  pair is now always updated together. Two threads resolving the same space compute the same result, so the
+  last store changes nothing; results are unchanged.
+- Rejected: `ConcurrentDictionary` (would still publish a partial map for 1/2, and would not keep `cache` and
+  `cacheKey` in step for 3); `Lazy<T>` (equivalent for 1/2, larger diff).
 
-- The map is built in a local under a private lock and assigned to the (now `volatile`) field only once
-  complete. It is never modified after publication, so concurrent reads are safe without the lock.
-- At most one build per instance; a thread that waited on the lock re-reads the field and uses the
-  published map.
-- **First category wins is unchanged:** the loop body (skip null / `Undefined`, `ContainsKey` guard, then
-  add) is byte-for-byte the same and runs single-threaded over the same `PartFCategories.Values`
-  enumeration, so the first category per space use in enumeration order still wins. Only the target
-  variable changed (a local instead of the field).
-- Rejected: `ConcurrentDictionary` / `TryAdd` (would still expose a partially-filled map and change the
-  publication semantics); `Lazy<T>` (equivalent here, but a field initialiser capturing `this` and a larger
-  diff). Snapshot semantics are as before: the map reflects `PartFCategories` at first use and is not
-  rebuilt if the categories are replaced later.
+## Regression tests
 
-## Regression test
+`SAM/SAM.Tests/PartFDataConcurrencyTests.cs` (new, 5 tests). Concurrent tests share `RunConcurrently`:
+`max(4, ProcessorCount)` dedicated threads released together by a `Barrier` (no sleeps), exceptions and
+mismatches collected and asserted empty, 1-minute join guard. Every round uses a **fresh** `PartFData`.
 
-`SAM/SAM.Tests/PartFDataConcurrencyTests.cs` (new, 2 tests):
+- `GetPartFCategory_FirstCategoryWins_SingleThreaded` and `..._ConcurrentFirstUse_...` - 20 000 losing
+  duplicate `Bedroom` categories before `Bathroom`; asserts by reference first-wins `Bedroom`, `Kitchen`,
+  `Bathroom`, null for `Storage`/`Undefined`.
+- `GetPartFCategory_Legacy_SingleThreaded` and `GetPartFCategory_Legacy_ConcurrentFirstUse_...` - invented
+  names (no shared vocabulary match) with 5 000 filler categories between the generic/first-tied categories
+  and the deciding ones: `Quax Zorb 1` -> `Quax Zorb` (not generic `Zorb`), `Vell` -> null (tie), `Mirk 2` ->
+  `Mirk` (no synonyms, matched by name), `Zorb`, `Nothing Here` -> null. The spaces are resolved once through
+  the resolver before the threads start, so the legacy build is the only first-time work they race on.
+- `GetPartFCategory_Space_ConcurrentResolve_SharedResolverCacheStaysCorrect` - each thread classifies 200
+  shared and 200 own new spaces per round through `GetPartFCategory(Space, ...)` on a small rule set; asserts
+  each space gets its own category and SpaceUse.
 
-- `GetPartFCategory_FirstCategoryWins_SingleThreaded` - first of several `Bedroom` categories wins;
-  `Kitchen` / `Bathroom` map; `Storage` (no category) and `Undefined` give `null`; a category with no
-  SpaceUse is not reachable through this lookup.
-- `GetPartFCategory_ConcurrentFirstUse_NoExceptionAndSameCategoriesAsSingleThreaded` - 20 rounds, each on a
-  **fresh** `PartFData` so every round hits the lazy build. `max(4, ProcessorCount)` dedicated threads are
-  released together by a `Barrier` (no sleeps) and each asserts, by reference, the single-threaded answer
-  for `Bathroom, Bedroom, Kitchen, Storage, Undefined`; exceptions are collected and asserted empty. The
-  rule set puts 20 000 losing duplicate `Bedroom` categories before `Bathroom`, which keeps the build in
-  progress long enough that released threads reliably reach it mid-build.
-- Proven against the old code: with the product change reverted locally, the concurrent test failed 3/3
-  runs in round 0 (`Bathroom: expected 'Bathroom', got 'null'` from many threads). With the fix: 5/5 green.
+Evidence against the unfixed code (product file reverted locally, test unchanged):
+
+- `dictionary_SpaceUse`: 3/3 failed in round 0 (`Bathroom: expected 'Bathroom', got 'null'`).
+- `textMap_Legacy` (dictionary fix kept): 3/3 failed in round 0 with `Collection was modified`; with the
+  mismatch assert ordered first, 5/5 showed `'Quax Zorb 1': expected 'Quax Zorb', got 'null'` (half-built
+  map). The wrong-category variant was not observed in those runs; the test asserts it regardless.
+- Resolver cache (both PartFData fixes kept): 5/5 failed in round 0 with the exact original
+  `Operations that change non-concurrent collections must have exclusive access`.
+- Note: a first draft of the resolver test used the 20 000-category rule set; the resolver merges every
+  category's synonyms, so it was slow enough to hit the join guard on fixed and unfixed code alike. That was
+  a test-design error, not a product hang; the test now uses a small rule set.
 
 ## Validation (local, APPDATA/USERPROFILE redirected to a scratch folder, NUGET_PACKAGES pinned)
 
-- Focused `PartFDataConcurrencyTests`: 2/2 passed, 5 consecutive runs.
-- Full `dotnet test SAM/SAM.Tests/SAM.Tests.csproj` (Debug, with build): **2821/2821** passed
-  (2819 existing + 2 new).
-- CI-equivalent Release: `dotnet build` + `dotnet test --no-build -c Release`: **2821/2821** passed.
+- Focused `PartFDataConcurrencyTests` (Release, built immediately before): 5/5 passed in 10 consecutive runs
+  (~9 s per run).
+- Full `dotnet test SAM/SAM.Tests/SAM.Tests.csproj` (Debug, with build): **2824/2824** passed
+  (2819 existing + 5 new).
+- CI-equivalent Release: `dotnet build -c Release` then `dotnet test -c Release --no-build`: **2824/2824**.
 - `msbuild SAM.sln /t:Restore` then `/t:Rebuild /m:1 /nr:false /p:Configuration=Release
   /p:UseSharedCompilation=false`: 0 errors. 110 pre-existing warnings (101 CS8632, 2 CS8073, 2 CS0661,
-  2 CS0659, 2 CS0108, 1 CS0162); none in the changed files. The Grasshopper post-build copy wrote into the
-  redirected APPDATA, not the real SAM install.
+  2 CS0659, 2 CS0108, 1 CS0162), the same set as the PR's first revision; none in the changed files. The Grasshopper
+  post-build copy wrote into the redirected APPDATA, not the real SAM install.
 - PR CI (`build`, `test`, `spdx`): reported on SAM-BIM/SAM#181.
+
+## Final concurrency audit of `PartFData.cs`
+
+- No static mutable state (only `const`s and one pure static method).
+- `PartFCategories`, `WholeDwellingRates_Lps`: public, caller-owned, never lazily populated or mutated by
+  `PartFData`; only read. Mutating them while lookups run was never supported and is unchanged.
+- `dictionary_SpaceUse`, `textMap_Legacy`: fixed as above.
+- `spaceSemanticsResolver ??= CreateResolver()`: the resolver and its TextMap are fully built before the
+  assignment, so it is not fill-after-publish. A first-use race can build two equivalent resolvers and keep
+  one; each is now internally thread-safe, so this is benign and left unchanged.
+- No equivalent race remains in `PartFData`. Outside this path, `TM59InternalConditionResolver` has a
+  similar per-Guid cache but is created per `TM59Manager` call, not shared through `PartFData`; not examined
+  further.
 
 ## Unresolved issues, risks
 
-- **Sibling lazy field, not changed (out of scope):** `GetLegacyPartFCategory` has the same
-  publish-before-fill pattern on `textMap_Legacy` (assigned, then `Add`ed into). It is reached from
-  `GetPartFCategory(Space, out ...)` when the SpaceUse lookup returns null. Same fix shape applies; owner to
-  decide whether to take it as a follow-up PR. `spaceSemanticsResolver ??= CreateResolver()` builds into a
-  local first, so at worst two equivalent resolvers are built (benign).
 - The `"SAM.Analytical.ActiveSetting default Part F data"` test collection is left as is; it also
   serialises other shared state and removing it is not part of this fix.
 
 ## Next step
 
 Review and merge into `sow/2026-Q4` (maintainer's call), then add the `PROJECT_PROGRESS.md` closeout on the
-base branch with the merge SHA. Optional follow-up: the same fix for `textMap_Legacy`.
+base branch with the merge SHA.

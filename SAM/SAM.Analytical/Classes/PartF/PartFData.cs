@@ -45,7 +45,9 @@ namespace SAM.Analytical
 
         private readonly object lock_SpaceUse = new();
 
-        private TextMap textMap_Legacy = null;
+        private volatile TextMap textMap_Legacy = null;
+
+        private readonly object lock_Legacy = new();
 
         private double setbackFlowRateFactor = DefaultSetbackFlowRateFactor;
 
@@ -390,28 +392,40 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (textMap_Legacy is null)
+            //Built and published the same way as the space use map in GetPartFCategory(SpaceUse): complete
+            //in a local, under a lock, then never modified, so concurrent callers only ever read it.
+            TextMap textMap = textMap_Legacy;
+            if (textMap is null)
             {
-                textMap_Legacy = Core.Create.TextMap("PartFLegacy");
-
-                foreach (PartFCategory partFCategory in PartFCategories?.Values ?? Enumerable.Empty<PartFCategory>())
+                lock (lock_Legacy)
                 {
-                    if (partFCategory?.Name is not string name_Category || partFCategory.SpaceUse != SpaceUse.Undefined)
+                    textMap = textMap_Legacy;
+                    if (textMap is null)
                     {
-                        continue;
-                    }
+                        textMap = Core.Create.TextMap("PartFLegacy");
 
-                    List<string> synonyms = partFCategory.Synonyms;
-                    if (synonyms is null || synonyms.Count == 0)
-                    {
-                        synonyms = [name_Category];
-                    }
+                        foreach (PartFCategory partFCategory in PartFCategories?.Values ?? Enumerable.Empty<PartFCategory>())
+                        {
+                            if (partFCategory?.Name is not string name_Category || partFCategory.SpaceUse != SpaceUse.Undefined)
+                            {
+                                continue;
+                            }
 
-                    textMap_Legacy.Add(name_Category, [.. synonyms]);
+                            List<string> synonyms = partFCategory.Synonyms;
+                            if (synonyms is null || synonyms.Count == 0)
+                            {
+                                synonyms = [name_Category];
+                            }
+
+                            textMap.Add(name_Category, [.. synonyms]);
+                        }
+
+                        textMap_Legacy = textMap;
+                    }
                 }
             }
 
-            string key = textMap_Legacy.SemanticBestTextMapKey(name);
+            string key = textMap.SemanticBestTextMapKey(name);
             if (key is null)
             {
                 return null;
