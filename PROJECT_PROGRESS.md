@@ -63,6 +63,16 @@ Not yet set by the owner. Record them here at the first Q4 planning pass. Known 
 - Validation: SAM_UI kit `check_source.py origin/sow/2026-Q4` (SAM's own kit predates it): 521 swaps, ComponentGuids unchanged, only flag the documented `A_SAMAnalytical` line; Release `msbuild SAM.sln` (APPDATA/USERPROFILE redirected) 0 errors; `check_assemblies.py` OK; PR CI `build`, `test`, `spdx` green; mergeable. Not run: Rhino-hosted `SAM.Core.Grasshopper.Tests` (Rhino does not start under the redirected profile; not in CI).
 - Next: owner decides whether/when to close the old PR; merge remains the maintainer's call.
 
+## Q4 runtime-URL cleanup (2026-10-06)
+
+- **Status:** complete. SAM-BIM/SAM#180 merged into `sow/2026-Q4` as merge commit `7d1c1c75bd67730d52faa610abd8d6721366bdc0` (PR head `dc540d5ff1c17545d54af19ed2c1881f3afbef44`, Q4 base `9b11dd26`); merge method: merge commit (repository convention). Remote and local `fix/sam-bim-runtime-urls-q4` removed.
+- **Work completed:** The update check (`LatestVersion`) now reads `api.github.com/repos/SAM-BIM/SAM_Deploy/releases/latest` instead of `HoareLea/SAM_Deploy` (HoareLea latest was `v20260630.1`, so every current install `v20261006.1` was told an update was available); the model description "Delivered by SAM" text and the two "source code" menu actions now name `https://github.com/SAM-BIM/SAM`. SAM-BIM is the authoritative ecosystem; HoareLea is no longer the synchronised operational source. Record: the PR's `SAM-BIM-RuntimeUrls-Q4.md` document.
+- **Decisions / owner classifications:** `Modify/ExportHydra.cs` clones the private `HoareLea/ScriptsHydra`: KEEP - intentional external/private dependency (no SAM-BIM equivalent; none to be invented). Assembly author/contact strings (`Hoare Lea`, `@hoarelea.com` in `Kernel/AssemblyInfo.cs`) are provenance/metadata, not repository ownership: KEEP unchanged. The unused `AboutInfoType.HoareLea` enum/text is KEEP (dead). These are owner decisions and not baseline blockers.
+- **Files changed:** `SAM/SAM.Core/Query/LatestVersion.cs`, `SAMAnalyticalCreateAnalyticalModelByAdjacencyCluster.cs`, `SAMAnalyticalCreateAnalyticalModelBySpaces.cs`, `SAMCoreFilterByType.cs`, `SAMCoreInspect.cs`, `documentation/SAM-BIM-RuntimeUrls-Q4.md` (5 product lines, one token each).
+- **Validation:** `msbuild SAM.sln -p:Configuration=Release` (APPDATA/USERPROFILE redirected): 0 errors; `SAM.Core.dll` contains the new endpoint and not the old. `SAM.Tests`: second full run 2819/2819 passed (first run: 1 intermittent failure from the PartFData race below). PR CI build, test, spdx green.
+- **Unresolved issues, risks:** Pre-existing intermittent race in `PartFData.GetPartFCategory` (shared dictionary written from several threads; `PartODwellingStrategyMaterialisationTests.SystemsScope_ScaffoldingIsTheAddMechanicalSystemsShape` failed once): a separate product bug that will get its own PR, not fixed here.
+- **Next step:** Separate PR for the PartF concurrency defect; the 18 deferred icon PRs remain open and untouched.
+
 ---
 
 # Historical record - 2026-Q3 (frozen)
