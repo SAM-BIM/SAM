@@ -110,7 +110,9 @@ Other decisions and assumptions:
   validated `Java8FloatTextModel` on 7,775,409 floats: every exponent's first and last 2,048 significands for both
   signs, a stride of 509 over all positive bit patterns, and 2M random. **0 differences.**
 - Oracle tool rebuilt (0 warnings); `replay` on the stripped fixtures: **31/31 MATCH**, exit 0.
-- Full `SAM.Tests` Release: see the PR description for the final count.
+- Full `SAM.Tests` Release: **3056/3056** (2890 + 166) on 5 consecutive runs. One earlier run had 1 intermittent failure
+  (3055/3056) in a parameterless `[Fact]`. Its name was lost because the output was truncated, and it did not recur in
+  the 5 later runs (see §7).
 - PR CI: see the PR.
 - No Java, JRE, `genopt.jar`, Tas, EDSL or licensed material was needed or committed.
 
@@ -124,6 +126,10 @@ Other decisions and assumptions:
   expected but not proven to be bit-equal there. The decimal conversion itself is runtime-independent. SAM's current
   consumers are `net8.0(-windows)`.
 - `AlgorithmError` mirrors GenOpt's internal consistency check; analysis says it is unreachable.
+- **Unidentified intermittent test failure.** It happened once in 6 local full runs (stack: a parameterless `[Fact]`
+  invoked by reflection). The new kernel tests are deterministic, synchronous and share no state, so a pre-existing
+  parallelism flake is the likely cause, but this is not proven. If it recurs in CI or locally, capture the test name
+  (`dotnet test … > log`) and open a separate issue.
 
 ## 8. Next step
 
