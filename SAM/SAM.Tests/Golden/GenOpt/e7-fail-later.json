@@ -1,0 +1,166 @@
+{
+  "oracle": "GenOpt 3.1.1 (genopt.jar 2016-03-30), Java 8",
+  "case": {
+    "name": "e7-fail-later",
+    "purpose": "Simulation 4 always fails.",
+    "parameters": [
+      {
+        "name": "x1",
+        "ini": "0.9",
+        "min": "-1",
+        "max": "1",
+        "step": "0.05"
+      },
+      {
+        "name": "x2",
+        "ini": "0.9",
+        "min": "-1",
+        "max": "1",
+        "step": "0.05"
+      }
+    ],
+    "maxIte": 2000,
+    "maxEqualResults": 100,
+    "algorithm": "GPSHookeJeeves",
+    "algorithmKeywords": [
+      "MeshSizeDivider = 2;",
+      "InitialMeshSizeExponent = 0;",
+      "MeshSizeExponentIncrement = 1;",
+      "NumberOfStepReduction = 4;"
+    ],
+    "function": {
+      "kind": "quadratic",
+      "center": [
+        0.1,
+        -0.37
+      ],
+      "weight": [
+        1,
+        2
+      ],
+      "offset": 0,
+      "quantum": 1,
+      "outputs": [
+        "f"
+      ],
+      "failAtSimulation": [
+        4
+      ],
+      "failOnceAtSimulation": []
+    }
+  },
+  "exitCode": 1,
+  "termination": [
+    "Optimization terminated with error.",
+    "Error message:",
+    "**************",
+    "genopt.lang.OptimizerException:",
+    "<case>\\tmp-genopt-run-4\\Error.txt: Following error was found:",
+    "Error on line 2:",
+    "   Error: injected failure",
+    "Simulation working directory : '<case>\\tmp-genopt-run-4'",
+    "Command string               : '<path> sim'",
+    "GenOpt terminated with error.",
+    "Info messages:",
+    "**************",
+    "Info 1: Simulation 4: Caught 'genopt.lang.OptimizerException' with message:   <case>\\tmp-genopt-run-4\\Error.txt: Following error was found:",
+    "Error on line 2:",
+    "   Error: injected failure",
+    "Simulation working directory : '<case>\\tmp-genopt-run-4'",
+    "Command string               : '<path> sim'",
+    "   Try to evaluate simulation a second time."
+  ],
+  "console": [
+    "Assigning 1 thread for simulations.",
+    "Initialize.",
+    "Simulation 1: f\t= 3.8658",
+    "Perform global search.",
+    "Simulation 2: f\t= 3.9482999999999997",
+    "Simulation 3: f\t= 3.7883",
+    "**** Info ****",
+    "Simulation 4: Caught 'genopt.lang.OptimizerException' with message:   <case>\\tmp-genopt-run-4\\Error.txt: Following error was found:",
+    "Error on line 2:",
+    "   Error: injected failure",
+    "Simulation working directory : '<case>\\tmp-genopt-run-4'",
+    "Command string               : '<path> sim'",
+    "   Try to evaluate simulation a second time.",
+    "genopt.lang.OptimizerException:",
+    "<case>\\tmp-genopt-run-4\\Error.txt: Following error was found:",
+    "Error on line 2:",
+    "   Error: injected failure",
+    "Simulation working directory : '<case>\\tmp-genopt-run-4'",
+    "Command string               : '<path> sim'",
+    "GenOpt terminated with error.",
+    "See logfile for further information."
+  ],
+  "columns": [
+    "Simulation Number",
+    "Main Iteration",
+    "Sub Iteration",
+    "Step Number",
+    "f",
+    "x1",
+    "x2"
+  ],
+  "all": [
+    {
+      "simulation": 1,
+      "mainIteration": 1,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "3.8658"
+      ],
+      "x": [
+        "0.9",
+        "0.9"
+      ],
+      "comment": "Initial point."
+    },
+    {
+      "simulation": 2,
+      "mainIteration": 2,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "3.9482999999999997"
+      ],
+      "x": [
+        "0.95",
+        "0.9"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 3,
+      "mainIteration": 2,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "3.7883"
+      ],
+      "x": [
+        "0.85",
+        "0.9"
+      ],
+      "comment": "Cost reduced     at x1-dx1."
+    }
+  ],
+  "main": [
+    {
+      "simulation": 1,
+      "mainIteration": 1,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "3.8658"
+      ],
+      "x": [
+        "0.9",
+        "0.9"
+      ],
+      "comment": "Initial point."
+    }
+  ],
+  "footer": []
+}
