@@ -6,7 +6,7 @@
 
 ## Last updated
 
-2026-10-06 (Q4 icon-redesign migration).
+2026-10-07 (Q4 Part F classification concurrency closeout, SAM#181).
 
 ## Current status
 
@@ -71,7 +71,17 @@ Not yet set by the owner. Record them here at the first Q4 planning pass. Known 
 - **Files changed:** `SAM/SAM.Core/Query/LatestVersion.cs`, `SAMAnalyticalCreateAnalyticalModelByAdjacencyCluster.cs`, `SAMAnalyticalCreateAnalyticalModelBySpaces.cs`, `SAMCoreFilterByType.cs`, `SAMCoreInspect.cs`, `documentation/SAM-BIM-RuntimeUrls-Q4.md` (5 product lines, one token each).
 - **Validation:** `msbuild SAM.sln -p:Configuration=Release` (APPDATA/USERPROFILE redirected): 0 errors; `SAM.Core.dll` contains the new endpoint and not the old. `SAM.Tests`: second full run 2819/2819 passed (first run: 1 intermittent failure from the PartFData race below). PR CI build, test, spdx green.
 - **Unresolved issues, risks:** Pre-existing intermittent race in `PartFData.GetPartFCategory` (shared dictionary written from several threads; `PartODwellingStrategyMaterialisationTests.SystemsScope_ScaffoldingIsTheAddMechanicalSystemsShape` failed once): a separate product bug that will get its own PR, not fixed here.
-- **Next step:** Separate PR for the PartF concurrency defect; the 18 deferred icon PRs remain open and untouched.
+- **Next step:** Separate PR for the PartF concurrency defect; the 18 deferred icon PRs remain open and untouched. **Update:** the PartFData race is fixed by SAM#181 (see the Q4 Part F concurrency section).
+
+## Q4 Part F classification concurrency (2026-10-07)
+
+- **Status:** complete, closed. SAM-BIM/SAM#181 merged into `sow/2026-Q4` as merge commit `3a501cfe9b7061fe7bf6e940ca72620fc0cd5b7b` (PR head `bcbd0c7c1254c9312d3eb5047ae042f5f44cbd44`, Q4 base `fe1d60b5`); merge method: merge commit, head-commit protected. Remote and local `fix/partfdata-thread-safe-cache-q4` removed. Record: `documentation/PartFData-ThreadSafeCache-Q4.md`.
+- **Work completed:** Fixed all three unsynchronised shared collections on the `PartFData.GetPartFCategory(Space, ...)` path (one `PartFData` is shared via `ActiveSetting`; xUnit runs classes in parallel): (1) `PartFData.dictionary_SpaceUse` - published before filled; the original intermittent failure (`InvalidOperationException` from `Dictionary.TryInsert`, 1/2819 in the SAM#180 full run); (2) `PartFData.textMap_Legacy` - same fill-after-publish pattern (partial/wrong legacy match, `Collection was modified`); (3) `SpaceSemanticsResolver.cache`/`cacheKey` - plain dictionaries written on every `Resolve`.
+- **Decisions:** (1)/(2) double-checked locking, built in a local under a private lock and published via a `volatile` field only when complete; first-match / longest-match / tie-gives-null behaviour unchanged. (3) cache read and write each under `lock_Cache`, `ResolveCore` outside the lock; the cache pair always updated together. `ConcurrentDictionary`/`Lazy<T>` rejected (see record). `spaceSemanticsResolver ??=` left as is (benign: fully built before assignment). No equivalent unsafe lazy shared collection remains in `PartFData.cs`.
+- **Files changed:** `SAM/SAM.Analytical/Classes/PartF/PartFData.cs`, `SAM/SAM.Analytical/Classes/Semantics/SpaceSemanticsResolver.cs`, `SAM/SAM.Tests/PartFDataConcurrencyTests.cs` (new, 5 tests), `documentation/PartFData-ThreadSafeCache-Q4.md`.
+- **Validation:** Each race reproduced against the unfixed code with the new tests (all failed in round 0). Fixed: focused tests 5/5 in 10 consecutive runs; full `SAM.Tests` Debug 2824/2824 and Release 2824/2824 (2819 + 5); `msbuild SAM.sln` Release rebuild 0 errors (110 pre-existing warnings, none in changed files). PR CI `spdx`, `build`, `test` green on the exact head.
+- **Unresolved issues, risks:** None for this stream. The `"SAM.Analytical.ActiveSetting default Part F data"` xUnit collection is intentionally kept (also serialises other shared state). `TM59InternalConditionResolver` has a similar per-Guid cache but is per-call, not shared; not examined further.
+- **Next step:** None for Part F concurrency. The 18 Q4 icon PRs remain deliberately deferred.
 
 ---
 
