@@ -20,7 +20,7 @@ not textbook pattern search.
 | `GeneralisedPatternSearch` → `HookeJeeves`, `CoordinateSearch` | GPS main loop, followed literally (spec §3), including the `switch`/`break` timing that drops a global improvement found on the last permitted simulation. Mesh settings: `MeshSizeDivider` (≥ 2), `InitialMeshSizeExponent` (≥ 0), `MeshSizeExponentIncrement` (≥ 1), `NumberOfStepReduction` (≥ 1); defaults 2/0/1/4. |
 | `GoldenSection` | IntervalDivider (spec §4): `StoppingCriterion` MaximumSimulations / AbsoluteDifference / IntervalReduction, nullspace stop, result `GoldenSectionInterval`. |
 | `EvaluationContext` (internal) | Evaluation layer (spec §2, §5): float rounding and bounds (GPS only); approximate cache; batch de-duplication; numbering; retry-once-then-stop; cancellation; main/sub counters; minimum report; progress. |
-| `Java8FloatText` | Java 8 `parseDouble(Float.toString((float)x))` model with its own exact, round-half-even decimal→double conversion (independent of the runtime's `double.Parse`; the .NET Framework parser is not correctly rounded). |
+| `Java8FloatText` | Java 8 `parseDouble(Float.toString((float)x))` model with its own exact, round-half-even decimal→double conversion (independent of `double.Parse`). |
 | `ApproximatePointCache<T>` | Red-black tree with the 1e-12 relative, non-transitive point comparator. |
 | `IObjectiveEvaluator`, `DelegateObjectiveEvaluator`, `ObjectiveEvaluationRequest` (simulation, attempt, coordinates), `ObjectiveEvaluation` | Evaluator contract. |
 | `OptimisationParameter`, `OptimisationProblem` | Inputs (original units; `OutputCount`, first output = objective). |
@@ -121,10 +121,6 @@ Other decisions and assumptions:
 - **Golden coverage of float rounding.** The 31 traces do not by themselves distinguish the Java 8 model from
   shortest-decimal. That coverage comes from the fixture and the two new tests. A future trace that visits such a value
   would strengthen it, but needs Java (oracle regeneration); not required.
-- **Runtime.** CI runs the kernel under .NET 8 (SAM.Tests). Under .NET Framework, `Math.Pow`, `Math.Log` and `Math.Floor`
-  feed into the golden ratio, the mesh Δ, the `IntervalReduction` count and the float-model exponent estimate. These are
-  expected but not proven to be bit-equal there. The decimal conversion itself is runtime-independent. SAM's current
-  consumers are `net8.0(-windows)`.
 - `AlgorithmError` mirrors GenOpt's internal consistency check; analysis says it is unreachable.
 - **Unidentified intermittent test failure.** It happened once in 6 local full runs (stack: a parameterless `[Fact]`
   invoked by reflection). The new kernel tests are deterministic, synchronous and share no state, so a pre-existing
