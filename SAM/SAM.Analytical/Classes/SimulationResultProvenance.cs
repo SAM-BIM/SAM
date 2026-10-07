@@ -320,6 +320,32 @@ namespace SAM.Analytical
         }
 
         /// <summary>
+        /// The names of the model parameters that are not part of the model fingerprint - see
+        /// <see cref="Fingerprint(AnalyticalModel)"/> for why each is excluded. Shared with
+        /// <c>Query.PartODesignKey</c>, which excludes the same ones, so the two cannot drift apart.
+        /// </summary>
+        internal static List<string> ParameterNames_Excluded()
+        {
+            //Asked of the attribute rather than restated as a literal, so the exclusions cannot drift from
+            //the names the parameters are actually stored under. The two literals are the exceptions: neither
+            //has an enum member in this assembly - the Grasshopper case components write CaseDescription by
+            //name, and "UI Geometry Settings" is SAM_UI's own AnalyticalModelParameter - so the name IS the
+            //definition.
+            List<string> names_Excluded =
+            [
+                Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.SimulationResultProvenance)?.Name,
+                Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.OverheatingScenarios)?.Name,
+                Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.CaseDataCollection)?.Name,
+                "CaseDescription",
+                "UI Geometry Settings",
+            ];
+
+            names_Excluded.RemoveAll(string.IsNullOrEmpty);
+
+            return names_Excluded;
+        }
+
+        /// <summary>
         /// The model's own parameter sets - weather data, design days, north angle, sizing factors, the solar
         /// model, anything else stamped on the model - <b>less</b> the parameters that must not be in the
         /// model fingerprint: this provenance record, the overheating scenarios, and the presentation-only
@@ -340,21 +366,7 @@ namespace SAM.Analytical
                 return null;
             }
 
-            //Asked of the attribute rather than restated as a literal, so the exclusions cannot drift from
-            //the names the parameters are actually stored under. The two literals are the exceptions: neither
-            //has an enum member in this assembly - the Grasshopper case components write CaseDescription by
-            //name, and "UI Geometry Settings" is SAM_UI's own AnalyticalModelParameter - so the name IS the
-            //definition.
-            List<string> names_Excluded =
-            [
-                Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.SimulationResultProvenance)?.Name,
-                Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.OverheatingScenarios)?.Name,
-                Core.Attributes.ParameterProperties.Get(AnalyticalModelParameter.CaseDataCollection)?.Name,
-                "CaseDescription",
-                "UI Geometry Settings",
-            ];
-
-            names_Excluded.RemoveAll(string.IsNullOrEmpty);
+            List<string> names_Excluded = ParameterNames_Excluded();
 
             parameterSets.RemoveAll(x => x is null);
 

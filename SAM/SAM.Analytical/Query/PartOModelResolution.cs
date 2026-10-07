@@ -279,6 +279,14 @@ namespace SAM.Analytical
                 return null;
             }
 
+            //Where the reference recorded the design's semantic key, that decides: the fingerprint is byte-level and moves when only
+            //session-generated guids were regenerated, which would report a design as changed that nobody changed. A reference without
+            //a key (saved before it existed) falls back to the fingerprint - nothing is inferred.
+            if (!string.IsNullOrEmpty(partOModelReference.DesignKey))
+            {
+                return string.Equals(PartODesignKey(analyticalModel), partOModelReference.DesignKey, StringComparison.Ordinal);
+            }
+
             return string.Equals(SimulationResultProvenance.Fingerprint(analyticalModel), partOModelReference.Fingerprint, StringComparison.Ordinal);
         }
 

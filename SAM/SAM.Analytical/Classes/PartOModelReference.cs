@@ -48,6 +48,7 @@ namespace SAM.Analytical
                 Guid = partOModelReference.Guid;
                 Name = partOModelReference.Name;
                 Fingerprint = partOModelReference.Fingerprint;
+                DesignKey = partOModelReference.DesignKey;
                 Path_Relative = partOModelReference.Path_Relative;
             }
         }
@@ -70,6 +71,15 @@ namespace SAM.Analytical
         public string Fingerprint { get; set; } = string.Empty;
 
         /// <summary>
+        /// The design's <b>semantic</b> key when recorded - <c>Query.PartODesignKey</c> - for a <see cref="PartOModelReferenceKind.Design"/> reference.
+        /// Unlike <see cref="Fingerprint"/> it does not move when only session-generated identifiers (the guids of a Part O equipment
+        /// selection, say) are regenerated, so it is what answers "has this design changed since the result was produced". Null or empty
+        /// where it was not recorded (a result saved before it existed): then nothing is inferred and <see cref="Fingerprint"/> is used.
+        /// Optional - it is not part of <see cref="IsValid"/>.
+        /// </summary>
+        public string DesignKey { get; set; }
+
+        /// <summary>
         /// Where the model was when the result was made, relative to the folder the result model is written to. A locator, may be null; never
         /// absolute, and the only path that is persisted.
         /// </summary>
@@ -89,6 +99,7 @@ namespace SAM.Analytical
             Guid = Guid.TryParse(Text(jsonObject, "Guid"), out Guid guid) ? guid : Guid.Empty;
             Name = Text(jsonObject, "Name");
             Fingerprint = Text(jsonObject, "Fingerprint") ?? string.Empty;
+            DesignKey = Text(jsonObject, "DesignKey");
             Path_Relative = Text(jsonObject, "Path_Relative");
 
             return true;
@@ -107,6 +118,11 @@ namespace SAM.Analytical
             if (Name is not null)
             {
                 result["Name"] = Name;
+            }
+
+            if (!string.IsNullOrEmpty(DesignKey))
+            {
+                result["DesignKey"] = DesignKey;
             }
 
             if (Path_Relative is not null)
