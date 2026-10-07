@@ -6,7 +6,7 @@
 
 ## Last updated
 
-2026-10-07 (Java-free GenOpt PR2 closeout, SAM#183).
+2026-10-07 (Part O stable semantic design key closeout, SAM#184).
 
 ## Current status
 
@@ -222,6 +222,42 @@ Not yet set by the owner. Record them here at the first Q4 planning pass. Known 
 # Historical record - 2026-Q3 (frozen)
 
 Source: last revision of the file on `sow/2026-Q3`, commit `689f75d5` (the file was removed from the Q3 tip by `8ab6a62b`; `sow/2026-Q3` tip is `3fcd64bf`). Preserved verbatim except that heading levels are shifted down one. Everything below describes Q3 and is not a current instruction.
+
+## Part O stable semantic design key (2026-10-07)
+
+- **Status:** complete, closed.
+  - SAM-BIM/SAM#184 (`feature/part-o-design-key`) merged into `sow/2026-Q4` as merge commit
+    `bb8e3e6f25016a6ac9063e9d7213a86e80675084` (PR head `f15f32fc57e603b42befde0faf4742f033474117`, Q4 base at PR cut `021c36e9`;
+    the base had advanced to `79c101c2` - SAM#182/#183 - by merge time).
+  - Merge method: merge commit, head-commit protected. Remote and local branch removed. Record: `documentation/PartODesignKey-Q4.md`.
+- **Work completed:** `Query.PartODesignKey(AnalyticalModel)` -> `PartODesignKey:v1:<sha256>`, one SHA-256 over one canonical
+  stream (no FNV state mixed in) answering "has the engineering meaning of this design changed since a Part O result was produced
+  from it?". Optional `PartOModelReference.DesignKey` (design references only, schema stays v1, absent = unknown) recorded by
+  `Create.PartOBaselineReferenceFromDesign` and inherited by 2B/3 references. `PartOModelResolution.Inspect` (design kind) compares
+  `DesignKey` when present, else the legacy `Fingerprint`. `SimulationResultProvenance.Fingerprint` unchanged in definition and output
+  (its exclusion list was extracted to the shared `ParameterNames_Excluded`).
+- **Decisions / assumptions:**
+  - Cause verified in code and by probe: `PartOEquipmentSelection`, each pooled `VentilationUnitReference` and
+    `PartOProjectTestVentilationUnit` are `SAMObject`s that mint `Guid.NewGuid()` and persist it; the UI rebuilds them on every read and
+    `PersistPartOInputs.SameValue` compares guids, so an identical selection is rewritten with new guids and the byte fingerprint moves.
+    Save/reopen of one object is stable - the instability is regeneration, not serialization.
+  - Absent selection == explicit default; pool order/duplicates carry no meaning; parameter-set guids (build-MVID derived) and the
+    fingerprint's existing exclusions are not meaning; cluster identities (incl. Part F terminal references) are meaning, so a Part F
+    recalculation is a design change.
+  - Not changed: Direct T3D, TAS, TM59, Part O simulation, SAM_UI.
+- **Files changed:** `SAM/SAM.Analytical/Query/PartODesignKey.cs` (new), `Classes/PartOModelReference.cs`, `Create/PartOBaselineReference.cs`,
+  `Query/PartOModelResolution.cs`, `Classes/SimulationResultProvenance.cs`, `SAM/SAM.Tests/PartODesignKeyTests.cs` (new, 15 tests),
+  `documentation/PartODesignKey-Q4.md`.
+- **Validation:** PR CI `build (Release)`, `test (Release)`, `spdx` green on the exact head. Local full `SAM.Tests` on the PR head
+  2839/2839. Because the base advanced after CI, the merge of the PR head onto `79c101c2` was also built and tested in a throwaway
+  worktree before merging: 3071/3071 (2839 + 232 from SAM#182/#183), no overlapping files.
+- **Unresolved issues, risks:**
+  - One extra streamed cluster serialization per run when the design reference is created.
+  - Results saved before this have no `DesignKey` and keep the byte-fingerprint behaviour until re-run.
+  - `PartOMaterialisationRecord.Fingerprint_Baseline` still uses the byte fingerprint and may show the same noise (candidate follow-up).
+  - SAM_UI still rebuilds Part O inputs with fresh guids and `PersistPartOInputs.SameValue` compares guids (harmless for this question now).
+- **Next step:** a separate SAM_UI PR that consumes `DesignKey` / `PartOModelResolution` for "previous compatible run found" and
+  reopening a previous run from the design model. Companion docs PR SAM-BIM/SAM_UI#208 (Part O guide) is closed in the SAM_UI record.
 
 ## SAM Part O PR1 progress
 
