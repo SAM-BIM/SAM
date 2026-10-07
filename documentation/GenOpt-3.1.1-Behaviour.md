@@ -1,8 +1,10 @@
 # GenOpt 3.1.1 behaviour specification (the subset Tas Generic Optimisation uses)
 
-Status: **PR1 oracle evidence.** Every item marked **CONFIRMED** is reproduced bit for bit by the executable form of this
-specification (`SAM.Tests.GenOptOracle`, verb `replay`). It replays all 31 synthetic golden traces recorded from the real
-Java GenOpt 3.1.1 in `SAM/SAM.Tests/Golden/GenOpt/`. Items marked **DIFFERENCE** need owner approval (see §8).
+Status: **PR1 oracle evidence; implemented by the native kernel (PR2).** Every item marked **CONFIRMED** is reproduced
+bit for bit by the executable form of this specification (`SAM.Tests.GenOptOracle`, verb `replay`). It replays all 31
+synthetic golden traces recorded from the real Java GenOpt 3.1.1 in `SAM/SAM.Tests/Golden/GenOpt/`. Since PR2 the
+production kernel in `SAM.Math` (`HookeJeeves`, `CoordinateSearch`, `GoldenSection`) replays them too, in `SAM.Tests`
+(`OptimisationGoldenTraceTests`). The owner decisions are recorded in §8. Licence and provenance: `THIRD_PARTY.md`.
 
 Scope: continuous parameters only, `GPSHookeJeeves`, `GPSCoordinateSearch` and `GoldenSection`, a single simulation at a time,
 `WriteStepNumber = false`. This is what Tas Generic Optimisation and SAM's `SAM.Analytical.Tas.GenOpt` write. Everything
@@ -247,23 +249,27 @@ Rules:
 | E-P | Command-file number parsing | CONFIRMED (new finding, §1.1) | all traces, `ec-negative-zero-start`, `ec-gs-collapse` set-up |
 | E14 | Tas `Output.txt` precision (15 significant digits) | Tas protocol: SAM_Tas PR1-T (Gate T) | — |
 
-## 8. Differences and decisions requiring owner approval
+## 8. Differences and owner decisions (resolved 2026-10-07, PR2)
 
-- **D1 – float rounding band.** For 2^83 ≤ |coordinate| < 2^86 (≈ 9.7e24–7.7e25), 42 of 2,013 probed values differ from
-  the model by one unit in the last printed digit. The pattern is consistent with 64-bit overflow inside Java's
-  integer-arithmetic digit generator. Proposal: treat this band as outside the parity domain (no building parameter comes
-  close); the native kernel uses the model everywhere.
-- **D2 – provenance of the float model and cache structure.** The float model's structure (integer path,
+- **D1 – float rounding band. ACCEPTED, documented.** For 2^83 ≤ |coordinate| < 2^86 (≈ 9.7e24–7.7e25), 42 of 2,013
+  probed values differ from the model by one unit in the last printed digit. The pattern is consistent with 64-bit
+  overflow inside Java's integer-arithmetic digit generator. This band is **outside the parity domain**: no building
+  parameter comes close, and the native kernel uses the model everywhere. `Java8FloatTextTests` pins exactly these 42
+  values as the known difference.
+- **D2 – provenance of the float model and cache structure. ACCEPTED.** The float model's structure (integer path,
   single-bit-significand margin, two-digit scientific rule, exponent estimate) was informed by general knowledge of the
   design of JDK 8's `FloatingDecimal` (OpenJDK). It was then fixed and validated only by black-box comparison. No JDK
-  source was copied. The red-black tree follows the standard textbook algorithm. Owner to confirm this provenance is
-  acceptable for SAM, or ask for a different treatment.
-- **D3 – GenOpt attribution.** The specification and the planned native kernel are derived from reading the GenOpt 3.1.1
-  source (licence: 3-clause BSD-style with an additional "Enhancements" paragraph and a DOE notice; appears to match
-  SPDX `BSD-3-Clause-LBNL`). How to attribute this — no notice, a header line, or `NOTICE`/`THIRD_PARTY.md` entries — is
-  an owner/legal decision. PR1 adds none.
-- **D4 – fixture content.** Golden traces store only GenOpt's data rows and a sanitised termination text. The GenOpt
-  banner and the copyright header of the output files are not stored. Owner to confirm this is acceptable.
+  source was copied. The red-black tree follows the standard textbook algorithm. The provenance statement is kept in
+  the `Java8FloatText` class comment and in the PR records.
+- **D3 – GenOpt attribution. DECIDED: acknowledgment line plus a `THIRD_PARTY.md` entry**, because SAM already has an
+  established `THIRD_PARTY.md` convention. The kernel's class comment (`Optimiser`) carries: "Behaviour-compatible with
+  GenOpt 3.1.1. Implementation written independently from the behavioural specification; no GenOpt source code
+  copied." `THIRD_PARTY.md` holds the GenOpt licence and provenance details. The licence is 3-clause BSD-style with an
+  additional "Enhancements" paragraph and a DOE notice, and appears to match SPDX `BSD-3-Clause-LBNL`.
+- **D4 – fixture content. ACCEPTED, console transcript stripped.** Golden traces store GenOpt's data rows, listing
+  comments and the sanitised termination text. The GenOpt banner, the output files' copyright header and (since PR2) the
+  console transcript are not stored. The oracle tool still compares the console text between its two Java runs for
+  determinism, but no longer writes it. `GenOptOracleFixtureTests` enforces this.
 
 ## 9. Reproducing the oracle
 

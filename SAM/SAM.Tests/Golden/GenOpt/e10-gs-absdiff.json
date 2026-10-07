@@ -39,28 +39,6 @@
   "termination": [
     "Optimization completed successfully."
   ],
-  "console": [
-    "Assigning 1 thread for simulations.",
-    "Simulation 1: f\t= 7439.525495450259",
-    "Simulation 2: f\t= 7998.7233205517605",
-    "Simulation 3: f\t= 7361.417065106549",
-    "Simulation 4: f\t= 7415.317334356832",
-    "Simulation 5: f\t= 7367.131836734863",
-    "Simulation 6: f\t= 7372.792118074988",
-    "Simulation 7: f\t= 7360.080853938506",
-    "Simulation 8: f\t= 7361.429928518675",
-    "Simulation 9: f\t= 7360.077817298822",
-    "Simulation 10: f\t= 7360.393253966774",
-    "Result overview",
-    "***************",
-    "Lower border of uncertainty interval        : 4.767943850222925",
-    "Upper border of uncertainty interval        : 5.294168550079913",
-    "Mid point of uncertainty interval           : 5.0310562001514185",
-    "Length of uncertainty interval              : 0.5262246998569884",
-    "Normalized reduction of uncertainty interval: 0.01315561749642471",
-    "Required accuracy is reached.",
-    "GenOpt completed successfully."
-  ],
   "columns": [
     "Simulation Number",
     "Main Iteration",

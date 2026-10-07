@@ -77,6 +77,9 @@ namespace SAM.Tests
             int outputs = genOptCase.GetProperty("function").GetProperty("outputs").GetArrayLength();
             Assert.True(root.GetProperty("termination").GetArrayLength() > 0);
 
+            // Owner decision D4: data rows, comments and termination text only; no GenOpt console transcript.
+            Assert.False(root.TryGetProperty("console", out _), "golden traces must not store the GenOpt console transcript");
+
             foreach (string listing in new[] { "all", "main" })
             {
                 int previousSimulation = 0;
