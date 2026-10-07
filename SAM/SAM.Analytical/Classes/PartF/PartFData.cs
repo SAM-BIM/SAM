@@ -41,9 +41,13 @@ namespace SAM.Analytical
 
         private SpaceSemanticsResolver spaceSemanticsResolver = null;
 
-        private Dictionary<SpaceUse, PartFCategory> dictionary_SpaceUse = null;
+        private volatile Dictionary<SpaceUse, PartFCategory> dictionary_SpaceUse = null;
 
-        private TextMap textMap_Legacy = null;
+        private readonly object lock_SpaceUse = new();
+
+        private volatile TextMap textMap_Legacy = null;
+
+        private readonly object lock_Legacy = new();
 
         private double setbackFlowRateFactor = DefaultSetbackFlowRateFactor;
 
@@ -306,26 +310,40 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (dictionary_SpaceUse is null)
+            //One PartFData is shared by every caller of ActiveSetting, so this lookup can be reached from
+            //several threads at once. The map is built in a local and published only once complete, under
+            //a lock, so no caller ever sees it half filled or enumerates it while another thread writes to
+            //it; once published it is never modified, so concurrent reads need no lock.
+            Dictionary<SpaceUse, PartFCategory> dictionary = dictionary_SpaceUse;
+            if (dictionary is null)
             {
-                dictionary_SpaceUse = [];
-                foreach (PartFCategory partFCategory in PartFCategories?.Values ?? Enumerable.Empty<PartFCategory>())
+                lock (lock_SpaceUse)
                 {
-                    if (partFCategory is null || partFCategory.SpaceUse == SpaceUse.Undefined)
+                    dictionary = dictionary_SpaceUse;
+                    if (dictionary is null)
                     {
-                        continue;
-                    }
+                        dictionary = [];
+                        foreach (PartFCategory partFCategory in PartFCategories?.Values ?? Enumerable.Empty<PartFCategory>())
+                        {
+                            if (partFCategory is null || partFCategory.SpaceUse == SpaceUse.Undefined)
+                            {
+                                continue;
+                            }
 
-                    //First category wins, so a rule set that maps two categories onto one space use
-                    //behaves predictably rather than depending on dictionary ordering.
-                    if (!dictionary_SpaceUse.ContainsKey(partFCategory.SpaceUse))
-                    {
-                        dictionary_SpaceUse[partFCategory.SpaceUse] = partFCategory;
+                            //First category wins, so a rule set that maps two categories onto one space use
+                            //behaves predictably rather than depending on dictionary ordering.
+                            if (!dictionary.ContainsKey(partFCategory.SpaceUse))
+                            {
+                                dictionary[partFCategory.SpaceUse] = partFCategory;
+                            }
+                        }
+
+                        dictionary_SpaceUse = dictionary;
                     }
                 }
             }
 
-            return dictionary_SpaceUse.TryGetValue(spaceUse, out PartFCategory result) ? result : null;
+            return dictionary.TryGetValue(spaceUse, out PartFCategory result) ? result : null;
         }
 
         /// <summary>
@@ -374,28 +392,40 @@ namespace SAM.Analytical
                 return null;
             }
 
-            if (textMap_Legacy is null)
+            //Built and published the same way as the space use map in GetPartFCategory(SpaceUse): complete
+            //in a local, under a lock, then never modified, so concurrent callers only ever read it.
+            TextMap textMap = textMap_Legacy;
+            if (textMap is null)
             {
-                textMap_Legacy = Core.Create.TextMap("PartFLegacy");
-
-                foreach (PartFCategory partFCategory in PartFCategories?.Values ?? Enumerable.Empty<PartFCategory>())
+                lock (lock_Legacy)
                 {
-                    if (partFCategory?.Name is not string name_Category || partFCategory.SpaceUse != SpaceUse.Undefined)
+                    textMap = textMap_Legacy;
+                    if (textMap is null)
                     {
-                        continue;
-                    }
+                        textMap = Core.Create.TextMap("PartFLegacy");
 
-                    List<string> synonyms = partFCategory.Synonyms;
-                    if (synonyms is null || synonyms.Count == 0)
-                    {
-                        synonyms = [name_Category];
-                    }
+                        foreach (PartFCategory partFCategory in PartFCategories?.Values ?? Enumerable.Empty<PartFCategory>())
+                        {
+                            if (partFCategory?.Name is not string name_Category || partFCategory.SpaceUse != SpaceUse.Undefined)
+                            {
+                                continue;
+                            }
 
-                    textMap_Legacy.Add(name_Category, [.. synonyms]);
+                            List<string> synonyms = partFCategory.Synonyms;
+                            if (synonyms is null || synonyms.Count == 0)
+                            {
+                                synonyms = [name_Category];
+                            }
+
+                            textMap.Add(name_Category, [.. synonyms]);
+                        }
+
+                        textMap_Legacy = textMap;
+                    }
                 }
             }
 
-            string key = textMap_Legacy.SemanticBestTextMapKey(name);
+            string key = textMap.SemanticBestTextMapKey(name);
             if (key is null)
             {
                 return null;

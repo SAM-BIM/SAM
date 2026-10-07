@@ -57,6 +57,8 @@ namespace SAM.Analytical
 
         private readonly Dictionary<Guid, string> cacheKey = [];
 
+        private readonly object lock_Cache = new();
+
         /// <param name="textMap">
         /// Maps a <see cref="SpaceUse"/> name to its synonyms. Keys that are not
         /// <see cref="SpaceUse"/> values are ignored, so an unrelated TextMap cannot inject a
@@ -91,17 +93,28 @@ namespace SAM.Analytical
                 return Create.SpaceSemantics(SpaceUse.Undefined, SpaceSemanticsSource.Unclassified, null, "Space is null.");
             }
 
-            if (cache.TryGetValue(space.Guid, out SpaceSemantics cached)
-                && cacheKey.TryGetValue(space.Guid, out string cachedKey)
-                && string.Equals(cachedKey, CacheKey(space), StringComparison.Ordinal))
+            //One resolver is shared by every caller of a PartFData, including the ActiveSetting default, so
+            //Resolve can run on several threads at once. The two caches are only touched under the lock,
+            //which also keeps each entry and its key in step; ResolveCore stays outside it because it only
+            //reads the Space and the TextMap, which the resolver never modifies. Two threads resolving the
+            //same Space compute the same result, so whichever stores last changes nothing.
+            lock (lock_Cache)
             {
-                return cached;
+                if (cache.TryGetValue(space.Guid, out SpaceSemantics cached)
+                    && cacheKey.TryGetValue(space.Guid, out string cachedKey)
+                    && string.Equals(cachedKey, CacheKey(space), StringComparison.Ordinal))
+                {
+                    return cached;
+                }
             }
 
             SpaceSemantics result = ResolveCore(space);
 
-            cache[space.Guid] = result;
-            cacheKey[space.Guid] = CacheKey(space);
+            lock (lock_Cache)
+            {
+                cache[space.Guid] = result;
+                cacheKey[space.Guid] = CacheKey(space);
+            }
 
             return result;
         }
