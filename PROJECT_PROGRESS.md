@@ -6,7 +6,7 @@
 
 ## Last updated
 
-2026-10-07 (Java-free GenOpt PR1 closeout, SAM#182).
+2026-10-07 (Java-free GenOpt PR2 closeout, SAM#183).
 
 ## Current status
 
@@ -126,6 +126,7 @@ Not yet set by the owner. Record them here at the first Q4 planning pass. Known 
   - **D3:** GenOpt attribution: none, a header line, or `NOTICE`/`THIRD_PARTY.md`? Licence: BSD-3-style with an
     "Enhancements" paragraph and a DOE notice, which appears to match `BSD-3-Clause-LBNL`. No notice was added.
   - **D4:** is storing sanitised GenOpt output data rows as fixtures acceptable?
+  - **Update:** D1–D4 resolved by the owner on 2026-10-07 and implemented in PR2 (see the PR2 section below).
 - **Files changed:** 52 files.
   - `documentation/GenOpt-3.1.1-Behaviour.md`, `documentation/GenOpt-Oracle-PR1.md`
   - `SAM/SAM.Tests.GenOptOracle/*`
@@ -147,6 +148,74 @@ Not yet set by the owner. Record them here at the first Q4 planning pass. Known 
      (float model, red-black approximate cache, GPS and GoldenSection, progress, cancellation, trace). It must replay
      all 31 traces and the float fixture from `SAM.Tests`.
   3. Then SAM_Tas PR3 (evaluator).
+  - **Update:** steps 1 and 2 are done (PR2, SAM#183, below).
+
+## Java-free GenOpt replacement — PR2, native optimisation kernel in `SAM.Math` (2026-10-07)
+
+- **Status:** complete, closed.
+  - SAM-BIM/SAM#183 (`feature/native-optimiser-kernel`) merged into `sow/2026-Q4` as merge commit
+    `0989ad819b34a7b797cc8c6ddf977081fbff1165` (PR head `647d17b5ad4a886e2a198a898d41feade5b65ea1`, Q4 base `e4a6f8e4`).
+  - Merge method: merge commit, head-commit protected.
+  - Remote and local branch removed.
+  - Record: `documentation/GenOpt-NativeKernel-PR2.md`.
+- **Work completed:** a generic kernel in `SAM/SAM.Math/Classes/Optimisation` (namespace `SAM.Math`).
+  - It implements the PR1 specification (`SpecReplay` semantics), not textbook pattern search.
+  - Algorithms: `HookeJeeves`, `CoordinateSearch` (shared `GeneralisedPatternSearch`), `GoldenSection`.
+  - The internal `EvaluationContext` evaluation layer:
+    - `Java8FloatText` rounding, with its own exact decimal→double conversion;
+    - bounds;
+    - `ApproximatePointCache<T>` (red-black tree, 1e-12 comparator);
+    - numbering;
+    - retry-once-then-stop;
+    - cancellation;
+    - main/sub counters, minimum report, progress.
+  - API:
+    - `Run(OptimisationProblem, IObjectiveEvaluator, IProgress<OptimisationProgress>, CancellationToken)` →
+      `OptimisationResult`;
+    - trace entries map one-to-one to OutputListingAll and OutputListingMain rows.
+  - Dependencies: no Tas, EDSL, GenOpt-file-format or Java dependency. GenOpt text, `StreamTokenizer` parsing and the
+    synthetic functions live only in the test adapter `SAM.Tests/Helpers/GenOptGoldenTrace.cs`.
+- **Owner decisions (2026-10-07):**
+  - **D1:** the 2^83 ≤ |x| < 2^86 band is accepted as outside parity and documented. A test pins the 42 values.
+  - **D2:** the float-model provenance is accepted. The statement is in the class comment, the spec and the record.
+  - **D3:** acknowledgment line in the `Optimiser` class comment, plus a GenOpt entry in `THIRD_PARTY.md` (SAM's
+    established convention). The entry holds the licence and provenance details, with the copyright line taken
+    verbatim from `legal.html` in `genopt.jar`.
+  - **D4:** fixtures are accepted with the console transcript stripped from all 31 traces. The oracle tool still
+    compares it for determinism, and a fixture test enforces the rule.
+- **Decisions / assumptions:**
+  - `SAM.Math` stays `netstandard2.0` with C# 7.3, and gains no new references.
+  - Supported runtime: .NET 8. SAM no longer supports or uses .NET Framework (owner, 2026-10-07). No .NET Framework
+    compatibility work or testing is in scope.
+  - Additions outside GenOpt parity: cancellation (`Cancelled`, with the partial trace); evaluator-defined failure
+    (exception, null or wrong output count counts as a failed attempt); validation before the first evaluation.
+- **Files changed:** 66.
+  - New in `SAM.Math`: `Classes/Optimisation/*` (19), `Enums/*` (3), `Interfaces/IObjectiveEvaluator.cs`.
+  - New in `SAM.Tests`: `OptimisationGoldenTraceTests.cs`, `OptimisationKernelTests.cs`, `Java8FloatTextTests.cs`,
+    `ApproximatePointCacheTests.cs`, `Helpers/GenOptGoldenTrace.cs`.
+  - Modified: `GenOptOracleFixtureTests.cs`, `SAM.Tests.csproj`, `Golden/GenOpt/*.json` (31, deletions only),
+    `SAM.Tests.GenOptOracle/CaseRunner.cs`, `THIRD_PARTY.md`, `documentation/GenOpt-3.1.1-Behaviour.md`.
+  - New: `documentation/GenOpt-NativeKernel-PR2.md`.
+- **Validation:**
+  - All 31 golden traces replay **bit for bit** in `SAM.Tests`. They were re-run on the merged `sow/2026-Q4`, with 232
+    GenOpt-related tests passing.
+  - Full `SAM.Tests` Release: 3056/3056 (2890 + 166) on 5 consecutive runs.
+  - Mutation check: 5 kernel mutations, each caught.
+  - Kernel float model against the oracle model: 7,775,409 floats, 0 differences (local).
+  - Oracle `replay` on the stripped fixtures: 31/31 MATCH.
+  - PR CI on the head: `build`, `test`, `spdx` green.
+- **Unresolved issues, risks:**
+  - No golden trace visits a value where Java 8 and shortest-decimal rounding disagree. The fixture and two
+    end-to-end tests cover this instead.
+  - One unidentified intermittent `SAM.Tests` failure: once in 6 local full runs, a parameterless `[Fact]`, name not
+    captured. If it recurs, capture the name and open a separate issue.
+  - The `Java8FloatText` class comment still says why it avoids `double.Parse`, citing the .NET Framework parser.
+    It was left unchanged on purpose (no product-code change for the runtime correction). It is not a compatibility
+    requirement.
+- **Next step:**
+  - SAM_Tas PR3: a native GenOpt compatibility adapter plus `TasGenExecuteObjectiveEvaluator`, following
+    `TASGENEXECUTE_PROTOCOL.md` §2.3. It consumes the `SAM.Math` kernel.
+  - Only when the owner requests it.
 
 ---
 
