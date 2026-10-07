@@ -6,7 +6,7 @@
 
 ## Last updated
 
-2026-10-07 (Q4 Part F classification concurrency closeout, SAM#181).
+2026-10-07 (Java-free GenOpt PR1 closeout, SAM#182).
 
 ## Current status
 
@@ -82,6 +82,71 @@ Not yet set by the owner. Record them here at the first Q4 planning pass. Known 
 - **Validation:** Each race reproduced against the unfixed code with the new tests (all failed in round 0). Fixed: focused tests 5/5 in 10 consecutive runs; full `SAM.Tests` Debug 2824/2824 and Release 2824/2824 (2819 + 5); `msbuild SAM.sln` Release rebuild 0 errors (110 pre-existing warnings, none in changed files). PR CI `spdx`, `build`, `test` green on the exact head.
 - **Unresolved issues, risks:** None for this stream. The `"SAM.Analytical.ActiveSetting default Part F data"` xUnit collection is intentionally kept (also serialises other shared state). `TM59InternalConditionResolver` has a similar per-Guid cache but is per-call, not shared; not examined further.
 - **Next step:** None for Part F concurrency. The 18 Q4 icon PRs remain deliberately deferred.
+
+## Java-free GenOpt replacement — PR1, GenOpt 3.1.1 semantic oracle (2026-10-07)
+
+- **Status:** complete, closed.
+  - SAM-BIM/SAM#182 (`feature/genopt-oracle-traces`) merged into `sow/2026-Q4` as merge commit
+    `0a67e1f5b0a4e9815b68ab549b634e2310113561` (PR head `3b3ea4a0edfcfcd4edba243368061d376abea356`, Q4 base `021c36e9`).
+  - Merge method: merge commit, head-commit protected. Remote and local branch removed.
+  - Companion: SAM-BIM/SAM_Tas#85 (Gate T, merged `1873e578`).
+  - Records: `documentation/GenOpt-Oracle-PR1.md` (PR record), `documentation/GenOpt-3.1.1-Behaviour.md` (specification).
+- **Goal of the stream:** replace the Java GenOpt 3.1.1 used by Tas Generic Optimisation with a native, Tas-agnostic
+  SAM kernel (`SAM.Math`), shared by SAM_UI and Grasshopper. Phase 1 is GPSHookeJeeves, GPSCoordinateSearch and
+  GoldenSection only; the first Tas evaluator calls `TasGenExecute.exe`. PR1 was the semantic gate.
+- **Work completed:** no product code.
+  - Behaviour specification for the subset Tas uses.
+  - Test tooling `SAM/SAM.Tests.GenOptOracle` (verbs `cases`, `replay`, `probe-float`, `analyse-float`,
+    `export-float-fixture`, `sim`).
+  - 31 synthetic golden traces plus a Java-observed float fixture in `SAM/SAM.Tests/Golden/GenOpt/`.
+  - `GenOptOracleFixtureTests` (66 tests: integrity and sanitisation).
+- **Key findings** (all proven by `replay`, 31/31 bit-exact against real Java GenOpt):
+  - **31 deterministic oracle cases.** Each was run twice through Java GenOpt with identical results. They cover GPS-HJ,
+    coordinate search, GoldenSection, bounds, failures and retry, MaxIte, mesh settings, ties, Step 0 and negative
+    Step, multiple outputs and the cache cases.
+  - **Cache.** GenOpt's result cache is a red-black tree with a non-transitive 1e-12 point comparator. A simple
+    dictionary or first-match lookup is **not** equivalent (`ec-gs-collapse`). The native kernel needs
+    approximate sorted-tree behaviour.
+  - **Coordinate rounding.** GPS rounding `parseDouble(Float.toString((float)x))` is **not** shortest-decimal under
+    Java 8: Java differs on 11,440 of 240,138 probed floats. `Java8FloatTextModel` reproduces all but **42**, all in
+    2^83 ≤ |x| < 2^86 (≈9.7e24–7.7e25).
+  - **Command-file numbers** go through `StreamTokenizer`: `-0` → `0`, and algorithm keywords reject exponent notation.
+  - A global improvement found on the last allowed simulation is never recorded.
+  - `MaxEqualResults` has no effect on these algorithms.
+- **Decisions / assumptions:**
+  - The oracle is local only: the Tas-shipped `genopt.jar` run under a Temurin JRE 8 by explicit path. Neither is
+    committed.
+  - Fixtures are synthetic data rows only (no GenOpt banner or copyright header, no Tas material).
+  - The tool is not in `SAM.sln` (like `SAM.Tests`).
+  - Licensed and scratch Tas files are not committed.
+- **Open owner decisions** (blocking PR2 merge, not PR2 start):
+  - **D1:** accept 2^83 ≤ |x| < 2^86 as outside the parity domain?
+  - **D2:** accept the float model's provenance? Structure informed by the JDK 8 `FloatingDecimal` design, validated
+    only by black-box probing, no source copied.
+  - **D3:** GenOpt attribution: none, a header line, or `NOTICE`/`THIRD_PARTY.md`? Licence: BSD-3-style with an
+    "Enhancements" paragraph and a DOE notice, which appears to match `BSD-3-Clause-LBNL`. No notice was added.
+  - **D4:** is storing sanitised GenOpt output data rows as fixtures acceptable?
+- **Files changed:** 52 files.
+  - `documentation/GenOpt-3.1.1-Behaviour.md`, `documentation/GenOpt-Oracle-PR1.md`
+  - `SAM/SAM.Tests.GenOptOracle/*`
+  - `SAM/SAM.Tests/Golden/GenOpt/*`
+  - `SAM/SAM.Tests/GenOptOracleFixtureTests.cs`
+  - `SAM/SAM.Tests/SAM.Tests.csproj`
+- **Validation:**
+  - Full `SAM.Tests` (Release): 2890/2890.
+  - The sanitisation test fails on a planted path.
+  - `cases`: 31/31 deterministic. `replay`: 31/31 MATCH.
+  - `probe-float`: 42 mismatches, all in the D1 band.
+  - PR CI: `build`, `test`, `spdx` green.
+- **Unresolved issues, risks:**
+  - D1–D4 are open.
+  - The oracle tool is not built by CI. `replay` is its regression check.
+- **Next step:**
+  1. Owner resolves D1–D4.
+  2. Then PR2 `feature/native-optimiser-kernel`: a generic kernel in `SAM.Math` porting `SpecReplay` semantics
+     (float model, red-black approximate cache, GPS and GoldenSection, progress, cancellation, trace). It must replay
+     all 31 traces and the float fixture from `SAM.Tests`.
+  3. Then SAM_Tas PR3 (evaluator).
 
 ---
 
