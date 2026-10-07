@@ -1,0 +1,89 @@
+{
+  "oracle": "GenOpt 3.1.1 (genopt.jar 2016-03-30), Java 8",
+  "case": {
+    "name": "e7-fail-once-first",
+    "purpose": "Simulation 1 fails once (no retry for the first evaluation batch is expected).",
+    "parameters": [
+      {
+        "name": "x1",
+        "ini": "0.9",
+        "min": "-1",
+        "max": "1",
+        "step": "0.05"
+      },
+      {
+        "name": "x2",
+        "ini": "0.9",
+        "min": "-1",
+        "max": "1",
+        "step": "0.05"
+      }
+    ],
+    "maxIte": 2000,
+    "maxEqualResults": 100,
+    "algorithm": "GPSHookeJeeves",
+    "algorithmKeywords": [
+      "MeshSizeDivider = 2;",
+      "InitialMeshSizeExponent = 0;",
+      "MeshSizeExponentIncrement = 1;",
+      "NumberOfStepReduction = 4;"
+    ],
+    "function": {
+      "kind": "quadratic",
+      "center": [
+        0.1,
+        -0.37
+      ],
+      "weight": [
+        1,
+        2
+      ],
+      "offset": 0,
+      "quantum": 1,
+      "outputs": [
+        "f"
+      ],
+      "failAtSimulation": [],
+      "failOnceAtSimulation": [
+        1
+      ]
+    }
+  },
+  "exitCode": 1,
+  "termination": [
+    "Optimization terminated with error.",
+    "Error message:",
+    "**************",
+    "genopt.lang.OptimizerException:",
+    "<case>\\tmp-genopt-run-1\\Error.txt: Following error was found:",
+    "Error on line 2:",
+    "   Error: injected failure (once)",
+    "Simulation working directory : '<case>\\tmp-genopt-run-1'",
+    "Command string               : '<path> sim'",
+    "GenOpt terminated with error."
+  ],
+  "console": [
+    "Assigning 1 thread for simulations.",
+    "Initialize.",
+    "genopt.lang.OptimizerException:",
+    "<case>\\tmp-genopt-run-1\\Error.txt: Following error was found:",
+    "Error on line 2:",
+    "   Error: injected failure (once)",
+    "Simulation working directory : '<case>\\tmp-genopt-run-1'",
+    "Command string               : '<path> sim'",
+    "GenOpt terminated with error.",
+    "See logfile for further information."
+  ],
+  "columns": [
+    "Simulation Number",
+    "Main Iteration",
+    "Sub Iteration",
+    "Step Number",
+    "f",
+    "x1",
+    "x2"
+  ],
+  "all": [],
+  "main": [],
+  "footer": []
+}

@@ -76,6 +76,10 @@
     <None Include="Golden\**\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- GenOpt 3.1.1 oracle float-rounding fixture (see GenOptOracleFixtureTests). -->
+    <None Include="Golden\GenOpt\*.tsv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

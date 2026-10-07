@@ -1,0 +1,868 @@
+{
+  "oracle": "GenOpt 3.1.1 (genopt.jar 2016-03-30), Java 8",
+  "case": {
+    "name": "ec-gs-collapse",
+    "purpose": "GoldenSection run until interior points are closer than 1e-12 relative (approximate point equality).",
+    "parameters": [
+      {
+        "name": "x1",
+        "ini": "1.5",
+        "min": "1",
+        "max": "2",
+        "step": "1"
+      }
+    ],
+    "maxIte": 90,
+    "maxEqualResults": 100,
+    "algorithm": "GoldenSection",
+    "algorithmKeywords": [
+      "AbsDiffFunction = 0.0000000000000000000000000000001;"
+    ],
+    "function": {
+      "kind": "quadratic",
+      "center": [
+        1.37
+      ],
+      "weight": [],
+      "offset": 0,
+      "quantum": 1,
+      "outputs": [
+        "f"
+      ],
+      "failAtSimulation": [],
+      "failOnceAtSimulation": []
+    }
+  },
+  "exitCode": 0,
+  "termination": [
+    "Optimization completed successfully."
+  ],
+  "console": [
+    "Assigning 1 thread for simulations.",
+    "Simulation 1: f\t= 1.431854252376392E-4",
+    "Simulation 2: f\t= 0.06152085957518294",
+    "Simulation 3: f\t= 0.017937786650996837",
+    "Simulation 4: f\t= 0.010431753303676084",
+    "Simulation 5: f\t= 0.0019151195365856204",
+    "Simulation 6: f\t= 0.002153689933741097",
+    "Simulation 7: f\t= 8.686659408982482E-5",
+    "Simulation 8: f\t= 5.051634960186308E-4",
+    "Simulation 9: f\t= 1.4151630212833669E-6",
+    "Simulation 10: f\t= 1.4710235585499564E-5",
+    "Simulation 11: f\t= 1.8448968637148572E-5",
+    "Simulation 12: f\t= 5.325678713684292E-7",
+    "Simulation 13: f\t= 3.671108762315911E-6",
+    "Simulation 14: f\t= 1.132293344308536E-11",
+    "Simulation 15: f\t= 2.083637749250156E-7",
+    "Simulation 16: f\t= 7.65455282780781E-8",
+    "Simulation 17: f\t= 3.1129389817013254E-8",
+    "Simulation 18: f\t= 1.073261888583E-8",
+    "Simulation 19: f\t= 4.826347394717009E-9",
+    "Simulation 20: f\t= 1.4056044989254123E-9",
+    "Simulation 21: f\t= 8.188507904087E-10",
+    "Simulation 22: f\t= 1.4983669470548323E-10",
+    "Simulation 23: f\t= 1.6925573793911532E-10",
+    "Simulation 24: f\t= 6.738719181828461E-12",
+    "Simulation 25: f\t= 3.943738265962144E-11",
+    "Simulation 26: f\t= 1.0179801644498621E-13",
+    "Simulation 27: f\t= 1.183984205874235E-12",
+    "Simulation 28: f\t= 1.413093067778931E-12",
+    "Simulation 29: f\t= 4.771275078927926E-14",
+    "Simulation 30: f\t= 3.0318225582352263E-13",
+    "Simulation 31: f\t= 1.7238070736894686E-16",
+    "Simulation 32: f\t= 1.2940179989237076E-14",
+    "Simulation 33: f\t= 8.381071158526642E-15",
+    "Simulation 34: f\t= 1.2486403116950136E-15",
+    "Simulation 35: f\t= 1.856119237003705E-15",
+    "Simulation 36: f\t= 2.8974385064867445E-17",
+    "Simulation 37: f\t= 2.8304481580412687E-16",
+    "Simulation 38: f\t= 2.8501325293211836E-18",
+    "Simulation 39: f\t= 3.670377475232952E-17",
+    "Simulation 40: f\t= 1.0254716417654496E-18",
+    "Simulation 41: f\t= 7.192571125761857E-18",
+    "Simulation 42: f\t= 3.6070986135112893E-22",
+    "Simulation 43: f\t= 4.3110474824582714E-19",
+    "Simulation 44: f\t= 1.4067165650704113E-19",
+    "Simulation 45: f\t= 6.89226992361064E-20",
+    "Simulation 46: f\t= 1.7298361804153294E-20",
+    "Simulation 47: f\t= 1.2547573518048881E-20",
+    "Simulation 48: f\t= 1.4822228895124675E-21",
+    "Simulation 49: f\t= 2.972884346746651E-21",
+    "Simulation 50: f\t= 8.80812287549087E-24",
+    "Simulation 51: f\t= 2.7356030434377225E-22",
+    "Simulation 52: f\t= 2.937998653240461E-23",
+    "Simulation 53: f\t= 6.64502379321511E-23",
+    "Simulation 54: f\t= 5.581664220981791E-26",
+    "Simulation 55: f\t= 4.912647261697182E-24",
+    "Result overview",
+    "***************",
+    "Lower border of uncertainty interval        : 1.3699999999990073",
+    "Upper border of uncertainty interval        : 1.3700000000009878",
+    "Mid point of uncertainty interval           : 1.3699999999999974",
+    "Length of uncertainty interval              : 1.9804158313263542E-12",
+    "Normalized reduction of uncertainty interval: 1.9804158313263542E-12",
+    "Required accuracy is reached.",
+    "GenOpt completed successfully."
+  ],
+  "columns": [
+    "Simulation Number",
+    "Main Iteration",
+    "Sub Iteration",
+    "Step Number",
+    "f",
+    "x1"
+  ],
+  "all": [
+    {
+      "simulation": 1,
+      "mainIteration": 1,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "1.431854252376392E-4"
+      ],
+      "x": [
+        "1.381966011250105"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 2,
+      "mainIteration": 1,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "0.06152085957518294"
+      ],
+      "x": [
+        "1.618033988749895"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 3,
+      "mainIteration": 1,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "0.017937786650996837"
+      ],
+      "x": [
+        "1.2360679774997898"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 4,
+      "mainIteration": 1,
+      "subIteration": 4,
+      "stepNumber": 1,
+      "f": [
+        "0.010431753303676084"
+      ],
+      "x": [
+        "1.4721359549995794"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 5,
+      "mainIteration": 1,
+      "subIteration": 5,
+      "stepNumber": 1,
+      "f": [
+        "0.0019151195365856204"
+      ],
+      "x": [
+        "1.326237921249264"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 6,
+      "mainIteration": 1,
+      "subIteration": 6,
+      "stepNumber": 1,
+      "f": [
+        "0.002153689933741097"
+      ],
+      "x": [
+        "1.4164078649987382"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 7,
+      "mainIteration": 1,
+      "subIteration": 7,
+      "stepNumber": 1,
+      "f": [
+        "8.686659408982482E-5"
+      ],
+      "x": [
+        "1.3606797749978972"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 8,
+      "mainIteration": 1,
+      "subIteration": 8,
+      "stepNumber": 1,
+      "f": [
+        "5.051634960186308E-4"
+      ],
+      "x": [
+        "1.3475241575014723"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 9,
+      "mainIteration": 1,
+      "subIteration": 9,
+      "stepNumber": 1,
+      "f": [
+        "1.4151630212833669E-6"
+      ],
+      "x": [
+        "1.3688103937536802"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 10,
+      "mainIteration": 1,
+      "subIteration": 10,
+      "stepNumber": 1,
+      "f": [
+        "1.4710235585499564E-5"
+      ],
+      "x": [
+        "1.3738353924943218"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 11,
+      "mainIteration": 1,
+      "subIteration": 11,
+      "stepNumber": 1,
+      "f": [
+        "1.8448968637148572E-5"
+      ],
+      "x": [
+        "1.3657047737385386"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 12,
+      "mainIteration": 1,
+      "subIteration": 12,
+      "stepNumber": 1,
+      "f": [
+        "5.325678713684292E-7"
+      ],
+      "x": [
+        "1.37072977247918"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 13,
+      "mainIteration": 1,
+      "subIteration": 13,
+      "stepNumber": 1,
+      "f": [
+        "3.671108762315911E-6"
+      ],
+      "x": [
+        "1.3719160137688222"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 14,
+      "mainIteration": 1,
+      "subIteration": 14,
+      "stepNumber": 1,
+      "f": [
+        "1.132293344308536E-11"
+      ],
+      "x": [
+        "1.3699966350433224"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 15,
+      "mainIteration": 1,
+      "subIteration": 15,
+      "stepNumber": 1,
+      "f": [
+        "2.083637749250156E-7"
+      ],
+      "x": [
+        "1.3695435311895376"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 16,
+      "mainIteration": 1,
+      "subIteration": 16,
+      "stepNumber": 1,
+      "f": [
+        "7.65455282780781E-8"
+      ],
+      "x": [
+        "1.3702766686253953"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 17,
+      "mainIteration": 1,
+      "subIteration": 17,
+      "stepNumber": 1,
+      "f": [
+        "3.1129389817013254E-8"
+      ],
+      "x": [
+        "1.3698235647716102"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 18,
+      "mainIteration": 1,
+      "subIteration": 18,
+      "stepNumber": 1,
+      "f": [
+        "1.073261888583E-8"
+      ],
+      "x": [
+        "1.3701035983536831"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 19,
+      "mainIteration": 1,
+      "subIteration": 19,
+      "stepNumber": 1,
+      "f": [
+        "4.826347394717009E-9"
+      ],
+      "x": [
+        "1.3699305280819705"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 20,
+      "mainIteration": 1,
+      "subIteration": 20,
+      "stepNumber": 1,
+      "f": [
+        "1.4056044989254123E-9"
+      ],
+      "x": [
+        "1.3700374913923312"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 21,
+      "mainIteration": 1,
+      "subIteration": 21,
+      "stepNumber": 1,
+      "f": [
+        "8.188507904087E-10"
+      ],
+      "x": [
+        "1.3699713844309789"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 22,
+      "mainIteration": 1,
+      "subIteration": 22,
+      "stepNumber": 1,
+      "f": [
+        "1.4983669470548323E-10"
+      ],
+      "x": [
+        "1.3700122407799877"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 23,
+      "mainIteration": 1,
+      "subIteration": 23,
+      "stepNumber": 1,
+      "f": [
+        "1.6925573793911532E-10"
+      ],
+      "x": [
+        "1.3699869901676438"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 24,
+      "mainIteration": 1,
+      "subIteration": 24,
+      "stepNumber": 1,
+      "f": [
+        "6.738719181828461E-12"
+      ],
+      "x": [
+        "1.3700025959043092"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 25,
+      "mainIteration": 1,
+      "subIteration": 25,
+      "stepNumber": 1,
+      "f": [
+        "3.943738265962144E-11"
+      ],
+      "x": [
+        "1.3700062799190011"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 26,
+      "mainIteration": 1,
+      "subIteration": 26,
+      "stepNumber": 1,
+      "f": [
+        "1.0179801644498621E-13"
+      ],
+      "x": [
+        "1.3700003190580143"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 27,
+      "mainIteration": 1,
+      "subIteration": 27,
+      "stepNumber": 1,
+      "f": [
+        "1.183984205874235E-12"
+      ],
+      "x": [
+        "1.369998911889617"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 28,
+      "mainIteration": 1,
+      "subIteration": 28,
+      "stepNumber": 1,
+      "f": [
+        "1.413093067778931E-12"
+      ],
+      "x": [
+        "1.3700011887359118"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 29,
+      "mainIteration": 1,
+      "subIteration": 29,
+      "stepNumber": 1,
+      "f": [
+        "4.771275078927926E-14"
+      ],
+      "x": [
+        "1.3699997815675145"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 30,
+      "mainIteration": 1,
+      "subIteration": 30,
+      "stepNumber": 1,
+      "f": [
+        "3.0318225582352263E-13"
+      ],
+      "x": [
+        "1.3699994493801169"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 31,
+      "mainIteration": 1,
+      "subIteration": 31,
+      "stepNumber": 1,
+      "f": [
+        "1.7238070736894686E-16"
+      ],
+      "x": [
+        "1.3699999868706167"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 32,
+      "mainIteration": 1,
+      "subIteration": 32,
+      "stepNumber": 1,
+      "f": [
+        "1.2940179989237076E-14"
+      ],
+      "x": [
+        "1.370000113754912"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 33,
+      "mainIteration": 1,
+      "subIteration": 33,
+      "stepNumber": 1,
+      "f": [
+        "8.381071158526642E-15"
+      ],
+      "x": [
+        "1.3699999084518097"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 34,
+      "mainIteration": 1,
+      "subIteration": 34,
+      "stepNumber": 1,
+      "f": [
+        "1.2486403116950136E-15"
+      ],
+      "x": [
+        "1.370000035336105"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 35,
+      "mainIteration": 1,
+      "subIteration": 35,
+      "stepNumber": 1,
+      "f": [
+        "1.856119237003705E-15"
+      ],
+      "x": [
+        "1.3699999569172978"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 36,
+      "mainIteration": 1,
+      "subIteration": 36,
+      "stepNumber": 1,
+      "f": [
+        "2.8974385064867445E-17"
+      ],
+      "x": [
+        "1.370000005382786"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 37,
+      "mainIteration": 1,
+      "subIteration": 37,
+      "stepNumber": 1,
+      "f": [
+        "2.8304481580412687E-16"
+      ],
+      "x": [
+        "1.370000016823936"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 38,
+      "mainIteration": 1,
+      "subIteration": 38,
+      "stepNumber": 1,
+      "f": [
+        "2.8501325293211836E-18"
+      ],
+      "x": [
+        "1.3699999983117666"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 39,
+      "mainIteration": 1,
+      "subIteration": 39,
+      "stepNumber": 1,
+      "f": [
+        "3.670377475232952E-17"
+      ],
+      "x": [
+        "1.369999993941636"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 40,
+      "mainIteration": 1,
+      "subIteration": 40,
+      "stepNumber": 1,
+      "f": [
+        "1.0254716417654496E-18"
+      ],
+      "x": [
+        "1.3700000010126558"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 41,
+      "mainIteration": 1,
+      "subIteration": 41,
+      "stepNumber": 1,
+      "f": [
+        "7.192571125761857E-18"
+      ],
+      "x": [
+        "1.370000002681897"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 42,
+      "mainIteration": 1,
+      "subIteration": 42,
+      "stepNumber": 1,
+      "f": [
+        "3.6070986135112893E-22"
+      ],
+      "x": [
+        "1.3699999999810077"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 43,
+      "mainIteration": 1,
+      "subIteration": 43,
+      "stepNumber": 1,
+      "f": [
+        "4.3110474824582714E-19"
+      ],
+      "x": [
+        "1.3699999993434144"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 44,
+      "mainIteration": 1,
+      "subIteration": 44,
+      "stepNumber": 1,
+      "f": [
+        "1.4067165650704113E-19"
+      ],
+      "x": [
+        "1.3700000003750623"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 45,
+      "mainIteration": 1,
+      "subIteration": 45,
+      "stepNumber": 1,
+      "f": [
+        "6.89226992361064E-20"
+      ],
+      "x": [
+        "1.3699999997374688"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 46,
+      "mainIteration": 1,
+      "subIteration": 46,
+      "stepNumber": 1,
+      "f": [
+        "1.7298361804153294E-20"
+      ],
+      "x": [
+        "1.3700000001315233"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 47,
+      "mainIteration": 1,
+      "subIteration": 47,
+      "stepNumber": 1,
+      "f": [
+        "1.2547573518048881E-20"
+      ],
+      "x": [
+        "1.3699999998879842"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 48,
+      "mainIteration": 1,
+      "subIteration": 48,
+      "stepNumber": 1,
+      "f": [
+        "1.4822228895124675E-21"
+      ],
+      "x": [
+        "1.3700000000384998"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 49,
+      "mainIteration": 1,
+      "subIteration": 49,
+      "stepNumber": 1,
+      "f": [
+        "2.972884346746651E-21"
+      ],
+      "x": [
+        "1.369999999945476"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 50,
+      "mainIteration": 1,
+      "subIteration": 50,
+      "stepNumber": 1,
+      "f": [
+        "8.80812287549087E-24"
+      ],
+      "x": [
+        "1.370000000002968"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 51,
+      "mainIteration": 1,
+      "subIteration": 51,
+      "stepNumber": 1,
+      "f": [
+        "2.7356030434377225E-22"
+      ],
+      "x": [
+        "1.3700000000165398"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 52,
+      "mainIteration": 1,
+      "subIteration": 52,
+      "stepNumber": 1,
+      "f": [
+        "2.937998653240461E-23"
+      ],
+      "x": [
+        "1.3699999999945798"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 53,
+      "mainIteration": 1,
+      "subIteration": 53,
+      "stepNumber": 1,
+      "f": [
+        "6.64502379321511E-23"
+      ],
+      "x": [
+        "1.3700000000081518"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 54,
+      "mainIteration": 1,
+      "subIteration": 54,
+      "stepNumber": 1,
+      "f": [
+        "5.581664220981791E-26"
+      ],
+      "x": [
+        "1.3699999999997639"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 55,
+      "mainIteration": 1,
+      "subIteration": 55,
+      "stepNumber": 1,
+      "f": [
+        "4.912647261697182E-24"
+      ],
+      "x": [
+        "1.3699999999977837"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 55,
+      "mainIteration": 1,
+      "subIteration": 56,
+      "stepNumber": 1,
+      "f": [
+        "5.581664220981791E-26"
+      ],
+      "x": [
+        "1.3700000000009878"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 55,
+      "mainIteration": 1,
+      "subIteration": 57,
+      "stepNumber": 1,
+      "f": [
+        "4.912647261697182E-24"
+      ],
+      "x": [
+        "1.3699999999990073"
+      ],
+      "comment": "Linesearch."
+    }
+  ],
+  "main": [],
+  "footer": [
+    "Result overview",
+    "***************",
+    "Lower border of uncertainty interval        : 1.3699999999990073",
+    "Upper border of uncertainty interval        : 1.3700000000009878",
+    "Mid point of uncertainty interval           : 1.3699999999999974",
+    "Length of uncertainty interval              : 1.9804158313263542E-12",
+    "Normalized reduction of uncertainty interval: 1.9804158313263542E-12"
+  ]
+}

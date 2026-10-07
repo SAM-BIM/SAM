@@ -1,0 +1,260 @@
+{
+  "oracle": "GenOpt 3.1.1 (genopt.jar 2016-03-30), Java 8",
+  "case": {
+    "name": "e5-maxite-7",
+    "purpose": "MaxIte = 7 stops the search mid-exploration.",
+    "parameters": [
+      {
+        "name": "x1",
+        "ini": "0.9",
+        "min": "-1",
+        "max": "1",
+        "step": "0.05"
+      },
+      {
+        "name": "x2",
+        "ini": "0.9",
+        "min": "-1",
+        "max": "1",
+        "step": "0.05"
+      }
+    ],
+    "maxIte": 7,
+    "maxEqualResults": 100,
+    "algorithm": "GPSHookeJeeves",
+    "algorithmKeywords": [
+      "MeshSizeDivider = 2;",
+      "InitialMeshSizeExponent = 0;",
+      "MeshSizeExponentIncrement = 1;",
+      "NumberOfStepReduction = 4;"
+    ],
+    "function": {
+      "kind": "quadratic",
+      "center": [
+        0.1,
+        -0.37
+      ],
+      "weight": [
+        1,
+        2
+      ],
+      "offset": 0,
+      "quantum": 1,
+      "outputs": [
+        "f"
+      ],
+      "failAtSimulation": [],
+      "failOnceAtSimulation": []
+    }
+  },
+  "exitCode": 0,
+  "termination": [
+    "Optimization terminated with error.",
+    "Error message:",
+    "**************",
+    "Maximum number of iteration exceeded.",
+    "GenOpt terminated."
+  ],
+  "console": [
+    "Assigning 1 thread for simulations.",
+    "Initialize.",
+    "Simulation 1: f\t= 3.8658",
+    "Perform global search.",
+    "Simulation 2: f\t= 3.9482999999999997",
+    "Simulation 3: f\t= 3.7883",
+    "Simulation 4: f\t= 4.047299999999999",
+    "Simulation 5: f\t= 3.5393",
+    "Update Parameter.",
+    "Iteration step reduced cost.",
+    "Perform global search.",
+    "Simulation 6: f\t= 3.2278",
+    "Simulation 7: f\t= 3.1602999999999994",
+    "Current lowest point:",
+    "Simulation 7",
+    "f\t= 3.1602999999999994",
+    "Maximum number of iteration exceeded.",
+    "GenOpt terminated."
+  ],
+  "columns": [
+    "Simulation Number",
+    "Main Iteration",
+    "Sub Iteration",
+    "Step Number",
+    "f",
+    "x1",
+    "x2"
+  ],
+  "all": [
+    {
+      "simulation": 1,
+      "mainIteration": 1,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "3.8658"
+      ],
+      "x": [
+        "0.9",
+        "0.9"
+      ],
+      "comment": "Initial point."
+    },
+    {
+      "simulation": 2,
+      "mainIteration": 2,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "3.9482999999999997"
+      ],
+      "x": [
+        "0.95",
+        "0.9"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 3,
+      "mainIteration": 2,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "3.7883"
+      ],
+      "x": [
+        "0.85",
+        "0.9"
+      ],
+      "comment": "Cost reduced     at x1-dx1."
+    },
+    {
+      "simulation": 4,
+      "mainIteration": 2,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "4.047299999999999"
+      ],
+      "x": [
+        "0.85",
+        "0.95"
+      ],
+      "comment": "Cost not reduced at x2+dx2."
+    },
+    {
+      "simulation": 5,
+      "mainIteration": 2,
+      "subIteration": 4,
+      "stepNumber": 1,
+      "f": [
+        "3.5393"
+      ],
+      "x": [
+        "0.85",
+        "0.85"
+      ],
+      "comment": "Cost reduced     at x2-dx2."
+    },
+    {
+      "simulation": 5,
+      "mainIteration": 2,
+      "subIteration": 5,
+      "stepNumber": 1,
+      "f": [
+        "3.5393"
+      ],
+      "x": [
+        "0.85",
+        "0.85"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 6,
+      "mainIteration": 3,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "3.2278"
+      ],
+      "x": [
+        "0.8",
+        "0.8"
+      ],
+      "comment": "Exploration base, Delta = 1.0."
+    },
+    {
+      "simulation": 7,
+      "mainIteration": 3,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "3.1602999999999994"
+      ],
+      "x": [
+        "0.75",
+        "0.8"
+      ],
+      "comment": "Cost reduced     at x1-dx1."
+    },
+    {
+      "simulation": 7,
+      "mainIteration": 3,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "3.1602999999999994"
+      ],
+      "x": [
+        "0.75",
+        "0.8"
+      ],
+      "comment": "Current lowest point."
+    }
+  ],
+  "main": [
+    {
+      "simulation": 1,
+      "mainIteration": 1,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "3.8658"
+      ],
+      "x": [
+        "0.9",
+        "0.9"
+      ],
+      "comment": "Initial point."
+    },
+    {
+      "simulation": 5,
+      "mainIteration": 2,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "3.5393"
+      ],
+      "x": [
+        "0.85",
+        "0.85"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 7,
+      "mainIteration": 3,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "3.1602999999999994"
+      ],
+      "x": [
+        "0.75",
+        "0.8"
+      ],
+      "comment": "Current lowest point."
+    }
+  ],
+  "footer": []
+}

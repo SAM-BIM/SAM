@@ -1,0 +1,134 @@
+{
+  "oracle": "GenOpt 3.1.1 (genopt.jar 2016-03-30), Java 8",
+  "case": {
+    "name": "e10-gs-nullspace",
+    "purpose": "GoldenSection on a flat objective (IntervalReduction mode, nullspace expected).",
+    "parameters": [
+      {
+        "name": "x1",
+        "ini": "3",
+        "min": "-5",
+        "max": "35",
+        "step": "1"
+      }
+    ],
+    "maxIte": 2000,
+    "maxEqualResults": 100,
+    "algorithm": "GoldenSection",
+    "algorithmKeywords": [
+      "IntervalReduction = 0.0001;"
+    ],
+    "function": {
+      "kind": "constant",
+      "center": [],
+      "weight": [],
+      "offset": 2,
+      "quantum": 1,
+      "outputs": [
+        "f"
+      ],
+      "failAtSimulation": [],
+      "failOnceAtSimulation": []
+    }
+  },
+  "exitCode": 1,
+  "termination": [
+    "Optimization terminated with error.",
+    "Error message:",
+    "**************",
+    "genopt.lang.OptimizerException:",
+    "Nullspace in line search. Linesearch terminated.",
+    "GenOpt terminated with error."
+  ],
+  "console": [
+    "Assigning 1 thread for simulations.",
+    "Simulation 1: f\t= 2.0",
+    "Simulation 2: f\t= 2.0",
+    "Simulation 3: f\t= 2.0",
+    "Simulation 4: f\t= 2.0",
+    "Result overview",
+    "***************",
+    "Lower border of uncertainty interval        : 0.8359213500126206",
+    "Upper border of uncertainty interval        : 10.278640450004207",
+    "Mid point of uncertainty interval           : 5.557280900008414",
+    "Length of uncertainty interval              : 9.442719099991587",
+    "Normalized reduction of uncertainty interval: 0.23606797749978967",
+    "genopt.lang.OptimizerException:",
+    "Nullspace in line search. Linesearch terminated.",
+    "GenOpt terminated with error.",
+    "See logfile for further information."
+  ],
+  "columns": [
+    "Simulation Number",
+    "Main Iteration",
+    "Sub Iteration",
+    "Step Number",
+    "f",
+    "x1"
+  ],
+  "all": [
+    {
+      "simulation": 1,
+      "mainIteration": 1,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "2.0"
+      ],
+      "x": [
+        "10.278640450004207"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 2,
+      "mainIteration": 1,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "2.0"
+      ],
+      "x": [
+        "19.721359549995796"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 3,
+      "mainIteration": 1,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "2.0"
+      ],
+      "x": [
+        "4.44271909999159"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 4,
+      "mainIteration": 1,
+      "subIteration": 4,
+      "stepNumber": 1,
+      "f": [
+        "2.0"
+      ],
+      "x": [
+        "0.8359213500126206"
+      ],
+      "comment": "Linesearch."
+    }
+  ],
+  "main": [],
+  "footer": [
+    "Optimization terminated with error.",
+    "Result overview",
+    "***************",
+    "Lower border of uncertainty interval        : 0.8359213500126206",
+    "Upper border of uncertainty interval        : 10.278640450004207",
+    "Mid point of uncertainty interval           : 5.557280900008414",
+    "Length of uncertainty interval              : 9.442719099991587",
+    "Normalized reduction of uncertainty interval: 0.23606797749978967"
+  ]
+}

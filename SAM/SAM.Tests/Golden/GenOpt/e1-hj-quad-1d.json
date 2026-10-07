@@ -1,0 +1,885 @@
+{
+  "oracle": "GenOpt 3.1.1 (genopt.jar 2016-03-30), Java 8",
+  "case": {
+    "name": "e1-hj-quad-1d",
+    "purpose": "1-D shifted quadratic, Tas-like bounds and step.",
+    "parameters": [
+      {
+        "name": "x1",
+        "ini": "3",
+        "min": "-5",
+        "max": "35",
+        "step": "1"
+      }
+    ],
+    "maxIte": 2000,
+    "maxEqualResults": 100,
+    "algorithm": "GPSHookeJeeves",
+    "algorithmKeywords": [
+      "MeshSizeDivider = 2;",
+      "InitialMeshSizeExponent = 0;",
+      "MeshSizeExponentIncrement = 1;",
+      "NumberOfStepReduction = 4;"
+    ],
+    "function": {
+      "kind": "quadratic",
+      "center": [
+        0.3
+      ],
+      "weight": [],
+      "offset": 0,
+      "quantum": 1,
+      "outputs": [
+        "f"
+      ],
+      "failAtSimulation": [],
+      "failOnceAtSimulation": []
+    }
+  },
+  "exitCode": 0,
+  "termination": [
+    "Optimization completed successfully."
+  ],
+  "console": [
+    "Assigning 1 thread for simulations.",
+    "Initialize.",
+    "Simulation 1: f\t= 7.290000000000001",
+    "Perform global search.",
+    "Simulation 2: f\t= 13.690000000000001",
+    "Simulation 3: f\t= 2.8899999999999997",
+    "Update Parameter.",
+    "Iteration step reduced cost.",
+    "Perform global search.",
+    "Simulation 4: f\t= 0.48999999999999994",
+    "Simulation 5: f\t= 0.09",
+    "Update Parameter.",
+    "Iteration step reduced cost.",
+    "Perform global search.",
+    "Simulation 6: f\t= 5.289999999999999",
+    "Simulation 7: f\t= 10.889999999999999",
+    "Simulation 8: f\t= 1.6900000000000002",
+    "Perform local search.",
+    "Update Parameter.",
+    "Iteration step did not reduce cost.",
+    "Iteration step did not reduce cost. Reduce step size to '0.5'.",
+    "Perform global search.",
+    "Simulation 9: f\t= 0.04000000000000001",
+    "Update Parameter.",
+    "Iteration step reduced cost.",
+    "Perform global search.",
+    "Simulation 10: f\t= 1.44",
+    "Perform local search.",
+    "Update Parameter.",
+    "Iteration step did not reduce cost.",
+    "Iteration step did not reduce cost. Reduce step size to '0.25'.",
+    "Perform global search.",
+    "Simulation 11: f\t= 0.0024999999999999988",
+    "Update Parameter.",
+    "Iteration step reduced cost.",
+    "Perform global search.",
+    "Simulation 12: f\t= 0.30250000000000005",
+    "Perform local search.",
+    "Update Parameter.",
+    "Iteration step did not reduce cost.",
+    "Iteration step did not reduce cost. Reduce step size to '0.125'.",
+    "Perform global search.",
+    "Simulation 13: f\t= 0.0056250000000000015",
+    "Simulation 14: f\t= 0.030624999999999996",
+    "Perform local search.",
+    "Update Parameter.",
+    "Iteration step did not reduce cost.",
+    "Iteration step did not reduce cost. Reduce step size to '0.0625'.",
+    "Perform global search.",
+    "Simulation 15: f\t= 1.5625000000000027E-4",
+    "Update Parameter.",
+    "Iteration step reduced cost.",
+    "Perform global search.",
+    "Simulation 16: f\t= 0.018906250000000003",
+    "Perform local search.",
+    "Update Parameter.",
+    "Iteration step did not reduce cost.",
+    "Minimum: f(x*) = 1.5625000000000027E-4",
+    "Required accuracy is reached.",
+    "GenOpt completed successfully."
+  ],
+  "columns": [
+    "Simulation Number",
+    "Main Iteration",
+    "Sub Iteration",
+    "Step Number",
+    "f",
+    "x1"
+  ],
+  "all": [
+    {
+      "simulation": 1,
+      "mainIteration": 1,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "7.290000000000001"
+      ],
+      "x": [
+        "3.0"
+      ],
+      "comment": "Initial point."
+    },
+    {
+      "simulation": 2,
+      "mainIteration": 2,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "13.690000000000001"
+      ],
+      "x": [
+        "4.0"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 3,
+      "mainIteration": 2,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "2.8899999999999997"
+      ],
+      "x": [
+        "2.0"
+      ],
+      "comment": "Cost reduced     at x1-dx1."
+    },
+    {
+      "simulation": 3,
+      "mainIteration": 2,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "2.8899999999999997"
+      ],
+      "x": [
+        "2.0"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 4,
+      "mainIteration": 3,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "0.48999999999999994"
+      ],
+      "x": [
+        "1.0"
+      ],
+      "comment": "Exploration base, Delta = 1.0."
+    },
+    {
+      "simulation": 5,
+      "mainIteration": 3,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "0.09"
+      ],
+      "x": [
+        "0.0"
+      ],
+      "comment": "Cost reduced     at x1-dx1."
+    },
+    {
+      "simulation": 5,
+      "mainIteration": 3,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "0.09"
+      ],
+      "x": [
+        "0.0"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 6,
+      "mainIteration": 4,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "5.289999999999999"
+      ],
+      "x": [
+        "-2.0"
+      ],
+      "comment": "Exploration base, Delta = 1.0."
+    },
+    {
+      "simulation": 7,
+      "mainIteration": 4,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "10.889999999999999"
+      ],
+      "x": [
+        "-3.0"
+      ],
+      "comment": "Cost not reduced at x1-dx1."
+    },
+    {
+      "simulation": 8,
+      "mainIteration": 4,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "1.6900000000000002"
+      ],
+      "x": [
+        "-1.0"
+      ],
+      "comment": "Cost reduced     at x1+dx1."
+    },
+    {
+      "simulation": 8,
+      "mainIteration": 4,
+      "subIteration": 4,
+      "stepNumber": 1,
+      "f": [
+        "0.48999999999999994"
+      ],
+      "x": [
+        "1.0"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 8,
+      "mainIteration": 4,
+      "subIteration": 5,
+      "stepNumber": 1,
+      "f": [
+        "1.6900000000000002"
+      ],
+      "x": [
+        "-1.0"
+      ],
+      "comment": "Cost not reduced at x1-dx1."
+    },
+    {
+      "simulation": 5,
+      "mainIteration": 4,
+      "subIteration": 6,
+      "stepNumber": 1,
+      "f": [
+        "0.09"
+      ],
+      "x": [
+        "0.0"
+      ],
+      "comment": "Iteration step did not reduce cost. Reduce step size to '0.5'."
+    },
+    {
+      "simulation": 8,
+      "mainIteration": 5,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "0.09"
+      ],
+      "x": [
+        "0.0"
+      ],
+      "comment": "Exploration base, Delta = 0.5."
+    },
+    {
+      "simulation": 9,
+      "mainIteration": 5,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "0.04000000000000001"
+      ],
+      "x": [
+        "0.5"
+      ],
+      "comment": "Cost reduced     at x1+dx1."
+    },
+    {
+      "simulation": 9,
+      "mainIteration": 5,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "0.04000000000000001"
+      ],
+      "x": [
+        "0.5"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 9,
+      "mainIteration": 6,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "0.48999999999999994"
+      ],
+      "x": [
+        "1.0"
+      ],
+      "comment": "Exploration base, Delta = 0.5."
+    },
+    {
+      "simulation": 10,
+      "mainIteration": 6,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "1.44"
+      ],
+      "x": [
+        "1.5"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 10,
+      "mainIteration": 6,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "0.04000000000000001"
+      ],
+      "x": [
+        "0.5"
+      ],
+      "comment": "Cost reduced     at x1-dx1."
+    },
+    {
+      "simulation": 10,
+      "mainIteration": 6,
+      "subIteration": 4,
+      "stepNumber": 1,
+      "f": [
+        "0.09"
+      ],
+      "x": [
+        "0.0"
+      ],
+      "comment": "Cost not reduced at x1-dx1."
+    },
+    {
+      "simulation": 10,
+      "mainIteration": 6,
+      "subIteration": 5,
+      "stepNumber": 1,
+      "f": [
+        "0.48999999999999994"
+      ],
+      "x": [
+        "1.0"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 9,
+      "mainIteration": 6,
+      "subIteration": 6,
+      "stepNumber": 1,
+      "f": [
+        "0.04000000000000001"
+      ],
+      "x": [
+        "0.5"
+      ],
+      "comment": "Iteration step did not reduce cost. Reduce step size to '0.25'."
+    },
+    {
+      "simulation": 10,
+      "mainIteration": 7,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "0.04000000000000001"
+      ],
+      "x": [
+        "0.5"
+      ],
+      "comment": "Exploration base, Delta = 0.25."
+    },
+    {
+      "simulation": 11,
+      "mainIteration": 7,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Cost reduced     at x1-dx1."
+    },
+    {
+      "simulation": 11,
+      "mainIteration": 7,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 11,
+      "mainIteration": 8,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "0.09"
+      ],
+      "x": [
+        "0.0"
+      ],
+      "comment": "Exploration base, Delta = 0.25."
+    },
+    {
+      "simulation": 12,
+      "mainIteration": 8,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "0.30250000000000005"
+      ],
+      "x": [
+        "-0.25"
+      ],
+      "comment": "Cost not reduced at x1-dx1."
+    },
+    {
+      "simulation": 12,
+      "mainIteration": 8,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Cost reduced     at x1+dx1."
+    },
+    {
+      "simulation": 12,
+      "mainIteration": 8,
+      "subIteration": 4,
+      "stepNumber": 1,
+      "f": [
+        "0.04000000000000001"
+      ],
+      "x": [
+        "0.5"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 12,
+      "mainIteration": 8,
+      "subIteration": 5,
+      "stepNumber": 1,
+      "f": [
+        "0.09"
+      ],
+      "x": [
+        "0.0"
+      ],
+      "comment": "Cost not reduced at x1-dx1."
+    },
+    {
+      "simulation": 11,
+      "mainIteration": 8,
+      "subIteration": 6,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Iteration step did not reduce cost. Reduce step size to '0.125'."
+    },
+    {
+      "simulation": 12,
+      "mainIteration": 9,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Exploration base, Delta = 0.125."
+    },
+    {
+      "simulation": 13,
+      "mainIteration": 9,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "0.0056250000000000015"
+      ],
+      "x": [
+        "0.375"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 14,
+      "mainIteration": 9,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "0.030624999999999996"
+      ],
+      "x": [
+        "0.125"
+      ],
+      "comment": "Cost not reduced at x1-dx1."
+    },
+    {
+      "simulation": 14,
+      "mainIteration": 9,
+      "subIteration": 4,
+      "stepNumber": 1,
+      "f": [
+        "0.0056250000000000015"
+      ],
+      "x": [
+        "0.375"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 14,
+      "mainIteration": 9,
+      "subIteration": 5,
+      "stepNumber": 1,
+      "f": [
+        "0.030624999999999996"
+      ],
+      "x": [
+        "0.125"
+      ],
+      "comment": "Cost not reduced at x1-dx1."
+    },
+    {
+      "simulation": 11,
+      "mainIteration": 9,
+      "subIteration": 6,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Iteration step did not reduce cost. Reduce step size to '0.0625'."
+    },
+    {
+      "simulation": 14,
+      "mainIteration": 10,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Exploration base, Delta = 0.0625."
+    },
+    {
+      "simulation": 15,
+      "mainIteration": 10,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "1.5625000000000027E-4"
+      ],
+      "x": [
+        "0.3125"
+      ],
+      "comment": "Cost reduced     at x1+dx1."
+    },
+    {
+      "simulation": 15,
+      "mainIteration": 10,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "1.5625000000000027E-4"
+      ],
+      "x": [
+        "0.3125"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 15,
+      "mainIteration": 11,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "0.0056250000000000015"
+      ],
+      "x": [
+        "0.375"
+      ],
+      "comment": "Exploration base, Delta = 0.0625."
+    },
+    {
+      "simulation": 16,
+      "mainIteration": 11,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "0.018906250000000003"
+      ],
+      "x": [
+        "0.4375"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 16,
+      "mainIteration": 11,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "1.5625000000000027E-4"
+      ],
+      "x": [
+        "0.3125"
+      ],
+      "comment": "Cost reduced     at x1-dx1."
+    },
+    {
+      "simulation": 16,
+      "mainIteration": 11,
+      "subIteration": 4,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Cost not reduced at x1-dx1."
+    },
+    {
+      "simulation": 16,
+      "mainIteration": 11,
+      "subIteration": 5,
+      "stepNumber": 1,
+      "f": [
+        "0.0056250000000000015"
+      ],
+      "x": [
+        "0.375"
+      ],
+      "comment": "Cost not reduced at x1+dx1."
+    },
+    {
+      "simulation": 15,
+      "mainIteration": 11,
+      "subIteration": 6,
+      "stepNumber": 1,
+      "f": [
+        "1.5625000000000027E-4"
+      ],
+      "x": [
+        "0.3125"
+      ],
+      "comment": "Iteration step did not reduce cost. Maximum number of step reductions reached."
+    },
+    {
+      "simulation": 15,
+      "mainIteration": 11,
+      "subIteration": 7,
+      "stepNumber": 1,
+      "f": [
+        "1.5625000000000027E-4"
+      ],
+      "x": [
+        "0.3125"
+      ],
+      "comment": "Minimum point."
+    }
+  ],
+  "main": [
+    {
+      "simulation": 1,
+      "mainIteration": 1,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "7.290000000000001"
+      ],
+      "x": [
+        "3.0"
+      ],
+      "comment": "Initial point."
+    },
+    {
+      "simulation": 3,
+      "mainIteration": 2,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "2.8899999999999997"
+      ],
+      "x": [
+        "2.0"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 5,
+      "mainIteration": 3,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "0.09"
+      ],
+      "x": [
+        "0.0"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 5,
+      "mainIteration": 4,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "0.09"
+      ],
+      "x": [
+        "0.0"
+      ],
+      "comment": "Iteration step did not reduce cost. Reduce step size to '0.5'."
+    },
+    {
+      "simulation": 9,
+      "mainIteration": 5,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "0.04000000000000001"
+      ],
+      "x": [
+        "0.5"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 9,
+      "mainIteration": 6,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "0.04000000000000001"
+      ],
+      "x": [
+        "0.5"
+      ],
+      "comment": "Iteration step did not reduce cost. Reduce step size to '0.25'."
+    },
+    {
+      "simulation": 11,
+      "mainIteration": 7,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 11,
+      "mainIteration": 8,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Iteration step did not reduce cost. Reduce step size to '0.125'."
+    },
+    {
+      "simulation": 11,
+      "mainIteration": 9,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "0.0024999999999999988"
+      ],
+      "x": [
+        "0.25"
+      ],
+      "comment": "Iteration step did not reduce cost. Reduce step size to '0.0625'."
+    },
+    {
+      "simulation": 15,
+      "mainIteration": 10,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "1.5625000000000027E-4"
+      ],
+      "x": [
+        "0.3125"
+      ],
+      "comment": "Global search reduced cost."
+    },
+    {
+      "simulation": 15,
+      "mainIteration": 11,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "1.5625000000000027E-4"
+      ],
+      "x": [
+        "0.3125"
+      ],
+      "comment": "Iteration step did not reduce cost. Maximum number of step reductions reached."
+    },
+    {
+      "simulation": 15,
+      "mainIteration": 11,
+      "subIteration": 0,
+      "stepNumber": 1,
+      "f": [
+        "1.5625000000000027E-4"
+      ],
+      "x": [
+        "0.3125"
+      ],
+      "comment": "Minimum point."
+    }
+  ],
+  "footer": []
+}

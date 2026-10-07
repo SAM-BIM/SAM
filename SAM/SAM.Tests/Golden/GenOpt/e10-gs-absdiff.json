@@ -1,0 +1,214 @@
+{
+  "oracle": "GenOpt 3.1.1 (genopt.jar 2016-03-30), Java 8",
+  "case": {
+    "name": "e10-gs-absdiff",
+    "purpose": "GoldenSection with AbsDiffFunction (structure of the Tas Systems Demo run, synthetic objective).",
+    "parameters": [
+      {
+        "name": "x1",
+        "ini": "3",
+        "min": "-5",
+        "max": "35",
+        "step": "1"
+      }
+    ],
+    "maxIte": 2000,
+    "maxEqualResults": 100,
+    "algorithm": "GoldenSection",
+    "algorithmKeywords": [
+      "AbsDiffFunction = 1;"
+    ],
+    "function": {
+      "kind": "quadratic",
+      "center": [
+        5.13
+      ],
+      "weight": [
+        3
+      ],
+      "offset": 7360,
+      "quantum": 1,
+      "outputs": [
+        "f"
+      ],
+      "failAtSimulation": [],
+      "failOnceAtSimulation": []
+    }
+  },
+  "exitCode": 0,
+  "termination": [
+    "Optimization completed successfully."
+  ],
+  "console": [
+    "Assigning 1 thread for simulations.",
+    "Simulation 1: f\t= 7439.525495450259",
+    "Simulation 2: f\t= 7998.7233205517605",
+    "Simulation 3: f\t= 7361.417065106549",
+    "Simulation 4: f\t= 7415.317334356832",
+    "Simulation 5: f\t= 7367.131836734863",
+    "Simulation 6: f\t= 7372.792118074988",
+    "Simulation 7: f\t= 7360.080853938506",
+    "Simulation 8: f\t= 7361.429928518675",
+    "Simulation 9: f\t= 7360.077817298822",
+    "Simulation 10: f\t= 7360.393253966774",
+    "Result overview",
+    "***************",
+    "Lower border of uncertainty interval        : 4.767943850222925",
+    "Upper border of uncertainty interval        : 5.294168550079913",
+    "Mid point of uncertainty interval           : 5.0310562001514185",
+    "Length of uncertainty interval              : 0.5262246998569884",
+    "Normalized reduction of uncertainty interval: 0.01315561749642471",
+    "Required accuracy is reached.",
+    "GenOpt completed successfully."
+  ],
+  "columns": [
+    "Simulation Number",
+    "Main Iteration",
+    "Sub Iteration",
+    "Step Number",
+    "f",
+    "x1"
+  ],
+  "all": [
+    {
+      "simulation": 1,
+      "mainIteration": 1,
+      "subIteration": 1,
+      "stepNumber": 1,
+      "f": [
+        "7439.525495450259"
+      ],
+      "x": [
+        "10.278640450004207"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 2,
+      "mainIteration": 1,
+      "subIteration": 2,
+      "stepNumber": 1,
+      "f": [
+        "7998.7233205517605"
+      ],
+      "x": [
+        "19.721359549995796"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 3,
+      "mainIteration": 1,
+      "subIteration": 3,
+      "stepNumber": 1,
+      "f": [
+        "7361.417065106549"
+      ],
+      "x": [
+        "4.44271909999159"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 4,
+      "mainIteration": 1,
+      "subIteration": 4,
+      "stepNumber": 1,
+      "f": [
+        "7415.317334356832"
+      ],
+      "x": [
+        "0.8359213500126206"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 5,
+      "mainIteration": 1,
+      "subIteration": 5,
+      "stepNumber": 1,
+      "f": [
+        "7367.131836734863"
+      ],
+      "x": [
+        "6.671842700025236"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 6,
+      "mainIteration": 1,
+      "subIteration": 6,
+      "stepNumber": 1,
+      "f": [
+        "7372.792118074988"
+      ],
+      "x": [
+        "3.0650449500462704"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 7,
+      "mainIteration": 1,
+      "subIteration": 7,
+      "stepNumber": 1,
+      "f": [
+        "7360.080853938506"
+      ],
+      "x": [
+        "5.294168550079913"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 8,
+      "mainIteration": 1,
+      "subIteration": 8,
+      "stepNumber": 1,
+      "f": [
+        "7361.429928518675"
+      ],
+      "x": [
+        "5.820393249936908"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 9,
+      "mainIteration": 1,
+      "subIteration": 9,
+      "stepNumber": 1,
+      "f": [
+        "7360.077817298822"
+      ],
+      "x": [
+        "4.968943799848584"
+      ],
+      "comment": "Linesearch."
+    },
+    {
+      "simulation": 10,
+      "mainIteration": 1,
+      "subIteration": 10,
+      "stepNumber": 1,
+      "f": [
+        "7360.393253966774"
+      ],
+      "x": [
+        "4.767943850222925"
+      ],
+      "comment": "Linesearch."
+    }
+  ],
+  "main": [],
+  "footer": [
+    "Result overview",
+    "***************",
+    "Lower border of uncertainty interval        : 4.767943850222925",
+    "Upper border of uncertainty interval        : 5.294168550079913",
+    "Mid point of uncertainty interval           : 5.0310562001514185",
+    "Length of uncertainty interval              : 0.5262246998569884",
+    "Normalized reduction of uncertainty interval: 0.01315561749642471"
+  ]
+}
