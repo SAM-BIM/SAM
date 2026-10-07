@@ -29,9 +29,8 @@ namespace SAM.Math
     /// </para>
     /// <para>
     /// The decimal is converted to double by this class's own exact conversion, so the result does not depend on the
-    /// runtime's double.Parse. SAM.Math targets netstandard2.0 and also runs inside .NET Framework hosts (Revit,
-    /// Rhino 7), whose double.Parse is not correctly rounded (.NET Core 3.0 and later are); this is not a .NET Framework
-    /// requirement.
+    /// runtime's double.Parse: the model's result is defined by this arithmetic alone, whichever runtime hosts
+    /// SAM.Math (a netstandard2.0 library; parsing has not been correctly rounded on every .NET runtime).
     /// </para>
     /// </summary>
     public static class Java8FloatText
