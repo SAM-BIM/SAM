@@ -40,24 +40,6 @@
     "Nullspace in line search. Linesearch terminated.",
     "GenOpt terminated with error."
   ],
-  "console": [
-    "Assigning 1 thread for simulations.",
-    "Simulation 1: f\t= 2.0",
-    "Simulation 2: f\t= 2.0",
-    "Simulation 3: f\t= 2.0",
-    "Simulation 4: f\t= 2.0",
-    "Result overview",
-    "***************",
-    "Lower border of uncertainty interval        : 0.8359213500126206",
-    "Upper border of uncertainty interval        : 10.278640450004207",
-    "Mid point of uncertainty interval           : 5.557280900008414",
-    "Length of uncertainty interval              : 9.442719099991587",
-    "Normalized reduction of uncertainty interval: 0.23606797749978967",
-    "genopt.lang.OptimizerException:",
-    "Nullspace in line search. Linesearch terminated.",
-    "GenOpt terminated with error.",
-    "See logfile for further information."
-  ],
   "columns": [
     "Simulation Number",
     "Main Iteration",

@@ -55,26 +55,6 @@
     "Maximum number of iteration exceeded.",
     "GenOpt terminated."
   ],
-  "console": [
-    "Assigning 1 thread for simulations.",
-    "Initialize.",
-    "Simulation 1: f\t= 3.8658",
-    "Perform global search.",
-    "Simulation 2: f\t= 3.9482999999999997",
-    "Simulation 3: f\t= 3.7883",
-    "Simulation 4: f\t= 4.047299999999999",
-    "Simulation 5: f\t= 3.5393",
-    "Update Parameter.",
-    "Iteration step reduced cost.",
-    "Perform global search.",
-    "Simulation 6: f\t= 3.2278",
-    "Simulation 7: f\t= 3.1602999999999994",
-    "Current lowest point:",
-    "Simulation 7",
-    "f\t= 3.1602999999999994",
-    "Maximum number of iteration exceeded.",
-    "GenOpt terminated."
-  ],
   "columns": [
     "Simulation Number",
     "Main Iteration",

@@ -62,18 +62,6 @@
     "Command string               : '<path> sim'",
     "GenOpt terminated with error."
   ],
-  "console": [
-    "Assigning 1 thread for simulations.",
-    "Initialize.",
-    "genopt.lang.OptimizerException:",
-    "<case>\\tmp-genopt-run-1\\Error.txt: Following error was found:",
-    "Error on line 2:",
-    "   Error: injected failure",
-    "Simulation working directory : '<case>\\tmp-genopt-run-1'",
-    "Command string               : '<path> sim'",
-    "GenOpt terminated with error.",
-    "See logfile for further information."
-  ],
   "columns": [
     "Simulation Number",
     "Main Iteration",

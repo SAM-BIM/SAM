@@ -19,7 +19,11 @@ namespace SAM.Tests.GenOptOracle
         /// <summary>GenOpt.log text after its last divider line, with paths removed.</summary>
         public List<string> Termination { get; set; } = new List<string>();
 
-        /// <summary>GenOpt console lines after the start banner, with paths removed.</summary>
+        /// <summary>
+        /// GenOpt console lines after the start banner, with paths removed. Compared for determinism only; not stored
+        /// in the golden traces (owner decision D4).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore]
         public List<string> Console { get; set; } = new List<string>();
 
         public List<string> Columns { get; set; } = new List<string>();
@@ -51,7 +55,7 @@ namespace SAM.Tests.GenOptOracle
 
                 string a = JsonSerializer.Serialize(first, Json.Options);
                 string b = JsonSerializer.Serialize(second, Json.Options);
-                bool deterministic = a == b;
+                bool deterministic = a == b && first.Console.SequenceEqual(second.Console);
                 if (!deterministic)
                 {
                     failures++;
