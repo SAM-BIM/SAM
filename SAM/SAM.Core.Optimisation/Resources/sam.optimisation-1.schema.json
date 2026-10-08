@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SAM-BIM/SAM/schemas/sam.optimisation-1.schema.json",
+  "title": "SAM optimisation definition (sam.optimisation/1)",
+  "description": "A portable, declarative optimisation problem: the model engine, the design variables and their bounds, the outputs the model reports, the objective, the search method and when it stops. It holds no file path and nothing executable. SAM reads it with its own strict reader (SAM.Core.Optimisation), which reports the same rules as engineering messages with line and column; what an engine can actually run (for example maximise or constraints) is checked against that engine's capabilities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "model", "variables", "outputs", "objective", "method"],
+  "properties": {
+    "schema": { "const": "sam.optimisation/1", "description": "The schema identifier." },
+    "name": { "type": "string", "description": "A short name." },
+    "description": { "type": "string", "description": "What the optimisation is for, in engineering terms." },
+    "notes": { "type": "string", "description": "Free engineering notes; never interpreted." },
+    "model": { "$ref": "#/$defs/model" },
+    "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" }, "description": "The design variables, in the order the engine receives them." },
+    "outputs": { "type": "array", "items": { "$ref": "#/$defs/output" }, "description": "Every output the model reports for each simulation; one is the objective, the others are recorded." },
+    "objective": { "$ref": "#/$defs/objective" },
+    "constraints": { "type": "array", "items": { "$ref": "#/$defs/constraint" }, "description": "Limits on outputs. Not runnable on an engine that cannot enforce constraints." },
+    "method": {
+      "description": "The search method. Settings left out use the engine's defaults.",
+      "oneOf": [
+        { "$ref": "#/$defs/goldenSection" },
+        { "$ref": "#/$defs/hookeJeeves" }
+      ]
+    },
+    "stopping": { "$ref": "#/$defs/stopping" }
+  },
+  "$defs": {
+    "quantity": {
+      "enum": ["dimensionless", "temperature", "temperature-difference", "percent", "time", "power", "energy", "mass", "carbon", "currency", "angle", "length", "area"],
+      "description": "The physical quantity a value represents (declared, not verified against the model)."
+    },
+    "unit": {
+      "type": "string",
+      "description": "A unit symbol such as °C, °F, K, %, h, W, kW, Wh, kWh, MWh, kg, t, kgCO2e, tCO2e, GBP, EUR, USD, °, m, m² or - (dimensionless). It describes the value; it is never verified against the model."
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine"],
+      "properties": {
+        "engine": { "type": "string", "minLength": 1, "description": "The engine that evaluates a design, for example \"tas-script\"." },
+        "description": { "type": "string" }
+      }
+    },
+    "variable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "minimum", "maximum"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "For a tas-script model, the name the script reads: Variables[\"name\"]." },
+        "description": { "type": "string" },
+        "type": { "enum": ["continuous", "integer", "discrete"], "default": "continuous" },
+        "quantity": { "$ref": "#/$defs/quantity" },
+        "unit": { "$ref": "#/$defs/unit" },
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number", "description": "Greater than minimum." },
+        "start": { "type": "number", "description": "Within [minimum, maximum]. Required by hooke-jeeves; not used by golden-section." },
+        "step": { "type": "number", "exclusiveMinimum": 0, "description": "Required by hooke-jeeves; not used by golden-section." }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "For a tas-script model, the name the script writes: ScriptOutput.SetValue(\"name\", value)." },
+        "description": { "type": "string" },
+        "quantity": { "$ref": "#/$defs/quantity" },
+        "unit": { "$ref": "#/$defs/unit" },
+        "aggregation": { "type": "string", "description": "How the model aggregated the value, for example \"annual-total\". Informational." }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output", "sense"],
+      "properties": {
+        "output": { "type": "string", "description": "The name of one of the outputs." },
+        "sense": { "enum": ["minimise", "maximise"] }
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output"],
+      "oneOf": [
+        { "required": ["atMost"], "not": { "required": ["atLeast"] } },
+        { "required": ["atLeast"], "not": { "required": ["atMost"] } }
+      ],
+      "properties": {
+        "output": { "type": "string", "description": "The name of one of the outputs." },
+        "atMost": { "type": "number", "description": "The largest acceptable value (inclusive)." },
+        "atLeast": { "type": "number", "description": "The smallest acceptable value (inclusive)." },
+        "unit": { "$ref": "#/$defs/unit" }
+      }
+    },
+    "goldenSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm"],
+      "description": "A line search on exactly one design variable between its bounds.",
+      "properties": {
+        "algorithm": { "const": "golden-section" },
+        "tolerance": { "type": "number", "exclusiveMinimum": 0, "description": "Stops when the objective values of the interval differ by less than this." }
+      }
+    },
+    "hookeJeeves": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm"],
+      "description": "Hooke-Jeeves pattern search on one or more design variables; each variable needs start and step.",
+      "properties": {
+        "algorithm": { "const": "hooke-jeeves" },
+        "stepReductionFactor": { "type": "integer", "minimum": 2 },
+        "initialStepExponent": { "type": "integer", "minimum": 0 },
+        "stepExponentIncrement": { "type": "integer", "minimum": 1 },
+        "stepReductions": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "stopping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maximumSimulations": { "type": "integer", "minimum": 1, "description": "The run stops after this many simulations." }
+      }
+    }
+  }
+}

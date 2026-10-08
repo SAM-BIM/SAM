@@ -24,6 +24,7 @@
     <ProjectReference Include="..\SAM.Core.Reporting\SAM.Core.Reporting.csproj" />
     <ProjectReference Include="..\SAM.Analytical.Reporting\SAM.Analytical.Reporting.csproj" />
     <ProjectReference Include="..\SAM.Core.Reporting.Pdf\SAM.Core.Reporting.Pdf.csproj" />
+    <ProjectReference Include="..\SAM.Core.Optimisation\SAM.Core.Optimisation.csproj" />
   </ItemGroup>
 
   <ItemGroup>
