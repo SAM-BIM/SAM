@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
+using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace SAM.Core.Optimisation
@@ -15,6 +17,8 @@ namespace SAM.Core.Optimisation
         /// round-trip form, so that reading the text gives back exactly the same values (no rounding) and writing an
         /// unchanged definition gives exactly the same text. Optional values that are not set are left out, and so are an
         /// empty constraint list and a number that is not finite. Non-ASCII text (for example "°C") is written as it is.
+        /// A binding's reference and parameters are written in ordinal key order, and empty ones are left out; options
+        /// keep their order.
         /// </summary>
         public static string ToJson(this OptimisationDefinition optimisationDefinition)
         {
@@ -56,6 +60,7 @@ namespace SAM.Core.Optimisation
                 writer.Property("maximum", variable.Maximum);
                 writer.Property("start", variable.Start);
                 writer.Property("step", variable.Step);
+                Binding(writer, "target", variable.Target);
                 writer.EndObject();
             }
 
@@ -75,6 +80,7 @@ namespace SAM.Core.Optimisation
                 writer.Property("quantity", OptimisationNames.Text(output.Quantity));
                 writer.Property("unit", output.Unit);
                 writer.Property("aggregation", output.Aggregation);
+                Binding(writer, "measure", output.Measure);
                 writer.EndObject();
             }
 
@@ -136,6 +142,108 @@ namespace SAM.Core.Optimisation
         }
 
         /// <summary>
+        /// A binding as one line of JSON, for example { "kind": "tsd.overheating-hours", "parameters": { "threshold": 28 } },
+        /// with the same keys, order and numbers as <see cref="ToJson"/> writes, so it can be copied into a definition.
+        /// </summary>
+        internal static string ToCompactJson(OptimisationBinding optimisationBinding)
+        {
+            if (optimisationBinding == null)
+            {
+                return null;
+            }
+
+            List<string> properties = new List<string>();
+            if (optimisationBinding.Kind != null)
+            {
+                properties.Add("\"kind\": " + ToJsonString(optimisationBinding.Kind));
+            }
+
+            List<KeyValuePair<string, string>> reference = OptimisationBinding.References(optimisationBinding);
+            if (reference.Count != 0)
+            {
+                properties.Add("\"reference\": { " + string.Join(", ", reference.Select(x => ToJsonString(x.Key) + ": " + ToJsonString(x.Value))) + " }");
+            }
+
+            List<KeyValuePair<string, double>> parameters = Parameters(optimisationBinding);
+            if (parameters.Count != 0)
+            {
+                properties.Add("\"parameters\": { " + string.Join(", ", parameters.Select(x => ToJsonString(x.Key) + ": " + x.Value.ToString("R", CultureInfo.InvariantCulture))) + " }");
+            }
+
+            List<string> options = (optimisationBinding as OptimisationTarget)?.Options?.FindAll(x => x != null);
+            if (options != null && options.Count != 0)
+            {
+                properties.Add("\"options\": [ " + string.Join(", ", options.Select(ToJsonString)) + " ]");
+            }
+
+            return "{ " + string.Join(", ", properties) + " }";
+        }
+
+        /// <summary>The text as a JSON string, quoted and escaped as <see cref="ToJson"/> writes it.</summary>
+        internal static string ToJsonString(string value)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            JsonTextWriter.Escape(stringBuilder, value ?? string.Empty);
+            return stringBuilder.ToString();
+        }
+
+        /// <summary>The binding's finite parameters in ordinal key order: the ones the text holds.</summary>
+        private static List<KeyValuePair<string, double>> Parameters(OptimisationBinding optimisationBinding)
+        {
+            // A parameter that is not finite is left out, like any other number: reading the text then uses the default.
+            return (optimisationBinding.Parameters ?? new Dictionary<string, double>()).Where(x => x.Key != null && !double.IsNaN(x.Value) && !double.IsInfinity(x.Value)).OrderBy(x => x.Key, StringComparer.Ordinal).ToList();
+        }
+
+        private static void Binding(JsonTextWriter writer, string name, OptimisationBinding optimisationBinding)
+        {
+            if (optimisationBinding == null)
+            {
+                return;
+            }
+
+            writer.BeginObject(name);
+            writer.Property("kind", optimisationBinding.Kind);
+
+            List<KeyValuePair<string, string>> reference = OptimisationBinding.References(optimisationBinding);
+            if (reference.Count != 0)
+            {
+                writer.BeginObject("reference");
+                foreach (KeyValuePair<string, string> keyValuePair in reference)
+                {
+                    writer.Property(keyValuePair.Key, keyValuePair.Value);
+                }
+
+                writer.EndObject();
+            }
+
+            List<KeyValuePair<string, double>> parameters = Parameters(optimisationBinding);
+            if (parameters.Count != 0)
+            {
+                writer.BeginObject("parameters");
+                foreach (KeyValuePair<string, double> keyValuePair in parameters)
+                {
+                    writer.Property(keyValuePair.Key, keyValuePair.Value);
+                }
+
+                writer.EndObject();
+            }
+
+            List<string> options = (optimisationBinding as OptimisationTarget)?.Options?.FindAll(x => x != null);
+            if (options != null && options.Count != 0)
+            {
+                writer.BeginArray("options");
+                foreach (string option in options)
+                {
+                    writer.Item(option);
+                }
+
+                writer.EndArray();
+            }
+
+            writer.EndObject();
+        }
+
+        /// <summary>
         /// A small pretty-printing JSON writer with the canonical layout: every object and list on its own lines, two
         /// spaces per level, "key": value with one space, an empty list as [].
         /// </summary>
@@ -173,6 +281,13 @@ namespace SAM.Core.Optimisation
                 }
 
                 Key(name);
+                String(value);
+            }
+
+            /// <summary>A text item of the current list.</summary>
+            public void Item(string value)
+            {
+                Separator();
                 String(value);
             }
 
@@ -258,6 +373,12 @@ namespace SAM.Core.Optimisation
             }
 
             private void String(string value)
+            {
+                Escape(stringBuilder, value);
+            }
+
+            /// <summary>Appends <paramref name="value"/> as a quoted JSON string: control characters escaped, other text as it is.</summary>
+            internal static void Escape(StringBuilder stringBuilder, string value)
             {
                 stringBuilder.Append('"');
                 foreach (char c in value)

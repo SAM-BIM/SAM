@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/SAM-BIM/SAM/schemas/sam.optimisation-1.schema.json",
   "title": "SAM optimisation definition (sam.optimisation/1)",
-  "description": "A portable, declarative optimisation problem: the model engine, the design variables and their bounds, the outputs the model reports, the objective, the search method and when it stops. It holds no file path and nothing executable. SAM reads it with its own strict reader (SAM.Core.Optimisation), which reports the same rules as engineering messages with line and column; what an engine can actually run (for example maximise or constraints) is checked against that engine's capabilities.",
+  "description": "A portable, declarative optimisation problem: the model engine, the design variables and their bounds (and, for an engine that changes the model itself, what each one changes: its target), the outputs the model reports (and what each one measures), the objective, the search method and when it stops. It holds no file path and nothing executable. SAM reads it with its own strict reader (SAM.Core.Optimisation), which reports the same rules as engineering messages with line and column; what an engine can actually run (for example maximise or constraints) is checked against that engine's capabilities.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "model", "variables", "outputs", "objective", "method"],
@@ -56,7 +56,8 @@
         "minimum": { "type": "number" },
         "maximum": { "type": "number", "description": "Greater than minimum." },
         "start": { "type": "number", "description": "Within [minimum, maximum]. Required by hooke-jeeves; not used by golden-section." },
-        "step": { "type": "number", "exclusiveMinimum": 0, "description": "Required by hooke-jeeves; not used by golden-section." }
+        "step": { "type": "number", "exclusiveMinimum": 0, "description": "Required by hooke-jeeves; not used by golden-section." },
+        "target": { "$ref": "#/$defs/target" }
       }
     },
     "output": {
@@ -68,7 +69,41 @@
         "description": { "type": "string" },
         "quantity": { "$ref": "#/$defs/quantity" },
         "unit": { "$ref": "#/$defs/unit" },
-        "aggregation": { "type": "string", "description": "How the model aggregated the value, for example \"annual-total\". Informational." }
+        "aggregation": { "type": "string", "description": "How the model aggregated the value, for example \"annual-total\". Informational." },
+        "measure": { "$ref": "#/$defs/measure" }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "The model item, by keys the engine defines and the model's own names, for example { \"internalCondition\": \"Office\" }. Left out when the kind refers to the whole model."
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": { "type": "number" },
+      "description": "Numeric settings the engine defines for the kind, for example { \"threshold\": 28 }. A setting left out uses the engine's default."
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "description": "What the design variable changes in the model. Only for an engine that lists target kinds; the engine's capabilities define the kinds, reference keys and parameters.",
+      "properties": {
+        "kind": { "type": "string", "minLength": 1, "description": "An engine-defined target kind, for example \"tbd.internal-condition.heating-setpoint\"." },
+        "reference": { "$ref": "#/$defs/reference" },
+        "parameters": { "$ref": "#/$defs/parameters" },
+        "options": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "For a choice target (a discrete variable numbered 1 to n): the model items to choose between, in order." }
+      }
+    },
+    "measure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "description": "What the output measures in the model's results. Only for an engine that lists measure kinds; the engine's capabilities define the kinds, reference keys and parameters.",
+      "properties": {
+        "kind": { "type": "string", "minLength": 1, "description": "An engine-defined measure kind, for example \"tsd.annual-heating-demand\"." },
+        "reference": { "$ref": "#/$defs/reference" },
+        "parameters": { "$ref": "#/$defs/parameters" }
       }
     },
     "objective": {

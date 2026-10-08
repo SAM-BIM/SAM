@@ -7,7 +7,8 @@ namespace SAM.Core.Optimisation
     /// A result the model reports for every simulation. One output is the objective
     /// (<see cref="OptimisationDefinition.Objective"/>); the others are recorded. For a "tas-script" model,
     /// <see cref="Name"/> is the name the script writes (<c>ScriptOutput.SetValue("name", value)</c>), and the script
-    /// computes the value (any aggregation, such as an annual total, happens there).
+    /// computes the value (any aggregation, such as an annual total, happens there); for an engine that reads the
+    /// results itself, <see cref="Measure"/> says what is measured and the name is a label.
     /// </summary>
     public sealed class OptimisationOutput
     {
@@ -33,6 +34,7 @@ namespace SAM.Core.Optimisation
             Quantity = optimisationOutput.Quantity;
             Unit = optimisationOutput.Unit;
             Aggregation = optimisationOutput.Aggregation;
+            Measure = optimisationOutput.Measure == null ? null : new OptimisationMeasure(optimisationOutput.Measure);
         }
 
         /// <summary>The identifier; for a "tas-script" model, the name the script writes. Required, unique.</summary>
@@ -52,5 +54,11 @@ namespace SAM.Core.Optimisation
         /// SAM does not compute it for a script output.
         /// </summary>
         public string Aggregation { get; set; }
+
+        /// <summary>
+        /// What the output measures in the model's results, for an engine that reads the results itself (for example
+        /// "tas-model"). Optional: null for a "tas-script" model, whose script writes the output by <see cref="Name"/>.
+        /// </summary>
+        public OptimisationMeasure Measure { get; set; }
     }
 }

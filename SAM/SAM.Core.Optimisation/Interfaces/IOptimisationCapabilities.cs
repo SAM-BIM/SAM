@@ -29,5 +29,17 @@ namespace SAM.Core.Optimisation
 
         /// <summary>True when the engine enforces <see cref="OptimisationDefinition.Constraints"/>.</summary>
         bool SupportsConstraints { get; }
+
+        /// <summary>
+        /// The target kinds the engine can change in the model. Empty for an engine that takes no targets (its script
+        /// changes the model); otherwise every design variable must have one of these as its target.
+        /// </summary>
+        IReadOnlyList<OptimisationBindingCapability> Targets { get; }
+
+        /// <summary>
+        /// The measure kinds the engine can read from the results. Empty for an engine that takes no measures (its script
+        /// reports the outputs); otherwise every output must have one of these as its measure.
+        /// </summary>
+        IReadOnlyList<OptimisationBindingCapability> Measures { get; }
     }
 }

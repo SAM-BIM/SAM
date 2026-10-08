@@ -22,9 +22,23 @@ namespace SAM.Core.Optimisation
         /// <item>OPT4xx method: the method's own settings (always), then, when <paramref name="capabilities"/> is given,
         /// what the engine can run. A definition asking for more than the engine runs (for example maximise or a
         /// constraint) is reported as an error, so it stays valid to read and edit but is not runnable.</item>
+        /// <item>OPT6xx bindings (targets and measures): what a binding can be checked for on its own (always), then
+        /// against the kinds the engine lists in <paramref name="capabilities"/>. An engine that lists no kinds (for
+        /// example "tas-script") takes no bindings, and a definition without bindings has no OPT6xx finding there.</item>
         /// </list>
         /// </summary>
         public static List<OptimisationDiagnostic> Diagnostics(this OptimisationDefinition optimisationDefinition, IOptimisationCapabilities capabilities = null)
+        {
+            return Diagnostics(optimisationDefinition, capabilities, null);
+        }
+
+        /// <summary>
+        /// <see cref="Diagnostics(OptimisationDefinition, IOptimisationCapabilities)"/>, and when
+        /// <paramref name="catalogue"/> lists the model's items (<see cref="OptimisationCatalogue.HasBindings"/>), also that
+        /// every target and measure is one of them and every option one the item offers (OPT609, OPT614). A name-only
+        /// catalogue (a script's names) adds nothing.
+        /// </summary>
+        public static List<OptimisationDiagnostic> Diagnostics(this OptimisationDefinition optimisationDefinition, IOptimisationCapabilities capabilities, OptimisationCatalogue catalogue)
         {
             List<OptimisationDiagnostic> result = new List<OptimisationDiagnostic>();
             if (optimisationDefinition == null)
@@ -35,9 +49,16 @@ namespace SAM.Core.Optimisation
             Meaning(optimisationDefinition, result);
             Units(optimisationDefinition, result);
             Method(optimisationDefinition, result);
+            BindingMeaning(optimisationDefinition, result);
             if (capabilities != null)
             {
                 Capability(optimisationDefinition, capabilities, result);
+                BindingCapability(optimisationDefinition, capabilities, result);
+            }
+
+            if (catalogue != null && catalogue.HasBindings)
+            {
+                BindingCatalogue(optimisationDefinition, capabilities, catalogue, result);
             }
 
             return result;
@@ -58,6 +79,17 @@ namespace SAM.Core.Optimisation
             }
 
             return optimisationDefinition != null && optimisationDefinition.Diagnostics(capabilities).IsRunnable();
+        }
+
+        /// <summary>True when the definition has no error for an engine with <paramref name="capabilities"/> and a model with <paramref name="catalogue"/>.</summary>
+        public static bool IsRunnable(this OptimisationDefinition optimisationDefinition, IOptimisationCapabilities capabilities, OptimisationCatalogue catalogue)
+        {
+            if (capabilities == null)
+            {
+                throw new ArgumentNullException(nameof(capabilities));
+            }
+
+            return optimisationDefinition != null && optimisationDefinition.Diagnostics(capabilities, catalogue).IsRunnable();
         }
 
         private static void Meaning(OptimisationDefinition optimisationDefinition, List<OptimisationDiagnostic> result)

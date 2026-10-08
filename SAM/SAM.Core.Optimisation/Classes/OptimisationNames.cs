@@ -16,8 +16,10 @@ namespace SAM.Core.Optimisation
         // Property names per object, in canonical (written) order.
         internal static readonly string[] Definition = { "schema", "name", "description", "notes", "model", "variables", "outputs", "objective", "constraints", "method", "stopping" };
         internal static readonly string[] Model = { "engine", "description" };
-        internal static readonly string[] Variable = { "name", "description", "type", "quantity", "unit", "minimum", "maximum", "start", "step" };
-        internal static readonly string[] Output = { "name", "description", "quantity", "unit", "aggregation" };
+        internal static readonly string[] Variable = { "name", "description", "type", "quantity", "unit", "minimum", "maximum", "start", "step", "target" };
+        internal static readonly string[] Output = { "name", "description", "quantity", "unit", "aggregation", "measure" };
+        internal static readonly string[] Target = { "kind", "reference", "parameters", "options" };
+        internal static readonly string[] Measure = { "kind", "reference", "parameters" };
         internal static readonly string[] Objective = { "output", "sense" };
         internal static readonly string[] Constraint = { "output", "atMost", "atLeast", "unit" };
         internal static readonly string[] GoldenSection = { "algorithm", "tolerance" };
@@ -31,6 +33,8 @@ namespace SAM.Core.Optimisation
             { "model", Model },
             { "variable", Variable },
             { "output", Output },
+            { "target", Target },
+            { "measure", Measure },
             { "objective", Objective },
             { "constraint", Constraint },
             { "goldenSection", GoldenSection },

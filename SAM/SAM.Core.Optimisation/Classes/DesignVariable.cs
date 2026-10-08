@@ -5,7 +5,8 @@ namespace SAM.Core.Optimisation
 {
     /// <summary>
     /// A value the optimiser may change between simulations, within <see cref="Minimum"/> and <see cref="Maximum"/>.
-    /// For a "tas-script" model, <see cref="Name"/> is the name the script reads (<c>Variables["name"]</c>).
+    /// For a "tas-script" model, <see cref="Name"/> is the name the script reads (<c>Variables["name"]</c>); for an
+    /// engine that changes the model itself, <see cref="Target"/> says what changes and the name is a label.
     /// </summary>
     public sealed class DesignVariable
     {
@@ -38,6 +39,7 @@ namespace SAM.Core.Optimisation
             Maximum = designVariable.Maximum;
             Start = designVariable.Start;
             Step = designVariable.Step;
+            Target = designVariable.Target == null ? null : new OptimisationTarget(designVariable.Target);
         }
 
         /// <summary>The identifier; for a "tas-script" model, the name the script reads. Required, unique.</summary>
@@ -65,5 +67,11 @@ namespace SAM.Core.Optimisation
 
         /// <summary>The initial step. Required by pattern search; not used by golden section (kept and passed on when given).</summary>
         public double? Step { get; set; }
+
+        /// <summary>
+        /// What the variable changes in the model, for an engine that changes the model itself (for example
+        /// "tas-model"). Optional: null for a "tas-script" model, whose script reads the variable by <see cref="Name"/>.
+        /// </summary>
+        public OptimisationTarget Target { get; set; }
     }
 }
