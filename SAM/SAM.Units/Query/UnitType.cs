@@ -147,6 +147,13 @@ namespace SAM.Units
 
                 case Units.UnitCategory.Angle:
                     return Units.UnitType.Degree;
+
+                // Building energy is reported in kWh in both styles; SAM has no Imperial energy or mass unit.
+                case Units.UnitCategory.Energy:
+                    return Units.UnitType.KilowattHour;
+
+                case Units.UnitCategory.Mass:
+                    return Units.UnitType.Kilogram;
             }
 
             return Units.UnitType.Undefined;

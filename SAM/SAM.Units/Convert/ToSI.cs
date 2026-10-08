@@ -155,6 +155,16 @@ namespace SAM.Units
 
                 case UnitType.Degree:
                     return ByUnitType(value, from, UnitType.Radian);
+
+                // Energy and mass have one unit system: they go to the category's default unit (kWh, kg).
+                case UnitType.WattHour:
+                case UnitType.KilowattHour:
+                case UnitType.MegawattHour:
+                    return ByUnitType(value, from, UnitType.KilowattHour);
+
+                case UnitType.Kilogram:
+                case UnitType.Tonne:
+                    return ByUnitType(value, from, UnitType.Kilogram);
             }
 
             return double.NaN;

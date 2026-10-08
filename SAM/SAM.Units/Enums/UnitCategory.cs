@@ -33,5 +33,7 @@ namespace SAM.Units
         [Description("Count")] Count,
         [Description("Ratio")] Ratio,
         [Description("Angle")] Angle,
+        [Description("Energy")] Energy,
+        [Description("Mass")] Mass,
     }
 }
