@@ -6,7 +6,7 @@
 
 ## Last updated
 
-2026-10-07 (Part O stable semantic design key closeout, SAM#184).
+2026-10-08 (Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
 
 ## Current status
 
@@ -222,6 +222,28 @@ Not yet set by the owner. Record them here at the first Q4 planning pass. Known 
 # Historical record - 2026-Q3 (frozen)
 
 Source: last revision of the file on `sow/2026-Q3`, commit `689f75d5` (the file was removed from the Q3 tip by `8ab6a62b`; `sow/2026-Q3` tip is `3fcd64bf`). Preserved verbatim except that heading levels are shifted down one. Everything below describes Q3 and is not a current instruction.
+
+## Java-free GenOpt replacement — PR6, `Java8FloatText` comment (2026-10-08)
+
+- **Status:** complete, closed. SAM-BIM/SAM#185 (`docs/java8floattext-runtime-comment`) merged into `sow/2026-Q4` as
+  merge commit `bac7507c35e4d380aca11c2635d00ef4c2203057` (parents: Q4 base `f391e022` + reviewed PR head
+  `eb1efdcb3166e20d0ff99d335b63253063765dd6`; merge tree `bbeef13b` identical to the head tree); merge method: merge
+  commit with `--match-head-commit`. PR CI (`build`, `test`, `spdx`) green on the head; post-merge `Build (Windows)` and
+  `Test` on `bac7507c` green. Branch removed locally and on origin.
+- **Work completed:** comment only in `SAM.Math/Classes/Optimisation/Java8FloatText.cs`: the sentence ".NET Framework parser
+  is not correctly rounded" (deferred from PR3 to PR6) now states that the class converts with its own exact arithmetic
+  so its result does not depend on any runtime's `double.Parse`, without naming .NET Framework hosts. No code or binary
+  behaviour change. `Java8FloatText` is not obsoleted by the Java retirement: it models GenOpt's arithmetic, which the
+  native optimiser reproduces.
+- **Review:** Codex P2 on the first wording (named .NET Framework Revit/Rhino hosts, contradicting the 2026-10-07 owner
+  decision that SAM no longer supports .NET Framework) fixed in `eb1efdcb`, thread resolved.
+- **Programme context:** independent part of the PR6 set: SAM_Tas#87 (legacy Java route retired, `NativeGenOptOutcome`;
+  merge `8dffaa3d`), SAM_Tas_Grasshopper#12 (merge `c43c2cad`), SAM_UI#212 (merge `a985d7d9`). Record: SAM_Tas
+  `SAM_Tas/SAM.Analytical.Tas.GenOpt/NATIVE_GENOPT_PR6.md`.
+- **Files changed:** 1 (`Java8FloatText.cs`). **Validation:** `dotnet build SAM.Math.csproj -c Release` 0 errors; CI green.
+- **Unresolved issues, risks:** none for SAM. SAM_Deploy follow-up (separate): ship one current `SAM.Math.dll` to every
+  SAM/Rhino location.
+- **Next step:** none for this PR.
 
 ## Part O stable semantic design key (2026-10-07)
 
