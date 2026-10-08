@@ -6,7 +6,7 @@
 
 ## Last updated
 
-2026-10-08 (default aperture library `SIM_EXT_GLZ` Guid fix closeout, SAM#189; native Optimisation PR6 model bindings closeout, SAM#188; native Optimisation PR3 `SAM.Core.Optimisation` closeout, SAM#187; native Optimisation PR2 energy/mass units and display formatting closeout, SAM#186; Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
+2026-10-08 (native Optimisation PR6b "try every option" closeout, SAM#190; default aperture library `SIM_EXT_GLZ` Guid fix closeout, SAM#189; native Optimisation PR6 model bindings closeout, SAM#188; native Optimisation PR3 `SAM.Core.Optimisation` closeout, SAM#187; native Optimisation PR2 energy/mass units and display formatting closeout, SAM#186; Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
 
 ## Current status
 
@@ -495,6 +495,62 @@ Source: last revision of the file on `sow/2026-Q3`, commit `689f75d5` (the file 
   - Owner: Build All and deploy, so installed copies pick up the fixed Guid.
   - Optional: update the SAM_Tas PR7a-2 record to name `04d00dd0-…`.
   - Optional: handle the persisted-settings case in a future change (owner: "we fix in future").
+
+## "Try every option" method and runnable choice variables — native Optimisation PR6b (2026-10-08)
+
+- **Status:** complete, closed.
+  - SAM-BIM/SAM#190 (`feature/optimisation-try-every-option`) merged into `sow/2026-Q4` as merge commit
+    `d5253b4a075886039e46de57e7e6e5a63c51ea8b`. Parents: Q4 head `86b9dcd2` and PR head
+    `4312ba4432bc1fc9e43ddcd46cbfe16a7f439594`. The merge tree `d323035b` is identical to the head tree.
+  - Merge method: merge commit with `--match-head-commit`, after the owner's explicit approval.
+  - PR CI (`build (Release)`, `test (Release)`, `spdx`) green on `4312ba44`. No review comments or threads.
+  - Branch removed on origin and locally.
+  - Record: `documentation/OptimisationDefinition-TryEveryOption-PR.md`. Follows the owner decisions of 2026-10-08 on
+    SAM_Tas#90 (PR7a-2): the glazing target is a choice among real systems run by "try every option"; SAM first.
+- **Work completed (SAM only; SAM_Tas, SAM_UI, Grasshopper unchanged):**
+  - **Schema:** method `"try-every-option"` (`OptimisationAlgorithm.TryEveryOption`, appended; `TryEveryOptionMethod`,
+    no settings). Reader/writer canonical; another method's setting in it is OPT105 naming that method. Schema resource
+    gains `$defs.tryEveryOption`.
+  - **Diagnostics:**
+    - OPT409 (method, no capabilities needed): try every option on a non-choice, or a choice with golden section /
+      Hooke–Jeeves;
+    - OPT416: `maximumSimulations` below the number of options;
+    - OPT615 extended: a `"discrete"` variable without `options` is allowed, numbered 1 to a whole n;
+    - OPT616: more options than the kind's new `OptimisationBindingCapability.MaximumOptions` (8-argument constructor;
+      the 7-argument one kept);
+    - OPT408 info: try every option keeps but does not use start/step (a start must still be in 1..n, OPT205);
+    - OPT412 (one variable via `OptimisationAlgorithmCapability(TryEveryOption, 1, 1)`) hint suggests only suitable
+      methods; OPT415 unchanged.
+  - **AI text:** `"discrete"`, the choice rules and `"try-every-option"` are offered only when the engine runs both;
+    choice entries show `options (at most N)`.
+  - **Kernel (`SAM.Math.TryEveryOption`):** every whole number Minimum..Maximum of one parameter, in order, one at a
+    time; each option an `OptimisationEvent.OptionEvaluated` entry (appended enum value); the lowest objective reported
+    as `MinimumPoint` (ties to the lower option, NaN never wins, none if no number). Shared evaluation layer: a failed
+    option **stops** the run (first not retried, later retried once), no best; cancellation; every option a counted
+    simulation. More options than `MaximumSimulations` throws before evaluating.
+- **Decisions:** stop-not-skip on failure (a table with a hole cannot name a best; matches SAM_Tas
+  `NativeGenOptOutcome`); option limit is an engine capability per target kind, not schema; a choice runs on its own
+  through the engine's capability (1, 1), not a schema rule; `"integer"` stays reserved.
+- **Files changed:** 23 (+1331/−60): `SAM.Math` (new `TryEveryOption.cs`; `EvaluationContext.ReportLowest`; enum and
+  comments), `SAM.Core.Optimisation` (new `TryEveryOptionMethod.cs`; names, reader, binding capability, diagnostics,
+  binding diagnostics, AI text, schema), `SAM.Tests` (new `OptimisationTryEveryOptionTests.cs`; fixtures helper; the
+  four optimisation suites; `glazing-choice.json` now `"try-every-option"`, no start/step), the record.
+- **Validation:**
+  - `dotnet build SAM.sln -c Release` 0 errors; `SAM.Core.Optimisation` 0 warnings.
+  - `SAM.Tests` **3414/3414** (3357 before, +57); optimisation suites 421 (364 before).
+  - Mutations M1–M14 all caught (5, 3, 10, 1, 2, 4, 3, 2, 1, 1, 4, 2, 1, 33 failing tests).
+  - Unchanged downstream against this build: SAM_Tas `SAM.Analytical.Tas.GenOpt.Tests` **257/257**; SAM_UI Release
+    `SAM_UI.sln` 0 errors and `TasOptimisation*` **121/121**.
+- **Unresolved issues, risks:**
+  - Versioning (open since PR3): an older SAM reads `"try-every-option"` as OPT111.
+  - Kinds/keys still PR6 placeholders until PR7b (`tbd.glazing-construction.choice`, `glazingConstruction`).
+  - New enum values are unseen by consumers until PR7b/PR8 (their switches have defaults; SAM_UI's algorithm name falls
+    back to the enum name).
+  - `SAM.Core.Optimisation` and the new `SAM.Math` are not deployed yet (PR10).
+- **Next step:** PR7b in SAM_Tas (catalogue reader, unique-name option writing, pane swap, engine `tas-model`,
+  capabilities `TryEveryOption` (1, 1) + `Discrete` + glazing choice `MaximumOptions` 8, and the kernel mapping in the
+  record), only when the owner starts it. Before PR7b, rebuild SAM's `build\` from this merge (the SAM_Tas and SAM_UI
+  HintPaths read it).
 
 ## Part O stable semantic design key (2026-10-07)
 
