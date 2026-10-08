@@ -8,7 +8,10 @@ namespace SAM.Math
     {
         Undefined,
 
-        /// <summary>Pattern search: the step reductions are exhausted. Golden section: the stopping criterion is met.</summary>
+        /// <summary>
+        /// Pattern search: the step reductions are exhausted. Golden section: the stopping criterion is met. Try every
+        /// option: every option was evaluated.
+        /// </summary>
         Success,
 
         /// <summary>

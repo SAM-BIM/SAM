@@ -244,7 +244,7 @@ namespace SAM.Core.Optimisation
             if (property == null || property.Value.Kind == OptimisationJsonKind.Null)
             {
                 Error("OPT110", path, "The method does not say which algorithm to use (\"algorithm\" is missing).", "Add \"algorithm\": " + string.Join(" or ", OptimisationNames.Texts<OptimisationAlgorithm>().Select(x => "\"" + x + "\"")) + ".", node);
-                Properties(node, path, OptimisationNames.GoldenSection.Union(OptimisationNames.HookeJeeves).ToArray());
+                Properties(node, path, OptimisationNames.Methods.Values.SelectMany(x => x).Distinct().ToArray());
                 return null;
             }
 
@@ -254,34 +254,32 @@ namespace SAM.Core.Optimisation
                 return null;
             }
 
+            Dictionary<string, OptimisationJsonProperty> properties = Properties(node, path, OptimisationNames.Methods[optimisationAlgorithm], optimisationAlgorithm);
             switch (optimisationAlgorithm)
             {
                 case OptimisationAlgorithm.GoldenSection:
+                    return new GoldenSectionMethod() { Tolerance = Number(properties, "tolerance", path, node, false) };
+
+                case OptimisationAlgorithm.HookeJeeves:
+                    return new HookeJeevesMethod()
                     {
-                        Dictionary<string, OptimisationJsonProperty> properties = Properties(node, path, OptimisationNames.GoldenSection, OptimisationNames.HookeJeeves, "hooke-jeeves");
-                        return new GoldenSectionMethod() { Tolerance = Number(properties, "tolerance", path, node, false) };
-                    }
+                        StepReductionFactor = Integer(properties, "stepReductionFactor", path, node, false),
+                        InitialStepExponent = Integer(properties, "initialStepExponent", path, node, false),
+                        StepExponentIncrement = Integer(properties, "stepExponentIncrement", path, node, false),
+                        StepReductions = Integer(properties, "stepReductions", path, node, false),
+                    };
 
                 default:
-                    {
-                        Dictionary<string, OptimisationJsonProperty> properties = Properties(node, path, OptimisationNames.HookeJeeves, OptimisationNames.GoldenSection, "golden-section");
-                        return new HookeJeevesMethod()
-                        {
-                            StepReductionFactor = Integer(properties, "stepReductionFactor", path, node, false),
-                            InitialStepExponent = Integer(properties, "initialStepExponent", path, node, false),
-                            StepExponentIncrement = Integer(properties, "stepExponentIncrement", path, node, false),
-                            StepReductions = Integer(properties, "stepReductions", path, node, false),
-                        };
-                    }
+                    return new TryEveryOptionMethod();
             }
         }
 
         /// <summary>
         /// The object's properties by name. Unknown properties (OPT105, with a suggestion) and repeated ones (OPT106)
-        /// are reported; the first of a repeated property is kept. A property of another method is reported as
-        /// belonging to it.
+        /// are reported; the first of a repeated property is kept. In a "method" object (<paramref name="algorithm"/>
+        /// given), a property of another method is reported as belonging to it.
         /// </summary>
-        private Dictionary<string, OptimisationJsonProperty> Properties(OptimisationJsonNode node, string path, string[] names, string[] names_Other = null, string other = null)
+        private Dictionary<string, OptimisationJsonProperty> Properties(OptimisationJsonNode node, string path, string[] names, OptimisationAlgorithm? algorithm = null)
         {
             Dictionary<string, OptimisationJsonProperty> result = new Dictionary<string, OptimisationJsonProperty>(StringComparer.Ordinal);
             if (node == null || node.Kind != OptimisationJsonKind.Object)
@@ -301,7 +299,8 @@ namespace SAM.Core.Optimisation
 
                 if (!names.Contains(property.Name))
                 {
-                    if (names_Other != null && names_Other.Contains(property.Name))
+                    string other = algorithm == null ? null : OptimisationNames.Methods.Where(x => x.Key != algorithm.Value && x.Value.Contains(property.Name)).Select(x => OptimisationNames.Text(x.Key)).FirstOrDefault();
+                    if (other != null)
                     {
                         Error("OPT105", path_Property, "\"" + property.Name + "\" is a setting of the " + other + " method, not of this one.", "Remove it, or change \"algorithm\".", property);
                         continue;

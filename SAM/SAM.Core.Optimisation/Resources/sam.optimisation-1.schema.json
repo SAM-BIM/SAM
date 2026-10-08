@@ -20,7 +20,8 @@
       "description": "The search method. Settings left out use the engine's defaults.",
       "oneOf": [
         { "$ref": "#/$defs/goldenSection" },
-        { "$ref": "#/$defs/hookeJeeves" }
+        { "$ref": "#/$defs/hookeJeeves" },
+        { "$ref": "#/$defs/tryEveryOption" }
       ]
     },
     "stopping": { "$ref": "#/$defs/stopping" }
@@ -50,13 +51,13 @@
       "properties": {
         "name": { "type": "string", "minLength": 1, "description": "For a tas-script model, the name the script reads: Variables[\"name\"]." },
         "description": { "type": "string" },
-        "type": { "enum": ["continuous", "integer", "discrete"], "default": "continuous" },
+        "type": { "enum": ["continuous", "integer", "discrete"], "default": "continuous", "description": "\"discrete\" is a choice between options numbered 1 to n (minimum 1, maximum n), searched only by try-every-option. \"integer\" is reserved." },
         "quantity": { "$ref": "#/$defs/quantity" },
         "unit": { "$ref": "#/$defs/unit" },
-        "minimum": { "type": "number" },
-        "maximum": { "type": "number", "description": "Greater than minimum." },
-        "start": { "type": "number", "description": "Within [minimum, maximum]. Required by hooke-jeeves; not used by golden-section." },
-        "step": { "type": "number", "exclusiveMinimum": 0, "description": "Required by hooke-jeeves; not used by golden-section." },
+        "minimum": { "type": "number", "description": "1 for a discrete choice." },
+        "maximum": { "type": "number", "description": "Greater than minimum. The number of options for a discrete choice." },
+        "start": { "type": "number", "description": "Within [minimum, maximum]. Required by hooke-jeeves; not used by golden-section or try-every-option." },
+        "step": { "type": "number", "exclusiveMinimum": 0, "description": "Required by hooke-jeeves; not used by golden-section or try-every-option." },
         "target": { "$ref": "#/$defs/target" }
       }
     },
@@ -151,6 +152,15 @@
         "initialStepExponent": { "type": "integer", "minimum": 0 },
         "stepExponentIncrement": { "type": "integer", "minimum": 1 },
         "stepReductions": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "tryEveryOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm"],
+      "description": "One simulation per option of a discrete choice, in order 1 to n; the best is the lowest objective, a tie going to the lower option number. No settings; maximumSimulations, if given, must allow every option.",
+      "properties": {
+        "algorithm": { "const": "try-every-option" }
       }
     },
     "stopping": {

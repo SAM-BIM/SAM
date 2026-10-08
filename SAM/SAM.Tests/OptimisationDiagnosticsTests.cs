@@ -435,10 +435,15 @@ namespace SAM.Tests
         }
 
         [Fact]
-        public void ChoiceFixture_IsAValidShape_ButNotRunnable_WhileNoEngineRunsDiscreteVariables()
+        public void ChoiceFixture_IsRunnable_OnAnEngineThatRunsAChoice_AndNotOnOneThatDoesNot()
         {
-            Assert.Equal(new[] { "OPT415" }, OptimisationFixtures.Errors(Choice().Diagnostics(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue())));
             Assert.Empty(Choice().Diagnostics(OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue()));
+            Assert.True(Choice().IsRunnable(OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue()));
+
+            List<OptimisationDiagnostic> diagnostics = Choice().Diagnostics(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue());
+            Assert.Equal(new[] { "OPT411", "OPT415" }, OptimisationFixtures.Errors(diagnostics));
+            Assert.Equal("Try every option is not available with the Tas engine, so this definition cannot run.", OptimisationFixtures.Single(diagnostics, "OPT411").Message);
+            Assert.Equal("Glazing is a discrete variable, which the Tas engine does not run in this version, so this definition cannot run.", OptimisationFixtures.Single(diagnostics, "OPT415").Message);
         }
 
         [Fact]
@@ -826,6 +831,247 @@ namespace SAM.Tests
             optimisationDefinition.Output("Plant energy").Unit = "MWh";
 
             Assert.Empty(optimisationDefinition.Diagnostics());
+        }
+
+        // ---------- Try every option and choices (OPT408, OPT409, OPT412, OPT415, OPT416, OPT615, OPT616) ----------
+
+        /// <summary>An engine without targets that runs a choice by name (the script maps the option number).</summary>
+        private static readonly IOptimisationCapabilities ScriptChoices = new OptimisationCapabilities(
+            "tas-script",
+            "Tas",
+            new[] { new OptimisationAlgorithmCapability(OptimisationAlgorithm.GoldenSection, 1, 1), new OptimisationAlgorithmCapability(OptimisationAlgorithm.HookeJeeves, 1, null), new OptimisationAlgorithmCapability(OptimisationAlgorithm.TryEveryOption, 1, 1) },
+            new[] { ObjectiveSense.Minimise },
+            new[] { DesignVariableType.Continuous, DesignVariableType.Discrete },
+            false);
+
+        /// <summary>The golden-section fixture's Setpoint made a choice numbered 1 to 4 without named options, tried in full.</summary>
+        private static OptimisationDefinition ScriptChoice()
+        {
+            OptimisationDefinition optimisationDefinition = GoldenSection();
+            DesignVariable variable = optimisationDefinition.Variables[0];
+            variable.Type = DesignVariableType.Discrete;
+            variable.Minimum = 1;
+            variable.Maximum = 4;
+            variable.Start = null;
+            variable.Step = null;
+            optimisationDefinition.Method = new TryEveryOptionMethod();
+            return optimisationDefinition;
+        }
+
+        [Fact]
+        public void TryEveryOption_ContinuousVariable_IsAnError()
+        {
+            OptimisationDefinition optimisationDefinition = GoldenSection();
+            optimisationDefinition.Method = new TryEveryOptionMethod();
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics();
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(diagnostics, "OPT409");
+
+            Assert.Equal(DiagnosticSeverity.Error, optimisationDiagnostic.Severity);
+            Assert.Equal("$.variables[0].type", optimisationDiagnostic.Path);
+            Assert.Equal("Try every option runs only a choice (\"discrete\" variable); Setpoint is \"continuous\".", optimisationDiagnostic.Message);
+            Assert.Equal("Choose golden section or Hooke–Jeeves for it, or make it a choice: \"type\": \"discrete\", numbered 1 to the number of options.", optimisationDiagnostic.Hint);
+            Assert.False(optimisationDefinition.IsRunnable(ScriptChoices));
+        }
+
+        [Fact]
+        public void TryEveryOption_IntegerVariable_IsAnError()
+        {
+            OptimisationDefinition optimisationDefinition = ScriptChoice();
+            optimisationDefinition.Variables[0].Type = DesignVariableType.Integer;
+
+            Assert.Equal("Try every option runs only a choice (\"discrete\" variable); Setpoint is \"integer\".", OptimisationFixtures.Single(optimisationDefinition.Diagnostics(), "OPT409").Message);
+        }
+
+        [Theory]
+        [InlineData(OptimisationAlgorithm.HookeJeeves, "Hooke–Jeeves")]
+        [InlineData(OptimisationAlgorithm.GoldenSection, "golden section")]
+        public void Choice_WithAnotherMethod_IsAnError(OptimisationAlgorithm algorithm, string text)
+        {
+            OptimisationDefinition optimisationDefinition = Choice();
+            optimisationDefinition.Method = algorithm == OptimisationAlgorithm.HookeJeeves ? new HookeJeevesMethod() : new GoldenSectionMethod();
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(), "OPT409");
+
+            Assert.Equal("$.variables[0].type", optimisationDiagnostic.Path);
+            Assert.Equal("Glazing is a choice (\"discrete\"), which " + text + " cannot search: only try every option runs a choice.", optimisationDiagnostic.Message);
+            Assert.Equal("Use \"method\": { \"algorithm\": \"try-every-option\" }.", optimisationDiagnostic.Hint);
+            Assert.False(optimisationDefinition.IsRunnable(OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue()));
+        }
+
+        [Fact]
+        public void TryEveryOption_SecondVariable_IsAnError_ForAnEngineThatRunsOneChoice()
+        {
+            OptimisationDefinition optimisationDefinition = ScriptChoice();
+            optimisationDefinition.Variables.Add(new DesignVariable("Shading", 1, 3) { Type = DesignVariableType.Discrete });
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics(ScriptChoices);
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(diagnostics, "OPT412");
+
+            Assert.Equal(new[] { "OPT412" }, OptimisationFixtures.Errors(diagnostics));
+            Assert.Equal("Try every option optimises exactly one design variable; 2 are defined.", optimisationDiagnostic.Message);
+            Assert.Equal("Remove a variable.", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void TryEveryOption_WithAContinuousSecondVariable_ReportsBoth()
+        {
+            OptimisationDefinition optimisationDefinition = ScriptChoice();
+            optimisationDefinition.Variables.Add(new DesignVariable("Flow", 0, 1));
+
+            Assert.Equal(new[] { "OPT409", "OPT412" }, OptimisationFixtures.Errors(optimisationDefinition.Diagnostics(ScriptChoices)));
+            Assert.Equal("$.variables[1].type", OptimisationFixtures.Single(optimisationDefinition.Diagnostics(ScriptChoices), "OPT409").Path);
+        }
+
+        [Fact]
+        public void TwoContinuousVariables_OnGoldenSection_AreNotOfferedTryEveryOption()
+        {
+            OptimisationDefinition optimisationDefinition = GoldenSection();
+            optimisationDefinition.Variables.Add(new DesignVariable("Other", 0, 1));
+
+            Assert.Equal("Remove a variable, or choose Hooke–Jeeves.", OptimisationFixtures.Single(optimisationDefinition.Diagnostics(ScriptChoices), "OPT412").Hint);
+        }
+
+        [Fact]
+        public void TryEveryOption_StartAndStep_AreKeptButNotUsed()
+        {
+            OptimisationDefinition optimisationDefinition = Choice();
+            optimisationDefinition.Variables[0].Start = 1;
+            optimisationDefinition.Variables[0].Step = 1;
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue());
+            OptimisationDiagnostic optimisationDiagnostic = Assert.Single(diagnostics);
+
+            Assert.Equal("OPT408", optimisationDiagnostic.Code);
+            Assert.Equal(DiagnosticSeverity.Info, optimisationDiagnostic.Severity);
+            Assert.Equal("$.method", optimisationDiagnostic.Path);
+            Assert.Equal("Try every option tries each option in turn; the start and step of “Glazing” are kept but not used.", optimisationDiagnostic.Message);
+            Assert.True(diagnostics.IsRunnable());
+        }
+
+        [Fact]
+        public void TryEveryOption_AStartOutsideTheOptions_IsStillAnError()
+        {
+            OptimisationDefinition optimisationDefinition = Choice();
+            optimisationDefinition.Variables[0].Start = 4;
+
+            Assert.Equal("Glazing start 4 is outside its range (1 to 3).", OptimisationFixtures.Single(optimisationDefinition.Diagnostics(), "OPT205").Message);
+        }
+
+        [Theory]
+        [InlineData(2, true)]
+        [InlineData(3, false)]
+        public void OPT416_TheSimulationLimit_MustAllowEveryOption(int maximumSimulations, bool reported)
+        {
+            OptimisationDefinition optimisationDefinition = Choice();
+            optimisationDefinition.Stopping = new StoppingCriteria(maximumSimulations);
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue());
+
+            if (!reported)
+            {
+                Assert.Empty(diagnostics);
+                return;
+            }
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(diagnostics, "OPT416");
+            Assert.Equal("$.stopping.maximumSimulations", optimisationDiagnostic.Path);
+            Assert.Equal("Try every option needs one simulation per option: Glazing has 3 options, but the simulation limit is 2.", optimisationDiagnostic.Message);
+            Assert.Equal("Raise \"maximumSimulations\" to 3 or more (or leave it out), or remove options.", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void OPT416_CountsTheNumbersOfAChoiceWithoutNamedOptions()
+        {
+            OptimisationDefinition optimisationDefinition = ScriptChoice();
+            optimisationDefinition.Stopping = new StoppingCriteria(3);
+
+            Assert.Equal("Try every option needs one simulation per option: Setpoint has 4 options, but the simulation limit is 3.", OptimisationFixtures.Single(optimisationDefinition.Diagnostics(), "OPT416").Message);
+        }
+
+        [Fact]
+        public void ChoiceWithoutNamedOptions_IsRunnable_OnAnEngineThatTakesNoTargets()
+        {
+            Assert.Empty(ScriptChoice().Diagnostics(ScriptChoices));
+            Assert.True(ScriptChoice().IsRunnable(ScriptChoices));
+        }
+
+        [Theory]
+        [InlineData(0, 3, "Setpoint is a choice (\"discrete\"), numbered 1 to the number of options, so its minimum must be 1 and its maximum a whole number; they are 0 and 3.")]
+        [InlineData(1, 3.5, "Setpoint is a choice (\"discrete\"), numbered 1 to the number of options, so its minimum must be 1 and its maximum a whole number; they are 1 and 3.5.")]
+        public void OPT615_AChoiceWithoutNamedOptions_IsNumberedFromOne(double minimum, double maximum, string message)
+        {
+            OptimisationDefinition optimisationDefinition = ScriptChoice();
+            optimisationDefinition.Variables[0].Minimum = minimum;
+            optimisationDefinition.Variables[0].Maximum = maximum;
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(), "OPT615");
+
+            Assert.Equal("$.variables[0].minimum", optimisationDiagnostic.Path);
+            Assert.Equal(message, optimisationDiagnostic.Message);
+            Assert.Equal("Use \"minimum\": 1 and \"maximum\": the number of options.", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void OPT615_ASingleOptionIsReportedOnce_AsARangeThatCannotChange()
+        {
+            OptimisationDefinition optimisationDefinition = ScriptChoice();
+            optimisationDefinition.Variables[0].Maximum = 1;
+
+            Assert.Equal(new[] { "OPT204" }, OptimisationFixtures.Errors(optimisationDefinition.Diagnostics()));
+        }
+
+        [Theory]
+        [InlineData(8, null)]
+        [InlineData(9, "Remove 1 option.")]
+        [InlineData(10, "Remove 2 options.")]
+        public void OPT616_AChoiceListsAtMostTheKindsLimit(int count, string? hint)
+        {
+            OptimisationDefinition optimisationDefinition = Choice();
+            optimisationDefinition.Variables[0].Maximum = count;
+            optimisationDefinition.Variables[0].Target.Options = Enumerable.Range(1, count).Select(x => "Glazing " + x).ToList();
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel(true));
+
+            if (hint == null)
+            {
+                Assert.Empty(diagnostics);
+                return;
+            }
+
+            OptimisationDiagnostic optimisationDiagnostic = Assert.Single(diagnostics);
+            Assert.Equal("OPT616", optimisationDiagnostic.Code);
+            Assert.Equal("$.variables[0].target.options", optimisationDiagnostic.Path);
+            Assert.Equal("Glazing construction choice takes at most 8 options with the Tas engine (each option is one simulation), and Glazing lists " + count + ", so this definition cannot run.", optimisationDiagnostic.Message);
+            Assert.Equal(hint, optimisationDiagnostic.Hint);
+            Assert.Empty(optimisationDefinition.Diagnostics());
+        }
+
+        [Fact]
+        public void MaximumOptions_BelongsOnlyToAChoiceKind()
+        {
+            Assert.Null(new OptimisationBindingCapability("tbd.internal-condition.heating-setpoint", "Zone heating setpoint", OptimisationQuantity.Temperature, "°C", null, null, false, 8).MaximumOptions);
+            Assert.Null(new OptimisationBindingCapability("tbd.glazing-construction.choice", "Glazing", acceptsOptions: true).MaximumOptions);
+            Assert.Equal(8, new OptimisationBindingCapability("tbd.glazing-construction.choice", "Glazing", OptimisationQuantity.Unspecified, null, null, null, true, 8).MaximumOptions);
+        }
+
+        [Fact]
+        public void OPT415_StaysForAnEngineThatRunsTryEveryOption_ButNotDiscreteVariables()
+        {
+            OptimisationCapabilities capabilities = new OptimisationCapabilities("tas-script", "Tas", new[] { new OptimisationAlgorithmCapability(OptimisationAlgorithm.TryEveryOption, 1, 1) }, new[] { ObjectiveSense.Minimise }, new[] { DesignVariableType.Continuous }, false);
+
+            Assert.Equal(new[] { "OPT415" }, OptimisationFixtures.Errors(ScriptChoice().Diagnostics(capabilities)));
+        }
+
+        [Fact]
+        public void OPT411_ForAnEngineThatRunsDiscreteVariables_ButNotTryEveryOption()
+        {
+            OptimisationCapabilities capabilities = new OptimisationCapabilities("tas-script", "Tas", new[] { new OptimisationAlgorithmCapability(OptimisationAlgorithm.HookeJeeves, 1, null) }, new[] { ObjectiveSense.Minimise }, new[] { DesignVariableType.Continuous, DesignVariableType.Discrete }, false);
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(ScriptChoice().Diagnostics(capabilities), "OPT411");
+
+            Assert.Equal(new[] { "OPT411" }, OptimisationFixtures.Errors(ScriptChoice().Diagnostics(capabilities)));
+            Assert.Equal("Try every option is not available with the Tas engine, so this definition cannot run.", optimisationDiagnostic.Message);
         }
 
         [Fact]

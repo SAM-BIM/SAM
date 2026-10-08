@@ -19,8 +19,9 @@ namespace SAM.Core.Optimisation
         /// It describes only what <paramref name="capabilities"/> can run: a method, objective sense, variable type or
         /// constraint the engine cannot run is not offered. For an engine that changes and reads the model itself (it
         /// lists targets or measures), every design variable and output must be bound, and only the catalogue's model
-        /// items whose kind the engine lists are offered, each with its current value and unit; a choice target only
-        /// when the engine runs "discrete" variables. It holds no file path or machine detail: the definition is
+        /// items whose kind the engine lists are offered, each with its current value and unit; a choice target (and the
+        /// rules of a choice) only when the engine runs "discrete" variables and "try-every-option", with the options the
+        /// model offers and the kind's limit on their number. It holds no file path or machine detail: the definition is
         /// portable by design and nothing else is added. The reply is read back with
         /// <see cref="Create.OptimisationDefinition(string, out List{OptimisationDiagnostic}, IOptimisationCapabilities, bool)"/>
         /// (with extract set, in case the assistant adds a code fence anyway) and validated like any other definition.
@@ -37,15 +38,18 @@ namespace SAM.Core.Optimisation
                 throw new ArgumentNullException(nameof(capabilities));
             }
 
-            List<OptimisationAlgorithmCapability> algorithms = (capabilities.Algorithms ?? new List<OptimisationAlgorithmCapability>()).ToList();
+            // A choice needs both "discrete" variables and "try-every-option": neither is offered without the other.
+            bool choices = RunsChoices(capabilities);
+            List<OptimisationAlgorithmCapability> algorithms = (capabilities.Algorithms ?? new List<OptimisationAlgorithmCapability>()).Where(x => x != null && (choices || x.Algorithm != OptimisationAlgorithm.TryEveryOption)).ToList();
             List<string> senses = (capabilities.Senses ?? new List<ObjectiveSense>()).Select(x => "\"" + OptimisationNames.Text(x) + "\"").ToList();
-            List<string> variableTypes = (capabilities.VariableTypes ?? new List<DesignVariableType>()).Select(x => "\"" + OptimisationNames.Text(x) + "\"").ToList();
+            List<string> variableTypes = (capabilities.VariableTypes ?? new List<DesignVariableType>()).Where(x => choices || x != DesignVariableType.Discrete).Select(x => "\"" + OptimisationNames.Text(x) + "\"").ToList();
 
             // An engine that lists target or measure kinds runs only bound definitions; the others take names.
             bool bindings = (capabilities.Targets?.Count ?? 0) != 0 || (capabilities.Measures?.Count ?? 0) != 0;
             List<OptimisationCatalogueEntry> targets = OfferedTargets(capabilities, catalogue);
             List<OptimisationCatalogueEntry> measures = OfferedMeasures(capabilities, catalogue);
             bool options = targets.Exists(x => x.Options.Count != 0);
+            bool limited = targets.Exists(x => x.Options.Count != 0 && capabilities.Targets.First(y => y != null && y.Kind == x.Target.Kind).MaximumOptions != null);
 
             StringBuilder stringBuilder = new StringBuilder();
             void Line(string text = "") => stringBuilder.Append(text).Append('\n');
@@ -77,14 +81,21 @@ namespace SAM.Core.Optimisation
             Line("- variables[]: { \"name\", \"description\" (optional), \"type\": " + Either(variableTypes) + ", \"quantity\" (optional),");
             Line("  \"unit\" (optional), \"minimum\", \"maximum\", \"start\", \"step\"" + (bindings ? ", \"target\"" : string.Empty) + " }: minimum < maximum, start within [minimum, maximum],");
             Line("  step > 0. Numbers are plain JSON numbers, never text in quotes.");
+            if (choices)
+            {
+                Line("- A \"discrete\" variable is a choice between options numbered 1 to n: \"minimum\": 1, \"maximum\": n (1 is the first");
+                Line("  option), no \"start\" or \"step\". Only \"try-every-option\" searches a choice, and it searches only a choice.");
+            }
+
             if (bindings)
             {
                 Line("- target: { \"kind\", \"reference\", \"parameters\" } exactly as under AVAILABLE (reference and parameters only when");
                 Line("  shown there). Keep the range within the suggested range when one is shown.");
                 if (options)
                 {
-                    Line("- A choice target also has \"options\": two or more of the names listed for it under AVAILABLE. Its variable has");
-                    Line("  \"type\": \"discrete\", \"minimum\": 1 and \"maximum\": the number of options (1 is the first option).");
+                    Line("- A choice target also has \"options\": two or more of the names listed for it under AVAILABLE, copied exactly, in");
+                    Line("  the order to number them" + (limited ? " (at most as many as shown there)" : string.Empty) + ". Its variable is \"discrete\" with \"maximum\": the number");
+                    Line("  of options.");
                 }
             }
 
@@ -183,12 +194,25 @@ namespace SAM.Core.Optimisation
                 case OptimisationAlgorithm.HookeJeeves:
                     return "{ \"algorithm\": \"hooke-jeeves\", \"stepReductionFactor\": whole number >= 2, \"initialStepExponent\": whole number >= 0,\n" +
                            "    \"stepExponentIncrement\": whole number >= 1, \"stepReductions\": whole number >= 1 } (" + variables + "; each needs start and step)";
+                case OptimisationAlgorithm.TryEveryOption:
+                    return "{ \"algorithm\": \"try-every-option\" } (" + variables + ", a \"discrete\" choice; one simulation per option, in order;\n" +
+                           "    \"maximumSimulations\", if given, at least the number of options)";
             }
 
             return "{ \"algorithm\": \"" + OptimisationNames.Text(optimisationAlgorithmCapability.Algorithm) + "\" } (" + variables + ")";
         }
 
-        /// <summary>The catalogue's targets whose kind the engine lists; a choice target only when the engine runs "discrete" variables.</summary>
+        /// <summary>True when the engine runs a choice: "discrete" variables and the "try-every-option" method.</summary>
+        private static bool RunsChoices(IOptimisationCapabilities capabilities)
+        {
+            return capabilities.VariableTypes != null && capabilities.VariableTypes.Contains(DesignVariableType.Discrete)
+                && capabilities.Algorithms != null && capabilities.Algorithms.Any(x => x != null && x.Algorithm == OptimisationAlgorithm.TryEveryOption);
+        }
+
+        /// <summary>
+        /// The catalogue's targets whose kind the engine lists; a choice target only when the engine runs a choice
+        /// ("discrete" variables and "try-every-option", <see cref="RunsChoices"/>).
+        /// </summary>
         private static List<OptimisationCatalogueEntry> OfferedTargets(IOptimisationCapabilities capabilities, OptimisationCatalogue catalogue)
         {
             List<OptimisationCatalogueEntry> result = new List<OptimisationCatalogueEntry>();
@@ -200,7 +224,7 @@ namespace SAM.Core.Optimisation
                     continue;
                 }
 
-                if (optimisationBindingCapability.AcceptsOptions && (entry.Options.Count < 2 || capabilities.VariableTypes == null || !capabilities.VariableTypes.Contains(DesignVariableType.Discrete)))
+                if (optimisationBindingCapability.AcceptsOptions && (entry.Options.Count < 2 || !RunsChoices(capabilities)))
                 {
                     continue;
                 }
@@ -257,7 +281,8 @@ namespace SAM.Core.Optimisation
 
                 if (entry.Options.Count != 0)
                 {
-                    details.Add("options: " + string.Join(", ", entry.Options.Select(Convert.ToJsonString)));
+                    string limit = optimisationBindingCapability.MaximumOptions == null ? string.Empty : " (at most " + optimisationBindingCapability.MaximumOptions.Value.ToString(CultureInfo.InvariantCulture) + ")";
+                    details.Add("options" + limit + ": " + string.Join(", ", entry.Options.Select(Convert.ToJsonString)));
                 }
 
                 foreach (OptimisationBindingParameter optimisationBindingParameter in optimisationBindingCapability.Parameters)

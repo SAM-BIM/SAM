@@ -40,5 +40,11 @@ namespace SAM.Math
 
         /// <summary>A golden-section evaluation ("Linesearch.").</summary>
         LineSearch,
+
+        /// <summary>
+        /// <see cref="TryEveryOption"/>: the evaluation of one option. <see cref="OptimisationTraceEntry.Coordinates"/>
+        /// holds the option number. A SAM addition with no GenOpt listing comment.
+        /// </summary>
+        OptionEvaluated,
     }
 }

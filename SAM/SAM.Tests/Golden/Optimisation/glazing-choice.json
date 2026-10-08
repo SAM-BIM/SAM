@@ -1,7 +1,7 @@
 {
   "schema": "sam.optimisation/1",
   "name": "Office – glazing choice",
-  "description": "Which of three glazing constructions gives the fewest overheating hours. Shape only: no engine runs a choice yet.",
+  "description": "Which of three glazing constructions gives the fewest overheating hours, trying every one (one simulation each).",
   "model": {
     "engine": "tas-model"
   },
@@ -12,8 +12,6 @@
       "type": "discrete",
       "minimum": 1,
       "maximum": 3,
-      "start": 1,
-      "step": 1,
       "target": {
         "kind": "tbd.glazing-construction.choice",
         "reference": {
@@ -45,6 +43,6 @@
     "sense": "minimise"
   },
   "method": {
-    "algorithm": "hooke-jeeves"
+    "algorithm": "try-every-option"
   }
 }

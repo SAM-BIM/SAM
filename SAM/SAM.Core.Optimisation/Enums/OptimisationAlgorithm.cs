@@ -3,7 +3,7 @@
 
 namespace SAM.Core.Optimisation
 {
-    /// <summary>The search method. JSON: "golden-section", "hooke-jeeves".</summary>
+    /// <summary>The search method. JSON: "golden-section", "hooke-jeeves", "try-every-option".</summary>
     public enum OptimisationAlgorithm
     {
         /// <summary>A line search on exactly one design variable between its bounds.</summary>
@@ -11,5 +11,11 @@ namespace SAM.Core.Optimisation
 
         /// <summary>The Hooke-Jeeves generalised pattern search on one or more design variables.</summary>
         HookeJeeves,
+
+        /// <summary>
+        /// One simulation per option of a choice (a "discrete" variable numbered 1 to n), in order; the best is the
+        /// lowest objective, a tie going to the lower option number.
+        /// </summary>
+        TryEveryOption,
     }
 }

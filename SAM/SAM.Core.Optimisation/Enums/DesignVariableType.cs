@@ -12,7 +12,11 @@ namespace SAM.Core.Optimisation
         /// <summary>Whole numbers between the bounds. Reserved: no engine runs it yet.</summary>
         Integer,
 
-        /// <summary>One of a listed set of values. Reserved: no engine runs it yet.</summary>
+        /// <summary>
+        /// A choice between options, numbered 1 to n ("minimum" 1, "maximum" n; 1 is the first option). A choice
+        /// target names the options (<see cref="OptimisationTarget.Options"/>); without one the engine's script maps the
+        /// number. Searched only by <see cref="OptimisationAlgorithm.TryEveryOption"/>.
+        /// </summary>
         Discrete,
     }
 }

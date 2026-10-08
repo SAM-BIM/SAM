@@ -32,7 +32,7 @@ namespace SAM.Tests
         public static readonly IOptimisationCapabilities Everything = new OptimisationCapabilities(
             "tas-script",
             "Future",
-            new[] { new OptimisationAlgorithmCapability(OptimisationAlgorithm.GoldenSection, 1, 1), new OptimisationAlgorithmCapability(OptimisationAlgorithm.HookeJeeves, 1, null) },
+            new[] { new OptimisationAlgorithmCapability(OptimisationAlgorithm.GoldenSection, 1, 1), new OptimisationAlgorithmCapability(OptimisationAlgorithm.HookeJeeves, 1, null), new OptimisationAlgorithmCapability(OptimisationAlgorithm.TryEveryOption, 1, 1) },
             new[] { ObjectiveSense.Minimise, ObjectiveSense.Maximise },
             new[] { DesignVariableType.Continuous, DesignVariableType.Integer, DesignVariableType.Discrete },
             true);
@@ -45,18 +45,25 @@ namespace SAM.Tests
 
         /// <summary>
         /// Capabilities shaped like the planned "tas-model" engine (the real ones come from SAM_Tas in PR7b): the V1
-        /// targets and measures of the plan, plus a glazing choice target, and the Tas search methods.
-        /// <paramref name="discrete"/> adds "discrete" variables, which no engine runs yet.
+        /// targets and measures of the plan, plus a glazing choice target of at most 8 options (the owner's default), and
+        /// the Tas search methods. <paramref name="discrete"/> adds what a choice needs: "discrete" variables and "try
+        /// every option" on exactly one variable (a choice runs on its own in V1).
         /// </summary>
         public static OptimisationCapabilities TasModel(bool discrete = false)
         {
             OptimisationReferenceKey internalCondition = new OptimisationReferenceKey("internalCondition", "internal condition");
             OptimisationReferenceKey glazingConstruction = new OptimisationReferenceKey("glazingConstruction", "glazing construction");
 
+            List<OptimisationAlgorithmCapability> algorithms = new List<OptimisationAlgorithmCapability>() { new OptimisationAlgorithmCapability(OptimisationAlgorithm.GoldenSection, 1, 1), new OptimisationAlgorithmCapability(OptimisationAlgorithm.HookeJeeves, 1, null) };
+            if (discrete)
+            {
+                algorithms.Add(new OptimisationAlgorithmCapability(OptimisationAlgorithm.TryEveryOption, 1, 1));
+            }
+
             return new OptimisationCapabilities(
                 "tas-model",
                 "Tas",
-                new[] { new OptimisationAlgorithmCapability(OptimisationAlgorithm.GoldenSection, 1, 1), new OptimisationAlgorithmCapability(OptimisationAlgorithm.HookeJeeves, 1, null) },
+                algorithms,
                 new[] { ObjectiveSense.Minimise },
                 discrete ? new[] { DesignVariableType.Continuous, DesignVariableType.Discrete } : new[] { DesignVariableType.Continuous },
                 false,
@@ -66,7 +73,7 @@ namespace SAM.Tests
                     new OptimisationBindingCapability("tbd.internal-condition.cooling-setpoint", "Zone cooling setpoint", OptimisationQuantity.Temperature, "°C", new[] { internalCondition }),
                     new OptimisationBindingCapability("tbd.glazing-construction.g-value", "Glazing g-value", OptimisationQuantity.Dimensionless, "-", new[] { glazingConstruction }),
                     new OptimisationBindingCapability("tpd.controller.setpoint", "Plant controller setpoint", referenceKeys: new[] { new OptimisationReferenceKey("plantRoom", "plant room"), new OptimisationReferenceKey("controller", "controller") }),
-                    new OptimisationBindingCapability("tbd.glazing-construction.choice", "Glazing construction choice", referenceKeys: new[] { glazingConstruction }, acceptsOptions: true),
+                    new OptimisationBindingCapability("tbd.glazing-construction.choice", "Glazing construction choice", OptimisationQuantity.Unspecified, null, new[] { glazingConstruction }, null, true, 8),
                 },
                 new[]
                 {

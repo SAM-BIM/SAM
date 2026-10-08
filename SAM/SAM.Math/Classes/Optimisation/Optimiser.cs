@@ -7,12 +7,13 @@ using System.Threading;
 namespace SAM.Math
 {
     /// <summary>
-    /// Base of the native optimisation kernel: <see cref="CoordinateSearch"/>, <see cref="HookeJeeves"/> and
-    /// <see cref="GoldenSection"/>.
+    /// Base of the native optimisation kernel: <see cref="CoordinateSearch"/>, <see cref="HookeJeeves"/>,
+    /// <see cref="GoldenSection"/> and <see cref="TryEveryOption"/>.
     /// <para>
     /// Behaviour-compatible with GenOpt 3.1.1. Implementation written independently from the behavioural
     /// specification; no GenOpt source code copied. Specification: documentation/GenOpt-3.1.1-Behaviour.md; licence
-    /// and provenance details: THIRD_PARTY.md.
+    /// and provenance details: THIRD_PARTY.md. <see cref="TryEveryOption"/> is a SAM addition with no GenOpt parity
+    /// claim; it shares the same evaluation layer.
     /// </para>
     /// <para>
     /// The kernel implements that specification, not the textbook algorithms. For example, a pattern-search
