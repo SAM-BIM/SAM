@@ -6,7 +6,7 @@
 
 ## Last updated
 
-2026-10-08 (native Optimisation PR6 model bindings closeout, SAM#188; native Optimisation PR3 `SAM.Core.Optimisation` closeout, SAM#187; native Optimisation PR2 energy/mass units and display formatting closeout, SAM#186; Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
+2026-10-08 (default aperture library `SIM_EXT_GLZ` Guid fix closeout, SAM#189; native Optimisation PR6 model bindings closeout, SAM#188; native Optimisation PR3 `SAM.Core.Optimisation` closeout, SAM#187; native Optimisation PR2 energy/mass units and display formatting closeout, SAM#186; Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
 
 ## Current status
 
@@ -451,6 +451,50 @@ Source: last revision of the file on `sow/2026-Q3`, commit `689f75d5` (the file 
   - `SAM.Core.Optimisation` is still not deployed (plan PR10).
 - **Next step:** PR7a, the SAM_Tas licensed spike (evidence only), when the owner authorises it. Hand-over prompt
   `SAM-BIM\NEXT_SESSION_PROMPT_PR7A.md` on the authoring laptop (local, not in git; it points only to committed files).
+
+## Default aperture library: fixed Guid for `SIM_EXT_GLZ` (2026-10-08)
+
+- **Status:** complete, closed.
+  - SAM-BIM/SAM#189 (`fix/aperture-library-sim-ext-glz-guid`) merged into `sow/2026-Q4` as merge commit
+    `73fad11c53bfe5a2da555dda04d6149d0caf7d33`. Parents: Q4 head `4b2e6450` and PR head
+    `0461b0f02c0c00d5257b98cabbe7358b432c3273`. The merge tree `726895ac` is identical to the head tree.
+  - Merge method: merge commit with `--match-head-commit`, after the owner's explicit approval.
+  - PR CI (`build (Release)`, `test (Release)`, `spdx`) green on `0461b0f0`. Post-merge `Build (Windows)` and
+    `Test` on `73fad11c` were still running when this closeout was written.
+  - Branch removed on origin and locally.
+  - Record: `documentation/ApertureConstructionLibrary-Guid-PR.md`.
+- **Work completed:**
+  - `files/resources/Analytical/SAM_ApertureConstructionLibrary.JSON`: the Window `SIM_EXT_GLZ` had the malformed
+    Guid `4d00dd0-f646-4fbb-90e6-f8d9cd6634eb` (7 hex digits). `Core.Query.Guid(JsonObject)` replaces an unparseable
+    Guid with `Guid.NewGuid()`, so this construction got a new identity on every load. The value is now
+    `04d00dd0-f646-4fbb-90e6-f8d9cd6634eb` (the missing leading zero added). The file is otherwise byte-identical:
+    UTF-8 without BOM, LF line endings, no trailing newline.
+  - New `SAM/SAM.Tests/ApertureConstructionLibraryGuidTests.cs` (2 tests). Every library Guid parses; the Guids are
+    distinct and stable across two loads; `04d00dd0-…` is pinned to the Window `SIM_EXT_GLZ`.
+- **Why it matters:** SAM_UI's Glazing window (`GlazingCandidate`) and the native Optimisation glazing choice
+  (SAM_Tas PR7a-2, `SAM_Tas/SAM.Analytical.Tas.GenOpt/NATIVE_OPTIMISATION_PR7A2_GLAZING.md`, SAM_Tas#90) identify
+  systems by Guid.
+- **Decisions / assumptions:**
+  - No persisted data can refer to the old value, because it never survived a load.
+  - `LibraryFixtureTests.ApertureConstructionLibrary_RoundTrip` could not catch this defect. It compares
+    serialisations made after the random Guid was already assigned.
+- **Validation:**
+  - Guid scan of all 21 `*.json` files under `files/resources` (1817 values). This was the only malformed value;
+    after the fix there are none.
+  - The old value is referenced nowhere in the SAM-BIM checkouts except the SAM_Tas PR7a-2 record, which documents
+    the defect.
+  - Both new tests fail on the old value.
+  - `SAM.Tests` Release: **3357/3357**.
+- **Unresolved issues, risks:**
+  - Installed SAM resource copies keep the bad value until the next deploy. The owner will run Build All and
+    deploy.
+  - A persisted `ActiveSetting` file may still hold a random Guid that was serialised earlier.
+  - The library has five entries named `SIM_EXT_GLZ`, each with a distinct Guid. This data is unchanged.
+    Consumers must identify them by Guid.
+- **Next step:**
+  - Owner: Build All and deploy, so installed copies pick up the fixed Guid.
+  - Optional: update the SAM_Tas PR7a-2 record to name `04d00dd0-…`.
+  - Optional: handle the persisted-settings case in a future change (owner: "we fix in future").
 
 ## Part O stable semantic design key (2026-10-07)
 
