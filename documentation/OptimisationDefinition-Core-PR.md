@@ -13,6 +13,12 @@ PR1–PR3 are independent. **PR4+ (SAM_Tas adapter, SAM_UI form ⇄ definition �
 
 PR open, **not merged**. New netstandard2.0 library `SAM.Core.Optimisation` (references SAM.Units only), its tests, and fixtures. `SAM.sln` and `SAM.Tests.csproj` gain the project; nothing else changes.
 
+**Review and refresh (2026-10-08):**
+- **Independent review** (PR1–PR3 acceptance gate) verdict: CHANGE, with one required fix. `Query.Diagnostics` / `IsRunnable` accepted a definition built in code with a NaN or infinite minimum, maximum or start (no finding, runnable). The writer then leaves such a value out, so the saved text no longer read back. The plan's L3 "finite numbers" check was missing.
+- **Fixed:** new error **OPT214**, for a non-finite minimum, maximum, start, step, golden-section tolerance or constraint limit. The range, start and step checks that would follow are skipped for that value, so there is no double report.
+- **Refreshed:** the branch now contains `sow/2026-Q4` after SAM#186 (energy/mass units, merge `b52beaf3`) by a merge commit. There were no conflicts; the two PRs share no file.
+- Because SAM#186 is in, `kWh`/`MWh`/`kg`/`t`/`kgCO2e` now resolve to their `SAM.Units.UnitType` (tested).
+
 ## Why
 
 The native optimiser (Java-free GenOpt PR1–PR6) is configured only through a SAM_UI form, which:
@@ -163,7 +169,7 @@ A proven example, `SAM/SAM.Tests/Golden/Optimisation/systems-demo-golden-section
 | OPT111 | structure | Unknown enum value, with the allowed values |
 | OPT112 | structure | Not a whole number |
 | OPT113 / OPT114 / OPT115 | notes | Enum value normalised / comments dropped / text around a pasted object dropped |
-| OPT200–213 | meaning | Engine empty; no variables/outputs; names missing or repeated; **"Setpoint range is invalid: minimum 35 °C is greater than maximum 25 °C."**; start outside range; step ≤ 0; objective or constraint refers to a missing output (lists the outputs); constraint needs exactly one limit; maximumSimulations < 1 |
+| OPT200–214 | meaning | Engine empty; no variables/outputs; names missing or repeated; **"Setpoint range is invalid: minimum 35 °C is greater than maximum 25 °C."**; start outside range; step ≤ 0; objective or constraint refers to a missing output (lists the outputs); constraint needs exactly one limit; maximumSimulations < 1; OPT214 a number that is not finite ("Setpoint minimum must be a finite number; it is NaN.", only possible for a definition built in code) |
 | OPT300–304 | units | Unknown unit (warning; shown as written); synonym read as symbol (info); **"Setpoint is declared as a temperature, but kWh is a unit of energy."**; constraint unit incompatible with its output; compatible but different unit (info) |
 | OPT401–408 | method | Golden-section tolerance > 0; Hooke–Jeeves setting domains (factor ≥ 2, exponent ≥ 0, increment ≥ 1, reductions ≥ 1); Hooke–Jeeves needs start/step; golden section does not use start/step (info) |
 | OPT410–415 | capability | Other engine; unsupported algorithm; **"Golden section optimises exactly one design variable; 2 are defined."** (hint "Remove a variable, or choose Hooke–Jeeves."); **"Maximise is not available with the Tas engine in this version, so this definition cannot run."**; constraint not enforceable (hint: keep the output recorded); unsupported variable type |
@@ -206,7 +212,11 @@ Info OPT408 at $.method (line 42, column 3): Golden section uses only the bounds
 
 ## Validation
 - `dotnet build SAM.sln -c Release`: 0 errors. The new project builds with 0 warnings.
-- **`SAM.Tests`** (built explicitly; it is not in `SAM.sln`): full suite **3195/3195 passed** (baseline 3071; +124 new).
+- **`SAM.Tests`** (built explicitly; it is not in `SAM.sln`):
+  - original head `6cbb81ac`: full suite **3195/3195 passed** (baseline 3071; +124 new);
+  - independent trial merge with SAM#186: **3261/3261**;
+  - refreshed head with the OPT214 fix (on top of SAM#186): **3272/3272** (+11: five non-finite variable cases, tolerance and constraint limit, and five SAM.Units energy/mass resolution cases).
+  - In each case: `dotnet build SAM.sln -c Release` 0 errors, the new project 0 warnings.
 - **Reader tests:**
   - both fixtures read exactly;
   - every OPT1xx code;
@@ -246,6 +256,7 @@ Info OPT408 at $.method (line 42, column 3): Golden section uses only the bounds
   | M2: sense capability not checked | 1 |
   | M3: unknown properties accepted | 3 |
   | M4: AI text offers constraints regardless of capability | 1 |
+  | M5 (review fix): the finite-number check always passes | 6 |
 
 - `git diff --check`: clean. `git diff --stat` touches no `SAM.Math` path.
 
@@ -254,6 +265,13 @@ Info OPT408 at $.method (line 42, column 3): Golden section uses only the bounds
 - **Line/column for errors inside a pasted reply refer to the extracted object**, not the whole paste (stated in OPT115).
 - **The column of a JSON syntax error counts bytes** (the System.Text.Json position). It can differ from characters on a line with non-ASCII text before the error. Positions of all other findings count characters.
 - **Message quoting convention:** JSON field names appear in straight quotes ("maximum"), and user-chosen names in typographic quotes (“Setpoint”).
+- **Review notes, not blocking (decide by UX PR6/PR7):**
+  - **Versioning.** Strict unknown-field rejection means an older SAM refuses a newer `/1` document that has an added field, with a "did you mean" message. Decide before `.samopt.json` (V1.1): either bump the version on any new field, or give a clear "newer than this SAM" message.
+  - **Unsupported items in the AI text.** `AIExchangeText` embeds the current definition as it is, including unsupported items (maximise, constraints) from an import, while its rules omit them. PR7 should strip or flag them before Copy for AI.
+  - **US spellings.** `"minimize"` / `"maximize"` (likely in AI replies) are OPT111 errors with a "Did you mean" hint, not normalised synonyms.
 
 ## Next step
-Owner review of PR1 (SAM_UI), PR2 (SAM#186) and this PR. After merge, add the `PROJECT_PROGRESS.md` closeout on `sow/2026-Q4`. Then PR4 (SAM_Tas adapter: Tas capabilities, definition → `GenOptDocument` with PR5 parity, script name scan).
+1. Fresh CI (`build`, `test`, `spdx`) on the refreshed head, and a Codex/thread check by thread id.
+2. Merge (merge commit, `--match-head-commit`) after owner approval.
+3. The `PROJECT_PROGRESS.md` closeout on `sow/2026-Q4`.
+4. Then PR4: the SAM_Tas adapter (Tas capabilities, definition → `GenOptDocument` with PR5 parity, script name scan).

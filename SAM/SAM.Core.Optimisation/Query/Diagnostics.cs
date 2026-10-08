@@ -15,8 +15,8 @@ namespace SAM.Core.Optimisation
         /// engineering terms (no text positions: <see cref="Create.OptimisationDefinition(string, out List{OptimisationDiagnostic}, IOptimisationCapabilities, bool)"/>
         /// adds them for a definition read from text).
         /// <list type="bullet">
-        /// <item>OPT2xx meaning: names present and unique, the objective and constraints refer to outputs, each range,
-        /// start and step is valid, the simulation limit is at least 1.</item>
+        /// <item>OPT2xx meaning: names present and unique, the objective and constraints refer to outputs, every number is
+        /// finite (OPT214), each range, start and step is valid, the simulation limit is at least 1.</item>
         /// <item>OPT3xx units: each unit is known and suits its declared quantity; a constraint's unit suits its output.
         /// Units are declarations: SAM never verifies them against the model.</item>
         /// <item>OPT4xx method: the method's own settings (always), then, when <paramref name="capabilities"/> is given,
@@ -98,23 +98,29 @@ namespace SAM.Core.Optimisation
                     result.Add(Error("OPT203", path + ".name", "Two design variables are named " + Quote(variable.Name) + ".", "Each design variable needs its own name."));
                 }
 
-                if (!(variable.Minimum < variable.Maximum))
+                // A value that is not a finite number cannot be run, and the text (JSON) cannot hold it either.
+                bool finite = Finite(variable.Minimum, Subject(variable, i) + " minimum", path + ".minimum", result);
+                finite &= Finite(variable.Maximum, Subject(variable, i) + " maximum", path + ".maximum", result);
+                finite &= variable.Start == null || Finite(variable.Start.Value, Subject(variable, i) + " start", path + ".start", result);
+                bool finite_Step = variable.Step == null || Finite(variable.Step.Value, Subject(variable, i) + " step", path + ".step", result);
+
+                if (finite)
                 {
                     if (variable.Minimum == variable.Maximum)
                     {
                         result.Add(Error("OPT204", path + ".minimum", Subject(variable, i) + " range is invalid: minimum and maximum are both " + Number(variable.Minimum, variable.Unit) + ", so it cannot change.", "Widen the range, or remove the variable."));
                     }
-                    else if (!double.IsNaN(variable.Minimum) && !double.IsNaN(variable.Maximum))
+                    else if (variable.Minimum > variable.Maximum)
                     {
                         result.Add(Error("OPT204", path + ".minimum", Subject(variable, i) + " range is invalid: minimum " + Number(variable.Minimum, variable.Unit) + " is greater than maximum " + Number(variable.Maximum, variable.Unit) + ".", "Swap the two values."));
                     }
-                }
-                else if (variable.Start != null && (variable.Start.Value < variable.Minimum || variable.Start.Value > variable.Maximum))
-                {
-                    result.Add(Error("OPT205", path + ".start", Subject(variable, i) + " start " + Number(variable.Start.Value, variable.Unit) + " is outside its range (" + Range(variable) + ").", "Choose a start within the range."));
+                    else if (variable.Start != null && (variable.Start.Value < variable.Minimum || variable.Start.Value > variable.Maximum))
+                    {
+                        result.Add(Error("OPT205", path + ".start", Subject(variable, i) + " start " + Number(variable.Start.Value, variable.Unit) + " is outside its range (" + Range(variable) + ").", "Choose a start within the range."));
+                    }
                 }
 
-                if (variable.Step != null && !(variable.Step.Value > 0))
+                if (finite_Step && variable.Step != null && !(variable.Step.Value > 0))
                 {
                     result.Add(Error("OPT206", path + ".step", Subject(variable, i) + " step must be greater than 0; it is " + Number(variable.Step.Value, variable.Unit) + ".", null));
                 }
@@ -178,6 +184,17 @@ namespace SAM.Core.Optimisation
                 if (string.IsNullOrWhiteSpace(constraint.Output) || !names_Output.Contains(constraint.Output))
                 {
                     result.Add(Error("OPT211", path + ".output", string.IsNullOrWhiteSpace(constraint.Output) ? "A constraint does not name an output." : "A constraint refers to output " + Quote(constraint.Output) + ", which is not in the outputs.", available));
+                }
+
+                string on = string.IsNullOrWhiteSpace(constraint.Output) ? "The constraint" : "The constraint on " + Quote(constraint.Output);
+                if (constraint.AtMost != null)
+                {
+                    Finite(constraint.AtMost.Value, on + " limit \"atMost\"", path + ".atMost", result);
+                }
+
+                if (constraint.AtLeast != null)
+                {
+                    Finite(constraint.AtLeast.Value, on + " limit \"atLeast\"", path + ".atLeast", result);
                 }
 
                 if ((constraint.AtMost == null) == (constraint.AtLeast == null))
@@ -292,7 +309,8 @@ namespace SAM.Core.Optimisation
 
             if (method is GoldenSectionMethod goldenSectionMethod)
             {
-                if (goldenSectionMethod.Tolerance != null && !(goldenSectionMethod.Tolerance.Value > 0))
+                bool finite = goldenSectionMethod.Tolerance == null || Finite(goldenSectionMethod.Tolerance.Value, "The golden section objective tolerance", "$.method.tolerance", result);
+                if (finite && goldenSectionMethod.Tolerance != null && !(goldenSectionMethod.Tolerance.Value > 0))
                 {
                     result.Add(Error("OPT401", "$.method.tolerance", "The golden section objective tolerance must be greater than 0; it is " + Number(goldenSectionMethod.Tolerance.Value, null) + ".", null));
                 }
@@ -402,6 +420,21 @@ namespace SAM.Core.Optimisation
                     result.Add(Error("OPT415", Path("variables", i) + ".type", Subject(variable, i) + " is " + Article(OptimisationNames.Text(variable.Type)) + " variable, which the " + engine + " engine does not run in this version" + notRunnable, "Use " + string.Join(" or ", capabilities.VariableTypes.Select(x => "\"" + OptimisationNames.Text(x) + "\"")) + "."));
                 }
             }
+        }
+
+        /// <summary>
+        /// False, with OPT214, when <paramref name="value"/> is NaN or infinite: such a value cannot be run, and the
+        /// definition text cannot hold it (JSON has no NaN or infinity, so the writer leaves it out).
+        /// </summary>
+        private static bool Finite(double value, string subject, string path, List<OptimisationDiagnostic> result)
+        {
+            if (!double.IsNaN(value) && !double.IsInfinity(value))
+            {
+                return true;
+            }
+
+            result.Add(Error("OPT214", path, subject + " must be a finite number; it is " + Number(value, null) + ".", "Enter a number such as 35 or -5.5."));
+            return false;
         }
 
         private static void Minimum(int? value, int minimum, string name, string subject, List<OptimisationDiagnostic> result, string code)

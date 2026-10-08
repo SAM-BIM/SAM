@@ -79,6 +79,49 @@ namespace SAM.Tests
             OptimisationFixtures.Single(optimisationDefinition.Diagnostics(), "OPT206");
         }
 
+        [Theory]
+        [InlineData("minimum", double.NaN)]
+        [InlineData("minimum", double.NegativeInfinity)]
+        [InlineData("maximum", double.PositiveInfinity)]
+        [InlineData("start", double.NaN)]
+        [InlineData("step", double.PositiveInfinity)]
+        public void NonFiniteVariableNumber_IsReported_AndNotRunnable(string field, double value)
+        {
+            //A definition built in code (not read from text) can hold NaN or infinity; the text cannot.
+            OptimisationDefinition optimisationDefinition = HookeJeeves();
+            DesignVariable variable = optimisationDefinition.Variables[0];
+            switch (field)
+            {
+                case "minimum": variable.Minimum = value; break;
+                case "maximum": variable.Maximum = value; break;
+                case "start": variable.Start = value; break;
+                default: variable.Step = value; break;
+            }
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics(OptimisationFixtures.Tas);
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(diagnostics, "OPT214");
+            Assert.Equal("$.variables[0]." + field, optimisationDiagnostic.Path);
+            Assert.StartsWith("Setpoint " + field + " must be a finite number; it is ", optimisationDiagnostic.Message);
+            Assert.DoesNotContain(diagnostics, x => x.Code == "OPT204" || x.Code == "OPT205" || x.Code == "OPT206");
+            Assert.False(diagnostics.IsRunnable());
+            Assert.False(optimisationDefinition.IsRunnable(OptimisationFixtures.Tas));
+        }
+
+        [Fact]
+        public void NonFiniteToleranceOrConstraintLimit_IsReported()
+        {
+            OptimisationDefinition optimisationDefinition = GoldenSection();
+            ((GoldenSectionMethod)optimisationDefinition.Method).Tolerance = double.PositiveInfinity;
+            optimisationDefinition.Constraints.Add(new OptimisationConstraint() { Output = "Cost", AtMost = double.NaN });
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics();
+
+            Assert.Equal(new[] { "$.method.tolerance", "$.constraints[0].atMost" },diagnostics.Where(x => x.Code == "OPT214").Select(x => x.Path).OrderByDescending(x => x));
+            Assert.DoesNotContain(diagnostics, x => x.Code == "OPT401");
+            Assert.False(diagnostics.IsRunnable());
+        }
+
         [Fact]
         public void Names_MissingOrRepeated_AreReported()
         {
@@ -216,6 +259,18 @@ namespace SAM.Tests
             Assert.Equal(Units.UnitType.Undefined, Core.Optimisation.Query.OptimisationUnit("GBP", out _).UnitType);
             Assert.Null(Core.Optimisation.Query.OptimisationUnit("mWh", out _));
             Assert.Equal(OptimisationQuantity.Energy, Core.Optimisation.Query.OptimisationUnit("MWh", out _).Quantity);
+        }
+
+        [Theory]
+        [InlineData("kWh", Units.UnitType.KilowattHour)]
+        [InlineData("MWh", Units.UnitType.MegawattHour)]
+        [InlineData("kg", Units.UnitType.Kilogram)]
+        [InlineData("t", Units.UnitType.Tonne)]
+        [InlineData("kgCO2e", Units.UnitType.Kilogram)]
+        public void UnitCatalogue_ResolvesTheEnergyAndMassUnitTypes_OfSAMUnits(string symbol, Units.UnitType unitType)
+        {
+            //Resolved by name at run time: these exist since SAM#186 (energy and mass units).
+            Assert.Equal(unitType, Core.Optimisation.Query.OptimisationUnit(symbol, out _).UnitType);
         }
 
         // ---------- Method ----------
