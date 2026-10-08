@@ -1,0 +1,50 @@
+{
+  "schema": "sam.optimisation/1",
+  "name": "Office – glazing choice",
+  "description": "Which of three glazing constructions gives the fewest overheating hours. Shape only: no engine runs a choice yet.",
+  "model": {
+    "engine": "tas-model"
+  },
+  "variables": [
+    {
+      "name": "Glazing",
+      "description": "Glazing construction of the office windows",
+      "type": "discrete",
+      "minimum": 1,
+      "maximum": 3,
+      "start": 1,
+      "step": 1,
+      "target": {
+        "kind": "tbd.glazing-construction.choice",
+        "reference": {
+          "glazingConstruction": "Office glazing"
+        },
+        "options": [
+          "Double low-e",
+          "Triple low-e",
+          "Double solar control"
+        ]
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "Overheating",
+      "quantity": "time",
+      "unit": "h",
+      "measure": {
+        "kind": "tsd.overheating-hours",
+        "parameters": {
+          "threshold": 26.5
+        }
+      }
+    }
+  ],
+  "objective": {
+    "output": "Overheating",
+    "sense": "minimise"
+  },
+  "method": {
+    "algorithm": "hooke-jeeves"
+  }
+}

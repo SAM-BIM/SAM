@@ -264,5 +264,154 @@ namespace SAM.Tests
             List<OptimisationDiagnostic> errors = diagnostics.FindAll(x => x.Severity == DiagnosticSeverity.Error);
             Assert.Equal(new[] { "OPT204", "OPT210" }, errors.Select(x => x.Code));
         }
+
+        // ---------- Model bindings (targets and measures) ----------
+
+        [Fact]
+        public void UnboundFixtures_HaveNoTargetOrMeasure()
+        {
+            foreach (string fileName in new[] { OptimisationFixtures.GoldenSection, OptimisationFixtures.HookeJeeves })
+            {
+                OptimisationDefinition optimisationDefinition = OptimisationFixtures.Definition(fileName);
+
+                Assert.All(optimisationDefinition.Variables, x => Assert.Null(x.Target));
+                Assert.All(optimisationDefinition.Outputs, x => Assert.Null(x.Measure));
+            }
+        }
+
+        [Fact]
+        public void BoundSystemsDemo_IsReadExactly()
+        {
+            OptimisationDefinition optimisationDefinition = OptimisationFixtures.Read(OptimisationFixtures.Text(OptimisationFixtures.BoundGoldenSection), out List<OptimisationDiagnostic> diagnostics, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue());
+
+            Assert.Equal("tas-model", optimisationDefinition.Model.Engine);
+
+            OptimisationTarget target = Assert.Single(optimisationDefinition.Variables).Target;
+            Assert.Equal("tpd.controller.setpoint", target.Kind);
+            Assert.Equal(new Dictionary<string, string>() { { "controller", "HeatPumpController" }, { "plantRoom", "Plant Room 1" } }, target.Reference);
+            Assert.Empty(target.Parameters);
+            Assert.Empty(target.Options);
+
+            Assert.Equal(new[] { "tpd.annual-cost", "tpd.annual-co2" }, optimisationDefinition.Outputs.Select(x => x.Measure.Kind));
+            Assert.All(optimisationDefinition.Outputs, x => Assert.Empty(x.Measure.Reference));
+
+            Assert.True(diagnostics.IsRunnable(), string.Join("\n", diagnostics));
+            Assert.Equal("OPT408", Assert.Single(diagnostics).Code);
+        }
+
+        [Fact]
+        public void BoundFixture_WithParametersAndReferences_IsReadExactly()
+        {
+            OptimisationDefinition optimisationDefinition = OptimisationFixtures.Read(OptimisationFixtures.Text(OptimisationFixtures.BoundHookeJeeves), out List<OptimisationDiagnostic> diagnostics, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue());
+
+            Assert.Equal(new[] { "tbd.internal-condition.heating-setpoint", "tbd.internal-condition.cooling-setpoint", "tbd.glazing-construction.g-value" }, optimisationDefinition.Variables.Select(x => x.Target.Kind));
+            Assert.Equal("Office", optimisationDefinition.Variables[1].Target.Reference["internalCondition"]);
+            Assert.Equal("Office glazing", optimisationDefinition.Variables[2].Target.Reference["glazingConstruction"]);
+
+            OptimisationMeasure overheating = optimisationDefinition.Output("Overheating").Measure;
+            Assert.Equal("tsd.overheating-hours", overheating.Kind);
+            Assert.Equal(28, overheating.Parameters["threshold"]);
+
+            Assert.Empty(diagnostics);
+        }
+
+        [Fact]
+        public void ChoiceFixture_IsRead_WithItsOptionsInOrder()
+        {
+            OptimisationDefinition optimisationDefinition = OptimisationFixtures.Read(OptimisationFixtures.Text(OptimisationFixtures.Choice), out List<OptimisationDiagnostic> diagnostics);
+
+            DesignVariable variable = Assert.Single(optimisationDefinition.Variables);
+            Assert.Equal(DesignVariableType.Discrete, variable.Type);
+            Assert.Equal(new[] { "Double low-e", "Triple low-e", "Double solar control" }, variable.Target.Options);
+            Assert.Equal(26.5, optimisationDefinition.Outputs[0].Measure.Parameters["threshold"]);
+            Assert.Empty(diagnostics);
+        }
+
+        [Fact]
+        public void Binding_UnknownField_IsRejected_WithASuggestion()
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.BoundGoldenSection, "\"kind\": \"tpd.controller.setpoint\"", "\"kinds\": \"tpd.controller.setpoint\"");
+
+            Assert.Null(Create.OptimisationDefinition(text, out List<OptimisationDiagnostic> diagnostics));
+
+            OptimisationDiagnostic unknown = OptimisationFixtures.Single(diagnostics, "OPT105");
+            Assert.Equal("$.variables[0].target.kinds", unknown.Path);
+            Assert.Equal("Did you mean \"kind\"?", unknown.Hint);
+            Assert.Equal("$.variables[0].target", OptimisationFixtures.Single(diagnostics, "OPT110").Path);
+        }
+
+        [Fact]
+        public void Measure_WithOptions_IsRejected()
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.BoundGoldenSection, "\"kind\": \"tpd.annual-cost\"", "\"kind\": \"tpd.annual-cost\", \"options\": [ \"A\" ]");
+
+            Assert.Null(Create.OptimisationDefinition(text, out List<OptimisationDiagnostic> diagnostics));
+            Assert.Equal("$.outputs[0].measure.options", OptimisationFixtures.Single(diagnostics, "OPT105").Path);
+        }
+
+        [Theory]
+        [InlineData("\"plantRoom\": \"Plant Room 1\"", "\"plantRoom\": 1", "OPT107", "$.variables[0].target.reference.plantRoom")]
+        [InlineData("\"reference\": {", "\"reference\": \"Plant Room 1\", \"x\": {", "OPT107", "$.variables[0].target.reference")]
+        [InlineData("\"controller\": \"HeatPumpController\",", "\"controller\": \"HeatPumpController\", \"controller\": \"Other\",", "OPT106", "$.variables[0].target.reference.controller")]
+        public void Reference_StructureErrors_AreReported(string find, string replace, string code, string path)
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.BoundGoldenSection, find, replace);
+
+            Assert.Null(Create.OptimisationDefinition(text, out List<OptimisationDiagnostic> diagnostics));
+            Assert.Equal(path, diagnostics.First(x => x.Code == code).Path);
+        }
+
+        [Theory]
+        [InlineData("\"threshold\": \"28\"", "OPT108", "Remove the quotes: 28.")]
+        [InlineData("\"threshold\": true", "OPT107", null)]
+        [InlineData("\"threshold\": 1e400", "OPT109", null)]
+        [InlineData("\"threshold\": 28, \"threshold\": 26", "OPT106", "Keep one of them.")]
+        public void Parameters_StructureErrors_AreReported(string replace, string code, string hint)
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.BoundHookeJeeves, "\"threshold\": 28", replace);
+
+            Assert.Null(Create.OptimisationDefinition(text, out List<OptimisationDiagnostic> diagnostics));
+
+            OptimisationDiagnostic optimisationDiagnostic = diagnostics.First(x => x.Code == code);
+            Assert.StartsWith("$.outputs[3].measure.parameters", optimisationDiagnostic.Path);
+            Assert.Equal(hint, optimisationDiagnostic.Hint);
+            Assert.NotNull(optimisationDiagnostic.Line);
+        }
+
+        [Theory]
+        [InlineData("[\n          \"Double low-e\",", "\"Double low-e\", \"x\": [ \"y\",", "OPT107", "$.variables[0].target.options")]
+        [InlineData("\"Triple low-e\",", "2,", "OPT107", "$.variables[0].target.options[1]")]
+        public void Options_StructureErrors_AreReported(string find, string replace, string code, string path)
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.Choice, find, replace);
+
+            Assert.Null(Create.OptimisationDefinition(text, out List<OptimisationDiagnostic> diagnostics));
+            Assert.Equal(path, diagnostics.First(x => x.Code == code).Path);
+        }
+
+        [Fact]
+        public void Reference_NullValue_CountsAsAbsent()
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.BoundGoldenSection, "\"plantRoom\": \"Plant Room 1\"", "\"plantRoom\": null");
+
+            OptimisationDefinition optimisationDefinition = OptimisationFixtures.Read(text, out List<OptimisationDiagnostic> diagnostics, OptimisationFixtures.TasModel());
+
+            Assert.False(optimisationDefinition.Variables[0].Target.Reference.ContainsKey("plantRoom"));
+            Assert.Equal("The target of Setpoint does not say which plant room (\"plantRoom\" is missing from \"reference\").", OptimisationFixtures.Single(diagnostics, "OPT602").Message);
+        }
+
+        [Fact]
+        public void BindingFindings_PointAtTheirPlaceInTheText()
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.BoundGoldenSection, "\"plantRoom\": \"Plant Room 1\"", "\"plantRoom\": \"Plant Room 2\"");
+
+            OptimisationFixtures.Read(text, out List<OptimisationDiagnostic> diagnostics, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue());
+
+            OptimisationDiagnostic missing = OptimisationFixtures.Single(diagnostics, "OPT609");
+            Assert.Equal("$.variables[0].target.reference.plantRoom", missing.Path);
+            Assert.Equal(22, missing.Line);
+            Assert.Equal(11, missing.Column);
+            Assert.False(diagnostics.IsRunnable());
+        }
     }
 }

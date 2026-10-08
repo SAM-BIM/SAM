@@ -1,0 +1,58 @@
+{
+  "schema": "sam.optimisation/1",
+  "name": "Systems Demo – heat pump controller setpoint, bound (golden section)",
+  "description": "Find the HeatPumpController setpoint that gives the lowest annual cost, without a hand-written script.",
+  "model": {
+    "engine": "tas-model",
+    "description": "Systems Training model (TBD, TSD, TPD). The engine sets the plant controller setpoint, simulates the plant for the year and reads the annual results."
+  },
+  "variables": [
+    {
+      "name": "Setpoint",
+      "description": "Setpoint of the HeatPumpController in plant room 1",
+      "type": "continuous",
+      "minimum": -5,
+      "maximum": 35,
+      "start": 3,
+      "step": 1,
+      "target": {
+        "kind": "tpd.controller.setpoint",
+        "reference": {
+          "controller": "HeatPumpController",
+          "plantRoom": "Plant Room 1"
+        }
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "Cost",
+      "description": "Annual cost",
+      "quantity": "currency",
+      "unit": "GBP",
+      "measure": {
+        "kind": "tpd.annual-cost"
+      }
+    },
+    {
+      "name": "CO2",
+      "description": "Annual CO2",
+      "quantity": "carbon",
+      "unit": "kgCO2e",
+      "measure": {
+        "kind": "tpd.annual-co2"
+      }
+    }
+  ],
+  "objective": {
+    "output": "Cost",
+    "sense": "minimise"
+  },
+  "method": {
+    "algorithm": "golden-section",
+    "tolerance": 0.1
+  },
+  "stopping": {
+    "maximumSimulations": 2000
+  }
+}

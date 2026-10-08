@@ -4,6 +4,7 @@
 using SAM.Core.Optimisation;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace SAM.Tests
@@ -17,6 +18,9 @@ namespace SAM.Tests
         [Theory]
         [InlineData(OptimisationFixtures.GoldenSection)]
         [InlineData(OptimisationFixtures.HookeJeeves)]
+        [InlineData(OptimisationFixtures.BoundGoldenSection)]
+        [InlineData(OptimisationFixtures.BoundHookeJeeves)]
+        [InlineData(OptimisationFixtures.Choice)]
         public void Fixture_IsCanonical(string fileName)
         {
             string text = OptimisationFixtures.Text(fileName).Replace("\r\n", "\n");
@@ -27,6 +31,9 @@ namespace SAM.Tests
         [Theory]
         [InlineData(OptimisationFixtures.GoldenSection)]
         [InlineData(OptimisationFixtures.HookeJeeves)]
+        [InlineData(OptimisationFixtures.BoundGoldenSection)]
+        [InlineData(OptimisationFixtures.BoundHookeJeeves)]
+        [InlineData(OptimisationFixtures.Choice)]
         public void Writing_IsIdempotent(string fileName)
         {
             string once = OptimisationFixtures.Read(OptimisationFixtures.Text(fileName), out _).ToJson();
@@ -173,6 +180,134 @@ namespace SAM.Tests
             copy.Stopping.MaximumSimulations = 5;
 
             Assert.Equal(OptimisationFixtures.Text(OptimisationFixtures.HookeJeeves).Replace("\r\n", "\n"), optimisationDefinition.ToJson());
+        }
+
+        // ---------- Model bindings (targets and measures) ----------
+
+        public static IEnumerable<object[]> Targets()
+        {
+            yield return new object[] { new OptimisationTarget("t.kind-only") };
+            yield return new object[] { new OptimisationTarget("t.reference", OptimisationFixtures.Reference("internalCondition", "Office")) };
+            yield return new object[] { new OptimisationTarget("t.two-keys", OptimisationFixtures.Reference("plantRoom", "Plant Room 1", "controller", "HeatPumpController")) };
+            yield return new object[] { new OptimisationTarget("t.parameters", null, new Dictionary<string, double>() { { "b", 0.1 }, { "a", -5 } }) };
+            yield return new object[] { new OptimisationTarget("t.options", OptimisationFixtures.Reference("glazingConstruction", "Office \"main\" glazing"), null, new[] { "Triple", "Double", "Double – solar °" }) };
+            yield return new object[] { new OptimisationTarget("t.everything", OptimisationFixtures.Reference("k", "v"), new Dictionary<string, double>() { { "p", 4.968943799848584 } }, new[] { "A", "B" }) };
+        }
+
+        public static IEnumerable<object[]> Measures()
+        {
+            yield return new object[] { new OptimisationMeasure("m.kind-only") };
+            yield return new object[] { new OptimisationMeasure("m.reference", OptimisationFixtures.Reference("zone", "Office 1")) };
+            yield return new object[] { new OptimisationMeasure("m.parameters", null, new Dictionary<string, double>() { { "threshold", 28 } }) };
+            yield return new object[] { new OptimisationMeasure("m.both", OptimisationFixtures.Reference("zone", "Office 1", "floor", "1"), new Dictionary<string, double>() { { "threshold", 26.5 }, { "hours", 1e-7 } }) };
+        }
+
+        [Theory]
+        [MemberData(nameof(Targets))]
+        public void Target_RoundTrips(OptimisationTarget target)
+        {
+            OptimisationDefinition optimisationDefinition = Definition();
+            optimisationDefinition.Variables[0].Target = target;
+
+            string text = optimisationDefinition.ToJson();
+            OptimisationTarget read = OptimisationFixtures.Read(text, out _).Variables[0].Target;
+
+            Assert.Equal(target.Kind, read.Kind);
+            Assert.Equal(target.Reference.OrderBy(x => x.Key, StringComparer.Ordinal), read.Reference.OrderBy(x => x.Key, StringComparer.Ordinal));
+            Assert.Equal(target.Parameters.OrderBy(x => x.Key, StringComparer.Ordinal), read.Parameters.OrderBy(x => x.Key, StringComparer.Ordinal));
+            Assert.Equal(target.Options, read.Options);
+            Assert.Equal(text, OptimisationFixtures.Read(text, out _).ToJson());
+        }
+
+        [Theory]
+        [MemberData(nameof(Measures))]
+        public void Measure_RoundTrips(OptimisationMeasure measure)
+        {
+            OptimisationDefinition optimisationDefinition = Definition();
+            optimisationDefinition.Outputs[0].Measure = measure;
+
+            string text = optimisationDefinition.ToJson();
+            OptimisationMeasure read = OptimisationFixtures.Read(text, out _).Outputs[0].Measure;
+
+            Assert.Equal(measure.Kind, read.Kind);
+            Assert.Equal(measure.Reference.OrderBy(x => x.Key, StringComparer.Ordinal), read.Reference.OrderBy(x => x.Key, StringComparer.Ordinal));
+            Assert.Equal(measure.Parameters.OrderBy(x => x.Key, StringComparer.Ordinal), read.Parameters.OrderBy(x => x.Key, StringComparer.Ordinal));
+            Assert.Equal(text, OptimisationFixtures.Read(text, out _).ToJson());
+        }
+
+        [Fact]
+        public void Binding_IsWrittenInTheCanonicalLayout_KeysInOrdinalOrder()
+        {
+            OptimisationDefinition optimisationDefinition = Definition();
+            optimisationDefinition.Variables[0].Target = new OptimisationTarget("k", OptimisationFixtures.Reference("plantRoom", "P", "controller", "C"), new Dictionary<string, double>() { { "z", 2 }, { "a", 0.5 } }, new[] { "B", "A" });
+            optimisationDefinition.Outputs[0].Measure = new OptimisationMeasure("m");
+
+            string text = optimisationDefinition.ToJson();
+
+            Assert.Contains(
+                "      \"maximum\": 1,\n" +
+                "      \"target\": {\n" +
+                "        \"kind\": \"k\",\n" +
+                "        \"reference\": {\n" +
+                "          \"controller\": \"C\",\n" +
+                "          \"plantRoom\": \"P\"\n" +
+                "        },\n" +
+                "        \"parameters\": {\n" +
+                "          \"a\": 0.5,\n" +
+                "          \"z\": 2\n" +
+                "        },\n" +
+                "        \"options\": [\n" +
+                "          \"B\",\n" +
+                "          \"A\"\n" +
+                "        ]\n" +
+                "      }\n" +
+                "    }\n", text);
+            Assert.Contains(
+                "      \"name\": \"y\",\n" +
+                "      \"measure\": {\n" +
+                "        \"kind\": \"m\"\n" +
+                "      }\n", text);
+        }
+
+        [Fact]
+        public void Binding_EmptyParts_AndNonFiniteParameters_AreLeftOut()
+        {
+            OptimisationDefinition optimisationDefinition = Definition();
+            optimisationDefinition.Variables[0].Target = new OptimisationTarget("k") { Reference = null, Parameters = new Dictionary<string, double>() { { "nan", double.NaN }, { "infinity", double.PositiveInfinity } }, Options = null };
+
+            string text = optimisationDefinition.ToJson();
+
+            Assert.Contains("\"target\": {\n        \"kind\": \"k\"\n      }", text);
+            Assert.Empty(OptimisationFixtures.Read(text, out _).Variables[0].Target.Parameters);
+        }
+
+        [Fact]
+        public void Binding_Parameters_RoundTripBitForBit()
+        {
+            foreach (double value in new[] { 0.1, 26.5, 1e-7, 0.30000000000000004, -0.0, 4076.69276428223 })
+            {
+                OptimisationDefinition optimisationDefinition = Definition();
+                optimisationDefinition.Outputs[0].Measure = new OptimisationMeasure("m", null, new Dictionary<string, double>() { { "p", value } });
+
+                double read = OptimisationFixtures.Read(optimisationDefinition.ToJson(), out _).Outputs[0].Measure.Parameters["p"];
+
+                Assert.Equal(BitConverter.DoubleToInt64Bits(value), BitConverter.DoubleToInt64Bits(read));
+            }
+        }
+
+        [Fact]
+        public void CopyConstructor_CopiesBindingsDeeply()
+        {
+            OptimisationDefinition optimisationDefinition = OptimisationFixtures.Definition(OptimisationFixtures.Choice);
+            OptimisationDefinition copy = new OptimisationDefinition(optimisationDefinition);
+
+            copy.Variables[0].Target.Kind = "changed";
+            copy.Variables[0].Target.Reference["glazingConstruction"] = "changed";
+            copy.Variables[0].Target.Options.Add("changed");
+            copy.Outputs[0].Measure.Parameters["threshold"] = 99;
+            copy.Outputs[0].Measure.Reference["zone"] = "changed";
+
+            Assert.Equal(OptimisationFixtures.Text(OptimisationFixtures.Choice).Replace("\r\n", "\n"), optimisationDefinition.ToJson());
         }
 
         private static OptimisationDefinition Definition()

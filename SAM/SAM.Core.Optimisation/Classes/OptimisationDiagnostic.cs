@@ -12,7 +12,8 @@ namespace SAM.Core.Optimisation
     /// <see cref="Line"/> and <see cref="Column"/>) and an AI assistant asked to fix the definition (by <see cref="Code"/>).
     /// <para>
     /// Codes: OPT1xx text and structure (the definition cannot be read), OPT2xx meaning (references, ranges), OPT3xx
-    /// units, OPT4xx search method and engine capability; OPT5xx is reserved for execution checks made by an engine.
+    /// units, OPT4xx search method and engine capability; OPT5xx is reserved for execution checks made by an engine;
+    /// OPT6xx model bindings (what a design variable changes and what an output measures).
     /// </para>
     /// </summary>
     public sealed class OptimisationDiagnostic

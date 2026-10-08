@@ -17,7 +17,10 @@ namespace SAM.Core.Optimisation
         /// rules of the schema, the names the model makes available, the current definition and the user's request.
         /// <para>
         /// It describes only what <paramref name="capabilities"/> can run: a method, objective sense, variable type or
-        /// constraint the engine cannot run is not offered. It holds no file path or machine detail: the definition is
+        /// constraint the engine cannot run is not offered. For an engine that changes and reads the model itself (it
+        /// lists targets or measures), every design variable and output must be bound, and only the catalogue's model
+        /// items whose kind the engine lists are offered, each with its current value and unit; a choice target only
+        /// when the engine runs "discrete" variables. It holds no file path or machine detail: the definition is
         /// portable by design and nothing else is added. The reply is read back with
         /// <see cref="Create.OptimisationDefinition(string, out List{OptimisationDiagnostic}, IOptimisationCapabilities, bool)"/>
         /// (with extract set, in case the assistant adds a code fence anyway) and validated like any other definition.
@@ -38,6 +41,12 @@ namespace SAM.Core.Optimisation
             List<string> senses = (capabilities.Senses ?? new List<ObjectiveSense>()).Select(x => "\"" + OptimisationNames.Text(x) + "\"").ToList();
             List<string> variableTypes = (capabilities.VariableTypes ?? new List<DesignVariableType>()).Select(x => "\"" + OptimisationNames.Text(x) + "\"").ToList();
 
+            // An engine that lists target or measure kinds runs only bound definitions; the others take names.
+            bool bindings = (capabilities.Targets?.Count ?? 0) != 0 || (capabilities.Measures?.Count ?? 0) != 0;
+            List<OptimisationCatalogueEntry> targets = OfferedTargets(capabilities, catalogue);
+            List<OptimisationCatalogueEntry> measures = OfferedMeasures(capabilities, catalogue);
+            bool options = targets.Exists(x => x.Options.Count != 0);
+
             StringBuilder stringBuilder = new StringBuilder();
             void Line(string text = "") => stringBuilder.Append(text).Append('\n');
 
@@ -48,7 +57,16 @@ namespace SAM.Core.Optimisation
             Line("after it. The first character of your reply must be \"{\" and the last must be \"}\".");
             Line();
             Line("RULES");
-            Line("- Use only the design variable and output names listed under AVAILABLE. Do not invent names.");
+            if (bindings)
+            {
+                Line("- Give every design variable a \"target\" and every output a \"measure\", copied exactly from AVAILABLE. Do not");
+                Line("  invent targets, measures or model item names. Names are short labels of your choice, each unique.");
+            }
+            else
+            {
+                Line("- Use only the design variable and output names listed under AVAILABLE. Do not invent names.");
+            }
+
             Line("- Do not write code, scripts or expressions. Do not add fields that are not listed here.");
             Line("- Keep \"schema\": \"" + OptimisationDefinition.Schema + "\", and keep every field you were not asked to change.");
             Line("- If the request cannot be expressed with these rules, do not approximate it: return the current definition");
@@ -57,10 +75,27 @@ namespace SAM.Core.Optimisation
             Line("  objective, method, stopping (optional).");
             Line("- model: { \"engine\": \"" + capabilities.Engine + "\", \"description\" (optional) }");
             Line("- variables[]: { \"name\", \"description\" (optional), \"type\": " + Either(variableTypes) + ", \"quantity\" (optional),");
-            Line("  \"unit\" (optional), \"minimum\", \"maximum\", \"start\", \"step\" }: minimum < maximum, start within [minimum, maximum],");
+            Line("  \"unit\" (optional), \"minimum\", \"maximum\", \"start\", \"step\"" + (bindings ? ", \"target\"" : string.Empty) + " }: minimum < maximum, start within [minimum, maximum],");
             Line("  step > 0. Numbers are plain JSON numbers, never text in quotes.");
-            Line("- outputs[]: { \"name\", \"description\" (optional), \"quantity\" (optional), \"unit\" (optional) }. Every output is");
+            if (bindings)
+            {
+                Line("- target: { \"kind\", \"reference\", \"parameters\" } exactly as under AVAILABLE (reference and parameters only when");
+                Line("  shown there). Keep the range within the suggested range when one is shown.");
+                if (options)
+                {
+                    Line("- A choice target also has \"options\": two or more of the names listed for it under AVAILABLE. Its variable has");
+                    Line("  \"type\": \"discrete\", \"minimum\": 1 and \"maximum\": the number of options (1 is the first option).");
+                }
+            }
+
+            Line("- outputs[]: { \"name\", \"description\" (optional), \"quantity\" (optional), \"unit\" (optional)" + (bindings ? ", \"measure\"" : string.Empty) + " }. Every output is");
             Line("  reported for each simulation; one of them is the objective.");
+            if (bindings)
+            {
+                Line("- measure: { \"kind\", \"reference\", \"parameters\" } exactly as under AVAILABLE; a parameter may be changed within");
+                Line("  the range shown, or left out to use its default.");
+            }
+
             Line("- objective: { \"output\": <one of outputs[].name>, \"sense\": " + Either(senses) + " }");
             Line("- method: one of");
             foreach (OptimisationAlgorithmCapability optimisationAlgorithmCapability in algorithms)
@@ -76,11 +111,34 @@ namespace SAM.Core.Optimisation
             }
 
             Line("- quantity values: " + string.Join(", ", OptimisationNames.Texts<OptimisationQuantity>().Select(x => "\"" + x + "\"")));
-            Line("- units (they describe values; they are not checked against the model): " + string.Join(", ", optimisationUnits.Select(x => x.Symbol)));
+            if (bindings)
+            {
+                Line("- units: " + string.Join(", ", optimisationUnits.Select(x => x.Symbol)) + ". A bound value is in the unit shown under");
+                Line("  AVAILABLE: use that unit, or leave \"unit\" out.");
+            }
+            else
+            {
+                Line("- units (they describe values; they are not checked against the model): " + string.Join(", ", optimisationUnits.Select(x => x.Symbol)));
+            }
+
             Line();
 
             Line("AVAILABLE" + (string.IsNullOrWhiteSpace(catalogue?.Source) ? string.Empty : " (" + catalogue.Source + ")"));
-            if (catalogue == null || catalogue.IsEmpty)
+            if (bindings)
+            {
+                if (targets.Count == 0 && measures.Count == 0)
+                {
+                    Line("- No list of model items is available: keep the targets and measures already in the current definition.");
+                }
+                else
+                {
+                    Line("Can change (design variable targets):");
+                    Bound(targets, capabilities.Targets, Line);
+                    Line("Can measure (output measures):");
+                    Bound(measures, capabilities.Measures, Line);
+                }
+            }
+            else if (catalogue == null || catalogue.IsEmpty)
             {
                 Line("- No list of names is available: use only the names already in the current definition.");
             }
@@ -128,6 +186,105 @@ namespace SAM.Core.Optimisation
             }
 
             return "{ \"algorithm\": \"" + OptimisationNames.Text(optimisationAlgorithmCapability.Algorithm) + "\" } (" + variables + ")";
+        }
+
+        /// <summary>The catalogue's targets whose kind the engine lists; a choice target only when the engine runs "discrete" variables.</summary>
+        private static List<OptimisationCatalogueEntry> OfferedTargets(IOptimisationCapabilities capabilities, OptimisationCatalogue catalogue)
+        {
+            List<OptimisationCatalogueEntry> result = new List<OptimisationCatalogueEntry>();
+            foreach (OptimisationCatalogueEntry entry in catalogue?.Variables ?? new List<OptimisationCatalogueEntry>())
+            {
+                OptimisationBindingCapability optimisationBindingCapability = entry.Target == null ? null : capabilities.Targets?.FirstOrDefault(x => x != null && x.Kind == entry.Target.Kind);
+                if (optimisationBindingCapability == null)
+                {
+                    continue;
+                }
+
+                if (optimisationBindingCapability.AcceptsOptions && (entry.Options.Count < 2 || capabilities.VariableTypes == null || !capabilities.VariableTypes.Contains(DesignVariableType.Discrete)))
+                {
+                    continue;
+                }
+
+                result.Add(entry);
+            }
+
+            return result;
+        }
+
+        /// <summary>The catalogue's measures whose kind the engine lists.</summary>
+        private static List<OptimisationCatalogueEntry> OfferedMeasures(IOptimisationCapabilities capabilities, OptimisationCatalogue catalogue)
+        {
+            return (catalogue?.Outputs ?? new List<OptimisationCatalogueEntry>()).Where(x => x.Measure != null && capabilities.Measures != null && capabilities.Measures.Any(y => y != null && y.Kind == x.Measure.Kind)).ToList();
+        }
+
+        /// <summary>
+        /// One entry per model item: the suggested name and the binding as one line of JSON to copy, then what it is,
+        /// its unit, current value, suggested range, options and parameters.
+        /// </summary>
+        private static void Bound(List<OptimisationCatalogueEntry> entries, IReadOnlyList<OptimisationBindingCapability> kinds, Action<string> line)
+        {
+            if (entries.Count == 0)
+            {
+                line("- (none in this model)");
+                return;
+            }
+
+            foreach (OptimisationCatalogueEntry entry in entries)
+            {
+                OptimisationBinding optimisationBinding = entry.Binding;
+                OptimisationBindingCapability optimisationBindingCapability = kinds.First(x => x != null && x.Kind == optimisationBinding.Kind);
+                string unit = string.IsNullOrWhiteSpace(entry.Unit) ? optimisationBindingCapability.Unit : entry.Unit.Trim();
+
+                line("- " + entry.Name + ": " + Convert.ToCompactJson(optimisationBinding));
+
+                List<string> details = new List<string>();
+                string what = string.IsNullOrWhiteSpace(entry.Description) ? optimisationBindingCapability.DisplayName : entry.Description;
+                if (!string.IsNullOrWhiteSpace(what))
+                {
+                    details.Add(what.Trim());
+                }
+
+                details.Add(string.IsNullOrWhiteSpace(unit) ? "no stated unit" : "unit " + unit);
+                if (entry.Value != null)
+                {
+                    details.Add("now " + Number(entry.Value.Value, unit));
+                }
+
+                if (entry.Minimum != null && entry.Maximum != null)
+                {
+                    details.Add("suggested range " + Number(entry.Minimum.Value, null) + " to " + Number(entry.Maximum.Value, unit));
+                }
+
+                if (entry.Options.Count != 0)
+                {
+                    details.Add("options: " + string.Join(", ", entry.Options.Select(Convert.ToJsonString)));
+                }
+
+                foreach (OptimisationBindingParameter optimisationBindingParameter in optimisationBindingCapability.Parameters)
+                {
+                    List<string> parameter = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(optimisationBindingParameter.DisplayName))
+                    {
+                        parameter.Add(optimisationBindingParameter.DisplayName.Trim());
+                    }
+
+                    if (optimisationBindingParameter.Default != null)
+                    {
+                        parameter.Add("default " + Number(optimisationBindingParameter.Default.Value, optimisationBindingParameter.Unit));
+                    }
+
+                    if (optimisationBindingParameter.Minimum != null || optimisationBindingParameter.Maximum != null)
+                    {
+                        parameter.Add(optimisationBindingParameter.Minimum != null && optimisationBindingParameter.Maximum != null
+                            ? Number(optimisationBindingParameter.Minimum.Value, null) + " to " + Number(optimisationBindingParameter.Maximum.Value, optimisationBindingParameter.Unit)
+                            : optimisationBindingParameter.Minimum != null ? "at least " + Number(optimisationBindingParameter.Minimum.Value, optimisationBindingParameter.Unit) : "at most " + Number(optimisationBindingParameter.Maximum.Value, optimisationBindingParameter.Unit));
+                    }
+
+                    details.Add("parameter \"" + optimisationBindingParameter.Name + "\"" + (parameter.Count == 0 ? string.Empty : " (" + string.Join(", ", parameter) + ")"));
+                }
+
+                line("  " + string.Join("; ", details));
+            }
         }
 
         private static string Either(List<string> values)

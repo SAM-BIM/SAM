@@ -409,6 +409,431 @@ namespace SAM.Tests
             Assert.DoesNotContain(optimisationDefinition.Diagnostics(), x => x.Code.StartsWith("OPT41"));
         }
 
+        // ---------- Model bindings (OPT6xx) ----------
+
+        private static OptimisationDefinition Bound()
+        {
+            return OptimisationFixtures.Definition(OptimisationFixtures.BoundGoldenSection);
+        }
+
+        private static OptimisationDefinition Zones()
+        {
+            return OptimisationFixtures.Definition(OptimisationFixtures.BoundHookeJeeves);
+        }
+
+        private static OptimisationDefinition Choice()
+        {
+            return OptimisationFixtures.Definition(OptimisationFixtures.Choice);
+        }
+
+        [Fact]
+        public void BoundFixtures_AreRunnable_OnATasModelEngine_WithTheModelCatalogue()
+        {
+            Assert.True(Bound().IsRunnable(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue()));
+            Assert.True(Zones().IsRunnable(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue()));
+            Assert.Empty(Zones().Diagnostics(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue()));
+        }
+
+        [Fact]
+        public void ChoiceFixture_IsAValidShape_ButNotRunnable_WhileNoEngineRunsDiscreteVariables()
+        {
+            Assert.Equal(new[] { "OPT415" }, OptimisationFixtures.Errors(Choice().Diagnostics(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue())));
+            Assert.Empty(Choice().Diagnostics(OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue()));
+        }
+
+        [Fact]
+        public void UnboundFixtures_HaveExactlyTheirOldFindings_OnTasScript()
+        {
+            OptimisationCatalogue names = new OptimisationCatalogue(new[] { new OptimisationCatalogueEntry("Setpoint") }, new[] { new OptimisationCatalogueEntry("Result") }, "Tas script");
+
+            Assert.Equal(new[] { "OPT408" }, GoldenSection().Diagnostics(OptimisationFixtures.Tas).Select(x => x.Code));
+            Assert.Equal(new[] { "OPT408" }, GoldenSection().Diagnostics(OptimisationFixtures.Tas, names).Select(x => x.Code));
+            Assert.Empty(HookeJeeves().Diagnostics(OptimisationFixtures.Tas, OptimisationFixtures.ModelCatalogue()));
+            Assert.True(HookeJeeves().IsRunnable(OptimisationFixtures.Tas, names));
+        }
+
+        [Fact]
+        public void UnboundDefinition_OnATasModelEngine_NeedsEveryBinding()
+        {
+            List<OptimisationDiagnostic> diagnostics = HookeJeeves().Diagnostics(OptimisationFixtures.TasModel());
+
+            Assert.Equal(new[] { "OPT410", "OPT608", "OPT608", "OPT608", "OPT608" }, OptimisationFixtures.Errors(diagnostics));
+            OptimisationDiagnostic variable = diagnostics.First(x => x.Code == "OPT608");
+            Assert.Equal("$.variables[0]", variable.Path);
+            Assert.Equal("Setpoint does not say what it changes in the model (it has no \"target\"), so the Tas engine cannot run it.", variable.Message);
+            Assert.Equal("CO2 does not say what it measures in the model's results (it has no \"measure\"), so the Tas engine cannot run it.", diagnostics.Last(x => x.Code == "OPT608").Message);
+        }
+
+        [Fact]
+        public void BoundDefinition_OnTasScript_TakesNoBindings()
+        {
+            List<OptimisationDiagnostic> diagnostics = Bound().Diagnostics(OptimisationFixtures.Tas);
+
+            Assert.Equal(new[] { "OPT410", "OPT601", "OPT601", "OPT601" }, OptimisationFixtures.Errors(diagnostics));
+            OptimisationDiagnostic target = diagnostics.First(x => x.Code == "OPT601");
+            Assert.Equal("$.variables[0].target", target.Path);
+            Assert.Equal("Setpoint has a target, but the Tas engine takes no targets, so this definition cannot run.", target.Message);
+            Assert.Equal("Remove \"target\", or use an engine that can change model items.", target.Hint);
+            Assert.Equal("Cost has a measure, but the Tas engine takes no measures, so this definition cannot run.", diagnostics.First(x => x.Path == "$.outputs[0].measure").Message);
+        }
+
+        [Fact]
+        public void OPT600_ABindingWithoutKind()
+        {
+            OptimisationDefinition optimisationDefinition = Bound();
+            optimisationDefinition.Variables[0].Target.Kind = " ";
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(), "OPT600");
+
+            Assert.Equal("$.variables[0].target.kind", optimisationDiagnostic.Path);
+            Assert.Equal("The target of Setpoint has no \"kind\".", optimisationDiagnostic.Message);
+            Assert.DoesNotContain(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue()), x => x.Code == "OPT601" || x.Code == "OPT609");
+        }
+
+        [Fact]
+        public void OPT601_UnknownKind_SuggestsTheClosest()
+        {
+            OptimisationDefinition optimisationDefinition = Bound();
+            optimisationDefinition.Variables[0].Target.Kind = "tpd.controler.setpoint";
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue()), "OPT601");
+
+            Assert.Equal("$.variables[0].target.kind", optimisationDiagnostic.Path);
+            Assert.Equal("“tpd.controler.setpoint” (the target of Setpoint) is not a target the Tas engine can change, so this definition cannot run.", optimisationDiagnostic.Message);
+            Assert.Equal("Did you mean \"tpd.controller.setpoint\"? Targets: tbd.internal-condition.heating-setpoint, tbd.internal-condition.cooling-setpoint, tbd.glazing-construction.g-value, tpd.controller.setpoint, tbd.glazing-construction.choice.", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void OPT601_AMeasureUsedAsATarget()
+        {
+            OptimisationDefinition optimisationDefinition = Bound();
+            optimisationDefinition.Variables[0].Target.Kind = "tpd.annual-cost";
+
+            Assert.Equal("“tpd.annual-cost” is a measure, not a target, so it cannot be the target of Setpoint.", OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()), "OPT601").Message);
+        }
+
+        [Fact]
+        public void OPT602_MissingOrEmptyReference()
+        {
+            OptimisationDefinition optimisationDefinition = Bound();
+            optimisationDefinition.Variables[0].Target.Reference.Remove("controller");
+
+            OptimisationDiagnostic missing = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()), "OPT602");
+            Assert.Equal("$.variables[0].target", missing.Path);
+            Assert.Equal("The target of Setpoint does not say which controller (\"controller\" is missing from \"reference\").", missing.Message);
+            Assert.Equal("Add \"controller\" with the name of the controller as it is in the model.", missing.Hint);
+
+            optimisationDefinition.Variables[0].Target.Reference["controller"] = " ";
+            OptimisationDiagnostic empty = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()), "OPT602");
+            Assert.Equal("$.variables[0].target.reference.controller", empty.Path);
+            Assert.Equal("The target of Setpoint names an empty controller (\"controller\" is \" \").", empty.Message);
+        }
+
+        [Fact]
+        public void OPT603_UnknownReferenceKey()
+        {
+            OptimisationDefinition optimisationDefinition = Bound();
+            optimisationDefinition.Variables[0].Target.Reference["plantroom"] = "Plant Room 1";
+            optimisationDefinition.Outputs[0].Measure.Reference["zone"] = "Office";
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()).FindAll(x => x.Code == "OPT603");
+
+            Assert.Equal(2, diagnostics.Count);
+            Assert.Equal("$.variables[0].target.reference.plantroom", diagnostics[0].Path);
+            Assert.Equal("\"plantroom\" is not a reference key of plant controller setpoint (the target of Setpoint).", diagnostics[0].Message);
+            Assert.Equal("Did you mean \"plantRoom\"? Keys: plantRoom, controller.", diagnostics[0].Hint);
+            Assert.Equal("This measure refers to the whole model: remove \"reference\".", diagnostics[1].Hint);
+        }
+
+        [Fact]
+        public void OPT604_UnknownParameter()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Output("Overheating").Measure.Parameters["treshold"] = 26;
+            optimisationDefinition.Output("Plant energy").Measure.Parameters["x"] = 1;
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()).FindAll(x => x.Code == "OPT604");
+
+            Assert.Equal(2, diagnostics.Count);
+            Assert.Equal("$.outputs[0].measure.parameters.x", diagnostics[0].Path);
+            Assert.Equal("This measure takes no parameters: remove \"x\".", diagnostics[0].Hint);
+            Assert.Equal("\"treshold\" is not a parameter of overheating hours (the measure of Overheating).", diagnostics[1].Message);
+            Assert.Equal("Did you mean \"threshold\"? Parameters: threshold.", diagnostics[1].Hint);
+        }
+
+        [Theory]
+        [InlineData(50.0, "The \"threshold\" of the measure of Overheating must be from 20 to 40 °C; it is 50 °C.")]
+        [InlineData(19.5, "The \"threshold\" of the measure of Overheating must be from 20 to 40 °C; it is 19.5 °C.")]
+        public void OPT605_ParameterOutOfRange(double value, string message)
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Output("Overheating").Measure.Parameters["threshold"] = value;
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()), "OPT605");
+
+            Assert.Equal("$.outputs[3].measure.parameters.threshold", optimisationDiagnostic.Path);
+            Assert.Equal(message, optimisationDiagnostic.Message);
+            Assert.Equal("Leave it out to use 28 °C.", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void OPT605_TheRangeLimitsThemselvesAreAccepted()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            foreach (double value in new[] { 20.0, 40.0 })
+            {
+                optimisationDefinition.Output("Overheating").Measure.Parameters["threshold"] = value;
+                Assert.True(optimisationDefinition.IsRunnable(OptimisationFixtures.TasModel()));
+            }
+        }
+
+        [Fact]
+        public void OPT214_ANonFiniteParameter()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Output("Overheating").Measure.Parameters["threshold"] = double.NaN;
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel());
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(diagnostics, "OPT214");
+            Assert.Equal("$.outputs[3].measure.parameters.threshold", optimisationDiagnostic.Path);
+            Assert.Equal("The \"threshold\" of the measure of Overheating must be a finite number; it is NaN.", optimisationDiagnostic.Message);
+            Assert.DoesNotContain(diagnostics, x => x.Code == "OPT605");
+        }
+
+        [Fact]
+        public void OPT606_QuantityOfTheKind()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Variables[0].Quantity = OptimisationQuantity.Energy;
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()), "OPT606");
+
+            Assert.Equal("$.variables[0].quantity", optimisationDiagnostic.Path);
+            Assert.Equal("Heating setpoint is declared as an energy, but zone heating setpoint is a temperature.", optimisationDiagnostic.Message);
+            Assert.Equal("Use \"quantity\": \"temperature\", or leave it out.", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void OPT606_UnitOfTheKind_NoConversion()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Output("Plant energy").Unit = "MWh";
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()), "OPT606");
+
+            Assert.Equal("$.outputs[0].unit", optimisationDiagnostic.Path);
+            Assert.Equal("Plant energy is declared in MWh, but the Tas engine reports annual plant energy in kWh.", optimisationDiagnostic.Message);
+            Assert.Equal("Use \"unit\": \"kWh\", or leave it out.", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void OPT606_ASynonymOrNoUnit_IsTheKindsUnit()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Variables[0].Unit = "degC";
+            optimisationDefinition.Variables[1].Unit = null;
+            optimisationDefinition.Variables[1].Quantity = OptimisationQuantity.Unspecified;
+
+            Assert.True(optimisationDefinition.IsRunnable(OptimisationFixtures.TasModel()));
+            Assert.DoesNotContain(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()), x => x.Code == "OPT606");
+        }
+
+        [Fact]
+        public void OPT606_CarbonDeclaredAsAMass_IsAccepted()
+        {
+            OptimisationDefinition optimisationDefinition = Bound();
+            optimisationDefinition.Output("CO2").Quantity = OptimisationQuantity.Mass;
+
+            Assert.DoesNotContain(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()), x => x.Code == "OPT606");
+        }
+
+        [Fact]
+        public void OPT607_TheSameTargetTwice()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Variables[1].Target = new OptimisationTarget("tbd.internal-condition.heating-setpoint", OptimisationFixtures.Reference("internalCondition", "Office"));
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(), "OPT607");
+
+            Assert.Equal("$.variables[1].target", optimisationDiagnostic.Path);
+            Assert.Equal("Cooling setpoint changes the same model item as Heating setpoint: “tbd.internal-condition.heating-setpoint” (internalCondition “Office”).", optimisationDiagnostic.Message);
+            Assert.Equal("Cooling setpoint changes the same model item as Heating setpoint: “tbd.internal-condition.heating-setpoint” (internalCondition “Office”).", OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()), "OPT607").Message);
+        }
+
+        [Fact]
+        public void OPT607_ReferenceKeyOrderDoesNotMatter_ParametersAreIgnored()
+        {
+            OptimisationTarget target = new OptimisationTarget("k", OptimisationFixtures.Reference("a", "1", "b", "2"), new Dictionary<string, double>() { { "p", 1 } });
+
+            Assert.True(target.SameItem(new OptimisationTarget("k", OptimisationFixtures.Reference("b", "2", "a", "1"))));
+            Assert.False(target.SameItem(new OptimisationTarget("k", OptimisationFixtures.Reference("a", "1"))));
+            Assert.False(target.SameItem(new OptimisationTarget("k", OptimisationFixtures.Reference("a", "1", "b", "3"))));
+            Assert.False(target.SameItem(new OptimisationTarget("K", OptimisationFixtures.Reference("a", "1", "b", "2"))));
+        }
+
+        [Fact]
+        public void OPT607_TheSameMeasureTwice_IsAllowed()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Outputs.Add(new OptimisationOutput("Overheating 26") { Measure = new OptimisationMeasure("tsd.overheating-hours", null, new Dictionary<string, double>() { { "threshold", 26 } }) });
+
+            Assert.True(optimisationDefinition.IsRunnable(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue()));
+        }
+
+        [Fact]
+        public void OPT609_AKindTheModelDoesNotOffer()
+        {
+            OptimisationCatalogue catalogue = OptimisationFixtures.ModelCatalogue();
+            OptimisationCatalogue withoutPlant = new OptimisationCatalogue(catalogue.Variables, catalogue.Outputs.Where(x => !x.Measure.Kind.StartsWith("tpd.")), catalogue.Source);
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(Zones().Diagnostics(OptimisationFixtures.TasModel(), withoutPlant), "OPT609");
+
+            Assert.Equal("$.outputs[0].measure.kind", optimisationDiagnostic.Path);
+            Assert.Equal("Annual plant energy is not available in this model, so Plant energy cannot be measured.", optimisationDiagnostic.Message);
+            Assert.Equal("Choose one of: Annual heating demand, Annual cooling demand, Overheating hours.", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void OPT609_AModelItemThatIsNotInTheModel_SuggestsTheName()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Variables[0].Target.Reference["internalCondition"] = "office";
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue()), "OPT609");
+
+            Assert.Equal("$.variables[0].target.reference.internalCondition", optimisationDiagnostic.Path);
+            Assert.Equal("Internal condition “office” is not in this model, so Heating setpoint cannot be changed.", optimisationDiagnostic.Message);
+            Assert.Equal("Did you mean “Office”? Available: “Office”, “Meeting room”.", optimisationDiagnostic.Hint);
+
+            // Without the engine's capabilities the key has no display name.
+            Assert.Equal("“office” (\"internalCondition\") is not in this model, so Heating setpoint cannot be changed.", OptimisationFixtures.Single(optimisationDefinition.Diagnostics(null, OptimisationFixtures.ModelCatalogue()), "OPT609").Message);
+        }
+
+        [Fact]
+        public void OPT609_ACombinationThatIsNotInTheModel()
+        {
+            OptimisationCatalogue catalogue = new OptimisationCatalogue(
+                new[]
+                {
+                    new OptimisationCatalogueEntry("A", new OptimisationTarget("tpd.controller.setpoint", OptimisationFixtures.Reference("plantRoom", "P1", "controller", "C1"))),
+                    new OptimisationCatalogueEntry("B", new OptimisationTarget("tpd.controller.setpoint", OptimisationFixtures.Reference("plantRoom", "P2", "controller", "C2"))),
+                },
+                OptimisationFixtures.ModelCatalogue().Outputs);
+            OptimisationDefinition optimisationDefinition = Bound();
+            optimisationDefinition.Variables[0].Target.Reference = OptimisationFixtures.Reference("plantRoom", "P1", "controller", "C2");
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel(), catalogue), "OPT609");
+
+            Assert.Equal("$.variables[0].target.reference", optimisationDiagnostic.Path);
+            Assert.Equal("This model has no plant controller setpoint (plant room “P1”, controller “C2”), so Setpoint cannot be changed.", optimisationDiagnostic.Message);
+            Assert.Equal("Available: plant controller setpoint (plant room “P1”, controller “C1”), plant controller setpoint (plant room “P2”, controller “C2”).", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void OPT609_IsLeftToOPT601_ForAKindTheEngineDoesNotList()
+        {
+            OptimisationDefinition optimisationDefinition = Bound();
+            optimisationDefinition.Variables[0].Target.Kind = "tbd.unknown";
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue());
+
+            OptimisationFixtures.Single(diagnostics, "OPT601");
+            Assert.DoesNotContain(diagnostics, x => x.Code == "OPT609");
+        }
+
+        [Fact]
+        public void OPT610_OptionsOnAValueTarget()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Variables[0].Target.Options = new List<string>() { "A", "B" };
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel()), "OPT610");
+
+            Assert.Equal("$.variables[0].target.options", optimisationDiagnostic.Path);
+            Assert.Equal("Zone heating setpoint takes a value, not a choice between options, so the options of Heating setpoint cannot be used.", optimisationDiagnostic.Message);
+        }
+
+        [Theory]
+        [InlineData(0, "Glazing construction choice is a choice between options, and Glazing lists none; at least two are needed.")]
+        [InlineData(1, "Glazing construction choice is a choice between options, and Glazing lists only one; at least two are needed.")]
+        public void OPT611_AChoiceNeedsTwoOptions(int count, string message)
+        {
+            OptimisationDefinition optimisationDefinition = Choice();
+            optimisationDefinition.Variables[0].Target.Options = optimisationDefinition.Variables[0].Target.Options.Take(count).ToList();
+
+            Assert.Equal(message, OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel(true)), "OPT611").Message);
+        }
+
+        [Fact]
+        public void OPT612_OptionsNeedADiscreteVariable()
+        {
+            OptimisationDefinition optimisationDefinition = Choice();
+            optimisationDefinition.Variables[0].Type = DesignVariableType.Continuous;
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(), "OPT612");
+
+            Assert.Equal("$.variables[0].type", optimisationDiagnostic.Path);
+            Assert.Equal("Glazing chooses between options, so its type must be \"discrete\"; it is \"continuous\".", optimisationDiagnostic.Message);
+        }
+
+        [Fact]
+        public void OPT613_AnOptionRepeatedOrWithoutName()
+        {
+            OptimisationDefinition optimisationDefinition = Choice();
+            optimisationDefinition.Variables[0].Target.Options = new List<string>() { "Double low-e", "Double low-e", " " };
+
+            List<OptimisationDiagnostic> diagnostics = optimisationDefinition.Diagnostics().FindAll(x => x.Code == "OPT613");
+
+            Assert.Equal(new[] { "$.variables[0].target.options[1]", "$.variables[0].target.options[2]" }, diagnostics.Select(x => x.Path));
+            Assert.Equal("Option “Double low-e” of Glazing is listed more than once.", diagnostics[0].Message);
+            Assert.Equal("Option 3 of Glazing has no name.", diagnostics[1].Message);
+        }
+
+        [Fact]
+        public void OPT614_AnOptionTheModelDoesNotOffer()
+        {
+            OptimisationDefinition optimisationDefinition = Choice();
+            optimisationDefinition.Variables[0].Target.Options[1] = "Triple low e";
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue()), "OPT614");
+
+            Assert.Equal("$.variables[0].target.options[1]", optimisationDiagnostic.Path);
+            Assert.Equal("Option “Triple low e” of Glazing is not available for glazing construction choice (glazing construction “Office glazing”).", optimisationDiagnostic.Message);
+            Assert.Equal("Did you mean “Triple low-e”? Available: “Double low-e”, “Triple low-e”, “Double solar control”.", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void OPT615_AChoiceIsNumberedOneToTheNumberOfOptions()
+        {
+            OptimisationDefinition optimisationDefinition = Choice();
+            optimisationDefinition.Variables[0].Maximum = 4;
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(optimisationDefinition.Diagnostics(), "OPT615");
+
+            Assert.Equal("$.variables[0].minimum", optimisationDiagnostic.Path);
+            Assert.Equal("Glazing chooses between 3 options, numbered 1 to 3, so its minimum must be 1 and its maximum 3; they are 1 and 4.", optimisationDiagnostic.Message);
+            Assert.Equal("Use \"minimum\": 1 and \"maximum\": 3.", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void WithoutCapabilities_NoBindingCapabilityFindings()
+        {
+            OptimisationDefinition optimisationDefinition = Zones();
+            optimisationDefinition.Variables[0].Target.Kind = "tbd.unknown";
+            optimisationDefinition.Variables[0].Target.Reference["x"] = "y";
+            optimisationDefinition.Output("Overheating").Measure.Parameters["threshold"] = 99;
+            optimisationDefinition.Output("Plant energy").Unit = "MWh";
+
+            Assert.Empty(optimisationDefinition.Diagnostics());
+        }
+
+        [Fact]
+        public void IsRunnable_WithACatalogue_RequiresCapabilities()
+        {
+            Assert.Throws<System.ArgumentNullException>(() => Zones().IsRunnable(null, OptimisationFixtures.ModelCatalogue()));
+        }
+
         [Fact]
         public void Diagnostic_ToString_IsReadable()
         {

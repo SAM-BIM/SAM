@@ -208,6 +208,166 @@ namespace SAM.Tests
             Assert.Equal(optimisationDefinition.ToJson(), OptimisationFixtures.Read(reply, out _, OptimisationFixtures.Tas, true).ToJson());
         }
 
+        // ---------- AI exchange text with model bindings ----------
+
+        [Fact]
+        public void AIExchangeText_ForABindingEngine_AsksForEveryBinding_AndKeepsTheNoCodeRule()
+        {
+            string text = Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue(), "Lowest annual energy.");
+
+            Assert.Contains("- Give every design variable a \"target\" and every output a \"measure\", copied exactly from AVAILABLE. Do not\n  invent targets, measures or model item names. Names are short labels of your choice, each unique.\n", text);
+            Assert.Contains("- Do not write code, scripts or expressions. Do not add fields that are not listed here.", text);
+            Assert.Contains("\"minimum\", \"maximum\", \"start\", \"step\", \"target\" }", text);
+            Assert.Contains("\"unit\" (optional), \"measure\" }", text);
+            Assert.Contains("- target: { \"kind\", \"reference\", \"parameters\" } exactly as under AVAILABLE", text);
+            Assert.Contains("- measure: { \"kind\", \"reference\", \"parameters\" } exactly as under AVAILABLE", text);
+            Assert.Contains("- model: { \"engine\": \"tas-model\"", text);
+            Assert.DoesNotContain("Use only the design variable and output names listed under AVAILABLE", text);
+            Assert.DoesNotContain("they are not checked against the model", text);
+        }
+
+        [Fact]
+        public void AIExchangeText_OffersTheCatalogueItems_WithValuesAndUnits()
+        {
+            string text = Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue());
+
+            Assert.Contains(
+                "AVAILABLE (read from the Tas model)\n" +
+                "Can change (design variable targets):\n" +
+                "- Setpoint: { \"kind\": \"tpd.controller.setpoint\", \"reference\": { \"controller\": \"HeatPumpController\", \"plantRoom\": \"Plant Room 1\" } }\n" +
+                "  HeatPumpController setpoint; no stated unit\n" +
+                "- Office heating setpoint: { \"kind\": \"tbd.internal-condition.heating-setpoint\", \"reference\": { \"internalCondition\": \"Office\" } }\n" +
+                "  Zone heating setpoint; unit °C; now 21 °C; suggested range 16 to 24 °C\n" +
+                "- Office cooling setpoint: { \"kind\": \"tbd.internal-condition.cooling-setpoint\", \"reference\": { \"internalCondition\": \"Office\" } }\n" +
+                "  Zone cooling setpoint; unit °C; now 24 °C; suggested range 21 to 28 °C\n" +
+                "- Meeting room heating setpoint: { \"kind\": \"tbd.internal-condition.heating-setpoint\", \"reference\": { \"internalCondition\": \"Meeting room\" } }\n" +
+                "  Zone heating setpoint; unit °C; now 20 °C\n" +
+                "- Office glazing g-value: { \"kind\": \"tbd.glazing-construction.g-value\", \"reference\": { \"glazingConstruction\": \"Office glazing\" } }\n" +
+                "  Glazing g-value; unit -; now 0.42; suggested range 0.2 to 0.7\n" +
+                "Can measure (output measures):\n" +
+                "- Annual heating demand: { \"kind\": \"tsd.annual-heating-demand\" }\n" +
+                "  Annual heating demand; unit kWh; now 41200.5 kWh\n" +
+                "- Annual cooling demand: { \"kind\": \"tsd.annual-cooling-demand\" }\n" +
+                "  Annual cooling demand; unit kWh; now 18750 kWh\n" +
+                "- Overheating hours: { \"kind\": \"tsd.overheating-hours\", \"parameters\": { \"threshold\": 28 } }\n" +
+                "  Overheating hours; unit h; now 37 h; parameter \"threshold\" (resultant temperature threshold, default 28 °C, 20 to 40 °C)\n" +
+                "- Annual plant energy: { \"kind\": \"tpd.annual-energy\" }\n" +
+                "  Annual plant energy; unit kWh\n" +
+                "- Annual plant cost: { \"kind\": \"tpd.annual-cost\" }\n" +
+                "  Annual plant cost; unit GBP\n" +
+                "- Annual plant CO2: { \"kind\": \"tpd.annual-co2\" }\n" +
+                "  Annual plant CO2; unit kgCO2e\n" +
+                "\n" +
+                "CURRENT DEFINITION\n", text);
+        }
+
+        [Fact]
+        public void AIExchangeText_OffersAChoice_OnlyWhenTheEngineRunsDiscreteVariables()
+        {
+            string continuous = Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue());
+            string discrete = Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue());
+
+            Assert.DoesNotContain("tbd.glazing-construction.choice", continuous);
+            Assert.DoesNotContain("options", continuous);
+            Assert.Contains("- Office glazing: { \"kind\": \"tbd.glazing-construction.choice\", \"reference\": { \"glazingConstruction\": \"Office glazing\" } }\n  Glazing construction choice; no stated unit; options: \"Double low-e\", \"Triple low-e\", \"Double solar control\"\n", discrete);
+            Assert.Contains("- A choice target also has \"options\": two or more of the names listed for it under AVAILABLE. Its variable has\n  \"type\": \"discrete\", \"minimum\": 1 and \"maximum\": the number of options (1 is the first option).\n", discrete);
+        }
+
+        [Fact]
+        public void AIExchangeText_OffersOnlyKindsTheEngineLists()
+        {
+            OptimisationCatalogue catalogue = OptimisationFixtures.ModelCatalogue();
+            OptimisationCatalogue withUnknown = new OptimisationCatalogue(
+                catalogue.Variables.Concat(new[] { new OptimisationCatalogueEntry("Shading", new OptimisationTarget("tbd.shading.depth")) }),
+                catalogue.Outputs.Concat(new[] { new OptimisationCatalogueEntry("Daylight", new OptimisationMeasure("tsd.daylight-factor")) }),
+                catalogue.Source);
+
+            string text = Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(), withUnknown);
+
+            Assert.DoesNotContain("tbd.shading.depth", text);
+            Assert.DoesNotContain("tsd.daylight-factor", text);
+            Assert.Contains("tpd.annual-co2", text);
+        }
+
+        [Fact]
+        public void AIExchangeText_ForABindingEngine_WithoutModelItems_SaysSo()
+        {
+            OptimisationCatalogue names = new OptimisationCatalogue(new[] { new OptimisationCatalogueEntry("Setpoint") }, null, "Tas script");
+
+            Assert.Contains("AVAILABLE (Tas script)\n- No list of model items is available: keep the targets and measures already in the current definition.\n", Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(), names));
+            Assert.Contains("AVAILABLE\n- No list of model items is available", Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel()));
+        }
+
+        [Fact]
+        public void AIExchangeText_ForTasScript_OffersNoBindings_EvenWithAModelCatalogue()
+        {
+            string text = Core.Optimisation.Query.AIExchangeText(OptimisationFixtures.Definition(OptimisationFixtures.GoldenSection), OptimisationFixtures.Tas, SystemsDemoCatalogue());
+
+            Assert.DoesNotContain("target", text);
+            Assert.DoesNotContain("measure", text);
+            Assert.Contains("- Use only the design variable and output names listed under AVAILABLE. Do not invent names.", text);
+            Assert.DoesNotContain("tbd.", Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.Tas, OptimisationFixtures.ModelCatalogue()));
+        }
+
+        [Fact]
+        public void AIReply_CopyingTheOfferedItems_ReadsBackBoundAndRunnable()
+        {
+            // An assistant builds a definition from the offered lines, copying each binding's JSON exactly.
+            string text = Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue());
+            string Offered(string name)
+            {
+                string start = "- " + name + ": ";
+                int index = text.IndexOf(start, StringComparison.Ordinal) + start.Length;
+                return text.Substring(index, text.IndexOf('\n', index) - index);
+            }
+
+            string reply = "Here you are:\n{ \"schema\": \"sam.optimisation/1\", \"model\": { \"engine\": \"tas-model\" },\n" +
+                "  \"variables\": [ { \"name\": \"Heating\", \"minimum\": 18, \"maximum\": 23, \"target\": " + Offered("Office heating setpoint") + " } ],\n" +
+                "  \"outputs\": [ { \"name\": \"Heating demand\", \"unit\": \"kWh\", \"measure\": " + Offered("Annual heating demand") + " },\n" +
+                "    { \"name\": \"Overheating\", \"measure\": " + Offered("Overheating hours") + " } ],\n" +
+                "  \"objective\": { \"output\": \"Heating demand\", \"sense\": \"minimise\" },\n" +
+                "  \"method\": { \"algorithm\": \"golden-section\" } }";
+
+            OptimisationDefinition optimisationDefinition = OptimisationFixtures.Read(reply, out List<OptimisationDiagnostic> diagnostics, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue(), true);
+
+            Assert.True(diagnostics.IsRunnable(), string.Join("\n", diagnostics));
+            Assert.Equal("Office", optimisationDefinition.Variables[0].Target.Reference["internalCondition"]);
+            Assert.Equal(28, optimisationDefinition.Output("Overheating").Measure.Parameters["threshold"]);
+        }
+
+        [Fact]
+        public void AIReply_InventingAModelItem_IsNotRunnable()
+        {
+            string reply = OptimisationFixtures.With(OptimisationFixtures.BoundHookeJeeves, "\"internalCondition\": \"Office\"\n        }\n      }\n    },\n    {\n      \"name\": \"Cooling setpoint\"", "\"internalCondition\": \"Boardroom\"\n        }\n      }\n    },\n    {\n      \"name\": \"Cooling setpoint\"");
+
+            OptimisationFixtures.Read(reply, out List<OptimisationDiagnostic> diagnostics, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue(), true);
+
+            Assert.False(diagnostics.IsRunnable());
+            Assert.Equal("Internal condition “Boardroom” is not in this model, so Heating setpoint cannot be changed.", OptimisationFixtures.Single(diagnostics, "OPT609").Message);
+        }
+
+        [Fact]
+        public void AIExchangeText_EmbedsABoundDefinition_AndItReadsBackUnchanged()
+        {
+            OptimisationDefinition optimisationDefinition = OptimisationFixtures.Definition(OptimisationFixtures.BoundHookeJeeves);
+            string text = Core.Optimisation.Query.AIExchangeText(optimisationDefinition, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue());
+            string start = "CURRENT DEFINITION\n";
+            string reply = text.Substring(text.IndexOf(start, StringComparison.Ordinal) + start.Length);
+            reply = reply.Substring(0, reply.IndexOf("\nTASK\n", StringComparison.Ordinal));
+
+            Assert.Equal(optimisationDefinition.ToJson(), OptimisationFixtures.Read(reply, out _, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue(), true).ToJson());
+        }
+
+        [Fact]
+        public void AIExchangeText_ForABindingEngine_HoldsNoPathOrMachineDetail()
+        {
+            string text = Core.Optimisation.Query.AIExchangeText(OptimisationFixtures.Definition(OptimisationFixtures.BoundHookeJeeves), OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue());
+
+            Assert.DoesNotContain(":\\", text);
+            Assert.DoesNotContain(Environment.UserName, text);
+            Assert.DoesNotContain(Environment.MachineName, text);
+        }
+
         // ---------- JSON Schema resource ----------
 
         [Fact]
@@ -239,6 +399,22 @@ namespace SAM.Tests
                     Assert.Equal(keyValuePair.Value.OrderBy(x => x, StringComparer.Ordinal), names.OrderBy(x => x, StringComparer.Ordinal));
                     Assert.False(element.GetProperty("additionalProperties").GetBoolean(), keyValuePair.Key);
                 }
+            }
+        }
+
+        [Fact]
+        public void Schema_Bindings_AreEngineDefinedMaps()
+        {
+            using (JsonDocument jsonDocument = JsonDocument.Parse(Core.Optimisation.Query.SchemaText()))
+            {
+                JsonElement defs = jsonDocument.RootElement.GetProperty("$defs");
+
+                Assert.Equal("#/$defs/target", defs.GetProperty("variable").GetProperty("properties").GetProperty("target").GetProperty("$ref").GetString());
+                Assert.Equal("#/$defs/measure", defs.GetProperty("output").GetProperty("properties").GetProperty("measure").GetProperty("$ref").GetString());
+                Assert.Equal("string", defs.GetProperty("reference").GetProperty("additionalProperties").GetProperty("type").GetString());
+                Assert.Equal("number", defs.GetProperty("parameters").GetProperty("additionalProperties").GetProperty("type").GetString());
+                Assert.Equal(new[] { "kind" }, defs.GetProperty("target").GetProperty("required").EnumerateArray().Select(x => x.GetString()));
+                Assert.Equal(new[] { "kind" }, defs.GetProperty("measure").GetProperty("required").EnumerateArray().Select(x => x.GetString()));
             }
         }
 

@@ -32,6 +32,16 @@ namespace SAM.Core.Optimisation
         /// <returns>The definition, or null when the text cannot be read (OPT1xx error).</returns>
         public static OptimisationDefinition OptimisationDefinition(string text, out List<OptimisationDiagnostic> diagnostics, IOptimisationCapabilities capabilities = null, bool extract = false)
         {
+            return OptimisationDefinition(text, out diagnostics, capabilities, null, extract);
+        }
+
+        /// <summary>
+        /// <see cref="OptimisationDefinition(string, out List{OptimisationDiagnostic}, IOptimisationCapabilities, bool)"/>,
+        /// with the targets and measures also checked against the model's <paramref name="catalogue"/> (OPT609, OPT614;
+        /// see <see cref="Query.Diagnostics(Optimisation.OptimisationDefinition, IOptimisationCapabilities, OptimisationCatalogue)"/>).
+        /// </summary>
+        public static OptimisationDefinition OptimisationDefinition(string text, out List<OptimisationDiagnostic> diagnostics, IOptimisationCapabilities capabilities, OptimisationCatalogue catalogue, bool extract = false)
+        {
             diagnostics = new List<OptimisationDiagnostic>();
 
             string value = text ?? string.Empty;
@@ -76,7 +86,7 @@ namespace SAM.Core.Optimisation
                 return null;
             }
 
-            foreach (OptimisationDiagnostic optimisationDiagnostic in result.Diagnostics(capabilities))
+            foreach (OptimisationDiagnostic optimisationDiagnostic in result.Diagnostics(capabilities, catalogue))
             {
                 diagnostics.Add(optimisationDefinitionReader.Locate(optimisationDiagnostic));
             }

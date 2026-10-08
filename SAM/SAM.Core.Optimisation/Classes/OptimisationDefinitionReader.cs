@@ -156,6 +156,21 @@ namespace SAM.Core.Optimisation
             result.Quantity = Enum(properties, "quantity", path, OptimisationQuantity.Unspecified);
             result.Minimum = Number(properties, "minimum", path, node, true) ?? double.NaN;
             result.Maximum = Number(properties, "maximum", path, node, true) ?? double.NaN;
+
+            OptimisationJsonNode node_Target = Object(properties, "target", path, node, false);
+            if (node_Target != null)
+            {
+                string path_Target = path + ".target";
+                Dictionary<string, OptimisationJsonProperty> properties_Target = Properties(node_Target, path_Target, OptimisationNames.Target);
+                result.Target = new OptimisationTarget()
+                {
+                    Kind = Text(properties_Target, "kind", path_Target, true, node_Target),
+                    Reference = Reference(properties_Target, path_Target),
+                    Parameters = Parameters(properties_Target, path_Target),
+                    Options = Options(properties_Target, path_Target),
+                };
+            }
+
             return result;
         }
 
@@ -163,7 +178,7 @@ namespace SAM.Core.Optimisation
         {
             Dictionary<string, OptimisationJsonProperty> properties = Properties(node, path, OptimisationNames.Output);
 
-            return new OptimisationOutput()
+            OptimisationOutput result = new OptimisationOutput()
             {
                 Name = Text(properties, "name", path, true, node),
                 Description = Text(properties, "description", path, false),
@@ -171,6 +186,21 @@ namespace SAM.Core.Optimisation
                 Unit = Unit(properties, path),
                 Aggregation = Text(properties, "aggregation", path, false),
             };
+
+            OptimisationJsonNode node_Measure = Object(properties, "measure", path, node, false);
+            if (node_Measure != null)
+            {
+                string path_Measure = path + ".measure";
+                Dictionary<string, OptimisationJsonProperty> properties_Measure = Properties(node_Measure, path_Measure, OptimisationNames.Measure);
+                result.Measure = new OptimisationMeasure()
+                {
+                    Kind = Text(properties_Measure, "kind", path_Measure, true, node_Measure),
+                    Reference = Reference(properties_Measure, path_Measure),
+                    Parameters = Parameters(properties_Measure, path_Measure),
+                };
+            }
+
+            return result;
         }
 
         private OptimisationObjective Objective(OptimisationJsonNode node, string path)
@@ -279,6 +309,121 @@ namespace SAM.Core.Optimisation
 
                     string suggestion = Suggestion(property.Name, names);
                     Error("OPT105", path_Property, "\"" + property.Name + "\" is not a known field here.", suggestion == null ? "Allowed: " + string.Join(", ", names) + "." : "Did you mean \"" + suggestion + "\"?", property);
+                    continue;
+                }
+
+                result[property.Name] = property;
+                Remember(path_Property, property);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// A binding's "reference": an object whose keys the engine defines (checked later against its capabilities) and
+        /// whose values are model item names (text). A key given as null counts as absent.
+        /// </summary>
+        private Dictionary<string, string> Reference(Dictionary<string, OptimisationJsonProperty> properties, string path)
+        {
+            Dictionary<string, string> result = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            OptimisationJsonNode value = Object(properties, "reference", path, null, false);
+            if (value == null)
+            {
+                return result;
+            }
+
+            string path_Reference = path + ".reference";
+            Dictionary<string, OptimisationJsonProperty> properties_Reference = Map(value, path_Reference);
+            foreach (string name in properties_Reference.Keys)
+            {
+                string text = Text(properties_Reference, name, path_Reference, false);
+                if (text != null)
+                {
+                    result[name] = text;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// A binding's "parameters": an object whose keys the engine defines (checked later against its capabilities) and
+        /// whose values are numbers. A key given as null counts as absent (the engine's default).
+        /// </summary>
+        private Dictionary<string, double> Parameters(Dictionary<string, OptimisationJsonProperty> properties, string path)
+        {
+            Dictionary<string, double> result = new Dictionary<string, double>(StringComparer.Ordinal);
+
+            OptimisationJsonNode value = Object(properties, "parameters", path, null, false);
+            if (value == null)
+            {
+                return result;
+            }
+
+            string path_Parameters = path + ".parameters";
+            Dictionary<string, OptimisationJsonProperty> properties_Parameters = Map(value, path_Parameters);
+            foreach (string name in properties_Parameters.Keys)
+            {
+                double? number = Number(properties_Parameters, name, path_Parameters, value, false);
+                if (number != null)
+                {
+                    result[name] = number.Value;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>A choice target's "options": a list of model item names (text), in order.</summary>
+        private List<string> Options(Dictionary<string, OptimisationJsonProperty> properties, string path)
+        {
+            List<string> result = new List<string>();
+
+            OptimisationJsonNode value = Value(properties, "options", path, null, false);
+            if (value == null)
+            {
+                return result;
+            }
+
+            string path_Options = path + ".options";
+            if (value.Kind != OptimisationJsonKind.Array)
+            {
+                Error("OPT107", path_Options, "\"options\" must be a list [ … ] of names, not " + value.KindText + ".", null, value);
+                return result;
+            }
+
+            for (int i = 0; i < value.Items.Count; i++)
+            {
+                OptimisationJsonNode item = value.Items[i];
+                string path_Item = string.Format(CultureInfo.InvariantCulture, "{0}[{1}]", path_Options, i);
+                Remember(path_Item, item);
+
+                if (item.Kind != OptimisationJsonKind.String)
+                {
+                    Error("OPT107", path_Item, string.Format(CultureInfo.InvariantCulture, "Option {0} must be a name in quotes, not {1}.", i + 1, item.KindText), null, item);
+                    continue;
+                }
+
+                result.Add(item.Text);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// The properties of an object whose keys the engine defines (a reference or parameters): any key is accepted
+        /// here (the engine's capabilities check it), and a repeated one is reported (OPT106); the first is kept.
+        /// </summary>
+        private Dictionary<string, OptimisationJsonProperty> Map(OptimisationJsonNode node, string path)
+        {
+            Dictionary<string, OptimisationJsonProperty> result = new Dictionary<string, OptimisationJsonProperty>(StringComparer.Ordinal);
+            foreach (OptimisationJsonProperty property in node.Properties)
+            {
+                string path_Property = path + "." + property.Name;
+                if (result.ContainsKey(property.Name))
+                {
+                    Error("OPT106", path_Property, "\"" + property.Name + "\" is given more than once.", "Keep one of them.", property);
                     continue;
                 }
 
@@ -536,7 +681,7 @@ namespace SAM.Core.Optimisation
         }
 
         /// <summary>The closest allowed name, when it is close enough to be a likely typing mistake or a different case.</summary>
-        private static string Suggestion(string text, IEnumerable<string> names)
+        internal static string Suggestion(string text, IEnumerable<string> names)
         {
             if (string.IsNullOrEmpty(text))
             {
