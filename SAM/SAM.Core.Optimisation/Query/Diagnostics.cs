@@ -150,6 +150,12 @@ namespace SAM.Core.Optimisation
                     {
                         result.Add(Error("OPT205", path + ".start", Subject(variable, i) + " start " + Number(variable.Start.Value, variable.Unit) + " is outside its range (" + Range(variable) + ").", "Choose a start within the range."));
                     }
+
+                    // A choice without named options is numbered like one with them (those are checked with the target, OPT615).
+                    if (variable.Type == DesignVariableType.Discrete && (variable.Target?.Options?.Count ?? 0) == 0 && variable.Minimum < variable.Maximum && (variable.Minimum != 1 || variable.Maximum != System.Math.Floor(variable.Maximum)))
+                    {
+                        result.Add(Error("OPT615", path + ".minimum", Subject(variable, i) + " is a choice (\"discrete\"), numbered 1 to the number of options, so its minimum must be 1 and its maximum a whole number; they are " + Number(variable.Minimum, null) + " and " + Number(variable.Maximum, null) + ".", "Use \"minimum\": 1 and \"maximum\": the number of options."));
+                    }
                 }
 
                 if (finite_Step && variable.Step != null && !(variable.Step.Value > 0))
@@ -353,11 +359,20 @@ namespace SAM.Core.Optimisation
                     result.Add(new OptimisationDiagnostic(DiagnosticSeverity.Info, "OPT408", "$.method", "Golden section uses only the bounds; the start and step of " + string.Join(", ", names) + " are kept but not used.", null));
                 }
 
+                ChoiceNeedsTryEveryOption(optimisationDefinition, method, result);
+                return;
+            }
+
+            if (method is TryEveryOptionMethod)
+            {
+                TryEveryOption(optimisationDefinition, result);
                 return;
             }
 
             if (method is HookeJeevesMethod hookeJeevesMethod)
             {
+                ChoiceNeedsTryEveryOption(optimisationDefinition, method, result);
+
                 Minimum(hookeJeevesMethod.StepReductionFactor, 2, "stepReductionFactor", "The Hooke–Jeeves step reduction factor", result, "OPT402");
                 Minimum(hookeJeevesMethod.InitialStepExponent, 0, "initialStepExponent", "The Hooke–Jeeves initial step exponent", result, "OPT403");
                 Minimum(hookeJeevesMethod.StepExponentIncrement, 1, "stepExponentIncrement", "The Hooke–Jeeves step exponent increment", result, "OPT404");
@@ -383,6 +398,80 @@ namespace SAM.Core.Optimisation
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// OPT409: a choice ("discrete" variable) is searched only by try every option. Golden section and Hooke–Jeeves
+        /// move through a continuous range, so on an option number they would land between options or stall on a
+        /// plateau of equal results.
+        /// </summary>
+        private static void ChoiceNeedsTryEveryOption(OptimisationDefinition optimisationDefinition, OptimisationMethod method, List<OptimisationDiagnostic> result)
+        {
+            List<DesignVariable> variables = optimisationDefinition.Variables ?? new List<DesignVariable>();
+            for (int i = 0; i < variables.Count; i++)
+            {
+                DesignVariable variable = variables[i];
+                if (variable != null && variable.Type == DesignVariableType.Discrete)
+                {
+                    result.Add(Error("OPT409", Path("variables", i) + ".type", Subject(variable, i) + " is a choice (\"discrete\"), which " + AlgorithmText(method.Algorithm) + " cannot search: only try every option runs a choice.", "Use \"method\": { \"algorithm\": \"" + OptimisationNames.Text(OptimisationAlgorithm.TryEveryOption) + "\" }."));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Try every option: each variable must be a choice (OPT409); start and step are not used (OPT408, info); the
+        /// simulation limit must allow one simulation per option (OPT416). How many variables it takes is the engine's
+        /// capability (OPT412); in V1 a choice runs on its own.
+        /// </summary>
+        private static void TryEveryOption(OptimisationDefinition optimisationDefinition, List<OptimisationDiagnostic> result)
+        {
+            List<DesignVariable> variables = optimisationDefinition.Variables ?? new List<DesignVariable>();
+            for (int i = 0; i < variables.Count; i++)
+            {
+                DesignVariable variable = variables[i];
+                if (variable != null && variable.Type != DesignVariableType.Discrete)
+                {
+                    result.Add(Error("OPT409", Path("variables", i) + ".type", "Try every option runs only a choice (\"discrete\" variable); " + Subject(variable, i) + " is \"" + OptimisationNames.Text(variable.Type) + "\".", "Choose golden section or Hooke–Jeeves for it, or make it a choice: \"type\": \"discrete\", numbered 1 to the number of options."));
+                }
+            }
+
+            List<string> names = variables.FindAll(x => x != null && (x.Start != null || x.Step != null)).ConvertAll(x => Quote(x.Name));
+            if (names.Count != 0)
+            {
+                result.Add(new OptimisationDiagnostic(DiagnosticSeverity.Info, "OPT408", "$.method", "Try every option tries each option in turn; the start and step of " + string.Join(", ", names) + " are kept but not used.", null));
+            }
+
+            int? maximumSimulations = optimisationDefinition.Stopping?.MaximumSimulations;
+            List<DesignVariable> choices = variables.FindAll(x => x != null);
+            if (maximumSimulations == null || maximumSimulations.Value < 1 || choices.Count != 1)
+            {
+                return;
+            }
+
+            DesignVariable choice = choices[0];
+            double count = OptionCount(choice);
+            if (choice.Type == DesignVariableType.Discrete && count > maximumSimulations.Value)
+            {
+                string text = count.ToString(CultureInfo.InvariantCulture);
+                result.Add(Error("OPT416", "$.stopping.maximumSimulations", string.Format(CultureInfo.InvariantCulture, "Try every option needs one simulation per option: {0} has {1} options, but the simulation limit is {2}.", Subject(choice, variables.IndexOf(choice)), text, maximumSimulations.Value), "Raise \"maximumSimulations\" to " + text + " or more (or leave it out), or remove options."));
+            }
+        }
+
+        /// <summary>The number of options of a choice: its options, else its whole numbers from minimum to maximum; 0 when its range is not valid.</summary>
+        private static double OptionCount(DesignVariable variable)
+        {
+            int options = variable.Target?.Options?.Count ?? 0;
+            if (options != 0)
+            {
+                return options;
+            }
+
+            if (!Finite(variable.Minimum) || !Finite(variable.Maximum) || variable.Minimum > variable.Maximum)
+            {
+                return 0;
+            }
+
+            return System.Math.Floor(variable.Maximum) - System.Math.Ceiling(variable.Minimum) + 1;
         }
 
         private static void Capability(OptimisationDefinition optimisationDefinition, IOptimisationCapabilities capabilities, List<OptimisationDiagnostic> result)
@@ -413,7 +502,9 @@ namespace SAM.Core.Optimisation
                     if (count != 0 && (count < minimum || (maximum != null && count > maximum.Value)))
                     {
                         string accepts = maximum == minimum ? "exactly " + Count(minimum) : maximum == null ? "at least " + Count(minimum) : string.Format(CultureInfo.InvariantCulture, "{0} to {1} design variables", minimum, maximum);
-                        List<string> others = (capabilities.Algorithms ?? new List<OptimisationAlgorithmCapability>()).Where(x => x.Algorithm != method.Algorithm && count >= x.MinimumVariables && (x.MaximumVariables == null || count <= x.MaximumVariables)).Select(x => AlgorithmText(x.Algorithm)).ToList();
+                        // Suggest only a method that also suits the variables: try every option for choices, the others for values.
+                        bool choices = (optimisationDefinition.Variables ?? new List<DesignVariable>()).Any(x => x != null && x.Type == DesignVariableType.Discrete);
+                        List<string> others = (capabilities.Algorithms ?? new List<OptimisationAlgorithmCapability>()).Where(x => x.Algorithm != method.Algorithm && count >= x.MinimumVariables && (x.MaximumVariables == null || count <= x.MaximumVariables) && (x.Algorithm == OptimisationAlgorithm.TryEveryOption) == choices).Select(x => AlgorithmText(x.Algorithm)).ToList();
                         string hint = count > (maximum ?? int.MaxValue) ? "Remove " + (count - maximum.Value == 1 ? "a variable" : (count - maximum.Value).ToString(CultureInfo.InvariantCulture) + " variables") : "Add a variable";
                         result.Add(Error("OPT412", "$.variables", AlgorithmText(method.Algorithm, true) + " optimises " + accepts + "; " + Count(count, true) + " defined.", hint + (others.Count == 0 ? "." : ", or choose " + string.Join(" or ", others) + ".")));
                     }
@@ -537,7 +628,7 @@ namespace SAM.Core.Optimisation
             return count == 1 ? "1 is" : count.ToString(CultureInfo.InvariantCulture) + " are";
         }
 
-        /// <summary>"golden section" / "Golden section" and "Hooke–Jeeves".</summary>
+        /// <summary>"golden section" / "Golden section", "Hooke–Jeeves" and "try every option" / "Try every option".</summary>
         internal static string AlgorithmText(OptimisationAlgorithm optimisationAlgorithm, bool sentenceStart = false)
         {
             switch (optimisationAlgorithm)
@@ -546,6 +637,8 @@ namespace SAM.Core.Optimisation
                     return sentenceStart ? "Golden section" : "golden section";
                 case OptimisationAlgorithm.HookeJeeves:
                     return "Hooke–Jeeves";
+                case OptimisationAlgorithm.TryEveryOption:
+                    return sentenceStart ? "Try every option" : "try every option";
             }
 
             return optimisationAlgorithm.ToString();

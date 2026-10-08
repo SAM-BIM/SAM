@@ -262,15 +262,88 @@ namespace SAM.Tests
         }
 
         [Fact]
-        public void AIExchangeText_OffersAChoice_OnlyWhenTheEngineRunsDiscreteVariables()
+        public void AIExchangeText_OffersAChoice_OnlyWhenTheEngineRunsDiscreteVariablesAndTryEveryOption()
         {
-            string continuous = Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue());
-            string discrete = Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue());
+            OptimisationCapabilities model = OptimisationFixtures.TasModel(true);
+            OptimisationCapabilities discreteOnly = new OptimisationCapabilities(model.Engine, model.DisplayName, OptimisationFixtures.TasModel().Algorithms, model.Senses, model.VariableTypes, false, model.Targets, model.Measures);
+            OptimisationCapabilities tryEveryOptionOnly = new OptimisationCapabilities(model.Engine, model.DisplayName, model.Algorithms, model.Senses, new[] { DesignVariableType.Continuous }, false, model.Targets, model.Measures);
 
-            Assert.DoesNotContain("tbd.glazing-construction.choice", continuous);
-            Assert.DoesNotContain("options", continuous);
-            Assert.Contains("- Office glazing: { \"kind\": \"tbd.glazing-construction.choice\", \"reference\": { \"glazingConstruction\": \"Office glazing\" } }\n  Glazing construction choice; no stated unit; options: \"Double low-e\", \"Triple low-e\", \"Double solar control\"\n", discrete);
-            Assert.Contains("- A choice target also has \"options\": two or more of the names listed for it under AVAILABLE. Its variable has\n  \"type\": \"discrete\", \"minimum\": 1 and \"maximum\": the number of options (1 is the first option).\n", discrete);
+            foreach (IOptimisationCapabilities capabilities in new IOptimisationCapabilities[] { OptimisationFixtures.TasModel(), discreteOnly, tryEveryOptionOnly })
+            {
+                string text = Core.Optimisation.Query.AIExchangeText(null, capabilities, OptimisationFixtures.ModelCatalogue());
+
+                Assert.DoesNotContain("tbd.glazing-construction.choice", text);
+                Assert.DoesNotContain("options", text);
+                Assert.DoesNotContain("\"discrete\"", text);
+                Assert.DoesNotContain("try-every-option", text);
+            }
+
+            string choice = Core.Optimisation.Query.AIExchangeText(null, model, OptimisationFixtures.ModelCatalogue());
+
+            Assert.Contains("- Office glazing: { \"kind\": \"tbd.glazing-construction.choice\", \"reference\": { \"glazingConstruction\": \"Office glazing\" } }\n  Glazing construction choice; no stated unit; options (at most 8): \"Double low-e\", \"Triple low-e\", \"Double solar control\"\n", choice);
+            Assert.Contains(
+                "- A \"discrete\" variable is a choice between options numbered 1 to n: \"minimum\": 1, \"maximum\": n (1 is the first\n" +
+                "  option), no \"start\" or \"step\". Only \"try-every-option\" searches a choice, and it searches only a choice.\n", choice);
+            Assert.Contains(
+                "- A choice target also has \"options\": two or more of the names listed for it under AVAILABLE, copied exactly, in\n" +
+                "  the order to number them (at most as many as shown there). Its variable is \"discrete\" with \"maximum\": the number\n" +
+                "  of options.\n", choice);
+        }
+
+        [Fact]
+        public void AIExchangeText_OffersTryEveryOption_OnlyWhenTheEngineRunsIt()
+        {
+            Assert.DoesNotContain("try-every-option", Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.Tas));
+            Assert.DoesNotContain("try-every-option", Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(), OptimisationFixtures.ModelCatalogue()));
+
+            string text = Core.Optimisation.Query.AIExchangeText(null, OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue());
+
+            Assert.Contains(
+                "  { \"algorithm\": \"try-every-option\" } (exactly 1 design variable, a \"discrete\" choice; one simulation per option, in order;\n" +
+                "    \"maximumSimulations\", if given, at least the number of options)\n", text);
+            Assert.Contains("\"type\": \"continuous\" or \"discrete\"", text);
+        }
+
+        [Fact]
+        public void AIExchangeText_WithoutLimit_DoesNotMentionOne()
+        {
+            OptimisationCapabilities model = OptimisationFixtures.TasModel(true);
+            OptimisationBindingCapability unlimited = new OptimisationBindingCapability("tbd.glazing-construction.choice", "Glazing construction choice", referenceKeys: new[] { new OptimisationReferenceKey("glazingConstruction", "glazing construction") }, acceptsOptions: true);
+            OptimisationCapabilities capabilities = new OptimisationCapabilities(model.Engine, model.DisplayName, model.Algorithms, model.Senses, model.VariableTypes, false, model.Targets.Where(x => !x.AcceptsOptions).Concat(new[] { unlimited }), model.Measures);
+
+            string text = Core.Optimisation.Query.AIExchangeText(null, capabilities, OptimisationFixtures.ModelCatalogue());
+
+            Assert.Contains("options: \"Double low-e\"", text);
+            Assert.Contains("  the order to number them. Its variable is \"discrete\"", text);
+            Assert.DoesNotContain("at most", text);
+        }
+
+        [Fact]
+        public void AIReply_CopyingTheOfferedChoice_IsRunnable_AndMistakesAreExplained()
+        {
+            OptimisationCapabilities capabilities = OptimisationFixtures.TasModel(true);
+            OptimisationCatalogue catalogue = OptimisationFixtures.ModelCatalogue();
+            string reply = OptimisationFixtures.Text(OptimisationFixtures.Choice);
+
+            Assert.True(OptimisationFixtures.Read(reply, out _, capabilities, catalogue).IsRunnable(capabilities, catalogue));
+
+            OptimisationFixtures.Read(reply.Replace("\"Triple low-e\"", "\"Triple low e\""), out List<OptimisationDiagnostic> misspelt, capabilities, catalogue);
+            Assert.Equal("Did you mean “Triple low-e”? Available: “Double low-e”, “Triple low-e”, “Double solar control”.", OptimisationFixtures.Single(misspelt, "OPT614").Hint);
+
+            OptimisationFixtures.Read(reply.Replace("\"try-every-option\"", "\"hooke-jeeves\""), out List<OptimisationDiagnostic> otherMethod, capabilities, catalogue);
+            Assert.Contains("OPT409", OptimisationFixtures.Errors(otherMethod));
+        }
+
+        [Fact]
+        public void RoundTrip_AChoiceInThePackage_ReadsBackUnchanged()
+        {
+            OptimisationDefinition optimisationDefinition = OptimisationFixtures.Definition(OptimisationFixtures.Choice);
+            string text = Core.Optimisation.Query.AIExchangeText(optimisationDefinition, OptimisationFixtures.TasModel(true), OptimisationFixtures.ModelCatalogue());
+            string start = "CURRENT DEFINITION\n";
+            string reply = text.Substring(text.IndexOf(start, StringComparison.Ordinal) + start.Length);
+            reply = reply.Substring(0, reply.IndexOf("\nTASK\n", StringComparison.Ordinal));
+
+            Assert.Equal(optimisationDefinition.ToJson(), OptimisationFixtures.Read(reply, out _, OptimisationFixtures.TasModel(true), true).ToJson());
         }
 
         [Fact]
@@ -430,6 +503,9 @@ namespace SAM.Tests
                 Assert.Equal(OptimisationNames.Texts<DesignVariableType>(), defs.GetProperty("variable").GetProperty("properties").GetProperty("type").GetProperty("enum").EnumerateArray().Select(x => x.GetString()));
                 Assert.Equal("golden-section", defs.GetProperty("goldenSection").GetProperty("properties").GetProperty("algorithm").GetProperty("const").GetString());
                 Assert.Equal("hooke-jeeves", defs.GetProperty("hookeJeeves").GetProperty("properties").GetProperty("algorithm").GetProperty("const").GetString());
+                Assert.Equal("try-every-option", defs.GetProperty("tryEveryOption").GetProperty("properties").GetProperty("algorithm").GetProperty("const").GetString());
+                Assert.Equal(new[] { "#/$defs/goldenSection", "#/$defs/hookeJeeves", "#/$defs/tryEveryOption" }, jsonDocument.RootElement.GetProperty("properties").GetProperty("method").GetProperty("oneOf").EnumerateArray().Select(x => x.GetProperty("$ref").GetString()));
+                Assert.Equal(OptimisationNames.Texts<OptimisationAlgorithm>(), new[] { "goldenSection", "hookeJeeves", "tryEveryOption" }.Select(x => defs.GetProperty(x).GetProperty("properties").GetProperty("algorithm").GetProperty("const").GetString()));
 
                 List<string> symbols = Core.Optimisation.Query.OptimisationUnits().Select(x => x.Symbol).ToList();
                 string unitDescription = defs.GetProperty("unit").GetProperty("description").GetString();

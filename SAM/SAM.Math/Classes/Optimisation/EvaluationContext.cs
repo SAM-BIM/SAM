@@ -260,6 +260,34 @@ namespace SAM.Math
             progress?.Report(new OptimisationProgress(minimum, false, Simulations, MaximumSimulations));
         }
 
+        /// <summary>
+        /// Reports the lowest sub point (<see cref="TryEveryOption"/>): scan forwards, replacing only on a strictly
+        /// smaller objective, so the first (lowest option number) wins a tie and NaN never wins. Nothing is reported
+        /// when no objective is a number. The point keeps its stored numbers and is written to both listings.
+        /// </summary>
+        public void ReportLowest(OptimisationEvent @event)
+        {
+            OptimisationTraceEntry lowest = null;
+            foreach (OptimisationTraceEntry entry in subPoints)
+            {
+                if (!double.IsNaN(entry.Objective) && (lowest == null || entry.Objective < lowest.Objective))
+                {
+                    lowest = entry;
+                }
+            }
+
+            if (lowest == null)
+            {
+                return;
+            }
+
+            minimum = new OptimisationTraceEntry(lowest, @event);
+            mainIterations.Add(minimum);
+            progress?.Report(new OptimisationProgress(minimum, true, Simulations, MaximumSimulations));
+            entries.Add(minimum);
+            progress?.Report(new OptimisationProgress(minimum, false, Simulations, MaximumSimulations));
+        }
+
         public void SetInterval(GoldenSectionInterval value)
         {
             interval = value;

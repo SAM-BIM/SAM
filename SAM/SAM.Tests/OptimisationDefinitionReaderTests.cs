@@ -200,6 +200,79 @@ namespace SAM.Tests
             Assert.Contains("\"algorithm\": \"golden-section\"", optimisationDefinition.ToJson());
         }
 
+        // ---------- Try every option ----------
+
+        [Theory]
+        [InlineData("\"try-every-option\"", false)]
+        [InlineData("\"Try every option\"", true)]
+        [InlineData("\"tryEveryOption\"", true)]
+        public void TryEveryOption_IsRead_AndNormalised(string algorithm, bool normalised)
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.Choice, "\"try-every-option\"", algorithm);
+
+            OptimisationDefinition optimisationDefinition = OptimisationFixtures.Read(text, out List<OptimisationDiagnostic> diagnostics);
+
+            Assert.IsType<TryEveryOptionMethod>(optimisationDefinition.Method);
+            Assert.Equal(OptimisationAlgorithm.TryEveryOption, optimisationDefinition.Method.Algorithm);
+            Assert.Equal(normalised, diagnostics.Exists(x => x.Code == "OPT113"));
+            Assert.Equal(OptimisationFixtures.Text(OptimisationFixtures.Choice).Replace("\r\n", "\n"), optimisationDefinition.ToJson());
+        }
+
+        [Theory]
+        [InlineData("\"tolerance\": 0.1", "golden-section")]
+        [InlineData("\"stepReductions\": 4", "hooke-jeeves")]
+        public void TryEveryOption_HasNoSettings_AnotherMethodsSettingIsNamedAsSuch(string setting, string method)
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.Choice, "\"algorithm\": \"try-every-option\"", "\"algorithm\": \"try-every-option\",\n    " + setting);
+
+            Assert.Null(Create.OptimisationDefinition(text, out List<OptimisationDiagnostic> diagnostics));
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(diagnostics, "OPT105");
+            Assert.Equal("$.method." + setting.Split('"')[1], optimisationDiagnostic.Path);
+            Assert.Equal("\"" + setting.Split('"')[1] + "\" is a setting of the " + method + " method, not of this one.", optimisationDiagnostic.Message);
+            Assert.Equal("Remove it, or change \"algorithm\".", optimisationDiagnostic.Hint);
+        }
+
+        [Fact]
+        public void TryEveryOption_UnknownSetting_ListsWhatIsAllowed()
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.Choice, "\"algorithm\": \"try-every-option\"", "\"algorithm\": \"try-every-option\",\n    \"order\": 1");
+
+            Assert.Null(Create.OptimisationDefinition(text, out List<OptimisationDiagnostic> diagnostics));
+            Assert.Equal("Allowed: algorithm.", OptimisationFixtures.Single(diagnostics, "OPT105").Hint);
+        }
+
+        [Fact]
+        public void GoldenSection_ASettingOfTryEveryOptionsNeighbour_IsStillNamed()
+        {
+            string text = OptimisationFixtures.GoldenSectionWith("\"tolerance\": 0.1", "\"stepReductionFactor\": 2");
+
+            Assert.Null(Create.OptimisationDefinition(text, out List<OptimisationDiagnostic> diagnostics));
+            Assert.Equal("\"stepReductionFactor\" is a setting of the hooke-jeeves method, not of this one.", OptimisationFixtures.Single(diagnostics, "OPT105").Message);
+        }
+
+        [Fact]
+        public void Algorithm_UnknownOrMissing_ListsTryEveryOption()
+        {
+            Assert.Null(Create.OptimisationDefinition(OptimisationFixtures.With(OptimisationFixtures.Choice, "\"try-every-option\"", "\"try-all\""), out List<OptimisationDiagnostic> unknown));
+            Assert.EndsWith("Allowed: \"golden-section\", \"hooke-jeeves\", \"try-every-option\".", OptimisationFixtures.Single(unknown, "OPT111").Hint);
+
+            Assert.Null(Create.OptimisationDefinition(OptimisationFixtures.With(OptimisationFixtures.Choice, "\"algorithm\": \"try-every-option\"", string.Empty), out List<OptimisationDiagnostic> missing));
+            Assert.Equal("Add \"algorithm\": \"golden-section\" or \"hooke-jeeves\" or \"try-every-option\".", OptimisationFixtures.Single(missing, "OPT110").Hint);
+        }
+
+        [Fact]
+        public void TryEveryOption_FindingsAreLocatedInTheText()
+        {
+            string text = OptimisationFixtures.With(OptimisationFixtures.Choice, "\"type\": \"discrete\"", "\"type\": \"continuous\"");
+
+            Create.OptimisationDefinition(text, out List<OptimisationDiagnostic> diagnostics);
+
+            OptimisationDiagnostic optimisationDiagnostic = OptimisationFixtures.Single(diagnostics, "OPT409");
+            Assert.Equal(12, optimisationDiagnostic.Line);
+            Assert.Equal(7, optimisationDiagnostic.Column);
+        }
+
         [Fact]
         public void UnitSynonym_IsNormalised_WithANote()
         {
@@ -322,6 +395,10 @@ namespace SAM.Tests
 
             DesignVariable variable = Assert.Single(optimisationDefinition.Variables);
             Assert.Equal(DesignVariableType.Discrete, variable.Type);
+            Assert.Equal((1.0, 3.0), (variable.Minimum, variable.Maximum));
+            Assert.Null(variable.Start);
+            Assert.Null(variable.Step);
+            Assert.IsType<TryEveryOptionMethod>(optimisationDefinition.Method);
             Assert.Equal(new[] { "Double low-e", "Triple low-e", "Double solar control" }, variable.Target.Options);
             Assert.Equal(26.5, optimisationDefinition.Outputs[0].Measure.Parameters["threshold"]);
             Assert.Empty(diagnostics);

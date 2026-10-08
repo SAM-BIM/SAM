@@ -111,7 +111,7 @@ namespace SAM.Core.Optimisation
         /// <summary>
         /// OPT6xx checks against what the engine can change and measure: every binding's kind is one the engine lists
         /// (OPT601), with its reference keys (OPT602, OPT603), parameters (OPT604, OPT605), unit and quantity (OPT606) and
-        /// options (OPT610, OPT611); and when the engine takes targets or measures, every variable or output has one
+        /// options (OPT610, OPT611, and at most the kind's limit, OPT616); and when the engine takes targets or measures, every variable or output has one
         /// (OPT608). An engine that lists none (for example "tas-script") takes no bindings at all.
         /// </summary>
         private static void BindingCapability(OptimisationDefinition optimisationDefinition, IOptimisationCapabilities capabilities, List<OptimisationDiagnostic> result)
@@ -158,6 +158,12 @@ namespace SAM.Core.Optimisation
                 else if (optimisationBindingCapability.AcceptsOptions && options.Count < 2)
                 {
                     result.Add(Error("OPT611", path + ".options", KindText(optimisationBindingCapability, true) + " is a choice between options, and " + subject + (options.Count == 0 ? " lists none" : " lists only one") + "; at least two are needed.", "List the model items to choose between in \"options\"."));
+                }
+                else if (optimisationBindingCapability.MaximumOptions != null && options.Count > optimisationBindingCapability.MaximumOptions.Value)
+                {
+                    int maximum = optimisationBindingCapability.MaximumOptions.Value;
+                    int surplus = options.Count - maximum;
+                    result.Add(Error("OPT616", path + ".options", string.Format(CultureInfo.InvariantCulture, "{0} takes at most {1} options with the {2} engine (each option is one simulation), and {3} lists {4}, so this definition cannot run.", KindText(optimisationBindingCapability, true), maximum, engine, subject, options.Count), surplus == 1 ? "Remove 1 option." : string.Format(CultureInfo.InvariantCulture, "Remove {0} options.", surplus)));
                 }
             }
 

@@ -24,7 +24,16 @@ namespace SAM.Core.Optimisation
         internal static readonly string[] Constraint = { "output", "atMost", "atLeast", "unit" };
         internal static readonly string[] GoldenSection = { "algorithm", "tolerance" };
         internal static readonly string[] HookeJeeves = { "algorithm", "stepReductionFactor", "initialStepExponent", "stepExponentIncrement", "stepReductions" };
+        internal static readonly string[] TryEveryOption = { "algorithm" };
         internal static readonly string[] Stopping = { "maximumSimulations" };
+
+        /// <summary>The "method" object's properties for each algorithm.</summary>
+        internal static readonly IReadOnlyDictionary<OptimisationAlgorithm, string[]> Methods = new Dictionary<OptimisationAlgorithm, string[]>()
+        {
+            { OptimisationAlgorithm.GoldenSection, GoldenSection },
+            { OptimisationAlgorithm.HookeJeeves, HookeJeeves },
+            { OptimisationAlgorithm.TryEveryOption, TryEveryOption },
+        };
 
         /// <summary>Every object of the schema by its name in the JSON Schema file's "$defs" (the root is "definition").</summary>
         internal static readonly IReadOnlyDictionary<string, string[]> Objects = new Dictionary<string, string[]>()
@@ -39,6 +48,7 @@ namespace SAM.Core.Optimisation
             { "constraint", Constraint },
             { "goldenSection", GoldenSection },
             { "hookeJeeves", HookeJeeves },
+            { "tryEveryOption", TryEveryOption },
             { "stopping", Stopping },
         };
 
@@ -52,6 +62,7 @@ namespace SAM.Core.Optimisation
         {
             { OptimisationAlgorithm.GoldenSection, "golden-section" },
             { OptimisationAlgorithm.HookeJeeves, "hooke-jeeves" },
+            { OptimisationAlgorithm.TryEveryOption, "try-every-option" },
         };
 
         private static readonly Dictionary<DesignVariableType, string> variableTypes = new Dictionary<DesignVariableType, string>()

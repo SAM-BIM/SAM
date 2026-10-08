@@ -310,6 +310,32 @@ namespace SAM.Tests
             Assert.Equal(OptimisationFixtures.Text(OptimisationFixtures.Choice).Replace("\r\n", "\n"), optimisationDefinition.ToJson());
         }
 
+        [Fact]
+        public void TryEveryOption_IsWrittenAsItsAlgorithmOnly_AndReadBack()
+        {
+            OptimisationDefinition optimisationDefinition = Definition();
+            optimisationDefinition.Method = new TryEveryOptionMethod();
+
+            string text = optimisationDefinition.ToJson();
+
+            Assert.Contains("  \"method\": {\n    \"algorithm\": \"try-every-option\"\n  }\n", text);
+            Assert.IsType<TryEveryOptionMethod>(OptimisationFixtures.Read(text, out _).Method);
+            Assert.Equal(text, OptimisationFixtures.Read(text, out _).ToJson());
+        }
+
+        [Fact]
+        public void TryEveryOption_IsCopied()
+        {
+            OptimisationDefinition optimisationDefinition = OptimisationFixtures.Definition(OptimisationFixtures.Choice);
+
+            OptimisationDefinition copy = new OptimisationDefinition(optimisationDefinition);
+
+            Assert.IsType<TryEveryOptionMethod>(copy.Method);
+            Assert.NotSame(optimisationDefinition.Method, copy.Method);
+            Assert.IsType<TryEveryOptionMethod>(optimisationDefinition.Method.Clone());
+            Assert.NotSame(optimisationDefinition.Method, optimisationDefinition.Method.Clone());
+        }
+
         private static OptimisationDefinition Definition()
         {
             OptimisationDefinition result = new OptimisationDefinition()

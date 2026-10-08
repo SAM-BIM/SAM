@@ -15,6 +15,12 @@ namespace SAM.Core.Optimisation
     public sealed class OptimisationBindingCapability
     {
         public OptimisationBindingCapability(string kind, string displayName, OptimisationQuantity quantity = OptimisationQuantity.Unspecified, string unit = null, IEnumerable<OptimisationReferenceKey> referenceKeys = null, IEnumerable<OptimisationBindingParameter> parameters = null, bool acceptsOptions = false)
+            : this(kind, displayName, quantity, unit, referenceKeys, parameters, acceptsOptions, null)
+        {
+        }
+
+        /// <summary>A kind with a limit on the number of options a choice target may list (<see cref="MaximumOptions"/>).</summary>
+        public OptimisationBindingCapability(string kind, string displayName, OptimisationQuantity quantity, string unit, IEnumerable<OptimisationReferenceKey> referenceKeys, IEnumerable<OptimisationBindingParameter> parameters, bool acceptsOptions, int? maximumOptions)
         {
             Kind = kind;
             DisplayName = displayName;
@@ -23,6 +29,7 @@ namespace SAM.Core.Optimisation
             ReferenceKeys = (referenceKeys ?? Enumerable.Empty<OptimisationReferenceKey>()).Where(x => x != null).ToList().AsReadOnly();
             Parameters = (parameters ?? Enumerable.Empty<OptimisationBindingParameter>()).Where(x => x != null).ToList().AsReadOnly();
             AcceptsOptions = acceptsOptions;
+            MaximumOptions = acceptsOptions ? maximumOptions : null;
         }
 
         /// <summary>The kind written in a binding, for example "tbd.internal-condition.heating-setpoint".</summary>
@@ -51,5 +58,13 @@ namespace SAM.Core.Optimisation
         /// variable is "discrete". Never true for a measure.
         /// </summary>
         public bool AcceptsOptions { get; }
+
+        /// <summary>
+        /// For a choice target: the most options it may list, because every option costs one simulation when the choice
+        /// is tried in full (for example 8 for a glazing choice). Null for no limit, and always null when
+        /// <see cref="AcceptsOptions"/> is false. A limit of the engine, not of the schema: a definition with more is
+        /// readable and editable but not runnable on this engine (OPT616).
+        /// </summary>
+        public int? MaximumOptions { get; }
     }
 }
