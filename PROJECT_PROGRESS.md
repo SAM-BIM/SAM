@@ -6,7 +6,7 @@
 
 ## Last updated
 
-2026-10-08 (native Optimisation PR3 `SAM.Core.Optimisation` closeout, SAM#187; native Optimisation PR2 energy/mass units and display formatting closeout, SAM#186; Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
+2026-10-08 (native Optimisation PR6 model bindings closeout, SAM#188; native Optimisation PR3 `SAM.Core.Optimisation` closeout, SAM#187; native Optimisation PR2 energy/mass units and display formatting closeout, SAM#186; Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
 
 ## Current status
 
@@ -372,6 +372,85 @@ Source: last revision of the file on `sow/2026-Q3`, commit `689f75d5` (the file 
   - PR4 (SAM_Tas `OptimisationDefinition` adapter parity) needs the owner's explicit authorisation.
   - Before PR4, fast-forward the local SAM and SAM_Tas checkouts and rebuild their `build\` folders from the merged Q4
     heads.
+
+## Model bindings (targets and measures) in the Optimisation Definition — native Optimisation PR6 (2026-10-08)
+
+- **Status:** complete, closed.
+  - SAM-BIM/SAM#188 (`feature/optimisation-model-bindings`) merged into `sow/2026-Q4` as merge commit
+    `6e5727f6ae156e683d58ea51f05504d84d504a0c`. Parents: Q4 head `721b5fae` and PR head
+    `8464827c8371310b59502d234572362e6e89e0be`. The merge tree `8243136c` is identical to the head tree.
+  - Merge method: merge commit with `--match-head-commit`, after the owner's explicit approval.
+  - PR CI (`build (Release)`, `test (Release)`, `spdx`) green on `8464827c`. Post-merge `Build (Windows)` and `Test` on `6e5727f6` green. No review comments or threads.
+  - Branch removed on origin and locally.
+  - Record: `documentation/OptimisationDefinition-Bindings-PR.md`.
+  - Plan of record: SAM_UI `documentation/NativeOptimisation-Plan-ModelBindings.md` (SAM_UI#216). The owner's
+    construction/glazing-choice follow-up was added to it by SAM_UI#217.
+- **Work completed (SAM only; SAM_Tas, SAM_UI and SAM.Math unchanged):**
+  - **Bindings.** `DesignVariable.Target` (`OptimisationTarget`) and `OptimisationOutput.Measure`
+    (`OptimisationMeasure`), both optional. Each binding has:
+    - an engine-defined `kind`;
+    - a `reference` (text map naming the model item);
+    - numeric `parameters`;
+    - for a target only, `options` (ordered model item names, for a choice).
+  - **Capabilities.** `IOptimisationCapabilities.Targets` / `Measures` list `OptimisationBindingCapability`: kind,
+    display name, quantity, unit, `OptimisationReferenceKey`s, `OptimisationBindingParameter`s (default, range) and
+    `AcceptsOptions`. The six-argument `OptimisationCapabilities` constructor is kept and means "no kinds".
+  - **Catalogue.** Entries can carry a target (current value, suggested range, available options) or a measure (current
+    value); `OptimisationCatalogue.HasBindings`. Name-only entries are unchanged.
+  - **Reader and writer.** The reader stays strict for schema fields (OPT105–OPT110 apply inside bindings). The writer
+    is canonical, with reference and parameter keys in ordinal order.
+  - **Diagnostics: new range OPT600–OPT615** (OPT5xx stays reserved for engine execution checks):
+    - no kind;
+    - kind not offered by the engine (including a measure used as a target, or an engine that takes none);
+    - reference key missing or unknown;
+    - parameter unknown or out of range;
+    - unit or quantity not the kind's;
+    - the same target twice;
+    - an unbound variable or output on an engine that lists kinds;
+    - not in the model's catalogue;
+    - the option rules.
+
+    OPT214 covers a non-finite parameter.
+  - **New overloads (old signatures kept):** `Query.Diagnostics(def, caps, catalogue)`,
+    `Query.IsRunnable(def, caps, catalogue)`, `Create.OptimisationDefinition(text, out d, caps, catalogue, extract)`.
+  - **AI text.** For an engine with kinds, every variable and output must be bound, copied from AVAILABLE. Only the
+    catalogue items whose kind the engine lists are offered, with current values, units, ranges and parameters. A
+    choice is offered only when the engine runs `discrete`. The "no code" rule is kept, and the `tas-script` text is
+    unchanged.
+  - **Schema resource.** New `target`, `measure`, `reference` and `parameters` `$defs`.
+- **Decisions:**
+  - Stay on `sam.optimisation/1`.
+  - Reference values are text; a null map value counts as absent.
+  - An engine that lists no kinds takes no bindings. An engine that lists kinds needs every variable and output bound.
+  - **Choice variable:** `discrete`, options numbered 1..n (`minimum` 1, `maximum` = option count). Shape only: no engine
+    runs `discrete`, and the "try every option" method and the TBD swap are not built.
+  - The same measure twice is allowed (for example two thresholds).
+  - Catalogue checks apply only when the catalogue lists model items.
+- **Files changed:**
+  - `SAM/SAM.Core.Optimisation/`:
+    - 7 new files (`Classes/{OptimisationBinding,OptimisationTarget,OptimisationMeasure,OptimisationBindingCapability,OptimisationReferenceKey,OptimisationBindingParameter}.cs`, `Query/BindingDiagnostics.cs`);
+    - 13 changed (definition classes, capabilities, catalogue, reader, names, diagnostic comment, interface, writer,
+      Create, Diagnostics, AIExchangeText, schema);
+  - `SAM/SAM.Tests/`: fixtures helper, the four optimisation suites, and 3 new LF fixtures
+    (`systems-demo-bound-golden-section.json`, `zone-setpoints-glazing-hooke-jeeves.json`, `glazing-choice.json`);
+    the `systems-demo-*.json` fixtures are not edited;
+  - the record.
+- **Validation:**
+  - `dotnet build SAM.sln -c Release`: 0 errors; `SAM.Core.Optimisation` 0 warnings.
+  - `SAM.Tests`: **3355/3355** (3272 before, +83; optimisation suites 364, 281 before).
+  - Mutations M1–M10, all caught (2, 42, 1, 6, 1, 1, 1, 2, 1, 1 failing tests).
+  - Against this build, with no change to either repo:
+    - SAM_Tas `SAM.Analytical.Tas.GenOpt` built, and its tests **257/257**;
+    - SAM_UI Release `SAM_UI.sln` 0 errors, and `TasOptimisation*` **121/121**.
+  - `git diff --check` clean.
+- **Unresolved issues, risks:**
+  - Kinds, reference keys, units and parameter ranges in the fixtures are placeholders; SAM_Tas defines the real ones in
+    PR7b (PR7a may change them: R1 g-value, D1 overheating).
+  - References are names (R3): a renamed item gives OPT609 with a suggestion; nothing repairs it automatically.
+  - Versioning (open since PR3): a PR3-era SAM refuses `target`/`measure` with OPT105. Decide before `.samopt.json`.
+  - `SAM.Core.Optimisation` is still not deployed (plan PR10).
+- **Next step:** PR7a, the SAM_Tas licensed spike (evidence only), when the owner authorises it. Hand-over prompt
+  `SAM-BIM\NEXT_SESSION_PROMPT_PR7A.md` on the authoring laptop (local, not in git; it points only to committed files).
 
 ## Part O stable semantic design key (2026-10-07)
 
