@@ -6,7 +6,7 @@
 
 ## Last updated
 
-2026-10-08 (Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
+2026-10-08 (native Optimisation PR2 energy/mass units and display formatting closeout, SAM#186; Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
 
 ## Current status
 
@@ -244,6 +244,52 @@ Source: last revision of the file on `sow/2026-Q3`, commit `689f75d5` (the file 
 - **Unresolved issues, risks:** none for SAM. SAM_Deploy follow-up (separate): ship one current `SAM.Math.dll` to every
   SAM/Rhino location.
 - **Next step:** none for this PR.
+
+## Energy and mass units, engineering display formatting — native Optimisation PR2 (2026-10-08)
+
+- **Status:** complete, closed. SAM-BIM/SAM#186 (`feature/units-energy-mass-formatting`) merged into `sow/2026-Q4` as
+  merge commit `b52beaf3d2cae1f88d568f5333eed81d677c329e` (parents: Q4 base `b081065e` + reviewed PR head
+  `5273ce725d513ab982aa102d24f8064aed0ab58c`; merge tree `016a578b` identical to the head tree); merge method: merge
+  commit, after the owner's acceptance. PR CI (`build`, `test`, `spdx`) green on the head; post-merge `Build (Windows)`
+  and `Test` on `b52beaf3` green. Codex: no review, comment or thread. Branch removed on origin. Record:
+  `documentation/Units-EnergyMass-Formatting-PR.md`. PR2 of the staged native Optimisation plan
+  (`opus-5-5-robust-blum.md`).
+- **Work completed:**
+  - `SAM.Units`: `UnitType` gained `WattHour`, `KilowattHour`, `MegawattHour`, `Kilogram` and `Tonne`, and
+    `UnitCategory` gained `Energy` and `Mass`. All new values are appended; no ordinal moved.
+  - Energy factors are based on Wh and mass factors on kg. kWh and kg are the defaults in both unit styles.
+  - `Joule`/`Kilojoule` stay in `Enthaply`, so Energy does not convert to J; a cross-category conversion gives NaN.
+  - `SAM.Core.Reporting.QuantityFormatter`:
+    - Energy is shown in kWh to 1 dp, switching the group to MWh to 2 dp from 10 MWh.
+    - Mass is shown in kg to 1 dp, switching the group to t to 2 dp from 10 t.
+    - Group switching is now table-driven; Power behaviour is unchanged.
+    - New per-category `DocumentOptions.Decimals` override.
+    - New public `FormatNumber` (NaN/∞ → "—"), `FormatSignificant` (4 s.f. by default, scientific below 1e-3) and the
+      static `DecimalsForSignificantFigures`.
+    - The new helpers are deliberately not on `IQuantityFormatter`.
+- **Decisions:** Count → "persons", Ratio at 0 dp and every other existing default are unchanged (Space reports depend
+  on them). Optimisation counts are formatted as integers in the optimisation UI, not through `Count`. Currency and
+  CO2e are not SAM.Units categories; they stay optimisation-level quantities (`SAM.Core.Optimisation`, PR3).
+- **Files changed:**
+  - `SAM/SAM.Units/{Enums/UnitType,Enums/UnitCategory,Query/UnitCategory,Query/UnitType,Query/UnitTypes,Convert/ByUnitType,Convert/ToSI,Convert/ToImperial}.cs`;
+  - `SAM/SAM.Core.Reporting/Classes/{QuantityFormatter,DocumentOptions}.cs`;
+  - new tests `SAM/SAM.Tests/{EnergyMassUnitsTests,QuantityFormatterEngineeringTests}.cs`;
+  - the record.
+- **Validation:**
+  - Implementation session: `SAM.Tests` 3137/3137 (+66).
+  - Independent review: a trial merge of PR2 with PR3 was clean; `SAM.sln` Release built with 0 errors; `SAM.Tests`
+    3261/3261.
+  - The existing Space report, `UnitsTests` and `QuantityFormatterTests` are unchanged and passing.
+  - No existing `Format` path reaches the changed NaN handling, because `Format` throws on NaN before it.
+- **Unresolved issues, risks (for UX PR5, not defects):**
+  - A column made only of values below 1e-3 shows zeros (decimals are capped at 6), so PR5 needs a scientific fallback.
+  - Currency (0 dp at 1 000 or more, 2 dp below) and the CO2e symbol (kgCO2e maps to the `Kilogram` unit type) must be
+    handled in the optimisation presentation layer.
+  - A negative `Decimals` override throws only when a value is formatted.
+- **Next step:**
+  - Refresh PR3 (SAM#187) onto this head, with its required finite-number validation fix.
+  - Re-run the full SAM validation and wait for fresh CI before merging it.
+  - SAM_UI consumes the formatter in UX PR5.
 
 ## Part O stable semantic design key (2026-10-07)
 
