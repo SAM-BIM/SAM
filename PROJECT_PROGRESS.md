@@ -6,7 +6,7 @@
 
 ## Last updated
 
-2026-10-08 (native Optimisation PR2 energy/mass units and display formatting closeout, SAM#186; Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
+2026-10-08 (native Optimisation PR3 `SAM.Core.Optimisation` closeout, SAM#187; native Optimisation PR2 energy/mass units and display formatting closeout, SAM#186; Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
 
 ## Current status
 
@@ -286,10 +286,92 @@ Source: last revision of the file on `sow/2026-Q3`, commit `689f75d5` (the file 
   - Currency (0 dp at 1 000 or more, 2 dp below) and the CO2e symbol (kgCO2e maps to the `Kilogram` unit type) must be
     handled in the optimisation presentation layer.
   - A negative `Decimals` override throws only when a value is formatted.
+- **Next step:** none for this PR. PR3 (SAM#187) was refreshed onto this head and merged; see the next section. SAM_UI
+  consumes the formatter in UX PR5.
+
+## `SAM.Core.Optimisation` declarative Optimisation Definition — native Optimisation PR3 (2026-10-08)
+
+- **Status:** complete, closed.
+  - SAM-BIM/SAM#187 (`feature/optimisation-definition-core`) merged into `sow/2026-Q4` as merge commit
+    `4eb0c49bcc65a2c344f3a2e8ef33be2bbd10096e`. Parents: Q4 head `b515e442` (after SAM#186 and its closeout) and PR head
+    `466f43e41777c8290563a730f9467af29f805372`. The merge tree `e271c777` is identical to the head tree.
+  - Merge method: merge commit with `--match-head-commit`, performed by the owner.
+  - PR CI (`build`, `test`, `spdx`) green on `466f43e4`; post-merge `Build (Windows)` and `Test` on `4eb0c49b` green.
+  - Reviews:
+    - Owner approval on the first head `6cbb81ac`.
+    - The independent acceptance review returned CHANGE with one required fix, applied in `466f43e4`.
+    - Codex: no review, comment or thread.
+  - Branch removed on origin and locally.
+  - Record: `documentation/OptimisationDefinition-Core-PR.md`. PR3 of the staged native Optimisation plan
+    (`opus-5-5-robust-blum.md`).
+- **Work completed:** a new netstandard2.0 library `SAM/SAM.Core.Optimisation`. It references SAM.Units and
+  System.Text.Json 8.0.5 only: no SAM.Math, UI or Tas dependency.
+  - **Model:** the typed, portable definition `sam.optimisation/1` (`OptimisationDefinition`, `OptimisationModel`,
+    `DesignVariable`, `OptimisationOutput`, `OptimisationObjective`, `OptimisationConstraint`,
+    `GoldenSectionMethod`/`HookeJeevesMethod`, `StoppingCriteria`). It has no path fields.
+  - **Reader:** `Create.OptimisationDefinition` is strict.
+    - Errors (OPT1xx, with line and column): unknown, duplicate and wrong-type fields, numbers as text, NaN, 1e400,
+      an unknown or newer schema.
+    - Tolerated: comments, trailing commas and BOM.
+    - Enum values and unit synonyms are normalised with an info note.
+    - `extract` takes the JSON object out of a fenced or prose AI reply, with a warning.
+  - **Writer:** `Convert.ToJson` is canonical and gives a bit-exact double round trip.
+  - **Validation:** `Query.Diagnostics` / `IsRunnable` in layers, each finding with its path and a hint:
+    - OPT2xx meaning, including **OPT214, a number that is not finite (the review fix)**;
+    - OPT3xx units (declared, never verified);
+    - OPT40x method;
+    - OPT41x capability (definition still loads; not runnable).
+  - **Capabilities and catalogue:** the `IOptimisationCapabilities` / `OptimisationCapabilities` model, and
+    `OptimisationCatalogue`.
+  - **AI text:** `Query.AIExchangeText` sets the contract: exactly one raw JSON object, and only what the engine runs
+    is offered. The current definition is embedded as canonical JSON with no fence, and the text has no paths.
+  - **Schema:** an embedded JSON Schema 2020-12 resource (`Query.SchemaText`), identical to the reader's field tables
+    (enforced by a test).
+- **Decisions:**
+  - JSON, not YAML.
+  - `sense` is required (no implicit minimise).
+  - Unsupported features (maximise, constraints, integer/discrete variables) are kept, written back and non-runnable.
+  - `K` means a temperature difference.
+  - Method settings and `maximumSimulations` are optional; a null value means the engine's default.
+  - Golden-section start and step are kept, for `Variables.txt` parity in PR4.
+  - No `IJSAMObject` embedding, no unit conversion, and `.samopt.json` deferred: all V1.1.
+  - **Systems Demo fixtures:**
+    - checked against Script.txt `d68a7e2e`;
+    - Setpoint and CO2 have no unit;
+    - Result = Cost is annual cost in GBP.
+- **Files changed:**
+  - the new project `SAM/SAM.Core.Optimisation/**`;
+  - `SAM.sln`;
+  - `SAM/SAM.Tests/SAM.Tests.csproj`;
+  - new tests `SAM/SAM.Tests/Optimisation{DefinitionReader,DefinitionWriter,Diagnostics,Exchange}Tests.cs` and
+    `Helpers/OptimisationFixtures.cs`;
+  - fixtures `SAM/SAM.Tests/Golden/Optimisation/systems-demo-{golden-section,hooke-jeeves}.json`;
+  - the record.
+- **Validation:**
+  - `SAM.Tests` (built explicitly):
+    - first head: 3195/3195;
+    - independent trial merge with SAM#186: 3261/3261;
+    - final head on top of SAM#186: **3272/3272** (+11: OPT214 cases and SAM.Units energy/mass resolution).
+  - `dotnet build SAM.sln -c Release`: 0 errors, and the new project 0 warnings.
+  - Mutations, each caught and then reverted:
+    - M1, the writer uses G15: caught by 4 tests;
+    - M2, the sense capability is not checked: 1;
+    - M3, unknown fields are accepted: 3;
+    - M4, the AI text always offers constraints: 1;
+    - M5, the finite check always passes: 6.
+  - No SAM.Math path changed.
+- **Unresolved issues, risks:**
+  - The library is not deployed yet (plan PR8, SAM_Deploy).
+  - **Versioning:** strict unknown-field rejection means an older SAM refuses a newer `/1` document that has an added
+    field. Decide the versioning policy before `.samopt.json`.
+  - `AIExchangeText` embeds unsupported items from an imported definition: PR7 must strip or flag them.
+  - `"minimize"` / `"maximize"` are errors with a hint, not normalised synonyms.
+  - The column of a JSON syntax error counts bytes.
 - **Next step:**
-  - Refresh PR3 (SAM#187) onto this head, with its required finite-number validation fix.
-  - Re-run the full SAM validation and wait for fresh CI before merging it.
-  - SAM_UI consumes the formatter in UX PR5.
+  - PR1–PR3 of the plan are all merged (SAM_UI#214, SAM#186, SAM#187).
+  - PR4 (SAM_Tas `OptimisationDefinition` adapter parity) needs the owner's explicit authorisation.
+  - Before PR4, fast-forward the local SAM and SAM_Tas checkouts and rebuild their `build\` folders from the merged Q4
+    heads.
 
 ## Part O stable semantic design key (2026-10-07)
 
