@@ -60,5 +60,10 @@ namespace SAM.Units
         [Abbreviation("h")][Description("Hour")] Hour,
         [Abbreviation("deg")][Description("Degree")] Degree,
         [Abbreviation("rad")][Description("Radian")] Radian,
+        [Abbreviation("Wh")][Description("Watt Hour")] WattHour,
+        [Abbreviation("kWh")][Description("Kilowatt Hour")] KilowattHour,
+        [Abbreviation("MWh")][Description("Megawatt Hour")] MegawattHour,
+        [Abbreviation("kg")][Description("Kilogram")] Kilogram,
+        [Abbreviation("t")][Description("Tonne")] Tonne,
     }
 }

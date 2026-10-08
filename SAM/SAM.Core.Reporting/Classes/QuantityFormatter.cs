@@ -24,8 +24,30 @@ namespace SAM.Core.Reporting
         /// </summary>
         public const double KiloBtuPerHourThreshold_BtuPerHour = 100000;
 
+        /// <summary>
+        /// Energy switches from kWh to MWh when the group's largest value reaches 10 MWh.
+        /// </summary>
+        public const double MegawattHourThreshold_kWh = 10000;
+
+        /// <summary>
+        /// Mass switches from kg to t when the group's largest value reaches 10 t.
+        /// </summary>
+        public const double TonneThreshold_kg = 10000;
+
+        /// <summary>
+        /// Values whose magnitude is below this (and not zero) are shown in scientific notation by
+        /// <see cref="FormatSignificant(double, int)"/>.
+        /// </summary>
+        public const double ScientificThreshold = 1e-3;
+
+        /// <summary>
+        /// The most decimals <see cref="DecimalsForSignificantFigures"/> returns.
+        /// </summary>
+        public const int MaximumDecimals = 6;
+
         private readonly CultureInfo cultureInfo;
         private readonly AirFlowDisplay airFlowDisplay;
+        private readonly Dictionary<UnitCategory, int> decimalsByCategory;
 
         public QuantityFormatter(DocumentOptions documentOptions = null)
         {
@@ -34,6 +56,7 @@ namespace SAM.Core.Reporting
             UnitSystem = documentOptions.UnitSystem == UnitStyle.Imperial ? UnitStyle.Imperial : UnitStyle.SI;
             cultureInfo = documentOptions.Culture ?? CultureInfo.InvariantCulture;
             airFlowDisplay = documentOptions.SIAirFlow;
+            decimalsByCategory = documentOptions.Decimals == null ? new Dictionary<UnitCategory, int>() : new Dictionary<UnitCategory, int>(documentOptions.Decimals);
         }
 
         public UnitStyle UnitSystem { get; }
@@ -42,7 +65,16 @@ namespace SAM.Core.Reporting
 
         public string NotApplicableText => "n/a";
 
+        /// <summary>
+        /// The category's default display unit, with the decimals of <see cref="DocumentOptions.Decimals"/> when the
+        /// host overrides them for that category.
+        /// </summary>
         public DisplayUnit DisplayUnit(UnitCategory unitCategory)
+        {
+            return WithDecimals(unitCategory, DefaultDisplayUnit(unitCategory));
+        }
+
+        private DisplayUnit DefaultDisplayUnit(UnitCategory unitCategory)
         {
             bool si = UnitSystem == UnitStyle.SI;
 
@@ -111,6 +143,13 @@ namespace SAM.Core.Reporting
 
                 case UnitCategory.Pressure:
                     return si ? new DisplayUnit(UnitType.Pascal, "Pa", 0) : new DisplayUnit(UnitType.PoundPerSquareInch, "psi", 3);
+
+                // Energy and mass have one unit system in SAM, so both styles show kWh and kg.
+                case UnitCategory.Energy:
+                    return new DisplayUnit(UnitType.KilowattHour, "kWh", 1);
+
+                case UnitCategory.Mass:
+                    return new DisplayUnit(UnitType.Kilogram, "kg", 1);
             }
 
             UnitType unitType = UnitSystem.UnitType(unitCategory);
@@ -119,33 +158,79 @@ namespace SAM.Core.Reporting
 
         public DisplayUnit SelectDisplayUnit(UnitCategory unitCategory, IEnumerable<Quantity> quantities)
         {
-            DisplayUnit result = DisplayUnit(unitCategory);
-            if (unitCategory != UnitCategory.Power || quantities == null)
+            DisplayUnit result = DefaultDisplayUnit(unitCategory);
+            if (quantities != null && TryGetLargerDisplayUnit(unitCategory, out double threshold, out DisplayUnit displayUnit_Larger))
             {
-                return result;
-            }
-
-            double max = 0;
-            foreach (Quantity quantity in quantities)
-            {
-                if (!quantity.IsValid || quantity.Category != UnitCategory.Power)
+                double max = 0;
+                foreach (Quantity quantity in quantities)
                 {
-                    continue;
+                    if (!quantity.IsValid || quantity.Category != unitCategory)
+                    {
+                        continue;
+                    }
+
+                    double value = System.Math.Abs(quantity.ConvertTo(result.UnitType).Value);
+                    if (value > max)
+                    {
+                        max = value;
+                    }
                 }
 
-                double value = System.Math.Abs(quantity.ConvertTo(result.UnitType).Value);
-                if (value > max)
+                if (max >= threshold)
                 {
-                    max = value;
+                    result = displayUnit_Larger;
                 }
             }
 
-            if (UnitSystem == UnitStyle.SI)
+            return WithDecimals(unitCategory, result);
+        }
+
+        /// <summary>
+        /// The larger unit a group of a category switches to, and the threshold (in the category's default display
+        /// unit) at which its largest value makes the switch: W to kW, Btu/h to kBtu/h, kWh to MWh, kg to t.
+        /// </summary>
+        private bool TryGetLargerDisplayUnit(UnitCategory unitCategory, out double threshold, out DisplayUnit displayUnit)
+        {
+            switch (unitCategory)
             {
-                return max >= KilowattThreshold_W ? new DisplayUnit(UnitType.Kilowatt, "kW", 2) : result;
+                case UnitCategory.Power:
+                    if (UnitSystem == UnitStyle.SI)
+                    {
+                        threshold = KilowattThreshold_W;
+                        displayUnit = new DisplayUnit(UnitType.Kilowatt, "kW", 2);
+                    }
+                    else
+                    {
+                        threshold = KiloBtuPerHourThreshold_BtuPerHour;
+                        displayUnit = new DisplayUnit(UnitType.KiloBtuPerHour, "kBtu/h", 1);
+                    }
+
+                    return true;
+
+                case UnitCategory.Energy:
+                    threshold = MegawattHourThreshold_kWh;
+                    displayUnit = new DisplayUnit(UnitType.MegawattHour, "MWh", 2);
+                    return true;
+
+                case UnitCategory.Mass:
+                    threshold = TonneThreshold_kg;
+                    displayUnit = new DisplayUnit(UnitType.Tonne, "t", 2);
+                    return true;
             }
 
-            return max >= KiloBtuPerHourThreshold_BtuPerHour ? new DisplayUnit(UnitType.KiloBtuPerHour, "kBtu/h", 1) : result;
+            threshold = double.NaN;
+            displayUnit = null;
+            return false;
+        }
+
+        private DisplayUnit WithDecimals(UnitCategory unitCategory, DisplayUnit displayUnit)
+        {
+            if (displayUnit == null || !decimalsByCategory.TryGetValue(unitCategory, out int value) || value == displayUnit.Decimals)
+            {
+                return displayUnit;
+            }
+
+            return new DisplayUnit(displayUnit.UnitType, displayUnit.Symbol, value);
         }
 
         public FormattedValue Format(ReportValue<Quantity> reportValue, DisplayUnit displayUnit)
@@ -221,10 +306,22 @@ namespace SAM.Core.Reporting
 
         /// <summary>
         /// Formats a number with a fixed number of decimals and the culture's separators. A value that rounds to zero
-        /// prints as zero, never as "-0.0".
+        /// prints as zero, never as "-0.0". NaN and infinity print as <see cref="NotAvailableText"/>.
         /// </summary>
-        private string FormatNumber(double value, int decimals)
+        /// <param name="value">The value, unchanged by the caller: rounding happens here, for display only.</param>
+        /// <param name="decimals">Decimals, 0 to 15.</param>
+        public string FormatNumber(double value, int decimals)
         {
+            if (decimals < 0 || decimals > 15)
+            {
+                throw new ArgumentOutOfRangeException(nameof(decimals), decimals, "Decimals must be between 0 and 15.");
+            }
+
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                return NotAvailableText;
+            }
+
             double rounded = System.Math.Round(value, decimals, MidpointRounding.AwayFromZero);
             if (rounded == 0)
             {
@@ -232,6 +329,73 @@ namespace SAM.Core.Reporting
             }
 
             return rounded.ToString("N" + decimals.ToString(CultureInfo.InvariantCulture), cultureInfo);
+        }
+
+        /// <summary>
+        /// Formats a value that has no known unit to <paramref name="significantFigures"/> significant figures, with the
+        /// culture's separators: 7360.04370117188 is "7,360" and 4.968943799848584 is "4.969" at 4 figures. A value
+        /// whose magnitude is below <see cref="ScientificThreshold"/> (and not zero) is shown in scientific notation;
+        /// NaN and infinity print as <see cref="NotAvailableText"/>. Values in a column should share their decimals:
+        /// use <see cref="DecimalsForSignificantFigures"/> and <see cref="FormatNumber"/> instead.
+        /// </summary>
+        public string FormatSignificant(double value, int significantFigures = 4)
+        {
+            if (significantFigures < 1 || significantFigures > 15)
+            {
+                throw new ArgumentOutOfRangeException(nameof(significantFigures), significantFigures, "Significant figures must be between 1 and 15.");
+            }
+
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                return NotAvailableText;
+            }
+
+            if (value != 0 && System.Math.Abs(value) < ScientificThreshold)
+            {
+                string format = significantFigures == 1 ? "0E+0" : "0." + new string('0', significantFigures - 1) + "E+0";
+                return value.ToString(format, cultureInfo);
+            }
+
+            return FormatNumber(value, DecimalsForSignificantFigures(new[] { value }, significantFigures));
+        }
+
+        /// <summary>
+        /// The decimals that show the group's largest magnitude to <paramref name="significantFigures"/> significant
+        /// figures, so that comparable values (a table column) share one precision. NaN and infinity are ignored; an
+        /// empty or all-zero group gives 0. The result is between 0 and <see cref="MaximumDecimals"/>.
+        /// </summary>
+        public static int DecimalsForSignificantFigures(IEnumerable<double> values, int significantFigures = 4)
+        {
+            if (significantFigures < 1 || significantFigures > 15)
+            {
+                throw new ArgumentOutOfRangeException(nameof(significantFigures), significantFigures, "Significant figures must be between 1 and 15.");
+            }
+
+            double max = 0;
+            if (values != null)
+            {
+                foreach (double value in values)
+                {
+                    if (double.IsNaN(value) || double.IsInfinity(value))
+                    {
+                        continue;
+                    }
+
+                    double absolute = System.Math.Abs(value);
+                    if (absolute > max)
+                    {
+                        max = absolute;
+                    }
+                }
+            }
+
+            if (max == 0)
+            {
+                return 0;
+            }
+
+            int result = significantFigures - 1 - (int)System.Math.Floor(System.Math.Log10(max));
+            return System.Math.Max(0, System.Math.Min(MaximumDecimals, result));
         }
 
         /// <summary>
