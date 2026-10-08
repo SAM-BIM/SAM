@@ -339,6 +339,15 @@ namespace SAM.Units
             // SpecificEnthaply [J/kg]
             { UnitType.JulePerKilogram, 1 },
             { UnitType.KilojulePerKilogram, 1000 },
+
+            // Energy [Wh]. Jule and Kilojule stay in the Enthaply family, so Energy does not convert to J.
+            { UnitType.WattHour, 1 },
+            { UnitType.KilowattHour, 1000 },
+            { UnitType.MegawattHour, 1000000 },
+
+            // Mass [kg]
+            { UnitType.Kilogram, 1 },
+            { UnitType.Tonne, 1000 },
         };
     }
 }
