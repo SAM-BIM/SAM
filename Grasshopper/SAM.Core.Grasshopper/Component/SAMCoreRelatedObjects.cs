@@ -25,7 +25,7 @@ namespace SAM.Core.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon => Resources.SAM_Small3;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_GH_RelationPluralGet;
 
         public override GH_Exposure Exposure => GH_Exposure.primary;
 

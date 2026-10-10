@@ -211,7 +211,7 @@ namespace SAM.Geometry.Grasshopper
         {
             get
             {
-                return Resources.SAM_Geometry;
+                return Resources.SAM_GH_Geometry2DConvert;
             }
         }
     }

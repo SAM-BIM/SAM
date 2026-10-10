@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper.Obsolete_20200707
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_PanelUpdate);
 
         public override GH_Exposure Exposure => GH_Exposure.tertiary | GH_Exposure.hidden;
 
@@ -141,7 +141,7 @@ namespace SAM.Analytical.Grasshopper.Obsolete_20200706
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_PanelUpdate);
 
         public override GH_Exposure Exposure => GH_Exposure.tertiary | GH_Exposure.hidden;
 

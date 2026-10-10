@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
     {
         public override Guid ComponentGuid => new Guid("b2a2c960-278e-4db2-8c2e-fa883881f03a");
 
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_Shade);
 
         public GooFeatureShadeParam()
             : base(typeof(FeatureShade).Name, typeof(FeatureShade).Name, typeof(FeatureShade).FullName.Replace(".", " "), "Params", "SAM")

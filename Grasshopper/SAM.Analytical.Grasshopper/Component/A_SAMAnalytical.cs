@@ -93,6 +93,7 @@ namespace SAM.Analytical.Grasshopper
     public class A_SAMAnalytical : A_SAMAnalyticalBase
     {
         public override Guid ComponentGuid => new Guid("206c04c6-5bfe-4af0-8099-db4a90b4e579");
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Properties.Resources.SAM_GH_ObjectValidate);
         public override GH_Exposure Exposure => GH_Exposure.primary;
 
         public A_SAMAnalytical()
