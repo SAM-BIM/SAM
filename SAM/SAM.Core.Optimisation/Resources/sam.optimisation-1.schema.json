@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SAM-BIM/SAM/schemas/sam.optimisation-1.schema.json",
+  "title": "SAM optimisation definition (sam.optimisation/1)",
+  "description": "A portable, declarative optimisation problem: the model engine, the design variables and their bounds (and, for an engine that changes the model itself, what each one changes: its target), the outputs the model reports (and what each one measures), the objective, the search method and when it stops. It holds no file path and nothing executable. SAM reads it with its own strict reader (SAM.Core.Optimisation), which reports the same rules as engineering messages with line and column; what an engine can actually run (for example maximise or constraints) is checked against that engine's capabilities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "model", "variables", "outputs", "objective", "method"],
+  "properties": {
+    "schema": { "const": "sam.optimisation/1", "description": "The schema identifier." },
+    "name": { "type": "string", "description": "A short name." },
+    "description": { "type": "string", "description": "What the optimisation is for, in engineering terms." },
+    "notes": { "type": "string", "description": "Free engineering notes; never interpreted." },
+    "model": { "$ref": "#/$defs/model" },
+    "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" }, "description": "The design variables, in the order the engine receives them." },
+    "outputs": { "type": "array", "items": { "$ref": "#/$defs/output" }, "description": "Every output the model reports for each simulation; one is the objective, the others are recorded." },
+    "objective": { "$ref": "#/$defs/objective" },
+    "constraints": { "type": "array", "items": { "$ref": "#/$defs/constraint" }, "description": "Limits on outputs. Not runnable on an engine that cannot enforce constraints." },
+    "method": {
+      "description": "The search method. Settings left out use the engine's defaults.",
+      "oneOf": [
+        { "$ref": "#/$defs/goldenSection" },
+        { "$ref": "#/$defs/hookeJeeves" },
+        { "$ref": "#/$defs/tryEveryOption" }
+      ]
+    },
+    "stopping": { "$ref": "#/$defs/stopping" }
+  },
+  "$defs": {
+    "quantity": {
+      "enum": ["dimensionless", "temperature", "temperature-difference", "percent", "time", "power", "energy", "mass", "carbon", "currency", "angle", "length", "area"],
+      "description": "The physical quantity a value represents (declared, not verified against the model)."
+    },
+    "unit": {
+      "type": "string",
+      "description": "A unit symbol such as °C, °F, K, %, h, W, kW, Wh, kWh, MWh, kg, t, kgCO2e, tCO2e, GBP, EUR, USD, °, m, m² or - (dimensionless). It describes the value; it is never verified against the model."
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine"],
+      "properties": {
+        "engine": { "type": "string", "minLength": 1, "description": "The engine that evaluates a design, for example \"tas-script\"." },
+        "description": { "type": "string" }
+      }
+    },
+    "variable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "minimum", "maximum"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "For a tas-script model, the name the script reads: Variables[\"name\"]." },
+        "description": { "type": "string" },
+        "type": { "enum": ["continuous", "integer", "discrete"], "default": "continuous", "description": "\"discrete\" is a choice between options numbered 1 to n (minimum 1, maximum n), searched only by try-every-option. \"integer\" is reserved." },
+        "quantity": { "$ref": "#/$defs/quantity" },
+        "unit": { "$ref": "#/$defs/unit" },
+        "minimum": { "type": "number", "description": "1 for a discrete choice." },
+        "maximum": { "type": "number", "description": "Greater than minimum. The number of options for a discrete choice." },
+        "start": { "type": "number", "description": "Within [minimum, maximum]. Required by hooke-jeeves; not used by golden-section or try-every-option." },
+        "step": { "type": "number", "exclusiveMinimum": 0, "description": "Required by hooke-jeeves; not used by golden-section or try-every-option." },
+        "target": { "$ref": "#/$defs/target" }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "For a tas-script model, the name the script writes: ScriptOutput.SetValue(\"name\", value)." },
+        "description": { "type": "string" },
+        "quantity": { "$ref": "#/$defs/quantity" },
+        "unit": { "$ref": "#/$defs/unit" },
+        "aggregation": { "type": "string", "description": "How the model aggregated the value, for example \"annual-total\". Informational." },
+        "measure": { "$ref": "#/$defs/measure" }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "The model item, by keys the engine defines and the model's own names, for example { \"internalCondition\": \"Office\" }. Left out when the kind refers to the whole model."
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": { "type": "number" },
+      "description": "Numeric settings the engine defines for the kind, for example { \"threshold\": 28 }. A setting left out uses the engine's default."
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "description": "What the design variable changes in the model. Only for an engine that lists target kinds; the engine's capabilities define the kinds, reference keys and parameters.",
+      "properties": {
+        "kind": { "type": "string", "minLength": 1, "description": "An engine-defined target kind, for example \"tbd.internal-condition.heating-setpoint\"." },
+        "reference": { "$ref": "#/$defs/reference" },
+        "parameters": { "$ref": "#/$defs/parameters" },
+        "options": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "For a choice target (a discrete variable numbered 1 to n): the model items to choose between, in order." }
+      }
+    },
+    "measure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "description": "What the output measures in the model's results. Only for an engine that lists measure kinds; the engine's capabilities define the kinds, reference keys and parameters.",
+      "properties": {
+        "kind": { "type": "string", "minLength": 1, "description": "An engine-defined measure kind, for example \"tsd.annual-heating-demand\"." },
+        "reference": { "$ref": "#/$defs/reference" },
+        "parameters": { "$ref": "#/$defs/parameters" }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output", "sense"],
+      "properties": {
+        "output": { "type": "string", "description": "The name of one of the outputs." },
+        "sense": { "enum": ["minimise", "maximise"] }
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output"],
+      "oneOf": [
+        { "required": ["atMost"], "not": { "required": ["atLeast"] } },
+        { "required": ["atLeast"], "not": { "required": ["atMost"] } }
+      ],
+      "properties": {
+        "output": { "type": "string", "description": "The name of one of the outputs." },
+        "atMost": { "type": "number", "description": "The largest acceptable value (inclusive)." },
+        "atLeast": { "type": "number", "description": "The smallest acceptable value (inclusive)." },
+        "unit": { "$ref": "#/$defs/unit" }
+      }
+    },
+    "goldenSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm"],
+      "description": "A line search on exactly one design variable between its bounds.",
+      "properties": {
+        "algorithm": { "const": "golden-section" },
+        "tolerance": { "type": "number", "exclusiveMinimum": 0, "description": "Stops when the objective values of the interval differ by less than this." }
+      }
+    },
+    "hookeJeeves": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm"],
+      "description": "Hooke-Jeeves pattern search on one or more design variables; each variable needs start and step.",
+      "properties": {
+        "algorithm": { "const": "hooke-jeeves" },
+        "stepReductionFactor": { "type": "integer", "minimum": 2 },
+        "initialStepExponent": { "type": "integer", "minimum": 0 },
+        "stepExponentIncrement": { "type": "integer", "minimum": 1 },
+        "stepReductions": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "tryEveryOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm"],
+      "description": "One simulation per option of a discrete choice, in order 1 to n; the best is the lowest objective, a tie going to the lower option number. No settings; maximumSimulations, if given, must allow every option.",
+      "properties": {
+        "algorithm": { "const": "try-every-option" }
+      }
+    },
+    "stopping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maximumSimulations": { "type": "integer", "minimum": 1, "description": "The run stops after this many simulations." }
+      }
+    }
+  }
+}

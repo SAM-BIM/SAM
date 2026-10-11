@@ -1,0 +1,117 @@
+{
+  "schema": "sam.optimisation/1",
+  "name": "Office – heating and cooling setpoints and glazing g-value (Hooke–Jeeves)",
+  "description": "Lowest annual plant energy, recording heating and cooling demand and overheating.",
+  "model": {
+    "engine": "tas-model",
+    "description": "A SAM model after Energy Simulation (TBD, TSD, TPD)."
+  },
+  "variables": [
+    {
+      "name": "Heating setpoint",
+      "description": "Office heating setpoint",
+      "type": "continuous",
+      "quantity": "temperature",
+      "unit": "°C",
+      "minimum": 18,
+      "maximum": 23,
+      "start": 21,
+      "step": 1,
+      "target": {
+        "kind": "tbd.internal-condition.heating-setpoint",
+        "reference": {
+          "internalCondition": "Office"
+        }
+      }
+    },
+    {
+      "name": "Cooling setpoint",
+      "description": "Office cooling setpoint",
+      "type": "continuous",
+      "quantity": "temperature",
+      "unit": "°C",
+      "minimum": 22,
+      "maximum": 27,
+      "start": 24,
+      "step": 1,
+      "target": {
+        "kind": "tbd.internal-condition.cooling-setpoint",
+        "reference": {
+          "internalCondition": "Office"
+        }
+      }
+    },
+    {
+      "name": "g-value",
+      "description": "Total solar energy transmittance of the office glazing",
+      "type": "continuous",
+      "quantity": "dimensionless",
+      "unit": "-",
+      "minimum": 0.3,
+      "maximum": 0.6,
+      "start": 0.45,
+      "step": 0.05,
+      "target": {
+        "kind": "tbd.glazing-construction.g-value",
+        "reference": {
+          "glazingConstruction": "Office glazing"
+        }
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "Plant energy",
+      "description": "Annual plant energy",
+      "quantity": "energy",
+      "unit": "kWh",
+      "measure": {
+        "kind": "tpd.annual-energy"
+      }
+    },
+    {
+      "name": "Heating demand",
+      "description": "Annual heating demand",
+      "quantity": "energy",
+      "unit": "kWh",
+      "measure": {
+        "kind": "tsd.annual-heating-demand"
+      }
+    },
+    {
+      "name": "Cooling demand",
+      "description": "Annual cooling demand",
+      "quantity": "energy",
+      "unit": "kWh",
+      "measure": {
+        "kind": "tsd.annual-cooling-demand"
+      }
+    },
+    {
+      "name": "Overheating",
+      "description": "Occupied hours above 28 °C in the worst occupied room",
+      "quantity": "time",
+      "unit": "h",
+      "measure": {
+        "kind": "tsd.overheating-hours",
+        "parameters": {
+          "threshold": 28
+        }
+      }
+    }
+  ],
+  "objective": {
+    "output": "Plant energy",
+    "sense": "minimise"
+  },
+  "method": {
+    "algorithm": "hooke-jeeves",
+    "stepReductionFactor": 2,
+    "initialStepExponent": 0,
+    "stepExponentIncrement": 1,
+    "stepReductions": 4
+  },
+  "stopping": {
+    "maximumSimulations": 200
+  }
+}

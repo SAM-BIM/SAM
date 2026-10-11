@@ -254,7 +254,7 @@
     {
       "_type": "SAM.Analytical.ApertureConstruction,SAM.Analytical",
       "Name": "SIM_EXT_GLZ",
-      "Guid": "4d00dd0-f646-4fbb-90e6-f8d9cd6634eb",
+      "Guid": "04d00dd0-f646-4fbb-90e6-f8d9cd6634eb",
       "ParameterSets": [
         {
           "_type": "SAM.Core.ParameterSet",

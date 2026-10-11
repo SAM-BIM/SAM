@@ -19,6 +19,10 @@ namespace SAM.Analytical
         /// result being derived can reach it. The reference is stamped on a different model (the result), and no reference ever
         /// holds the fingerprint of the model that carries it.
         /// </para>
+        /// <para>
+        /// The design's <b>semantic key</b> (<c>Query.PartODesignKey</c>) is recorded beside the fingerprint: the fingerprint is byte-level and
+        /// moves when session-generated guids are regenerated, the key does not, and it is what says whether the design has changed since.
+        /// </para>
         /// <para>No absolute path is kept: <paramref name="path_Design"/> is used here to compute the relative locator and is not stored.</para>
         /// </summary>
         /// <param name="partODerivedCase">The case being derived.</param>
@@ -36,7 +40,11 @@ namespace SAM.Analytical
                 return null;
             }
 
-            PartOModelReference partOModelReference = new(PartOModelReferenceKind.Design, design.Guid, design.Name, string.IsNullOrEmpty(fingerprint) ? SimulationResultProvenance.Fingerprint(design) : fingerprint, Query.PartOBaselineRelativePath(directory_Result, path_Design));
+            PartOModelReference partOModelReference = new(PartOModelReferenceKind.Design, design.Guid, design.Name, string.IsNullOrEmpty(fingerprint) ? SimulationResultProvenance.Fingerprint(design) : fingerprint, Query.PartOBaselineRelativePath(directory_Result, path_Design))
+            {
+                //The semantic key, taken beside the fingerprint from the same design as handed in.
+                DesignKey = Query.PartODesignKey(design),
+            };
             if (!partOModelReference.IsValid)
             {
                 return null;

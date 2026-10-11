@@ -110,6 +110,15 @@ namespace SAM.Units
                 case Units.UnitType.Degree:
                 case Units.UnitType.Radian:
                     return Units.UnitCategory.Angle;
+
+                case Units.UnitType.WattHour:
+                case Units.UnitType.KilowattHour:
+                case Units.UnitType.MegawattHour:
+                    return Units.UnitCategory.Energy;
+
+                case Units.UnitType.Kilogram:
+                case Units.UnitType.Tonne:
+                    return Units.UnitCategory.Mass;
             }
 
             return Units.UnitCategory.Undefined;

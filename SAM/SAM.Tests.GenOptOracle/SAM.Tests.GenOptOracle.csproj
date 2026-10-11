@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    GenOpt 3.1.1 behavioural oracle (test tooling only, not shipped).
+    Generates GenOpt input files for synthetic cases, runs a locally supplied Java GenOpt
+    (explicit java.exe and genopt.jar paths; neither is committed), acts as the fake
+    simulator GenOpt calls, and writes sanitised golden traces for SAM.Tests.
+    See documentation/GenOpt-Oracle-PR1.md.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>SAM.Tests.GenOptOracle</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+</Project>

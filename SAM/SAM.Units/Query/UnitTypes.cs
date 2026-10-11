@@ -253,6 +253,12 @@ namespace SAM.Units
 
                 case Units.UnitCategory.Angle:
                     return UnitTypes(unitStyles, new[] { Units.UnitType.Degree, Units.UnitType.Radian }, new[] { Units.UnitType.Degree, Units.UnitType.Radian });
+
+                case Units.UnitCategory.Energy:
+                    return UnitTypes(unitStyles, new[] { Units.UnitType.WattHour, Units.UnitType.KilowattHour, Units.UnitType.MegawattHour }, new[] { Units.UnitType.WattHour, Units.UnitType.KilowattHour, Units.UnitType.MegawattHour });
+
+                case Units.UnitCategory.Mass:
+                    return UnitTypes(unitStyles, new[] { Units.UnitType.Kilogram, Units.UnitType.Tonne }, new[] { Units.UnitType.Kilogram, Units.UnitType.Tonne });
             }
 
             return null;

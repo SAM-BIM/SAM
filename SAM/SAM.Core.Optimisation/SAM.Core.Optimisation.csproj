@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The portable, engine-neutral Optimisation Definition (schema "sam.optimisation/1"): the strongly typed model,
+    its strict JSON reader and canonical writer, layered validation with engineering messages, and the text package
+    for an AI assistant. It runs nothing: an engine (for example SAM_Tas) supplies its capabilities and executes a
+    definition. No dependency on SAM.Math or any UI; units come from SAM.Units only.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <LangVersion>12.0</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>..\..\build\</OutputPath>
+    <DocumentationFile>..\..\build\SAM.Core.Optimisation.xml</DocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>..\..\build\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SAM.Units\SAM.Units.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\sam.optimisation-1.schema.json" LogicalName="SAM.Core.Optimisation.Resources.sam.optimisation-1.schema.json" />
+  </ItemGroup>
+</Project>

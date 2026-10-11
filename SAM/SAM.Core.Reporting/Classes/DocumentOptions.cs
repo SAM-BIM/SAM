@@ -3,6 +3,7 @@
 
 using SAM.Units;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace SAM.Core.Reporting
@@ -26,6 +27,7 @@ namespace SAM.Core.Reporting
             UnitSystem = documentOptions.UnitSystem;
             Culture = documentOptions.Culture;
             SIAirFlow = documentOptions.SIAirFlow;
+            Decimals = documentOptions.Decimals == null ? null : new Dictionary<UnitCategory, int>(documentOptions.Decimals);
             Metadata = documentOptions.Metadata;
             Style = documentOptions.Style;
             GeneratedAt = documentOptions.GeneratedAt;
@@ -46,6 +48,12 @@ namespace SAM.Core.Reporting
         /// SI air flow display unit: L/s (default) or m³/s. Imperial always uses cfm.
         /// </summary>
         public AirFlowDisplay SIAirFlow { get; set; } = AirFlowDisplay.LitersPerSecond;
+
+        /// <summary>
+        /// Display decimals per category, replacing the formatter's default for that category (for example percent at
+        /// one decimal). Null or a missing category keeps the default. Display only: values are never rounded.
+        /// </summary>
+        public Dictionary<UnitCategory, int> Decimals { get; set; }
 
         /// <summary>
         /// Project details supplied by the host (project name/number, prepared by). May be null.

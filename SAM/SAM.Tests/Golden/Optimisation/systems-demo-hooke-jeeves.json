@@ -1,0 +1,52 @@
+{
+  "schema": "sam.optimisation/1",
+  "name": "Systems Demo – heat pump controller setpoint (Hooke–Jeeves)",
+  "description": "Find the HeatPumpController setpoint that gives the lowest annual cost.",
+  "model": {
+    "engine": "tas-script",
+    "description": "Systems Training model (TBD, TSD, TPD). The script sets the plant-room HeatPumpController setpoint, simulates the plant for the year and reports annual results."
+  },
+  "variables": [
+    {
+      "name": "Setpoint",
+      "description": "Setpoint of the HeatPumpController in plant room 1",
+      "type": "continuous",
+      "minimum": -5,
+      "maximum": 35,
+      "start": 10,
+      "step": 2
+    }
+  ],
+  "outputs": [
+    {
+      "name": "Result",
+      "description": "Annual cost; the script's objective value (equal to Cost)",
+      "quantity": "currency",
+      "unit": "GBP"
+    },
+    {
+      "name": "Cost",
+      "description": "Annual cost",
+      "quantity": "currency",
+      "unit": "GBP"
+    },
+    {
+      "name": "CO2",
+      "description": "Annual CO2"
+    }
+  ],
+  "objective": {
+    "output": "Result",
+    "sense": "minimise"
+  },
+  "method": {
+    "algorithm": "hooke-jeeves",
+    "stepReductionFactor": 2,
+    "initialStepExponent": 0,
+    "stepExponentIncrement": 1,
+    "stepReductions": 4
+  },
+  "stopping": {
+    "maximumSimulations": 2000
+  }
+}
