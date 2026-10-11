@@ -1,5 +1,12 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 Grasshopper icon migration closeout — 2026-10-11
+
+- SAM-BIM/SAM#179 merged as `6af268b588b32892c5c41bb8b449cd61db65532e`, reviewed head `d2c7f729534985c5a58743d068c8e0de84e8b384`. Merge commit; branches preserved. Frozen approved design applied to 522 concrete objects; 521 resource-token swaps plus documented base-class Icon override. APIs, GUIDs, namespaces and behaviour preserved.
+- Files: Grasshopper icon getters/resources, `design/grasshopper-icons`, icon validation records. Fresh verification: 0 unrelated production C# changes, 522 resource references, 0 errors; all six assemblies' embedded icons pass. Recorded exact-head Release build and full suite: 3414 passed / 0 failed / 0 skipped. No fresh Rhino-hosted smoke claimed.
+- Maintainer cleared GitHub's fork Actions suspension in the UI; no branch rules/token privileges changed. Fresh exact-head build/test/SPDX runs `38139444492`, `38139446325`, `38139448084` all succeeded before merge.
+- Remaining: none for SAM#179; sibling OpenStudio/LadybugTools workstreams continue independently. Next: owner visual review in installed Rhino/Grasshopper; no installer/submodule repin included. Docs-only Q4 `[skip ci]` closeout after known merge.
+
 ## Branch
 
 `sow/2026-Q4` - bootstrapped 2026-10-06 from `master` `56a70592`. Frozen Q3 record: `sow/2026-Q3` @ `3fcd64bf` (not modified).
