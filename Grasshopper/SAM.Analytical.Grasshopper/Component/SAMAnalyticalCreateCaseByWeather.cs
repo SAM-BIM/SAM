@@ -41,7 +41,7 @@ namespace SAM.Analytical.Grasshopper
         public override string LatestComponentVersion => "1.0.4";
 
         /// <summary>Component icon shown on the Grasshopper canvas.</summary>
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_CaseCreate);
 
         /// <summary>Display priority in the Grasshopper ribbon.</summary>
         public override GH_Exposure Exposure => GH_Exposure.primary;

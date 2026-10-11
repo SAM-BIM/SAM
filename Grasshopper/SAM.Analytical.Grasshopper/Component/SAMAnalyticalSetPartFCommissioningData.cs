@@ -81,7 +81,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_OpeningPropertiesSet);
 
         public SAMAnalyticalSetPartFCommissioningData()
           : base("SAMAnalytical.SetPartFCommissioningData", "SAMAnalytical.SetPartFCommissioningData",

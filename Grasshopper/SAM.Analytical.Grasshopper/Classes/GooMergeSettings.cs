@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
     {
         public override Guid ComponentGuid => new Guid("afad3e4c-1e8d-4c08-92d9-cc7b484cba22");
 
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_Settings);
 
         public GooMergeSettingsParam()
             : base(typeof(MergeSettings).Name, typeof(MergeSettings).Name, typeof(MergeSettings).FullName.Replace(".", " "), "Params", "SAM")

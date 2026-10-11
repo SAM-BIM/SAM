@@ -36,7 +36,7 @@ namespace SAM.Analytical.Grasshopper
 
         public override GH_Exposure Exposure => GH_Exposure.hidden;
 
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_DegreeOfActivityLibrary);
 
         public GooDegreeOfActivityLibraryParam()
             : base(typeof(DegreeOfActivityLibrary).Name, typeof(DegreeOfActivityLibrary).Name, typeof(DegreeOfActivityLibrary).FullName.Replace(".", " "), "Params", "SAM")

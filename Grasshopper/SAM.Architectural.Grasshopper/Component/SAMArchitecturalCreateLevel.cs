@@ -24,7 +24,7 @@ namespace SAM.Architectural.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon => Resources.SAM_Architectural;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_GH_LevelCreate;
 
         /// <summary>
         /// Initializes a new instance of the SAM_point3D class.

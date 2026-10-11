@@ -33,7 +33,7 @@ namespace SAM.Core.Grasshopper
     {
         public override Guid ComponentGuid => new Guid("47eebb1f-0747-45bb-9afd-eadd9038c9ef");
 
-        protected override System.Drawing.Bitmap Icon => Resources.SAM_Small;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_GH_TextMap;
 
         public GooTextMapParam()
             : base(typeof(TextMap).Name, typeof(TextMap).Name, typeof(TextMap).FullName.Replace(".", " "), "Params", "SAM")

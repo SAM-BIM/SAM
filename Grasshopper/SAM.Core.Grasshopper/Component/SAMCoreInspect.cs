@@ -41,7 +41,7 @@ namespace SAM.Core.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon => Resources.SAM_Inspect;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_GH_ObjectInspect;
 
         public override bool Obsolete
         {

@@ -94,7 +94,7 @@ namespace SAM.Core.Grasshopper
 
         public override GH_Exposure Exposure => GH_Exposure.hidden;
 
-        protected override System.Drawing.Bitmap Icon => Resources.SAM_Small;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_GH_Table;
 
         public GooDelimitedFileTableParam()
             : base(typeof(DelimitedFileTable).Name, typeof(DelimitedFileTable).Name, typeof(DelimitedFileTable).FullName.Replace(".", " "), "Params", "SAM")

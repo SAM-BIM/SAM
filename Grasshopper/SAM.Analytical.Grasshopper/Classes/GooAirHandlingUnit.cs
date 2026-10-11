@@ -40,7 +40,7 @@ namespace SAM.Analytical.Grasshopper
         {
             get
             {
-                using (var ms = new MemoryStream(Resources.SAM_Small))
+                using (var ms = new MemoryStream(Resources.SAM_GH_Ahu))
                 {
                     return new Bitmap(ms);
                 }

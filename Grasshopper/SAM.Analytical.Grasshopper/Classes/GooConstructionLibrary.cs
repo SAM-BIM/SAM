@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
     {
         public override Guid ComponentGuid => new Guid("de88bd44-f2f8-48eb-a90d-459ea413dbab");
 
-        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_Small);
+        protected override System.Drawing.Bitmap Icon => Core.Convert.ToBitmap(Resources.SAM_GH_ConstructionLibrary);
 
         public GooConstructionLibraryParam()
             : base(typeof(ConstructionLibrary).Name, typeof(ConstructionLibrary).Name, typeof(ConstructionLibrary).FullName.Replace(".", " "), "Params", "SAM")

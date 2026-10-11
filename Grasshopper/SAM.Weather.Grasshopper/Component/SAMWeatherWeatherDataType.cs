@@ -22,7 +22,7 @@ namespace SAM.Weather.Grasshopper
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
-        protected override System.Drawing.Bitmap Icon => Resources.SAM_Small3;
+        protected override System.Drawing.Bitmap Icon => Resources.SAM_GH_WeatherDataValue;
 
         /// <summary>
         /// Zone Type Enum Component
