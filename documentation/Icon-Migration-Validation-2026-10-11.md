@@ -17,3 +17,7 @@ Base: `sow/2026-Q4`. Scope: SAM-BIM only. Reference: [SAM#179](https://github.co
 - Built assembly resource presence and exact embedded PNG bytes checked.
 
 Next step: verify final-head GitHub checks and merge only if green and safe under the owner authorization. No force-push or branch deletion. Hosted Rhino smoke is tracked separately; prior historical results are not fresh runs.
+
+## Fresh CI blocker — do not merge
+
+The owner approved enabling Actions. Repository Actions permission was set enabled (existing allowed_actions=all preserved), and workflow-enable endpoints succeeded; workflow definitions report active. Build/SPDX dispatch still fails HTTP422: Actions has been disabled for this repository. Reading SAM-BIM organisation Actions policy returns HTTP403 (org-admin scope unavailable). No broader privileges or upstream access requested. Fresh local build, 3414 tests and icon guards pass, but no fresh final-head CI is claimed. Next step: organisation/repository administrator resolves the effective Actions restriction, then dispatch build/SPDX at the current PR head and merge only after green checks.
