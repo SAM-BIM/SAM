@@ -2,10 +2,10 @@
 
 ## Q4 agent instructions rollout closeout - 2026-10-12
 
-- SAM-BIM/SAM#193 merged as `654147b95fb5d98bcb108da9a0797859c62b9c9d` (merge commit pinned to approved head `cb3a1565f9137ef66cfdc10c94e5ca6031d3bb01`; base `sow/2026-Q4` `3514e9c4e3a038d817a57def75dc4523a35a87c3`; validated content `99ae0cef06df09ac1751bef178580844f6f1c903`). Owner-authorized 2026-10-12 after an independent review (`AGENT_ROLLOUT_REVIEW_2026-10-12.md`, local to the owner's workspace, not committed).
-- Docs only: AGENTS.md, documentation/Agent-Continuity-Rollout-Q4.md, plus the rollout record `documentation/Agent-Continuity-Rollout-Q4.md`. No product code, build, workflow, dependency pin or tool changed; this closeout is the only `PROJECT_PROGRESS.md` change.
+- SAM-BIM/SAM#193 merged as `654147b95fb5d98bcb108da9a0797859c62b9c9d` (merge commit pinned to approved head `cb3a1565f9137ef66cfdc10c94e5ca6031d3bb01`; base `sow/2026-Q4` `3514e9c4e3a038d817a57def75dc4523a35a87c3`; validated content `3a18f2ebc8c55d03ce70b4fd0b309f7de02140ce`). Owner-authorized 2026-10-12 after an independent review (`AGENT_ROLLOUT_REVIEW_2026-10-12.md`, local to the owner's workspace, not committed).
+- Docs only: AGENTS.md, plus the rollout record `documentation/Agent-Continuity-Rollout-Q4.md` (which also holds the cross-repository status table). No product code, build, workflow, dependency pin or tool changed; this closeout is the only `PROJECT_PROGRESS.md` change.
 - Validation: local documentation checks and commands are in `documentation/Agent-Continuity-Rollout-Q4.md` (`git diff --check`, file scope, UTF-8/LF/no BOM, import). Hosted checks at the approved head: build (Release) success (run 38258305628); spdx success (run 38258305626); test (Release) success (run 38258305587). Dependency selection: the build log shows no sibling dependency clones.
-- Cleanup: . Other branches, worktrees and the frozen quarters were not touched.
+- Cleanup: remote `docs/agent-instructions-rollout-q4` deleted with an expected-SHA lease on `cb3a1565f9137ef66cfdc10c94e5ca6031d3bb01` after confirming it is contained in `sow/2026-Q4` and no open PR uses it as head or base; the local branch and its worktree are preserved (worktree in use). Other branches, worktrees and the frozen quarters were not touched.
 - Remaining gaps: no agent-client behaviour or token benchmark has been run.
 - Exact next step: Continue from the shared `AGENTS.md`. Open item carried from the pilots: verify on each installed agent client, in a fresh Q4 session, that it follows the instructions without loading the full progress history, and record the result.
 
