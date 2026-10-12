@@ -3,8 +3,9 @@
 Status: implemented on `docs/agent-continuity-pilot-q4`; owner review required.
 Base: `sow/2026-Q4` at `c080dd088cff1957f66cdb3327d7e54dd751b0f2`.
 PR: [SAM#191](https://github.com/SAM-BIM/SAM/pull/191).
-Companion: [SAM_OCCT#74](https://github.com/SAM-BIM/SAM_OCCT/pull/74).
-Locally validated instruction/content head: `65e7d68b48b1c04a470f29e75edb8126fed47a9a`.
+Companion: [SAM_OCCT#74](https://github.com/SAM-BIM/SAM_OCCT/pull/74) (independent; see below).
+Locally validated instruction/content head: PENDING (recorded by the following record-only commit).
+Previous validated content head (superseded): `65e7d68b48b1c04a470f29e75edb8126fed47a9a`.
 The final PR head is recorded in the live PR description because committing that
 SHA into this file would create another head. This record contains the immutable
 tested content SHA and commands; only this record changes afterward. The final
@@ -12,11 +13,11 @@ docs diff is checked separately, and the post-merge closeout records the merge S
 
 ## Problem and scope
 
-SAM's attached AGENTS.md and PROJECT_PROGRESS.md examples exactly match the
-local checkout. The existing PR-record/post-merge-closeout convention is sound.
-However, reading the whole progress history costs context, bootstrap status
-can contradict later closeouts, and the parent SAM-BIM-only policy is local.
-The parent CLAUDE.md also affects whether Claude loads repository AGENTS.md.
+Reading the whole progress history costs context, bootstrap status can
+contradict later closeouts, and the parent SAM-BIM-only policy was held only in
+a machine-local parent instruction file. The parent CLAUDE.md also affects
+whether Claude loads repository AGENTS.md. The existing PR-record/post-merge-
+closeout convention is sound and is kept.
 
 This two-repository pilot uses SAM and SAM_OCCT; other repositories are audited,
 not mechanically edited. SAM's PR changes only AGENTS.md, a small CLAUDE.md
@@ -28,16 +29,43 @@ import and this record. PROJECT_PROGRESS.md is unchanged pending merge.
   `@AGENTS.md`, without importing the progress history.
 - Inspect progress headings, then latest dated Q4 closeout and task-relevant
   sections; consult old evidence when needed. Verify old status against Git
-  and live PRs. No history is deleted, moved or rewritten.
+  and live PRs. Classify entries by date, PR and base branch, not by the
+  heading they sit under. No history is deleted, moved or rewritten.
 - Persist SAM-BIM-only network targeting and preservation of attribution,
   legacy records and integrations inside the repository.
 - Explicitly retain owner-reviewed feature PRs, frozen Q3, no internal agent
   files on master, and post-merge-only Q4 progress closeouts with known SHA
   and `[skip ci]`. Open work stays in its PR record and description.
+- Owner-requested quarter-transition guidance: a reviewed product promotion
+  excluding internal agent files and this record; Q4 closeouts finished before
+  freezing Q4; Q1 bootstrapped from the approved product baseline carrying useful
+  instructions and unresolved evidence; Q1 progress initialization only with
+  explicit bootstrap authorization. No release, freeze or branch creation here.
+- A release-promotion PR into master records its closeout on the outgoing
+  `sow` branch, never on master.
 - Require base/tested-head identity, local versus hosted validation, dependency
   order, reproducible evidence and machine-local prerequisites in handoffs.
 
+## Known progress-file layout problem (not changed here)
+
+In SAM `PROJECT_PROGRESS.md` at the base, line 229 opens
+`# Historical record - 2026-Q3 (frozen)` ("Everything below describes Q3"), yet six
+live Q4 closeouts dated 2026-10-08 sit beneath it: SAM#185 (GenOpt PR6), #186
+(units/formatting), #187 (`SAM.Core.Optimisation`), #188 (model bindings), #189
+(aperture Guid) and #190 (try every option). The `## Current status` bootstrap text
+("No Q4 product work has started") is also superseded. AGENTS.md now warns that
+section position is not a period marker. Per the post-merge-only rule this branch
+does not edit the file. Correction (moving those entries above the Q3 heading and
+labelling the bootstrap status, no content rewrite) needs explicit owner
+authorization as a post-merge docs-only commit on `sow/2026-Q4`.
+
 ## Organisation audit and evidence
+
+Machine-local evidence: gathered 2026-10-12 on the owner's workstation from its
+local checkouts, parent instruction files and owner-attached copies of SAM's
+AGENTS.md/PROJECT_PROGRESS.md (which matched that checkout). These inputs are not
+committed and cannot be reproduced from this repository; another computer needs
+the same set of SAM-BIM checkouts to repeat the audit.
 
 43 immediate local Git checkouts and 43 live SAM-BIM remotes reviewed;
 SAM_Solver_Upstream excluded. All configured local remote URLs target SAM-BIM.
@@ -50,19 +78,21 @@ checkouts have no Q4 branch; absence there does not justify adding files to mast
 Reviewed continuity-file Git blob hashes all match the live Q4/default branch.
 Original SAM_UI staged work and .github untracked scripts are preserved.
 
-Progress-file findings: SAM 53,570 bytes; Tas 50,303; Deploy 97,373;
-UI 113,671. 21 files still contain bootstrap "No Q4 product work has started"
-text, sometimes beneath merged closeouts. Historical upstream-preservation
-text occurs in 24 files; retain as dated evidence, never operational authority.
-Tas_Grasshopper's PR8 carry-over instruction is stale against its recorded/live
-merge; handle in a separate focused follow-up, preserving lineage restrictions.
+Progress-file findings (machine-local except SAM): SAM 53,570 bytes; Tas 50,303;
+Deploy 97,373; UI 113,671. 21 files still contain bootstrap "No Q4 product work
+has started" text, sometimes beneath merged closeouts. Historical
+upstream-preservation text occurs in 24 files; retain as dated evidence, never
+operational authority. Tas_Grasshopper's PR8 carry-over instruction is stale
+against its recorded/live merge; handle in a separate focused follow-up,
+preserving lineage restrictions.
 
-Measured example: normalize CRLF to LF; concatenate all level 1–3 headings
-and the leading latest icon closeout (up to `## Branch`). SAM progress input
-falls from 53,491 to 2,699 characters (95.0%); OCCT from 16,547 to 2,317 (86.0%).
-This is an icon-follow-up read-footprint example, not a universal task budget
-or measured token/billing/latency improvement. Relevant earlier evidence adds
-context. The pilot adds instructions rather than shortening them.
+Measured example: normalize CRLF to LF; join all level 1–3 headings with `\n`,
+then `\n` and the leading latest icon closeout (lines before `## Branch`). SAM
+progress input falls from 53,491 to 2,699 characters (95.0%); OCCT (measured in
+the companion checkout) from 16,547 to 2,317 (86.0%). This is an
+icon-follow-up read-footprint example, not a universal task budget or measured
+token/billing/latency improvement. Relevant earlier evidence adds context. The
+pilot adds instructions rather than shortening them.
 
 ## Tool compatibility — official documentation checked 2026-10-12
 
@@ -80,42 +110,55 @@ context. The pilot adds instructions rather than shortening them.
   AGENTS.md discovery follows the Git-root directory chain; higher-priority
   Hermes/override files can shadow it. No additional Hermes-specific file needed.
 
+## Companion PR independence
+
+SAM#191 and SAM_OCCT#74 are independent. Each changes only its own repository's
+internal agent documentation; neither changes product code, submodules, packages
+or workflows, and neither reads the other's files. There is no merge-order
+dependency: either may merge first, and each gets its own closeout on its own
+base branch.
+
 ## Validation, limitations and next step
 
-Review disposition: Copilot/Kimi correctly requested reproducible commands and
-clear tested-head identity. Both are now recorded here; AGENTS.md explicitly
-describes the subsequent record-only commit. Merge wording is conditional on
-owner/code-owner approval, resolved review findings and final-head hosted checks.
+Review disposition:
+- Copilot (GitHub review on `e1c60ab`): asked for the final tested head in this
+  record. Addressed by recording the immutable tested content SHA and commands
+  here, with AGENTS.md describing the following record-only commit; the final head
+  is in the PR description. Copilot re-review requested.
+- Kimi: review supplied externally by the owner (not posted on GitHub, so not
+  verifiable from GitHub state); it also asked for reproducible commands and clear
+  tested-head identity, handled as above.
+- Claude review of `d0f750b` (2026-10-12): flagged the progress-file layout,
+  release-closeout location, unlabelled machine-local evidence, the Kimi
+  provenance, exit-code capture and companion order. All addressed in this update.
 Verified live master: no AGENTS.md, PROJECT_PROGRESS.md or CLAUDE.md in SAM;
 no master cleanup is needed. OCCT's legacy CLAUDE.md is preserved separately.
 
-Run from this PR checkout (PowerShell):
+Run from a checkout of this PR at its final head (PowerShell; Git and Python 3 on PATH):
 
 ```powershell
 $baseRevision = 'c080dd088cff1957f66cdb3327d7e54dd751b0f2'
-$testedRevision = '65e7d68b48b1c04a470f29e75edb8126fed47a9a'
-git diff --check $baseRevision $testedRevision
-git diff --name-only $baseRevision $testedRevision
-git diff --quiet $baseRevision $testedRevision -- PROJECT_PROGRESS.md
-git diff --check $baseRevision HEAD
-git diff --name-only $baseRevision HEAD
-git diff --quiet $baseRevision HEAD -- PROJECT_PROGRESS.md
-git diff --name-only $testedRevision HEAD
+$testedRevision = 'PENDING'
+$finalRevision = git rev-parse HEAD   # must equal the final head in the PR description
+foreach ($revision in $testedRevision, $finalRevision) {
+  git diff --check $baseRevision $revision; "check $revision exit=$LASTEXITCODE"
+  git diff --name-only $baseRevision $revision
+  git diff --quiet $baseRevision $revision -- PROJECT_PROGRESS.md; "progress $revision exit=$LASTEXITCODE"
+}
+git diff --name-only $testedRevision $finalRevision
+python -c "import re,subprocess as s;t=s.run(['git','show','c080dd088cff1957f66cdb3327d7e54dd751b0f2:PROJECT_PROGRESS.md'],capture_output=True,check=True).stdout.decode('utf-8').replace('\r\n','\n');L=t.split('\n');h=[l for l in L if re.match(r'#{1,3} ',l)];p=L[:L.index('## Branch')];print(len(t),len('\n'.join(h))+1+len('\n'.join(p)))"
 ```
 
-Results: both whitespace/progress checks exit 0; both full-PR file lists contain
-only AGENTS.md, CLAUDE.md and this record. The tested-to-final list contains only
-this record. These are local documentation checks, not product test or CI results.
+Bash equivalent: same commands with `base=...`, `for revision in "$tested" "$(git rev-parse HEAD)"`,
+`echo "exit=$?"` and `python3`.
 
-Owner-requested follow-up: added quarter-transition guidance to AGENTS.md. Prepare
-and verify a reviewed product promotion excluding internal agent files and this
-pilot record; finish Q4 closeouts before freezing Q4; bootstrap Q1 from the approved
-product baseline and carry useful instructions/unresolved evidence forward. Q1
-progress initialization needs explicit bootstrap authorization. No release, freeze
-or branch creation is performed here. Follow-up changes only AGENTS.md and this
-record; whitespace/scope checks pass and PROJECT_PROGRESS.md remains unchanged.
+Expected: every `exit=` is 0; both full-PR file lists contain only AGENTS.md,
+CLAUDE.md and this record; the tested-to-final list contains only this record;
+the measurement prints `53491 2699`. These are local documentation checks, not
+product test or CI results.
 
-Local diff/whitespace checks pass; only the three documentation files change.
+Results: PENDING (recorded by the following record-only commit).
+
 Progress, frozen Q3, master, production, workflows, attribution and integration
 references are unchanged. No product build/test was run for this docs-only change.
 Hosted checks are tracked by the live PR at its final head; not implied by local checks.
@@ -126,6 +169,8 @@ Record actual input/cache tokens and handoff correctness before expanding rollou
 
 Next: owner reviews this pilot and its SAM_OCCT companion. After approved merge,
 add the known-SHA Q4 closeout using the existing docs-only `[skip ci]` exception;
-label superseded bootstrap status in the touched stream only. Do not merge before
-owner/code-owner approval, resolution of open review findings and green final-head
-checks. Do not change other streams, archive histories or roll out templates automatically.
+label superseded bootstrap status in the touched stream only. Correct the
+progress-file layout above only with explicit owner authorization. Do not merge
+before owner/code-owner approval, resolution of open review findings and green
+final-head checks. Do not change other streams, archive histories or roll out
+templates automatically.
