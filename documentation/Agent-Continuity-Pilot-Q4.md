@@ -1,11 +1,14 @@
 # Q4 agent continuity pilot — 2026-10-12
 
 Status: implemented on `docs/agent-continuity-pilot-q4`; owner review required.
-Base: `sow/2026-Q4` at `c080dd08`. No merge authorized by this task.
+Base: `sow/2026-Q4` at `c080dd088cff1957f66cdb3327d7e54dd751b0f2`.
 PR: [SAM#191](https://github.com/SAM-BIM/SAM/pull/191).
 Companion: [SAM_OCCT#74](https://github.com/SAM-BIM/SAM_OCCT/pull/74).
-Initial locally validated/published head: `f8164e3276871f384a9f80bd4d1b146cdd81b6a7`.
-The PR description identifies the final head after subsequent documentation updates.
+Locally validated instruction/content head: `65e7d68b48b1c04a470f29e75edb8126fed47a9a`.
+The final PR head is recorded in the live PR description because committing that
+SHA into this file would create another head. This record contains the immutable
+tested content SHA and commands; only this record changes afterward. The final
+docs diff is checked separately, and the post-merge closeout records the merge SHA.
 
 ## Problem and scope
 
@@ -79,6 +82,31 @@ context. The pilot adds instructions rather than shortening them.
 
 ## Validation, limitations and next step
 
+Review disposition: Copilot/Kimi correctly requested reproducible commands and
+clear tested-head identity. Both are now recorded here; AGENTS.md explicitly
+describes the subsequent record-only commit. Merge wording is conditional on
+owner/code-owner approval, resolved review findings and final-head hosted checks.
+Verified live master: no AGENTS.md, PROJECT_PROGRESS.md or CLAUDE.md in SAM;
+no master cleanup is needed. OCCT's legacy CLAUDE.md is preserved separately.
+
+Run from this PR checkout (PowerShell):
+
+```powershell
+$baseRevision = 'c080dd088cff1957f66cdb3327d7e54dd751b0f2'
+$testedRevision = '65e7d68b48b1c04a470f29e75edb8126fed47a9a'
+git diff --check $baseRevision $testedRevision
+git diff --name-only $baseRevision $testedRevision
+git diff --quiet $baseRevision $testedRevision -- PROJECT_PROGRESS.md
+git diff --check $baseRevision HEAD
+git diff --name-only $baseRevision HEAD
+git diff --quiet $baseRevision HEAD -- PROJECT_PROGRESS.md
+git diff --name-only $testedRevision HEAD
+```
+
+Results: both whitespace/progress checks exit 0; both full-PR file lists contain
+only AGENTS.md, CLAUDE.md and this record. The tested-to-final list contains only
+this record. These are local documentation checks, not product test or CI results.
+
 Owner-requested follow-up: added quarter-transition guidance to AGENTS.md. Prepare
 and verify a reviewed product promotion excluding internal agent files and this
 pilot record; finish Q4 closeouts before freezing Q4; bootstrap Q1 from the approved
@@ -98,5 +126,6 @@ Record actual input/cache tokens and handoff correctness before expanding rollou
 
 Next: owner reviews this pilot and its SAM_OCCT companion. After approved merge,
 add the known-SHA Q4 closeout using the existing docs-only `[skip ci]` exception;
-label superseded bootstrap status in the touched stream only. Do not merge these
-PRs, change other streams, archive histories or roll out templates automatically.
+label superseded bootstrap status in the touched stream only. Do not merge before
+owner/code-owner approval, resolution of open review findings and green final-head
+checks. Do not change other streams, archive histories or roll out templates automatically.
