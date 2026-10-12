@@ -4,8 +4,8 @@ Status: implemented on `docs/agent-continuity-pilot-q4`; owner review required.
 Base: `sow/2026-Q4` at `c080dd08`. No merge authorized by this task.
 PR: [SAM#191](https://github.com/SAM-BIM/SAM/pull/191).
 Companion: [SAM_OCCT#74](https://github.com/SAM-BIM/SAM_OCCT/pull/74).
-Initial locally validated/published head: `f8164e3276871f384a9f80bd4d1b146cdd81b6a7`;
-this follow-up adds PR identities only. The PR description identifies the final head.
+Initial locally validated/published head: `f8164e3276871f384a9f80bd4d1b146cdd81b6a7`.
+The PR description identifies the final head after subsequent documentation updates.
 
 ## Problem and scope
 
@@ -78,6 +78,14 @@ context. The pilot adds instructions rather than shortening them.
   Hermes/override files can shadow it. No additional Hermes-specific file needed.
 
 ## Validation, limitations and next step
+
+Owner-requested follow-up: added quarter-transition guidance to AGENTS.md. Prepare
+and verify a reviewed product promotion excluding internal agent files and this
+pilot record; finish Q4 closeouts before freezing Q4; bootstrap Q1 from the approved
+product baseline and carry useful instructions/unresolved evidence forward. Q1
+progress initialization needs explicit bootstrap authorization. No release, freeze
+or branch creation is performed here. Follow-up changes only AGENTS.md and this
+record; whitespace/scope checks pass and PROJECT_PROGRESS.md remains unchanged.
 
 Local diff/whitespace checks pass; only the three documentation files change.
 Progress, frozen Q3, master, production, workflows, attribution and integration
