@@ -50,7 +50,7 @@ Avoid unrelated refactoring unless it is required for the task.
 
 - Promote approved Q4 product changes through a reviewed release PR. A normal
   merge includes internal files: prepare and verify the promotion tree excludes
-  `AGENTS.md`, `PROJECT_PROGRESS.md`, `CLAUDE.md` and this internal pilot record
+  `AGENTS.md`, `PROJECT_PROGRESS.md`, `CLAUDE.md` and the internal pilot record
   (`documentation/Agent-Continuity-Pilot-Q4.md`). Classify other documentation
   separately; retain product documentation selected for release.
 - Complete known-SHA Q4 closeouts before freezing `sow/2026-Q4`. The release-promotion

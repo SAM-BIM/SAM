@@ -4,8 +4,8 @@ Status: implemented on `docs/agent-continuity-pilot-q4`; owner review required.
 Base: `sow/2026-Q4` at `c080dd088cff1957f66cdb3327d7e54dd751b0f2`.
 PR: [SAM#191](https://github.com/SAM-BIM/SAM/pull/191).
 Companion: [SAM_OCCT#74](https://github.com/SAM-BIM/SAM_OCCT/pull/74) (independent; see below).
-Locally validated instruction/content head: `6e94ae91e5d93b5ff3b4f17d072b88981c6128d1`.
-Previous validated content head (superseded): `65e7d68b48b1c04a470f29e75edb8126fed47a9a`.
+Locally validated instruction/content head: PENDING (recorded by the following record-only commit).
+Superseded validated content heads: `6e94ae91e5d93b5ff3b4f17d072b88981c6128d1`, `65e7d68b48b1c04a470f29e75edb8126fed47a9a`.
 The final PR head is recorded in the live PR description because committing that
 SHA into this file would create another head. This record contains the immutable
 tested content SHA and commands; only this record changes afterward. The final
@@ -55,9 +55,12 @@ live Q4 closeouts dated 2026-10-08 sit beneath it: SAM#185 (GenOpt PR6), #186
 (aperture Guid) and #190 (try every option). The `## Current status` bootstrap text
 ("No Q4 product work has started") is also superseded. AGENTS.md now warns that
 section position is not a period marker. Per the post-merge-only rule this branch
-does not edit the file. Correction (moving those entries above the Q3 heading and
-labelling the bootstrap status, no content rewrite) needs explicit owner
-authorization as a post-merge docs-only commit on `sow/2026-Q4`.
+does not edit the file. The correction (move those six entries verbatim above the
+Q3 heading and label the bootstrap status; no content rewrite) touches other
+streams' entries, which AGENTS.md otherwise forbids, and is not itself a closeout.
+It therefore needs explicit owner authorization, and if authorized is made inside
+this pilot's post-merge docs-only `[skip ci]` closeout commit on `sow/2026-Q4`,
+which records that authorization. Without it, only this pilot's closeout is added.
 
 ## Organisation audit and evidence
 
@@ -112,11 +115,11 @@ pilot adds instructions rather than shortening them.
 
 ## Companion PR independence
 
-SAM#191 and SAM_OCCT#74 are independent. Each changes only its own repository's
-internal agent documentation; neither changes product code, submodules, packages
-or workflows, and neither reads the other's files. There is no merge-order
-dependency: either may merge first, and each gets its own closeout on its own
-base branch.
+Owner-stated: SAM#191 and SAM_OCCT#74 are independent, with no merge-order
+dependency; either may merge first, and each gets its own closeout on its own
+base branch. Verified on the SAM side: this PR changes only AGENTS.md, CLAUDE.md
+and this record, and refers to SAM_OCCT#74 only by link. SAM_OCCT#74's contents
+were not inspected in the SAM#191 review session; its own record is authoritative.
 
 ## Validation, limitations and next step
 
@@ -124,13 +127,19 @@ Review disposition:
 - Copilot (GitHub review on `e1c60ab`): asked for the final tested head in this
   record. Addressed by recording the immutable tested content SHA and commands
   here, with AGENTS.md describing the following record-only commit; the final head
-  is in the PR description. Copilot re-review requested.
+  is in the PR description. The Copilot re-review requested on `779a5fc` failed
+  before reviewing (HTTP 402, monthly Copilot quota exceeded); the owner then
+  directed Claude to act as reviewer instead.
 - Kimi: review supplied externally by the owner (not posted on GitHub, so not
   verifiable from GitHub state); it also asked for reproducible commands and clear
   tested-head identity, handled as above.
 - Claude review of `d0f750b` (2026-10-12): flagged the progress-file layout,
   release-closeout location, unlabelled machine-local evidence, the Kimi
-  provenance, exit-code capture and companion order. All addressed in this update.
+  provenance, exit-code capture and companion order. Addressed in `6e94ae9`.
+- Claude review of `779a5fc` (2026-10-12, acting reviewer): the layout-correction
+  route conflicted with the direct-Q4 and other-stream rules; companion claims
+  exceeded what was inspected; the Bash equivalent was not runnable; AGENTS.md
+  called the pilot record "this". Addressed in the content head recorded above.
 Verified live master: no AGENTS.md, PROJECT_PROGRESS.md or CLAUDE.md in SAM;
 no master cleanup is needed. OCCT's legacy CLAUDE.md is preserved separately.
 
@@ -138,7 +147,7 @@ Run from a checkout of this PR at its final head (PowerShell; Git and Python 3 o
 
 ```powershell
 $baseRevision = 'c080dd088cff1957f66cdb3327d7e54dd751b0f2'
-$testedRevision = '6e94ae91e5d93b5ff3b4f17d072b88981c6128d1'
+$testedRevision = 'PENDING'
 $finalRevision = git rev-parse HEAD   # must equal the final head in the PR description
 foreach ($revision in $testedRevision, $finalRevision) {
   git diff --check $baseRevision $revision; "check $revision exit=$LASTEXITCODE"
@@ -149,18 +158,26 @@ git diff --name-only $testedRevision $finalRevision
 python -c "import re,subprocess as s;t=s.run(['git','show','c080dd088cff1957f66cdb3327d7e54dd751b0f2:PROJECT_PROGRESS.md'],capture_output=True,check=True).stdout.decode('utf-8').replace('\r\n','\n');L=t.split('\n');h=[l for l in L if re.match(r'#{1,3} ',l)];p=L[:L.index('## Branch')];print(len(t),len('\n'.join(h))+1+len('\n'.join(p)))"
 ```
 
-Bash equivalent: same commands with `base=...`, `for revision in "$tested" "$(git rev-parse HEAD)"`,
-`echo "exit=$?"` and `python3`.
+Bash equivalent (run the same `python` line as `python3`):
+
+```bash
+base=c080dd088cff1957f66cdb3327d7e54dd751b0f2
+tested=PENDING
+final=$(git rev-parse HEAD)   # must equal the final head in the PR description
+for revision in "$tested" "$final"; do
+  git diff --check "$base" "$revision"; echo "check $revision exit=$?"
+  git diff --name-only "$base" "$revision"
+  git diff --quiet "$base" "$revision" -- PROJECT_PROGRESS.md; echo "progress $revision exit=$?"
+done
+git diff --name-only "$tested" "$final"
+```
 
 Expected: every `exit=` is 0; both full-PR file lists contain only AGENTS.md,
 CLAUDE.md and this record; the tested-to-final list contains only this record;
 the measurement prints `53491 2699`. These are local documentation checks, not
 product test or CI results.
 
-Results (2026-10-12, Linux cloud checkout, Bash equivalent): at `6e94ae9` and at
-the final head every `exit=` is 0; both full-PR lists are exactly the three files;
-tested-to-final lists only this record; the measurement prints `53491 2699`.
-PowerShell/Windows execution of the block was not run in this session.
+Results: PENDING (recorded by the following record-only commit).
 
 Progress, frozen Q3, master, production, workflows, attribution and integration
 references are unchanged. No product build/test was run for this docs-only change.
