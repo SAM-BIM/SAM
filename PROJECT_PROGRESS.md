@@ -1,5 +1,12 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 agent continuity pilot closeout — 2026-10-12
+
+- SAM-BIM/SAM#191 merged as `02bbafb8db289ac2bd3fc3a35c54cff86e9eadbb`, reviewed head `0426d7854be0ee67956f352164973a7e2fd8ac4e` (validated content head `4599115091b63186dfe3f4263ba23cbebd0a80ec`). Merge commit; branch preserved. Owner-approved; ZiolkowskiJakub's review is required only for merges to `master`. Docs only: `AGENTS.md` (task-specific progress reads, SAM-BIM-only operations, quarter transition with release-promotion closeout on the outgoing `sow` branch, handoff evidence rules), new `CLAUDE.md` (`@AGENTS.md` import), record `documentation/Agent-Continuity-Pilot-Q4.md`.
+- Validation: local Linux cloud run of the record's Bash block passes at the content and final heads (only the three files changed; `PROJECT_PROGRESS.md` untouched on the PR; footprint measurement `53491 2699`). GitHub `build (Release)` and `test (Release)` (windows-2022) and `spdx` green on the exact head: runs `38245363526`, `38245363686`, `38245363968`. The PowerShell block was not run on Windows; no agent-client token benchmark. The Copilot re-review failed (HTTP 402 quota); Claude acted as reviewer at the owner's direction.
+- Owner-authorized layout correction in this commit: seven Q4 closeouts (SAM#184–#190, 2026-10-07/08) moved verbatim from beneath the frozen Q3 heading to above it. The PR record says six; it missed SAM#184. The bootstrap `## Current status` is labelled superseded. No entry text rewritten.
+- Remaining: SAM_OCCT#74 (independent per owner) is reviewed and merged on its own. Next: on each installed agent client, start a fresh Q4 session and verify that it follows `AGENTS.md` without reading full history, recording tokens and handoff correctness before any wider rollout. Quarter-transition steps happen only on owner instruction.
+
 ## Q4 Grasshopper icon migration closeout — 2026-10-11
 
 - SAM-BIM/SAM#179 merged as `6af268b588b32892c5c41bb8b449cd61db65532e`, reviewed head `d2c7f729534985c5a58743d068c8e0de84e8b384`. Merge commit; branches preserved. Frozen approved design applied to 522 concrete objects; 521 resource-token swaps plus documented base-class Icon override. APIs, GUIDs, namespaces and behaviour preserved.
@@ -16,6 +23,8 @@
 2026-10-08 (native Optimisation PR6b "try every option" closeout, SAM#190; default aperture library `SIM_EXT_GLZ` Guid fix closeout, SAM#189; native Optimisation PR6 model bindings closeout, SAM#188; native Optimisation PR3 `SAM.Core.Optimisation` closeout, SAM#187; native Optimisation PR2 energy/mass units and display formatting closeout, SAM#186; Java-free GenOpt PR6 comment-only closeout, SAM#185). Earlier: 2026-10-07 (Part O stable semantic design key closeout, SAM#184).
 
 ## Current status
+
+Superseded bootstrap status (2026-10-06), kept verbatim: this section through `## Next step` describes the bootstrap state. Current state is in the dated closeout sections.
 
 Q4 branch cut from `master` `56a70592`, which is the exact commit pinned in SAM_Deploy's frozen Q3 baseline (`v20261006.1`). Bootstrap added only internal docs (this file, `AGENTS.md`). No product source changed. No Q4 product work has started.
 
@@ -223,12 +232,6 @@ Not yet set by the owner. Record them here at the first Q4 planning pass. Known 
   - SAM_Tas PR3: a native GenOpt compatibility adapter plus `TasGenExecuteObjectiveEvaluator`, following
     `TASGENEXECUTE_PROTOCOL.md` §2.3. It consumes the `SAM.Math` kernel.
   - Only when the owner requests it.
-
----
-
-# Historical record - 2026-Q3 (frozen)
-
-Source: last revision of the file on `sow/2026-Q3`, commit `689f75d5` (the file was removed from the Q3 tip by `8ab6a62b`; `sow/2026-Q3` tip is `3fcd64bf`). Preserved verbatim except that heading levels are shifted down one. Everything below describes Q3 and is not a current instruction.
 
 ## Java-free GenOpt replacement — PR6, `Java8FloatText` comment (2026-10-08)
 
@@ -594,6 +597,12 @@ Source: last revision of the file on `sow/2026-Q3`, commit `689f75d5` (the file 
   - SAM_UI still rebuilds Part O inputs with fresh guids and `PersistPartOInputs.SameValue` compares guids (harmless for this question now).
 - **Next step:** a separate SAM_UI PR that consumes `DesignKey` / `PartOModelResolution` for "previous compatible run found" and
   reopening a previous run from the design model. Companion docs PR SAM-BIM/SAM_UI#208 (Part O guide) is closed in the SAM_UI record.
+
+---
+
+# Historical record - 2026-Q3 (frozen)
+
+Source: last revision of the file on `sow/2026-Q3`, commit `689f75d5` (the file was removed from the Q3 tip by `8ab6a62b`; `sow/2026-Q3` tip is `3fcd64bf`). Preserved verbatim except that heading levels are shifted down one. Everything below describes Q3 and is not a current instruction.
 
 ## SAM Part O PR1 progress
 
