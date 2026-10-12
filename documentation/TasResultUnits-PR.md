@@ -119,6 +119,26 @@ so their pre-merge CI builds against each other's branches; see Validation).
 - Downstream on this build: SAM_Validation benchmark 77/77 and comparator 87/87 (no change needed there).
 - PR CI (`build`, `test`, `spdx`): see the PR.
 
+## Tested content, local versus GitHub checks, reproduction
+
+- PR SAM-BIM/SAM#192, base `sow/2026-Q4`. **Validated content SHA `b28daa774f4880f8aab885435607324e1be0daa6`**; later commits on
+  the branch are record-only (this file). The final PR head and its GitHub checks are named in the PR description.
+- Everything under "Validation" above is a **local** result on this laptop (Windows 11, .NET 8 SDK, VS 18 MSBuild) unless it
+  says "PR CI". The GitHub checks are `build`, `test` and `spdx`.
+- Reproduce (repository root, SAM_Validation built for the downstream check):
+
+  ```
+  dotnet build SAM.sln -c Release
+  dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release                                         # 3457/3457
+  dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release --filter FullyQualifiedName~ResultUnitsTests   # 43/43
+  ```
+
+- Machine-local evidence (not committed; copy it to move it): the licensed probe and logs in `C:\TasOut\units-fix`
+  (needs a licensed Tas and the two #92 TSD copies, SHA-256 `40f169af…`, `16812cfc…`); mutation scripts were run ad hoc
+  and are described above.
+- SAM `sow/2026-Q4` moved during this work (SAM#191, docs only, merged `02bbafb8`, closeout `46e96b72`); no overlap with
+  this PR's files.
+
 ## Unresolved issues and risks
 
 - The merge order above is the safety; merging SAM_Tas early breaks Grasshopper values (or SAM_Tas's build).
