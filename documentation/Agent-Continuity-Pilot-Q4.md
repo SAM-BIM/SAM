@@ -4,7 +4,7 @@ Status: implemented on `docs/agent-continuity-pilot-q4`; owner review required.
 Base: `sow/2026-Q4` at `c080dd088cff1957f66cdb3327d7e54dd751b0f2`.
 PR: [SAM#191](https://github.com/SAM-BIM/SAM/pull/191).
 Companion: [SAM_OCCT#74](https://github.com/SAM-BIM/SAM_OCCT/pull/74) (independent; see below).
-Locally validated instruction/content head: PENDING (recorded by the following record-only commit).
+Locally validated instruction/content head: `4599115091b63186dfe3f4263ba23cbebd0a80ec`.
 Superseded validated content heads: `6e94ae91e5d93b5ff3b4f17d072b88981c6128d1`, `65e7d68b48b1c04a470f29e75edb8126fed47a9a`.
 The final PR head is recorded in the live PR description because committing that
 SHA into this file would create another head. This record contains the immutable
@@ -139,7 +139,7 @@ Review disposition:
 - Claude review of `779a5fc` (2026-10-12, acting reviewer): the layout-correction
   route conflicted with the direct-Q4 and other-stream rules; companion claims
   exceeded what was inspected; the Bash equivalent was not runnable; AGENTS.md
-  called the pilot record "this". Addressed in the content head recorded above.
+  called the pilot record "this". Addressed in `4599115`.
 Verified live master: no AGENTS.md, PROJECT_PROGRESS.md or CLAUDE.md in SAM;
 no master cleanup is needed. OCCT's legacy CLAUDE.md is preserved separately.
 
@@ -147,7 +147,7 @@ Run from a checkout of this PR at its final head (PowerShell; Git and Python 3 o
 
 ```powershell
 $baseRevision = 'c080dd088cff1957f66cdb3327d7e54dd751b0f2'
-$testedRevision = 'PENDING'
+$testedRevision = '4599115091b63186dfe3f4263ba23cbebd0a80ec'
 $finalRevision = git rev-parse HEAD   # must equal the final head in the PR description
 foreach ($revision in $testedRevision, $finalRevision) {
   git diff --check $baseRevision $revision; "check $revision exit=$LASTEXITCODE"
@@ -162,7 +162,7 @@ Bash equivalent (run the same `python` line as `python3`):
 
 ```bash
 base=c080dd088cff1957f66cdb3327d7e54dd751b0f2
-tested=PENDING
+tested=4599115091b63186dfe3f4263ba23cbebd0a80ec
 final=$(git rev-parse HEAD)   # must equal the final head in the PR description
 for revision in "$tested" "$final"; do
   git diff --check "$base" "$revision"; echo "check $revision exit=$?"
@@ -177,7 +177,10 @@ CLAUDE.md and this record; the tested-to-final list contains only this record;
 the measurement prints `53491 2699`. These are local documentation checks, not
 product test or CI results.
 
-Results: PENDING (recorded by the following record-only commit).
+Results (2026-10-12, Linux cloud checkout, Bash block): at `4599115` and at the
+final head every `exit=` is 0; both full-PR lists are exactly the three files;
+tested-to-final lists only this record; the measurement prints `53491 2699`.
+The PowerShell block was not run on Windows in this session.
 
 Progress, frozen Q3, master, production, workflows, attribution and integration
 references are unchanged. No product build/test was run for this docs-only change.
