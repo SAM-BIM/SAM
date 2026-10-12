@@ -1,5 +1,14 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 agent instructions rollout closeout - 2026-10-12
+
+- SAM-BIM/SAM#193 merged as `654147b95fb5d98bcb108da9a0797859c62b9c9d` (merge commit pinned to approved head `cb3a1565f9137ef66cfdc10c94e5ca6031d3bb01`; base `sow/2026-Q4` `3514e9c4e3a038d817a57def75dc4523a35a87c3`; validated content `99ae0cef06df09ac1751bef178580844f6f1c903`). Owner-authorized 2026-10-12 after an independent review (`AGENT_ROLLOUT_REVIEW_2026-10-12.md`, local to the owner's workspace, not committed).
+- Docs only: AGENTS.md, documentation/Agent-Continuity-Rollout-Q4.md, plus the rollout record `documentation/Agent-Continuity-Rollout-Q4.md`. No product code, build, workflow, dependency pin or tool changed; this closeout is the only `PROJECT_PROGRESS.md` change.
+- Validation: local documentation checks and commands are in `documentation/Agent-Continuity-Rollout-Q4.md` (`git diff --check`, file scope, UTF-8/LF/no BOM, import). Hosted checks at the approved head: build (Release) success (run 38258305628); spdx success (run 38258305626); test (Release) success (run 38258305587). Dependency selection: the build log shows no sibling dependency clones.
+- Cleanup: . Other branches, worktrees and the frozen quarters were not touched.
+- Remaining gaps: no agent-client behaviour or token benchmark has been run.
+- Exact next step: Continue from the shared `AGENTS.md`. Open item carried from the pilots: verify on each installed agent client, in a fresh Q4 session, that it follows the instructions without loading the full progress history, and record the result.
+
 ## Q4 Tas result units correction closeout - 2026-10-12
 
 - SAM-BIM/SAM#192 merged as `be9c00cadb237cdc5a64351dce90dd7731be438c`, approved head `9268ccb736376b0f1f013cf538e95219e30ca01c` (validated content head `b28daa77`; later commits changed only the PR record). Owner-approved; merged first. Adds the `ResultUnitsVersion` parameter, the reader helpers (`Query.TryGetConsumptionOrPeakLoad`, `Modify.SetResultUnitsVersion`) and the DesignExplorer correction (also fixes OpenStudio's existing double conversion there).
