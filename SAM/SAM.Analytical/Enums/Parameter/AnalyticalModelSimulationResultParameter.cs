@@ -20,5 +20,10 @@ namespace SAM.Analytical
 
         [ParameterProperties("Floor Area", "Floor Area [m2]"), ParameterValue(ParameterType.Double)] FloorArea,
         [ParameterProperties("Volume", "Volume [m3]"), ParameterValue(ParameterType.Double)] Volume,
+
+        // Appended, never reordered: parameters are stored by name, and existing names must not change.
+        // 1 = consumption in kWh and peak loads in kW, as labelled above. A result without it was written before the
+        // units correction; read the four values through Query.TryGetConsumptionOrPeakLoad, never directly.
+        [ParameterProperties("Result Units Version", "Result Units Version (1 = consumption in kWh, peak loads in kW)"), ParameterValue(ParameterType.Integer)] ResultUnitsVersion,
     }
 }

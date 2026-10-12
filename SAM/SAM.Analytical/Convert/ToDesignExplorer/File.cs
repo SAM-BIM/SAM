@@ -206,12 +206,19 @@ namespace SAM.Analytical
 
             if (analyticalModelSimulationResult != null)
             {
-                double consumptionHeating = analyticalModelSimulationResult.GetValue<double>(AnalyticalModelSimulationResultParameter.ConsumptionHeating);
-                double peakHeatingLoad = analyticalModelSimulationResult.GetValue<double>(AnalyticalModelSimulationResultParameter.PeakHeatingLoad);
+                // Consumption in kWh and peak loads in kW, whichever units the result was written in: the query converts a
+                // legacy Tas result (Wh, W) exactly once, so nothing below divides by 1000 again. When the units are not
+                // known (an unsupported marker, or no marker and an unknown producer) the eight unit-dependent cells are left
+                // empty rather than guessed.
+                ResultUnitsState resultUnitsState = analyticalModelSimulationResult.ResultUnitsState();
+                bool unitsKnown = resultUnitsState == ResultUnitsState.Marked || resultUnitsState == ResultUnitsState.LegacyTas || resultUnitsState == ResultUnitsState.LegacyOpenStudio;
+
+                double consumptionHeating = analyticalModelSimulationResult.ConsumptionOrPeakLoad(AnalyticalModelSimulationResultParameter.ConsumptionHeating);
+                double peakHeatingLoad = analyticalModelSimulationResult.ConsumptionOrPeakLoad(AnalyticalModelSimulationResultParameter.PeakHeatingLoad);
                 double peakHeatingHour = analyticalModelSimulationResult.GetValue<double>(AnalyticalModelSimulationResultParameter.PeakHeatingHour);
 
-                double consumptionCooling = analyticalModelSimulationResult.GetValue<double>(AnalyticalModelSimulationResultParameter.ConsumptionCooling);
-                double peakCoolingLoad = analyticalModelSimulationResult.GetValue<double>(AnalyticalModelSimulationResultParameter.PeakCoolingLoad);
+                double consumptionCooling = analyticalModelSimulationResult.ConsumptionOrPeakLoad(AnalyticalModelSimulationResultParameter.ConsumptionCooling);
+                double peakCoolingLoad = analyticalModelSimulationResult.ConsumptionOrPeakLoad(AnalyticalModelSimulationResultParameter.PeakCoolingLoad);
                 double peakCoolingHour = analyticalModelSimulationResult.GetValue<double>(AnalyticalModelSimulationResultParameter.PeakCoolingHour);
 
                 double volume = analyticalModelSimulationResult.GetValue<double>(AnalyticalModelSimulationResultParameter.Volume);
@@ -227,38 +234,49 @@ namespace SAM.Analytical
                 double peakCoolingLoadPerArea = double.NaN;
                 double peakCoolingLoadPerVolume = double.NaN;
 
+                // Consumption per area/volume in kWh/m2, kWh/m3; peak load per area/volume in W/m2, W/m3 (kW x 1000).
                 if (!double.IsNaN(volume))
                 {
                     consumptionHeatingPerVolume = double.IsNaN(consumptionHeating) ? double.NaN : consumptionHeating / volume;
-                    peakHeatingLoadPerVolume = double.IsNaN(peakHeatingLoad) ? double.NaN : peakHeatingLoad / volume;
+                    peakHeatingLoadPerVolume = double.IsNaN(peakHeatingLoad) ? double.NaN : peakHeatingLoad * 1000 / volume;
 
                     consumptionCoolingPerVolume = double.IsNaN(consumptionCooling) ? double.NaN : consumptionCooling / volume;
-                    peakCoolingLoadPerVolume = double.IsNaN(peakCoolingLoad) ? double.NaN : peakCoolingLoad / volume;
+                    peakCoolingLoadPerVolume = double.IsNaN(peakCoolingLoad) ? double.NaN : peakCoolingLoad * 1000 / volume;
                 }
 
                 if (!double.IsNaN(floorArea))
                 {
                     consumptionHeatingPerArea = double.IsNaN(consumptionHeating) ? double.NaN : consumptionHeating / floorArea;
-                    peakHeatingLoadPerArea = double.IsNaN(peakHeatingLoad) ? double.NaN : peakHeatingLoad / floorArea;
+                    peakHeatingLoadPerArea = double.IsNaN(peakHeatingLoad) ? double.NaN : peakHeatingLoad * 1000 / floorArea;
 
                     consumptionCoolingPerArea = double.IsNaN(consumptionCooling) ? double.NaN : consumptionCooling / floorArea;
-                    peakCoolingLoadPerArea = double.IsNaN(peakCoolingLoad) ? double.NaN : peakCoolingLoad / floorArea;
+                    peakCoolingLoadPerArea = double.IsNaN(peakCoolingLoad) ? double.NaN : peakCoolingLoad * 1000 / floorArea;
                 }
 
-                result.Add(new Tuple<string, object>("out:ConsumptionHTG[kWh]", double.IsNaN(consumptionHeating) ? 0 : Core.Query.Round(consumptionHeating / 1000, 0.01)));
-                result.Add(new Tuple<string, object>("out:ConsumptionHTG[kWh/m2]", double.IsNaN(consumptionHeatingPerArea) ? 0 : Core.Query.Round(consumptionHeatingPerArea / 1000, 0.01)));
-                result.Add(new Tuple<string, object>("out:ConsumptionHTG[kWh/m3]", double.IsNaN(consumptionHeatingPerVolume) ? 0 : Core.Query.Round(consumptionHeatingPerVolume / 1000, 0.01)));
-                result.Add(new Tuple<string, object>("out:PeakHTGLoad[kW]", double.IsNaN(peakHeatingLoad) ? 0 : Core.Query.Round(peakHeatingLoad / 1000, 0.01)));
-                result.Add(new Tuple<string, object>("out:PeakHTGLoad[W/m2]", double.IsNaN(peakHeatingLoadPerArea) ? 0 : Core.Query.Round(peakHeatingLoadPerArea, 0.01)));
-                result.Add(new Tuple<string, object>("out:PeakHTGLoad[W/m3]", double.IsNaN(peakHeatingLoadPerVolume) ? 0 : Core.Query.Round(peakHeatingLoadPerVolume, 0.01)));
+                object Cell(double value)
+                {
+                    if (!unitsKnown)
+                    {
+                        return string.Empty;
+                    }
+
+                    return double.IsNaN(value) ? 0 : Core.Query.Round(value, 0.01);
+                }
+
+                result.Add(new Tuple<string, object>("out:ConsumptionHTG[kWh]", Cell(consumptionHeating)));
+                result.Add(new Tuple<string, object>("out:ConsumptionHTG[kWh/m2]", Cell(consumptionHeatingPerArea)));
+                result.Add(new Tuple<string, object>("out:ConsumptionHTG[kWh/m3]", Cell(consumptionHeatingPerVolume)));
+                result.Add(new Tuple<string, object>("out:PeakHTGLoad[kW]", Cell(peakHeatingLoad)));
+                result.Add(new Tuple<string, object>("out:PeakHTGLoad[W/m2]", Cell(peakHeatingLoadPerArea)));
+                result.Add(new Tuple<string, object>("out:PeakHTGLoad[W/m3]", Cell(peakHeatingLoadPerVolume)));
                 result.Add(new Tuple<string, object>("out:PeakHTGHr", peakHeatingHour == -1 ? 0 : peakHeatingHour));
 
-                result.Add(new Tuple<string, object>("out:ConsumptionCLG[kWh]", double.IsNaN(consumptionCooling) ? 0 : Core.Query.Round(consumptionCooling / 1000, 0.01)));
-                result.Add(new Tuple<string, object>("out:ConsumptionCLG[kWh/m2]", double.IsNaN(consumptionCoolingPerArea) ? 0 : Core.Query.Round(consumptionCoolingPerArea / 1000, 0.01)));
-                result.Add(new Tuple<string, object>("out:ConsumptionCLG[kWh/m3]", double.IsNaN(consumptionCoolingPerVolume) ? 0 : Core.Query.Round(consumptionCoolingPerVolume / 1000, 0.01)));
-                result.Add(new Tuple<string, object>("out:PeakCLGLoad[kW]", double.IsNaN(peakCoolingLoad) ? 0 : Core.Query.Round(peakCoolingLoad / 1000, 0.01)));
-                result.Add(new Tuple<string, object>("out:PeakCLGLoad[W/m2]", double.IsNaN(peakCoolingLoadPerArea) ? 0 : Core.Query.Round(peakCoolingLoadPerArea, 0.01)));
-                result.Add(new Tuple<string, object>("out:PeakCLGLoad[W/m3]", double.IsNaN(peakCoolingLoadPerVolume) ? 0 : Core.Query.Round(peakCoolingLoadPerVolume, 0.01)));
+                result.Add(new Tuple<string, object>("out:ConsumptionCLG[kWh]", Cell(consumptionCooling)));
+                result.Add(new Tuple<string, object>("out:ConsumptionCLG[kWh/m2]", Cell(consumptionCoolingPerArea)));
+                result.Add(new Tuple<string, object>("out:ConsumptionCLG[kWh/m3]", Cell(consumptionCoolingPerVolume)));
+                result.Add(new Tuple<string, object>("out:PeakCLGLoad[kW]", Cell(peakCoolingLoad)));
+                result.Add(new Tuple<string, object>("out:PeakCLGLoad[W/m2]", Cell(peakCoolingLoadPerArea)));
+                result.Add(new Tuple<string, object>("out:PeakCLGLoad[W/m3]", Cell(peakCoolingLoadPerVolume)));
                 result.Add(new Tuple<string, object>("out:PeakCLGHr", peakCoolingHour == -1 ? 0 : peakCoolingHour));
             }
 
