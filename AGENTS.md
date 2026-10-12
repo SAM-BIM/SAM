@@ -100,6 +100,10 @@ Identify the PR, base branch and tested head SHA. Distinguish local results
 from GitHub checks, including failures/skips and required dependency order.
 Give reproducible commands and committed evidence paths; label machine-local
 evidence and prerequisites that must be copied or provisioned elsewhere.
+Record the validated content SHA in the committed PR record. If a record-only
+commit follows, keep that tested SHA and its commands in the record, validate
+the final docs diff, and identify the final PR head/checks in the PR description.
+The post-merge closeout records the immutable merge SHA.
 
 When updating `PROJECT_PROGRESS.md`, preserve still-relevant information
 from previous sessions. Remove or replace information only when it is
