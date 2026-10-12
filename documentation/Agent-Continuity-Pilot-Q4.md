@@ -2,6 +2,10 @@
 
 Status: implemented on `docs/agent-continuity-pilot-q4`; owner review required.
 Base: `sow/2026-Q4` at `c080dd08`. No merge authorized by this task.
+PR: [SAM#191](https://github.com/SAM-BIM/SAM/pull/191).
+Companion: [SAM_OCCT#74](https://github.com/SAM-BIM/SAM_OCCT/pull/74).
+Initial locally validated/published head: `f8164e3276871f384a9f80bd4d1b146cdd81b6a7`;
+this follow-up adds PR identities only. The PR description identifies the final head.
 
 ## Problem and scope
 
