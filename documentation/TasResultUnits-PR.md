@@ -5,10 +5,10 @@ of record for the coordinated set; the other three PRs record their own changes 
 
 | Order | Repository | PR | What |
 |---|---|---|---|
-| 1 | SAM | this PR | marker, reader/writer queries, DesignExplorer through the query |
-| 2 | SAM_Tas_Grasshopper | `fix/tas-result-units-kwh` | `Tas.AddBuildingResults` through the query; W/m2, W/m3 descriptions |
-| 2 | SAM_OpenStudio | `fix/tas-result-units-kwh` | the OpenStudio writer stamps the marker |
-| 3 | SAM_Tas | `fix/tas-result-units-kwh` | the converter stores kWh/kW and stamps the marker; the benchmark through the query |
+| 1 | SAM | SAM-BIM/SAM#192 (this PR) | marker, reader/writer queries, DesignExplorer through the query |
+| 2 | SAM_Tas_Grasshopper | SAM-BIM/SAM_Tas_Grasshopper#13 | `Tas.AddBuildingResults` through the query; W/m2, W/m3 descriptions |
+| 2 | SAM_OpenStudio | SAM-BIM/SAM_OpenStudio#26 | the OpenStudio writer stamps the marker |
+| 3 | SAM_Tas | SAM-BIM/SAM_Tas#98 | the converter stores kWh/kW and stamps the marker; the benchmark through the query |
 
 ## Current status
 
