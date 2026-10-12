@@ -23,7 +23,7 @@ Before making significant changes:
    dated Q4 closeout and the sections relevant to this task. Read the
    record document and live description of any PR you are continuing.
 3. Understand the relevant existing code, architecture, tests, and conventions.
-4. Review the current Git branch and working tree.
+4. Review the current Git branch and working tree; preserve existing local changes.
 5. Continue from the documented current state.
 
 Prefer small, safe, targeted changes consistent with existing conventions.
@@ -48,11 +48,15 @@ Avoid unrelated refactoring unless it is required for the task.
 
 ## Quarter transition (owner-approved release work)
 
+Release, product promotion, quarter freeze and quarter bootstrap each need
+explicit owner approval; none is implied by merging an ordinary PR.
+
 - Promote approved Q4 product changes through a reviewed release PR. A normal
   merge includes internal files: prepare and verify the promotion tree excludes
-  `AGENTS.md`, `PROJECT_PROGRESS.md`, `CLAUDE.md` and the internal pilot record
-  (`documentation/Agent-Continuity-Pilot-Q4.md`). Classify other documentation
-  separately; retain product documentation selected for release.
+  `AGENTS.md`, `PROJECT_PROGRESS.md`, `CLAUDE.md` and the internal continuity
+  records (`documentation/Agent-Continuity-*-Q4.md`).
+  Classify other documentation separately; retain product documentation
+  selected for release.
 - Complete known-SHA Q4 closeouts before freezing `sow/2026-Q4`. The release-promotion
   PR's closeout belongs on the outgoing `sow/2026-Q4`, never on `master`, although
   `master` is that PR's base. Preserve the frozen branch as the quarter's record:
@@ -63,7 +67,7 @@ Avoid unrelated refactoring unless it is required for the task.
 - Initialize a concise Q1 progress record only as an explicitly authorized
   quarter-bootstrap operation, referencing the frozen Q4 commit for history.
   This does not widen the ordinary post-merge-only progress-closeout exception.
-  These steps describe future release work; merging this pilot performs none of it.
+  These steps describe future release work; they are not authorized by this file.
 
 ## Project continuity
 
@@ -103,13 +107,13 @@ the `PROJECT_PROGRESS.md` closeout entry must contain:
 - exact recommended next step.
 
 Identify the PR, base branch and tested head SHA. Distinguish local results
-from GitHub checks, including failures/skips and required dependency order.
-Give reproducible commands and committed evidence paths; label machine-local
-evidence and prerequisites that must be copied or provisioned elsewhere.
-Record the validated content SHA in the committed PR record. If a record-only
-commit follows, keep that tested SHA and its commands in the record, validate
-the final docs diff, and identify the final PR head/checks in the PR description.
-The post-merge closeout records the immutable merge SHA.
+from GitHub checks, including failures/skips, required dependency order and
+remaining gaps. Give reproducible commands and committed evidence paths; label
+machine-local evidence and prerequisites that must be copied or provisioned
+elsewhere. Record the validated content SHA in the committed PR record. If a
+record-only commit follows, keep that tested SHA and its commands in the record,
+validate the final docs diff, and identify the final PR head/checks in the PR
+description. The post-merge closeout records the immutable merge SHA.
 
 When updating `PROJECT_PROGRESS.md`, preserve still-relevant information
 from previous sessions. Remove or replace information only when it is
@@ -124,3 +128,50 @@ switching computers, accounts, sessions, or AI agents.
 
 Never assume conversation history, terminal history, generated files,
 or uncommitted local changes will exist on another computer.
+
+## Pull requests and merging
+
+- Implementation, tests, workflows and ordinary documentation changes go
+  through focused feature branches and owner-reviewed PRs into `sow/2026-Q4`.
+  Continue an existing PR for the task rather than opening a duplicate.
+- Merge only after owner/code-owner approval, required checks passing at the
+  final PR head, and each review finding resolved or explicitly accepted by
+  the owner.
+- Permission for the direct post-merge closeout does not authorize source,
+  test, workflow or any other file change. A specific owner exception must be
+  recorded explicitly and kept narrowly scoped.
+
+## Post-merge branch cleanup
+
+Once the owner authorizes a PR merge, cleaning up that task's fully merged
+feature branches is included; no separate cleanup approval is needed.
+
+Before deleting a branch:
+
+- verify the remote head SHA is the expected (approved) head;
+- verify it is completely merged into the intended base on the remote;
+- confirm no unmerged local or remote work remains on it;
+- confirm no open PR uses it as head or base;
+- exclude protected, default, quarterly (`sow/*`), shared and specifically
+  protected repository branches.
+
+Delete an eligible remote task branch with a lease guard, for example
+`git push origin --force-with-lease=refs/heads/<branch>:<expected-sha> :refs/heads/<branch>`,
+then confirm the ref is gone. Return the clean checkout to the active base
+and delete the local task branch only when it is fully merged and no worktree
+uses it. Never delete or archive worktrees automatically. If any condition
+fails, preserve the branch and report why. Never force deletion of unmerged work.
+
+Dependency resolution: downstream CI may select a dependency branch by PR
+branch name before falling back to `sow/2026-Q4`. Inspect that resolution. When
+a merged task branch would shadow Q4, clean it up first, then rerun downstream
+CI and verify in the logs that the intended merged dependency was selected.
+
+This covers only the current task's branches. Older unrelated leftovers need
+a separate inventory and authorization.
+
+## Recommendations and handoffs
+
+When recommending a task or writing a prompt or handover, state the model,
+effort, new or existing session and Plan or Build mode, with a brief reason.
+A recommendation does not mean any setting was changed automatically.
