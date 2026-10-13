@@ -148,6 +148,16 @@ namespace SAM.Analytical.Grasshopper
                 object @object = null;
                 if (dataAccess.GetData(index, ref @object))
                 {
+                    // Rhino geometry is converted without scaling and SAM is in metres: say so when they differ.
+                    if (@object is global::Grasshopper.Kernel.Types.IGH_GeometricGoo)
+                    {
+                        string unitsWarning = Geometry.Rhino.Query.ModelUnitsWarning();
+                        if (unitsWarning != null)
+                        {
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, unitsWarning);
+                        }
+                    }
+
                     if (!Query.TryConvertToPanelGeometries(@object, out geometry3Ds, simplify))
                     {
                         geometry3Ds = null;
