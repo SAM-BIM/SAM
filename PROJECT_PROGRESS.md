@@ -1,5 +1,46 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 PanelsBySolid multi-element solids and Vector3D recursion closeout - 2026-10-14
+
+- **PRs** -> `sow/2026-Q4`, **merged 2026-10-14**, merge commits pinned to the approved heads, in this order:
+  - **SAM-BIM/SAM#199**: merge commit `2133ef022dd01ee740faf7aa8da1faed159d4c43`, head `d701c675896e8903deb09790695e8f234ec9d9ba`.
+  - **SAM-BIM/SAM#198**: merge commit `5896dfb5b2dd44491a6f29f79f36651911479bc4`, head `bb36906f9087c8645ad5a2417432746bac238e04`. This head is the validated content `6c0fd503` plus a merge of the updated base (#199) before merging.
+  - `sow/2026-Q4` has no branch protection or required reviews; none bypassed. No review comments existed on either PR. Both were drafts, marked ready immediately before merge.
+- **Status**: complete. The owner closed the task on 2026-10-14; no further development is planned.
+- **Hosted CI** (GitHub), all green:
+  - #199 head: build, test, spdx.
+  - #198 synced head `bb36906f`: build, test, spdx.
+  - Post-merge on `2133ef02`: build (Release), test (Release).
+  - Post-merge on `5896dfb5`: build (Release), test (Release).
+- **#198 work**: `Create.PanelsBySolid` decomposes each solid into element planes (public API unchanged).
+  - **Why**: wall rings, two-pitch roofs and L-walls previously gave one panel per solid. On the contemporary test house (`SAM_daily/2026-10-13-House/contemporary1`), 17 panels covered 55.5% of the paired faces.
+  - **Pairs**: opposite faces with material between them; `PhysicalThickness` is the measured face distance, independent of `ConstructionThickness`.
+  - **Ownership**: planes are ranked by thickness over the band width of their overlap.
+  - **Nested slabs**: window niches and stepped walls are one element, reported as variable thickness.
+  - **Orientation**: element types no longer depend on face order.
+  - **Snap**: `Query.SnapToJunctions` checks junctions along the whole edge.
+  - **GH**: `SAMAnalytical.CreatePanelsBySolids` is 1.0.1 and warns whenever a solid is skipped as not panel-like (the log gives the ratio that would keep it).
+- **#199 work**: `implicit operator Point3D(Vector3D)` returned a `Vector3D` and recursed until the stack overflowed. It now returns a `Point3D`.
+- **Owner decisions**:
+  - `maxThicknessRatio` default stays **0.20** (backward compatible). Users set 0.25 or another value in Grasshopper; the contemporary house needs 0.25 for its 6 × 1.4 m gable (ratio 0.214).
+  - No automatic geometry completion, synthetic boundaries, room separation or extra Air generation.
+  - Stairs, treads and balustrades stay excluded (the contemporary stair `d8182294-90be-4fe7-bbf8-e898ffeb4344`, ratio 0.398).
+  - The contemporary model is intentionally incomplete and will be completed manually in Rhino. The original `.3dm` and `.gh` are unchanged (SHA-256 verified).
+- **Tests**:
+  - New: `PanelsBySolidMultiElementTests` (20) and `PanelsBySolidComplexHouseTests` (18), using the fixture `SAM/SAM.Tests/Golden/PanelsBySolid/contemporary1_solids.json`; and `VectorPointConversionTests` (4).
+  - Local full SAM.Tests run on the synced #198 head: **3533 passed, 0 failed**.
+  - Coverage of element faces on the contemporary house at ratio 0.25: 55.5% → 97.2%, with 39 panels. At the 0.20 default: 38 panels and a Warning naming the stair and the gable.
+  - The accepted 14 Oct simple house still gives 11 spaces / 56 panels / 1 Air (machine-local Rhino 9 WIP harness, not committed).
+- **Records**: `documentation/PanelsBySolid-MultiElement-Q4.md` and `documentation/Vector3DPoint3DRecursion-Q4.md`.
+- **Known limitations** (accepted by the owner, no tasks opened):
+  - The 0.20 proportion rejects valid thick or low walls; the user raises `maxThicknessRatio_`.
+  - Unclaimed notches (doorways, slab voids at an edge) stay open; only unclaimed holes become Air.
+  - Snap only translates edges.
+  - The contemporary house does not form closed spaces until its envelope openings, attic floor and room separations are modelled.
+  - Manual Grasshopper acceptance was not run by the agent.
+- **Cleanup**: remote task branches deleted with expected-SHA leases after verifying the head, full merge and no open PRs: `fix/vector3d-point3d-recursion-q4` (`d701c675`) and `feature/panels-by-solid-multi-element-q4` (`bb36906f`). Their local branches were deleted, and the checkout returned to `sow/2026-Q4`.
+- **Next step**: none for this stream. The owner may run the Grasshopper acceptance in the record after deploying SAM from `sow/2026-Q4`.
+
 ## Q4 Rhino Text Dot support for analytical Spaces closeout - 2026-10-14
 
 - **PR**: SAM-BIM/SAM#197 -> `sow/2026-Q4`, **merged 2026-10-14**, merge commit `32fe872feee4cfa22900ec4c06db249c948ba144`, approved head `cb831d43f475761bcfd92d4f03513c717553ee52` (validated content `ab8a12d3`; `cb831d43` is the record-only docs commit that added the PR link and that SHA). `sow/2026-Q4` has no branch protection or required reviews; none bypassed. No review comments.
