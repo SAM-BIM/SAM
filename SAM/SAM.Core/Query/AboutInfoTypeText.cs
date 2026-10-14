@@ -9,11 +9,11 @@ namespace SAM.Core
         {
             switch (aboutInfoType)
             {
-                case (AboutInfoType.HoareLea):
-                    return "https://hoarelea.com/specialisms/ \n An award-winning engineering consultancy with a creative team of engineers, designers, and technical specialists. We provide innovative solutions to complex engineering and design challenges for buildings.";
+                case (AboutInfoType.HoareLea): //Member name kept for serialization compatibility; it now describes SAM-BIM.
+                    return "SAM-BIM\n https://sambim.xyz\n https://github.com/SAM-BIM\n SAM-BIM is the independent open-source organisation that develops and maintains SAM, the Sustainable Analytical Model.";
 
                 case (AboutInfoType.SAM):
-                    return "Sustainable Analytical Model originated by Michal Dengusiak and Jakub Ziolkowski";
+                    return "SAM - Sustainable Analytical Model\n Originated by Michal Dengusiak and Jakub Ziolkowski (original development at Hoare Lea); now developed by SAM-BIM.\n https://sambim.xyz | https://github.com/SAM-BIM";
 
                 case (AboutInfoType.Other):
                     return System.DateTime.Now.ToString("dd-MM-yyyy"); ;
