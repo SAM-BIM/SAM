@@ -18,8 +18,9 @@ namespace SAM.Analytical
         /// <para>
         /// Each outer edge is moved within its own plane, along its outward in-plane normal. A target is another
         /// panel's plane that runs parallel to the edge, lies within <paramref name="snapDistance"/> of it, and
-        /// contains the moved edge midpoint within <paramref name="snapDistance"/> of the target's actual face.
-        /// That last check confirms a real local junction, not just an infinite plane.
+        /// has a point of the moved edge (its middle, ends or quarter points) within <paramref name="snapDistance"/> of
+        /// the target's actual face. That last check confirms a real local junction, not just an infinite plane, also
+        /// where the target's face covers only part of the edge (a slab with a void reaching the facade).
         /// </para>
         /// <para>
         /// The farthest target ahead (an extension) wins. A wall that passes a ceiling at a T-junction carries on
@@ -120,8 +121,21 @@ namespace SAM.Analytical
                             continue;
                         }
 
-                        Point3D moved = new Point3D(middle3D.X + outward3D.X * t, middle3D.Y + outward3D.Y * t, middle3D.Z + outward3D.Z * t);
-                        if (target.Face2D.Distance(target.Plane.Convert(moved), tolerance_Distance) > snapDistance)
+                        // A real junction: the target's face is near the moved edge somewhere along it, not only at its
+                        // middle (a slab with a void at the facade still meets the wall at both ends of its edge).
+                        bool junction = false;
+                        foreach (double factor in EdgeSamples)
+                        {
+                            Point3D sample = self.Plane.Convert(new Point2D(a.X + (b.X - a.X) * factor, a.Y + (b.Y - a.Y) * factor));
+                            Point3D moved = new Point3D(sample.X + outward3D.X * t, sample.Y + outward3D.Y * t, sample.Z + outward3D.Z * t);
+                            if (target.Face2D.Distance(target.Plane.Convert(moved), tolerance_Distance) <= snapDistance)
+                            {
+                                junction = true;
+                                break;
+                            }
+                        }
+
+                        if (!junction)
                         {
                             continue; // no real junction there: the target's face is not near this edge
                         }
@@ -177,6 +191,11 @@ namespace SAM.Analytical
             diagnostics.Add(string.Format("Snapped {0} panel(s): {1} edge(s) extended, {2} edge(s) trimmed (snap distance {3:0.###} m).", result.Count, extended, trimmed, snapDistance));
             return result;
         }
+
+        /// <summary>
+        /// Where along an outer edge (start 0, end 1) a junction with a target face is looked for.
+        /// </summary>
+        private static readonly double[] EdgeSamples = { 0.5, 0, 1, 0.25, 0.75 };
 
         private sealed class SnapTarget
         {
