@@ -22,7 +22,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.2";
+        public override string LatestComponentVersion => "1.0.3";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -34,7 +34,7 @@ namespace SAM.Analytical.Grasshopper
         /// </summary>
         public SAMAnalyticalCreateSpace()
           : base("SAMAnalytical.CreateSpace", "SAMAnalytical.CreateSpace",
-              "Create SAM Space, if nothing connect default values: _name = Space_Default, _locationPoint = (0, 0, 0.75)",
+              "Create SAM Space, if nothing connect default values: _name = Space_Default, _locationPoint = (0, 0, 0.75). A Rhino Text Dot (for example through Query Model Objects > Model Object) can be connected to space_: its text becomes the Space name and its position the Space location point.",
               "SAM", "Analytical01")
         {
         }
@@ -48,7 +48,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = new List<GH_SAMParam>();
 
-                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "space_", NickName = "space_", Description = "Source SAM Analytical Space", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
+                result.Add(new GH_SAMParam(new GooSpaceParam() { Name = "space_", NickName = "space_", Description = "Source SAM Analytical Space or Rhino Text Dot (text = name, position = location point)", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new global::Grasshopper.Kernel.Parameters.Param_String() { Name = "name_", NickName = "name_", Description = "Space Name, Default = Space_Default", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooSAMGeometryParam() { Name = "locationPoint_", NickName = "locationPoint_", Description = "Space Location Point, Default = (0,0,0.75)", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Binding));
                 result.Add(new GH_SAMParam(new GooInternalConditionParam() { Name = "internalCondition_", NickName = "internalCondition_", Description = "Space InternalCondition", Access = GH_ParamAccess.item, Optional = true }, ParamVisibility.Voluntary));
@@ -81,11 +81,14 @@ namespace SAM.Analytical.Grasshopper
         {
             int index;
 
+            bool hasRhinoGeometry = false;
+
             Space space = null;
             index = Params.IndexOfInputParam("space_");
             if (index != -1)
             {
                 dataAccess.GetData(index, ref space);
+                hasRhinoGeometry = space != null;
             }
 
             if (space == null)
@@ -110,6 +113,18 @@ namespace SAM.Analytical.Grasshopper
             if (index != -1 && dataAccess.GetData(index, ref location) && (location is Point3D))
             {
                 space = new Space(space, space.Name, (Point3D)location);
+                hasRhinoGeometry = true;
+            }
+
+            // SAM analytical geometry is in metres and Rhino geometry is converted without scaling. A Rhino source
+            // (Text Dot or location point) in a document that is not in metres would be read as metres silently.
+            if (hasRhinoGeometry)
+            {
+                string unitsWarning = Geometry.Rhino.Query.ModelUnitsWarning();
+                if (unitsWarning != null)
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, unitsWarning);
+                }
             }
 
             InternalCondition internalCondition = null;

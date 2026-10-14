@@ -219,6 +219,12 @@ namespace SAM.Geometry.Grasshopper
                 }
             }
 
+            if (Query.TryGetTextDot(source, out TextDot textDot))
+            {
+                Value = Rhino.Convert.ToSAM(textDot.Point);
+                return true;
+            }
+
             if (source is Polyline)
             {
                 Value = Rhino.Convert.ToSAM((Polyline)source);

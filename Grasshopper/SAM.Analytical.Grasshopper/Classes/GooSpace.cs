@@ -29,6 +29,30 @@ namespace SAM.Analytical.Grasshopper
         {
         }
 
+        public override bool CastFrom(object source)
+        {
+            // A Rhino Text Dot (or a Rhino 8 Model Object wrapping one) is a natural source for a Space: its text is
+            // the Space name and its position is the Space location. The position is interpreted in metres, matching
+            // the SAM convention for Rhino geometry (see SAM.Geometry.Rhino.Query.ModelUnitsWarning).
+            if (SAM.Geometry.Grasshopper.Query.TryGetTextDot(source, out TextDot textDot))
+            {
+                Point3D point3D = Geometry.Rhino.Convert.ToSAM(textDot.Point);
+                if (point3D != null)
+                {
+                    string name = textDot.Text;
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        name = "Cell";
+                    }
+
+                    Value = new Space(name, point3D);
+                    return true;
+                }
+            }
+
+            return base.CastFrom(source);
+        }
+
         public BoundingBox ClippingBox
         {
             get
@@ -99,8 +123,8 @@ namespace SAM.Analytical.Grasshopper
         protected override GH_GetterResult Prompt_Plural(ref List<GooSpace> values)
         {
             global::Rhino.Input.Custom.GetObject getObject = new global::Rhino.Input.Custom.GetObject();
-            getObject.SetCommandPrompt("Pick Points to create spaces");
-            getObject.GeometryFilter = ObjectType.Point;
+            getObject.SetCommandPrompt("Pick Points or Text Dots to create spaces");
+            getObject.GeometryFilter = ObjectType.Point | ObjectType.TextDot;
             getObject.SubObjectSelect = true;
             getObject.DeselectAllBeforePostSelect = false;
             getObject.OneByOnePostSelect = false;
@@ -120,11 +144,22 @@ namespace SAM.Analytical.Grasshopper
 
                 RhinoObject rhinoObject = objRef.Object();
                 if (rhinoObject == null)
-                    return GH_GetterResult.cancel;
+                    continue;
+
+                if (SAM.Geometry.Grasshopper.Query.TryGetTextDot(rhinoObject.Geometry, out TextDot textDot))
+                {
+                    GooSpace gooSpace = new GooSpace();
+                    if (gooSpace.CastFrom(textDot))
+                    {
+                        values.Add(gooSpace);
+                    }
+
+                    continue;
+                }
 
                 Point point = rhinoObject.Geometry as Point;
                 if (point == null)
-                    return GH_GetterResult.cancel;
+                    continue;
 
                 List<Space> spaces = null;
 
@@ -174,8 +209,8 @@ namespace SAM.Analytical.Grasshopper
         protected override GH_GetterResult Prompt_Singular(ref GooSpace value)
         {
             global::Rhino.Input.Custom.GetObject getObject = new global::Rhino.Input.Custom.GetObject();
-            getObject.SetCommandPrompt("Pick Point to create space");
-            getObject.GeometryFilter = ObjectType.Point;
+            getObject.SetCommandPrompt("Pick Point or Text Dot to create space");
+            getObject.GeometryFilter = ObjectType.Point | ObjectType.TextDot;
             getObject.SubObjectSelect = true;
             getObject.DeselectAllBeforePostSelect = false;
             getObject.OneByOnePostSelect = true;
@@ -193,11 +228,23 @@ namespace SAM.Analytical.Grasshopper
 
                 RhinoObject rhinoObject = objRef.Object();
                 if (rhinoObject == null)
-                    return GH_GetterResult.cancel;
+                    continue;
+
+                if (SAM.Geometry.Grasshopper.Query.TryGetTextDot(rhinoObject.Geometry, out TextDot textDot))
+                {
+                    GooSpace gooSpace = new GooSpace();
+                    if (gooSpace.CastFrom(textDot))
+                    {
+                        value = gooSpace;
+                        return GH_GetterResult.success;
+                    }
+
+                    continue;
+                }
 
                 Point point = rhinoObject.Geometry as Point;
                 if (point == null)
-                    return GH_GetterResult.cancel;
+                    continue;
 
                 List<Space> spaces = null;
 
