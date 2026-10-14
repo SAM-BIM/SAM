@@ -1,8 +1,9 @@
 # Rhino Text Dot support for Analytical Spaces — Q4 (2026-10-14)
 
-Status: implemented on `feature/gh-space-textdot-q4`; draft PR, owner review required. Not merged.
+Status: implemented on `feature/gh-space-textdot-q4`; draft PR #197, owner review required. Not merged.
 Base: `sow/2026-Q4` at `5708c037370bc1c78b864ca6c12e2b0c7d91eeff`.
-PR: the live PR for this branch in `SAM-BIM/SAM`; its description holds the final head and hosted checks.
+PR: SAM-BIM/SAM#197 (draft). The validated content head is `ab8a12d3`; the record-only commit that adds this
+line follows it. The PR description holds the final head and hosted checks.
 
 ## Why (root cause)
 
