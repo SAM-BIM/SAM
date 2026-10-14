@@ -1,11 +1,20 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 About enum member rename closeout - 2026-10-14
+
+- **PR**: SAM-BIM/SAM#196 -> `sow/2026-Q4`, **merged 2026-10-14**, merge commit `555d4891b9367d9c2f5d7d63796d9032e809ba18`, approved head `7aef6d6bbb673bdc5a066d820f33f1735194d605`.
+- **Status**: complete. PR-head CI (build Release, test Release, spdx) green; post-merge CI on `555d4891`: build (Release) and test (Release) succeeded (GitHub).
+- **Why**: the Grasshopper `SAM.About` right-click menu lists enum member names, so #195 still showed "HoareLea". `AboutInfoType.HoareLea` renamed `SAMBIM` (value 0 unchanged). `GH_SAMEnumComponent` saves the integer value, so existing definitions are unaffected; no other references in the SAM-BIM repositories. Corrects the #195 entry, which said the member was kept.
+- **Validation**: `SAM.Core.Grasshopper` MSBuild compile, 0 errors (local). SAM_UI About reported fixed by the owner; the Grasshopper menu after this rename is not yet re-checked.
+- **Cleanup**: remote and local `fix/about-info-type-sambim` deleted after confirming merge and no open PR.
+- **Next step**: owner re-checks the `SAM.About` menu in Rhino after the next SAM build.
+
 ## Q4 About branding closeout - 2026-10-14
 
 - **PR**: SAM-BIM/SAM#195 -> `sow/2026-Q4`, **merged 2026-10-14**, merge commit `783d31a2a5ae160d818aba916f4e65cec0532e5f`, approved head `6c5df98afac99909593291275130bd5df0d70cb7`.
 - **Status**: complete. PR-head CI (build Release, test Release, spdx) green on `6c5df98a`; post-merge CI on `783d31a2`: build (Release) and test (Release) succeeded (GitHub).
 - **Work**: the shared About text (`SAM.Core` `Query/AboutInfoTypeText.cs`, `Enums/AboutInfoType.cs`; used by the Grasshopper `SAM.About` component and the SAM_UI About button) and the author/contact fields of six Grasshopper `Kernel/AssemblyInfo.cs` files now present SAM-BIM, https://sambim.xyz and https://github.com/SAM-BIM. `SAM.Core.Grasshopper` icon `HL_Logo24` -> `SAM_Small`. Record: `documentation/AboutBranding-Q4.md`.
-- **Decisions**: enum member `AboutInfoType.HoareLea` kept (serialized value); the Hoare Lea origin remains as a historical credit; `HoareLea/ScriptsHydra` URLs in `ExportHydra.cs` and unused `HL_Logo24` resources retained. No GUID, assembly, namespace or component identity changed. SAM_UI needed no change (it reads the SAM.Core text).
+- **Decisions**: enum member `AboutInfoType.HoareLea` was kept in #195 but renamed `SAMBIM` in #196 (see below); the Hoare Lea origin remains as a historical credit; `HoareLea/ScriptsHydra` URLs in `ExportHydra.cs` and unused `HL_Logo24` resources retained. No GUID, assembly, namespace or component identity changed. SAM_UI needed no change (it reads the SAM.Core text).
 - **Remote separation**: local `upstream` remotes pointing at HoareLea removed from SAM and SAM_UI (local config, no commit); `sow/2026-Q4` tracking fixed to `origin/sow/2026-Q4` in SAM_Acoustic, SAM_Origin, SAM_Topologic. Two empty stray files in SAM_OCCT moved out of the repository (not part of any development).
 - **Validation (local)**: MSBuild compile of the six Grasshopper projects: 0 compile errors. Analytical post-build copy fails only when the csproj is built standalone (`$(SolutionDir)` undefined); not a compile error. `BuildAlls_v5.bat pull sow/2026-Q4 nopause` on clean checkouts: all 26 repositories pulled fast-forward from SAM-BIM origins, build exit 0, 0 `: error` lines, OCCT runtime verified (machine-local, log not committed).
 - **Cleanup**: remote `docs/sam-bim-about-branding` deleted with an expected-SHA lease on `6c5df98a` after confirming it is merged and no open PR uses it; local branch deleted.
