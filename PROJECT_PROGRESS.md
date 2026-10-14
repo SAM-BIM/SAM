@@ -1,5 +1,17 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 PanelsBySolid / AperturesBySolids closeout - 2026-10-14
+
+- **PR**: SAM-BIM/SAM#194 -> `sow/2026-Q4`, **merged 2026-10-14**, merge commit `755bc51479e114e5b99179fb04d17b8b3ffcc05a`, approved head `f84a2ef6718f7e7565dcd7b3cb3643936b1f649d`.
+- **Status**: complete. Post-merge CI on `755bc514`: Build (Windows) and Test succeeded (GitHub). PR-head CI (build Release, spdx, test Release) was green on `f84a2ef6` before merge.
+- **Work**: thin solids converted to mid-surface panels with Air openings (`Create.PanelsBySolid`), apertures from window/door solids (`Create.AperturesBySolids`, `ApertureSolid`), source-parameter enums, `Query.SnapToJunctions`, `Modify.AddApertures` traceability, physical thickness kept through hosting, Grasshopper components `SAMAnalyticalCreatePanelsBySolids` / `SAMAnalyticalCreateAperturesBySolids` and `ModelUnitsWarning`. Tests: `PanelsBySolidTests`, `AperturesBySolidsTests`. Record: `documentation/PanelsBySolid-Q4.md`.
+- Manual Rhino/Grasshopper/TAS acceptance PASSED on 2026-10-14 (owner-run, machine-local, not committed): 11 correctly named TAS zones, 57 surfaces, 25/25 apertures matched, 50 aperture parts rebound, UseBEWidths ON volume 481.784 m³, no TAS validation errors, no unnecessary OpeningProperties warnings, PhysicalThickness preserved independently of TBD constructions.
+- Merge order (sequential, merge commits, each pinned to its verified head SHA): SAM#194 `755bc514` → SAM_OCCT#76 `79d0332e` → SAM_OCCT#77 `3e688afc` → SAM_Tas#100 `4b253dc7`. `sow/2026-Q4` has no branch protection or required reviews; none bypassed. No review or codex comments existed on any of the four PRs. PRs were drafts and were marked ready immediately before merge.
+- Dependency order: SAM_OCCT#77 and SAM_Tas#100 rely on this content; SAM_Tas#100 CI resolved SAM by the same branch name, whose head equalled the content merged here.
+- Remote task branches deleted with lease guards after verifying head SHA, full merge and no open PRs: SAM `feature/panels-by-solid-q4`, SAM_OCCT `fix/sew-under-split-q4` and `feature/air-panels-attic-q4`, SAM_Tas `feature/panels-by-solid-q4`. Local branches left in place (upstream gone).
+- Unresolved (non-blocking): the informational wording "SAM panels are the physical inner surfaces" (SAM_Tas `WorkflowCalculator.cs` UseWidths note and `DIRECT_T3D_ROUTE.md`) is misleading for mid-surface panels; deliberately not changed during the merge. Small follow-up PR. The 19 pre-existing SAM_OCCT native integration failures remain documented and were not reinvestigated.
+- **Next step**: none required for this stream. Optional small follow-up PR for the wording above.
+
 ## Q4 agent instructions rollout closeout - 2026-10-12
 
 - SAM-BIM/SAM#193 merged as `654147b95fb5d98bcb108da9a0797859c62b9c9d` (merge commit pinned to approved head `cb3a1565f9137ef66cfdc10c94e5ca6031d3bb01`; base `sow/2026-Q4` `3514e9c4e3a038d817a57def75dc4523a35a87c3`; validated content `3a18f2ebc8c55d03ce70b4fd0b309f7de02140ce`). Owner-authorized 2026-10-12 after an independent review (`AGENT_ROLLOUT_REVIEW_2026-10-12.md`, local to the owner's workspace, not committed).
