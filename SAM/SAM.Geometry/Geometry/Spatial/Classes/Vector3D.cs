@@ -400,7 +400,8 @@ namespace SAM.Geometry.Spatial
                 return null;
             }
 
-            return new Vector3D(vector3D[0], vector3D[1], vector3D[2]);
+            // A Vector3D here would be converted back by this same operator, recursing until the stack overflows.
+            return new Point3D(vector3D[0], vector3D[1], vector3D[2]);
         }
 
         public static Vector3D WorldX
