@@ -20,7 +20,7 @@ namespace SAM.Tests
         /// A prism: the profile (u, v) with optional holes, extruded from w0 to w1, mapped to 3D by
         /// <paramref name="map"/>(u, v, w).
         /// </summary>
-        private static Shell Prism(Func<double, double, double, Point3D> map, IList<(double U, double V)> outer, IList<IList<(double U, double V)>> holes, double w0, double w1)
+        internal static Shell Prism(Func<double, double, double, Point3D> map, IList<(double U, double V)> outer, IList<IList<(double U, double V)>> holes, double w0, double w1)
         {
             List<IList<(double U, double V)>> loops = new List<IList<(double U, double V)>> { outer };
             if (holes != null)
@@ -48,17 +48,17 @@ namespace SAM.Tests
         }
 
         // Vertical element in the XZ plane, thick along Y.
-        private static Point3D XZ(double u, double v, double w) => new Point3D(u, w, v);
+        internal static Point3D XZ(double u, double v, double w) => new Point3D(u, w, v);
 
         // Horizontal element in the XY plane, thick along Z.
-        private static Point3D XY(double u, double v, double w) => new Point3D(u, v, w);
+        internal static Point3D XY(double u, double v, double w) => new Point3D(u, v, w);
 
-        private static IList<(double U, double V)> Rectangle(double u0, double v0, double u1, double v1)
+        internal static IList<(double U, double V)> Rectangle(double u0, double v0, double u1, double v1)
         {
             return new List<(double U, double V)> { (u0, v0), (u1, v0), (u1, v1), (u0, v1) };
         }
 
-        private static Shell Box(double x0, double y0, double z0, double x1, double y1, double z1)
+        internal static Shell Box(double x0, double y0, double z0, double x1, double y1, double z1)
         {
             return Prism(XY, Rectangle(x0, y0, x1, y1), null, z0, z1);
         }
