@@ -9,7 +9,7 @@ namespace SAM.Core
         {
             switch (aboutInfoType)
             {
-                case (AboutInfoType.HoareLea): //Member name kept for serialization compatibility; it now describes SAM-BIM.
+                case (AboutInfoType.SAMBIM):
                     return "SAM-BIM\n https://sambim.xyz\n https://github.com/SAM-BIM\n SAM-BIM is the independent open-source organisation that develops and maintains SAM, the Sustainable Analytical Model.";
 
                 case (AboutInfoType.SAM):

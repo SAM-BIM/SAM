@@ -7,7 +7,7 @@ Status: open PR into `sow/2026-Q4`. Base: `sow/2026-Q4`.
 - Six Grasshopper `Kernel/AssemblyInfo.cs` files: author/contact now SAM-BIM; email addresses replaced by the website. `SAM.Core.Grasshopper` icon changed from `HL_Logo24` to `SAM_Small`.
 
 ## Decisions
-- Enum member `AboutInfoType.HoareLea` kept (serialized enum value); only its description and text changed.
+- Enum member `AboutInfoType.HoareLea` renamed `SAMBIM` (value 0 unchanged): the Grasshopper menu lists member names, and the component saves the integer value, so existing files are unaffected.
 - Original development at Hoare Lea remains as a clearly historical credit in the SAM info text.
 - Retained: `HoareLea/ScriptsHydra` URLs in `ExportHydra.cs` (external repository needed by the feature); unused `HL_Logo24` resources.
 - No GUID, assembly name, namespace or component identity changed.

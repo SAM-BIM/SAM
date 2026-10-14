@@ -8,7 +8,7 @@ namespace SAM.Core
     [Description("About Info Type")]
     public enum AboutInfoType
     {
-        [Description("SAM-BIM Info")] HoareLea,
+        [Description("SAM-BIM Info")] SAMBIM,
         [Description("SAM Info")] SAM,
         [Description("Other Info")] Other,
     }
