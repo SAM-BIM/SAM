@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SAM.Analytical.Grasshopper\SAM.Analytical.Grasshopper.csproj" />
     <ProjectReference Include="..\SAM.Core.Grasshopper\SAM.Core.Grasshopper.csproj" />
     <ProjectReference Include="..\SAM.Geometry.Grasshopper\SAM.Geometry.Grasshopper.csproj" />
     <ProjectReference Include="..\SAM.Core.Grasshopper.Tests.Fixtures\SAM.Core.Grasshopper.Tests.Fixtures.csproj" />

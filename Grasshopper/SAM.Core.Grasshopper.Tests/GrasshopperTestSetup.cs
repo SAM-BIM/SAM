@@ -12,7 +12,7 @@ namespace SAM.Core.Grasshopper.Tests
     /// GH_Document instead of hanging on Rhino's native init.
     /// </summary>
     [SetUpFixture]
-    public sealed class GrasshopperTestSetup : Rhino.Testing.Fixtures.RhinoSetupFixture
+    public sealed class GrasshopperTestSetup : global::Rhino.Testing.Fixtures.RhinoSetupFixture
     {
     }
 }
