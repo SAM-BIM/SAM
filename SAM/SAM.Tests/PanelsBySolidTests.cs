@@ -92,7 +92,7 @@ namespace SAM.Tests
             Assert.All(((ISegmentable3D)panel.GetFace3D().GetExternalEdge3D()).GetPoints(), x => Assert.Equal(0.125, x.Y, 6));
             Assert.True(panel.TryGetValue(PanelSourceParameter.SourceName, out string name) && name == "GF South wall");
             Assert.True(panel.TryGetValue(PanelSourceParameter.SourceLayer, out string layer) && layer == "Ground Floor::Walls");
-            Assert.True(panel.TryGetValue(PanelSourceParameter.SourceThickness, out double thickness));
+            Assert.True(panel.TryGetValue(PanelSourceParameter.PhysicalThickness, out double thickness));
             Assert.Equal(0.25, thickness, 6);
         }
 
@@ -114,6 +114,64 @@ namespace SAM.Tests
             Assert.All(((ISegmentable3D)air.GetFace3D().GetExternalEdge3D()).GetPoints(), x => Assert.Equal(2.9, x.Z, 6));
             Assert.True(air.TryGetValue(PanelSourceParameter.SourceRole, out string role) && role == "Opening");
             Assert.True(air.TryGetValue(PanelSourceParameter.SourceName, out string name) && name == "UF slab");
+            Assert.Equal(0.2, host.GetValue<double>(PanelSourceParameter.PhysicalThickness), 6);
+            Assert.False(air.HasValue(PanelSourceParameter.PhysicalThickness), "an opening has no material thickness");
+        }
+
+        [Fact]
+        public void PanelsBySolid_PitchedRoof_PhysicalThicknessIsNormalToTheSlope()
+        {
+            // Arrange: a 35° roof slab, 0.3 m thick perpendicular to its slope (0.366 m measured vertically).
+            double angle = 35 * System.Math.PI / 180, cos = System.Math.Cos(angle), sin = System.Math.Sin(angle);
+            Shell roof = Prism((u, v, w) => new Point3D(u, v * cos - w * sin, 3 + v * sin + w * cos), Rectangle(0, 0, 8, 5), null, 0, 0.3);
+
+            // Act
+            Panel panel = Assert.Single(roof.PanelsBySolid(out _));
+
+            // Assert
+            Assert.Equal(0.3, panel.GetValue<double>(PanelSourceParameter.PhysicalThickness), 6);
+            Assert.Equal(40.0, panel.GetArea(), 3);
+        }
+
+        [Fact]
+        public void PanelsBySolid_PhysicalThickness_DoesNotDependOnFaceOrientation()
+        {
+            // Arrange: the same 0.25 m wall, its faces wound one way and the other.
+            Shell wall = Prism(XZ, Rectangle(0, 0, 4, 3), null, 0, 0.25);
+            Shell wall_Reversed = Prism(XZ, Rectangle(0, 0, 4, 3), null, 0.25, 0);
+
+            // Act
+            double thickness = Assert.Single(wall.PanelsBySolid(out _)).GetValue<double>(PanelSourceParameter.PhysicalThickness);
+            double thickness_Reversed = Assert.Single(wall_Reversed.PanelsBySolid(out _)).GetValue<double>(PanelSourceParameter.PhysicalThickness);
+
+            // Assert
+            Assert.Equal(0.25, thickness, 6);
+            Assert.Equal(0.25, thickness_Reversed, 6);
+        }
+
+        [Fact]
+        public void PanelsBySolid_SteppedWall_StoresTheMainThicknessAndReportsTheOther()
+        {
+            // Arrange: 4 m long, 3 m high; 0.3 m thick up to 1.5 m, 0.2 m above (profile in YZ, extruded along X).
+            List<(double U, double V)> profile = new List<(double U, double V)> { (0, 0), (0.3, 0), (0.3, 1.5), (0.2, 1.5), (0.2, 3), (0, 3) };
+            Shell wall = Prism((u, v, w) => new Point3D(w, u, v), profile, null, 0, 4);
+
+            // Act
+            List<Panel> panels = wall.PanelsBySolid(out List<string> diagnostics);
+
+            // Assert
+            Assert.Equal(0.2, Assert.Single(panels).GetValue<double>(PanelSourceParameter.PhysicalThickness), 6);
+            Assert.Contains(diagnostics, x => x.Contains("variable thickness") && x.Contains("0.3"));
+        }
+
+        [Fact]
+        public void PanelsBySolid_UniformWall_ReportsNoVariableThickness()
+        {
+            // Act
+            Box(0, 0, 0, 4, 0.25, 3).PanelsBySolid(out List<string> diagnostics);
+
+            // Assert
+            Assert.DoesNotContain(diagnostics, x => x.Contains("variable thickness"));
         }
 
         [Fact]
@@ -197,7 +255,7 @@ namespace SAM.Tests
             Shell wall = Box(0, 0, 0, 4, 0.25, 3);
 
             // Act
-            wall.PanelsBySolid(out _).Single().TryGetValue(PanelSourceParameter.SourceThickness, out double thickness);
+            wall.PanelsBySolid(out _).Single().TryGetValue(PanelSourceParameter.PhysicalThickness, out double thickness);
 
             // Assert
             Assert.Equal(0.25, thickness, 6);

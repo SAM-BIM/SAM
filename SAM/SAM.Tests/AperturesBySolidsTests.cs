@@ -315,5 +315,50 @@ namespace SAM.Tests
             Assert.True(air_After.Apertures == null || air_After.Apertures.Count == 0);
             Assert.Equal(1.0, air_After.GetArea(), 6);
         }
+
+        [Fact]
+        public void AddAperturesByApertures_SourceInstanceParameters_SurviveHosting()
+        {
+            // Arrange: hosting rebuilds the aperture from its construction and geometry; its instance parameters must not be lost.
+            Panel south = Analytical.Create.Panel(Analytical.Query.DefaultConstruction(PanelType.WallExternal), PanelType.WallExternal, new Face3D(new Polygon3D(new List<Point3D> { new Point3D(0, 0.125, 0), new Point3D(6, 0.125, 0), new Point3D(6, 0.125, 3), new Point3D(0, 0.125, 3) })));
+            AdjacencyCluster adjacencyCluster = new AdjacencyCluster();
+            adjacencyCluster.AddObject(south);
+
+            Aperture aperture = new List<ApertureSolid> { Solid(WindowFrame(), ApertureType.Window, "frame"), Solid(WindowGlass(), ApertureType.Window, "glass") }.AperturesBySolids(out _, out _).Single();
+            aperture.SetValue(ApertureParameter.Color, System.Drawing.Color.Red);
+            ApertureConstruction apertureConstruction = aperture.ApertureConstruction;
+
+            // Act
+            adjacencyCluster.AddAperturesByApertures(new[] { aperture }, true, Tolerance.MacroDistance, 0.1);
+
+            // Assert
+            Aperture hosted = Assert.Single(adjacencyCluster.GetObject<Panel>(south.Guid).Apertures);
+            Assert.Equal("frame; glass", hosted.GetValue<string>(ApertureSourceParameter.SourceName));
+            Assert.Equal("frame-id; glass-id", hosted.GetValue<string>(ApertureSourceParameter.SourceId));
+            Assert.Equal("Windows", hosted.GetValue<string>(ApertureSourceParameter.SourceLayer));
+            Assert.Equal(0.07, hosted.GetValue<double>(ApertureSourceParameter.SourceThickness), 6);
+            Assert.True(hosted.TryGetValue(ApertureParameter.Color, out System.Drawing.Color color) && color.ToArgb() == System.Drawing.Color.Red.ToArgb(), "any other instance parameter survives too");
+            Assert.Equal(apertureConstruction.Guid, hosted.ApertureConstruction.Guid);
+            Assert.Equal(2.4, hosted.GetArea(), 6);
+        }
+
+        [Fact]
+        public void AddAperturesByApertures_ApertureSplitAcrossTwoPanels_EveryPieceKeepsTheSourceParameters()
+        {
+            // Arrange: two coplanar wall panels meeting at x = 2; the 2 m window (x 1..3) straddles them.
+            Panel left = Analytical.Create.Panel(Analytical.Query.DefaultConstruction(PanelType.WallExternal), PanelType.WallExternal, new Face3D(new Polygon3D(new List<Point3D> { new Point3D(0, 0.125, 0), new Point3D(2, 0.125, 0), new Point3D(2, 0.125, 3), new Point3D(0, 0.125, 3) })));
+            Panel right = Analytical.Create.Panel(Analytical.Query.DefaultConstruction(PanelType.WallExternal), PanelType.WallExternal, new Face3D(new Polygon3D(new List<Point3D> { new Point3D(2, 0.125, 0), new Point3D(6, 0.125, 0), new Point3D(6, 0.125, 3), new Point3D(2, 0.125, 3) })));
+            AdjacencyCluster adjacencyCluster = new AdjacencyCluster();
+            adjacencyCluster.AddObject(left);
+            adjacencyCluster.AddObject(right);
+            List<Aperture> apertures = new List<ApertureSolid> { Solid(WindowFrame(), ApertureType.Window, "frame"), Solid(WindowGlass(), ApertureType.Window, "glass") }.AperturesBySolids(out _, out _);
+
+            // Act
+            List<Aperture> hosted = adjacencyCluster.AddAperturesByApertures(apertures, true, Tolerance.MacroDistance, 0.1);
+
+            // Assert
+            Assert.Equal(2, hosted.Count);
+            Assert.All(new[] { left, right }.SelectMany(x => adjacencyCluster.GetObject<Panel>(x.Guid).Apertures), x => Assert.Equal("frame; glass", x.GetValue<string>(ApertureSourceParameter.SourceName)));
+        }
     }
 }

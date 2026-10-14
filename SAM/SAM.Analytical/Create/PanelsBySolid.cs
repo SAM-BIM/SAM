@@ -79,6 +79,12 @@ namespace SAM.Analytical
                 return result;
             }
 
+            List<double> otherThicknesses = OtherThicknesses(face3Ds, midPlane, thickness, minThickness, tolerance_Angle, tolerance_Distance, tolerance_Snap);
+            if (otherThicknesses.Count != 0)
+            {
+                diagnostics.Add(string.Format("{0}: variable thickness - parts of it are also {1} m thick; the physical thickness stored is the main one, {2:0.###} m (the largest pair of opposite faces).", label, string.Join(", ", otherThicknesses.ConvertAll(x => x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))), thickness));
+            }
+
             List<Face3D> sections = shell.Section(midPlane, true, tolerance_Angle, tolerance_Distance, tolerance_Snap);
             if (sections == null || sections.Count == 0)
             {
@@ -195,7 +201,7 @@ namespace SAM.Analytical
                     Panel airPanel = airFace3D == null ? null : Panel(null, PanelType.Air, airFace3D);
                     if (airPanel != null)
                     {
-                        StampSource(airPanel, sourceName, sourceId, sourceLayer, thickness, "Opening");
+                        StampSource(airPanel, sourceName, sourceId, sourceLayer, double.NaN, "Opening");
                         result.Add(airPanel);
                         airHoles++;
                     }
@@ -226,7 +232,10 @@ namespace SAM.Analytical
                 panel.SetValue(PanelSourceParameter.SourceLayer, sourceLayer);
             }
 
-            panel.SetValue(PanelSourceParameter.SourceThickness, thickness);
+            if (!double.IsNaN(thickness))
+            {
+                panel.SetValue(PanelSourceParameter.PhysicalThickness, thickness);
+            }
 
             if (!string.IsNullOrWhiteSpace(role))
             {
@@ -293,6 +302,48 @@ namespace SAM.Analytical
             }
 
             return midPlane != null;
+        }
+
+        /// <summary>
+        /// Thicknesses other than <paramref name="thickness"/> at which further pairs of opposite faces parallel to the
+        /// mid-plane overlap substantially (at least 5% of the largest such overlap): a stepped or partly thickened
+        /// element. Distinct values, rounded to <paramref name="tolerance_Snap"/>; empty for a uniform element.
+        /// </summary>
+        private static List<double> OtherThicknesses(List<Face3D> face3Ds, Plane midPlane, double thickness, double minThickness, double tolerance_Angle, double tolerance_Distance, double tolerance_Snap)
+        {
+            double cosAngle = System.Math.Cos(tolerance_Angle);
+            Vector3D normal = midPlane.Normal;
+            List<Face3D> parallel = face3Ds.FindAll(x => System.Math.Abs(x.GetPlane().Normal.DotProduct(normal)) >= cosAngle);
+
+            List<System.Tuple<double, double>> pairs = new List<System.Tuple<double, double>>();
+            for (int i = 0; i < parallel.Count; i++)
+            {
+                Plane plane_i = parallel[i].GetPlane();
+                Face2D face2D_i = midPlane.Convert(parallel[i]);
+                for (int j = i + 1; j < parallel.Count; j++)
+                {
+                    double distance = System.Math.Abs(normal.DotProduct(new Vector3D(plane_i.Origin, parallel[j].GetPlane().Origin)));
+                    if (distance < minThickness - tolerance_Distance)
+                    {
+                        continue;
+                    }
+
+                    Face2D face2D_j = midPlane.Convert(parallel[j]);
+                    double overlapArea = face2D_i == null || face2D_j == null ? 0 : face2D_i.Intersection(face2D_j, tolerance_Distance)?.Sum(x => x.GetArea()) ?? 0;
+                    if (overlapArea > tolerance_Distance)
+                    {
+                        pairs.Add(new System.Tuple<double, double>(distance, overlapArea));
+                    }
+                }
+            }
+
+            double maxOverlap = pairs.Count == 0 ? 0 : pairs.Max(x => x.Item2);
+            return pairs
+                .Where(x => x.Item2 >= 0.05 * maxOverlap && System.Math.Abs(x.Item1 - thickness) > tolerance_Snap)
+                .Select(x => System.Math.Round(x.Item1 / tolerance_Snap) * tolerance_Snap)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
         }
 
         /// <summary>

@@ -26,7 +26,7 @@ The Rhino → SAM conversion does not scale units. SAM is in metres, so a millim
   - The mid-surface is the **true section** (`Shell.Section`), keeping notches, holes and disconnected regions. Void faces are dropped by a point-in-material test.
   - Holes and notches claimed by aperture geometry (windows, doors) are filled; aperture footprints are tested inside the thickness band. Unclaimed holes stay open and get a separate **Air** panel. Unclaimed notches stay as the real outline.
   - Thin elements (`minThickness` 0.08 m) and non-panel-like elements (`maxThicknessRatio` 0.2) are skipped with a reason.
-  - Every panel is stamped with `PanelSourceParameter` (SourceName, SourceId, SourceLayer, SourceThickness, SourceRole = "Opening" on Air).
+  - Every panel is stamped with `PanelSourceParameter` (SourceName, SourceId, SourceLayer, PhysicalThickness, SourceRole = "Opening" on Air). PhysicalThickness is not stamped on Air panels (2026-10-14).
 - `Query.SnapToJunctions(panels, snapDistance)`: moves outer edges in-plane onto neighbouring mid-planes.
   - A move counts only where the target's actual face is within reach (a **local junction**), not just its infinite plane.
   - Extension goes to the farthest target ahead (wall past a ceiling T-junction up to the roof, which closes an attic). With nothing ahead, it trims to the nearest target behind.
@@ -95,7 +95,7 @@ The house has no Rhino groups. Each window is a frame ring plus a glass pane. Th
 
 ### API gaps found (reported, not changed)
 
-1. `Modify.AddAperturesByApertures` (the cluster/model path behind `AddAperturesByAperture`) rebuilds each hosted aperture from construction and face. It creates a new Guid and **drops instance parameters**: 0 of 25 hosted apertures keep `ApertureSourceParameter`. Traceability therefore exists only on the `CreateAperturesBySolids` output. Copying parameters during hosting would change an existing contract, so it needs an owner decision.
+1. `Modify.AddAperturesByApertures` (the cluster/model path behind `AddAperturesByAperture`) rebuilds each hosted aperture from construction and face. It creates a new Guid and **dropped instance parameters**: 0 of 25 hosted apertures kept `ApertureSourceParameter`. **Resolved 2026-10-14** under the owner's traceability brief (see the addendum below).
 2. Before hosting there is no host, so the default construction is the external one; internal doors get `SIM_EXT_SLD`. The existing `SAMAdjacencyCluster.SetDefaultApertureConstruction`, run after hosting, re-defaults by host panel (8 internal doors → `SIM_INT_SLD`, verified).
 3. Aperture orientation follows the source member's face. Hosting does not align it to the panel; that is existing behaviour, unchanged.
 4. Rhino 8 `RhinoDoc.OpenHeadless` cannot open the Rhino 9 WIP-saved morning model, and headless GH must run off the Rhino UI thread. Both are harness-only and do not affect the product.
@@ -146,3 +146,54 @@ Metres model, e.g. `SAM_daily\2026-10-13-House\morning-test\Untitled2_meters.3dm
 Expected: log "25 aperture(s) (16 window(s), 9 door(s))", `Successful` = True, 11 spaces and 1 Air panel unchanged.
 
 Machine-local, not committed: the harness `census8` (modes `apbs`, `groups`) is in this session's scratchpad. Copy it before switching machines if it is needed again.
+
+## Addition (2026-10-14, later): physical thickness and traceability through hosting
+
+Status: implemented on the same branch as a follow-up commit; owner review required. Not merged.
+
+The owner's approved design: a panel keeps the **physical thickness** of the building element it came from. It is independent of its thermal construction; for example, a 0.300 m Rhino wall stays 0.300 m whatever the TBD construction's layers add up to. Exporters use it as the geometric thickness (SAM-BIM/SAM_Tas, same branch name, direct T3D element width).
+
+### Change
+
+- `PanelSourceParameter.SourceThickness` (new on this PR, never merged) becomes **`PanelSourceParameter.PhysicalThickness`** ("Physical Thickness", m).
+  - It stays in the source parameter group. That way SAM_OCCT's rebuild carries it with the other source values, without a compile dependency on this PR.
+  - `ApertureSourceParameter.SourceThickness` (the window/door assembly depth) is unchanged.
+- `Create.PanelsBySolid`:
+  - The value is the distance between the thickness pair. That pair is the opposite parallel faces with the largest projected overlap, so the value does not depend on face orientation and is measured normal to a pitched roof's slope.
+  - It is not stamped on Air panels (an opening has no material).
+  - New diagnostic **"variable thickness"**: further opposite-face pairs parallel to the mid-plane that overlap at least 5% of the largest pair at another separation. The main (largest-overlap) thickness is stored, and the others are named; nothing is guessed silently.
+- `Modify.AddAperturesByApertures` (behind GH `AddAperturesByAperture`): each hosted aperture is still rebuilt from construction and geometry, as before. It now also receives the source aperture's **instance parameter sets** (e.g. `ApertureSourceParameter`, colour, opening properties).
+  - These are the very objects the host panel holds.
+  - Every piece of an aperture split across two panels gets them.
+  - The construction, Guid and geometry rules are unchanged; nothing host-derived existed on the rebuilt aperture to overwrite.
+
+### Tests (`SAM.Tests`)
+
+- `PanelsBySolidTests` (+4, and 2 assertions updated):
+  - pitched roof thickness normal to the slope;
+  - orientation independence;
+  - stepped wall stores the main thickness and reports the other;
+  - uniform wall reports none;
+  - stair-void slab: host 0.2 m, Air none.
+- `AperturesBySolidsTests` (+2):
+  - source and other instance parameters survive hosting;
+  - both pieces of a straddling aperture keep them.
+- Focused: 34 / 0. The full suite result is in the PR description.
+
+### House model (machine-local Rhino 8 harness, test3.gh chain, `morning-test\Untitled2_meters.3dm`)
+
+| Source element | Rhino thickness = `PhysicalThickness` [m] |
+|---|---:|
+| External walls, gables | 0.25 |
+| Partitions | 0.10 |
+| Ground and upper floor slabs | 0.20 |
+| UF ceiling | 0.15 |
+| Roof slopes | 0.20 |
+
+- After SAM_OCCT#77's `CreateAdjacencyCluster`, all 55 physical panels keep source name, layer and `PhysicalThickness`. The Air panel keeps its own.
+- After `AddAperturesByAperture`, all 25 apertures keep `ApertureSourceParameter`, e.g. "GF front door frame; GF front door".
+
+### Notes for the GH acceptance
+
+- `test3.gh` **internalises** its 23 solids, so `CreatePanelsBySolids` sees no Rhino object and stamps no name, id or layer. Reference the solids (e.g. `Query Model Objects` by layer, as the window/door inputs already do) to keep them.
+- Without seed spaces `CreateAdjacencyCluster` names the spaces `Cell 1..11`, and the default text map gives them all `S37_OfficeCell`. Supply named seeds through `spaces_`: `SAMAnalytical.CreateSpace` with `name_` and `locationPoint_`, from the house's room labels on `Ground Floor::Labels` / `Upper Floor::Labels`, plus `Attic Unconditioned`.

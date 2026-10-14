@@ -17,7 +17,14 @@ namespace SAM.Analytical
         [ParameterProperties("Source Name", "Name of the source element the panel was derived from")] SourceName,
         [ParameterProperties("Source Id", "Identifier (e.g. Rhino object Guid) of the source element")] SourceId,
         [ParameterProperties("Source Layer", "Layer (full path) of the source element")] SourceLayer,
-        [ParameterProperties("Source Thickness", "Thickness of the source element [m]"), DoubleParameterValue(0)] SourceThickness,
+        /// <summary>
+        /// The geometric thickness of the building element the panel is the mid-surface of, measured between its two
+        /// opposite faces [m]. It is <b>independent of the thermal construction</b>: an architect's 0.300 m wall keeps
+        /// 0.300 m here whatever the layers of its construction add up to. Exporters use it as the element's geometric
+        /// thickness (e.g. the TAS T3D building element width); constructions and materials are never changed to match
+        /// it. Not stamped on Air panels: an opening has no material thickness.
+        /// </summary>
+        [ParameterProperties("Physical Thickness", "Geometric thickness of the source building element between its opposite faces [m]; independent of the construction's layer thickness"), DoubleParameterValue(0)] PhysicalThickness,
 
         /// <summary>
         /// Why a panel exists when it is not the element's own mid-surface: <c>"Opening"</c> for an Air panel
