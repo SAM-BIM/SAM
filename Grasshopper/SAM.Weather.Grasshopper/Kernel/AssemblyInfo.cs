@@ -57,7 +57,7 @@ namespace SAM.Weather.Grasshopper
             get
             {
                 //Return a string identifying you or your company.
-                return "Michal Dengusiak & Jakub Ziolkowski at Hoare Lea";
+                return "Michal Dengusiak & Jakub Ziolkowski, SAM-BIM (https://sambim.xyz)";
             }
         }
 
@@ -66,7 +66,7 @@ namespace SAM.Weather.Grasshopper
             get
             {
                 //Return a string representing your preferred contact details.
-                return "Michal Dengusiak -> michaldengusiak@hoarelea.com and Jakub Ziolkowski -> jakubziolkowski@hoarelea.com";
+                return "https://sambim.xyz | https://github.com/SAM-BIM";
             }
         }
     }
