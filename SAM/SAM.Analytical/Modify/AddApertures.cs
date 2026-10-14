@@ -235,6 +235,7 @@ namespace SAM.Analytical
             double max = System.Math.Max(maxDistance, tolerance);
 
             List<Tuple<ApertureConstruction, Face3D, double[]>> tuples_Aperture = new List<Tuple<ApertureConstruction, Face3D, double[]>>();
+            List<Aperture> apertures_Source = new List<Aperture>(); //parallel to tuples_Aperture
             foreach (Aperture aperture in apertures)
             {
                 if (aperture == null)
@@ -252,6 +253,7 @@ namespace SAM.Analytical
                 Point3D point3D_Min = boundingBox3D.Min;
                 Point3D point3D_Max = boundingBox3D.Max;
                 tuples_Aperture.Add(new Tuple<ApertureConstruction, Face3D, double[]>(apertureConstruction, face3D, new double[] { point3D_Min.X, point3D_Min.Y, point3D_Min.Z, point3D_Max.X, point3D_Max.Y, point3D_Max.Z }));
+                apertures_Source.Add(aperture);
             }
 
             List<Aperture> result = new List<Aperture>();
@@ -321,6 +323,18 @@ namespace SAM.Analytical
                     List<Aperture> apertures_New = AddApertures(panel_New, tuple_Aperture.Item1, tuple_Aperture.Item2, trimGeometry, minArea, maxDistance, tolerance);
                     if (apertures_New != null && apertures_New.Count > 0)
                     {
+                        //The hosted aperture is rebuilt from construction and geometry, so it starts with no instance
+                        //parameters: carry the source aperture's over (e.g. ApertureSourceParameter traceability).
+                        //These are the very instances the panel now holds.
+                        List<Core.ParameterSet> parameterSets_Source = apertures_Source[j].GetParameterSets();
+                        if (parameterSets_Source != null && parameterSets_Source.Count != 0)
+                        {
+                            foreach (Aperture aperture_New in apertures_New)
+                            {
+                                parameterSets_Source.ForEach(x => aperture_New?.Add(new Core.ParameterSet(x)));
+                            }
+                        }
+
                         if (apertures_New_Panel == null)
                             apertures_New_Panel = new List<Aperture>();
 
