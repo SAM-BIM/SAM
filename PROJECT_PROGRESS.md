@@ -1,5 +1,17 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 About branding closeout - 2026-10-14
+
+- **PR**: SAM-BIM/SAM#195 -> `sow/2026-Q4`, **merged 2026-10-14**, merge commit `783d31a2a5ae160d818aba916f4e65cec0532e5f`, approved head `6c5df98afac99909593291275130bd5df0d70cb7`.
+- **Status**: complete. PR-head CI (build Release, test Release, spdx) green on `6c5df98a`; post-merge CI on `783d31a2`: build (Release) and test (Release) succeeded (GitHub).
+- **Work**: the shared About text (`SAM.Core` `Query/AboutInfoTypeText.cs`, `Enums/AboutInfoType.cs`; used by the Grasshopper `SAM.About` component and the SAM_UI About button) and the author/contact fields of six Grasshopper `Kernel/AssemblyInfo.cs` files now present SAM-BIM, https://sambim.xyz and https://github.com/SAM-BIM. `SAM.Core.Grasshopper` icon `HL_Logo24` -> `SAM_Small`. Record: `documentation/AboutBranding-Q4.md`.
+- **Decisions**: enum member `AboutInfoType.HoareLea` kept (serialized value); the Hoare Lea origin remains as a historical credit; `HoareLea/ScriptsHydra` URLs in `ExportHydra.cs` and unused `HL_Logo24` resources retained. No GUID, assembly, namespace or component identity changed. SAM_UI needed no change (it reads the SAM.Core text).
+- **Remote separation**: local `upstream` remotes pointing at HoareLea removed from SAM and SAM_UI (local config, no commit); `sow/2026-Q4` tracking fixed to `origin/sow/2026-Q4` in SAM_Acoustic, SAM_Origin, SAM_Topologic. Two empty stray files in SAM_OCCT moved out of the repository (not part of any development).
+- **Validation (local)**: MSBuild compile of the six Grasshopper projects: 0 compile errors. Analytical post-build copy fails only when the csproj is built standalone (`$(SolutionDir)` undefined); not a compile error. `BuildAlls_v5.bat pull sow/2026-Q4 nopause` on clean checkouts: all 26 repositories pulled fast-forward from SAM-BIM origins, build exit 0, 0 `: error` lines, OCCT runtime verified (machine-local, log not committed).
+- **Cleanup**: remote `docs/sam-bim-about-branding` deleted with an expected-SHA lease on `6c5df98a` after confirming it is merged and no open PR uses it; local branch deleted.
+- **Unresolved**: manual runtime checks not performed - Rhino/Grasshopper `SAM.About` right-click text, plugin properties (author, contact, icon), opening an old `.gh` with `SAM.About`; SAM_UI About button. `gh pr create` triggers a Tetra Tech SSO prompt via fork discovery; use `gh api repos/SAM-BIM/<repo>/pulls` instead.
+- **Next step**: owner runs the manual About checks in Rhino and SAM_UI; no further code work required.
+
 ## Q4 PanelsBySolid / AperturesBySolids closeout - 2026-10-14
 
 - **PR**: SAM-BIM/SAM#194 -> `sow/2026-Q4`, **merged 2026-10-14**, merge commit `755bc51479e114e5b99179fb04d17b8b3ffcc05a`, approved head `f84a2ef6718f7e7565dcd7b3cb3643936b1f649d`.
