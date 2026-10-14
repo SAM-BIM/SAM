@@ -289,8 +289,8 @@ namespace SAM.Analytical
         /// of one wall and the inner face of the wall opposite it in a ring of walls.</item>
         /// <item><b>Planes:</b> pairs sharing a mid-plane form one element plane (the coplanar walls of a ring, or a
         /// face split in several pieces).</item>
-        /// <item><b>Ownership:</b> material belongs to the thinnest element through it. Planes are taken from thin to
-        /// thick, and a pair whose material lies inside an accepted, thinner, non-parallel element (e.g. the wall
+        /// <item><b>Ownership:</b> material belongs to the element in which it is most panel-like (lowest thickness over
+        /// smallest extent). Planes are taken in that order, and a pair whose material lies inside an accepted, non-parallel element (e.g. the wall
         /// under a window sill, cut horizontally by the sill and the wall's base) is a cross-cut of that element, not
         /// an element of its own.</item>
         /// <item><b>Panel-like:</b> a plane whose thickness exceeds <paramref name="maxThicknessRatio"/> of its smallest
@@ -366,9 +366,13 @@ namespace SAM.Analytical
                 }
             }
 
-            // From thin to thick: drop cross-cuts through thinner elements, then test what is left for panel-likeness.
+            // Most panel-like first: material crossed by several planes belongs to the one in which it is most
+            // panel-like (thickness over the band width of its overlap), whatever maxThicknessRatio is. The band width,
+            // not the bounding box, is what tells the walls of a ring (thin across, long) from the ring's top and bottom
+            // faces (an 8 x 6 m box around a 0.3 m band). Drop cross-cuts through accepted elements, then test what is
+            // left against the threshold.
             List<ElementPlane> accepted = new List<ElementPlane>();
-            foreach (ElementPlane elementPlane in elementPlanes.OrderBy(x => x.Thickness).ThenByDescending(x => x.Overlap))
+            foreach (ElementPlane elementPlane in elementPlanes.OrderBy(x => x.Thickness / x.BandWidth()).ThenByDescending(x => x.Overlap))
             {
                 elementPlane.Pairs.RemoveAll(pair => accepted.Exists(x => !IsParallel(x.MidPlane, pair.MidPlane, cosAngle) && x.Owns(pair.Sample, tolerance_Distance)));
                 if (elementPlane.Pairs.Count == 0)
@@ -376,10 +380,8 @@ namespace SAM.Analytical
                     continue;
                 }
 
-                List<Point2D> point2Ds = elementPlane.Footprints.ConvertAll(x => elementPlane.MidPlane.Convert(x)).SelectMany(x => (x?.ExternalEdge2D as ISegmentable2D)?.GetPoints() ?? new List<Point2D>()).ToList();
-                BoundingBox2D boundingBox2D = point2Ds.Count == 0 ? null : new BoundingBox2D(point2Ds);
-                elementPlane.MinExtent = boundingBox2D == null ? 0 : System.Math.Min(boundingBox2D.Width, boundingBox2D.Height);
-                if (elementPlane.MinExtent <= 0 || elementPlane.Thickness / elementPlane.MinExtent > maxThicknessRatio)
+                elementPlane.UpdateMinExtent();
+                if (elementPlane.Slenderness > maxThicknessRatio)
                 {
                     rejected.Add(elementPlane);
                     continue;
@@ -528,7 +530,35 @@ namespace SAM.Analytical
 
             public double Overlap => Pairs.Sum(x => x.Overlap);
 
-            public double MinExtent { get; set; }
+            public double MinExtent { get; private set; }
+
+            /// <summary>
+            /// Thickness over the smallest in-plane extent of the pairs' overlap (infinite without an overlap).
+            /// </summary>
+            public double Slenderness => MinExtent <= 0 ? double.PositiveInfinity : Thickness / MinExtent;
+
+            /// <summary>
+            /// Typical in-plane width of the pairs' overlap: twice its area over its perimeter (the width of a long
+            /// strip or band; zero without an overlap).
+            /// </summary>
+            public double BandWidth()
+            {
+                double area = 0, perimeter = 0;
+                foreach (Face2D face2D in Footprints.ConvertAll(x => MidPlane.Convert(x)).FindAll(x => x != null))
+                {
+                    area += face2D.GetArea();
+                    perimeter += face2D.ExternalEdge2D.Perimeter() + (face2D.InternalEdge2Ds?.Sum(x => x.Perimeter()) ?? 0);
+                }
+
+                return perimeter <= 0 ? 0 : 2 * area / perimeter;
+            }
+
+            public void UpdateMinExtent()
+            {
+                List<Point2D> point2Ds = Footprints.ConvertAll(x => MidPlane.Convert(x)).SelectMany(x => (x?.ExternalEdge2D as ISegmentable2D)?.GetPoints() ?? new List<Point2D>()).ToList();
+                BoundingBox2D boundingBox2D = point2Ds.Count == 0 ? null : new BoundingBox2D(point2Ds);
+                MinExtent = boundingBox2D == null ? 0 : System.Math.Min(boundingBox2D.Width, boundingBox2D.Height);
+            }
 
             public List<Face3D> Footprints => Pairs.Concat(Others).SelectMany(x => x.Footprints).ToList();
 

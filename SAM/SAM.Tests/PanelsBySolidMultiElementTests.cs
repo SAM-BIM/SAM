@@ -195,6 +195,61 @@ namespace SAM.Tests
             Assert.True(Plane(panel_Reversed).Normal.Z > 0);
         }
 
+        [Theory]
+        [InlineData(0.1)]
+        [InlineData(0.2)]
+        [InlineData(0.3)]
+        [InlineData(0.6)]
+        [InlineData(1.0)]
+        public void PanelsBySolid_WallOfAnyThickness_PhysicalThicknessIsTheOpposingFaceDistance(double thickness)
+        {
+            // Arrange: a 10 m long, 3 m high wall; the ratio is opened up so only the geometry decides.
+            Shell wall = Box(0, 0, 0, 10, thickness, 3);
+
+            // Act
+            List<Panel> panels = wall.PanelsBySolid(out _, maxThicknessRatio: 1.0);
+
+            // Assert
+            Panel panel = Assert.Single(panels);
+            Assert.Equal(PanelType.Wall, panel.PanelType);
+            Assert.Equal(thickness, PhysicalThickness(panel), 6);
+            Assert.Equal(thickness / 2, Plane(panel).Origin.Y, 6);
+        }
+
+        [Theory]
+        [InlineData(0.3, 1.0)]
+        [InlineData(0.6, 2.4)]
+        [InlineData(1.0, 3.0)]
+        public void PanelsBySolid_ThickOrLowWallRing_GivesFourWallsWhenTheRatioAllowsIt(double thickness, double height)
+        {
+            // Arrange: thick or low rings of walls. With the ratio opened up, the decomposition alone must still find the
+            // four walls and no horizontal plane through them (the top and bottom faces span the whole ring but its
+            // material is a band only `thickness` wide).
+            Shell ring = Prism(XY, Rectangle(0, 0, 8, 6), new List<IList<(double U, double V)>> { Rectangle(thickness, thickness, 8 - thickness, 6 - thickness) }, 0, height);
+
+            // Act
+            List<Panel> panels = ring.PanelsBySolid(out _, maxThicknessRatio: 1.0);
+
+            // Assert
+            Assert.Equal(4, panels.Count);
+            Assert.All(panels, x => Assert.Equal(PanelType.Wall, x.PanelType));
+            Assert.All(panels, x => Assert.Equal(thickness, PhysicalThickness(x), 6));
+        }
+
+        [Fact]
+        public void PanelsBySolid_ThickWallFailingTheDefaultRatio_IsSkippedWithTheRatioNeeded()
+        {
+            // Arrange: a 1.0 m thick, 3 m high wall: thickness / height = 0.333, above the default ratio.
+            Shell wall = Box(0, 0, 0, 10, 1.0, 3);
+
+            // Act
+            List<Panel> panels = wall.PanelsBySolid(out List<string> diagnostics);
+
+            // Assert: the proportion test, not the thickness, rejects it, and the log says what would keep it.
+            Assert.Empty(panels);
+            Assert.Contains(diagnostics, x => x.Contains("not panel-like") && x.Contains("0.333"));
+        }
+
         [Fact]
         public void SnapToJunctions_SlabVoidReachingTheFacade_StillJoinsTheWallToTheSlab()
         {

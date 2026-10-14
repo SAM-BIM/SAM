@@ -159,6 +159,7 @@ namespace SAM.Analytical.Grasshopper
             List<Panel> panels = [];
             List<int> excluded = [];
             List<string> log = [];
+            List<string> notPanelLike = [];
             for (int i = 0; i < solids.Count; i++)
             {
                 GH_Brep solid = solids[i];
@@ -189,6 +190,11 @@ namespace SAM.Analytical.Grasshopper
                 if (panels_Solid == null || panels_Solid.Count == 0)
                 {
                     excluded.Add(i);
+                    if (diagnostics.Exists(x => x.Contains("not panel-like")))
+                    {
+                        notPanelLike.Add(name);
+                    }
+
                     continue;
                 }
 
@@ -203,6 +209,12 @@ namespace SAM.Analytical.Grasshopper
 
             List<Panel> airPanels = panels.FindAll(x => x.PanelType == PanelType.Air);
             log.Insert(0, string.Format("{0} panel(s) ({1} Air) from {2} solid(s); {3} solid(s) produced no panel.", panels.Count, airPanels.Count, solids.Count, excluded.Count));
+
+            // The ratio is a proportion test, not a thickness limit: a thick or low wall can fail it. Never skip silently.
+            if (notPanelLike.Count != 0)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("{0} solid(s) skipped as not panel-like by maxThicknessRatio_ ({1:0.###}): {2}. If any is a wall, slab or roof (e.g. a thick or low wall), raise maxThicknessRatio_ to the ratio given in the log.", notPanelLike.Count, maxThicknessRatio, string.Join(", ", notPanelLike)));
+            }
 
             index = Params.IndexOfOutputParam("panels");
             if (index != -1)
