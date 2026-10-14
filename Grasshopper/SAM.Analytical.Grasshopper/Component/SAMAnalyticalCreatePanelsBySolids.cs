@@ -30,7 +30,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.0";
+        public override string LatestComponentVersion => "1.0.1";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -39,7 +39,7 @@ namespace SAM.Analytical.Grasshopper
 
         public SAMAnalyticalCreatePanelsBySolids()
           : base("SAMAnalytical.CreatePanelsBySolids", "SAMAnalytical.CreatePanelsBySolids",
-              "Create SAM Analytical mid-surface Panels from thin closed solids (walls, slabs, ceilings, roofs, gables).\nOpenings claimed by aperture geometry are filled (add the apertures afterwards); unclaimed openings such as stair voids become Air panels.\nOuter edges are snapped onto neighbouring mid-planes at real junctions (snap_). Rhino document units must be metres. Feed the panels to SAMOCCT.CreateAdjacencyCluster.",
+              "Create SAM Analytical mid-surface Panels from closed solids of thin building elements (walls, slabs, ceilings, roofs, gables).\nA solid may hold several planar elements (a ring of walls, a roof with two pitches); each gets its own panels.\nOpenings claimed by aperture geometry are filled (add the apertures afterwards); unclaimed openings such as stair voids become Air panels.\nOuter edges are snapped onto neighbouring mid-planes at real junctions (snap_). Rhino document units must be metres. Feed the panels to SAMOCCT.CreateAdjacencyCluster.",
               "SAM", "Analytical01")
         {
         }
@@ -50,7 +50,7 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                Param_Brep solids = new() { Name = "_solids", NickName = "_solids", Description = "Closed solids, one per building element (wall, slab, ceiling, roof, gable). Referenced Rhino objects keep their name, id and layer on the panels.", Access = GH_ParamAccess.list };
+                Param_Brep solids = new() { Name = "_solids", NickName = "_solids", Description = "Closed solids of building elements (wall, slab, ceiling, roof, gable), one element or several per solid (e.g. a ring of walls, a two-pitch roof). Referenced Rhino objects keep their name, id and layer on the panels.", Access = GH_ParamAccess.list };
                 solids.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(solids, ParamVisibility.Binding));
 
@@ -66,7 +66,7 @@ namespace SAM.Analytical.Grasshopper
                 param_Number.SetPersistentData(0.3);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new() { Name = "maxThicknessRatio_", NickName = "maxThicknessRatio_", Description = "Elements whose thickness exceeds this fraction of their smallest in-plane extent are not panel-like and are skipped (e.g. stair treads)", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new() { Name = "maxThicknessRatio_", NickName = "maxThicknessRatio_", Description = "Element planes whose thickness exceeds this fraction of their smallest in-plane extent are not panel-like and are skipped (e.g. stairs, treads)", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(0.2);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Voluntary));
 
@@ -159,6 +159,7 @@ namespace SAM.Analytical.Grasshopper
             List<Panel> panels = [];
             List<int> excluded = [];
             List<string> log = [];
+            List<string> notPanelLike = [];
             for (int i = 0; i < solids.Count; i++)
             {
                 GH_Brep solid = solids[i];
@@ -189,6 +190,11 @@ namespace SAM.Analytical.Grasshopper
                 if (panels_Solid == null || panels_Solid.Count == 0)
                 {
                     excluded.Add(i);
+                    if (diagnostics.Exists(x => x.Contains("not panel-like")))
+                    {
+                        notPanelLike.Add(name);
+                    }
+
                     continue;
                 }
 
@@ -203,6 +209,12 @@ namespace SAM.Analytical.Grasshopper
 
             List<Panel> airPanels = panels.FindAll(x => x.PanelType == PanelType.Air);
             log.Insert(0, string.Format("{0} panel(s) ({1} Air) from {2} solid(s); {3} solid(s) produced no panel.", panels.Count, airPanels.Count, solids.Count, excluded.Count));
+
+            // The ratio is a proportion test, not a thickness limit: a thick or low wall can fail it. Never skip silently.
+            if (notPanelLike.Count != 0)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("{0} solid(s) skipped as not panel-like by maxThicknessRatio_ ({1:0.###}): {2}. If any is a wall, slab or roof (e.g. a thick or low wall), raise maxThicknessRatio_ to the ratio given in the log.", notPanelLike.Count, maxThicknessRatio, string.Join(", ", notPanelLike)));
+            }
 
             index = Params.IndexOfOutputParam("panels");
             if (index != -1)
