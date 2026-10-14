@@ -1,8 +1,8 @@
 # PanelsBySolid: solids with several elements — Q4 (2026-10-14)
 
-Status: implemented on `feature/panels-by-solid-multi-element-q4`; draft PR SAM-BIM/SAM#198, owner review required. **Not merged.**
+Status: implemented on `feature/panels-by-solid-multi-element-q4`; SAM-BIM/SAM#198; owner decisions taken 2026-10-14 (ratio default 0.20, no topology rules). Merge pending owner approval.
 
-Open owner decisions: the `maxThicknessRatio` default (see "maxThicknessRatio: design analysis") and the room topology rules (see "Contemporary house: why one space").
+Owner decisions: see "maxThicknessRatio: design analysis" and "Contemporary house: why one space".
 
 Base: `sow/2026-Q4` at `02a51568c72704797396714e364e722c109e054c`.
 PR description: holds the final head and hosted checks.
@@ -76,7 +76,7 @@ A junction is accepted when any of five points along the moved edge (middle, end
 - Version 1.0.1 (was 1.0.0), so existing instances show as outdated.
 - **New Warning** when any solid is skipped as not panel-like. It names the solids and points to the ratio in the log, so a thick or low wall is never skipped silently.
 - Descriptions mention multi-element solids.
-- Default `maxThicknessRatio_` is **0.25 (provisional, owner decision pending)**.
+- Default `maxThicknessRatio_` stays **0.20** (owner decision; backward compatible).
 - GUID, inputs and outputs are unchanged.
 
 ## maxThicknessRatio: design analysis (owner question, 2026-10-14)
@@ -124,19 +124,12 @@ No previously rejected face other than the gable is accepted at 0.25, so there a
 
 **Why no global ratio is the long-term answer.** A 0.95 × 0.25 m stair-tread block (0.263) is geometrically identical to a short wall pier. A 1.0 m historic wall 3 m high scores 0.33, which is *less* panel-like than the tread. Any single proportion that keeps the wall also keeps the tread.
 
-**Recommendation.**
+**Owner decision (2026-10-14): retain `maxThicknessRatio` = 0.20** as the default, for backward compatibility.
 
-1. For SAM#198, **retain 0.20** (exact backward compatibility for single-element solids):
-   - The PR then fixes only the multi-element defect, the orientation and the snap.
-   - Keep the new Warning and the needed-ratio diagnostic.
-   - Set `maxThicknessRatio_` = 0.25 explicitly on `import-test.gh` for the gable.
-   - Alternative: 0.25 is evidence-safe on all available models, but it is still a proportion and still rejects 1 m walls below 4 m.
-   - If 0.20 is chosen, `PanelsBySolidComplexHouseTests` passes 0.25 explicitly, and the gable and thick-wall tests document the skip.
-2. **Follow-up PR (robust correction).**
-   - Exclude non-building objects explicitly: do not wire them, or add an exclusion input or layer rule.
-   - Then default the ratio to 1.0, meaning "the thickness is the element's thinnest direction".
-   - The matrix shows this keeps 0.1–1.0 m walls with exact `PhysicalThickness`.
-   - It changes the accepted `test3.gh` workflow, which feeds stair solids, so it needs owner approval.
+- Users set 0.25 or another suitable value explicitly in Grasshopper. The contemporary house needs 0.25 for `UF_Gable_Cross_South`.
+- The Warning and the needed-ratio diagnostic make every skip visible.
+- `PanelsBySolidComplexHouseTests` passes 0.25 explicitly. The gable, ring and thick-wall tests document the default skips.
+- The limitation for thick historic walls is understood. It is left to future development; no task is opened here.
 
 ## Excluded solid: the stair (intentional)
 
@@ -195,7 +188,10 @@ Classification:
   - The cluster uses the component's rebuild recipe with the label Text Dots as seeds.
   - Visual acceptance was not run.
 
-None of R1, R2 or R3 is implemented in this PR. Each needs explicit owner approval (the rules above), so that rooms are not merged or fabricated implicitly.
+**Owner decision (2026-10-14).** The contemporary house model is intentionally incomplete; the user will add the missing walls, ceilings, doors and stairwell boundaries in Rhino.
+
+- No automatic geometry completion, synthetic boundaries, room separation or extra Air-panel generation is implemented. R1, R2 and R3 are not pursued.
+- Stairs, treads, balustrades and similar non-analytical elements stay excluded by the current behaviour; no new classification is added.
 
 ## Files
 
@@ -203,8 +199,8 @@ None of R1, R2 or R3 is implemented in this PR. Each needs explicit owner approv
 - `SAM/SAM.Analytical/Query/SnapToJunctions.cs`
 - `Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalCreatePanelsBySolids.cs`
 - Tests:
-  - `SAM/SAM.Tests/PanelsBySolidMultiElementTests.cs` (new, 20 cases, including the thick-wall theories)
-  - `SAM/SAM.Tests/PanelsBySolidComplexHouseTests.cs` (new, 17 cases)
+  - `SAM/SAM.Tests/PanelsBySolidMultiElementTests.cs` (new, 20 cases, including the thick-wall theories and the gable at 0.20 / 0.25)
+  - `SAM/SAM.Tests/PanelsBySolidComplexHouseTests.cs` (new, 18 cases; run at `maxThicknessRatio` 0.25, plus one at the 0.20 default)
 - Fixture: `SAM/SAM.Tests/Golden/PanelsBySolid/contemporary1_solids.json` (new, 394 KB).
   - It holds the house's 19 solids and 18 glazing solids, converted exactly as the component converts them (`GH_Brep.ToSAM(true)` → `Shell`), with name, layer and Rhino id.
   - Copied to the output by the existing `Golden\**\*.json` item.
@@ -219,8 +215,8 @@ dotnet msbuild Grasshopper/SAM.Analytical.Grasshopper/SAM.Analytical.Grasshopper
 
 Build with `APPDATA` and `USERPROFILE` redirected (and `NUGET_PACKAGES` set to the real cache). Otherwise the project's post-build step deploys to `%APPDATA%\SAM`.
 
-- **SAM.Tests (full suite, final code):** 3528 passed, 0 failed.
-- **Focused:** `PanelsBySolid*` and `AperturesBySolids*` 71 / 71. The existing tests are unchanged and pass.
+- **SAM.Tests (full suite, final code at the 0.20 default):** 3529 passed, 0 failed.
+- **Focused (0.20 default):** `PanelsBySolid*` and `AperturesBySolids*` 72 / 72. The existing tests are unchanged and pass.
 - **Mutation checks:**
   - With the previous `PanelsBySolid.cs`, 14 of the new tests fail.
   - With the previous `SnapToJunctions.cs`, the new slab-void snap test fails.
@@ -262,7 +258,7 @@ Panels: 17 before → 39 after, 0 Air. 33 `Wall`, 4 `Roof`, 2 `Floor`.
 Machine-local Rhino 9 WIP harness:
 
 - `SAMAnalytical.CreatePanelsBySolids` v1.0.1 was run in a headless `GH_Document`.
-- Inputs as in `import-test.gh`: 19 referenced solids and 18 glazing solids, defaults otherwise.
+- Inputs as in `import-test.gh`: 19 referenced solids and 18 glazing solids, `maxThicknessRatio_` 0.25 (at the 0.20 default: 38 panels, with the gable also named in the Warning).
 - Result: 39 panels.
 - One Warning: "1 solid(s) skipped as not panel-like … #0 ST_Stair_GF_to_FF".
 - All panels carry source name, id and layer.
@@ -276,14 +272,14 @@ Machine-local Rhino 9 WIP harness:
 - Cluster: **11 spaces, 56 panels, 1 Air**.
 - This is identical to the accepted baseline in `PanelsBySolid-Q4.md`.
 
-## Unresolved / risks
+## Known limitations (accepted by the owner)
 
-- **Owner decisions:**
-  - the ratio default (0.20 recommended for this PR; 0.25 provisional in the code);
-  - the room-topology rules R1, R2 and R3;
-  - the model fixes E1, E2 and the attic floor.
-- `SnapToJunctions` can only translate edges. A wall under a sloped roof cannot grow a gable-shaped top (unchanged behaviour).
-- **Separate follow-up, not part of this PR:** the `Vector3D` → `Point3D` implicit operator in `SAM.Geometry` `Geometry/Spatial/Classes/Vector3D.cs` returns `new Vector3D(...)`, which converts to itself recursively. Any implicit vector-to-point conversion overflows the stack. Found by the harness; no PR #198 code path uses it.
+- **Ratio default 0.20:** it rejects valid thick or low walls (see the wall matrix). The user raises `maxThicknessRatio_`; the Warning names each skipped solid.
+- **Unclaimed notches stay outline:** doorways and voids at an element edge stay open; only unclaimed holes become Air.
+- **No automatic separations:** missing room separations are modelled by the user.
+- **Snap only translates edges:** a wall under a sloped roof cannot grow a gable-shaped top (unchanged behaviour).
+- **Contemporary house not closed:** the drawn model does not yet form closed spaces (E1, E2, no attic floor). The user completes it in Rhino.
+- The `Vector3D` → `Point3D` recursion found during this work is fixed separately in SAM-BIM/SAM#199.
 - Harness-only observation: Rhino 9 WIP `RhinoDoc.OpenHeadless` returns an empty document for `Untitled2_meters.3dm`; `File3dm.Read` reads it.
 - Manual Rhino/Grasshopper UI acceptance: **not run** by the agent.
 
@@ -297,9 +293,4 @@ Machine-local Rhino 9 WIP harness:
 
 ## Next
 
-1. **Owner:** decide the ratio default.
-   - If 0.20: revert the three defaults, and pass 0.25 explicitly in `PanelsBySolidComplexHouseTests`.
-2. **Owner:** run the Grasshopper acceptance (steps in the PR description).
-3. **Owner:** approve or reject rules R1, R2 and R3, and fix the model (E1 door solid, E2 infill walls, attic floor solid). Then a separate PR for the approved rules.
-4. Separate small PR: the `Vector3D` → `Point3D` recursion.
-5. Separate PR (robust ratio): explicit exclusion of non-building objects, then ratio default 1.0.
+Owner review and merge into `sow/2026-Q4` after green hosted checks, then the `PROJECT_PROGRESS.md` closeout. The owner closed the task on 2026-10-14; no further development is planned.

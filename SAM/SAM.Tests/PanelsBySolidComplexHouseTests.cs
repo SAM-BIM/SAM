@@ -58,8 +58,9 @@ namespace SAM.Tests
             Dictionary<string, List<string>> diagnostics = new Dictionary<string, List<string>>();
             foreach (SourceSolid solid in solids)
             {
-                // The component's defaults: minThickness 0.08, maxThicknessRatio 0.25, Air for unclaimed openings.
-                panels[solid.Id] = solid.Shell.PanelsBySolid(out List<string> diagnostics_Solid, apertures, sourceName: solid.Name, sourceId: solid.Id, sourceLayer: solid.Layer);
+                // The component's defaults (minThickness 0.08, Air for unclaimed openings) with maxThicknessRatio set to
+                // 0.25 on the definition, as this house needs for its 6 x 1.4 m gable (0.214; the default is 0.2).
+                panels[solid.Id] = solid.Shell.PanelsBySolid(out List<string> diagnostics_Solid, apertures, maxThicknessRatio: 0.25, sourceName: solid.Name, sourceId: solid.Id, sourceLayer: solid.Layer);
                 diagnostics[solid.Id] = diagnostics_Solid;
             }
 
@@ -89,6 +90,28 @@ namespace SAM.Tests
         {
             SourceSolid solid = Assert.Single(House.Value.Solids, x => x.Name == name);
             Assert.Equal(count, House.Value.Panels[solid.Id].Count(x => x.PanelType != PanelType.Air));
+        }
+
+        [Fact]
+        public void ComplexHouse_DefaultRatio_SkipsOnlyTheStairAndTheLowGableWithTheRatioNeeded()
+        {
+            // At the default maxThicknessRatio (0.2) the gable is skipped and reported, never dropped silently.
+            List<ISAMGeometry3D> apertures = Load("Apertures").ConvertAll(x => (ISAMGeometry3D)x.Shell);
+            List<string> skipped = new List<string>();
+            foreach (SourceSolid solid in House.Value.Solids)
+            {
+                if (solid.Shell.PanelsBySolid(out List<string> diagnostics, apertures, sourceName: solid.Name).Count == 0)
+                {
+                    Assert.Contains(diagnostics, x => x.Contains("not panel-like"));
+                    skipped.Add(solid.Name);
+                    if (solid.Name == "UF_Gable_Cross_South")
+                    {
+                        Assert.Contains(diagnostics, x => x.Contains("0.214"));
+                    }
+                }
+            }
+
+            Assert.Equal(new List<string> { "ST_Stair_GF_to_FF", "UF_Gable_Cross_South" }, skipped.OrderBy(x => x).ToList());
         }
 
         [Fact]

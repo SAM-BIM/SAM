@@ -51,7 +51,7 @@ namespace SAM.Analytical
             out List<string> diagnostics,
             IEnumerable<ISAMGeometry3D> apertureGeometries = null,
             double minThickness = 0.08,
-            double maxThicknessRatio = 0.25,
+            double maxThicknessRatio = 0.2,
             bool airForUnclaimedOpenings = true,
             string sourceName = null,
             string sourceId = null,

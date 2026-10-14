@@ -67,7 +67,7 @@ namespace SAM.Analytical.Grasshopper
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
                 param_Number = new() { Name = "maxThicknessRatio_", NickName = "maxThicknessRatio_", Description = "Element planes whose thickness exceeds this fraction of their smallest in-plane extent are not panel-like and are skipped (e.g. stairs, treads)", Access = GH_ParamAccess.item, Optional = true };
-                param_Number.SetPersistentData(0.25);
+                param_Number.SetPersistentData(0.2);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Voluntary));
 
                 Param_Boolean param_Boolean = new() { Name = "airForOpenings_", NickName = "airForOpenings_", Description = "Fill openings no aperture claims (e.g. stair voids) with Air panels so the spaces on either side stay separate", Access = GH_ParamAccess.item, Optional = true };
@@ -141,7 +141,7 @@ namespace SAM.Analytical.Grasshopper
                 dataAccess.GetData(index, ref snap);
             }
 
-            double maxThicknessRatio = 0.25;
+            double maxThicknessRatio = 0.2;
             index = Params.IndexOfInputParam("maxThicknessRatio_");
             if (index != -1)
             {

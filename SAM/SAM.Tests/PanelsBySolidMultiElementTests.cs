@@ -30,11 +30,12 @@ namespace SAM.Tests
         {
             // Arrange: one solid holding all four external walls of an 8 x 6 m plan, 0.3 m thick, 1.2 m high. The low
             // height makes the top and bottom faces (1.2 m apart over the whole ring) panel-like by proportion alone:
-            // only the ownership rule (that material is the walls') keeps them from becoming a horizontal panel.
+            // only the ownership rule (that material is the walls') keeps them from becoming a horizontal panel. The ratio
+            // is opened to 0.3 so that the walls (0.3 / 1.2 = 0.25) also pass by proportion.
             Shell ring = Prism(XY, Rectangle(0, 0, 8, 6), new List<IList<(double U, double V)>> { Rectangle(0.3, 0.3, 7.7, 5.7) }, 0, 1.2);
 
             // Act
-            List<Panel> panels = ring.PanelsBySolid(out List<string> diagnostics);
+            List<Panel> panels = ring.PanelsBySolid(out List<string> diagnostics, maxThicknessRatio: 0.3);
 
             // Assert
             Assert.Equal(4, panels.Count);
@@ -91,16 +92,21 @@ namespace SAM.Tests
         }
 
         [Fact]
-        public void PanelsBySolid_LowTriangularGable_IsPanelLike()
+        public void PanelsBySolid_LowTriangularGable_IsSkippedByDefaultAndKeptAtARatioOf025()
         {
             // Arrange: a 6 m wide, 1.4 m high, 0.3 m thick gable (as UF_Gable_Cross_South of the contemporary house):
-            // thickness / height = 0.214, which the former default ratio of 0.2 rejected (the default is now 0.25).
+            // thickness / height = 0.214, above the default ratio of 0.2 (kept for backward compatibility); a user sets
+            // maxThicknessRatio_ = 0.25 on the definition to keep it.
             Shell gable = Prism((u, v, w) => new Point3D(u, w, v), new List<(double U, double V)> { (0, 0), (6, 0), (3, 1.4) }, null, 0, 0.3);
 
             // Act
-            List<Panel> panels = gable.PanelsBySolid(out _);
+            List<Panel> panels_Default = gable.PanelsBySolid(out List<string> diagnostics);
+            List<Panel> panels = gable.PanelsBySolid(out _, maxThicknessRatio: 0.25);
 
             // Assert
+            Assert.Empty(panels_Default);
+            Assert.Contains(diagnostics, x => x.Contains("not panel-like") && x.Contains("0.214"));
+
             Panel panel = Assert.Single(panels);
             Assert.Equal(PanelType.Wall, panel.PanelType);
             Assert.Equal(0.3, PhysicalThickness(panel), 6);
@@ -113,7 +119,7 @@ namespace SAM.Tests
         public void PanelsBySolid_StairTreadBlock_IsNotPanelLikeByDefault(double height)
         {
             // Arrange: a 0.95 m wide, 0.25 m deep tread modelled as a block from the floor (as the treads of the accepted
-            // 2026-10-14 house, Untitled2_meters.3dm): 0.25 / 0.95 = 0.263, just above the default ratio of 0.25.
+            // 2026-10-14 house, Untitled2_meters.3dm): 0.25 / 0.95 = 0.263, above the default ratio of 0.2 and a user-set 0.25.
             Shell tread = Box(0, 0, 0, 0.95, 0.25, height);
 
             // Act
