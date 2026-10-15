@@ -41,16 +41,23 @@ proposals or open decisions - check the status label before relying on one.
 
 The parts that most often matter:
 
-- A published parameter `Name`, order, access, optionality, visibility and registered default,
-  and the component `GUID`, are frozen. Never change one to satisfy a naming convention, and never
-  rename a published parameter without a declared `ParameterRename` alias and that document's
+- A published parameter `Name`, order, runtime type, access, optionality, visibility and registered
+  default, and the component `GUID`, are frozen. Never change one to satisfy a naming convention, and
+  never rename a published parameter without a declared `ParameterRename` alias and that document's
   migration acceptance.
 - Which inputs are required, optional, defaulted or hidden is decided by `Optional`,
   `ParamVisibility`, registered persistent data and the code-side fallback - not by the
   `_name` / `_name_` / `name_` marker, which only records intent.
-- Validate metadata changes with
-  `python design/grasshopper-icons/tools/param_contract.py --repo . --check`
-  (see `docs/GH_COMPONENT_STANDARDS.md` Appendix 4 for other repositories).
+- Metadata validation depends on whether this repository has an approved baseline
+  (`design/grasshopper-icons/param_contract.json`). **SAM does not have one yet, so do not run
+  `--check` here.** Use the audit, which reports coverage and does not claim compatibility:
+  `python design/grasshopper-icons/tools/param_contract.py --repo .`
+  Write it to a temporary file instead of the repository with `--output <file>`.
+  A repository that *does* have an approved manifest validates with
+  `python <SAM>/design/grasshopper-icons/tools/param_contract.py --repo . --check`.
+  A component reported `partial` or `unresolved` is never a PASS: its contract was not fully
+  extracted, and the manifest records why.
+- Validator regression tests: `python design/grasshopper-icons/tools/tests/test_param_contract.py`.
 - `SAM_Psychrometrics/docs/GH-Component-Metadata-Standard.md` and
   `documentation/GH-Parameter-Rename-Migration-Q4.md` are the pilot records; the shared
   implementation they describe is reused, not redesigned.

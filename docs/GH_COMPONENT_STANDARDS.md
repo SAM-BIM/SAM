@@ -1,6 +1,8 @@
 # SAM-BIM Grasshopper Component Engineering Standard
 
-**Status:** canonical. Established 2026-10-15 on `sow/2026-Q4`.
+**Status:** canonical. Established 2026-10-15 on `sow/2026-Q4`; corrected 2026-10-16 in response to
+the independent review of PR #204 (parameter extraction, runtime type in the contract, ancestry-based
+classification, and the separation of compatibility from naming conventions).
 **Owner:** SAM-BIM. Changes to this document go through a reviewed PR in `SAM-BIM/SAM`.
 **Applies to:** every SAM-BIM repository that publishes Grasshopper components.
 
@@ -8,6 +10,9 @@ This is the single specification for how a SAM-BIM Grasshopper component is name
 versioned and changed safely. It exists so that future component development is consistent, safe and
 independently verifiable, and so a coding agent or a new maintainer can decide what a change is
 allowed to do without re-deriving it from the source.
+
+Read section 0.1 and 0.2 first: they state exactly what is checked automatically, what a green result
+does and does not prove, and what the validator refuses to certify.
 
 ## 0. How to read this document
 
@@ -17,13 +22,49 @@ treat a proposal as a fact.
 | Status | Meaning |
 |---|---|
 | **VALIDATED** | Proven by committed code, a committed test, or a measured runtime result. Safe to rely on. |
-| **ENFORCED** | Checked automatically by committed tooling; a violation fails a check. |
-| **PROPOSED** | Recommended direction. Not yet implemented, or applies to new work only. |
+| **CHECKED** | A static check in the metadata validator performs it, and a committed regression test covers it. Not a runtime or engineering guarantee. |
+| **PROPOSED** | Recommended direction. Not checked by anything; a reviewer must judge it. |
 | **OPEN** | A decision the owner has not made. Do not resolve it by guessing; ask. |
 | **FROZEN LEGACY** | A published fact that must not change without an owner-approved migration. |
 
 Rule identifiers (`GH-A1`, `GH-B2`, …) are stable and may be cited from a PR, a test name or a
 review comment.
+
+### 0.1 What is checked automatically, and what is not — read this before trusting a green result
+
+Three different things are often conflated. Only the first is automated, and only the second proves
+backward compatibility:
+
+| Layer | What it establishes | Where |
+|---|---|---|
+| **Static metadata check** | The published parameter contract in the source still matches the approved baseline: GUID, component name/nickname/category/subcategory, and per parameter the name, runtime **type**, order, access, optionality, visibility and registered default; plus that extraction of that contract was complete. | `design/grasshopper-icons/tools/param_contract.py` and its regression tests |
+| **Runtime compatibility test** | A saved definition opens, keeps its wires, typed-in values and groups, and recomputes. Rhino/Grasshopper-hosted; repository-local; not run by the static checker. | e.g. `Grasshopper/SAM.Core.Grasshopper.Tests/`, `SAM_Psychrometrics/Grasshopper/SAM.Core.Grasshopper.Psychrometrics.Tests/` |
+| **Engineering review** | Description grammar and engineering meaning, SI-unit correctness, whether a description agrees with `SolveInstance`, mutually exclusive inputs, limitation wording, whether a rename is acceptable at all. | A human or agent reading the code. **Not automated.** |
+
+So: **grammatical quality, SI-unit correctness and engineering semantics are NOT automatically
+enforced.** The static checker detects an empty description, a description that does not start with a
+capital letter, and one known typo; everything else in section D is a review obligation.
+
+### 0.2 What the validator can be trusted for — three distinct outcomes
+
+The validator refuses to answer a question it cannot answer. Every component carries an
+`extraction.status`:
+
+| Outcome | Meaning | Effect |
+|---|---|---|
+| `verified` | every parameter was extracted with name, runtime type, access, optionality, visibility and registered default | may be compared against the baseline |
+| `partial` | extracted, but at least one attribute could not be established from the source | **blocks a compatibility PASS** |
+| `unresolved` | the parameter set itself could not be established | **blocks a compatibility PASS** |
+
+- **Inventory mode** (`python param_contract.py --repo <repo>`) writes or refreshes the manifest and
+  reports coverage. It is explicitly labelled *not* compatibility validation: there is no approved
+  baseline yet, so nothing has been compared. It still reports how many components are verified.
+- **Compatibility mode** (`--check`) compares against the committed manifest and fails if any
+  component is `partial`/`unresolved`, if the baseline is missing, or if any frozen attribute changed.
+- A successful `--check` prints `OK compatibility`. Anything else is not a pass.
+
+The governing rule, which the tests enforce: **never report a component or repository as verified when
+the validator has not completely and reliably extracted its published contract.**
 
 The mechanism this standard depends on lives in the shared `SAM` repository:
 
@@ -56,26 +97,27 @@ asserts `NickName == Name` for every parameter; the same expectation is set for 
 An existing nickname (for example `SAMGeometrySplit`'s short `Geo` parameter nicknames) is never
 overwritten blindly — it is a published display value with the same compatibility questions as a name.
 
-### GH-A3 — Category / Subcategory: `SAM` plus the domain area — **ENFORCED**
+### GH-A3 — Category / Subcategory: `SAM` plus the domain area — **CHECKED**
 
 Use `Category = "SAM"` and `Subcategory` = the engineering domain: `Core`, `Analytical`, `Geometry`,
 `Psychrometrics`, `OCCT`, `Weather`, `Architectural`. Historical subcategories such as
-`Analytical01`…`Analytical04` exist and stay as they are. The Psychrometrics contract tooling records
-category and subcategory and fails on a change.
+`Analytical01`…`Analytical04` exist and stay as they are. The metadata validator records category and
+subcategory and fails on a change.
 
 ### GH-A4 — Component Description: the engineering purpose, not the component name — **PROPOSED**
 
 The component description states what it computes, from what, and the units of the significant
 quantities. It is not a restatement of the name and not a list of parameter names. See section D.
 
-### GH-A5 — Component GUID: stable identity, never regenerated for cosmetic changes — **ENFORCED, VALIDATED**
+### GH-A5 — Component GUID: stable identity, never regenerated for cosmetic changes — **CHECKED, VALIDATED**
 
 `ComponentGuid` is the component's identity in every saved definition. It is regenerated **only** when
 a genuinely different component is created (for example a legacy component kept alongside a new one,
 as with `SAMOCCT.AutoTune3D` vs `SAMOCCT.AutoTune3DDiscover`).
 
 Changing a GUID for a cosmetic, naming or description change is forbidden: it would orphan every
-existing instance. The Psychrometrics metadata contract asserts the three GUIDs
+existing instance. The validator compares GUIDs against the baseline, and the Psychrometrics metadata
+contract asserts the three GUIDs at runtime
 (`Grasshopper/SAM.Core.Grasshopper.Psychrometrics.Tests/MetadataContractTests.cs`).
 
 ### Approved legacy exceptions (component naming)
@@ -167,11 +209,12 @@ evaluated by `GH_SAMVariableOutputParameterComponent`:
 
 `Panels`, `Spaces`, `AnalyticalModel`, `Diagnostics`, `AdjacencyCluster`, `Successful`.
 
-### GH-C2 — No leading or trailing underscore on an output — **ENFORCED** (in the pilot)
+### GH-C2 — No leading or trailing underscore on an output — **CHECKED (convention)**
 
-The metadata contract's naming rule computes the expected output name as
-`PascalCase(strip_underscores(name))` and fails on a deviation
-(`design/grasshopper-icons/tools/param_contract.py`, `expected_name`). The `SAM_Psychrometrics` pilot
+The metadata validator computes the expected output name as
+`PascalCase(strip_underscores(name))` and reports a deviation. That is a **convention** finding, not a
+compatibility failure: an existing deviation is legitimate and stays until it is registered as an
+approved exception, and only a *new* deviation fails (section J). The `SAM_Psychrometrics` pilot
 applied this to one output: `enthalpy` → `Enthalpy`, through the migration in section G.
 
 ### GH-C3 — Existing camelCase outputs stay until an approved migration — **FROZEN LEGACY, VALIDATED**
@@ -196,13 +239,16 @@ frozen. `SAM_Psychrometrics/docs/GH-Component-Metadata-Standard.md` is the recor
 Every component, input and output has a description. It is the only place the engineering meaning is
 written down for the person on the canvas.
 
-- **GH-D1 — Begin with a capital letter; be grammatically and technically correct — ENFORCED.**
+- **GH-D1 — Begin with a capital letter; be grammatically and technically correct — CHECKED (for the
+  first letter only).** The validator detects an empty description and one that does not begin with a
+  capital letter. Grammar and technical correctness are a review obligation, not a check.
 - **GH-D2 — Explain the engineering meaning, not the data type — PROPOSED.**
 - **GH-D3 — Name the expected data when it matters — PROPOSED.** e.g. "Closed solids (Breps or
   extrusions) of planar building elements: walls, floors, slabs, ceilings, roofs, gables."
-- **GH-D4 — Document SI units explicitly — ENFORCED in the pilot.** `[m]`, `[°C]`, `[kg/m³]`, `[Pa]`,
-  `[-]` for dimensionless. The pilot's first fix was the typo `Humidty` → `Humidity` and unit
-  consistency (`[kg/m3]` → `[kg/m³]`).
+- **GH-D4 — Document SI units explicitly — PROPOSED, NOT CHECKED.** Nothing verifies units
+  automatically. The validator reports the description text only; a unit error is invisible to it. The
+  pilot's metadata review fixed `[kg/m3]` → `[kg/m³]` by hand, and the pilot's *runtime* test asserts a
+  few description strings — that is all.
 - **GH-D5 — Document defaults and fallback behaviour accurately — PROPOSED.** If a code-side fallback
   applies (GH-B4.3), the description says so: "Atmospheric pressure [Pa]. Default: 101325".
 - **GH-D6 — Explain important input relationships and mutually exclusive inputs — PROPOSED.** The
@@ -210,12 +256,13 @@ written down for the person on the canvas.
   be connected, matching the exclusivity `SolveInstance` actually enforces.
 - **GH-D7 — Explain the limitation or failure condition where it is useful — PROPOSED.** e.g. "Any
   other value is reported and Summary is used."
-- **GH-D8 — No placeholder or misleading text — ENFORCED.** The contract check fails on an empty
-  description, a description that does not start with a capital letter, a known typo, and
-  `NickName != Name`.
+- **GH-D8 — No placeholder or misleading text — CHECKED (narrowly).** The validator fails on an empty
+  description, a description that does not start with a capital letter, a known typo (`Humidty`), and a
+  `NickName` that differs from `Name` — the last recorded as an advisory note, not a failure, because an
+  existing nickname is legitimate (GH-I3).
 - **GH-D9 — A description must agree with the implementation — PROPOSED (reviewer responsibility).**
-  The automated check cannot verify this; it is the one quality rule that needs a human or an agent
-  reading `SolveInstance` against the text. Treat a mismatch as a defect.
+  No check can verify this. It is the one quality rule that needs a human or an agent reading
+  `SolveInstance` against the text. Treat a mismatch as a defect.
 
 Descriptions are **not** frozen by the contract, deliberately: improving one does not require
 regenerating the manifest. A description change is still a metadata change and gets a patch version
@@ -394,7 +441,7 @@ If a step after `AddObject` throws, the half-built replacement is removed and th
 is left in the document. A broken `ParameterRenames` declaration is reported and never blocks the
 update.
 
-### GH-G7 — Required validation for a rename migration — **ENFORCED by process**
+### GH-G7 — Required validation for a rename migration — **PROCESS REQUIREMENT (not automated)**
 
 1. Build and the automated test suites.
 2. An explicit alias-verification test (declaration shape, and duplicate/malformed declarations refused).
@@ -491,7 +538,9 @@ document. There is no plan to version each rule.
 For every published parameter:
 
 - the `Name`;
-- the runtime parameter **type** (for example `Param_Number`, `GooPanelParam`);
+- the runtime parameter **type** — the class the parameter is constructed from, for example
+  `Param_Number` becoming `Param_String`, `GooPanelParam`, or a third-party parameter such as
+  RhinoInside.Revit's `HostObject`;
 - the `Access` (`item` / `list` / `tree`);
 - the **order** within its side;
 - the `Optional` flag;
@@ -501,8 +550,17 @@ For every published parameter:
 And for the component: the `ComponentGuid`.
 
 Changing any of these changes what an existing definition means. The metadata contract freezes all of
-them (`design/grasshopper-icons/tools/param_contract.py`, `diff`) and the runtime contract asserts them
-at runtime in a real Rhino (`MetadataContractTests`, `DiagnosticsContractTests`).
+them (`design/grasshopper-icons/tools/param_contract.py`, `compare` and `FROZEN_FIELDS`) and the
+runtime contract asserts them at runtime in a real Rhino (`MetadataContractTests`,
+`DiagnosticsContractTests`).
+
+Two notes on the type, because it is the attribute most easily lost by an extractor:
+
+- A type is compared **exactly**, as the name it is constructed from. No equivalence is inferred: an
+  unrecognised-but-identified type (`HostObject`) is still compared exactly and listed in the
+  manifest's `externalParameterTypes`.
+- A type that cannot be identified at all is **not** treated as equal to anything. It makes the
+  component `partial` and blocks the check (GH-J6).
 
 ### GH-I2 — When a controlled migration permits an exception — **VALIDATED**
 
@@ -541,15 +599,32 @@ deliberately does not freeze it (GH-D9).
 The minimum verification for a change depends on its class (GH-F2). Prefer automated verification over
 inspection; where a check cannot be automated today, say so explicitly in the PR.
 
-### J1 — Metadata-only correction
+### GH-J0 — The three outcomes of a compatibility check — **CHECKED**
+
+`--check` compares the source against the committed manifest and reports findings in categories:
+
+| Category | Fatal? | What it means |
+|---|---|---|
+| `compatibility` | yes | a frozen attribute (GH-I1) changed: identity, parameter name, **type**, order, access, optionality, visibility, registered default; or a component was added/removed |
+| `extraction` | yes | a component could not be fully extracted (`partial`/`unresolved`), or the baseline itself records an incomplete extraction |
+| `conventions` | yes | a naming-rule deviation that is not in the approved exception list, or an exception that is no longer a deviation |
+| `manifest` | yes | the component version changed, so the manifest must be regenerated in this reviewed change — explicitly **not** a compatibility violation |
+| `advisory` | no (unless `--strict-descriptions`) | description quality and nickname differences |
+
+**Never weaken a check to obtain a green result.** If a repository cannot be validated reliably, report
+its coverage limitation (a `partial` count with reasons) instead of lowering the bar.
+
+### GH-J1 — Metadata-only correction
 
 - Build (Release) with 0 errors.
-- Metadata contract check: `python design/grasshopper-icons/tools/param_contract.py --repo <repo> --check`
-  (in `SAM`, the shared validator; in `SAM_Psychrometrics`, the pilot copy) → `OK`.
+- Compatibility check: `python design/grasshopper-icons/tools/param_contract.py --repo <repo> --check`
+  → `OK compatibility`.
+- If the version was bumped (as it should be, section H), the manifest is regenerated in the same
+  reviewed change with `--repo <repo>`; the manifest diff is what a reviewer reads.
 - No unintended metadata or API change: the diff must show only `Description` (and possibly
   `LatestComponentVersion`) in the component files.
 
-### J2 — Compatible parameter migration
+### GH-J2 — Compatible parameter migration
 
 - Build and the automated tests.
 - Explicit alias verification: the declaration shape, and that duplicate/malformed declarations are
@@ -560,7 +635,7 @@ inspection; where a check cannot be automated today, say so explicitly in the PR
 - Saved/reopened definitions recompute correctly.
 - No unintended engineering result differences elsewhere.
 
-### J3 — Behavioural change
+### GH-J3 — Behavioural change
 
 - Engineering-specific regression tests (golden fixtures; see the `PanelsBySolid` golden data).
 - A compatibility and serialization review against section I.
@@ -568,16 +643,25 @@ inspection; where a check cannot be automated today, say so explicitly in the PR
 
 ### GH-J4 — What a check cannot cover — **VALIDATED**
 
-- Description-versus-implementation agreement (GH-D9) is a reading task.
+- Description-versus-implementation agreement, grammar and SI-unit correctness (section 0.1).
 - Renames for consumers outside the SAM updater (GH-G8) are unenforceable.
 - Interactive canvas behaviour (the update mark, the "+" insert UI, a bake) is a manual acceptance.
   The merged Q4 work records headless equivalents and labels them as such; do not claim a canvas check
   unless it was run.
 
-### GH-J5 — The metadata contract is a gate with an honest exception list — **ENFORCED**
+### GH-J5 — The metadata contract is a gate with an honest exception list — **CHECKED**
 
 A new naming deviation fails; a listed exception that is no longer a deviation also fails. That is what
-keeps the frozen-exception list meaningful instead of decorative.
+keeps the frozen-exception list meaningful instead of decorative. An existing deviation that *is*
+registered passes, so no existing component is forced to change its published contract.
+
+### GH-J6 — The extraction gate — **CHECKED, fail-closed**
+
+A component whose contract was not completely extracted makes `--check` fail with an `extraction`
+finding. This is deliberate: it is better to report `partial` than to certify a contract the validator
+did not actually read. The regression suite proves this with cases that must fail — a missing output
+set, a parameter name that is not a literal, a parameter registered outside the declaration, a
+parameter whose type cannot be determined, and a baseline that is missing or itself incomplete.
 
 ---
 
@@ -591,86 +675,112 @@ keeps the frozen-exception list meaningful instead of decorative.
 | Rename mechanism | `Classes/ParameterRename.cs`; `Classes/ParameterRenameMap.cs`; `Modify/CaptureConnections.cs`; `Modify/RestoreConnections.cs`; `Modify/CopyPersistentData.cs`; `Modify/CopyPersistentDataFromComponent.cs`; `Modify/UpdateComponent.cs`; `Modify/UpdateComponents.cs`; `Query/MissingConnections.cs`; `Classes/ParamConnection.cs` |
 | Legacy parameter archive | `Grasshopper/SAM.Core.Grasshopper/Modify/ReadLegacyParameterData.cs` |
 | Diagnostics | `SAM/SAM.Core/Enums/DiagnosticDetail.cs`, `DiagnosticSeverity.cs`; `SAM/SAM.Core/Classes/Diagnostics/Diagnostics.cs`, `Diagnostic.cs`; `SAM_OCCT/Grasshopper/Shared/OcctDiagnosticReporter.cs`; `SAM_OCCT/Grasshopper/…/SAMOCCTCreateAdjacencyCluster.cs`; `Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalCreatePanelsBySolids.cs` |
-| Metadata contract | `design/grasshopper-icons/tools/param_contract.py` (this repository, canonical); `SAM_Psychrometrics/design/grasshopper-icons/{tools/param_contract.py,tools/inventory.py,param_contract.json}` (pilot copy) |
+| Metadata contract | `design/grasshopper-icons/tools/param_contract.py` (this repository, canonical); `design/grasshopper-icons/tools/tests/test_param_contract.py` (42 regression tests); `SAM_Psychrometrics/design/grasshopper-icons/{tools/param_contract.py,tools/inventory.py,param_contract.json}` (pilot copy) |
 | Runtime contract | `Grasshopper/SAM.Core.Grasshopper.Tests/` (Rhino.Testing); `SAM_Psychrometrics/Grasshopper/SAM.Core.Grasshopper.Psychrometrics.Tests/`; `SAM_OCCT/Testing/SAM.OCCT.GrasshopperTests/` |
 | Measured compatibility | `SAM_Psychrometrics/docs/GH-Component-Metadata-Standard.md`; `documentation/GH-Parameter-Rename-Migration-Q4.md`; `documentation/Diagnostics-Phase1-PR.md`; `documentation/Diagnostics-Phase2-BySolids-PR.md` |
 
-## Appendix 2 — Measured baseline (2026-10-15)
+## Appendix 2 — Measured coverage (2026-10-15, revised by the review corrections)
 
-Produced by the canonical validator at this PR's content commit:
+Produced by the canonical validator:
 
 ```
 python design/grasshopper-icons/tools/param_contract.py --repo <repo> --output <tmp.json>
 ```
 
-"Components" excludes the `Goo…Param` classes the scanner would otherwise collect (GH-Appendix 3,
-note 1). Deviations and problems are counts from the standard's own rules; a nonzero value is a
-*registered baseline*, not necessarily a defect to fix.
+`verified` means the published contract of that component was completely extracted and may be compared
+against a baseline. `partial` means it was extracted but at least one attribute could not be
+established; the reasons are in the manifest. A `partial` component **blocks a compatibility PASS**.
 
-| Repository | Components | Naming deviations | Description/version problems |
-|---|---|---|---|
-| SAM | 460 | 1120 | 1493 |
-| SAM_Tas_Grasshopper | 94 | 370 | 370 |
-| SAM_Revit | 55 | 26 | 38 |
-| SAM_OCCT | 36 | 155 | 188 |
-| SAM_UI | 31 | 179 | 81 |
-| SAM_Systems | 30 | 58 | 32 |
-| SAM_Mollier | 24 | 107 | 37 |
-| SAM_Topologic | 22 | 10 | 12 |
-| SAM_SolarCalculator | 21 | 348 | 210 |
-| SAM_Excel | 8 | 27 | 3 |
-| SAM_Solver | 7 | 68 | 68 |
-| SAM_LadybugTools | 7 | 3 | 3 |
-| SAM_OpenStudio | 6 | 24 | 9 |
-| SAM_Multitasker | 5 | 8 | 8 |
-| SAM_Acoustic | 3 | 1 | 0 |
-| SAM_BHoM | 3 | 0 | 3 |
-| SAM_IFC | 3 | 5 | 0 |
-| SAM_Psychrometrics | 3 | 22 (frozen, all registered) | 0 |
-| SAM_Python | 3 | 6 | 3 |
-| SAM_gbXML | 2 | 4 | 0 |
-| SAM_Origin | 2 | 2 | 1 |
-| SAM_GEM | 1 | 3 | 2 |
+| Repository | Components | Verified | Partial | Unresolved | Parameter classes excluded |
+|---|---|---|---|---|---|
+| SAM | 460 | 456 | 4 | 0 | 64 |
+| SAM_Tas_Grasshopper | 94 | 94 | 0 | 0 | 10 |
+| SAM_Revit | 55 | 55 | 0 | 0 | 1 |
+| SAM_OCCT | 36 | 36 | 0 | 0 | 1 |
+| SAM_UI | 31 | 31 | 0 | 0 | 1 |
+| SAM_Systems | 30 | 29 | 1 | 0 | 8 |
+| SAM_Mollier | 24 | 24 | 0 | 0 | 4 |
+| SAM_Topologic | 22 | 22 | 0 | 0 | 0 |
+| SAM_SolarCalculator | 21 | 21 | 0 | 0 | 3 |
+| SAM_Excel | 8 | 8 | 0 | 0 | 0 |
+| SAM_LadybugTools | 7 | 7 | 0 | 0 | 0 |
+| SAM_Solver | 7 | 7 | 0 | 0 | 0 |
+| SAM_OpenStudio | 6 | 6 | 0 | 0 | 0 |
+| SAM_Multitasker | 5 | 5 | 0 | 0 | 4 |
+| SAM_Acoustic | 3 | 2 | 1 | 0 | 1 |
+| SAM_BHoM | 3 | 3 | 0 | 0 | 0 |
+| SAM_IFC | 3 | 3 | 0 | 0 | 1 |
+| SAM_Psychrometrics | 3 | 3 | 0 | 0 | 0 |
+| SAM_Python | 3 | 3 | 0 | 0 | 3 |
+| SAM_gbXML | 2 | 2 | 0 | 0 | 0 |
+| SAM_Origin | 2 | 2 | 0 | 0 | 0 |
+| SAM_GEM | 1 | 1 | 0 | 0 | 0 |
 
-SAM_Psychrometrics is the only repository with a committed manifest and a passing `--check`; its 22
-deviations are the documented frozen exceptions (one rename already migrated). The distribution
-matters more than any single number: most repositories are small, and the deviation count is
-dominated by camelCase outputs.
+**Coverage limitations, stated explicitly.** SAM_Psychrometrics is the only repository with an approved
+baseline, so it is the only repository for which `--check` is meaningful; for every other repository
+these numbers are an **inventory**, not compatibility validation. The six `partial` components and their
+reasons are listed in Appendix 3. `parameter classes excluded` counts the `Goo…Param` classes, which are
+reported in the manifest with the ancestry that excluded them.
 
 ## Appendix 3 — Open decisions and known limitations
 
-1. **Scanner discriminator.** The contract scanner keys on `ComponentGuid`, which also matches the
-   `Goo…Param` parameter classes and, in `SAM`, one non-abstract base (`A_SAMAnalytical`). The canonical
-   validator excludes them (GH Appendix 2 note) and reports how many it skipped, but the exclusion is a
-   naming heuristic. A stronger discriminator (resolve the base-type chain to `GH_Component`) is a
-   follow-up.
-2. **Scanner copies.** The scanner exists in the canonical validator (inline) and in the
-   `SAM_Psychrometrics` pilot copy and `SAM/design/grasshopper-icons/tools/inventory.py` (older, API-
-   incompatible generation). Consolidating them is a follow-up; the canvas of *data* (the manifest) is
-   already repository-specific.
+1. **Classification is by ancestry, and unresolved ancestry is reported.** A class is a published
+   component when its base chain reaches a known Grasshopper root (`GH_Component`, `GH_SAMComponent`,
+   `GH_SAMVariableOutputParameterComponent`, `GH_SAMAsyncComponent`, `GH_SAMEnumComponent`,
+   `IGH_Component`, `IGH_SAMComponent`) through the repository's own classes; a `Goo…Param` class is a
+   parameter. A class whose chain leaves the repository at an **unknown** type is neither silently
+   included nor silently excluded — it is listed in `unclassifiedClasses` with its base chain, and it is
+   not counted as a component. Ancestry is resolved across the whole repository (including
+   non-Grasshopper projects), so a base type in another project of the same repository still resolves.
+   In the fleet measured here, `unclassifiedClasses` is 0 everywhere except before the fix, when
+   SAM_Revit's 30 Revit-derived components were unclassified (the fix: `IGH_SAMComponent`).
+2. **Six components cannot be extracted completely, and that is reported, not hidden** (SAM 4,
+   SAM_Systems 1, SAM_Acoustic 1):
+   - `SAMAnalyticalFilterByBoundaryType`, `SAMAnalyticalFilterByPanelType` — parameter names generated by
+     `foreach (… in Enum.GetValues(typeof(X)))`; resolving them means enumerating an enum's members,
+     which is deliberately out of scope (see note 4).
+   - `SAMCoreFilterByType`, `SAMCoreInspect`, `SAMAnalyticalSystemResults` — variable-parameter
+     components registered through the parameter manager, where the insertable set is generated in code
+     and cannot be enumerated from the declaration.
+   - `SAMAcousticCreateBandValues` — the parameter name comes from a loop variable, so it is not a
+     literal.
+   Each blocks a compatibility PASS for that repository until resolved or explicitly accepted.
 3. **`diagnosticDetail_` vs `_diagnosticDetail_`** (GH-E3) — owner decision.
-4. **CI.** No SAM-BIM CI job runs this validator yet. The runner images have Python available; the
+4. **Supported declaration forms** (see Appendix 6) are the ones the repositories actually use. Anything
+   outside them is reported as `partial`/`unresolved` with a reason; the tool never invents a
+   contract. Extending the supported set is a bounded follow-up with its own regression test.
+5. **Scanner copies.** The scanner exists in the canonical validator (inline) and in the
+   `SAM_Psychrometrics` pilot copy and `SAM/design/grasshopper-icons/tools/inventory.py` (older,
+   API-incompatible generation). Consolidating them is a follow-up; the *data* (the manifest) is already
+   repository-specific.
+6. **No repository except SAM_Psychrometrics has an approved baseline**, so `--check` is meaningful only
+   there. Everywhere else the numbers in Appendix 2 are an inventory.
+7. **CI.** No SAM-BIM CI job runs this validator yet. The runner images have Python available; the
    blocker is the per-repository baseline workflow, not the Python. See Appendix 5.
-5. **`MinCompatibleVersion`** (GH-H5) is dead code in effect; removing or wiring it is a separate,
+8. **`MinCompatibleVersion`** (GH-H5) is dead code in effect; removing or wiring it is a separate,
    owner-approved change.
-6. **`SAM_OpenStudio_base`** appeared as a second checkout of SAM_OpenStudio during this investigation
+9. **`SAM_OpenStudio_base`** appeared as a second checkout of SAM_OpenStudio during this investigation
    and is not a SAM-BIM repository; it is excluded from all counts above.
 
 ## Appendix 4 — Repository adoption plan
 
 The canonical specification lives in `SAM-BIM/SAM`. Another repository does not copy it; it points at
 it. Adoption per repository is: (1) a one-sentence instruction in that repository's `AGENTS.md`,
-(2) a rendered baseline manifest, (3) a `--check` run. The proposed instruction snippet, written to be
-appended to an existing `AGENTS.md` "Before starting work" list, is:
+(2) an inventory whose result is reviewed and committed as the baseline, (3) a `--check` run. The
+proposed instruction snippet, written to be appended to an existing `AGENTS.md` "Before starting work"
+list, is:
 
 ```markdown
 - Before changing, adding or removing a Grasshopper component or any of its parameters,
   descriptions, defaults, visibility or version, read the SAM-BIM standard:
   https://github.com/SAM-BIM/SAM/blob/sow/2026-Q4/docs/GH_COMPONENT_STANDARDS.md
-  Published parameter names, order, access, optionality, visibility and defaults are frozen;
-  a rename needs a declared ParameterRename alias and the migration acceptance in that document.
-  Validate metadata with:
-  python <SAM>/design/grasshopper-icons/tools/param_contract.py --repo . --check
+  Published parameter names, order, runtime type, access, optionality, visibility and defaults are
+  frozen; a rename needs a declared ParameterRename alias and the migration acceptance in that document.
+- If this repository has an approved manifest (design/grasshopper-icons/param_contract.json), validate:
+    python <SAM>/design/grasshopper-icons/tools/param_contract.py --repo . --check
+  Otherwise it has none yet: run the inventory, review the coverage, and propose the baseline in a PR:
+    python <SAM>/design/grasshopper-icons/tools/param_contract.py --repo .
+  A `partial`/`unresolved` component is never a PASS; the manifest records why.
 ```
 
 Order — small and low-risk first, and never mixing a description sweep with a rename:
@@ -678,12 +788,12 @@ Order — small and low-risk first, and never mixing a description sweep with a 
 | Wave | Repositories | Why |
 |---|---|---|
 | 0 | SAM (this PR's standard), SAM_Psychrometrics (already done) | The reference and the pilot. |
-| 1 | SAM_Acoustic, SAM_GEM, SAM_gbXML, SAM_Origin, SAM_BHoM, SAM_IFC, SAM_Python | 1–3 components each, 0–6 deviations: a first manifest and a first green `--check` with almost no exceptions. |
-| 2 | SAM_Excel, SAM_LadybugTools, SAM_Multitasker, SAM_OpenStudio, SAM_Topologic, SAM_Solver | Small, but each carries real description/version problems to triage first. |
-| 3 | SAM_Systems, SAM_Mollier, SAM_SolarCalculator, SAM_UI | Mid-size; description corrections only, no renames. |
-| 4 | SAM_OCCT, SAM_Revit | Own their own contract tests already; align their tests with the shared vocabulary. |
-| 5 | SAM_Tas_Grasshopper | 94 components and 370 deviations — the largest GH surface after SAM. Bulk description work. |
-| 6 | SAM | 460 components, 1120 deviations. Baseline only; fixes are per-component, owner-prioritised. |
+| 1 | SAM_GEM, SAM_Python, SAM_BHoM, SAM_gbXML, SAM_Origin, SAM_IFC, SAM_Acoustic | 1–3 components, all but one fully verified: a first manifest and a first green `--check` at almost no cost. SAM_Acoustic's single `partial` component must be resolved or explicitly accepted first. |
+| 2 | SAM_LadybugTools, SAM_Solver, SAM_OpenStudio, SAM_Multitasker, SAM_Excel, SAM_SolarCalculator, SAM_Topologic | Small and fully verified; the work is generating and reviewing the baseline. |
+| 3 | SAM_Mollier, SAM_UI, SAM_Systems | Mid-size; SAM_Systems carries one `partial` component. Description corrections only, no renames. |
+| 4 | SAM_OCCT, SAM_Revit | Both fully verified and both already own contract tests; align the tests with the shared vocabulary. |
+| 5 | SAM_Tas_Grasshopper | 94 components, all fully verified — the largest GH surface after SAM. |
+| 6 | SAM | 460 components; 4 `partial` and **no baseline yet**. Baseline only; fixes are per-component, owner-prioritised. |
 
 Per repository, separate the three change classes (GH-F2) into separate PRs: description corrections
 first (safe, no metadata freeze change), then additive optional parameters, then — only with an owner
@@ -692,31 +802,73 @@ these waves**, and does not authorise a rename anywhere.
 
 ## Appendix 5 — Enforcement architecture and CI feasibility
 
-Three distinct things, deliberately not conflated:
+Four distinct things, deliberately not conflated:
 
-1. **Universal naming and description validation** — repository-independent: the naming rules, the
-   description-quality rules, the capital-letter rule, `NickName == Name`, the access rule. Lives once,
-   in `design/grasshopper-icons/tools/param_contract.py` in `SAM`. Reuse by `--repo`, not by copy.
+1. **Universal naming and description rules** — repository-independent: the naming rules, the
+   description-quality rules (empty, capital letter, known typo), the nickname note. Lives once, in
+   `design/grasshopper-icons/tools/param_contract.py` in `SAM`. Reuse by `--repo`, not by copy.
 2. **Repository-specific published metadata baseline** — the rendered `param_contract.json`, committed
-   per repository. Data, not code.
-3. **Approved legacy naming exceptions** — the `namingExceptions` list inside that baseline, kept
-   honest by `--check` (a new deviation fails; a stale exception fails).
+   per repository. Data, not code. It carries the `namingExceptions` list of approved legacy deviations
+   and the per-component `extraction` status.
+3. **Compatibility comparison** — the static `--check` against that baseline, which fails on a frozen
+   attribute change, on incomplete extraction, on a new/stale naming deviation, and on an unrefreshed
+   version bump (GH-J0).
 4. **Runtime migration compatibility tests** — Rhino-hosted, repository-local, per migration; not
    shareable, because each one pins that repository's real components and a real saved definition.
 
 Feasibility, measured rather than assumed:
 
-- The validator is pure standard-library Python 3. A full scan of `SAM` (460 components, ~1000 files)
-  takes roughly 25 s; the whole active fleet is a few minutes. **Python availability is not the
-  blocker** — `ubuntu-latest` and `windows-2022` both ship Python 3, and the local runs here used the
-  RhinoCode Python 3.13.
-- The real blockers are: (a) the scanner discriminator above; (b) Rhino-dependent runtime tests cannot
-  run on the hosted runners, so they stay local/headless, exactly as `SAM.Core.Grasshopper.Tests` does
-  today (it is deliberately **not** in `SAM.sln`); (c) a `--check` needs a committed baseline, so a CI
-  job can only be switched on per repository *after* that repository's baseline PR.
+- The validator is pure standard-library Python 3 (`json`, `os`, `re`, `sys`, `argparse`, `fnmatch`,
+  `xml.etree.ElementTree`). A full scan of `SAM` (460 components, ~1000 files over 6 Grasshopper
+  projects among 25 project files) takes roughly 25 s; the whole active fleet is a few minutes. **Python
+  availability is not the blocker** — `ubuntu-latest` and `windows-2022` both ship Python 3, and the
+  local runs here used the RhinoCode Python 3.13.
+- The regression suite is `design/grasshopper-icons/tools/tests/test_param_contract.py` (stdlib
+  `unittest`, no dependencies, no network): 42 tests covering the supported and the deliberately
+  unsupported declaration forms, type changes, custom and external parameter types, indirect
+  inheritance, unusual component names, collection-based registration, legitimate List/Tree access,
+  existing nicknames, code-side defaults, and missing or incomplete baselines.
+- The real blockers are: (a) a `--check` needs a committed baseline, so a CI job can only be switched on
+  per repository *after* that repository's baseline PR; (b) Rhino-dependent runtime tests cannot run on
+  the hosted runners, so they stay local/headless, exactly as `SAM.Core.Grasshopper.Tests` does today
+  (it is deliberately **not** in `SAM.sln`).
 - Recommended shape when the owner is ready: one workflow step in the repository's own `test.yml`
-  (`uses: actions/checkout@v4` of `SAM` at a pinned ref, then
-  `python <path>/param_contract.py --repo . --check`). Do not put Rhino-hosted tests in CI and do not
-  add a fleet-wide job before the per-repository baselines exist.
+  (checkout `SAM` at a pinned ref, then `python <path>/param_contract.py --repo . --check`), plus the
+  regression suite in `SAM`. Do not put Rhino-hosted tests in CI and do not add a fleet-wide job before
+  the per-repository baselines exist.
 
 This PR adds no CI job and no baseline for any repository other than the pilot already in place.
+
+## Appendix 6 — Supported declaration forms
+
+The validator reads the forms the repositories actually use. Everything here has a regression test.
+Anything outside this list is reported as `partial`/`unresolved` with a reason — never guessed.
+
+| Form | Example |
+|---|---|
+| Declarative property, `result.Add(new GH_SAMParam(…))` | `result.Add(new GH_SAMParam(new Param_Number() { … }, ParamVisibility.Binding));` |
+| Target-typed construction with a declared variable type | `Param_Brep solids = new() { Name = "_solids", … };` |
+| Object initializer with no constructor parentheses | `Param_Boolean flag = new Param_Boolean { Name = "_flag", … };` |
+| Variable reuse and reassignment | `param_Number = new() { … };` then `param_Number.SetPersistentData(0.3);` |
+| Declaration without an initializer, assigned later | `Param_String param_String;` … `param_String = new() { … };` |
+| Collection expression / `AddRange` / array initializer | `List<GH_SAMParam> result = [ new GH_SAMParam(…) ];` |
+| Verbatim identifiers | `Param_Boolean @boolean = …;` used later as `boolean` |
+| Declarations inside a statement block | parameters declared inside `foreach` / `if` in the property body |
+| Local parameter factory | `Number("_size_", "Size", 0.25)` with a `private static Param_Number Number(string name, string description, double defaultValue)` in the same class |
+| Parameter-manager registration | `manager.AddParameter(new GooWidgetParam(), "_widget", "_widget", "W", GH_ParamAccess.item);` |
+| Typed manager helpers | `manager.AddBooleanParameter("Successful", "Successful", "OK", GH_ParamAccess.item);` (and the 5-argument form with a default) |
+| Optionality set on the object | `widget.Optional = true;` before the registration call |
+| Inherited registration from an abstract base | a concrete component with no declarations of its own, whose base in the repository registers them |
+| Generic base closed by the subclass | `: GH_SAMEnumComponent<ApertureType>` → the output published as `"ApertureType"` from `typeof(T).Name` |
+| Parameter type conventions | `Param_*` (built-in), `*Param` (SAM goo), and any other constructed type name (recorded as `external` and compared exactly) |
+
+**Deliberately not supported, and reported rather than guessed:**
+
+- a parameter name or nickname that is not a literal string (a loop variable, `string.Format`,
+  interpolation, `typeof(T).Name` in a base the subclass does not close);
+- a parameter registered outside the declaration (`Params.RegisterInputParam(param)` with no
+  `GH_SAMParam` wrapper);
+- a variable that cannot be resolved to exactly one construction, or a construction whose type cannot be
+  determined;
+- a component whose base chain leaves the repository at an unknown type;
+- a project whose `.csproj` cannot be parsed as XML.
