@@ -25,9 +25,42 @@ Before making significant changes:
 3. Understand the relevant existing code, architecture, tests, and conventions.
 4. Review the current Git branch and working tree; preserve existing local changes.
 5. Continue from the documented current state.
+6. Before changing, adding or removing a Grasshopper component, or any of its parameters,
+   descriptions, visibility, defaults or version, read and follow
+   `docs/GH_COMPONENT_STANDARDS.md`.
 
 Prefer small, safe, targeted changes consistent with existing conventions.
 Avoid unrelated refactoring unless it is required for the task.
+
+## Grasshopper components
+
+`docs/GH_COMPONENT_STANDARDS.md` is the canonical SAM-BIM standard for Grasshopper component
+naming, descriptions, Diagnostics, versioning and migration. It is product documentation: it
+belongs on a released promotion, unlike the internal agent files. Its rules are frozen facts,
+proposals or open decisions - check the status label before relying on one.
+
+The parts that most often matter:
+
+- A published parameter `Name`, order, runtime type, access, optionality, visibility and registered
+  default, and the component `GUID`, are frozen. Never change one to satisfy a naming convention, and
+  never rename a published parameter without a declared `ParameterRename` alias and that document's
+  migration acceptance.
+- Which inputs are required, optional, defaulted or hidden is decided by `Optional`,
+  `ParamVisibility`, registered persistent data and the code-side fallback - not by the
+  `_name` / `_name_` / `name_` marker, which only records intent.
+- Metadata validation depends on whether this repository has an approved baseline
+  (`design/grasshopper-icons/param_contract.json`). **SAM does not have one yet, so do not run
+  `--check` here.** Use the audit, which reports coverage and does not claim compatibility:
+  `python design/grasshopper-icons/tools/param_contract.py --repo .`
+  Write it to a temporary file instead of the repository with `--output <file>`.
+  A repository that *does* have an approved manifest validates with
+  `python <SAM>/design/grasshopper-icons/tools/param_contract.py --repo . --check`.
+  A component reported `partial` or `unresolved` is never a PASS: its contract was not fully
+  extracted, and the manifest records why.
+- Validator regression tests: `python design/grasshopper-icons/tools/tests/test_param_contract.py`.
+- `SAM_Psychrometrics/docs/GH-Component-Metadata-Standard.md` and
+  `documentation/GH-Parameter-Rename-Migration-Q4.md` are the pilot records; the shared
+  implementation they describe is reused, not redesigned.
 
 ## Repository operations and context
 
