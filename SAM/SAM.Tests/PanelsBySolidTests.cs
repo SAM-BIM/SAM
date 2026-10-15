@@ -161,7 +161,7 @@ namespace SAM.Tests
 
             // Assert
             Assert.Equal(0.2, Assert.Single(panels).GetValue<double>(PanelSourceParameter.PhysicalThickness), 6);
-            Assert.Contains(diagnostics, x => x.Contains("variable thickness") && x.Contains("0.3"));
+            Assert.Contains(diagnostics, x => x.Contains("Variable thickness") && x.Contains("0.3"));
         }
 
         [Fact]
@@ -171,7 +171,7 @@ namespace SAM.Tests
             Box(0, 0, 0, 4, 0.25, 3).PanelsBySolid(out List<string> diagnostics);
 
             // Assert
-            Assert.DoesNotContain(diagnostics, x => x.Contains("variable thickness"));
+            Assert.DoesNotContain(diagnostics, x => x.Contains("Variable thickness"));
         }
 
         [Fact]
@@ -272,7 +272,7 @@ namespace SAM.Tests
 
             // Assert
             Assert.Empty(panels);
-            Assert.Contains(diagnostics, x => x.Contains("not panel-like") || x.Contains("no pair"));
+            Assert.Contains(diagnostics, x => x.Contains("not panel-like") || x.Contains("No pair"));
         }
 
         private static BoundingBox3D SnappedBox(List<Panel> panels, string sourceName)
@@ -353,7 +353,65 @@ namespace SAM.Tests
 
             // Assert
             Assert.Empty(panels);
-            Assert.Contains(diagnostics, x => x.Contains("skipped"));
+            Assert.Contains(diagnostics, x => x.StartsWith("Warning: ") && x.Contains("below minThickness") && x.Contains("0.05 m"));
+        }
+
+        [Theory]
+        [InlineData(0.15, 4.0, 2.75)] // internal wall
+        [InlineData(0.2, 12.0, 6.0)] // slab proportions (12 x 6 m, 0.2 m) as a wall
+        public void PanelsBySolid_ThinElementBelowMinThickness_IsReportedAtItsRealThickness(double thickness, double length, double height)
+        {
+            // Arrange: minThickness above the element's thickness (0.25 m, set in Grasshopper in place of
+            // maxThicknessRatio). The element's ends and its top and bottom are also opposite faces with material
+            // between them; they must not be taken for its sides, even with a ratio that would accept them.
+            Shell element = Box(0, 0, 0, length, thickness, height);
+
+            // Act
+            List<Panel> panels = element.PanelsBySolid(out List<string> diagnostics, minThickness: 0.25, maxThicknessRatio: 100, sourceName: "Element", sourceIndex: 7);
+
+            // Assert
+            Assert.Empty(panels);
+            string message = Assert.Single(diagnostics);
+            Assert.StartsWith("Warning: Solid #7 'Element': Skipped as below minThickness", message);
+            Assert.Contains(string.Format(System.Globalization.CultureInfo.InvariantCulture, "its thickness, {0} m,", thickness), message);
+        }
+
+        [Fact]
+        public void PanelsBySolid_HorizontalSlabBelowMinThickness_IsNotTurnedIntoWalls()
+        {
+            // Arrange: 12 x 6 m ground slab, 0.2 m thick.
+            Shell slab = Box(0, 0, 0, 12, 6, 0.2);
+
+            // Act
+            List<Panel> panels = slab.PanelsBySolid(out List<string> diagnostics, minThickness: 0.25, maxThicknessRatio: 100);
+
+            // Assert
+            Assert.Empty(panels);
+            Assert.Contains(diagnostics, x => x.Contains("below minThickness") && x.Contains("0.2 m"));
+
+            // Below the slab's thickness it is one floor panel with its measured thickness.
+            Panel panel = Assert.Single(slab.PanelsBySolid(out _, minThickness: 0.05));
+            Assert.Equal(PanelType.Floor, panel.PanelType);
+            Assert.Equal(0.2, panel.GetValue<double>(PanelSourceParameter.PhysicalThickness), 6);
+        }
+
+        [Theory]
+        [InlineData(0.6, 8.0, 3.5)]
+        [InlineData(1.0, 10.0, 6.0)]
+        public void PanelsBySolid_ThickHistoricWall_IsOneWallAtItsMeasuredThickness(double thickness, double length, double height)
+        {
+            // Arrange
+            Shell wall = Box(0, 0, 0, length, thickness, height);
+
+            // Act
+            List<Panel> panels = wall.PanelsBySolid(out List<string> diagnostics);
+
+            // Assert
+            Panel panel = Assert.Single(panels);
+            Assert.Equal(PanelType.Wall, panel.PanelType);
+            Assert.Equal(thickness, panel.GetValue<double>(PanelSourceParameter.PhysicalThickness), 6);
+            Assert.Equal(length * height, panel.GetArea(), 3);
+            Assert.Contains(diagnostics, x => x.StartsWith("Info: ") && x.Contains("Created 1 panel,"));
         }
     }
 }

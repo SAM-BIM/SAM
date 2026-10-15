@@ -76,7 +76,7 @@ namespace SAM.Analytical
                 if (member == null)
                 {
                     excluded.Add(i);
-                    diagnostics.Add(string.Format("{0}: skipped (not a closed solid or planar face).", MemberLabel(solids[i], i)));
+                    diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, "Solid " + MemberLabel(solids[i], i), "Skipped. It is not a closed solid or a planar face."));
                     continue;
                 }
 
@@ -154,19 +154,19 @@ namespace SAM.Analytical
             List<ApertureConstruction> apertureConstructions_Input = apertureConstructions?.Where(x => x != null).ToList();
             foreach (List<ApertureMember> assembly in assemblies)
             {
-                string label = string.Join(" + ", assembly.ConvertAll(x => MemberLabel(x.Solid, x.Index)));
+                string label = (assembly.Count == 1 ? "Solid " : "Solids ") + string.Join(" + ", assembly.ConvertAll(x => MemberLabel(x.Solid, x.Index)));
                 ApertureType apertureType = assembly.Any(x => x.Solid.ApertureType == ApertureType.Door) ? ApertureType.Door : ApertureType.Window;
 
                 List<Aperture> apertures = AperturesByAssembly(assembly, apertureType, apertureConstructions_Input, maxGap, maxDepthRatio, minArea, tolerance_Angle, tolerance_Distance, out string message);
                 if (apertures == null || apertures.Count == 0)
                 {
                     excluded.AddRange(assembly.ConvertAll(x => x.Index));
-                    diagnostics.Add(string.Format("{0}: skipped ({1}).", label, message));
+                    diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, label, string.Format("Skipped. {0}.", message)));
                     continue;
                 }
 
                 bool mixed = assembly.Any(x => x.Solid.ApertureType == ApertureType.Window) && apertureType == ApertureType.Door;
-                diagnostics.Add(string.Format("{0} {1} from {2} solid(s){3}: {4}", apertureType, label, assembly.Count, mixed ? " (window members joined a door)" : string.Empty, message));
+                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, label, string.Format("Created {0} from {1}{2}: {3}.", Core.Query.Plural(apertures.Count, apertureType.ToString()), Core.Query.Plural(assembly.Count, "solid"), mixed ? " (window members joined a door)" : string.Empty, message)));
                 result.AddRange(apertures);
             }
 
@@ -204,7 +204,7 @@ namespace SAM.Analytical
 
             if (plane_Best == null)
             {
-                message = "no planar faces";
+                message = "It has no planar faces";
                 return null;
             }
 
@@ -256,7 +256,7 @@ namespace SAM.Analytical
             outlines.RemoveAll(x => x.GetArea() <= minArea);
             if (outlines.Count == 0)
             {
-                message = "no opening area on the assembly plane";
+                message = "It has no opening area on the assembly plane";
                 return null;
             }
 
@@ -265,7 +265,7 @@ namespace SAM.Analytical
             double minExtent = System.Math.Min(boundingBox2D.Width, boundingBox2D.Height);
             if (minExtent <= 0 || depth / minExtent > maxDepthRatio)
             {
-                message = string.Format("not planar: depth {0:0.###} m over smallest extent {1:0.###} m exceeds {2:0.###}; give separate assemblies different groups", depth, minExtent, maxDepthRatio);
+                message = string.Format(System.Globalization.CultureInfo.InvariantCulture, "Not planar: depth {0:0.###} m over smallest extent {1:0.###} m exceeds maxDepthRatio ({2:0.###}). Put separate assemblies in different Rhino groups", depth, minExtent, maxDepthRatio);
                 return null;
             }
 
@@ -277,7 +277,7 @@ namespace SAM.Analytical
 
             if (apertureConstruction == null)
             {
-                message = string.Format("no {0} aperture construction", apertureType);
+                message = string.Format("No {0} aperture construction is available", apertureType);
                 return null;
             }
 
@@ -314,11 +314,11 @@ namespace SAM.Analytical
                 aperture.SetValue(ApertureSourceParameter.SourceThickness, depth);
 
                 BoundingBox2D boundingBox2D_Outline = new BoundingBox2D((outline.ExternalEdge2D as ISegmentable2D)?.GetPoints() ?? point2Ds);
-                sizes.Add(string.Format("{0:0.###} x {1:0.###} m ({2:0.###} m²)", boundingBox2D_Outline.Width, boundingBox2D_Outline.Height, outline.GetArea()));
+                sizes.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.###} x {1:0.###} m ({2:0.###} m²)", boundingBox2D_Outline.Width, boundingBox2D_Outline.Height, outline.GetArea()));
                 result.Add(aperture);
             }
 
-            message = string.Format("{0}, depth {1:0.###} m{2}", string.Join(", ", sizes), depth, result.Count > 1 ? string.Format("; {0} separate openings (members further apart than maxGap)", result.Count) : string.Empty);
+            message = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}, depth {1:0.###} m{2}", string.Join(", ", sizes), depth, result.Count > 1 ? string.Format(" ({0} separate openings: members further apart than maxGap)", result.Count) : string.Empty);
             return result;
         }
 

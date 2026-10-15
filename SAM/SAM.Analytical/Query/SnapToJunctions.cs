@@ -188,7 +188,7 @@ namespace SAM.Analytical
                 result.Add(snappedPanel ?? Create.Panel(panel));
             }
 
-            diagnostics.Add(string.Format("Snapped {0} panel(s): {1} edge(s) extended, {2} edge(s) trimmed (snap distance {3:0.###} m).", result.Count, extended, trimmed, snapDistance));
+            diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, null, string.Format(System.Globalization.CultureInfo.InvariantCulture, "Checked {0} for junctions: extended {1} and trimmed {2} (snap distance {3:0.###} m).", Core.Query.Plural(result.Count, "panel"), Core.Query.Plural(extended, "edge"), Core.Query.Plural(trimmed, "edge"), snapDistance)));
             return result;
         }
 

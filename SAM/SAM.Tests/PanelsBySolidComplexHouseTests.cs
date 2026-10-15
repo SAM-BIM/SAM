@@ -114,6 +114,88 @@ namespace SAM.Tests
             Assert.Equal(new List<string> { "ST_Stair_GF_to_FF", "UF_Gable_Cross_South" }, skipped.OrderBy(x => x).ToList());
         }
 
+        /// <summary>
+        /// minThickness 0.25 m (typed into minThickness_ in Grasshopper in place of maxThicknessRatio_): the 0.15 m
+        /// internal walls and the 0.2 m ground slab are below it and must be reported at their real thickness. They
+        /// were reported as 0.3 to 12 m thick elements (their ends, or top and bottom), with a ratio advice of up to 60.
+        /// </summary>
+        [Fact]
+        public void ComplexHouse_MinThickness025_ReportsThinElementsAtTheirRealThickness()
+        {
+            List<ISAMGeometry3D> apertures = Load("Apertures").ConvertAll(x => (ISAMGeometry3D)x.Shell);
+            List<string> skipped = new List<string>();
+            foreach (SourceSolid solid in House.Value.Solids)
+            {
+                List<Panel> panels = solid.Shell.PanelsBySolid(out List<string> diagnostics, apertures, minThickness: 0.25, sourceName: solid.Name);
+                if (panels.Count == 0)
+                {
+                    skipped.Add(solid.Name);
+                }
+
+                string expected = solid.Name.EndsWith("_Wall_Internal") ? "0.15" : solid.Name == "GF_Slab_Ground" ? "0.2" : null;
+                if (expected == null)
+                {
+                    continue;
+                }
+
+                Assert.Empty(panels);
+                string message = Assert.Single(diagnostics);
+                Assert.StartsWith("Warning: ", message);
+                Assert.Contains(string.Format("below minThickness: its thickness, {0} m,", expected), message);
+                Assert.DoesNotContain("not panel-like", message);
+            }
+
+            Assert.Equal(11, skipped.Count);
+            Assert.Contains("ST_Stair_GF_to_FF", skipped);
+        }
+
+        [Fact]
+        public void ComplexHouse_MinThickness025_NeverTakesALengthOrHeightForAThickness()
+        {
+            // With any ratio (here 100) the old code turned the internal walls into floors 2.75 m thick and the ground
+            // slab into walls 2 to 6 m thick. No such panel may be created: the thickest element is 0.3 m.
+            List<ISAMGeometry3D> apertures = Load("Apertures").ConvertAll(x => (ISAMGeometry3D)x.Shell);
+            foreach (SourceSolid solid in House.Value.Solids.Where(x => x.Name != "ST_Stair_GF_to_FF"))
+            {
+                List<Panel> panels = solid.Shell.PanelsBySolid(out _, apertures, minThickness: 0.25, maxThicknessRatio: 100, sourceName: solid.Name).FindAll(x => x.PanelType != PanelType.Air);
+                Assert.All(panels, x => Assert.True(x.GetValue<double>(PanelSourceParameter.PhysicalThickness) <= 0.3 + 1e-6, string.Format("{0}: {1} panel {2:0.###} m thick", solid.Name, x.PanelType, x.GetValue<double>(PanelSourceParameter.PhysicalThickness))));
+                if (solid.Name.EndsWith("_Wall_Internal") || solid.Name == "GF_Slab_Ground")
+                {
+                    Assert.Empty(panels);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(0.05)]
+        [InlineData(0.08)]
+        public void ComplexHouse_MinThicknessBelowThinElements_CoversInternalWallsAndGroundSlab(double minThickness)
+        {
+            List<ISAMGeometry3D> apertures = Load("Apertures").ConvertAll(x => (ISAMGeometry3D)x.Shell);
+            List<string> uncovered = new List<string>();
+            foreach (SourceSolid solid in House.Value.Solids.Where(x => x.Name.EndsWith("_Wall_Internal") || x.Name == "GF_Slab_Ground"))
+            {
+                List<Panel> panels = solid.Shell.PanelsBySolid(out _, apertures, minThickness: minThickness, sourceName: solid.Name);
+                Assert.NotEmpty(panels);
+                PanelType panelType = solid.Name == "GF_Slab_Ground" ? PanelType.Floor : PanelType.Wall;
+                double thickness = solid.Name == "GF_Slab_Ground" ? 0.2 : 0.15;
+                Assert.All(panels, x => Assert.Equal(panelType, x.PanelType));
+                Assert.All(panels, x => Assert.Equal(thickness, x.GetValue<double>(PanelSourceParameter.PhysicalThickness), 6));
+
+                foreach ((Face3D Face, Face3D Overlap, double Thickness) side in ElementSides(solid.Shell))
+                {
+                    double area = side.Overlap.GetArea();
+                    double covered = Covered(side.Overlap, panels, side.Thickness);
+                    if (covered < 0.95 * area)
+                    {
+                        uncovered.Add(string.Format("{0}: {1:0.###} of {2:0.###} m2", solid.Name, covered, area));
+                    }
+                }
+            }
+
+            Assert.True(uncovered.Count == 0, string.Join(Environment.NewLine, uncovered));
+        }
+
         [Fact]
         public void ComplexHouse_InternalWalls_LShapedWallGivesBothLegs()
         {
