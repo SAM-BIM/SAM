@@ -25,9 +25,35 @@ Before making significant changes:
 3. Understand the relevant existing code, architecture, tests, and conventions.
 4. Review the current Git branch and working tree; preserve existing local changes.
 5. Continue from the documented current state.
+6. Before changing, adding or removing a Grasshopper component, or any of its parameters,
+   descriptions, visibility, defaults or version, read and follow
+   `docs/GH_COMPONENT_STANDARDS.md`.
 
 Prefer small, safe, targeted changes consistent with existing conventions.
 Avoid unrelated refactoring unless it is required for the task.
+
+## Grasshopper components
+
+`docs/GH_COMPONENT_STANDARDS.md` is the canonical SAM-BIM standard for Grasshopper component
+naming, descriptions, Diagnostics, versioning and migration. It is product documentation: it
+belongs on a released promotion, unlike the internal agent files. Its rules are frozen facts,
+proposals or open decisions - check the status label before relying on one.
+
+The parts that most often matter:
+
+- A published parameter `Name`, order, access, optionality, visibility and registered default,
+  and the component `GUID`, are frozen. Never change one to satisfy a naming convention, and never
+  rename a published parameter without a declared `ParameterRename` alias and that document's
+  migration acceptance.
+- Which inputs are required, optional, defaulted or hidden is decided by `Optional`,
+  `ParamVisibility`, registered persistent data and the code-side fallback - not by the
+  `_name` / `_name_` / `name_` marker, which only records intent.
+- Validate metadata changes with
+  `python design/grasshopper-icons/tools/param_contract.py --repo . --check`
+  (see `docs/GH_COMPONENT_STANDARDS.md` Appendix 4 for other repositories).
+- `SAM_Psychrometrics/docs/GH-Component-Metadata-Standard.md` and
+  `documentation/GH-Parameter-Rename-Migration-Q4.md` are the pilot records; the shared
+  implementation they describe is reused, not redesigned.
 
 ## Repository operations and context
 
