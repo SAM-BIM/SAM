@@ -5,6 +5,7 @@ using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Types;
 using SAM.Analytical.Grasshopper.Properties;
+using SAM.Core;
 using SAM.Core.Grasshopper;
 using SAM.Geometry.Grasshopper;
 using SAM.Geometry.Spatial;
@@ -29,7 +30,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.1";
+        public override string LatestComponentVersion => "1.0.2";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -40,7 +41,7 @@ namespace SAM.Analytical.Grasshopper
           : base("SAMAnalytical.CreateAperturesBySolids", "SAMAnalytical.CreateAperturesBySolids",
               "Create SAM Analytical Apertures (Windows and Doors) from closed Rhino solids of window and door members: frames, frame members, glass and door leaves.\n" +
               "Solids that touch (within maxGap_) or share a Rhino group form one assembly, which gives one Aperture: the full opening including the frame, on the assembly's mid-plane. An assembly with any door member is a Door. The assembly depth is stored as SourceThickness.\n" +
-              "A Solid or assembly is skipped, with a Warning, when it is not closed or not planar (depth over smallest extent above 0.5). log gives one line per assembly.\n" +
+              "A Solid or assembly is skipped, with a Warning, when it is not closed or not planar (depth over smallest extent above 0.5). log gives the reason. Warnings are always given in full; diagnosticDetail_ sets how much Info log adds (0 Summary, 1 Standard: one line per assembly, 2 Detailed).\n" +
               "The Apertures are not hosted: give the same solids to SAMAnalytical.CreatePanelsBySolids (apertureGeometries_) so their openings are filled, then connect them to SAMAnalytical.AddAperturesByAperture. Rhino units must be metres.",
               "SAM", "Analytical01")
         {
@@ -71,6 +72,10 @@ namespace SAM.Analytical.Grasshopper
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Voluntary));
 
+                Param_Integer param_Integer = new() { Name = "diagnosticDetail_", NickName = "diagnosticDetail_", Description = "How much Info log gives: 0 = Summary (default), 1 = Standard, 2 = Detailed. Summary is the totals and Standard adds one line per assembly (Detailed adds nothing more here). Warnings and Errors are always given in full, and the Apertures do not depend on this setting. Any other value is reported and Summary is used. Hidden by default: zoom in on the component and click + to show it.", Access = GH_ParamAccess.item, Optional = true };
+                param_Integer.SetPersistentData(0);
+                result.Add(new GH_SAMParam(param_Integer, ParamVisibility.Voluntary));
+
                 return [.. result];
             }
         }
@@ -83,7 +88,7 @@ namespace SAM.Analytical.Grasshopper
                 [
                     new GH_SAMParam(new GooApertureParam() { Name = "apertures", NickName = "apertures", Description = "SAM Analytical Apertures, one per window or door assembly (not hosted)", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
                     new GH_SAMParam(new Param_Brep() { Name = "excluded", NickName = "excluded", Description = "Solids that gave no Aperture; see log for the reason", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
-                    new GH_SAMParam(new Param_String() { Name = "log", NickName = "log", Description = "Diagnostics: a summary, then one line per assembly, as 'Severity: Solid #i 'Name': Message'. Severity is Info, Warning or Error.", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
+                    new GH_SAMParam(new Param_String() { Name = "log", NickName = "log", Description = "Diagnostics as 'Severity: Solid #i 'Name': Message'. Severity is Info, Warning or Error. A summary first, then every Warning, then the Info that diagnosticDetail_ asks for: Standard adds one line per assembly.", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
                 ];
                 return [.. result];
             }
@@ -100,8 +105,20 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
+            DiagnosticDetail diagnosticDetail = DiagnosticDetail.Summary;
+            string invalidDetail = null;
+            int index = Params.IndexOfInputParam("diagnosticDetail_");
+            if (index != -1)
+            {
+                int value = 0;
+                if (dataAccess.GetData(index, ref value) && !Core.Query.TryGetDiagnosticDetail(value, out diagnosticDetail))
+                {
+                    invalidDetail = string.Format("Input diagnosticDetail_ is {0}, which is not 0 (Summary), 1 (Standard) or 2 (Detailed). Summary is used.", value);
+                }
+            }
+
             List<GH_Brep> windows = [];
-            int index = Params.IndexOfInputParam("windows_");
+            index = Params.IndexOfInputParam("windows_");
             if (index != -1)
             {
                 dataAccess.GetDataList(index, windows);
@@ -175,11 +192,25 @@ namespace SAM.Analytical.Grasshopper
                 apertureSolids.Add(apertureSolid);
             }
 
-            List<Aperture> apertures = apertureSolids.AperturesBySolids(out List<string> log, out List<int> excluded, apertureConstructions, maxGap);
-            log.Insert(0, Core.Query.DiagnosticMessage(Core.LogRecordType.Message, null, string.Format("Created {0} ({1}, {2}) from {3} ({4}, {5}; numbered windows_ first). {6}",
+            Core.Diagnostics diagnostics = new(diagnosticDetail);
+            List<Aperture> apertures = apertureSolids.AperturesBySolids(diagnostics, out List<int> excluded, apertureConstructions, maxGap);
+
+            // The totals come first, then an invalid diagnosticDetail_, then everything the assemblies recorded.
+            Core.Diagnostics log = new(diagnosticDetail);
+            log.Add(DiagnosticSeverity.Info, DiagnosticDetail.Summary, null, () => string.Format("Created {0} ({1}, {2}) from {3} ({4}, {5}; numbered windows_ first). {6}",
                 Core.Query.Plural(apertures.Count, "aperture"), Core.Query.Plural(apertures.Count(x => x.ApertureType == ApertureType.Window), "window"), Core.Query.Plural(apertures.Count(x => x.ApertureType == ApertureType.Door), "door"),
                 Core.Query.Plural(breps.Count, "solid"), Core.Query.Plural(windows.Count, "window solid"), Core.Query.Plural(doors.Count, "door solid"),
-                excluded.Count == 0 ? "No solids were skipped." : string.Format("Skipped {0}.", Core.Query.Plural(excluded.Count, "solid")))));
+                excluded.Count == 0 ? "No solids were skipped." : string.Format("Skipped {0}.", Core.Query.Plural(excluded.Count, "solid"))), BySolidsDiagnosticCode.AperturesSummary);
+            if (invalidDetail != null)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, invalidDetail);
+                log.Add(new Core.Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, null, invalidDetail, BySolidsDiagnosticCode.InvalidDetail));
+            }
+
+            foreach (Core.Diagnostic diagnostic in diagnostics)
+            {
+                log.Add(diagnostic);
+            }
 
             if (excluded.Count != 0)
             {
@@ -201,7 +232,7 @@ namespace SAM.Analytical.Grasshopper
             index = Params.IndexOfOutputParam("log");
             if (index != -1)
             {
-                dataAccess.SetDataList(index, log);
+                dataAccess.SetDataList(index, log.Format());
             }
         }
     }
