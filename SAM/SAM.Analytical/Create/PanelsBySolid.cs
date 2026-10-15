@@ -68,14 +68,50 @@ namespace SAM.Analytical
             double tolerance_Snap = Tolerance.MacroDistance,
             int? sourceIndex = null)
         {
-            diagnostics = new List<string>();
+            // Detailed keeps every line this overload has always returned. PanelsNone is new and structured-only.
+            Core.Diagnostics diagnostics_Structured = new Core.Diagnostics(DiagnosticDetail.Detailed);
+            List<Panel> result = PanelsBySolid(shell, diagnostics_Structured, apertureGeometries, minThickness, maxThicknessRatio, airForUnclaimedOpenings, sourceName, sourceId, sourceLayer, tolerance_Angle, tolerance_Distance, tolerance_Snap, sourceIndex);
+            diagnostics = diagnostics_Structured.Where(x => x.Code != BySolidsDiagnosticCode.PanelsNone).Select(x => x.ToString()).ToList();
+            return result;
+        }
+
+        /// <summary>
+        /// <see cref="PanelsBySolid(Shell, out List{string}, IEnumerable{ISAMGeometry3D}, double, double, bool, string, string, string, double, double, double, int?)"/>
+        /// with structured diagnostics: same geometry and parameters, same message text, but each record also carries its
+        /// severity, <see cref="BySolidsDiagnosticCode"/>, <see cref="Diagnostic.SourceIndex"/> and, where there is one, the measured
+        /// value and its limit. The result does not depend on the detail level of <paramref name="diagnostics"/>.
+        /// <list type="bullet">
+        /// <item><b>Warning</b>, at every level: a skipped solid, or a section region that could not be turned into a panel.</item>
+        /// <item><b>Info, Standard</b>: panels created per element plane, and variable thickness.</item>
+        /// <item><b>Info, Detailed</b>: the other face-pair planes that were ignored (their messages are built only when kept).</item>
+        /// </list>
+        /// </summary>
+        /// <param name="shell">Closed solid of one building element, in metres.</param>
+        /// <param name="diagnostics">Collection the records are appended to; its <see cref="Core.Diagnostics.Detail"/> decides which Info records are kept. Null collects nothing.</param>
+        /// <remarks>All other parameters are those of the <c>out List&lt;string&gt;</c> overload.</remarks>
+        public static List<Panel> PanelsBySolid(
+            this Shell shell,
+            Core.Diagnostics diagnostics,
+            IEnumerable<ISAMGeometry3D> apertureGeometries = null,
+            double minThickness = 0.08,
+            double maxThicknessRatio = 0.2,
+            bool airForUnclaimedOpenings = true,
+            string sourceName = null,
+            string sourceId = null,
+            string sourceLayer = null,
+            double tolerance_Angle = Tolerance.Angle,
+            double tolerance_Distance = Tolerance.Distance,
+            double tolerance_Snap = Tolerance.MacroDistance,
+            int? sourceIndex = null)
+        {
+            diagnostics = diagnostics ?? new Core.Diagnostics();
             List<Panel> result = new List<Panel>();
             string subject = SolidSubject(sourceName, sourceIndex);
 
             List<Face3D> face3Ds = shell?.Face3Ds?.Where(x => x != null && x.GetPlane() != null && !double.IsNaN(x.GetArea())).ToList();
             if (face3Ds == null || face3Ds.Count < 4)
             {
-                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, subject, "Skipped. It is not a closed solid."));
+                AddWarning(diagnostics, BySolidsDiagnosticCode.PanelsNotClosed, subject, sourceIndex, "Skipped. It is not a closed solid.");
                 return result;
             }
 
@@ -87,40 +123,46 @@ namespace SAM.Analytical
                 // The reason given is that of the element's main plane (the largest overlap): for a 0.15 m wall below
                 // minThickness that is its two sides, not its ends or its top and bottom.
                 ElementPlane best = rejected.FirstOrDefault();
-                string message;
                 if (best == null)
                 {
-                    message = "Skipped. No pair of opposite parallel faces with material between them was found.";
+                    AddWarning(diagnostics, BySolidsDiagnosticCode.PanelsNoFacePair, subject, sourceIndex, "Skipped. No pair of opposite parallel faces with material between them was found.");
                 }
                 else if (best.TooThin)
                 {
-                    message = FormatInvariant("Skipped as below minThickness: its thickness, {0:0.###} m, is less than minThickness ({1:0.###} m). If it is a wall, floor or roof, lower minThickness below {0:0.###} m.", best.Thickness, minThickness);
+                    AddWarning(diagnostics, BySolidsDiagnosticCode.PanelsBelowMinThickness, subject, sourceIndex, FormatInvariant("Skipped as below minThickness: its thickness, {0:0.###} m, is less than minThickness ({1:0.###} m). If it is a wall, floor or roof, lower minThickness below {0:0.###} m.", best.Thickness, minThickness), best.Thickness, minThickness, "m");
                 }
                 else
                 {
-                    message = FormatInvariant("Skipped as not panel-like: thickness {0:0.###} m over smallest extent {1:0.###} m gives a ratio of {2:0.###}, above maxThicknessRatio ({3:0.###}). A maxThicknessRatio above {2:0.###} would keep it.", best.Thickness, best.MinExtent, best.Slenderness, maxThicknessRatio);
+                    AddWarning(diagnostics, BySolidsDiagnosticCode.PanelsNotPanelLike, subject, sourceIndex, FormatInvariant("Skipped as not panel-like: thickness {0:0.###} m over smallest extent {1:0.###} m gives a ratio of {2:0.###}, above maxThicknessRatio ({3:0.###}). A maxThicknessRatio above {2:0.###} would keep it.", best.Thickness, best.MinExtent, best.Slenderness, maxThicknessRatio), best.Slenderness, maxThicknessRatio, "-");
                 }
 
-                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, subject, message));
                 return result;
             }
 
             if (notPanelLike.Count != 0)
             {
-                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, subject, FormatInvariant("Ignored {0} that {1} not panel-like (thickness / smallest extent: {2}).", Core.Query.Plural(notPanelLike.Count, "other face-pair plane"), notPanelLike.Count == 1 ? "is" : "are", string.Join(", ", notPanelLike.Take(5).Select(x => FormatInvariant("{0:0.###} / {1:0.###} m", x.Thickness, x.MinExtent))))));
+                diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Detailed, subject, () => FormatInvariant("Ignored {0} that {1} not panel-like (thickness / smallest extent: {2}).", Core.Query.Plural(notPanelLike.Count, "other face-pair plane"), notPanelLike.Count == 1 ? "is" : "are", string.Join(", ", notPanelLike.Take(5).Select(x => FormatInvariant("{0:0.###} / {1:0.###} m", x.Thickness, x.MinExtent)))), BySolidsDiagnosticCode.PanelsIgnoredNotPanelLike, sourceIndex);
             }
 
             if (thin.Count != 0)
             {
-                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, subject, FormatInvariant("Ignored {0} below minThickness ({1:0.###} m): {2} m.", Core.Query.Plural(thin.Count, "other face-pair plane"), minThickness, string.Join(", ", thin.Take(5).Select(x => FormatInvariant("{0:0.###}", x.Thickness))))));
+                diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Detailed, subject, () => FormatInvariant("Ignored {0} below minThickness ({1:0.###} m): {2} m.", Core.Query.Plural(thin.Count, "other face-pair plane"), minThickness, string.Join(", ", thin.Take(5).Select(x => FormatInvariant("{0:0.###}", x.Thickness)))), BySolidsDiagnosticCode.PanelsIgnoredBelowMinThickness, sourceIndex, null, minThickness, "m");
             }
 
+            bool warned = false;
             double minOpeningArea = System.Math.Max(tolerance_Snap * tolerance_Snap, tolerance_Distance);
             for (int k = 0; k < elementPlanes.Count; k++)
             {
                 ElementPlane elementPlane = elementPlanes[k];
                 string subject_Plane = elementPlanes.Count == 1 ? subject : FormatInvariant("{0}, plane {1} of {2} (normal {3:0.###}, {4:0.###}, {5:0.###})", subject, k + 1, elementPlanes.Count, elementPlane.MidPlane.Normal.X, elementPlane.MidPlane.Normal.Y, elementPlane.MidPlane.Normal.Z);
-                result.AddRange(PanelsByElementPlane(shell, elementPlane, diagnostics, subject_Plane, apertureGeometries, airForUnclaimedOpenings, sourceName, sourceId, sourceLayer, minOpeningArea, tolerance_Angle, tolerance_Distance, tolerance_Snap));
+                result.AddRange(PanelsByElementPlane(shell, elementPlane, diagnostics, subject_Plane, sourceIndex, apertureGeometries, airForUnclaimedOpenings, sourceName, sourceId, sourceLayer, minOpeningArea, tolerance_Angle, tolerance_Distance, tolerance_Snap, out bool warned_Plane));
+                warned |= warned_Plane;
+            }
+
+            // A solid that gave nothing must say why at every detail level; the per-plane Info line is only Standard.
+            if (result.Count == 0 && !warned)
+            {
+                AddWarning(diagnostics, BySolidsDiagnosticCode.PanelsNone, subject, sourceIndex, "Skipped. No panel could be created from its element planes.");
             }
 
             return result;
@@ -142,6 +184,11 @@ namespace SAM.Analytical
             return named ? string.Format("Solid {0} '{1}'", index, sourceName) : string.Format("Solid {0}", index);
         }
 
+        private static void AddWarning(Core.Diagnostics diagnostics, string code, string subject, int? sourceIndex, string message, double? value = null, double? limit = null, string unit = null)
+        {
+            diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, subject, message, code, sourceIndex, value, limit, unit));
+        }
+
         private static string FormatInvariant(string format, params object[] args)
         {
             return string.Format(System.Globalization.CultureInfo.InvariantCulture, format, args);
@@ -152,28 +199,30 @@ namespace SAM.Analytical
         /// that the plane's own thickness pairs support, with aperture-claimed openings filled and unclaimed holes
         /// left open (optionally as Air panels).
         /// </summary>
-        private static List<Panel> PanelsByElementPlane(Shell shell, ElementPlane elementPlane, List<string> diagnostics, string label, IEnumerable<ISAMGeometry3D> apertureGeometries, bool airForUnclaimedOpenings, string sourceName, string sourceId, string sourceLayer, double minOpeningArea, double tolerance_Angle, double tolerance_Distance, double tolerance_Snap)
+        private static List<Panel> PanelsByElementPlane(Shell shell, ElementPlane elementPlane, Core.Diagnostics diagnostics, string label, int? sourceIndex, IEnumerable<ISAMGeometry3D> apertureGeometries, bool airForUnclaimedOpenings, string sourceName, string sourceId, string sourceLayer, double minOpeningArea, double tolerance_Angle, double tolerance_Distance, double tolerance_Snap, out bool warned)
         {
+            warned = false;
             List<Panel> result = new List<Panel>();
             Plane midPlane = elementPlane.MidPlane;
             double thickness = elementPlane.Thickness;
 
             if (elementPlane.OtherThicknesses.Count != 0)
             {
-                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, label, FormatInvariant("Variable thickness: parts of it are also {0} m thick. The PhysicalThickness stored is the main one, {1:0.###} m (the largest pair of opposite faces).", string.Join(", ", elementPlane.OtherThicknesses.ConvertAll(x => x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))), thickness)));
+                diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Standard, label, () => FormatInvariant("Variable thickness: parts of it are also {0} m thick. The PhysicalThickness stored is the main one, {1:0.###} m (the largest pair of opposite faces).", string.Join(", ", elementPlane.OtherThicknesses.ConvertAll(x => x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))), thickness), BySolidsDiagnosticCode.PanelsVariableThickness, sourceIndex, thickness, null, "m");
             }
 
             List<Face3D> sections = shell.Section(midPlane, true, tolerance_Angle, tolerance_Distance, tolerance_Snap);
             if (sections == null || sections.Count == 0)
             {
-                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, label, "Skipped. The mid-plane does not cut the solid."));
+                AddWarning(diagnostics, BySolidsDiagnosticCode.PanelsMidPlaneMisses, label, sourceIndex, "Skipped. The mid-plane does not cut the solid.");
+                warned = true;
                 return result;
             }
 
             List<Face2D> apertureFootprints = ApertureFootprints(apertureGeometries, midPlane, thickness, tolerance_Snap);
             List<Face2D> pairFootprints = elementPlane.Footprints.ConvertAll(x => midPlane.Convert(x)).FindAll(x => x != null);
 
-            int filledHoles = 0, openHoles = 0, airHoles = 0, filledNotches = 0, keptNotches = 0, crossSections = 0;
+            int filledHoles = 0, openHoles = 0, airHoles = 0, filledNotches = 0, keptNotches = 0, crossSections = 0, failedRegions = 0;
             foreach (Face3D section in sections)
             {
                 // The section also returns the voids themselves as faces; keep only regions of material.
@@ -266,7 +315,7 @@ namespace SAM.Analytical
                 Face3D hostFace3D = host == null ? null : midPlane.Convert(host);
                 if (hostFace3D == null || !hostFace3D.IsValid())
                 {
-                    diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, label, "A section region could not be turned into a panel."));
+                    failedRegions++;
                     continue;
                 }
 
@@ -296,29 +345,39 @@ namespace SAM.Analytical
                 }
             }
 
-            // Only what happened is listed: no sentence for a count of zero.
-            List<string> sentences = new List<string> { FormatInvariant("Created {0}, {1:0.###} m thick.", Core.Query.Plural(result.Count(x => x.PanelType != PanelType.Air), "panel"), thickness) };
-            if (filledHoles != 0 || filledNotches != 0)
+            // One Warning per element plane, however many regions failed.
+            if (failedRegions != 0)
             {
-                sentences.Add(FormatInvariant("Filled {0} for apertures.", string.Join(" and ", new[] { filledHoles == 0 ? null : Core.Query.Plural(filledHoles, "hole"), filledNotches == 0 ? null : Core.Query.Plural(filledNotches, "notch", "notches") }.Where(x => x != null))));
+                AddWarning(diagnostics, BySolidsDiagnosticCode.PanelsRegionFailed, label, sourceIndex, failedRegions == 1 ? "A section region could not be turned into a panel." : FormatInvariant("{0} section regions could not be turned into panels.", failedRegions), failedRegions);
+                warned = true;
             }
 
-            if (openHoles != 0)
+            diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Standard, label, () =>
             {
-                sentences.Add(FormatInvariant("Left {0} open in the host panel{1}.",Core.Query.Plural(openHoles, "unclaimed hole"), airHoles == 0 ? string.Empty : FormatInvariant(", filled by {0}", Core.Query.Plural(airHoles, "Air Panel"))));
-            }
+                // Only what happened is listed: no sentence for a count of zero.
+                List<string> sentences = new List<string> { FormatInvariant("Created {0}, {1:0.###} m thick.", Core.Query.Plural(result.Count(x => x.PanelType != PanelType.Air), "panel"), thickness) };
+                if (filledHoles != 0 || filledNotches != 0)
+                {
+                    sentences.Add(FormatInvariant("Filled {0} for apertures.", string.Join(" and ", new[] { filledHoles == 0 ? null : Core.Query.Plural(filledHoles, "hole"), filledNotches == 0 ? null : Core.Query.Plural(filledNotches, "notch", "notches") }.Where(x => x != null))));
+                }
 
-            if (keptNotches != 0)
-            {
-                sentences.Add(FormatInvariant("Kept {0} as the outline.", Core.Query.Plural(keptNotches, "unclaimed notch", "unclaimed notches")));
-            }
+                if (openHoles != 0)
+                {
+                    sentences.Add(FormatInvariant("Left {0} open in the host panel{1}.", Core.Query.Plural(openHoles, "unclaimed hole"), airHoles == 0 ? string.Empty : FormatInvariant(", filled by {0}", Core.Query.Plural(airHoles, "Air Panel"))));
+                }
 
-            if (crossSections != 0)
-            {
-                sentences.Add(FormatInvariant("Left {0} of the solid's other elements to their own planes.", Core.Query.Plural(crossSections, "cross-section")));
-            }
+                if (keptNotches != 0)
+                {
+                    sentences.Add(FormatInvariant("Kept {0} as the outline.", Core.Query.Plural(keptNotches, "unclaimed notch", "unclaimed notches")));
+                }
 
-            diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, label, string.Join(" ", sentences)));
+                if (crossSections != 0)
+                {
+                    sentences.Add(FormatInvariant("Left {0} of the solid's other elements to their own planes.", Core.Query.Plural(crossSections, "cross-section")));
+                }
+
+                return string.Join(" ", sentences);
+            }, BySolidsDiagnosticCode.PanelsCreated, sourceIndex, thickness, null, "m");
 
             return result;
         }

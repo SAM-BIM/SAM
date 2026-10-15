@@ -55,7 +55,38 @@ namespace SAM.Analytical
             double tolerance_Angle = Tolerance.Angle,
             double tolerance_Distance = Tolerance.Distance)
         {
-            diagnostics = new List<string>();
+            // Detailed keeps every line this overload has always returned.
+            Core.Diagnostics diagnostics_Structured = new Core.Diagnostics(DiagnosticDetail.Detailed);
+            List<Aperture> result = AperturesBySolids(apertureSolids, diagnostics_Structured, out excluded, apertureConstructions, maxGap, maxDepthRatio, tolerance_Angle, tolerance_Distance);
+            diagnostics = diagnostics_Structured.Format();
+            return result;
+        }
+
+        /// <summary>
+        /// <see cref="AperturesBySolids(IEnumerable{ApertureSolid}, out List{string}, out List{int}, IEnumerable{ApertureConstruction}, double, double, double, double)"/>
+        /// with structured diagnostics: same apertures, same message text, but each record also carries its severity,
+        /// <see cref="BySolidsDiagnosticCode"/> and <see cref="Diagnostic.SourceIndex"/> (the member's position, or the first member's of an assembly).
+        /// The apertures do not depend on the detail level of <paramref name="diagnostics"/>.
+        /// <list type="bullet">
+        /// <item><b>Warning</b>, at every level: a member that is not a closed solid or planar face, and a skipped assembly.</item>
+        /// <item><b>Info, Standard</b>: the apertures created from each assembly.</item>
+        /// </list>
+        /// </summary>
+        /// <param name="apertureSolids">Window and door members, each with its explicit aperture type and source.</param>
+        /// <param name="diagnostics">Collection the records are appended to; its <see cref="Core.Diagnostics.Detail"/> decides which Info records are kept. Null collects nothing.</param>
+        /// <param name="excluded">Indexes of members that did not contribute to any aperture.</param>
+        /// <remarks>All other parameters are those of the <c>out List&lt;string&gt;</c> overload.</remarks>
+        public static List<Aperture> AperturesBySolids(
+            this IEnumerable<ApertureSolid> apertureSolids,
+            Core.Diagnostics diagnostics,
+            out List<int> excluded,
+            IEnumerable<ApertureConstruction> apertureConstructions = null,
+            double maxGap = 0.01,
+            double maxDepthRatio = 0.5,
+            double tolerance_Angle = Tolerance.Angle,
+            double tolerance_Distance = Tolerance.Distance)
+        {
+            diagnostics = diagnostics ?? new Core.Diagnostics();
             excluded = new List<int>();
             List<Aperture> result = new List<Aperture>();
 
@@ -76,7 +107,7 @@ namespace SAM.Analytical
                 if (member == null)
                 {
                     excluded.Add(i);
-                    diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, "Solid " + MemberLabel(solids[i], i), "Skipped. It is not a closed solid or a planar face."));
+                    diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, "Solid " + MemberLabel(solids[i], i), "Skipped. It is not a closed solid or a planar face.", BySolidsDiagnosticCode.AperturesNotClosed, i));
                     continue;
                 }
 
@@ -157,16 +188,17 @@ namespace SAM.Analytical
                 string label = (assembly.Count == 1 ? "Solid " : "Solids ") + string.Join(" + ", assembly.ConvertAll(x => MemberLabel(x.Solid, x.Index)));
                 ApertureType apertureType = assembly.Any(x => x.Solid.ApertureType == ApertureType.Door) ? ApertureType.Door : ApertureType.Window;
 
-                List<Aperture> apertures = AperturesByAssembly(assembly, apertureType, apertureConstructions_Input, maxGap, maxDepthRatio, minArea, tolerance_Angle, tolerance_Distance, out string message);
+                List<Aperture> apertures = AperturesByAssembly(assembly, apertureType, apertureConstructions_Input, maxGap, maxDepthRatio, minArea, tolerance_Angle, tolerance_Distance, out AssemblyOutcome outcome);
+                int sourceIndex = assembly[0].Index;
                 if (apertures == null || apertures.Count == 0)
                 {
                     excluded.AddRange(assembly.ConvertAll(x => x.Index));
-                    diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, label, string.Format("Skipped. {0}.", message)));
+                    diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, label, string.Format("Skipped. {0}.", outcome.Message), outcome.Code, sourceIndex, outcome.Value, outcome.Limit, outcome.Unit));
                     continue;
                 }
 
                 bool mixed = assembly.Any(x => x.Solid.ApertureType == ApertureType.Window) && apertureType == ApertureType.Door;
-                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, label, string.Format("Created {0} from {1}{2}: {3}.", Core.Query.Plural(apertures.Count, apertureType.ToString()), Core.Query.Plural(assembly.Count, "solid"), mixed ? " (window members joined a door)" : string.Empty, message)));
+                diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Standard, label, () => string.Format("Created {0} from {1}{2}: {3}.", Core.Query.Plural(apertures.Count, apertureType.ToString()), Core.Query.Plural(assembly.Count, "solid"), mixed ? " (window members joined a door)" : string.Empty, outcome.Message), BySolidsDiagnosticCode.AperturesCreated, sourceIndex, outcome.Value, null, outcome.Unit);
                 result.AddRange(apertures);
             }
 
@@ -174,9 +206,9 @@ namespace SAM.Analytical
             return result;
         }
 
-        private static List<Aperture> AperturesByAssembly(List<ApertureMember> assembly, ApertureType apertureType, List<ApertureConstruction> apertureConstructions, double maxGap, double maxDepthRatio, double minArea, double tolerance_Angle, double tolerance_Distance, out string message)
+        private static List<Aperture> AperturesByAssembly(List<ApertureMember> assembly, ApertureType apertureType, List<ApertureConstruction> apertureConstructions, double maxGap, double maxDepthRatio, double minArea, double tolerance_Angle, double tolerance_Distance, out AssemblyOutcome outcome)
         {
-            message = null;
+            outcome = default;
 
             // Plane: the candidate face normal (largest faces first) along which the assembly is thinnest.
             List<Point3D> point3Ds = assembly.SelectMany(x => x.Point3Ds).ToList();
@@ -204,7 +236,7 @@ namespace SAM.Analytical
 
             if (plane_Best == null)
             {
-                message = "It has no planar faces";
+                outcome = new AssemblyOutcome(BySolidsDiagnosticCode.AperturesNoPlanarFaces, "It has no planar faces");
                 return null;
             }
 
@@ -256,7 +288,7 @@ namespace SAM.Analytical
             outlines.RemoveAll(x => x.GetArea() <= minArea);
             if (outlines.Count == 0)
             {
-                message = "It has no opening area on the assembly plane";
+                outcome = new AssemblyOutcome(BySolidsDiagnosticCode.AperturesNoOpening, "It has no opening area on the assembly plane");
                 return null;
             }
 
@@ -265,7 +297,7 @@ namespace SAM.Analytical
             double minExtent = System.Math.Min(boundingBox2D.Width, boundingBox2D.Height);
             if (minExtent <= 0 || depth / minExtent > maxDepthRatio)
             {
-                message = string.Format(System.Globalization.CultureInfo.InvariantCulture, "Not planar: depth {0:0.###} m over smallest extent {1:0.###} m exceeds maxDepthRatio ({2:0.###}). Put separate assemblies in different Rhino groups", depth, minExtent, maxDepthRatio);
+                outcome = new AssemblyOutcome(BySolidsDiagnosticCode.AperturesNotPlanar, string.Format(System.Globalization.CultureInfo.InvariantCulture, "Not planar: depth {0:0.###} m over smallest extent {1:0.###} m exceeds maxDepthRatio ({2:0.###}). Put separate assemblies in different Rhino groups", depth, minExtent, maxDepthRatio), minExtent <= 0 ? (double?)null : depth / minExtent, maxDepthRatio, "-");
                 return null;
             }
 
@@ -277,7 +309,7 @@ namespace SAM.Analytical
 
             if (apertureConstruction == null)
             {
-                message = string.Format("No {0} aperture construction is available", apertureType);
+                outcome = new AssemblyOutcome(BySolidsDiagnosticCode.AperturesNoConstruction, string.Format("No {0} aperture construction is available", apertureType));
                 return null;
             }
 
@@ -318,7 +350,7 @@ namespace SAM.Analytical
                 result.Add(aperture);
             }
 
-            message = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}, depth {1:0.###} m{2}", string.Join(", ", sizes), depth, result.Count > 1 ? string.Format(" ({0} separate openings: members further apart than maxGap)", result.Count) : string.Empty);
+            outcome = new AssemblyOutcome(BySolidsDiagnosticCode.AperturesCreated, string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}, depth {1:0.###} m{2}", string.Join(", ", sizes), depth, result.Count > 1 ? string.Format(" ({0} separate openings: members further apart than maxGap)", result.Count) : string.Empty), depth, null, "m");
             return result;
         }
 
@@ -333,6 +365,29 @@ namespace SAM.Analytical
                 .Select(x => Geometry.Planar.Create.Face2D(x.ExternalEdge2D, null))
                 .Where(x => x != null)
                 .ToList();
+        }
+
+        /// <summary>Why an assembly gave no aperture, or what it gave: message text with its code and engineering values.</summary>
+        private readonly struct AssemblyOutcome
+        {
+            public AssemblyOutcome(string code, string message, double? value = null, double? limit = null, string unit = null)
+            {
+                Code = code;
+                Message = message;
+                Value = value;
+                Limit = limit;
+                Unit = unit;
+            }
+
+            public string Code { get; }
+
+            public string Message { get; }
+
+            public double? Value { get; }
+
+            public double? Limit { get; }
+
+            public string Unit { get; }
         }
 
         private static string MemberLabel(ApertureSolid apertureSolid, int index)

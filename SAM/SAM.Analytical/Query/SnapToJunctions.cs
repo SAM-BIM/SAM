@@ -39,7 +39,24 @@ namespace SAM.Analytical
         /// <returns>New panels (same Guids, constructions and parameters) with snapped outer edges.</returns>
         public static List<Panel> SnapToJunctions(this IEnumerable<Panel> panels, out List<string> diagnostics, double snapDistance = 0.3, double tolerance_Distance = Tolerance.Distance)
         {
-            diagnostics = new List<string>();
+            Core.Diagnostics diagnostics_Structured = new Core.Diagnostics(DiagnosticDetail.Detailed);
+            List<Panel> result = SnapToJunctions(panels, diagnostics_Structured, snapDistance, tolerance_Distance);
+            diagnostics = diagnostics_Structured.Format();
+            return result;
+        }
+
+        /// <summary>
+        /// <see cref="SnapToJunctions(IEnumerable{Panel}, out List{string}, double, double)"/> with structured diagnostics:
+        /// one Summary Info record (<see cref="BySolidsDiagnosticCode.SnapChecked"/>, Value = snap distance [m]). The panels do not depend on the detail level.
+        /// </summary>
+        /// <param name="panels">Mid-surface panels, in metres.</param>
+        /// <param name="diagnostics">Collection the record is appended to. Null collects nothing.</param>
+        /// <param name="snapDistance">Maximum edge move [m]; zero returns copies of the input.</param>
+        /// <param name="tolerance_Distance">Distance tolerance [m].</param>
+        /// <returns>New panels (same Guids, constructions and parameters) with snapped outer edges.</returns>
+        public static List<Panel> SnapToJunctions(this IEnumerable<Panel> panels, Core.Diagnostics diagnostics, double snapDistance = 0.3, double tolerance_Distance = Tolerance.Distance)
+        {
+            diagnostics = diagnostics ?? new Core.Diagnostics();
             List<Panel> panels_Temp = panels?.Where(x => x != null && x.GetFace3D() != null).ToList() ?? new List<Panel>();
             if (snapDistance <= 0)
             {
@@ -188,7 +205,7 @@ namespace SAM.Analytical
                 result.Add(snappedPanel ?? Create.Panel(panel));
             }
 
-            diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, null, string.Format(System.Globalization.CultureInfo.InvariantCulture, "Checked {0} for junctions: extended {1} and trimmed {2} (snap distance {3:0.###} m).", Core.Query.Plural(result.Count, "panel"), Core.Query.Plural(extended, "edge"), Core.Query.Plural(trimmed, "edge"), snapDistance)));
+            diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Summary, null, () => string.Format(System.Globalization.CultureInfo.InvariantCulture, "Checked {0} for junctions: extended {1} and trimmed {2} (snap distance {3:0.###} m).", Core.Query.Plural(result.Count, "panel"), Core.Query.Plural(extended, "edge"), Core.Query.Plural(trimmed, "edge"), snapDistance), BySolidsDiagnosticCode.SnapChecked, null, snapDistance, null, "m");
             return result;
         }
 

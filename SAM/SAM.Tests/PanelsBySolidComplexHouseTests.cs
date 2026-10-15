@@ -26,7 +26,7 @@ namespace SAM.Tests
     /// </summary>
     public class PanelsBySolidComplexHouseTests
     {
-        private sealed class SourceSolid
+        internal sealed class SourceSolid
         {
             public string Name { get; set; }
 
@@ -37,7 +37,7 @@ namespace SAM.Tests
             public Shell Shell { get; set; }
         }
 
-        private static List<SourceSolid> Load(string key)
+        internal static List<SourceSolid> Load(string key)
         {
             string path = Path.Combine(AppContext.BaseDirectory, "Golden", "PanelsBySolid", "contemporary1_solids.json");
             JsonObject root = (JsonObject)JsonNode.Parse(File.ReadAllText(path));

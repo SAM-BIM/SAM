@@ -5,6 +5,7 @@ using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Types;
 using SAM.Analytical.Grasshopper.Properties;
+using SAM.Core;
 using SAM.Core.Grasshopper;
 using SAM.Geometry.Grasshopper;
 using SAM.Geometry.Spatial;
@@ -30,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.2";
+        public override string LatestComponentVersion => "1.0.3";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -42,7 +43,7 @@ namespace SAM.Analytical.Grasshopper
               "Create SAM Analytical Panels from closed Rhino solids of planar building elements: walls, floors, slabs, ceilings, roofs and gables.\n" +
               "Each pair of opposite parallel faces with material between them is one element side pair: its distance is the element's thickness and its mid-plane carries the Panel. A solid may hold several elements (a ring of walls, a roof with two pitches); each element plane gives its own Panels. Panel type follows the mid-plane: vertical = Wall, horizontal = Floor, sloped = Roof. The measured thickness is stored as PhysicalThickness, independent of the construction.\n" +
               "Openings occupied by apertureGeometries_ (windows, doors) are filled so Apertures can be added later; other holes (e.g. stair voids) become Air Panels. Nothing is invented: missing walls, floors or ceilings stay missing.\n" +
-              "A Solid is skipped, with a Warning, when it is thinner than minThickness_ (a thickness in metres) or not panel-like by maxThicknessRatio_ (e.g. a stair). log gives one line per Solid with the reason and the value that would keep it.\n" +
+              "A Solid is skipped, with a Warning, when it is thinner than minThickness_ (a thickness in metres) or not panel-like by maxThicknessRatio_ (e.g. a stair). log gives the reason and the value that would keep it. Warnings are always given in full; diagnosticDetail_ sets how much Info log adds (0 Summary, 1 Standard: one line per Solid, 2 Detailed).\n" +
               "Outer edges are snapped onto neighbouring mid-planes (snap_). Rhino units must be metres. Feed the Panels to SAMOCCT.CreateAdjacencyCluster.",
               "SAM", "Analytical01")
         {
@@ -78,6 +79,10 @@ namespace SAM.Analytical.Grasshopper
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Voluntary));
 
+                Param_Integer param_Integer = new() { Name = "diagnosticDetail_", NickName = "diagnosticDetail_", Description = "How much Info log gives: 0 = Summary (default), 1 = Standard, 2 = Detailed. Summary is the totals, Standard adds one line per Solid (and element plane), Detailed adds the other face-pair planes that were ignored. Warnings and Errors are always given in full, and the Panels do not depend on this setting. Any other value is reported and Summary is used. Hidden by default: zoom in on the component and click + to show it.", Access = GH_ParamAccess.item, Optional = true };
+                param_Integer.SetPersistentData(0);
+                result.Add(new GH_SAMParam(param_Integer, ParamVisibility.Voluntary));
+
                 return [.. result];
             }
         }
@@ -91,7 +96,7 @@ namespace SAM.Analytical.Grasshopper
                     new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "SAM Analytical Panels: mid-surface Panels and Air Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
                     new GH_SAMParam(new GooPanelParam() { Name = "airPanels", NickName = "airPanels", Description = "The Air Panels among panels (holes no aperture claims)", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
                     new GH_SAMParam(new Param_Integer() { Name = "excluded", NickName = "excluded", Description = "Indexes (#) of the Solids that gave no Panel; see log for the reason", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
-                    new GH_SAMParam(new Param_String() { Name = "log", NickName = "log", Description = "Diagnostics: a summary, then one line per Solid (and per element plane), as 'Severity: Solid #i 'Name': Message'. Severity is Info, Warning or Error.", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
+                    new GH_SAMParam(new Param_String() { Name = "log", NickName = "log", Description = "Diagnostics as 'Severity: Solid #i 'Name': Message'. Severity is Info, Warning or Error. A summary first, then every Warning, then the Info that diagnosticDetail_ asks for: Standard adds one line per Solid (and per element plane), Detailed also the ignored face-pair planes.", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
                 ];
                 return [.. result];
             }
@@ -108,7 +113,19 @@ namespace SAM.Analytical.Grasshopper
                 return;
             }
 
-            int index = Params.IndexOfInputParam("_solids");
+            DiagnosticDetail diagnosticDetail = DiagnosticDetail.Summary;
+            string invalidDetail = null;
+            int index = Params.IndexOfInputParam("diagnosticDetail_");
+            if (index != -1)
+            {
+                int value = 0;
+                if (dataAccess.GetData(index, ref value) && !Core.Query.TryGetDiagnosticDetail(value, out diagnosticDetail))
+                {
+                    invalidDetail = string.Format("diagnosticDetail_ {0} is not 0 (Summary), 1 (Standard) or 2 (Detailed). Summary is used.", value);
+                }
+            }
+
+            index = Params.IndexOfInputParam("_solids");
             List<GH_Brep> solids = [];
             if (index == -1 || !dataAccess.GetDataList(index, solids) || solids.Count == 0)
             {
@@ -162,7 +179,7 @@ namespace SAM.Analytical.Grasshopper
             global::Rhino.RhinoDoc rhinoDoc = global::Rhino.RhinoDoc.ActiveDoc;
             List<Panel> panels = [];
             List<int> excluded = [];
-            List<string> log = [];
+            Core.Diagnostics diagnostics = new(diagnosticDetail);
             List<string> notPanelLike = [];
             List<string> tooThin = [];
             List<string> otherSkipped = [];
@@ -189,20 +206,23 @@ namespace SAM.Analytical.Grasshopper
                 {
                     excluded.Add(i);
                     otherSkipped.Add(name);
-                    log.Add(Core.Query.DiagnosticMessage(Core.LogRecordType.Warning, "Solid " + name, "Skipped. It is not a closed solid."));
+                    diagnostics.Add(new Core.Diagnostic(Core.DiagnosticSeverity.Warning, DiagnosticDetail.Summary, "Solid " + name, "Skipped. It is not a closed solid.", BySolidsDiagnosticCode.PanelsNotClosed, i));
                     continue;
                 }
 
-                List<Panel> panels_Solid = shell.PanelsBySolid(out List<string> diagnostics, apertureGeometries, minThickness, maxThicknessRatio, airForOpenings, string.IsNullOrWhiteSpace(sourceName) ? string.Format("#{0}", i) : sourceName, sourceId, sourceLayer, sourceIndex: i);
-                log.AddRange(diagnostics);
+                int recordCount = diagnostics.Count;
+                List<Panel> panels_Solid = shell.PanelsBySolid(diagnostics, apertureGeometries, minThickness, maxThicknessRatio, airForOpenings, string.IsNullOrWhiteSpace(sourceName) ? string.Format("#{0}", i) : sourceName, sourceId, sourceLayer, sourceIndex: i);
                 if (panels_Solid == null || panels_Solid.Count == 0)
                 {
                     excluded.Add(i);
-                    if (diagnostics.Exists(x => x.Contains("below minThickness")))
+
+                    // By code, not by message text and not by Info: the reason is a Warning and is kept at every detail level.
+                    List<Core.Diagnostic> records = diagnostics.Skip(recordCount).ToList();
+                    if (records.Exists(x => x.Code == BySolidsDiagnosticCode.PanelsBelowMinThickness))
                     {
                         tooThin.Add(name);
                     }
-                    else if (diagnostics.Exists(x => x.Contains("not panel-like")))
+                    else if (records.Exists(x => x.Code == BySolidsDiagnosticCode.PanelsNotPanelLike))
                     {
                         notPanelLike.Add(name);
                     }
@@ -219,14 +239,26 @@ namespace SAM.Analytical.Grasshopper
 
             if (snap > 0 && panels.Count != 0)
             {
-                panels = panels.SnapToJunctions(out List<string> snapDiagnostics, snap);
-                log.AddRange(snapDiagnostics);
+                panels = panels.SnapToJunctions(diagnostics, snap);
             }
 
             List<Panel> airPanels = panels.FindAll(x => x.PanelType == PanelType.Air);
-            log.Insert(0, Core.Query.DiagnosticMessage(Core.LogRecordType.Message, null, string.Format("Created {0} ({1}) from {2}. {3}",
+
+            // The totals come first, then an invalid diagnosticDetail_, then everything the solids and the snapping recorded.
+            Core.Diagnostics log = new(diagnosticDetail);
+            log.Add(DiagnosticSeverity.Info, DiagnosticDetail.Summary, null, () => string.Format("Created {0} ({1}) from {2}. {3}",
                 Core.Query.Plural(panels.Count, "panel"), Core.Query.Plural(airPanels.Count, "Air Panel"), Core.Query.Plural(solids.Count, "solid"),
-                excluded.Count == 0 ? "No solids were skipped." : string.Format("Skipped {0}.", Core.Query.Plural(excluded.Count, "solid")))));
+                excluded.Count == 0 ? "No solids were skipped." : string.Format("Skipped {0}.", Core.Query.Plural(excluded.Count, "solid"))), BySolidsDiagnosticCode.PanelsSummary);
+            if (invalidDetail != null)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, invalidDetail);
+                log.Add(new Core.Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, null, invalidDetail, BySolidsDiagnosticCode.InvalidDetail));
+            }
+
+            foreach (Core.Diagnostic diagnostic in diagnostics)
+            {
+                log.Add(diagnostic);
+            }
 
             // One Warning per reason, naming the solids; the per-solid detail is in log. Never skip silently.
             if (tooThin.Count != 0)
@@ -266,7 +298,7 @@ namespace SAM.Analytical.Grasshopper
             index = Params.IndexOfOutputParam("log");
             if (index != -1)
             {
-                dataAccess.SetDataList(index, log);
+                dataAccess.SetDataList(index, log.Format());
             }
         }
     }
