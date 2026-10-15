@@ -1,9 +1,9 @@
 # PanelsBySolid: thin elements below minThickness, and the Diagnostics convention — Q4 (2026-10-15)
 
-Status: implemented on `fix/panels-by-solid-thin-elements-q4`, draft PR into `sow/2026-Q4`. Not merged; owner Grasshopper visual acceptance pending.
+Status: implemented on `fix/panels-by-solid-thin-elements-q4`, PR into `sow/2026-Q4`. Owner Rhino 8 / Grasshopper visual acceptance passed (2026-10-15): at `minThickness_` 0.25, 28 panels with 11 solids skipped for the documented reasons. Owner authorised the merge.
 
 - Base: `sow/2026-Q4` at `0649e15e` (after SAM#198 and SAM#199).
-- Validated content: `5f3a3ebe` (code and tests). This record follows in a docs-only commit.
+- Validated content: `5f3a3ebe` (code and tests). Later commits change this record only.
 - PR description: holds the final head and the hosted checks.
 - Follows: `documentation/PanelsBySolid-MultiElement-Q4.md` (SAM#198).
 
@@ -171,9 +171,10 @@ Machine-local, not committed: the Rhino 8 harness (`Census.csproj`, new modes `r
   - `maxThicknessRatio` ≥ 0.4: `ST_Stair_GF_to_FF` gives a **1.125 m thick Wall** (vertical mid-plane x = 3.638, 6.72 m²). At ≥ 1 it also gives a 0.176 m Floor. The stair's own log advice ("a maxThicknessRatio above 0.398 would keep it") leads to this panel.
   - `maxThicknessRatio` ≥ 0.5 with `minThickness` 0.08 or 0.05: `GF_Wall_External` gives a bogus **0.15 m Floor** (a horizontal band of the 12 × 10 m ring at z = 2.675, 13.9 m², ratio 0.15 / 0.3 = 0.5) and a **73 m² Air Panel** over the plan, and one wall plane is lost (panel count stays 10).
   - Up to 0.3 the panels are correct at `minThickness` 0.05, 0.08 and 0.25. The previously observed bogus panels (internal walls and ground slab 0.3–6 m thick) do not appear at any ratio: base gives 52 panels, 20 thicker than 0.3 m, at 0.25 / 61; this PR gives none.
+  - Raising `maxThicknessRatio_` indiscriminately can give invalid classifications. The ratio a skip message quotes is the value that would keep that solid, not a safe setting: for the stair, the quoted "above 0.398" creates the bogus 1.125 m Wall.
   - Guidance: keep `maxThicknessRatio_` at or below 0.3. A possible follow-up (separate decision): make the Warning not advise a ratio above about 0.3, or add a geometric stair test.
-- Manual Grasshopper visual acceptance: not run by the agent (owner).
+- Manual Grasshopper visual acceptance: passed by the owner (Rhino 8, `import-test.gh`).
 
 ## Next step
 
-Owner Grasshopper visual acceptance after BuildAll on this branch: `import-test.gh` at `minThickness_` 0.08 (or 0.05) with `maxThicknessRatio_` 0.25. Then owner review, merge into `sow/2026-Q4`, and the `PROJECT_PROGRESS.md` closeout.
+Merge into `sow/2026-Q4` (merge commit), check post-merge CI, then the `PROJECT_PROGRESS.md` closeout. The Diagnostics detail-level design (`_diagnosticDetail_`) is a separate, unimplemented proposal.
