@@ -30,7 +30,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.1";
+        public override string LatestComponentVersion => "1.0.2";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -39,7 +39,11 @@ namespace SAM.Analytical.Grasshopper
 
         public SAMAnalyticalCreatePanelsBySolids()
           : base("SAMAnalytical.CreatePanelsBySolids", "SAMAnalytical.CreatePanelsBySolids",
-              "Create SAM Analytical mid-surface Panels from closed solids of thin building elements (walls, slabs, ceilings, roofs, gables).\nA solid may hold several planar elements (a ring of walls, a roof with two pitches); each gets its own panels.\nOpenings claimed by aperture geometry are filled (add the apertures afterwards); unclaimed openings such as stair voids become Air panels.\nOuter edges are snapped onto neighbouring mid-planes at real junctions (snap_). Rhino document units must be metres. Feed the panels to SAMOCCT.CreateAdjacencyCluster.",
+              "Create SAM Analytical Panels from closed Rhino solids of planar building elements: walls, floors, slabs, ceilings, roofs and gables.\n" +
+              "Each pair of opposite parallel faces with material between them is one element side pair: its distance is the element's thickness and its mid-plane carries the Panel. A solid may hold several elements (a ring of walls, a roof with two pitches); each element plane gives its own Panels. Panel type follows the mid-plane: vertical = Wall, horizontal = Floor, sloped = Roof. The measured thickness is stored as PhysicalThickness, independent of the construction.\n" +
+              "Openings occupied by apertureGeometries_ (windows, doors) are filled so Apertures can be added later; other holes (e.g. stair voids) become Air Panels. Nothing is invented: missing walls, floors or ceilings stay missing.\n" +
+              "A Solid is skipped, with a Warning, when it is thinner than minThickness_ (a thickness in metres) or not panel-like by maxThicknessRatio_ (e.g. a stair). log gives one line per Solid with the reason and the value that would keep it.\n" +
+              "Outer edges are snapped onto neighbouring mid-planes (snap_). Rhino units must be metres. Feed the Panels to SAMOCCT.CreateAdjacencyCluster.",
               "SAM", "Analytical01")
         {
         }
@@ -50,27 +54,27 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                Param_Brep solids = new() { Name = "_solids", NickName = "_solids", Description = "Closed solids of building elements (wall, slab, ceiling, roof, gable), one element or several per solid (e.g. a ring of walls, a two-pitch roof). Referenced Rhino objects keep their name, id and layer on the panels.", Access = GH_ParamAccess.list };
+                Param_Brep solids = new() { Name = "_solids", NickName = "_solids", Description = "Closed solids (Breps or extrusions) of planar building elements: walls, floors, slabs, ceilings, roofs, gables. One element or several per Solid (e.g. a ring of walls, a two-pitch roof). Solids are numbered #0, #1, ... in input order in log. Referenced Rhino objects keep their name, id and layer on the Panels.", Access = GH_ParamAccess.list };
                 solids.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(solids, ParamVisibility.Binding));
 
-                Param_Geometry apertures = new() { Name = "apertureGeometries_", NickName = "apertureGeometries_", Description = "Window and door geometry (frames, glass, leaves). Openings they occupy are filled in the host panel so the apertures can be added later.", Access = GH_ParamAccess.list, Optional = true };
+                Param_Geometry apertures = new() { Name = "apertureGeometries_", NickName = "apertureGeometries_", Description = "Window and door geometry (frames, glass, leaves), the same solids given to SAMAnalytical.CreateAperturesBySolids. Openings they occupy are filled in the host Panel so the Apertures can be added later; without it every opening becomes a hole (and an Air Panel).", Access = GH_ParamAccess.list, Optional = true };
                 apertures.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(apertures, ParamVisibility.Binding));
 
-                Param_Number param_Number = new() { Name = "minThickness_", NickName = "minThickness_", Description = "Elements thinner than this are skipped (e.g. balustrades) [m]", Access = GH_ParamAccess.item, Optional = true };
+                Param_Number param_Number = new() { Name = "minThickness_", NickName = "minThickness_", Description = "Minimum element thickness [m], default 0.08 m. Elements thinner than this are skipped (e.g. balustrades, glass). This is a thickness, not a ratio: set it below your thinnest wall, floor or roof (e.g. 0.05 m for 0.1 m partitions). To keep thick or low elements, change maxThicknessRatio_ instead.", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(0.08);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new() { Name = "snap_", NickName = "snap_", Description = "Maximum distance [m] an outer panel edge moves to meet a neighbouring panel's mid-plane at a real junction (0 disables)", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new() { Name = "snap_", NickName = "snap_", Description = "Maximum distance [m] an outer Panel edge moves to meet a neighbouring Panel's mid-plane at a real junction, default 0.3 m (0 disables)", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(0.3);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Binding));
 
-                param_Number = new() { Name = "maxThicknessRatio_", NickName = "maxThicknessRatio_", Description = "Element planes whose thickness exceeds this fraction of their smallest in-plane extent are not panel-like and are skipped (e.g. stairs, treads)", Access = GH_ParamAccess.item, Optional = true };
+                param_Number = new() { Name = "maxThicknessRatio_", NickName = "maxThicknessRatio_", Description = "Maximum thickness over smallest in-plane extent [-], default 0.2. Element planes above it are not panel-like and are skipped (e.g. stairs, treads). Raise it (e.g. to 0.25) to keep thick or low elements such as a 0.3 m gable 1.4 m high; log gives the ratio that would keep each skipped Solid. Hidden by default: zoom in on the component and click + to show it.", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(0.2);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Voluntary));
 
-                Param_Boolean param_Boolean = new() { Name = "airForOpenings_", NickName = "airForOpenings_", Description = "Fill openings no aperture claims (e.g. stair voids) with Air panels so the spaces on either side stay separate", Access = GH_ParamAccess.item, Optional = true };
+                Param_Boolean param_Boolean = new() { Name = "airForOpenings_", NickName = "airForOpenings_", Description = "Fill holes no aperture claims (e.g. stair voids) with Air Panels so the spaces on either side stay separate, default true", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Voluntary));
 
@@ -84,10 +88,10 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result =
                 [
-                    new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "SAM Analytical Panels: mid-surface panels and Air panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
-                    new GH_SAMParam(new GooPanelParam() { Name = "airPanels", NickName = "airPanels", Description = "The Air panels among panels (unclaimed openings)", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
-                    new GH_SAMParam(new Param_Integer() { Name = "excluded", NickName = "excluded", Description = "Indexes of solids that produced no panel", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
-                    new GH_SAMParam(new Param_String() { Name = "log", NickName = "log", Description = "Per-solid conversion report", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
+                    new GH_SAMParam(new GooPanelParam() { Name = "panels", NickName = "panels", Description = "SAM Analytical Panels: mid-surface Panels and Air Panels", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
+                    new GH_SAMParam(new GooPanelParam() { Name = "airPanels", NickName = "airPanels", Description = "The Air Panels among panels (holes no aperture claims)", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
+                    new GH_SAMParam(new Param_Integer() { Name = "excluded", NickName = "excluded", Description = "Indexes (#) of the Solids that gave no Panel; see log for the reason", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
+                    new GH_SAMParam(new Param_String() { Name = "log", NickName = "log", Description = "Diagnostics: a summary, then one line per Solid (and per element plane), as 'Severity: Solid #i 'Name': Message'. Severity is Info, Warning or Error.", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
                 ];
                 return [.. result];
             }
@@ -160,6 +164,8 @@ namespace SAM.Analytical.Grasshopper
             List<int> excluded = [];
             List<string> log = [];
             List<string> notPanelLike = [];
+            List<string> tooThin = [];
+            List<string> otherSkipped = [];
             for (int i = 0; i < solids.Count; i++)
             {
                 GH_Brep solid = solids[i];
@@ -177,22 +183,32 @@ namespace SAM.Analytical.Grasshopper
                     }
                 }
 
-                string name = string.IsNullOrWhiteSpace(sourceName) ? string.Format("#{0}", i) : string.Format("#{0} {1}", i, sourceName);
+                // Deterministic identification: the input position, then the Rhino name when there is one.
+                string name = string.IsNullOrWhiteSpace(sourceName) ? string.Format("#{0}", i) : string.Format("#{0} '{1}'", i, sourceName);
                 if (shell == null)
                 {
                     excluded.Add(i);
-                    log.Add(string.Format("{0}: skipped (not a closed solid).", name));
+                    otherSkipped.Add(name);
+                    log.Add(Core.Query.DiagnosticMessage(Core.LogRecordType.Warning, "Solid " + name, "Skipped. It is not a closed solid."));
                     continue;
                 }
 
-                List<Panel> panels_Solid = shell.PanelsBySolid(out List<string> diagnostics, apertureGeometries, minThickness, maxThicknessRatio, airForOpenings, string.IsNullOrWhiteSpace(sourceName) ? name : sourceName, sourceId, sourceLayer);
-                log.AddRange(diagnostics.Select(x => string.Format("#{0} {1}", i, x)));
+                List<Panel> panels_Solid = shell.PanelsBySolid(out List<string> diagnostics, apertureGeometries, minThickness, maxThicknessRatio, airForOpenings, string.IsNullOrWhiteSpace(sourceName) ? string.Format("#{0}", i) : sourceName, sourceId, sourceLayer, sourceIndex: i);
+                log.AddRange(diagnostics);
                 if (panels_Solid == null || panels_Solid.Count == 0)
                 {
                     excluded.Add(i);
-                    if (diagnostics.Exists(x => x.Contains("not panel-like")))
+                    if (diagnostics.Exists(x => x.Contains("below minThickness")))
+                    {
+                        tooThin.Add(name);
+                    }
+                    else if (diagnostics.Exists(x => x.Contains("not panel-like")))
                     {
                         notPanelLike.Add(name);
+                    }
+                    else
+                    {
+                        otherSkipped.Add(name);
                     }
 
                     continue;
@@ -208,12 +224,25 @@ namespace SAM.Analytical.Grasshopper
             }
 
             List<Panel> airPanels = panels.FindAll(x => x.PanelType == PanelType.Air);
-            log.Insert(0, string.Format("{0} panel(s) ({1} Air) from {2} solid(s); {3} solid(s) produced no panel.", panels.Count, airPanels.Count, solids.Count, excluded.Count));
+            log.Insert(0, Core.Query.DiagnosticMessage(Core.LogRecordType.Message, null, string.Format("Created {0} ({1}) from {2}. {3}",
+                Core.Query.Plural(panels.Count, "panel"), Core.Query.Plural(airPanels.Count, "Air Panel"), Core.Query.Plural(solids.Count, "solid"),
+                excluded.Count == 0 ? "No solids were skipped." : string.Format("Skipped {0}.", Core.Query.Plural(excluded.Count, "solid")))));
 
-            // The ratio is a proportion test, not a thickness limit: a thick or low wall can fail it. Never skip silently.
+            // One Warning per reason, naming the solids; the per-solid detail is in log. Never skip silently.
+            if (tooThin.Count != 0)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format(System.Globalization.CultureInfo.InvariantCulture, "Skipped {0} thinner than minThickness_ ({1:0.###} m): {2}. minThickness_ is a thickness in metres, not a ratio. If any is a wall, floor or roof, lower minThickness_ below its thickness (given in log).", Core.Query.Plural(tooThin.Count, "solid"), minThickness, string.Join(", ", tooThin)));
+            }
+
+            // The ratio is a proportion test, not a thickness limit: a thick or low wall can fail it.
             if (notPanelLike.Count != 0)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("{0} solid(s) skipped as not panel-like by maxThicknessRatio_ ({1:0.###}): {2}. If any is a wall, slab or roof (e.g. a thick or low wall), raise maxThicknessRatio_ to the ratio given in the log.", notPanelLike.Count, maxThicknessRatio, string.Join(", ", notPanelLike)));
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format(System.Globalization.CultureInfo.InvariantCulture, "Skipped {0} as not panel-like by maxThicknessRatio_ ({1:0.###}): {2}. If any is a wall, floor or roof (e.g. a thick or low wall), raise maxThicknessRatio_ to the ratio given in log.", Core.Query.Plural(notPanelLike.Count, "solid"), maxThicknessRatio, string.Join(", ", notPanelLike)));
+            }
+
+            if (otherSkipped.Count != 0)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Skipped {0} (not closed, or no usable pair of opposite faces): {1}. See log.", Core.Query.Plural(otherSkipped.Count, "solid"), string.Join(", ", otherSkipped)));
             }
 
             index = Params.IndexOfOutputParam("panels");

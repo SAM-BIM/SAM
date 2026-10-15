@@ -29,7 +29,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.0";
+        public override string LatestComponentVersion => "1.0.1";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -38,7 +38,10 @@ namespace SAM.Analytical.Grasshopper
 
         public SAMAnalyticalCreateAperturesBySolids()
           : base("SAMAnalytical.CreateAperturesBySolids", "SAMAnalytical.CreateAperturesBySolids",
-              "Create SAM Analytical Apertures from window and door solids (frames, frame members, glass, door leaves).\nSolids touching each other (within maxGap_) or sharing a Rhino group form one assembly and give one aperture: the full opening including the frame, on the assembly's mid-plane. An assembly with any door member is a Door.\nRhino document units must be metres. Connect apertures to SAMAnalytical.AddAperturesByAperture.",
+              "Create SAM Analytical Apertures (Windows and Doors) from closed Rhino solids of window and door members: frames, frame members, glass and door leaves.\n" +
+              "Solids that touch (within maxGap_) or share a Rhino group form one assembly, which gives one Aperture: the full opening including the frame, on the assembly's mid-plane. An assembly with any door member is a Door. The assembly depth is stored as SourceThickness.\n" +
+              "A Solid or assembly is skipped, with a Warning, when it is not closed or not planar (depth over smallest extent above 0.5). log gives one line per assembly.\n" +
+              "The Apertures are not hosted: give the same solids to SAMAnalytical.CreatePanelsBySolids (apertureGeometries_) so their openings are filled, then connect them to SAMAnalytical.AddAperturesByAperture. Rhino units must be metres.",
               "SAM", "Analytical01")
         {
         }
@@ -49,22 +52,22 @@ namespace SAM.Analytical.Grasshopper
             {
                 List<GH_SAMParam> result = [];
 
-                Param_Brep windows = new() { Name = "windows_", NickName = "windows_", Description = "Window solids: frames, frame members and glass. Referenced Rhino objects keep their name, id and layer on the apertures.", Access = GH_ParamAccess.list, Optional = true };
+                Param_Brep windows = new() { Name = "windows_", NickName = "windows_", Description = "Window solids: frames, frame members and glass. Solids are numbered #0, #1, ... in log, windows_ first. Referenced Rhino objects keep their name, id and layer on the Apertures.", Access = GH_ParamAccess.list, Optional = true };
                 windows.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(windows, ParamVisibility.Binding));
 
-                Param_Brep doors = new() { Name = "doors_", NickName = "doors_", Description = "Door solids: leaves (and door frames). A window solid touching a door leaf (e.g. a door frame on a window layer) joins the door.", Access = GH_ParamAccess.list, Optional = true };
+                Param_Brep doors = new() { Name = "doors_", NickName = "doors_", Description = "Door solids: leaves (and door frames), numbered after windows_ in log. A window solid touching a door leaf (e.g. a door frame on a window layer) joins the Door.", Access = GH_ParamAccess.list, Optional = true };
                 doors.DataMapping = GH_DataMapping.Flatten;
                 result.Add(new GH_SAMParam(doors, ParamVisibility.Binding));
 
-                GooApertureConstructionParam apertureConstructions = new() { Name = "apertureConstructions_", NickName = "apertureConstructions_", Description = "Optional SAM Aperture Constructions; each aperture takes the first one of its type (Window or Door). Default: the default external construction of the type.", Access = GH_ParamAccess.list, Optional = true };
+                GooApertureConstructionParam apertureConstructions = new() { Name = "apertureConstructions_", NickName = "apertureConstructions_", Description = "SAM Aperture Constructions (optional); each Aperture takes the first one of its type (Window or Door). Default: the default external construction of the type.", Access = GH_ParamAccess.list, Optional = true };
                 result.Add(new GH_SAMParam(apertureConstructions, ParamVisibility.Binding));
 
-                Param_Number param_Number = new() { Name = "maxGap_", NickName = "maxGap_", Description = "Solids closer than this [m] belong to the same window or door assembly", Access = GH_ParamAccess.item, Optional = true };
+                Param_Number param_Number = new() { Name = "maxGap_", NickName = "maxGap_", Description = "Solids closer than this [m] belong to the same window or door assembly, default 0.01 m", Access = GH_ParamAccess.item, Optional = true };
                 param_Number.SetPersistentData(0.01);
                 result.Add(new GH_SAMParam(param_Number, ParamVisibility.Voluntary));
 
-                Param_Boolean param_Boolean = new() { Name = "useRhinoGroups_", NickName = "useRhinoGroups_", Description = "Referenced solids in the same Rhino group form one assembly, and solids in different groups are never merged", Access = GH_ParamAccess.item, Optional = true };
+                Param_Boolean param_Boolean = new() { Name = "useRhinoGroups_", NickName = "useRhinoGroups_", Description = "Referenced solids in the same Rhino group form one assembly, and solids in different groups are never merged, default true", Access = GH_ParamAccess.item, Optional = true };
                 param_Boolean.SetPersistentData(true);
                 result.Add(new GH_SAMParam(param_Boolean, ParamVisibility.Voluntary));
 
@@ -79,8 +82,8 @@ namespace SAM.Analytical.Grasshopper
                 List<GH_SAMParam> result =
                 [
                     new GH_SAMParam(new GooApertureParam() { Name = "apertures", NickName = "apertures", Description = "SAM Analytical Apertures, one per window or door assembly (not hosted)", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
-                    new GH_SAMParam(new Param_Brep() { Name = "excluded", NickName = "excluded", Description = "Solids that gave no aperture (see log)", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
-                    new GH_SAMParam(new Param_String() { Name = "log", NickName = "log", Description = "Per-assembly conversion report", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
+                    new GH_SAMParam(new Param_Brep() { Name = "excluded", NickName = "excluded", Description = "Solids that gave no Aperture; see log for the reason", Access = GH_ParamAccess.list }, ParamVisibility.Voluntary),
+                    new GH_SAMParam(new Param_String() { Name = "log", NickName = "log", Description = "Diagnostics: a summary, then one line per assembly, as 'Severity: Solid #i 'Name': Message'. Severity is Info, Warning or Error.", Access = GH_ParamAccess.list }, ParamVisibility.Binding),
                 ];
                 return [.. result];
             }
@@ -173,12 +176,14 @@ namespace SAM.Analytical.Grasshopper
             }
 
             List<Aperture> apertures = apertureSolids.AperturesBySolids(out List<string> log, out List<int> excluded, apertureConstructions, maxGap);
-            log.Insert(0, string.Format("{0} aperture(s) ({1} window(s), {2} door(s)) from {3} window and {4} door solid(s); {5} solid(s) gave no aperture. Solids are numbered windows_ first, then doors_.",
-                apertures.Count, apertures.Count(x => x.ApertureType == ApertureType.Window), apertures.Count(x => x.ApertureType == ApertureType.Door), windows.Count, doors.Count, excluded.Count));
+            log.Insert(0, Core.Query.DiagnosticMessage(Core.LogRecordType.Message, null, string.Format("Created {0} ({1}, {2}) from {3} ({4}, {5}; numbered windows_ first). {6}",
+                Core.Query.Plural(apertures.Count, "aperture"), Core.Query.Plural(apertures.Count(x => x.ApertureType == ApertureType.Window), "window"), Core.Query.Plural(apertures.Count(x => x.ApertureType == ApertureType.Door), "door"),
+                Core.Query.Plural(breps.Count, "solid"), Core.Query.Plural(windows.Count, "window solid"), Core.Query.Plural(doors.Count, "door solid"),
+                excluded.Count == 0 ? "No solids were skipped." : string.Format("Skipped {0}.", Core.Query.Plural(excluded.Count, "solid")))));
 
             if (excluded.Count != 0)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("{0} solid(s) gave no aperture; see log", excluded.Count));
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Skipped {0} that gave no aperture: {1}. See log.", Core.Query.Plural(excluded.Count, "solid"), string.Join(", ", excluded.ConvertAll(x => string.Format("#{0}", x)))));
             }
 
             index = Params.IndexOfOutputParam("apertures");

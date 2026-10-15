@@ -65,7 +65,7 @@ namespace SAM.Tests
             Assert.Equal("frame-id; glass-id", aperture.GetValue<string>(ApertureSourceParameter.SourceId));
             Assert.Equal("Windows", aperture.GetValue<string>(ApertureSourceParameter.SourceLayer));
             Assert.Equal(0.07, aperture.GetValue<double>(ApertureSourceParameter.SourceThickness), 6);
-            Assert.Contains(diagnostics, x => x.Contains("from 2 solid(s)"));
+            Assert.Contains(diagnostics, x => x.Contains("from 2 solids"));
         }
 
         [Fact]
@@ -224,7 +224,7 @@ namespace SAM.Tests
             // Assert
             Assert.Empty(apertures);
             Assert.Equal(new[] { 0, 1 }, excluded);
-            Assert.Contains(diagnostics, x => x.Contains("not planar"));
+            Assert.Contains(diagnostics, x => x.Contains("Not planar"));
         }
 
         [Fact]
@@ -285,7 +285,7 @@ namespace SAM.Tests
             // Assert
             Assert.Single(apertures);
             Assert.Equal(new[] { 0 }, excluded);
-            Assert.Contains(diagnostics, x => x.Contains("'nothing': skipped"));
+            Assert.Contains(diagnostics, x => x.Contains("'nothing': Skipped"));
         }
 
         [Fact]

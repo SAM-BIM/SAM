@@ -45,7 +45,14 @@ namespace SAM.Analytical
         /// <param name="tolerance_Angle">Angle tolerance [rad].</param>
         /// <param name="tolerance_Distance">Distance tolerance [m].</param>
         /// <param name="tolerance_Snap">Snap tolerance [m]; openings smaller than its square are ignored.</param>
-        /// <returns>The host mid-surface panel(s) followed by any Air panels; empty when the element is not panel-like.</returns>
+        /// <param name="sourceIndex">Position of the solid in the caller's input list, used to number it in the
+        /// diagnostics (<c>Solid #3 'Name'</c>); optional.</param>
+        /// <returns>The host mid-surface panel(s) followed by any Air panels; empty when the element is skipped.</returns>
+        /// <remarks>
+        /// Diagnostics follow <see cref="Core.Query.DiagnosticMessage"/>: <c>Info</c> for panels created, <c>Warning</c>
+        /// for a skipped solid. A skipped solid's reason contains <c>below minThickness</c>, <c>not panel-like</c> or
+        /// <c>not a closed solid</c>.
+        /// </remarks>
         public static List<Panel> PanelsBySolid(
             this Shell shell,
             out List<string> diagnostics,
@@ -58,43 +65,86 @@ namespace SAM.Analytical
             string sourceLayer = null,
             double tolerance_Angle = Tolerance.Angle,
             double tolerance_Distance = Tolerance.Distance,
-            double tolerance_Snap = Tolerance.MacroDistance)
+            double tolerance_Snap = Tolerance.MacroDistance,
+            int? sourceIndex = null)
         {
             diagnostics = new List<string>();
             List<Panel> result = new List<Panel>();
-            string label = string.IsNullOrWhiteSpace(sourceName) ? "element" : string.Format("'{0}'", sourceName);
+            string subject = SolidSubject(sourceName, sourceIndex);
 
             List<Face3D> face3Ds = shell?.Face3Ds?.Where(x => x != null && x.GetPlane() != null && !double.IsNaN(x.GetArea())).ToList();
             if (face3Ds == null || face3Ds.Count < 4)
             {
-                diagnostics.Add(string.Format("{0}: skipped (not a closed solid).", label));
+                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, subject, "Skipped. It is not a closed solid."));
                 return result;
             }
 
             List<ElementPlane> elementPlanes = ElementPlanes(shell, face3Ds, minThickness, maxThicknessRatio, tolerance_Angle, tolerance_Distance, tolerance_Snap, out List<ElementPlane> rejected);
+            List<ElementPlane> thin = rejected.FindAll(x => x.TooThin);
+            List<ElementPlane> notPanelLike = rejected.FindAll(x => !x.TooThin);
             if (elementPlanes.Count == 0)
             {
+                // The reason given is that of the element's main plane (the largest overlap): for a 0.15 m wall below
+                // minThickness that is its two sides, not its ends or its top and bottom.
                 ElementPlane best = rejected.FirstOrDefault();
-                diagnostics.Add(best == null
-                    ? string.Format("{0}: skipped (no pair of opposite parallel faces at least {1:0.###} m apart with material between them).", label, minThickness)
-                    : string.Format("{0}: skipped (not panel-like: thickness {1:0.###} m over smallest extent {2:0.###} m = {3:0.###} exceeds {4:0.###}; a maxThicknessRatio above {3:0.###} would keep it).", label, best.Thickness, best.MinExtent, best.MinExtent <= 0 ? double.PositiveInfinity : best.Thickness / best.MinExtent, maxThicknessRatio));
+                string message;
+                if (best == null)
+                {
+                    message = "Skipped. No pair of opposite parallel faces with material between them was found.";
+                }
+                else if (best.TooThin)
+                {
+                    message = FormatInvariant("Skipped as below minThickness: its thickness, {0:0.###} m, is less than minThickness ({1:0.###} m). If it is a wall, floor or roof, lower minThickness below {0:0.###} m.", best.Thickness, minThickness);
+                }
+                else
+                {
+                    message = FormatInvariant("Skipped as not panel-like: thickness {0:0.###} m over smallest extent {1:0.###} m gives a ratio of {2:0.###}, above maxThicknessRatio ({3:0.###}). A maxThicknessRatio above {2:0.###} would keep it.", best.Thickness, best.MinExtent, best.Slenderness, maxThicknessRatio);
+                }
+
+                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, subject, message));
                 return result;
             }
 
-            if (rejected.Count != 0)
+            if (notPanelLike.Count != 0)
             {
-                diagnostics.Add(string.Format("{0}: {1} other face pair plane(s) not panel-like, ignored (thickness/smallest extent: {2}).", label, rejected.Count, string.Join(", ", rejected.Take(5).Select(x => string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.###}/{1:0.###} m", x.Thickness, x.MinExtent)))));
+                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, subject, FormatInvariant("Ignored {0} that {1} not panel-like (thickness / smallest extent: {2}).", Core.Query.Plural(notPanelLike.Count, "other face-pair plane"), notPanelLike.Count == 1 ? "is" : "are", string.Join(", ", notPanelLike.Take(5).Select(x => FormatInvariant("{0:0.###} / {1:0.###} m", x.Thickness, x.MinExtent))))));
+            }
+
+            if (thin.Count != 0)
+            {
+                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, subject, FormatInvariant("Ignored {0} below minThickness ({1:0.###} m): {2} m.", Core.Query.Plural(thin.Count, "other face-pair plane"), minThickness, string.Join(", ", thin.Take(5).Select(x => FormatInvariant("{0:0.###}", x.Thickness))))));
             }
 
             double minOpeningArea = System.Math.Max(tolerance_Snap * tolerance_Snap, tolerance_Distance);
             for (int k = 0; k < elementPlanes.Count; k++)
             {
                 ElementPlane elementPlane = elementPlanes[k];
-                string label_Plane = elementPlanes.Count == 1 ? label : string.Format("{0} [plane {1}/{2}, normal ({3:0.###}, {4:0.###}, {5:0.###})]", label, k + 1, elementPlanes.Count, elementPlane.MidPlane.Normal.X, elementPlane.MidPlane.Normal.Y, elementPlane.MidPlane.Normal.Z);
-                result.AddRange(PanelsByElementPlane(shell, elementPlane, diagnostics, label_Plane, apertureGeometries, airForUnclaimedOpenings, sourceName, sourceId, sourceLayer, minOpeningArea, tolerance_Angle, tolerance_Distance, tolerance_Snap));
+                string subject_Plane = elementPlanes.Count == 1 ? subject : FormatInvariant("{0}, plane {1} of {2} (normal {3:0.###}, {4:0.###}, {5:0.###})", subject, k + 1, elementPlanes.Count, elementPlane.MidPlane.Normal.X, elementPlane.MidPlane.Normal.Y, elementPlane.MidPlane.Normal.Z);
+                result.AddRange(PanelsByElementPlane(shell, elementPlane, diagnostics, subject_Plane, apertureGeometries, airForUnclaimedOpenings, sourceName, sourceId, sourceLayer, minOpeningArea, tolerance_Angle, tolerance_Distance, tolerance_Snap));
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Deterministic diagnostics subject of a source solid: <c>Solid #3 'Name'</c>, <c>Solid #3</c>,
+        /// <c>Solid 'Name'</c> or <c>Solid</c>. A name equal to the index label (<c>#3</c>) is not repeated.
+        /// </summary>
+        private static string SolidSubject(string sourceName, int? sourceIndex)
+        {
+            string index = sourceIndex.HasValue ? FormatInvariant("#{0}", sourceIndex.Value) : null;
+            bool named = !string.IsNullOrWhiteSpace(sourceName) && sourceName != index;
+            if (index == null)
+            {
+                return named ? string.Format("Solid '{0}'", sourceName) : "Solid";
+            }
+
+            return named ? string.Format("Solid {0} '{1}'", index, sourceName) : string.Format("Solid {0}", index);
+        }
+
+        private static string FormatInvariant(string format, params object[] args)
+        {
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, format, args);
         }
 
         /// <summary>
@@ -110,20 +160,20 @@ namespace SAM.Analytical
 
             if (elementPlane.OtherThicknesses.Count != 0)
             {
-                diagnostics.Add(string.Format("{0}: variable thickness - parts of it are also {1} m thick; the physical thickness stored is the main one, {2:0.###} m (the largest pair of opposite faces).", label, string.Join(", ", elementPlane.OtherThicknesses.ConvertAll(x => x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))), thickness));
+                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, label, FormatInvariant("Variable thickness: parts of it are also {0} m thick. The PhysicalThickness stored is the main one, {1:0.###} m (the largest pair of opposite faces).", string.Join(", ", elementPlane.OtherThicknesses.ConvertAll(x => x.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))), thickness)));
             }
 
             List<Face3D> sections = shell.Section(midPlane, true, tolerance_Angle, tolerance_Distance, tolerance_Snap);
             if (sections == null || sections.Count == 0)
             {
-                diagnostics.Add(string.Format("{0}: skipped (no section on the mid-plane).", label));
+                diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, label, "Skipped. The mid-plane does not cut the solid."));
                 return result;
             }
 
             List<Face2D> apertureFootprints = ApertureFootprints(apertureGeometries, midPlane, thickness, tolerance_Snap);
             List<Face2D> pairFootprints = elementPlane.Footprints.ConvertAll(x => midPlane.Convert(x)).FindAll(x => x != null);
 
-            int filledHoles = 0, airHoles = 0, filledNotches = 0, keptNotches = 0, crossSections = 0;
+            int filledHoles = 0, openHoles = 0, airHoles = 0, filledNotches = 0, keptNotches = 0, crossSections = 0;
             foreach (Face3D section in sections)
             {
                 // The section also returns the voids themselves as faces; keep only regions of material.
@@ -167,6 +217,7 @@ namespace SAM.Analytical
                     }
 
                     keptHoles.Add(hole);
+                    openHoles++;
                     if (airForUnclaimedOpenings)
                     {
                         airFaces.Add(holeFace);
@@ -215,7 +266,7 @@ namespace SAM.Analytical
                 Face3D hostFace3D = host == null ? null : midPlane.Convert(host);
                 if (hostFace3D == null || !hostFace3D.IsValid())
                 {
-                    diagnostics.Add(string.Format("{0}: a section region could not be turned into a panel.", label));
+                    diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Warning, label, "A section region could not be turned into a panel."));
                     continue;
                 }
 
@@ -245,10 +296,29 @@ namespace SAM.Analytical
                 }
             }
 
-            diagnostics.Add(string.Format(
-                "{0}: {1} panel(s) at thickness {2:0.###} m; holes: {3} filled for apertures, {4} left open as Air panel(s); notches: {5} filled for apertures, {6} kept as outline.",
-                label, result.Count(x => x.PanelType != PanelType.Air), thickness, filledHoles, airHoles, filledNotches, keptNotches)
-                + (crossSections == 0 ? string.Empty : string.Format(" {0} cross-section(s) of the solid's other elements left to their own planes.", crossSections)));
+            // Only what happened is listed: no sentence for a count of zero.
+            List<string> sentences = new List<string> { FormatInvariant("Created {0}, {1:0.###} m thick.", Core.Query.Plural(result.Count(x => x.PanelType != PanelType.Air), "panel"), thickness) };
+            if (filledHoles != 0 || filledNotches != 0)
+            {
+                sentences.Add(FormatInvariant("Filled {0} for apertures.", string.Join(" and ", new[] { filledHoles == 0 ? null : Core.Query.Plural(filledHoles, "hole"), filledNotches == 0 ? null : Core.Query.Plural(filledNotches, "notch", "notches") }.Where(x => x != null))));
+            }
+
+            if (openHoles != 0)
+            {
+                sentences.Add(FormatInvariant("Left {0} open in the host panel{1}.",Core.Query.Plural(openHoles, "unclaimed hole"), airHoles == 0 ? string.Empty : FormatInvariant(", filled by {0}", Core.Query.Plural(airHoles, "Air Panel"))));
+            }
+
+            if (keptNotches != 0)
+            {
+                sentences.Add(FormatInvariant("Kept {0} as the outline.", Core.Query.Plural(keptNotches, "unclaimed notch", "unclaimed notches")));
+            }
+
+            if (crossSections != 0)
+            {
+                sentences.Add(FormatInvariant("Left {0} of the solid's other elements to their own planes.", Core.Query.Plural(crossSections, "cross-section")));
+            }
+
+            diagnostics.Add(Core.Query.DiagnosticMessage(LogRecordType.Message, label, string.Join(" ", sentences)));
 
             return result;
         }
@@ -308,6 +378,9 @@ namespace SAM.Analytical
             rejected = new List<ElementPlane>();
             double cosAngle = System.Math.Cos(tolerance_Angle);
 
+            // Faces closer than 10 snap tolerances (1 cm by default) are steps and reveals, not an element's sides.
+            double minPairDistance = System.Math.Max(System.Math.Min(minThickness, 10 * tolerance_Snap), tolerance_Snap);
+
             List<ThicknessPair> pairs = new List<ThicknessPair>();
             for (int i = 0; i < face3Ds.Count; i++)
             {
@@ -324,8 +397,11 @@ namespace SAM.Analytical
                     Vector3D normal = plane_i.Normal;
                     Point3D origin_i = plane_i.Origin;
                     double offset = normal.DotProduct(new Vector3D(origin_i, plane_j.Origin));
+                    // Pairs thinner than minThickness are kept here and set aside after ranking: they still claim their
+                    // material, so a 0.15 m wall below minThickness is reported as too thin instead of its ends or its
+                    // top and bottom being taken for a 2.75 m thick element.
                     double distance = System.Math.Abs(offset);
-                    if (distance < minThickness - tolerance_Distance)
+                    if (distance < minPairDistance - tolerance_Distance)
                     {
                         continue;
                     }
@@ -371,10 +447,12 @@ namespace SAM.Analytical
             // not the bounding box, is what tells the walls of a ring (thin across, long) from the ring's top and bottom
             // faces (an 8 x 6 m box around a 0.3 m band). Drop cross-cuts through accepted elements, then test what is
             // left against the threshold.
+            // Planes below minThickness own their material as well (claimants) but are returned as rejected.
             List<ElementPlane> accepted = new List<ElementPlane>();
+            List<ElementPlane> claimants = new List<ElementPlane>();
             foreach (ElementPlane elementPlane in elementPlanes.OrderBy(x => x.Thickness / x.BandWidth()).ThenByDescending(x => x.Overlap))
             {
-                elementPlane.Pairs.RemoveAll(pair => accepted.Exists(x => !IsParallel(x.MidPlane, pair.MidPlane, cosAngle) && x.Owns(pair.Sample, tolerance_Distance)));
+                elementPlane.Pairs.RemoveAll(pair => claimants.Exists(x => !IsParallel(x.MidPlane, pair.MidPlane, cosAngle) && x.Owns(pair.Sample, tolerance_Distance)));
                 if (elementPlane.Pairs.Count == 0)
                 {
                     continue;
@@ -387,6 +465,17 @@ namespace SAM.Analytical
                     continue;
                 }
 
+                // A panel-like plane below minThickness is a real element that is too thin (a 0.15 m wall when
+                // minThickness is 0.25 m): it keeps its material from cross-cuts, but gives no panel.
+                if (elementPlane.Thickness < minThickness - tolerance_Distance)
+                {
+                    elementPlane.TooThin = true;
+                    claimants.Add(elementPlane);
+                    rejected.Add(elementPlane);
+                    continue;
+                }
+
+                claimants.Add(elementPlane);
                 accepted.Add(elementPlane);
             }
 
@@ -563,6 +652,11 @@ namespace SAM.Analytical
             public List<Face3D> Footprints => Pairs.Concat(Others).SelectMany(x => x.Footprints).ToList();
 
             public List<double> OtherThicknesses { get; } = new List<double>();
+
+            /// <summary>
+            /// True when the plane was set aside because it is thinner than minThickness.
+            /// </summary>
+            public bool TooThin { get; set; }
 
             /// <summary>
             /// True when <paramref name="point3D"/> (a point of the solid's material) lies in this element: within half

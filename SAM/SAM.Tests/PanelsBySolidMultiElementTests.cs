@@ -160,7 +160,7 @@ namespace SAM.Tests
             Assert.Equal(0.3, PhysicalThickness(panel), 6);
             Assert.Equal(0.15, Plane(panel).Origin.Y, 6);
             Assert.Equal(12.0, panel.GetArea(), 3);
-            Assert.Contains(diagnostics, x => x.Contains("variable thickness") && x.Contains("0.1"));
+            Assert.Contains(diagnostics, x => x.Contains("Variable thickness") && x.Contains("0.1"));
         }
 
         [Fact]
