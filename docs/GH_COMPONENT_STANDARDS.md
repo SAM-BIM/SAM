@@ -1,8 +1,8 @@
 # SAM-BIM Grasshopper Component Engineering Standard
 
-**Status:** canonical. Established 2026-10-15 on `sow/2026-Q4`; corrected 2026-10-16 in response to
-the independent review of PR #204 (parameter extraction, runtime type in the contract, ancestry-based
-classification, and the separation of compatibility from naming conventions).
+**Status:** proposed canonical specification in draft PR #204 into `sow/2026-Q4`, not merged.
+Revised 2026-10-15 after two independent reviews. The validator certifies a deliberately bounded
+source subset; incomplete extraction or discovery blocks compatibility acceptance.
 **Owner:** SAM-BIM. Changes to this document go through a reviewed PR in `SAM-BIM/SAM`.
 **Applies to:** every SAM-BIM repository that publishes Grasshopper components.
 
@@ -32,8 +32,8 @@ review comment.
 
 ### 0.1 What is checked automatically, and what is not — read this before trusting a green result
 
-Three different things are often conflated. Only the first is automated, and only the second proves
-backward compatibility:
+Three different things are often conflated. Static checks and Rhino-hosted NUnit tests are automated;
+only the runtime tests exercise saved-definition compatibility. Engineering review remains separate:
 
 | Layer | What it establishes | Where |
 |---|---|---|
@@ -256,10 +256,10 @@ written down for the person on the canvas.
   be connected, matching the exclusivity `SolveInstance` actually enforces.
 - **GH-D7 — Explain the limitation or failure condition where it is useful — PROPOSED.** e.g. "Any
   other value is reported and Summary is used."
-- **GH-D8 — No placeholder or misleading text — CHECKED (narrowly).** The validator fails on an empty
-  description, a description that does not start with a capital letter, a known typo (`Humidty`), and a
-  `NickName` that differs from `Name` — the last recorded as an advisory note, not a failure, because an
-  existing nickname is legitimate (GH-I3).
+- **GH-D8 — No placeholder or misleading text — CHECKED (advisory, narrowly).** Empty descriptions,
+  descriptions that do not start with a capital letter, the known typo (`Humidty`), and differences
+  between `NickName` and `Name` produce advisory notes. They fail only with `--strict-descriptions`.
+  Existing nicknames remain legitimate (GH-I3); misleading engineering text requires review.
 - **GH-D9 — A description must agree with the implementation — PROPOSED (reviewer responsibility).**
   No check can verify this. It is the one quality rule that needs a human or an agent reading
   `SolveInstance` against the text. Treat a mismatch as a defect.
@@ -556,11 +556,16 @@ runtime contract asserts them at runtime in a real Rhino (`MetadataContractTests
 
 Two notes on the type, because it is the attribute most easily lost by an extractor:
 
-- A type is compared **exactly**, as the name it is constructed from. No equivalence is inferred: an
-  unrecognised-but-identified type (`HostObject`) is still compared exactly and listed in the
-  manifest's `externalParameterTypes`.
+- Type identity preserves namespaces and closed generic arguments: `VendorA.HostObject` differs from
+  `VendorB.HostObject`, and `GooValueParam<int>` differs from `GooValueParam<string>`. Literal aliases,
+  `global::`, primitive type aliases, local declarations and unambiguous source imports are resolved.
+  Known Grasshopper built-ins retain their pilot-compatible short names; arbitrary external types
+  retain their qualified identity in `externalParameterTypes`.
 - A type that cannot be identified at all is **not** treated as equal to anything. It makes the
   component `partial` and blocks the check (GH-J6).
+- Type identity alone does not prove constructor defaults. Nontrivial custom Goo/third-party
+  constructors are inventory-only until their effects can be verified. Known built-ins and empty
+  source subclasses inheriting those defaults are the currently certified subset.
 
 ### GH-I2 — When a controlled migration permits an exception — **VALIDATED**
 
@@ -606,7 +611,7 @@ inspection; where a check cannot be automated today, say so explicitly in the PR
 | Category | Fatal? | What it means |
 |---|---|---|
 | `compatibility` | yes | a frozen attribute (GH-I1) changed: identity, parameter name, **type**, order, access, optionality, visibility, registered default; or a component was added/removed |
-| `extraction` | yes | a component could not be fully extracted (`partial`/`unresolved`), or the baseline itself records an incomplete extraction |
+| `extraction` | yes | a component could not be fully extracted (`partial`/`unresolved`), the baseline lacks required extraction evidence, an object is unclassified, or a project cannot be parsed |
 | `conventions` | yes | a naming-rule deviation that is not in the approved exception list, or an exception that is no longer a deviation |
 | `manifest` | yes | the component version changed, so the manifest must be regenerated in this reviewed change — explicitly **not** a compatibility violation |
 | `advisory` | no (unless `--strict-descriptions`) | description quality and nickname differences |
@@ -675,11 +680,11 @@ parameter whose type cannot be determined, and a baseline that is missing or its
 | Rename mechanism | `Classes/ParameterRename.cs`; `Classes/ParameterRenameMap.cs`; `Modify/CaptureConnections.cs`; `Modify/RestoreConnections.cs`; `Modify/CopyPersistentData.cs`; `Modify/CopyPersistentDataFromComponent.cs`; `Modify/UpdateComponent.cs`; `Modify/UpdateComponents.cs`; `Query/MissingConnections.cs`; `Classes/ParamConnection.cs` |
 | Legacy parameter archive | `Grasshopper/SAM.Core.Grasshopper/Modify/ReadLegacyParameterData.cs` |
 | Diagnostics | `SAM/SAM.Core/Enums/DiagnosticDetail.cs`, `DiagnosticSeverity.cs`; `SAM/SAM.Core/Classes/Diagnostics/Diagnostics.cs`, `Diagnostic.cs`; `SAM_OCCT/Grasshopper/Shared/OcctDiagnosticReporter.cs`; `SAM_OCCT/Grasshopper/…/SAMOCCTCreateAdjacencyCluster.cs`; `Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalCreatePanelsBySolids.cs` |
-| Metadata contract | `design/grasshopper-icons/tools/param_contract.py` (this repository, canonical); `design/grasshopper-icons/tools/tests/test_param_contract.py` (42 regression tests); `SAM_Psychrometrics/design/grasshopper-icons/{tools/param_contract.py,tools/inventory.py,param_contract.json}` (pilot copy) |
+| Metadata contract | `design/grasshopper-icons/tools/param_contract.py` (this repository, canonical); `design/grasshopper-icons/tools/tests/test_param_contract.py` (69 regression tests); `SAM_Psychrometrics/design/grasshopper-icons/{tools/param_contract.py,tools/inventory.py,param_contract.json}` (pilot copy) |
 | Runtime contract | `Grasshopper/SAM.Core.Grasshopper.Tests/` (Rhino.Testing); `SAM_Psychrometrics/Grasshopper/SAM.Core.Grasshopper.Psychrometrics.Tests/`; `SAM_OCCT/Testing/SAM.OCCT.GrasshopperTests/` |
 | Measured compatibility | `SAM_Psychrometrics/docs/GH-Component-Metadata-Standard.md`; `documentation/GH-Parameter-Rename-Migration-Q4.md`; `documentation/Diagnostics-Phase1-PR.md`; `documentation/Diagnostics-Phase2-BySolids-PR.md` |
 
-## Appendix 2 — Measured coverage (2026-10-15, revised by the review corrections)
+## Appendix 2 — Measured coverage (2026-10-15, final correctness repair)
 
 Produced by the canonical validator:
 
@@ -693,33 +698,41 @@ established; the reasons are in the manifest. A `partial` component **blocks a c
 
 | Repository | Components | Verified | Partial | Unresolved | Parameter classes excluded |
 |---|---|---|---|---|---|
-| SAM | 460 | 456 | 4 | 0 | 64 |
-| SAM_Tas_Grasshopper | 94 | 94 | 0 | 0 | 10 |
-| SAM_Revit | 55 | 55 | 0 | 0 | 1 |
-| SAM_OCCT | 36 | 36 | 0 | 0 | 1 |
-| SAM_UI | 31 | 31 | 0 | 0 | 1 |
-| SAM_Systems | 30 | 29 | 1 | 0 | 8 |
-| SAM_Mollier | 24 | 24 | 0 | 0 | 4 |
-| SAM_Topologic | 22 | 22 | 0 | 0 | 0 |
-| SAM_SolarCalculator | 21 | 21 | 0 | 0 | 3 |
-| SAM_Excel | 8 | 8 | 0 | 0 | 0 |
-| SAM_LadybugTools | 7 | 7 | 0 | 0 | 0 |
-| SAM_Solver | 7 | 7 | 0 | 0 | 0 |
-| SAM_OpenStudio | 6 | 6 | 0 | 0 | 0 |
-| SAM_Multitasker | 5 | 5 | 0 | 0 | 4 |
-| SAM_Acoustic | 3 | 2 | 1 | 0 | 1 |
-| SAM_BHoM | 3 | 3 | 0 | 0 | 0 |
-| SAM_IFC | 3 | 3 | 0 | 0 | 1 |
+| SAM | 460 | 37 | 423 | 0 | 64 |
+| SAM_Tas_Grasshopper | 94 | 5 | 85 | 4 | 10 |
+| SAM_Revit | 55 | 9 | 13 | 33 | 1 |
+| SAM_OCCT | 36 | 0 | 36 | 0 | 1 |
+| SAM_UI | 31 | 0 | 31 | 0 | 1 |
+| SAM_Systems | 30 | 0 | 27 | 3 | 8 |
+| SAM_Mollier | 24 | 7 | 15 | 2 | 4 |
+| SAM_Topologic | 22 | 7 | 15 | 0 | 0 |
+| SAM_SolarCalculator | 21 | 0 | 21 | 0 | 3 |
+| SAM_Excel | 8 | 1 | 6 | 1 | 0 |
+| SAM_LadybugTools | 7 | 2 | 5 | 0 | 0 |
+| SAM_Solver | 7 | 0 | 7 | 0 | 0 |
+| SAM_OpenStudio | 6 | 0 | 6 | 0 | 0 |
+| SAM_Multitasker | 5 | 0 | 4 | 1 | 4 |
+| SAM_Acoustic | 3 | 0 | 3 | 0 | 1 |
+| SAM_BHoM | 3 | 0 | 3 | 0 | 0 |
+| SAM_IFC | 3 | 0 | 3 | 0 | 1 |
 | SAM_Psychrometrics | 3 | 3 | 0 | 0 | 0 |
-| SAM_Python | 3 | 3 | 0 | 0 | 3 |
-| SAM_gbXML | 2 | 2 | 0 | 0 | 0 |
-| SAM_Origin | 2 | 2 | 0 | 0 | 0 |
-| SAM_GEM | 1 | 1 | 0 | 0 | 0 |
+| SAM_Python | 3 | 0 | 3 | 0 | 3 |
+| SAM_gbXML | 2 | 1 | 1 | 0 | 0 |
+| SAM_Origin | 2 | 1 | 1 | 0 | 0 |
+| SAM_GEM | 1 | 0 | 1 | 0 | 0 |
+
+**Corrected totals:** 22 repositories, **826 discovered / 73 verified / 709 partial / 44 unresolved**;
+0 unclassified objects and 0 unparseable projects in these checkouts. The earlier 823/817 claim omitted
+Psychrometrics' three components; the earlier table summed to 826/820. That 820 label was unsound:
+unsupported declarations and constructor effects were treated as complete. These totals use the final
+strict subset, rather than treating an empty scan as proof. Revit's 33 empty uncertain contracts are
+now unresolved. The source metadata for CreatePanelsBySolids still yields 7 inputs/4 outputs, but its
+Goo constructor defaults require additional evidence and therefore it is partial.
 
 **Coverage limitations, stated explicitly.** SAM_Psychrometrics is the only repository with an approved
 baseline, so it is the only repository for which `--check` is meaningful; for every other repository
-these numbers are an **inventory**, not compatibility validation. The six `partial` components and their
-reasons are listed in Appendix 3. `parameter classes excluded` counts the `Goo…Param` classes, which are
+these numbers are an **inventory**, not compatibility validation. The six originally identified partial components remain included in the extraction gaps listed in
+Appendix 3; they are not the complete coverage limitation. `parameter classes excluded` counts the `Goo…Param` classes, which are
 reported in the manifest with the ancestry that excluded them.
 
 ## Appendix 3 — Open decisions and known limitations
@@ -732,10 +745,11 @@ reported in the manifest with the ancestry that excluded them.
    included nor silently excluded — it is listed in `unclassifiedClasses` with its base chain, and it is
    not counted as a component. Ancestry is resolved across the whole repository (including
    non-Grasshopper projects), so a base type in another project of the same repository still resolves.
-   In the fleet measured here, `unclassifiedClasses` is 0 everywhere except before the fix, when
-   SAM_Revit's 30 Revit-derived components were unclassified (the fix: `IGH_SAMComponent`).
-2. **Six components cannot be extracted completely, and that is reported, not hidden** (SAM 4,
-   SAM_Systems 1, SAM_Acoustic 1):
+   Unclassified objects and unparseable projects are fatal extraction findings with source paths.
+   Recognizing a Revit component through `IGH_SAMComponent` does not establish its parameter contract;
+   `ParamDefinition[]` declarations remain unresolved by this tool.
+2. **The six originally reported partial components remain extraction gaps.** They are a subset
+   of the larger, corrected coverage limitations in Appendix 2:
    - `SAMAnalyticalFilterByBoundaryType`, `SAMAnalyticalFilterByPanelType` — parameter names generated by
      `foreach (… in Enum.GetValues(typeof(X)))`; resolving them means enumerating an enum's members,
      which is deliberately out of scope (see note 4).
@@ -744,7 +758,7 @@ reported in the manifest with the ancestry that excluded them.
      and cannot be enumerated from the declaration.
    - `SAMAcousticCreateBandValues` — the parameter name comes from a loop variable, so it is not a
      literal.
-   Each blocks a compatibility PASS for that repository until resolved or explicitly accepted.
+   Each blocks a compatibility PASS. There is no CLI switch to waive incomplete extraction.
 3. **`diagnosticDetail_` vs `_diagnosticDetail_`** (GH-E3) — owner decision.
 4. **Supported declaration forms** (see Appendix 6) are the ones the repositories actually use. Anything
    outside them is reported as `partial`/`unresolved` with a reason; the tool never invents a
@@ -788,12 +802,12 @@ Order — small and low-risk first, and never mixing a description sweep with a 
 | Wave | Repositories | Why |
 |---|---|---|
 | 0 | SAM (this PR's standard), SAM_Psychrometrics (already done) | The reference and the pilot. |
-| 1 | SAM_GEM, SAM_Python, SAM_BHoM, SAM_gbXML, SAM_Origin, SAM_IFC, SAM_Acoustic | 1–3 components, all but one fully verified: a first manifest and a first green `--check` at almost no cost. SAM_Acoustic's single `partial` component must be resolved or explicitly accepted first. |
-| 2 | SAM_LadybugTools, SAM_Solver, SAM_OpenStudio, SAM_Multitasker, SAM_Excel, SAM_SolarCalculator, SAM_Topologic | Small and fully verified; the work is generating and reviewing the baseline. |
-| 3 | SAM_Mollier, SAM_UI, SAM_Systems | Mid-size; SAM_Systems carries one `partial` component. Description corrections only, no renames. |
-| 4 | SAM_OCCT, SAM_Revit | Both fully verified and both already own contract tests; align the tests with the shared vocabulary. |
-| 5 | SAM_Tas_Grasshopper | 94 components, all fully verified — the largest GH surface after SAM. |
-| 6 | SAM | 460 components; 4 `partial` and **no baseline yet**. Baseline only; fixes are per-component, owner-prioritised. |
+| 1 | SAM_GEM, SAM_Python, SAM_BHoM, SAM_gbXML, SAM_Origin, SAM_IFC, SAM_Acoustic | 1–3 components each. Review extraction reasons and constructor/type dependencies before proposing a baseline; small does not mean fully verified. |
+| 2 | SAM_LadybugTools, SAM_Solver, SAM_OpenStudio, SAM_Multitasker, SAM_Excel, SAM_SolarCalculator, SAM_Topologic | Small inventories; resolve coverage gaps before baseline acceptance. |
+| 3 | SAM_Mollier, SAM_UI, SAM_Systems | Mid-size inventories with extraction gaps. Description corrections only, no renames. |
+| 4 | SAM_OCCT, SAM_Revit | Both own runtime contract tests; static coverage is incomplete, especially Revit ParamDefinition and external bases. |
+| 5 | SAM_Tas_Grasshopper | 94 components with incomplete static coverage; inspect dependency and inheritance gaps first. |
+| 6 | SAM | 460 components and **no baseline yet**. Review the corrected coverage before proposing a baseline; fixes are per-component, owner-prioritised. |
 
 Per repository, separate the three change classes (GH-F2) into separate PRs: description corrections
 first (safe, no metadata freeze change), then additive optional parameters, then — only with an owner
@@ -820,11 +834,11 @@ Feasibility, measured rather than assumed:
 
 - The validator is pure standard-library Python 3 (`json`, `os`, `re`, `sys`, `argparse`, `fnmatch`,
   `xml.etree.ElementTree`). A full scan of `SAM` (460 components, ~1000 files over 6 Grasshopper
-  projects among 25 project files) takes roughly 25 s; the whole active fleet is a few minutes. **Python
+  projects among 25 project files) is machine-dependent; current coverage is recorded in Appendix 2. **Python
   availability is not the blocker** — `ubuntu-latest` and `windows-2022` both ship Python 3, and the
   local runs here used the RhinoCode Python 3.13.
 - The regression suite is `design/grasshopper-icons/tools/tests/test_param_contract.py` (stdlib
-  `unittest`, no dependencies, no network): 42 tests covering the supported and the deliberately
+  `unittest`, no dependencies, no network): 69 tests cover the supported and the deliberately
   unsupported declaration forms, type changes, custom and external parameter types, indirect
   inheritance, unusual component names, collection-based registration, legitimate List/Tree access,
   existing nicknames, code-side defaults, and missing or incomplete baselines.
@@ -839,36 +853,40 @@ Feasibility, measured rather than assumed:
 
 This PR adds no CI job and no baseline for any repository other than the pilot already in place.
 
-## Appendix 6 — Supported declaration forms
+## Appendix 6 — Certification boundary and architecture decision
 
-The validator reads the forms the repositories actually use. Everything here has a regression test.
-Anything outside this list is reported as `partial`/`unresolved` with a reason — never guessed.
+The scanner may inventory more metadata than it can certify. `verified` requires evidence from the
+supported declaration subset; successfully finding some `new` expressions is insufficient.
 
-| Form | Example |
+| Certified source form | Required evidence |
 |---|---|
-| Declarative property, `result.Add(new GH_SAMParam(…))` | `result.Add(new GH_SAMParam(new Param_Number() { … }, ParamVisibility.Binding));` |
-| Target-typed construction with a declared variable type | `Param_Brep solids = new() { Name = "_solids", … };` |
-| Object initializer with no constructor parentheses | `Param_Boolean flag = new Param_Boolean { Name = "_flag", … };` |
-| Variable reuse and reassignment | `param_Number = new() { … };` then `param_Number.SetPersistentData(0.3);` |
-| Declaration without an initializer, assigned later | `Param_String param_String;` … `param_String = new() { … };` |
-| Collection expression / `AddRange` / array initializer | `List<GH_SAMParam> result = [ new GH_SAMParam(…) ];` |
-| Verbatim identifiers | `Param_Boolean @boolean = …;` used later as `boolean` |
-| Declarations inside a statement block | parameters declared inside `foreach` / `if` in the property body |
-| Local parameter factory | `Number("_size_", "Size", 0.25)` with a `private static Param_Number Number(string name, string description, double defaultValue)` in the same class |
-| Parameter-manager registration | `manager.AddParameter(new GooWidgetParam(), "_widget", "_widget", "W", GH_ParamAccess.item);` |
-| Typed manager helpers | `manager.AddBooleanParameter("Successful", "Successful", "OK", GH_ParamAccess.item);` (and the 5-argument form with a default) |
-| Optionality set on the object | `widget.Optional = true;` before the registration call |
-| Inherited registration from an abstract base | a concrete component with no declarations of its own, whose base in the repository registers them |
-| Generic base closed by the subclass | `: GH_SAMEnumComponent<ApertureType>` → the output published as `"ApertureType"` from `typeof(T).Name` |
-| Parameter type conventions | `Param_*` (built-in), `*Param` (SAM goo), and any other constructed type name (recorded as `external` and compared exactly) |
+| Straight-line `GH_SAMParam[]` properties | One proven returned collection, with wrappers added in order; direct array/collection expressions, a single list with `Add`/`AddRange`, `ToArray()` or `[.. list]` |
+| Empty side | Explicit empty array/collection return or an empty manager override; absence of registration is not evidence of emptiness |
+| Parameter construction | Declared or target-typed `new`, initializer with or without parentheses, whitespace variations, bare declaration followed by assignment; constructor arguments/effects must be supported |
+| Parameter reuse/mutation | Assignment order is tracked; `Name`, `NickName`, `Optional`, `Access` and persistent data assignments update the correct object even after wrapping; reassignment does not mutate earlier objects |
+| Parameter manager | Straight-line supported `AddParameter` or typed `Add*Parameter`; unsupported calls and control flow block certification |
+| Inheritance | Follow repository bases to the actual registration, including multiple levels; missing external registration or ambiguous ancestry blocks certification |
+| Type identity/defaults | Qualified and generic identity retained; aliases/imports resolved only with evidence; known built-in defaults or an empty source subclass inheriting them |
 
-**Deliberately not supported, and reported rather than guessed:**
+**Inventory-only / partial or unresolved:** helper-returned output sets; local parameter factories;
+branches/loops and filtered/discarded returned collections; symbolic defaults; unknown parameter types;
+nontrivial Goo/third-party constructors; Revit `ParamDefinition[]`; unread external bases. Each has a
+specific extraction reason and cannot obtain compatibility PASS. The original six partial components
+remain among these limitations. No component is changed to fit the extractor.
 
-- a parameter name or nickname that is not a literal string (a loop variable, `string.Format`,
-  interpolation, `typeof(T).Name` in a base the subclass does not close);
-- a parameter registered outside the declaration (`Params.RegisterInputParam(param)` with no
-  `GH_SAMParam` wrapper);
-- a variable that cannot be resolved to exactly one construction, or a construction whose type cannot be
-  determined;
-- a component whose base chain leaves the repository at an unknown type;
-- a project whose `.csproj` cannot be parsed as XML.
+Schema 3 records qualified type identities and extraction evidence. Schema 2 baselines need a reviewed
+refresh because their type identity was lossy. The approved schema-less Psychrometrics pilot remains
+readable: its built-in types resolve reliably and its current source must still be fully extracted.
+
+The bounded choice for PR #204 was:
+
+| Approach | Decision |
+|---|---|
+| Strict Python subset | Chosen: existing standard-library tool, small explicit certification boundary, reject uncertainty; supports the approved pilot without requiring host applications |
+| Roslyn semantic analysis | Separate reviewed follow-up for broader C#, symbols, constructors and MSBuild inclusion; adds a .NET tool/dependencies and project-resolution policy |
+| Grasshopper runtime inspection | Complementary evidence for actual constructed parameters and saved definitions; requires each relevant host/dependency environment, including Revit for its components |
+
+Do not grow this into a general C# parser to improve the count. Broader certification requires a new
+reviewed semantic/runtime approach. A passing static check applies to the supported declarations and
+approved baseline; it is not a substitute for compilation, runtime compatibility tests or engineering
+review.

@@ -41,10 +41,16 @@ The manifest is a *different thing* from the standard's naming conventions:
 
 ## Schema
 
-Manifests written by this tool are `schemaVersion: 2`. A manifest without `schemaVersion` is the
+Manifests written by this tool are `schemaVersion: 3`. Version 2 used lossy type names and must be
+regenerated in a reviewed change; it is not silently certified. A manifest without `schemaVersion` is the
 earlier v1 form (produced by the SAM_Psychrometrics pilot): it is still read, as a baseline whose
 parameters carry a runtime type, but it has no `extraction` section - so it is treated as a legacy
 baseline and only a fully extracted *current* component may be compared against it.
+
+Certification is intentionally narrower than inventory: straight-line, proven returned collections
+or supported manager registrations, known parameter constructor defaults, literal registered values
+and resolved type identities. Helper/conditional returns, nontrivial custom constructors and external
+registration are recorded as partial/unresolved. This is not general C# or MSBuild semantic analysis.
 
 ## Why the scanner is embedded
 
@@ -66,12 +72,12 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # --- C# scanner -------------------------------------------------------------------------------------
 
 SKIP_DIRS = {"obj", "bin", ".git", "packages", "design", "build", ".vs", "TestResults"}
-CLASS_RE = re.compile(r"^\s*(?:\[[^\]]*\]\s*)*((?:public|internal|private|protected|abstract|sealed|static|partial|\s)+)class\s+(\w+)(?:<[^>{]*>)?\s*(?::\s*([^{\n]+))?", re.M)
+CLASS_RE = re.compile(r"(?<!\w)(?:\[[^\]]*\]\s*)*((?:public|internal|private|protected|abstract|sealed|static|partial|\s)+)class\s+(\w+)(?:<[^>{]*>)?\s*(?::\s*([^{\n]+))?", re.M)
 GUID_RE = re.compile(r"ComponentGuid\s*(?:=>|\{\s*get\s*\{\s*return)\s*new\s*(?:[\w.]*\.)?(?:Guid\s*)?\(\s*\"([0-9a-fA-F-]+)\"")
 VERSION_RE = re.compile(r"LatestComponentVersion\s*=>\s*\"([^\"]+)\"")
 COMMENT_RE = re.compile(r"(?m)(^|[\s;{}])//[^\n]*")
@@ -133,6 +139,7 @@ MANAGER_HELPER_TYPES = {
 }
 
 ACCESS_VALUES = {"item", "list", "tree"}
+WRAPPER_RE = re.compile(r"\bnew\s+(?:global::SAM\.Core\.Grasshopper\.|SAM\.Core\.Grasshopper\.)?GH_SAMParam\s*\(")
 
 # A parameter object assigned to a variable: `Type v = new ...` or `v = new ...`.
 ASSIGNMENT_RE = re.compile(
@@ -416,6 +423,81 @@ def simple_type(type_text):
     return text or None
 
 
+def type_identity(type_text, context=None):
+    """Resolve only evidence available in the source; never erase qualification or type arguments.
+
+    Built-in GH spellings retain the pilot's short names. Other types retain a qualified identity.
+    An unknown short name is not proof of a runtime type (the caller records an extraction reason).
+    This deliberately is not a substitute for a C# compiler's semantic model.
+    """
+    if not type_text:
+        return None
+    context = context or {}
+    absolute = type_text.strip().startswith("global::")
+    text = re.sub(r"\s+", "", type_text).replace("global::", "")
+    aliases = context.get("aliases", {})
+    first = re.split(r"[.<]", text)[0]
+    if not absolute and first in aliases:
+        text = aliases[first].replace("global::", "") + text[len(first):]
+        absolute = True
+    if "<" in text:
+        if not text.endswith(">"):
+            return None
+        outer, arguments = text.split("<", 1)
+        resolved = [type_identity(arg, context) for arg in split_top_level(arguments[:-1])]
+        root = type_identity(outer, context)
+        return root + "<" + ",".join(resolved) + ">" if root and all(resolved) else None
+    primitives = {"int": "System.Int32", "string": "System.String", "double": "System.Double",
+                  "bool": "System.Boolean", "float": "System.Single", "object": "System.Object"}
+    if text in primitives:
+        return primitives[text]
+    known = context.get("types", {})
+    if text.startswith("Grasshopper.Kernel.Parameters.Param_") and text not in known:
+        return text[len("Grasshopper.Kernel.Parameters."):]
+    namespace = context.get("namespace", "")
+    local = namespace + "." + text if namespace else text
+    if not absolute and local in known:
+        return local
+    if text in known:
+        return text
+    imported = {ns + "." + text for ns in context.get("usings", []) if ns + "." + text in known}
+    if len(imported) == 1:
+        return imported.pop()
+    if len(imported) > 1:
+        return None
+    if "." in text and re.fullmatch(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+", text):
+        # An explicitly qualified external identity is preserved, not simplified.
+        return text
+    if re.fullmatch(r"Param_\w+", text) and "Grasshopper.Kernel.Parameters" in context.get("usings", []):
+        return text
+    return None
+
+
+def parameter_defaults_proven(identity, context, seen=None):
+    """The GH built-ins have known defaults; an arbitrary constructor does not.
+
+    The only source subclass certified here is an empty class inheriting those defaults. Reading
+    arbitrary Goo/third-party constructor effects belongs in a semantic/runtime follow-up.
+    """
+    if not identity:
+        return False
+    if identity in set(MANAGER_HELPER_TYPES.values()):
+        return True
+    name = identity.split("<", 1)[0]
+    seen = set(seen or ())
+    if name in seen:
+        return False
+    seen.add(name)
+    declarations = context.get("typeDeclarations", {}).get(name, [])
+    if len(declarations) != 1:
+        return False
+    declaration = declarations[0]
+    if declaration["body"].strip() or len(declaration["bases"]) != 1:
+        return False
+    base = type_identity(declaration["base_text"].strip(), declaration["context"])
+    return parameter_defaults_proven(base, declaration["context"], seen)
+
+
 def literal_string(expression):
     """(text, True) for a string literal or a `+`-concatenation of literals, else (raw, False)."""
     expression = expression.strip()
@@ -462,22 +544,28 @@ def parse_new_expression(expression, declared_type=None):
     rest = expression[3:].lstrip()
     if rest.startswith("("):                      # target-typed `new (...)` / `new()`
         body, after = take_balanced(rest, 0)
-        type_name = simple_type(declared_type)
+        type_name = declared_type if declared_type != "var" else None
     else:
         match = re.match(r"([A-Za-z_][\w:.<>,\[\]]*)\s*(?:\(|\{)", rest)
         if not match:
             return None
-        type_name = simple_type(match.group(1))
+        type_name = match.group(1)
         if rest[match.end() - 1] == "(":
             body, after = take_balanced(rest, match.end() - 1)
         else:
             body, after = "", match.end() - 1   # `new T { ... }`: initializer only
+    if body.strip():
+        return None  # constructor effects/overloads are outside the supported parameter subset
     tail = rest[after:]
     initializer = None
     brace = tail.find("{")
     if brace != -1 and tail[:brace].strip() == "":
-        brace_body, _ = take_balanced(tail, brace)
+        brace_body, end = take_balanced(tail, brace)
+        if tail[end:].strip():
+            return None
         initializer = parse_initializer(brace_body)
+    elif tail.strip():
+        return None
     return type_name, initializer
 
 
@@ -511,11 +599,12 @@ def type_kind(type_name):
     """
     if not type_name:
         return None
-    if re.fullmatch(r"Param_\w+", type_name):
+    short = simple_type(type_name)
+    if re.fullmatch(r"Param_\w+", short):
         return "builtin"
-    if re.fullmatch(r"\w*Param", type_name):
+    if re.fullmatch(r"\w*Param", short):
         return "goo"
-    if re.fullmatch(r"[A-Za-z_]\w*", type_name):
+    if re.fullmatch(r"[\w.<> ,]+", type_name):
         return "external"
     return None
 
@@ -561,7 +650,7 @@ def parse_factories(body):
         if len(constructions) != 1:
             continue
         constructed = constructions[0]
-        type_name = simple_type(constructed.group(1))
+        type_name = constructed.group(1)
         if type_name is None:
             continue
         if method_body[constructed.end() - 1] == "(":
@@ -591,7 +680,7 @@ def parse_factories(body):
         if not formal:
             continue
         factories[match.group("name")] = {
-            "type": simple_type(type_name) or type_name,
+            "type": type_name,
             "formal": formal,
             "init": initializer,
             "default": default_expression.strip() if default_expression else None,
@@ -754,16 +843,26 @@ def classify_classes(repo, publish_dirs, scan_dirs=None):
                 if removed(os.path.relpath(path, project_dir)):
                     continue
                 source = read_text(path)
-                if "ComponentGuid" not in source and "abstract class" not in source:
-                    continue
                 code = BLOCK_COMMENT_RE.sub(" ", COMMENT_RE.sub(r"\1", source))
-                matches = list(CLASS_RE.finditer(code))
+                # Match declarations anywhere on a line, but never inside description strings.
+                declaration_code = re.sub(r'"(?:[^"\\]|\\.)*"', lambda m: " " * len(m.group(0)), code)
+                matches = list(CLASS_RE.finditer(declaration_code))
                 for index, match in enumerate(matches):
-                    body = code[match.end(): matches[index + 1].start() if index + 1 < len(matches) else len(code)]
+                    brace = code.find("{", match.end())
+                    try:
+                        body, _ = take_balanced(code, brace)
+                    except ValueError:
+                        body = code[match.end():]
                     declaration = match.group(0)
                     generics = re.search(r"class\s+\w+\s*<\s*([^>]*)\s*>", declaration)
+                    namespaces = list(re.finditer(r"\bnamespace\s+([\w.]+)\s*[;{]", code[:match.start()]))
+                    namespace = namespaces[-1].group(1) if namespaces else ""
+                    aliases = dict(re.findall(r"\busing\s+(\w+)\s*=\s*([\w:.<> ,]+)\s*;", code[:match.start()]))
                     candidates.append({
                         "class": match.group(2),
+                        "qualifiedClass": namespace + "." + match.group(2) if namespace else match.group(2),
+                        "context": {"namespace": namespace, "aliases": aliases,
+                                    "usings": re.findall(r"\busing\s+([\w.]+)\s*;", code[:match.start()])},
                         "modifiers": match.group(1).strip(),
                         "abstract": "abstract" in match.group(1),
                         "publish": is_publishable,
@@ -783,9 +882,12 @@ def classify_classes(repo, publish_dirs, scan_dirs=None):
     for candidate in candidates:
         if candidate["abstract"] or not candidate["publish"]:
             continue  # abstract bases and non-Grasshopper projects are ancestry, not published components
-        if not candidate["guid"]:
-            continue  # a document object without a component identity is not part of the contract
         kind, reason = resolve_kind(candidate["class"], candidate["bases"], bases_by_class)
+        if not candidate["guid"]:
+            if kind == "component" or re.search(r"\b(?:System\.)?Guid\s+ComponentGuid\s*(?:=>|\{)", candidate["body"]):
+                candidate["kind_reason"] = "ComponentGuid could not be established: " + reason
+                unclassified.append(candidate)
+            continue
         candidate["kind"] = kind
         candidate["kind_reason"] = reason
         if kind == "component":
@@ -794,7 +896,20 @@ def classify_classes(repo, publish_dirs, scan_dirs=None):
             parameters.append(candidate)
         else:
             unclassified.append(candidate)
-    return components, parameters, unclassified, {candidate["class"]: candidate for candidate in candidates}
+    # A simple-name collision must not silently select the last class in traversal order.
+    by_name = {}
+    for candidate in candidates:
+        by_name.setdefault(candidate["class"], []).append(candidate)
+    known_types = {item["qualifiedClass"] for item in candidates}
+    declarations = {}
+    for candidate in candidates:
+        declarations.setdefault(candidate["qualifiedClass"], []).append(candidate)
+    for candidate in candidates:
+        candidate["context"]["types"] = known_types
+        candidate["context"]["typeDeclarations"] = declarations
+    for candidate in components:
+        candidate["ambiguousBases"] = [base for base in candidate["bases"] if len(by_name.get(base, [])) > 1]
+    return components, parameters, unclassified, {name: items[0] for name, items in by_name.items() if len(items) == 1}
 
 
 def resolve_kind(class_name, bases, bases_by_class, seen=None):
@@ -826,9 +941,10 @@ def ancestry(class_name, bases_by_class, seen=None):
         return seen
     seen.add(class_name)
     for base in bases_by_class.get(class_name, []):
-        seen.add(base)
         if base in bases_by_class:
             ancestry(base, bases_by_class, seen)
+        else:
+            seen.add(base)
     return seen
 
 
@@ -837,10 +953,11 @@ def ancestry(class_name, bases_by_class, seen=None):
 class Extractor:
     """Extracts a component's declared parameter set from C# source, or explains why it cannot."""
 
-    def __init__(self, class_name, body, substitutions=None):
+    def __init__(self, class_name, body, substitutions=None, context=None):
         self.class_name = class_name
         self.body = body
         self.substitutions = substitutions or {}
+        self.context = context or {}
         self.reasons = []
         self.external_types = set()
         self._factories = None
@@ -858,12 +975,20 @@ class Extractor:
     # -- helpers -------------------------------------------------------------------------------
     def param(self, name, nickname, description, type_name, optional, access, visibility,
               persistent_default, default_literal, registration, extra=None, position=None):
+        resolved_type = type_identity(type_name, self.context)
+        if resolved_type is None:
+            self.reason("parameter runtime type identity is unresolved or ambiguous: %s at %s" % (type_name, position))
+        elif not parameter_defaults_proven(resolved_type, self.context):
+            self.reason("constructor defaults of parameter type %s are not proven by the supported source subset at %s"
+                        % (resolved_type, position))
+        if persistent_default is not None and not default_literal:
+            self.reason("registered default is not a proven literal at %s (%s)" % (position, persistent_default))
         record = {
             "name": name,
             "nickname": nickname,
             "description": description,
-            "type": type_name,
-            "typeKind": type_kind(type_name),
+            "type": resolved_type,
+            "typeKind": type_kind(resolved_type),
             "optional": optional,
             "access": access,
             "visibility": visibility,
@@ -885,8 +1010,8 @@ class Extractor:
             if bare:
                 # `Param_String param_String;` followed by `param_String = new() { ... }`: the type is
                 # declared here and the initializer comes later, so record the declaration's type.
-                bindings[identifier(bare.group("name"))] = {"type": simple_type(bare.group("type")), "init": {},
-                                                            "default": None, "defaultLiteral": None, "at": position}
+                bindings[identifier(bare.group("name"))] = {"type": bare.group("type"), "init": {},
+                                                            "default": None, "defaultLiteral": None, "at": position, "records": []}
             return
         target = assignment_target(assignment[0])
         if not target:
@@ -903,8 +1028,10 @@ class Extractor:
                     # every reassigned parameter variable (a very common SAM pattern) is lost.
                     type_name = previous.get("type")
                 bindings[name] = {"type": type_name, "init": initializer or {}, "default": None,
-                                  "defaultLiteral": None, "at": position}
-        elif rhs.startswith("["):
+                                  "defaultLiteral": None, "at": position, "records": []}
+            else:
+                bindings.pop(name, None)
+        else:
             bindings.pop(name, None)
 
     def param_from_binding(self, binding, position):
@@ -979,11 +1106,12 @@ class Extractor:
         return binding["default"].strip()
 
     def check_type(self, type_name, position):
-        kind = type_kind(type_name)
+        identity = type_identity(type_name, self.context)
+        kind = type_kind(identity)
         if kind is None:
             self.reason("parameter runtime type could not be determined at %s" % position)
         elif kind == "external":
-            self.external_types.add(type_name)
+            self.external_types.add(identity)
 
     def factory_parameter(self, expression, position):
         """Resolve `Helper("name", "description")` through a local parameter factory, or None.
@@ -999,6 +1127,8 @@ class Extractor:
         factory = self.factories.get(match.group("name"))
         if factory is None:
             return None
+        self.reason("local parameter factory %s is inventory-only: return and mutation effects are not proven at %s"
+                    % (match.group("name"), position))
         arguments = [part.strip() for part in split_top_level(match.group("args"))]
         if len(arguments) != len(factory["formal"]):
             self.reason("parameter factory %s is called with %d argument(s) at %s, not its %d parameter(s)"
@@ -1027,14 +1157,117 @@ class Extractor:
     def declarative(self, side, property_body):
         params = []
         bindings = {}
-        for statement in walk_statements(property_body):
+        # Certification is a bounded straight-line language, not every C# expression we can scan.
+        # The old walker remains useful for inventory, but descending into branches/loops loses
+        # cardinality and execution order and therefore cannot establish a complete contract.
+        masked = re.sub(r'"(?:[^"\\]|\\.)*"', '""', property_body)
+        if re.search(r"\b(?:if|else|for|foreach|while|switch|try|catch|throw|yield)\b|#|=>", masked):
+            self.reason("control flow or unsupported expression in %s declaration; returned parameter set is not proven" % side)
+        statements = walk_statements(property_body)
+        if len(statements) == 1 and not statements[0].strip().startswith("return"):
+            # Expression-bodied property: its expression is the actual return value.
+            statements = ["return " + statements[0].strip()]
+        collection = None
+        returned = False
+        for statement in statements:
+            statement = statement.strip()
+            position = "%s/%s" % (side, self.position_of(property_body, statement))
+            skeleton = self.wrapper_skeleton(statement)
+            if returned:
+                self.reason("statements after the return in %s declaration are not supported" % side)
             if re.search(r"Params\s*\.\s*Register(Input|Output)Param\s*\(", statement):
                 self.reason("a parameter is registered directly through Params.Register*Param inside the %s declaration and cannot be attributed" % side)
                 continue
-            self.bind(bindings, statement, "%s/%s" % (side, self.position_of(property_body, statement)))
+            if statement.startswith("return "):
+                returned = True
+                expression = skeleton[7:].strip()
+                same_collection = collection and (re.fullmatch(re.escape(collection) + r"\s*\.\s*ToArray\s*\(\s*\)", expression)
+                                                  or re.fullmatch(r"\[\s*\.\.\s*" + re.escape(collection) + r"\s*\]", expression))
+                if (collection and not same_collection) or not self.collection_expression(expression, collection):
+                    self.reason("unsupported %s return expression: the returned parameter set cannot be established (%s)"
+                                % (side, skeleton[7:87]))
+            else:
+                assignment = split_assignment(skeleton)
+                target = assignment_target(assignment[0]) if assignment else None
+                rhs = assignment[1].strip() if assignment else ""
+                if target and self.collection_expression(rhs):
+                    if collection is not None:
+                        self.reason("multiple parameter collections in %s declaration are not supported" % side)
+                    collection = target[1]
+                elif collection and re.fullmatch(re.escape(collection) + r"\s*\.\s*Add\s*\(\s*PARAM\s*\)", skeleton):
+                    pass
+                elif collection and re.match(re.escape(collection) + r"\s*\.\s*AddRange\s*\(", skeleton):
+                    args, end = take_balanced(skeleton, skeleton.index("("))
+                    if skeleton[end:].strip() or not self.collection_expression(args):
+                        self.reason("unsupported AddRange expression at %s" % position)
+                elif self.metadata_assignment(bindings, statement, position):
+                    continue
+                elif re.fullmatch(IDENT + r"\s*\.\s*SetPersistentData\s*\(.*\)", statement, re.S):
+                    pass
+                elif re.fullmatch(IDENT + r"\s*\.\s*DataMapping\s*=\s*GH_DataMapping\.\w+", statement):
+                    pass  # data mapping is outside this metadata contract
+                elif target and parse_new_expression(rhs, target[0]) is not None:
+                    pass
+                elif re.fullmatch(r"[\w:.<>,\[\]]+\s+" + IDENT, statement):
+                    pass  # bare declaration; its construction is required at use
+                else:
+                    self.reason("unsupported statement in %s declaration at %s (%s)" % (side, position, skeleton[:80]))
+            self.bind(bindings, statement, position)
             self.apply_persistent_data(bindings, statement)
             params.extend(self.emit(statement, side, property_body, bindings))
+        if not returned:
+            self.reason("no proven return value for %s declaration" % side)
         return params
+
+    def wrapper_skeleton(self, statement):
+        """Replace complete wrapper constructions, leaving their surrounding collection syntax."""
+        cursor, result = 0, ""
+        for match in WRAPPER_RE.finditer(statement):
+            if match.start() < cursor:
+                continue
+            _, end = take_balanced(statement, match.end() - 1)
+            result += statement[cursor:match.start()] + "PARAM"
+            cursor = end
+        return result + statement[cursor:]
+
+    def collection_expression(self, expression, collection=None):
+        expression = expression.strip()
+        if collection and (re.fullmatch(re.escape(collection) + r"\s*\.\s*ToArray\s*\(\s*\)", expression)
+                           or re.fullmatch(r"\[\s*\.\.\s*" + re.escape(collection) + r"\s*\]", expression)):
+            return True
+        if re.fullmatch(r"new\s+GH_SAMParam\s*\[\s*0\s*\]", expression):
+            return True
+        if re.fullmatch(r"(?:System\.)?Array\.Empty<GH_SAMParam>\s*\(\s*\)", expression):
+            return True
+        list_type = r"(?:System\.Collections\.Generic\.)?List\s*<\s*GH_SAMParam\s*>"
+        if re.fullmatch(r"new\s+" + list_type + r"\s*\(\s*\)", expression):
+            return True
+        expression = re.sub(r"^new\s+(?:GH_SAMParam\s*\[\s*\]|" + list_type + r"\s*(?:\(\s*\))?)\s*", "", expression)
+        if not ((expression.startswith("[") and expression.endswith("]"))
+                or (expression.startswith("{") and expression.endswith("}"))):
+            return False
+        return all(not part.strip() or part.strip() == "PARAM" for part in split_top_level(expression[1:-1]))
+
+    def metadata_assignment(self, bindings, statement, position):
+        match = re.fullmatch(r"(" + IDENT + r")\s*\.\s*(Name|NickName|Description|Optional|Access)\s*=\s*(.*)", statement, re.S)
+        if not match:
+            return False
+        binding = bindings.get(identifier(match.group(1)))
+        if binding is None:
+            self.reason("metadata assignment on unknown parameter at %s" % position)
+            return True
+        field, raw = match.group(2), match.group(3)
+        binding["init"][field] = raw
+        if field == "Optional":
+            value, key = self.boolean(raw, position, field), "optional"
+        elif field == "Access":
+            value, key = self.access(raw, position), "access"
+        else:
+            value = self.literal(raw, position, field, required=field != "Description")
+            key = {"Name": "name", "NickName": "nickname", "Description": "description"}[field]
+        for record in binding["records"]:
+            record[key] = value
+        return True
 
     def position_of(self, body, statement):
         index = body.find(statement)
@@ -1053,6 +1286,11 @@ class Extractor:
         binding = bindings[name]
         binding["default"] = value
         binding["defaultLiteral"] = bool(re.fullmatch(r'-?\d+(\.\d+)?[fFdDmM]?|true|false|"(?:[^"\\]|\\.)*"', value))
+        if not binding["defaultLiteral"]:
+            self.reason("registered default is not a proven literal (%s)" % value)
+        for record in binding["records"]:
+            record["persistentDefault"] = value
+            record["defaultLiteral"] = binding["defaultLiteral"]
 
     def emit(self, statement, side, body, bindings):
         """Every `new GH_SAMParam(...)` in one statement, in order.
@@ -1065,15 +1303,17 @@ class Extractor:
         params = []
         cursor = 0
         while True:
-            index = statement.find("new GH_SAMParam(", cursor)
-            if index == -1:
+            match = WRAPPER_RE.search(statement, cursor)
+            if match is None:
                 break
-            args, after = take_balanced(statement, index + len("new GH_SAMParam"))
+            args, after = take_balanced(statement, match.end() - 1)
             cursor = after
             parts = split_top_level(args)
             first = parts[0].strip() if parts else ""
-            visibility = visibility_of(parts[1] if len(parts) > 1 else None)
+            visibility = visibility_of(parts[1]) if len(parts) == 2 else "Binding"
             position = "%s/%s" % (side, self.position_of(body, statement))
+            if len(parts) not in (1, 2) or visibility not in ("Binding", "Default", "Voluntary", "Mandatory"):
+                self.reason("wrapper visibility/overload is not proven at %s" % position)
             if not first:
                 self.reason("GH_SAMParam with no arguments at %s" % position)
                 continue
@@ -1107,6 +1347,7 @@ class Extractor:
                     record["persistentDefault"] = self.default_text(binding)
                     if binding["default"] is not None:
                         record["defaultLiteral"] = bool(binding["defaultLiteral"])
+                    binding["records"].append(record)
                 else:
                     record = self.factory_parameter(first, position)
                     if record is None:
@@ -1123,7 +1364,16 @@ class Extractor:
     # -- manager registration `RegisterInputParams` / `RegisterOutputParams` ---------------------
     def manager(self, side, method_body):
         params = []
+        masked = re.sub(r'"(?:[^"\\]|\\.)*"', '""', method_body)
+        if re.search(r"\b(?:if|else|for|foreach|while|switch|try|catch|throw|yield)\b|#", masked):
+            self.reason("control flow in %s manager registration is not proven" % side)
         for statement in walk_statements(method_body):
+            statement = statement.strip()
+            if not (re.fullmatch(r"\w+\s*\.\s*Add\w*Parameter\s*\(.*\)", statement, re.S)
+                    or (split_assignment(statement) and assignment_target(split_assignment(statement)[0])
+                        and parse_new_expression(split_assignment(statement)[1], assignment_target(split_assignment(statement)[0])[0]))
+                    or re.fullmatch(IDENT + r"\s*\.\s*Optional\s*=\s*(?:true|false)", statement)):
+                self.reason("unsupported %s manager statement (%s)" % (side, statement[:80]))
             if re.search(r"Params\s*\.\s*(Input|Output)\s*\[", statement):
                 self.reason("optionality, access or visibility is set through Params.Input/Output and cannot be attributed (%s)" % side)
             if "Params.RegisterInputParam" in statement or "Params.RegisterOutputParam" in statement:
@@ -1174,6 +1424,8 @@ class Extractor:
                 type_name, initializer = found
                 initializer = initializer or {}
                 variable_optional = self.variable_optional(variable, position)
+                if variable_optional is None:
+                    variable_optional = self.optional(initializer, position)
                 if re.search(r"\b" + re.escape(variable) + r"\s*\.\s*(Name|NickName|Access|Description)\s*=", self.body):
                     self.reason("parameter identity of variable '%s' is set outside the registration call and cannot be attributed (%s)" % (variable, position))
             if len(parts) == 1:
@@ -1181,7 +1433,7 @@ class Extractor:
                                                             initializer.get("Description"), initializer.get("Access"))
             elif len(parts) == 4:
                 name_raw, nick_raw, desc_raw, access_raw = parts[1], parts[2], parts[3], initializer.get("Access")
-            elif len(parts) >= 5:
+            elif len(parts) == 5:
                 name_raw, nick_raw, desc_raw, access_raw = parts[1], parts[2], parts[3], parts[4]
             else:
                 self.reason("unrecognised AddParameter overload with %d arguments at %s" % (len(parts), position))
@@ -1191,6 +1443,7 @@ class Extractor:
             if type_name is None:
                 self.reason("unrecognised parameter manager helper Add%sParameter at %s" % (helper, position))
                 return []
+            type_name = "Grasshopper.Kernel.Parameters." + type_name
             if len(parts) == 3:
                 name_raw, nick_raw, desc_raw, access_raw = parts[0], parts[1], parts[2], None
             elif len(parts) == 4:
@@ -1282,6 +1535,11 @@ class Extractor:
                 self.reason("no RegisterOutputParams override: the output set may be inherited")
             return inputs, outputs, "manager"
 
+        if re.search(r"\b(?:Inputs|Outputs)\s*(?:=>|\{)", class_body):
+            self.reason("unsupported or incomplete Inputs/Outputs declaration (for example ParamDefinition[]); "
+                        "the published parameter set cannot be established")
+            return [], [], "unsupported"
+
         if reason_prefix:
             self.reason(reason_prefix)
         if re.search(r"GH_SAMParam|AddParameter\s*\(|Add[A-Za-z_]+Parameter\s*\(|Params\s*\.\s*Register", class_body):
@@ -1368,23 +1626,37 @@ def generic_substitutions(subclass, base_name, base_candidate):
 
 def build_component(candidate, base_lookup, bases_by_class=None):
     """Extract one component, resolving inheritance from repository classes where it is unambiguous."""
-    extractor = Extractor(candidate["class"], candidate["body"])
+    extractor = Extractor(candidate["class"], candidate["body"], context=candidate.get("context"))
     inputs, outputs, registration = extractor.extract(candidate["body"])
-
-    if registration == "inherited":
-        for base in candidate["bases"]:
-            if base in base_lookup:
-                substitutions = generic_substitutions(candidate, base, base_lookup[base])
-                if substitutions is None:
-                    extractor.reason("base class %s is generic and is not closed with literal type arguments by %s"
-                                     % (base, candidate["class"]))
-                    break
-                extractor = Extractor(candidate["class"], base_lookup[base]["body"], substitutions)
-                inputs, outputs, registration = extractor.extract(base_lookup[base]["body"], reason_prefix=None)
-                registration = "inherited:%s" % base
-                break
-        else:
-            registration = "none"
+    current, visited, path = candidate, set(), []
+    while registration == "inherited" and not extractor.reasons:
+        name = current["class"]
+        if name in visited:
+            extractor.reason("circular inherited registration: %s" % " -> ".join(path + [name]))
+            break
+        visited.add(name)
+        if current.get("ambiguousBases"):
+            extractor.reason("ambiguous source base type(s): %s" % current["ambiguousBases"])
+            break
+        bases = [base for base in current["bases"] if base in base_lookup]
+        if len(bases) != 1:
+            extractor.reason("inherited registration could not be read from external or ambiguous base(s): %s"
+                             % ", ".join(current["bases"]))
+            break
+        base = bases[0]
+        substitutions = generic_substitutions(current, base, base_lookup[base])
+        if substitutions is None:
+            extractor.reason("base class %s is generic and is not closed with literal type arguments" % base)
+            break
+        substitutions = {key: extractor.substitutions.get(value, value) for key, value in substitutions.items()}
+        current = base_lookup[base]
+        path.append(base)
+        inherited = Extractor(candidate["class"], current["body"], substitutions, context=current.get("context"))
+        inputs, outputs, registration = inherited.extract(current["body"])
+        inherited.reasons = extractor.reasons + inherited.reasons
+        extractor = inherited
+    if path:
+        registration = "inherited:" + " -> ".join(path)
 
     if bases_by_class is not None and registration != "declarative":
         if "IGH_VariableParameterComponent" in ancestry(candidate["class"], bases_by_class):
@@ -1402,7 +1674,7 @@ def build_component(candidate, base_lookup, bases_by_class=None):
                 extractor.reason("runtime type of %s '%s' is not determined" % (side, param.get("name")))
 
     status = "verified"
-    if not inputs and not outputs and registration in ("inherited", "manager"):
+    if not inputs and not outputs and extractor.reasons:
         status = "unresolved"
     if extractor.reasons:
         status = "unresolved" if status == "unresolved" else "partial"
@@ -1421,7 +1693,7 @@ def build_component(candidate, base_lookup, bases_by_class=None):
 
 def component_metadata(candidate, component):
     """Name/nickname/category/subcategory/description/version read from the constructor."""
-    constructor = re.search(r"\b" + candidate["class"] + r"\s*\(\s*\)\s*(?=:\s*base\()", candidate["body"])
+    constructor = re.search(r"\b" + candidate["class"] + r"\s*\(\s*\)\s*(?=:\s*base\s*\()", candidate["body"])
     base = base_args(candidate["body"], constructor.end()) if constructor else None
     if base and base[-1].startswith("GH_ParamAccess"):
         base = base[:-1]
@@ -1435,6 +1707,18 @@ def component_metadata(candidate, component):
         "description": lit(base[2]) if base and len(base) >= 4 else None,
         "latestComponentVersion": version.group(1) if version else None,
     })
+    expressions = dict(zip(("name", "nickname", "category", "subcategory"),
+                           (base[0], base[1], base[-2], base[-1]))) if base and len(base) >= 4 else {}
+    for field in ("name", "nickname", "category", "subcategory"):
+        value, proven = literal_string(expressions.get(field, ""))
+        if not proven:
+            entry["extraction"]["reasons"].append("component %s is not a proven constructor literal" % field)
+        else:
+            entry[field] = value
+    if "LatestComponentVersion" in candidate["body"] and version is None:
+        entry["extraction"]["reasons"].append("LatestComponentVersion is not a proven string literal")
+    if entry["extraction"]["reasons"] and entry["extraction"]["status"] == "verified":
+        entry["extraction"]["status"] = "partial"
     return entry
 
 
@@ -1495,6 +1779,7 @@ def scan(repo):
             "grasshopper": "direct" if state == "direct" else "indirect" if state else "none",
             "scanned": bool(state) and not info["is_test"] and not info["error"],
             "evidence": evidence,
+            "error": info["error"],
         })
 
     return {
@@ -1578,6 +1863,14 @@ def compare(baseline, current):
         findings["manifest"].append("baseline schemaVersion %s is not supported (expected %s); regenerate it in a reviewed update"
                                     % (baseline.get("schemaVersion"), SCHEMA_VERSION))
 
+    for item in current.get("unclassifiedClasses", []):
+        findings["extraction"].append("unclassified class %s at %s: %s" % (item["class"], item["source"], item["reason"]))
+    for project in current.get("projects", []):
+        if project.get("error"):
+            findings["extraction"].append("unparseable project %s: %s" % (project["source"], project["error"]))
+    if not any(project.get("scanned") for project in current.get("projects", [])):
+        findings["extraction"].append("no Grasshopper project was scanned; repository discovery is not established")
+
     by_class = {component["class"]: component for component in baseline.get("components", [])}
     compared = 0
 
@@ -1615,12 +1908,14 @@ def compare(baseline, current):
                                                             before.get(field), after.get(field)))
 
         if component["extraction"]["status"] != "verified":
-            findings["extraction"].append("%s: extraction is %s (%s)"
-                                          % (component["class"], component["extraction"]["status"],
+            findings["extraction"].append("%s (%s): extraction is %s (%s)"
+                                          % (component["class"], component.get("source", "unknown source"), component["extraction"]["status"],
                                              "; ".join(component["extraction"]["reasons"]) or "no reason recorded"))
 
         baseline_extraction = previous.get("extraction")
-        if baseline_extraction is not None and baseline_extraction.get("status") != "verified":
+        if not legacy_baseline and baseline_extraction is None:
+            findings["extraction"].append("%s: baseline has no extraction evidence" % component["class"])
+        elif baseline_extraction is not None and baseline_extraction.get("status") != "verified":
             findings["extraction"].append("%s: the approved baseline itself records an incomplete extraction (%s); "
                                           "regenerate it in a reviewed change"
                                           % (component["class"], baseline_extraction.get("status")))
@@ -1655,6 +1950,7 @@ def summarise(model):
         "unresolved": counts["unresolved"],
         "parameterClassesExcluded": len(model.get("parameterClasses", [])),
         "unclassifiedClasses": len(model.get("unclassifiedClasses", [])),
+        "unparseableProjects": sum(1 for project in projects if project.get("error")),
         "projectsScanned": sum(1 for project in projects if project.get("scanned")),
         "projectsDirect": sum(1 for project in projects if project["grasshopper"] == "direct" and project.get("scanned")),
         "projectsIndirect": sum(1 for project in projects if project["grasshopper"] == "indirect" and project.get("scanned")),
@@ -1709,6 +2005,12 @@ def main(argv):
         print("inventory %s -> %s" % (model["repository"], output))
         print("  components %(components)d (verified %(verified)d, partial %(partial)d, unresolved %(unresolved)d)" % summary)
         print("  parameter classes excluded %(parameterClassesExcluded)d, unclassified classes %(unclassifiedClasses)d" % summary)
+        print("  unparseable projects %(unparseableProjects)d" % summary)
+        for item in model["unclassifiedClasses"]:
+            print("  UNCLASSIFIED %s (%s): %s" % (item["class"], item["source"], item["reason"]))
+        for project in model["projects"]:
+            if project.get("error"):
+                print("  UNPARSEABLE %s: %s" % (project["source"], project["error"]))
         print("  projects %(projectsTotal)d (direct %(projectsDirect)d, indirect %(projectsIndirect)d)" % summary)
         print("  naming deviations %d, description notes %d" % (len(model["namingExceptions"]), len(description_notes(model["components"]))))
         print("  NOT compatibility validation: no approved baseline was read.")
@@ -1745,6 +2047,7 @@ def main(argv):
     print("%s: %d components discovered, %d fully verified, %d partial, %d unresolved; %d compared against the approved baseline; %d parameter classes excluded"
           % (model["repository"], summary["components"], summary["verified"], summary["partial"],
              summary["unresolved"], findings["_compared"], summary["parameterClassesExcluded"]))
+    print("discovery: %(unclassifiedClasses)d unclassified classes, %(unparseableProjects)d unparseable projects" % summary)
     if not fatal:
         print("OK compatibility (baseline %s)" % os.path.relpath(path, repo).replace("\\", "/"))
         return 0

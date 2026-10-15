@@ -108,6 +108,7 @@ class Fixture(unittest.TestCase):
 
 HEADER = """// SPDX-License-Identifier: LGPL-3.0-or-later
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Parameters;
 using SAM.Core.Grasshopper;
 
 namespace Demo
@@ -119,6 +120,8 @@ namespace Demo
         public __NAME__() : base("__NAME__", "__NAME__", "Demo", "SAM", "Demo") { }
 __BODY__
     }
+    public class GooPanelParam : Grasshopper.Kernel.Parameters.Param_Number { }
+    public class GooWidgetParam : Grasshopper.Kernel.Parameters.Param_Number { }
 }
 """
 
@@ -133,7 +136,8 @@ class ExtractionTests(Fixture):
     def test_reported_create_panels_by_solids_case(self):
         """The reported case: target-typed `new()`, a reused variable and a collection initializer."""
         entry = component(SAM_REPO, "SAMAnalyticalCreatePanelsBySolids")
-        self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"]["reasons"])
+        self.assertEqual("partial", entry["extraction"]["status"])
+        self.assertTrue(all("constructor defaults" in reason for reason in entry["extraction"]["reasons"]))
         self.assertEqual(
             ["_solids", "apertureGeometries_", "minThickness_", "snap_", "maxThicknessRatio_",
              "airForOpenings_", "diagnosticDetail_"],
@@ -142,7 +146,7 @@ class ExtractionTests(Fixture):
         self.assertEqual("Param_Number", parameter(entry, "inputs", "maxThicknessRatio_")["type"])
         self.assertEqual("0.2", parameter(entry, "inputs", "maxThicknessRatio_")["persistentDefault"])
         self.assertEqual("Voluntary", parameter(entry, "inputs", "maxThicknessRatio_")["visibility"])
-        self.assertEqual("GooPanelParam", parameter(entry, "outputs", "panels")["type"])
+        self.assertEqual("SAM.Analytical.Grasshopper.GooPanelParam", parameter(entry, "outputs", "panels")["type"])
 
     def test_variable_reuse_and_target_typed_new(self):
         body = """        protected override GH_SAMParam[] Inputs
@@ -277,7 +281,7 @@ class ExtractionTests(Fixture):
 """
         entry = component(self.repo({"C.cs": component_source("C", body)}), "C")
         self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"]["reasons"])
-        self.assertEqual("GooWidgetParam", parameter(entry, "inputs", "_widget")["type"])
+        self.assertEqual("Demo.GooWidgetParam", parameter(entry, "inputs", "_widget")["type"])
         self.assertEqual("list", parameter(entry, "inputs", "_size_")["access"])
         self.assertEqual("0.5", parameter(entry, "inputs", "_size_")["persistentDefault"])
         self.assertEqual("Param_Boolean", parameter(entry, "outputs", "Successful")["type"])
@@ -315,7 +319,8 @@ class ExtractionTests(Fixture):
         }
 """
         entry = component(self.repo({"C.cs": component_source("C", body)}), "C")
-        self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"]["reasons"])
+        self.assertEqual("partial", entry["extraction"]["status"])
+        self.assertTrue(any("factory" in reason for reason in entry["extraction"]["reasons"]))
         self.assertEqual("Param_Number", parameter(entry, "inputs", "_size_")["type"])
         self.assertEqual("0.25", parameter(entry, "inputs", "_size_")["persistentDefault"])
         self.assertEqual("Size", parameter(entry, "inputs", "_size_")["description"])
@@ -323,6 +328,7 @@ class ExtractionTests(Fixture):
     def test_inherited_registration_from_abstract_base_in_the_repository(self):
         base = """// SPDX-License-Identifier: LGPL-3.0-or-later
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Parameters;
 namespace Demo
 {
     public abstract class BaseComponent : GH_Component
@@ -338,6 +344,7 @@ namespace Demo
 """
         derived = """// SPDX-License-Identifier: LGPL-3.0-or-later
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Parameters;
 namespace Demo
 {
     public class DerivedComponent : BaseComponent
@@ -349,13 +356,14 @@ namespace Demo
 }
 """
         entry = component(self.repo({"Base.cs": base, "Derived.cs": derived}), "DerivedComponent")
-        self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"]["reasons"])
+        self.assertEqual("partial", entry["extraction"]["status"])  # constructor forwards an unresolved one-argument metadata contract
         self.assertEqual("inherited:BaseComponent", entry["registration"])
         self.assertEqual("_shared", entry["inputs"][0]["name"])
 
     def test_generic_base_type_argument_substitution(self):
         base = """// SPDX-License-Identifier: LGPL-3.0-or-later
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Parameters;
 namespace Demo
 {
     public abstract class EnumComponent<T> : GH_Component
@@ -382,7 +390,7 @@ namespace Demo
 }
 """
         entry = component(self.repo({"Base.cs": base, "Colour.cs": derived}), "ColourComponent")
-        self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"]["reasons"])
+        self.assertEqual("partial", entry["extraction"]["status"])  # registration is known; inherited display metadata is not
         self.assertEqual("ColourKind", entry["outputs"][0]["name"])
 
     def test_missing_outputs_is_not_verified(self):
@@ -473,30 +481,36 @@ class TypeTests(Fixture):
         pilot = os.path.join(WORKSPACE, "SAM_Psychrometrics")
         if not os.path.isdir(pilot):
             self.skipTest("SAM_Psychrometrics is not checked out")
-        source = os.path.join(pilot, "design", "grasshopper-icons", "param_contract.json")
-        with open(source, encoding="utf-8") as stream:
-            baseline = json.load(stream)
-        component_entry = baseline["components"][0]
-        component_entry["inputs"][0]["type"] = "Param_String"
-        write(os.path.join(self.root, "design", "grasshopper-icons", "param_contract.json"),
-              json.dumps(baseline))
-        # The copy has a mutated baseline but no source to compare against, so the tool must refuse
-        # rather than silently accept it.
+        # Copy actual component sources into a synthetic project, never mutate the pilot checkout.
+        source_dir = os.path.join(pilot, "Grasshopper", "SAM.Core.Grasshopper.Psychrometrics", "Component")
+        sources = {name: pc.read_text(os.path.join(source_dir, name))
+                   for name in os.listdir(source_dir) if name.endswith(".cs")}
+        make_repo(self.root, sources)
+        self.assertEqual(0, run(self.root)[0])
+        self.assertEqual(0, run(self.root, "--check")[0])
+        path = os.path.join(self.root, "Demo.Grasshopper", "SAMPsychrometricsDewPointTemperature.cs")
+        source = pc.read_text(path)
+        self.assertIn("new global::Grasshopper.Kernel.Parameters.Param_Number()", source)
+        write(path, source.replace("new global::Grasshopper.Kernel.Parameters.Param_Number()",
+                                   "new global::Grasshopper.Kernel.Parameters.Param_String()", 1))
         code, output = run(self.root, "--check")
-        self.assertNotEqual(0, code)
-        self.assertIn("components discovered", output)
+        self.assertEqual(1, code, output)
+        self.assertIn("SAMPsychrometricsDewPointTemperature.inputs._dryBulbTemperature: type 'Param_Number' -> 'Param_String'", output)
+        self.assertNotIn("component removed", output)
+        self.assertNotIn("FAIL extraction", output)
 
     def test_custom_goo_type_is_supported(self):
         entry = component(self.contract_repo("GooPanelParam"), "C")
         self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"]["reasons"])
         self.assertEqual("goo", parameter(entry, "inputs", "_value")["typeKind"])
 
-    def test_external_parameter_type_is_reported_not_unresolved(self):
+    def test_external_parameter_identity_is_recorded_but_unknown_defaults_block_certification(self):
         repo = self.contract_repo("global::RhinoInside.Revit.GH.Parameters.HostObject")
         entry = component(repo, "C")
-        self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"]["reasons"])
+        self.assertEqual("partial", entry["extraction"]["status"])
+        self.assertTrue(any("constructor defaults" in reason for reason in entry["extraction"]["reasons"]))
         self.assertEqual("external", parameter(entry, "inputs", "_value")["typeKind"])
-        self.assertEqual(["HostObject"], pc.scan(repo)["externalParameterTypes"])
+        self.assertEqual(["RhinoInside.Revit.GH.Parameters.HostObject"], pc.scan(repo)["externalParameterTypes"])
 
     def test_unresolved_extraction_blocks_the_check(self):
         """A parameter whose identity cannot be established must never be reported as verified."""
@@ -531,6 +545,7 @@ class DiscoveryTests(Fixture):
     def test_a_component_named_like_a_parameter_is_a_component(self):
         source = """// SPDX-License-Identifier: LGPL-3.0-or-later
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Parameters;
 using SAM.Core.Grasshopper;
 namespace Demo
 {
@@ -548,6 +563,7 @@ namespace Demo
     def test_a_parameter_class_is_not_a_component_and_is_reported(self):
         source = """// SPDX-License-Identifier: LGPL-3.0-or-later
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Parameters;
 namespace Demo
 {
     public class GooThingParam : GH_PersistentParam<GooThing>
@@ -647,11 +663,11 @@ namespace Demo
 
     def test_sam_pilot_and_representative_sam_components(self):
         entry = component(SAM_REPO, "SAMAnalyticalCreateAperturesBySolids")
-        self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"]["reasons"])
-        self.assertEqual("GooApertureConstructionParam",
+        self.assertEqual("partial", entry["extraction"]["status"])
+        self.assertEqual("SAM.Analytical.Grasshopper.GooApertureConstructionParam",
                          parameter(entry, "inputs", "apertureConstructions_")["type"])
         enum_entry = component(SAM_REPO, "SAMAnalyticalApertureType")
-        self.assertEqual("verified", enum_entry["extraction"]["status"], enum_entry["extraction"]["reasons"])
+        self.assertEqual("partial", enum_entry["extraction"]["status"])
         self.assertEqual("ApertureType", enum_entry["outputs"][0]["name"])
 
 
@@ -820,8 +836,248 @@ class CompatibilityTests(Fixture):
 
 # --- end-to-end: the real fleet, read-only -----------------------------------------------------------------
 
+class FinalRepairTests(Fixture):
+    """Second independent review: reproduce each false PASS and assert its actual failure category."""
+
+    def declared(self, parameter_type="Param_Number", mutation="", wrapper="new GH_SAMParam("):
+        return component_source("C", '''
+        protected override GH_SAMParam[] Inputs { get {
+            var result = new List<GH_SAMParam>();
+            TYPE p = new TYPE() { Name = "_value", NickName = "_value", Description = "Value", Access = GH_ParamAccess.item };
+            result.Add(WRAPPERp, ParamVisibility.Binding));
+            MUTATION
+            return result.ToArray();
+        } }
+        protected override GH_SAMParam[] Outputs => [];
+'''.replace("TYPE", parameter_type).replace("WRAPPER", wrapper).replace("MUTATION", mutation))
+
+    def assert_mutation_fails(self, before, after, message, category="compatibility", extra=None):
+        repo = self.repo(dict({"C.cs": before}, **(extra or {})))
+        self.assertEqual(0, run(repo)[0])
+        code, output = run(repo, "--check")
+        self.assertEqual(0, code, output)
+        write(os.path.join(repo, "Demo.Grasshopper", "C.cs"), after)
+        code, output = run(repo, "--check")
+        self.assertEqual(1, code, output)
+        self.assertIn("FAIL " + category + ":", output)
+        self.assertIn(message, output)
+        self.assertNotIn("component removed", output)
+        self.assertNotIn("OK compatibility", output)
+
+    def test_qualified_external_types_are_distinct(self):
+        types = '''namespace VendorA {
+public class HostObject : Grasshopper.Kernel.Parameters.Param_Number { }
+}
+namespace VendorB {
+public class HostObject : Grasshopper.Kernel.Parameters.Param_Number { }
+}'''
+        self.assert_mutation_fails(self.declared("global::VendorA.HostObject"),
+                                   self.declared("global::VendorB.HostObject"),
+                                   "type 'VendorA.HostObject' -> 'VendorB.HostObject'", extra={"Types.cs": types})
+
+    def test_closed_generic_type_arguments_are_distinct(self):
+        types = "namespace Demo { public class GooValueParam<T> : Grasshopper.Kernel.Parameters.Param_Number { } }"
+        self.assert_mutation_fails(self.declared("GooValueParam<int>"), self.declared("GooValueParam<string>"),
+                                   "Demo.GooValueParam<System.Int32>", extra={"Types.cs": types})
+
+    def test_equivalent_global_and_builtin_spellings_pass(self):
+        repo = self.repo({"C.cs": self.declared("Param_Number")})
+        self.assertEqual(0, run(repo)[0])
+        write(os.path.join(repo, "Demo.Grasshopper", "C.cs"), self.declared("global::Grasshopper.Kernel.Parameters.Param_Number"))
+        self.assertEqual(0, run(repo, "--check")[0])
+
+    def test_type_alias_resolves_and_alias_target_change_fails(self):
+        types = '''namespace VendorA {
+public class HostObject : Grasshopper.Kernel.Parameters.Param_Number { }
+}
+namespace VendorB {
+public class HostObject : Grasshopper.Kernel.Parameters.Param_Number { }
+}'''
+        before = "using Alias = global::VendorA.HostObject;\n" + self.declared("Alias")
+        after = before.replace("VendorA", "VendorB")
+        self.assert_mutation_fails(before, after, "type 'VendorA.HostObject' -> 'VendorB.HostObject'", extra={"Types.cs": types})
+
+    def test_ambiguous_imported_type_blocks_verification(self):
+        source = "using VendorA; using VendorB;\n" + self.declared("HostObject")
+        types = "namespace VendorA { public class HostObject { } }\nnamespace VendorB { public class HostObject { } }"
+        repo = self.repo({"C.cs": source, "Types.cs": types})
+        entry = component(repo, "C")
+        self.assertEqual("partial", entry["extraction"]["status"])
+        self.assertEqual(0, run(repo)[0])
+        code, output = run(repo, "--check")
+        self.assertEqual(1, code, output)
+        self.assertIn("identity is unresolved or ambiguous", output)
+
+    def test_constructor_whitespace_preserves_contract(self):
+        repo = self.repo({"C.cs": self.declared()})
+        self.assertEqual(0, run(repo)[0])
+        spaced = self.declared(wrapper="new GH_SAMParam ( ")
+        write(os.path.join(repo, "Demo.Grasshopper", "C.cs"), spaced)
+        self.assertEqual(0, run(repo, "--check")[0])
+        self.assert_mutation_fails(spaced, spaced.replace('Name = "_value"', 'Name = "_renamed"'), "names/order changed")
+
+    def test_declarative_optional_assignment_after_wrapping_is_compared(self):
+        self.assert_mutation_fails(self.declared(mutation="p.Optional = false;"),
+                                   self.declared(mutation="p.Optional = true;"), "optional False -> True")
+
+    def test_declarative_optional_assignment_before_wrapping_is_compared(self):
+        before = self.declared().replace("result.Add(", "p.Optional = false; result.Add(")
+        self.assert_mutation_fails(before, before.replace("p.Optional = false", "p.Optional = true"), "optional False -> True")
+
+    def test_persistent_data_after_wrapping_is_compared(self):
+        self.assert_mutation_fails(self.declared(mutation="p.SetPersistentData(1);"),
+                                   self.declared(mutation="p.SetPersistentData(2);"), "persistentDefault '1' -> '2'")
+
+    def test_reassigned_parameter_does_not_mutate_preceding_wrapper(self):
+        source = self.declared(mutation='p = new Param_Number() { Name = "_other", NickName = "_other", Access = GH_ParamAccess.item }; p.Optional = true;')
+        entry = component(self.repo({"C.cs": source}), "C")
+        self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"])
+        self.assertFalse(entry["inputs"][0]["optional"])
+
+    def test_unknown_reassignment_invalidates_the_old_binding(self):
+        source = self.declared().replace("result.Add(", "p = UnknownFactory(); result.Add(")
+        entry = component(self.repo({"C.cs": source}), "C")
+        self.assertNotEqual("verified", entry["extraction"]["status"])
+
+    def test_helper_returned_outputs_cannot_be_certified_empty(self):
+        source = self.declared().replace("Outputs => []", "Outputs => BuildOutputs()")
+        repo = self.repo({"C.cs": source})
+        self.assertEqual(0, run(repo)[0])
+        code, output = run(repo, "--check")
+        self.assertEqual(1, code, output)
+        self.assertIn("unsupported output return expression", output)
+        self.assertNotIn("OK compatibility", output)
+
+    def test_loop_with_literal_name_cannot_be_certified_as_one_parameter(self):
+        source = self.declared().replace("result.Add(new", "foreach (var unused in new [] { 1, 2 }) { result.Add(new").replace("p, ParamVisibility.Binding));", "p, ParamVisibility.Binding)); }")
+        entry = component(self.repo({"C.cs": source}), "C")
+        self.assertNotEqual("verified", entry["extraction"]["status"])
+        self.assertTrue(any("control flow" in r for r in entry["extraction"]["reasons"]))
+
+    def test_filtering_a_return_collection_is_not_certified(self):
+        source = self.declared().replace("result.ToArray()", "result.Where(p => false).ToArray()")
+        entry = component(self.repo({"C.cs": source}), "C")
+        self.assertNotEqual("verified", entry["extraction"]["status"])
+
+    def test_discarding_the_populated_collection_is_not_certified(self):
+        source = self.declared().replace("return result.ToArray()", "return []")
+        entry = component(self.repo({"C.cs": source}), "C")
+        self.assertNotEqual("verified", entry["extraction"]["status"])
+
+    def test_global_type_does_not_bind_to_a_relative_shadow(self):
+        context = {"namespace": "Demo", "types": {"Demo.VendorA.HostObject", "VendorA.HostObject"}}
+        self.assertEqual("VendorA.HostObject", pc.type_identity("global::VendorA.HostObject", context))
+        self.assertEqual("Demo.VendorA.HostObject", pc.type_identity("VendorA.HostObject", context))
+
+    def test_genuinely_empty_declarations_are_verified(self):
+        source = component_source("C", "protected override GH_SAMParam[] Inputs => [];\nprotected override GH_SAMParam[] Outputs => new GH_SAMParam[0];")
+        entry = component(self.repo({"C.cs": source}), "C")
+        self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"])
+
+    def test_no_registration_evidence_is_unresolved(self):
+        entry = component(self.repo({"C.cs": component_source("C", "")}), "C")
+        self.assertEqual("unresolved", entry["extraction"]["status"])
+        self.assertTrue(entry["extraction"]["reasons"])
+
+    def test_revit_paramdefinition_registration_is_explicitly_unresolved(self):
+        source = component_source("C", '''
+protected override ParamDefinition[] Inputs => [new ParamDefinition(new Param_Number() { Name = "_value" }, ParamRelevance.Binding)];
+protected override ParamDefinition[] Outputs => [];
+''')
+        repo = self.repo({"C.cs": source})
+        entry = component(repo, "C")
+        self.assertEqual("unresolved", entry["extraction"]["status"])
+        self.assertEqual(0, run(repo)[0])
+        code, output = run(repo, "--check")
+        self.assertEqual(1, code, output)
+        self.assertIn("ParamDefinition[]", output)
+
+    def test_multilevel_inheritance_reads_the_declaring_base(self):
+        base = '''using Grasshopper.Kernel;
+using Grasshopper.Kernel.Parameters;
+namespace Demo {
+public abstract class Base : GH_Component {
+protected override void RegisterInputParams(GH_InputParamManager m) { m.AddNumberParameter("_shared", "_shared", "Shared", GH_ParamAccess.item); }
+protected override void RegisterOutputParams(GH_OutputParamManager m) { }
+}
+public abstract class Middle : Base { }
+}'''
+        derived = component_source("C", "").replace(": GH_SAMVariableOutputParameterComponent", ": Middle")
+        repo = self.repo({"C.cs": derived, "Base.cs": base})
+        entry = component(repo, "C")
+        self.assertEqual("verified", entry["extraction"]["status"], entry["extraction"])
+        self.assertEqual("_shared", entry["inputs"][0]["name"])
+        self.assertEqual(0, run(repo)[0])
+        self.assertEqual(0, run(repo, "--check")[0])
+        write(os.path.join(repo, "Demo.Grasshopper", "Base.cs"), base.replace("AddNumberParameter", "AddTextParameter"))
+        code, output = run(repo, "--check")
+        self.assertEqual(1, code, output)
+        self.assertIn("type 'Param_Number' -> 'Param_String'", output)
+
+    def test_unknown_ancestry_is_a_fatal_discovery_finding(self):
+        repo = self.repo({"C.cs": self.declared()})
+        self.assertEqual(0, run(repo)[0])
+        self.assertEqual(0, run(repo, "--check")[0])
+        write(os.path.join(repo, "Demo.Grasshopper", "Unknown.cs"), component_source("Mystery", "").replace(": GH_SAMVariableOutputParameterComponent", ": UnknownExternalBase"))
+        code, output = run(repo, "--check")
+        self.assertEqual(1, code, output)
+        self.assertIn("unclassified class Mystery at Demo.Grasshopper/Unknown.cs", output)
+        self.assertNotIn("component removed", output)
+
+    def test_malformed_project_is_a_fatal_discovery_finding(self):
+        repo = self.repo({"C.cs": self.declared()})
+        self.assertEqual(0, run(repo)[0])
+        write(os.path.join(repo, "Broken", "Broken.csproj"), "<Project><PropertyGroup></Project>")
+        code, output = run(repo, "--check")
+        self.assertEqual(1, code, output)
+        self.assertIn("unparseable project Broken/Broken.csproj", output)
+        self.assertNotIn("component removed", output)
+
+    def test_non_component_guid_reference_is_not_an_unclassified_object(self):
+        repo = self.repo({"C.cs": self.declared(), "Query.cs": '''namespace Demo {
+public static class Query { public static object Copy(GH_Component c) { return c.ComponentGuid; } }
+}'''})
+        self.assertEqual([], pc.scan(repo)["unclassifiedClasses"])
+        self.assertEqual(0, run(repo)[0])
+        code, output = run(repo, "--check")
+        self.assertEqual(0, code, output)
+
+    def test_v3_baseline_without_extraction_evidence_fails(self):
+        repo = self.repo({"C.cs": self.declared()})
+        self.assertEqual(0, run(repo)[0])
+        path = os.path.join(repo, "design", "grasshopper-icons", "param_contract.json")
+        baseline = json.loads(pc.read_text(path))
+        del baseline["components"][0]["extraction"]
+        write(path, json.dumps(baseline))
+        code, output = run(repo, "--check")
+        self.assertEqual(1, code, output)
+        self.assertIn("baseline has no extraction evidence", output)
+
+    def test_custom_constructor_defaults_are_not_assumed_to_be_grasshopper_defaults(self):
+        types = '''namespace Demo {
+public class CustomParam : Grasshopper.Kernel.Parameters.Param_Number {
+    public CustomParam() { Optional = true; SetPersistentData(123); }
+}
+}'''
+        repo = self.repo({"C.cs": self.declared("CustomParam"), "Types.cs": types})
+        entry = component(repo, "C")
+        self.assertEqual("partial", entry["extraction"]["status"])
+        self.assertEqual(0, run(repo)[0])
+        code, output = run(repo, "--check")
+        self.assertEqual(1, code, output)
+        self.assertIn("constructor defaults of parameter type Demo.CustomParam", output)
+
+    def test_unknown_component_metadata_cannot_pass_as_matching_nulls(self):
+        source = self.declared().replace('base("C", "C", "Demo", "SAM", "Demo")', 'base(GetName(), "C", "Demo", "SAM", "Demo")')
+        repo = self.repo({"C.cs": source})
+        self.assertEqual(0, run(repo)[0])
+        code, output = run(repo, "--check")
+        self.assertEqual(1, code, output)
+        self.assertIn("component name is not a proven constructor literal", output)
+
+
 class RealRepositoryTests(unittest.TestCase):
-    def test_wave_one_repositories_are_fully_verified(self):
+    def test_wave_one_repositories_report_honest_coverage(self):
         expected = {"SAM_GEM": 1, "SAM_BHoM": 3, "SAM_Python": 3}
         for name, count in expected.items():
             repo = os.path.join(WORKSPACE, name)
@@ -830,8 +1086,17 @@ class RealRepositoryTests(unittest.TestCase):
             model = pc.scan(repo)
             summary = pc.summarise(model)
             self.assertEqual(count, summary["components"], name)
-            self.assertEqual(count, summary["verified"], name)
-            self.assertEqual(0, summary["unresolved"], name)
+            self.assertEqual(count, sum(summary[key] for key in ("verified", "partial", "unresolved")), name)
+            self.assertTrue(all(c["extraction"]["reasons"] for c in model["components"]
+                                if c["extraction"]["status"] != "verified"), name)
+
+    def test_real_revit_align_walls_is_not_certified_empty(self):
+        repo = os.path.join(WORKSPACE, "SAM_Revit")
+        if not os.path.isdir(repo):
+            self.skipTest("SAM_Revit is not checked out")
+        entry = component(repo, "RevitAlignWalls")
+        self.assertEqual("unresolved", entry["extraction"]["status"], entry)
+        self.assertTrue(any("ParamDefinition" in r for r in entry["extraction"]["reasons"]))
 
     def test_psychrometrics_baseline_passes_and_is_still_the_pilot(self):
         pilot = os.path.join(WORKSPACE, "SAM_Psychrometrics")
