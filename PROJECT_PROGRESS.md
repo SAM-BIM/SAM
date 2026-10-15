@@ -1,5 +1,24 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 Unified Diagnostics, Phase 1 (SAM.Core) closeout - 2026-10-15
+
+- **PR**: **SAM-BIM/SAM#201** -> `sow/2026-Q4`, **merged 2026-10-15**, merge commit `293eb64555a627f7acc5653a8d7e96640a9cec2d`, pinned to the approved head `d4dcaf695fdcaaea0a59d29c7da9ae8730f1c9b3` (validated content `967a8639`; `d4dcaf69` adds only the drop-on-add documentation: record text and an XML doc comment).
+  - No branch protection or required reviews on `sow/2026-Q4`; none bypassed. No review comments. The owner approved the Phase 1 architecture and authorised the merge.
+  - Task branch `feature/core-diagnostics-phase1-q4` deleted (remote with lease at `d4dcaf69`, and local).
+- **Status**: complete. Phase 1 only; Phase 2 not started.
+- **Hosted CI** (GitHub), all green: PR head `d4dcaf69` build (Release), test (Release), spdx; post-merge on `293eb645` Build (Windows), Test.
+- **Work**: additive `SAM.Core` types `DiagnosticSeverity` (Info 0, Warning 1, Error 2), `DiagnosticDetail` (Summary 0, Standard 1, Detailed 2), immutable `Diagnostic` (Severity, Detail, Code, Subject, SourceIndex, Message, Value, Limit, Unit) and collection `Diagnostics` (Detail, Count, Add x2 incl. lazy `Func<string>`, Wants, Filter, HasErrors, Format).
+- **Decisions**:
+  - Runtime values, not `IJSAMObject`; independent of `Log`/`LogRecord`/`LogRecordType` (unchanged).
+  - Drop-on-add: `Add` discards Info above the collection's `Detail`. `Filter(level)` can only narrow, so re-filtering at several levels requires collecting at `Detailed`. Warnings and Errors are never dropped. Documented in the record and the class XML doc.
+  - `ToString`/`Format` reuse `Query.DiagnosticMessage`; Code and numeric values are structured only, not in the text.
+  - No version bump (none declared in SAM.Core; additive API).
+- **Files**: `SAM/SAM.Core/Enums/DiagnosticSeverity.cs`, `DiagnosticDetail.cs`; `SAM/SAM.Core/Classes/Diagnostics/Diagnostic.cs`, `Diagnostics.cs`; `SAM/SAM.Tests/DiagnosticsTests.cs`; `documentation/Diagnostics-Phase1-PR.md`. Diff vs base was 6 added files, none modified.
+- **Tests**: local full `SAM.Tests` Release 3567 passed, 0 failed, 0 skipped on `967a8639`; `SAM.Core` rebuilt with 0 errors on `d4dcaf69`. Command: `dotnet test SAM/SAM.Tests/SAM.Tests.csproj`.
+- **Risks**: none known; nothing consumes the types yet.
+- **Record**: `documentation/Diagnostics-Phase1-PR.md`.
+- **Next step**: Phase 2 (migrate `PanelsBySolid` / `AperturesBySolids` to `Diagnostics`, then Grasshopper detail parameter, then OCCT and OpenStudio/TAS adapters), each as its own owner-reviewed PR. Recommended: Opus, high effort, new session, Plan mode first (public Grasshopper surface and cross-repo adapters).
+
 ## Q4 PanelsBySolid thin elements below minThickness and Diagnostics convention closeout - 2026-10-15
 
 - **PR**: **SAM-BIM/SAM#200** -> `sow/2026-Q4`, **merged 2026-10-15** (merge commit, pinned to the approved head).
