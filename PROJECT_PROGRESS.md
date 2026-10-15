@@ -1,5 +1,23 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 Unified Diagnostics, Phase 2 (BySolids integration) closeout - 2026-10-15
+
+- **PR**: **SAM-BIM/SAM#202** -> `sow/2026-Q4`, **merged 2026-10-15**, merge commit `fca3d4d4a2e549f1c1d41710d5ed56f7c9f24d29`, pinned to the approved head `f0f87f419fc2fa47a0457182ef3ed67855a65c55` (validated content `37b86cc5`; `f0f87f41` adds only the PR record). Owner authorised the merge in chat after the Windows acceptance.
+  - No review comments; no required reviews or branch protection bypassed. Task branch `feature/bysolids-diagnostics-phase2-q4` deleted (remote with lease at `f0f87f41`, and local).
+- **Status**: complete. Phase 2 only; Phase 3 not started.
+- **Hosted CI** (GitHub), all green: PR head `f0f87f41` build (Release), test (Release), spdx; post-merge on `fca3d4d4` Build (Windows), Test.
+- **Work**: `PanelsBySolid`, `SnapToJunctions`, `AperturesBySolids` take a `Core.Diagnostics` (new overloads; legacy `out List<string>` overloads unchanged, delegating at Detailed); stable codes in `Analytical.BySolidsDiagnosticCode`; `Core.Query.TryGetDiagnosticDetail`; GH `CreatePanelsBySolids` 1.0.3 and `CreateAperturesBySolids` 1.0.2 gain the hidden optional `diagnosticDetail_` (0 Summary default, 1 Standard, 2 Detailed). Geometry, classification and engineering results unchanged.
+- **Windows acceptance (local, 2026-10-15)** found and fixed three defects, none in engineering code (commit `37b86cc5`): (1) a `where T : GH_SAMComponent` constraint in the new GH test fixture broke NUnit discovery of the whole `SAM.Core.Grasshopper.Tests` assembly; (2) the behaviour tests ran in a non-metre headless document, so the components returned empty logs; (3) the invalid-level message was capitalised in `log` (`DiagnosticDetail_`), now `Input diagnosticDetail_ is 5, which is not ...`.
+- **Decisions**:
+  - Default Summary changes the default `log` content (per-solid Info lines move to level 1); Warnings are never dropped. Owner-flagged, accepted.
+  - 28 vs 29 panels is not a regression: `minThickness_` 0.25 with `maxThicknessRatio_` 0.2 gives 28 (owner's run); with ratio 0.25 gives 29 (golden `house-min-0.25`). Same fixture, reproduced on the real component.
+  - `PBS007` (solid gave no panel and no other Warning) is structured-only and filtered from the legacy list; no fixture triggers it.
+- **Tests (local Windows)**: `dotnet build SAM.sln -c Release` 0 errors; `dotnet test SAM/SAM.Tests -c Release` **3683 passed, 0 failed**; `dotnet test Grasshopper/SAM.Core.Grasshopper.Tests -c Release -p:SolutionDir=<repo>\` (headless Rhino 8) **71 passed, 0 failed** (56 existing + 15 new). Headless Rhino 8 harness on a copy of the real `contemporary1/import-test.gh` (38 objects, 34 wires): update 1.0.1 to 1.0.3 and 1.0.0 to 1.0.2 keeps all 34 wires and values; levels 0, 1, 2, 5, -1 give identical panels, exclusions and apertures; SAMOCCT.CreateAdjacencyCluster receives identical panels. Harness is machine-local (Census.csproj mode `p2gh`), not committed.
+- **Not run**: interactive canvas checks (the "update component" mark, the + zoom UI, a bake). Headless equivalent only.
+- **Risks**: default `log` content change; GH test project build needs `-p:SolutionDir=<repo>\` and overwrites `%APPDATA%\SAM` and `Documents\SAM\resources`; `SAM_OCCT_NATIVE_FAILED` (status 40) is reported by the OCCT step on the house both before and after the change (independent of Phase 2, not investigated).
+- **Record**: `documentation/Diagnostics-Phase2-BySolids-PR.md`.
+- **Next step**: Phase 3 (OCCT, then OpenStudio/TAS adapters), each its own owner-reviewed PR; optionally the owner's canvas check of `import-test.gh`. Recommended: Opus, high effort, new session, Plan mode first (cross-repo).
+
 ## Q4 Unified Diagnostics, Phase 1 (SAM.Core) closeout - 2026-10-15
 
 - **PR**: **SAM-BIM/SAM#201** -> `sow/2026-Q4`, **merged 2026-10-15**, merge commit `293eb64555a627f7acc5653a8d7e96640a9cec2d`, pinned to the approved head `d4dcaf695fdcaaea0a59d29c7da9ae8730f1c9b3` (validated content `967a8639`; `d4dcaf69` adds only the drop-on-add documentation: record text and an XML doc comment).
