@@ -7,8 +7,9 @@ required. Documentation, tooling and agent instructions only.
 - PR: **SAM-BIM/SAM#204** → `sow/2026-Q4` (**draft**, not merged).
 - Base: `sow/2026-Q4` at `6b12e2a65817556693ba408674211610f4a20dda`.
 - **Validated content SHA: `7dd5a4a5659a7d30d9721ebba58d31021fc5fc77`** (standard, validator, AGENTS.md).
-  This record is a docs-only commit on top; the PR number, branch head and hosted check results live in
-  the live PR description (a record cannot contain its own commit SHA).
+  `d313c63f`, `77a25112` and the final record commit are record-only docs commits on top. The PR
+  number, final branch head and hosted check results are also stated in the live PR description (a
+  record cannot contain its own commit SHA).
 - Builds on merged work, which it reuses rather than redesigns:
   `SAM_Psychrometrics#11` (metadata pilot), `SAM#203` (shared rename-migration infrastructure, merged
   `a1d605cf`), `SAM_Psychrometrics#12` (the validated single rename). Also referenced: Unified
@@ -102,8 +103,27 @@ The Python used was the machine-local RhinoCode interpreter
 `python`/`python3`/`py` on `PATH` are the Microsoft Store aliases and do not run; that must be
 provisioned on another computer.
 
-**Not run, and not claimed:** no `dotnet build` or `dotnet test` (no product code changed, so none
-applies); no GitHub-hosted check locally; no Rhino canvas session.
+### Hosted checks (GitHub)
+
+The PR-event checks did not start, and the reason is worth recording: **the head commit of the branch
+carried `[skip ci]`**, the repository's convention for a docs-only record commit, and GitHub suppresses
+workflow runs when the head commit message contains that marker. The branch head was a `[skip ci]`
+record commit at the moment the PR was opened, and again after each push. So the content commit
+`7dd5a4a5` was never a PR head without the marker.
+
+To obtain genuine hosted evidence for a documentation-and-tooling branch, the repository's own checks
+were dispatched explicitly at the branch head (`workflow_dispatch`, which the three workflows support):
+
+| Workflow | Run | Result |
+|---|---|---|
+| Build (Windows) — `msbuild /t:Rebuild` Release | [38767969445](https://github.com/SAM-BIM/SAM/actions/runs/38767969445) | success |
+| Test — `dotnet test SAM/SAM.Tests` Release | [38767974784](https://github.com/SAM-BIM/SAM/actions/runs/38767974784) | success, **3683 passed / 0 failed** (matches the documented Q4 baseline) |
+| SPDX + Copyright header check | [38767979570](https://github.com/SAM-BIM/SAM/actions/runs/38767979570) | success (no `.cs` file changed) |
+
+All three were dispatched at head `77a25112`; the later record-only commit does not change the tested
+tree. This is stated as a dispatch, not as a PR-event check, and the distinction is deliberate.
+
+**Not run, and not claimed:** no GitHub PR-event check (see above); no Rhino canvas session.
 
 ## Unresolved issues, risks and blockers
 
