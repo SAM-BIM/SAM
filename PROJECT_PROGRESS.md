@@ -1,5 +1,34 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 PanelsBySolid thin elements below minThickness and Diagnostics convention closeout - 2026-10-15
+
+- **PR**: **SAM-BIM/SAM#200** -> `sow/2026-Q4`, **merged 2026-10-15** (merge commit, pinned to the approved head).
+  - Merge commit `750fa3364d015bf1b50eab025749cde0e7083715`; parents `0649e15e` (base) and head `e8f61bb3b8ab31dc94ce532381f1c780f924095a`.
+  - Validated content `5f3a3ebe` (code and tests); `abaf8267`, `5547fa7b` and `e8f61bb3` change the record only.
+  - No branch protection or required reviews on `sow/2026-Q4`; none bypassed. No review comments or Auto-fix commits. Draft marked ready immediately before merge; the owner authorised the merge.
+  - Task branch `fix/panels-by-solid-thin-elements-q4` deleted (remote with lease at `e8f61bb3`, and local).
+- **Status**: complete. Owner Rhino 8 / Grasshopper visual acceptance passed (`import-test.gh`; `minThickness_` 0.25 -> 28 panels, 11 solids skipped for the documented reasons).
+- **Hosted CI** (GitHub), all green:
+  - PR head `e8f61bb3`: build (Release), test (Release), spdx.
+  - Post-merge on `750fa336`: Build (Windows), Test.
+- **Work**:
+  - **Root cause**: `ElementPlanes` dropped face pairs closer than `minThickness` before ranking, so a 0.15 m wall's ends or top/bottom became its "thickness" (up to 12 m) and the Warning advised raising `maxThicknessRatio_` up to 60. Following it (0.25 / 61) created 22 bogus panels.
+  - **Fix**: pairs down to `min(minThickness, 10 × tolerance_Snap)` are ranked. A panel-like plane below `minThickness` claims its material and is reported as `below minThickness` at its real thickness. Panels are identical at every sensible setting; thresholds and defaults unchanged (0.08 m / 0.2).
+  - **Diagnostics convention** (BySolids path only): `Severity: Subject: Message` via new `Core.Query.DiagnosticMessage` and `Core.Query.Plural`; one runtime Warning per skip reason.
+  - **GH**: `CreatePanelsBySolids` 1.0.2 and `CreateAperturesBySolids` 1.0.1, descriptions only. GUIDs, parameter names/order/visibility, defaults and the `log` output name unchanged.
+  - **API**: `PanelsBySolid` gains optional last parameter `int? sourceIndex = null` (source-compatible; compiled callers must rebuild; no caller outside SAM).
+- **Tests**: local full `SAM.Tests` Release 3552 passed, 0 failed (3533 + 19 new) on `abaf8267`; clean rebuild of SAM.Tests and the Grasshopper project (with `SolutionDir`) 0 errors.
+  - Acceptance ratio sweep (0.2–100 at `minThickness` 0.05 / 0.08 / 0.25, committed fixture `SAM/SAM.Tests/Golden/PanelsBySolid/contemporary1_solids.json`) vs base `0649e15e`: no internal-wall or slab panel above its real thickness at any ratio (base: 20 panels > 0.3 m at 0.25 / 61).
+  - The extra panel at ratio 0.2 -> 0.25 is `UF_Gable_Cross_South` (0.3 m Wall, ratio 0.214); `PhysicalThickness` 0.3 m vs construction `SIM_EXT_SLD` 0.208 m.
+  - Probe harness was machine-local (session scratchpad), not committed.
+- **Limitations (pre-existing, identical on base)**:
+  - `maxThicknessRatio` ≥ 0.4: `ST_Stair_GF_to_FF` becomes a 1.125 m Wall (≥ 1: also a 0.176 m Floor). The quoted keep-ratio "above 0.398" is not a safe setting.
+  - ≥ 0.5 at `minThickness` 0.08 / 0.05: `GF_Wall_External` gives a bogus 0.15 m Floor and a 73 m² Air Panel and loses a Wall plane.
+  - Keep `maxThicknessRatio_` ≤ 0.3. `maxThicknessRatio_` stays hidden. A stair of thin plates is indistinguishable from a wall by geometry.
+  - Machine-local: GH project builds copy DLLs into `%APPDATA%\SAM`.
+- **Record**: `documentation/PanelsBySolid-ThinElements-Q4.md`.
+- **Next step**: none required for #200. Optional, owner decision: a Diagnostics detail-level design (`_diagnosticDetail_`, structured records shared with SAM_OCCT) was proposed in the session (design only, not implemented); also consider tightening the ratio Warning advice or a geometric stair test.
+
 ## Q4 PanelsBySolid multi-element solids and Vector3D recursion closeout - 2026-10-14
 
 - **PRs** -> `sow/2026-Q4`, **merged 2026-10-14**, merge commits pinned to the approved heads, in this order:
