@@ -10,12 +10,28 @@ namespace SAM.Core.Grasshopper
     {
         public static List<ManualReconnectionWire> MissingConnections(GH_Component gH_Component, IEnumerable<ConnectionSnapshot> connectionSnapshots)
         {
+            return MissingConnections(gH_Component, connectionSnapshots, ParameterRenameMap.Empty);
+        }
+
+        /// <summary>
+        /// Re-checks the connections captured before a replacement to see which were NOT restored.
+        /// <para>
+        /// A wire on a parameter that has been renamed appears "missing" only if the verification looks for
+        /// the OLD name: it was in fact restored onto the parameter that now carries it. Resolving each
+        /// snapshot through <paramref name="parameterRenameMap"/> is what keeps a successful rename from
+        /// being reported to a person as a wire that needs reconnecting by hand.
+        /// </para>
+        /// </summary>
+        public static List<ManualReconnectionWire> MissingConnections(GH_Component gH_Component, IEnumerable<ConnectionSnapshot> connectionSnapshots, ParameterRenameMap parameterRenameMap)
+        {
             List<ManualReconnectionWire> result = new List<ManualReconnectionWire>();
 
             if (connectionSnapshots == null)
             {
                 return result;
             }
+
+            parameterRenameMap = parameterRenameMap ?? ParameterRenameMap.Empty;
 
             List<IGH_Param> inputParams = gH_Component?.Params?.Input;
             List<IGH_Param> outputParams = gH_Component?.Params?.Output;
@@ -30,6 +46,12 @@ namespace SAM.Core.Grasshopper
 
                 string sideLabel = connectionSnapshot.Side == GH_ParameterSide.Input ? "Input" : "Output";
                 string reason = null;
+
+                string paramName = connectionSnapshot.ParamName;
+                if (parameterRenameMap.TryResolve(connectionSnapshot.Side, paramName, out string targetName, out _))
+                {
+                    paramName = targetName;
+                }
 
                 if (gH_Component == null)
                 {
@@ -55,7 +77,7 @@ namespace SAM.Core.Grasshopper
                     {
                         foreach (IGH_Param newParam in newParams)
                         {
-                            if (newParam != null && newParam.Name == connectionSnapshot.ParamName)
+                            if (newParam != null && newParam.Name == paramName)
                             {
                                 matchingParams.Add(newParam);
                             }
@@ -64,7 +86,7 @@ namespace SAM.Core.Grasshopper
 
                     if (matchingParams.Count == 0)
                     {
-                        reason = string.Format("{0} '{1}' does not exist on the updated component.", sideLabel, connectionSnapshot.ParamName);
+                        reason = string.Format("{0} '{1}' does not exist on the updated component.", sideLabel, paramName);
                     }
                     else
                     {
@@ -93,12 +115,12 @@ namespace SAM.Core.Grasshopper
                         {
                             if (matchingParams.Count > 1)
                             {
-                                reason = string.Format("Several parameters named '{0}' exist on the updated component — no unambiguous match.", connectionSnapshot.ParamName);
+                                reason = string.Format("Several parameters named '{0}' exist on the updated component — no unambiguous match.", paramName);
                             }
                             else
                             {
                                 reason = string.Format("Wire between {0} '{1}' and '{2}' ({3}) could not be restored automatically.",
-                                    sideLabel.ToLower(), connectionSnapshot.ParamName, connectionSnapshot.PeerParamName, connectionSnapshot.PeerComponentName);
+                                    sideLabel.ToLower(), paramName, connectionSnapshot.PeerParamName, connectionSnapshot.PeerComponentName);
                             }
                         }
                     }
