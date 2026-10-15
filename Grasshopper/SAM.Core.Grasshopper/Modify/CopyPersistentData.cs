@@ -8,20 +8,21 @@ namespace SAM.Core.Grasshopper
 {
     public static partial class Modify
     {
-        internal static void CopyPersistentData(IGH_Param oldParam, IGH_Param newParam)
+        internal static bool CopyPersistentData(IGH_Param oldParam, IGH_Param newParam)
         {
             if (oldParam == null || newParam == null)
             {
-                return;
+                return false;
             }
 
             if (oldParam.GetType() != newParam.GetType())
             {
-                return;
+                return false;
             }
 
             try
             {
+                bool result = false;
                 Type type = oldParam.GetType();
                 while (type != null && type != typeof(object))
                 {
@@ -54,14 +55,18 @@ namespace SAM.Core.Grasshopper
                         }
 
                         setMethod.Invoke(newParam, new[] { persistentData });
+                        result = true;
                         break;
                     }
                     type = type.BaseType;
                 }
+
+                return result;
             }
             catch
             {
                 // Best-effort: persistent data copy is non-critical
+                return false;
             }
         }
     }

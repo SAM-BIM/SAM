@@ -2,6 +2,7 @@
 // Copyright (c) 2020–2026 Michal Dengusiak & Jakub Ziolkowski and contributors
 
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Special;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -190,6 +191,18 @@ namespace SAM.Core.Grasshopper
                 gH_Document.RemoveObject(oldComponent, false);
             }
 
+            //A replacement is a new object with a new InstanceGuid, which is what every group membership is
+            //recorded against, so an updated component silently leaves the group it belonged to unless the
+            //group is reconciled to the replacement's identity. See ReconcileGroupMembership.
+            for (int i = 0; i < oldComponents.Count && i < result.Count; i++)
+            {
+                int groups = ReconcileGroupMembership(gH_Document, oldComponents[i], result[i], out Log log_Group);
+                if (groups != 0 && log_Group != null)
+                {
+                    log.AddRange(log_Group);
+                }
+            }
+
             SortManualReconnectionIssues(manualReconnectionIssues);
 
             log.Add(new LogRecord("Update completed: {0} updated, {1} failed, {2} warning(s).",
@@ -203,6 +216,96 @@ namespace SAM.Core.Grasshopper
             if (result.Count == 0)
             {
                 return null;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// <b>Moves a component's group membership from the object being replaced to its replacement.</b>
+        /// <para>
+        /// A <c>GH_Group</c> records its members as the <see cref="IGH_DocumentObject.InstanceGuid"/> of each
+        /// one, and the updater replaces a component with a newly constructed instance that therefore has a
+        /// new InstanceGuid. Left alone, the group keeps pointing at an object that is no longer in the
+        /// document, and the component drops out of the group.
+        /// </para>
+        /// <para>
+        /// Adopting the OLD InstanceGuid on the replacement instead would preserve group membership for
+        /// free, but it is not safe: <c>InstanceGuid</c> is read-only and the only way to set a specific
+        /// value is <c>NewInstanceGuid(Guid)</c>, whose purpose is to mint a fresh unique identity (paste,
+        /// undo). The document keeps an identity-keyed object table (<c>GH_Document</c>'s object cache) that
+        /// is populated at <c>AddObject</c> time, so rewiring identity afterwards relies on non-public
+        /// bookkeeping being rebuilt, and a duplicated identity while both objects are alive is undefined.
+        /// Reconciling the group through its public surface (<c>ObjectIDs</c>, <c>AddObject</c>,
+        /// <c>RemoveObject</c>) is explicit, local and verifiable, and it leaves Grasshopper's own identity
+        /// invariant intact.
+        /// </para>
+        /// <para>
+        /// Groups are the only persisted reference to a component's identity that Grasshopper keeps outside
+        /// the wires themselves: a reflection sweep of the loaded Rhino 8 Grasshopper assembly
+        /// (<c>Grasshopper 8.35.26251</c>) found <c>GH_Group.ObjectIDs</c> as the only persisted
+        /// <c>Guid</c> collection naming document objects - everything else is either the document's own
+        /// object list/cache (managed by AddObject/RemoveObject), a per-attribute back-reference that is
+        /// rebuilt with the attribute, a wire-level parameter reference (managed by re-adding sources), or
+        /// transient session state.
+        /// </para>
+        /// </summary>
+        /// <returns>The number of groups whose membership was moved.</returns>
+        public static int ReconcileGroupMembership(GH_Document gH_Document, GH_SAMComponent gH_SAMComponent_Old, GH_SAMComponent gH_SAMComponent_New, out Log log)
+        {
+            log = new Log();
+
+            if (gH_Document == null || gH_SAMComponent_Old == null || gH_SAMComponent_New == null)
+            {
+                return 0;
+            }
+
+            Guid instanceGuid_Old = gH_SAMComponent_Old.InstanceGuid;
+            Guid instanceGuid_New = gH_SAMComponent_New.InstanceGuid;
+
+            if (instanceGuid_Old == Guid.Empty || instanceGuid_New == Guid.Empty || instanceGuid_Old == instanceGuid_New)
+            {
+                return 0;
+            }
+
+            IList<IGH_DocumentObject> gH_DocumentObjects = gH_Document.Objects;
+            if (gH_DocumentObjects == null || gH_DocumentObjects.Count == 0)
+            {
+                return 0;
+            }
+
+            int result = 0;
+
+            foreach (IGH_DocumentObject gH_DocumentObject in gH_DocumentObjects)
+            {
+                if (!(gH_DocumentObject is GH_Group gH_Group))
+                {
+                    continue;
+                }
+
+                List<Guid> objectIDs = gH_Group.ObjectIDs;
+                if (objectIDs == null || !objectIDs.Contains(instanceGuid_Old))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    gH_Group.RemoveObject(instanceGuid_Old);
+                    gH_Group.AddObject(instanceGuid_New);
+                    result++;
+                }
+                catch (Exception ex)
+                {
+                    log.Add(new LogRecord("  Could not restore group membership for {0} in group '{1}': {2}",
+                        LogRecordType.Warning, gH_SAMComponent_New.Name, gH_Group.NickName, ex.Message));
+                }
+            }
+
+            if (result != 0)
+            {
+                log.Add(new LogRecord("Group membership preserved for {0} ({1} group(s)).",
+                    LogRecordType.Message, gH_SAMComponent_New.Name, result));
             }
 
             return result;

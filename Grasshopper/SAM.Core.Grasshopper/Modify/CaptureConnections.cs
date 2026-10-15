@@ -31,6 +31,7 @@ namespace SAM.Core.Grasshopper
                     {
                         Side = GH_ParameterSide.Output,
                         ParamName = param.Name,
+                        ParamTypeName = param.GetType().Name,
                         ConnectedParams = new List<IGH_Param>(param.Recipients)
                     });
                 }
@@ -50,6 +51,7 @@ namespace SAM.Core.Grasshopper
                     {
                         Side = GH_ParameterSide.Input,
                         ParamName = param.Name,
+                        ParamTypeName = param.GetType().Name,
                         ConnectedParams = new List<IGH_Param>(param.Sources)
                     });
                 }

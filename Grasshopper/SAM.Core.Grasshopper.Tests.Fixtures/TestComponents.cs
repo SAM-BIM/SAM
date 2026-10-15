@@ -4,6 +4,7 @@
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
 using System;
+using System.Collections.Generic;
 
 namespace SAM.Core.Grasshopper.Tests
 {
@@ -79,8 +80,7 @@ namespace SAM.Core.Grasshopper.Tests
     }
 
     public class TestFailingComponent : TestComponentBase
-    {
-        public static bool ThrowOnConstruct;
+    {        public static bool ThrowOnConstruct;
 
         public override Guid ComponentGuid => new Guid("2c4d9b7a-0e5f-4c3a-9d8b-7a6e5f4c3b12");
 
@@ -103,6 +103,106 @@ namespace SAM.Core.Grasshopper.Tests
         protected override void RegisterOutputParams(GH_OutputParamManager manager)
         {
             manager.AddParameter(new Param_String { Name = "x", NickName = "x", Description = "x", Access = GH_ParamAccess.item });
+        }
+
+        protected override void SolveInstance(IGH_DataAccess dataAccess)
+        {
+        }
+    }
+
+    /// <summary>A component that has published a rename: the input <c>value0</c> is now <c>value</c>, and the
+    /// output <c>result0</c> is now <c>result</c>. The declaration is what lets the SAM updater carry a
+    /// definition saved under the old names onto the new parameters.</summary>
+    public class TestRenamedParameterComponent : TestComponentBase
+    {
+        public override Guid ComponentGuid => new Guid("3a7c1e88-6b24-4f19-9a3d-52e8c4b71d05");
+
+        public override string LatestComponentVersion => "1.1.0";
+
+        public TestRenamedParameterComponent()
+            : base("TestRenamedParameter", "TestRenamedParameter", "Test component that published a parameter rename", "SAM", "Test")
+        {
+        }
+
+        public override IReadOnlyList<ParameterRename> ParameterRenames => new[]
+        {
+            new ParameterRename(GH_ParameterSide.Input, "value0", "value"),
+            new ParameterRename(GH_ParameterSide.Output, "result0", "result"),
+        };
+
+        protected override void RegisterInputParams(GH_InputParamManager manager)
+        {
+            manager.AddParameter(new Param_String { Name = "value", NickName = "value", Description = "value", Access = GH_ParamAccess.item, Optional = true });
+        }
+
+        protected override void RegisterOutputParams(GH_OutputParamManager manager)
+        {
+            manager.AddParameter(new Param_String { Name = "result", NickName = "result", Description = "result", Access = GH_ParamAccess.item });
+        }
+
+        protected override void SolveInstance(IGH_DataAccess dataAccess)
+        {
+        }
+    }
+
+    /// <summary>A component whose rename declaration is ambiguous: two renames claim the same legacy output
+    /// name. The migration must refuse to guess rather than attach a wire to an arbitrary one.</summary>
+    public class TestConflictingRenameComponent : TestComponentBase
+    {
+        public override Guid ComponentGuid => new Guid("c1f2d3e4-5a6b-4c7d-8e9f-0a1b2c3d4e5f");
+
+        public override string LatestComponentVersion => "1.1.0";
+
+        public TestConflictingRenameComponent()
+            : base("TestConflictingRename", "TestConflictingRename", "Test component with an ambiguous rename declaration", "SAM", "Test")
+        {
+        }
+
+        public override IReadOnlyList<ParameterRename> ParameterRenames => new[]
+        {
+            new ParameterRename(GH_ParameterSide.Output, "dup0", "a"),
+            new ParameterRename(GH_ParameterSide.Output, "dup0", "b"),
+        };
+
+        protected override void RegisterInputParams(GH_InputParamManager manager)
+        {
+            manager.AddParameter(new Param_String { Name = "value", NickName = "value", Description = "value", Access = GH_ParamAccess.item, Optional = true });
+        }
+
+        protected override void RegisterOutputParams(GH_OutputParamManager manager)
+        {
+            manager.AddParameter(new Param_String { Name = "a", NickName = "a", Description = "a", Access = GH_ParamAccess.item });
+            manager.AddParameter(new Param_String { Name = "b", NickName = "b", Description = "b", Access = GH_ParamAccess.item });
+        }
+
+        protected override void SolveInstance(IGH_DataAccess dataAccess)
+        {
+        }
+    }
+
+    /// <summary>A component whose rename declaration cannot even be read. A broken declaration must not stop
+    /// a component that is otherwise perfectly updatable.</summary>
+    public class TestThrowingRenameComponent : TestComponentBase
+    {
+        public override Guid ComponentGuid => new Guid("9d8c7b6a-5e4f-4a3b-8c2d-1f0e9d8c7b6a");
+
+        public override string LatestComponentVersion => "1.1.0";
+
+        public TestThrowingRenameComponent()
+            : base("TestThrowingRename", "TestThrowingRename", "Test component whose rename declaration throws", "SAM", "Test")
+        {
+        }
+
+        public override IReadOnlyList<ParameterRename> ParameterRenames => throw new InvalidOperationException("broken declaration");
+
+        protected override void RegisterInputParams(GH_InputParamManager manager)
+        {
+            manager.AddParameter(new Param_String { Name = "value", NickName = "value", Description = "value", Access = GH_ParamAccess.item, Optional = true });
+        }
+
+        protected override void RegisterOutputParams(GH_OutputParamManager manager)
+        {
+            manager.AddParameter(new Param_String { Name = "result", NickName = "result", Description = "result", Access = GH_ParamAccess.item });
         }
 
         protected override void SolveInstance(IGH_DataAccess dataAccess)
