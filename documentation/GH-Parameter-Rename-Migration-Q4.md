@@ -5,6 +5,7 @@ review required). This is the shared-`SAM` half of the rename pilot; its consume
 PR that renames exactly one published output.
 
 - Repository: `SAM` (shared infrastructure). Consumer: `SAM_Psychrometrics`.
+- PR: **SAM-BIM/SAM#203** -> `sow/2026-Q4` (**draft**, not merged).
 - Branch: `feature/gh-parameter-rename-migration-q4`, base `sow/2026-Q4` `d6c3569286082b33ac8d76dc9ec4a57bfa345bc6`.
 - Validated content SHA: `d32e70061ed9e97b9c42f12819bd53fe814416d5` (code + tests). The PR record is a
   docs-only commit on top.
@@ -127,7 +128,11 @@ declaration reported and not applied; a throwing declaration tolerated; group me
 replacement (with and without a rename); an unrenamed component unchanged; idempotent re-runs; forced
 replacement failure leaves the document unchanged; and direct `ParameterRenameMap` resolution.
 
-**Hosted checks:** pending; record the final head and results before marking ready.
+**Hosted checks (GitHub), at the content head `d32e70061ed9e97b9c42f12819bd53fe814416d5`** (PR SAM#203):
+build (Release) **pass** (run `38755020653`), test (Release) **pass** (run `38755020656`), spdx **pass**
+(run `38755020847`). A docs-only record commit follows; the validated content SHA above is unchanged. The
+consumer's build (SAM_Psychrometrics#12) also passed and selected this branch of `SAM` as its dependency
+(evidence in the consumer record).
 
 **NOT TESTED:** no interactive (mouse-driven) Rhino session. The IDENTITY reasoning is a reflection sweep
 plus the runtime tests, not a canvas observation. The transactional cleanup after `AddObject` is defensive:
