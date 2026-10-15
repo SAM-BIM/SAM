@@ -4,6 +4,7 @@
 required. Documentation, tooling and agent instructions only.
 
 - Repository: `SAM` (shared). Canonical standard for every SAM-BIM repository.
+- PR: **SAM-BIM/SAM#204** → `sow/2026-Q4` (**draft**, not merged).
 - Base: `sow/2026-Q4` at `6b12e2a65817556693ba408674211610f4a20dda`.
 - **Validated content SHA: `7dd5a4a5659a7d30d9721ebba58d31021fc5fc77`** (standard, validator, AGENTS.md).
   This record is a docs-only commit on top; the PR number, branch head and hosted check results live in
