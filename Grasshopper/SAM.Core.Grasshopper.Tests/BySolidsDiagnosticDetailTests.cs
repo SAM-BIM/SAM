@@ -30,6 +30,33 @@ namespace SAM.Core.Grasshopper.Tests
     [TestFixture]
     public class BySolidsDiagnosticDetailTests
     {
+        // Rhino types are used in the SetUp and TearDown bodies only (see RoundTrip): the fields are typed object.
+        private object model;
+
+        private object activeBefore;
+
+        /// <summary>
+        /// The components refuse a Rhino document that is not in metres, and the headless Rhino 8 of Rhino.Testing has no
+        /// metre document active: without one every solve ends at the units Error and the log is empty.
+        /// </summary>
+        [SetUp]
+        public void UseAMetreModel()
+        {
+            activeBefore = global::Rhino.RhinoDoc.ActiveDoc;
+            global::Rhino.RhinoDoc doc = global::Rhino.RhinoDoc.CreateHeadless(null);
+            doc.ModelUnitSystem = global::Rhino.UnitSystem.Meters;
+            global::Rhino.RhinoDoc.ActiveDoc = doc;
+            model = doc;
+        }
+
+        [TearDown]
+        public void RestoreTheActiveModel()
+        {
+            global::Rhino.RhinoDoc.ActiveDoc = (global::Rhino.RhinoDoc)activeBefore;
+            ((global::Rhino.RhinoDoc)model)?.Dispose();
+            model = null;
+        }
+
         private static readonly Guid PanelsGuid = new Guid("8b0f5f2c-6a8e-4f6d-9d1c-3e2a7b5c4d10");
 
         private static readonly Guid ApertureGuid = new Guid("b115fc0d-c40f-4a98-938b-9b829a28cb95");
@@ -63,16 +90,19 @@ namespace SAM.Core.Grasshopper.Tests
             return result;
         }
 
-        private static T RoundTrip<T>(T component) where T : GH_SAMComponent, new()
+        // No Grasshopper type in a generic constraint: the CLR loads constraints with the declaring class, and NUnit's
+        // discovery enumerates this class before Rhino.Testing has hosted Grasshopper (see SAM.Core.Grasshopper.Tests.Fixtures).
+        private static T RoundTrip<T>(T component) where T : class
         {
-            component.CreateAttributes();
+            GH_SAMComponent source = (GH_SAMComponent)(object)component;
+            source.CreateAttributes();
             GH_LooseChunk chunk = new GH_LooseChunk("component");
-            Assert.True(component.Write(chunk));
+            Assert.True(source.Write(chunk));
 
-            T result = new T();
+            GH_SAMComponent result = (GH_SAMComponent)Activator.CreateInstance(component.GetType());
             result.CreateAttributes();
             Assert.True(result.Read(chunk));
-            return result;
+            return (T)(object)result;
         }
 
         // ---- Identity and registration ------------------------------------------------------------------
@@ -294,7 +324,7 @@ namespace SAM.Core.Grasshopper.Tests
 
             Assert.Equal(summary.PanelCount, invalid.PanelCount);
             Assert.True(invalid.Warnings.Any(x => x.Contains("diagnosticDetail_") && x.Contains(value.ToString())));
-            Assert.True(invalid.Log.Any(x => x.StartsWith("Warning: ") && x.Contains("diagnosticDetail_ " + value)));
+            Assert.True(invalid.Log.Any(x => x.StartsWith("Warning: ") && x.Contains("diagnosticDetail_ is " + value)));
             Assert.False(invalid.Log.Any(x => x.Contains("Created 1 panel, 0.25 m thick.")));
             Assert.Equal(summary.Log.Where(x => x.StartsWith("Warning: ")).ToList(), invalid.Log.Where(x => x.StartsWith("Warning: ") && !x.Contains("diagnosticDetail_")).ToList());
         }
@@ -322,7 +352,7 @@ namespace SAM.Core.Grasshopper.Tests
             component.ComputeData();
 
             List<string> log = component.Params.Output[component.Params.IndexOfOutputParam("log")].VolatileData.AllData(true).OfType<GH_String>().Select(x => x.Value).ToList();
-            Assert.True(log.Any(x => x.StartsWith("Warning: ") && x.Contains("diagnosticDetail_ 7")));
+            Assert.True(log.Any(x => x.StartsWith("Warning: ") && x.Contains("diagnosticDetail_ is 7")));
             Assert.True(log.Any(x => x.StartsWith("Warning: ") && x.Contains("Not planar")));
             Assert.True(component.RuntimeMessages(GH_RuntimeMessageLevel.Warning).Any(x => x.Contains("diagnosticDetail_")));
         }

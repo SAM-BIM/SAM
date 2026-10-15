@@ -121,7 +121,7 @@ namespace SAM.Analytical.Grasshopper
                 int value = 0;
                 if (dataAccess.GetData(index, ref value) && !Core.Query.TryGetDiagnosticDetail(value, out diagnosticDetail))
                 {
-                    invalidDetail = string.Format("diagnosticDetail_ {0} is not 0 (Summary), 1 (Standard) or 2 (Detailed). Summary is used.", value);
+                    invalidDetail = string.Format("Input diagnosticDetail_ is {0}, which is not 0 (Summary), 1 (Standard) or 2 (Detailed). Summary is used.", value);
                 }
             }
 
