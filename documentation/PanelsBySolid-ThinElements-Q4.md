@@ -167,6 +167,11 @@ Machine-local, not committed: the Rhino 8 harness (`Census.csproj`, new modes `r
   - `GF_Wall_External` gives 9 instead of 10 panels at 0.25 / 61.
   - No effect at any setting up to 0.25 / 0.25 on either house.
 - Stairs are excluded only by proportion (ratio 0.398 for the contemporary stair). A stair built as thin plates would be indistinguishable from a wall by geometry alone. That ambiguity is reported, not guessed.
+- **High ratios admit bogus panels (pre-existing, not changed by this PR).** Found in the acceptance review (2026-10-15): a ratio sweep 0.2–100 on the committed fixture, run on this PR and on base `0649e15e`, gave identical panels for both cases:
+  - `maxThicknessRatio` ≥ 0.4: `ST_Stair_GF_to_FF` gives a **1.125 m thick Wall** (vertical mid-plane x = 3.638, 6.72 m²). At ≥ 1 it also gives a 0.176 m Floor. The stair's own log advice ("a maxThicknessRatio above 0.398 would keep it") leads to this panel.
+  - `maxThicknessRatio` ≥ 0.5 with `minThickness` 0.08 or 0.05: `GF_Wall_External` gives a bogus **0.15 m Floor** (a horizontal band of the 12 × 10 m ring at z = 2.675, 13.9 m², ratio 0.15 / 0.3 = 0.5) and a **73 m² Air Panel** over the plan, and one wall plane is lost (panel count stays 10).
+  - Up to 0.3 the panels are correct at `minThickness` 0.05, 0.08 and 0.25. The previously observed bogus panels (internal walls and ground slab 0.3–6 m thick) do not appear at any ratio: base gives 52 panels, 20 thicker than 0.3 m, at 0.25 / 61; this PR gives none.
+  - Guidance: keep `maxThicknessRatio_` at or below 0.3. A possible follow-up (separate decision): make the Warning not advise a ratio above about 0.3, or add a geometric stair test.
 - Manual Grasshopper visual acceptance: not run by the agent (owner).
 
 ## Next step
