@@ -11,7 +11,7 @@ namespace SAM.Core
     /// <summary>
     /// Ordered collection of <see cref="Diagnostic"/> records for one run, collected at a requested
     /// <see cref="DiagnosticDetail"/> (default <see cref="DiagnosticDetail.Summary"/>).
-    /// Info records above the requested level are dropped on <c>Add</c>; Warnings and Errors are always kept.
+    /// Info records above the requested level are dropped on <c>Add</c> (so <see cref="Filter"/> can only narrow, never widen; collect at <see cref="DiagnosticDetail.Detailed"/> to re-filter later); Warnings and Errors are always kept.
     /// Runtime value only: not serialised, independent of <see cref="Log"/>.
     /// </summary>
     public class Diagnostics : IEnumerable<Diagnostic>

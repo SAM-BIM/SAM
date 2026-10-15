@@ -31,3 +31,8 @@ Out of scope by design: BySolids migration, Grasshopper parameters, OCCT and Ope
 
 ## Next step
 Owner review and merge; then Phase 2 (migrate PanelsBySolid/AperturesBySolids to `Diagnostics`).
+
+## Known limitation: drop-on-add (owner-approved)
+`Add` discards Info records above the collection's `Detail`, so `Filter(level)` can only narrow what was kept.
+A collection built at Summary cannot later be filtered up to Standard or Detailed. Callers that need to re-filter
+at several levels must collect at `Detailed` and call `Filter`. Warnings and Errors are unaffected.
