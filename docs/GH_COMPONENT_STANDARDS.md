@@ -714,6 +714,11 @@ parameter whose type cannot be determined, and a baseline that is missing or its
 The detailed rules and their status labels are in sections A to J; this table only separates what is required of a
 **newly created** component from what is a **recommendation for, or a freeze on,** a legacy one.
 
+For a newly created component the Ladybug-style input markers (GH-B) and capitalised PascalCase output names (GH-C1)
+are the standing SAM-BIM convention; PROPOSED means no tool enforces the input markers, not that a new
+component may ignore them. For an existing component the published parameter `Name`s are protected (GH-B2, GH-C3,
+GH-F3) and are never bulk-renamed to satisfy either rule.
+
 | Topic | New component | Legacy component |
 |---|---|---|
 | Input names (GH-B1, B7) | camelCase with the marker that matches the design: `_x` required, `_x_` optional with default, `x_` optional without default, `_run` / `run_` trigger | keep the published name; never rename to fit |

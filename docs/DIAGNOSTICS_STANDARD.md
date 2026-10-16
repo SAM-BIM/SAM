@@ -71,7 +71,7 @@ Enum values are published. Never renumber or reorder them.
 - Group repeats rather than flooding: BySolids merges repeats of one reason within one plane; Grasshopper runtime messages group
   repeats (section 8). Grouping must not remove the full text from the Diagnostics output.
 
-## 4. Three producer architectures, three adapter shapes
+## 4. Four producer situations, four adapter shapes
 
 The unified types did not replace the producers' own diagnostics; each repository wrote an additive adapter around what it had.
 Choose the shape that matches the producer, in this order of preference:
@@ -81,9 +81,9 @@ Choose the shape that matches the producer, in this order of preference:
 | Producer you control, text-only output | SAM `PanelsBySolid`, `SnapToJunctions`, `AperturesBySolids` (SAM#202) | New overloads take a `Core.Diagnostics`; the legacy `out List<string>` overloads stay and delegate at `Detailed` | Keep the legacy signature and text. The legacy list equals the golden baseline. |
 | Typed severity already exists, several mechanisms | OCCT (SAM_OCCT#78): `OcctDiagnostic`, `SolverDiagnostic`, plain strings | `SAM.Core.OCCT` adapters: `DiagnosticRecord` pairs the shared `Diagnostic` with the exact legacy text; severity maps one to one; one record per line where the line is produced | Where severity existed, map it. Where a line was unclassified legacy text, it is Info rather than an invented severity. |
 | One typed diagnostic with a code and a severity | OpenStudio (SAM_OpenStudio#28): `OpenStudioDiagnostic` | `OpenStudioDiagnosticRecord` (record validated against its source so it cannot be inconsistent); `ToDiagnostics(detail = Detailed)` | Default adapter detail is `Detailed` so nothing the legacy output showed is dropped. The detail table is pinned by tests against every call site. |
-| Many unrelated mechanisms, mostly strings | TAS (SAM_Tas#101): eight producers | One adapter per mechanism, plus one funnel edit (`AddNote`/`AddNotes`) that writes the same legacy text and a structured record side by side | Derive severity from structure the producer already has (a refusal list, a `Skipped` list, a documented marker constant). Where there is none, do not adapt it; document why. |
+| Many unrelated mechanisms, mostly strings | TAS (SAM_Tas#101): eight producer mechanisms; six get an adapter or the funnel edit, one (raw native return text) is consumed through the evidence object, one (about 30 `out string refusal` queries) is deliberately not adapted; two further non-message producers are out of scope | One adapter per mechanism, plus one funnel edit (`AddNote`/`AddNotes`) that writes the same legacy text and a structured record side by side | Derive severity from structure the producer already has (a refusal list, a `Skipped` list, a documented marker constant). Where there is none, do not adapt it; document why. |
 
-Adapter rules common to all three:
+Adapter rules common to all four:
 
 - **Additive.** No removed or changed public member. Legacy text, order and codes are unchanged. Verify with a public
   API diff (TAS: 0 removed, 0 changed) and, when a funnel was edited, an IL comparison of the changed methods.
