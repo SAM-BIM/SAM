@@ -1,5 +1,14 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 Unified engineering standards consolidation closeout - 2026-10-16
+
+- **PR/status:** [SAM-BIM/SAM#205](https://github.com/SAM-BIM/SAM/pull/205) complete, merged into `sow/2026-Q4` as `11afe033d3c6212c4a75b41611b73f9474be3b18`, pinned to approved head `04775336ef236622f2c3bd32854a567f18033ddb`. Owner approved the architectural review and the merge. Task branch `docs/unified-engineering-standards-q4` deleted after verification. Documentation only; no source, test, build or Grasshopper contract change.
+- **Work:** new `docs/DIAGNOSTICS_STANDARD.md` (SAM.Core API as implemented, producer-owned severity, Warnings/Errors survive filtering, detail never affects engineering results, four adapter shapes from SAM#202, SAM_OCCT#78, SAM_OpenStudio#28, SAM_Tas#101, legacy compatibility, testing rules). `docs/GH_COMPONENT_STANDARDS.md` extended: GH-B7 execution triggers, GH-I3a Name vs NickName, section K new-versus-legacy quick reference, corrected status and Diagnostics-roadmap statements. `AGENTS.md` gained a mandatory "Engineering standards" section. Record: `documentation/Unified-Engineering-Standards-Q4.md`.
+- **Unified Diagnostics roadmap cross-reference (complete):** Phase 1 SAM#201 (merge `293eb645`), Phase 2 SAM#202 (`fca3d4d4`), Phase 3 SAM_OCCT#78 (`de2744a7`), Phase 4A SAM_OpenStudio#28 (`f2235d45`), Phase 4B SAM_Tas#101 (`ba9c95c8`). Records and acceptance evidence are in each repository's `documentation/Diagnostics-Phase*-PR.md` and `PROJECT_PROGRESS.md`; not repeated here.
+- **Checks:** PR head `04775336` build (Release), test (Release), spdx green; post-merge on `11afe033` Build (Windows) and Test green. The Python validator tests were not run (no Python on the authoring machine; Markdown-only change).
+- **Decisions/open:** the `_diagnosticDetail_` spelling (GH-E3) and wiring the TAS adapters into TAS Grasshopper components remain owner decisions.
+- **Next step:** separate PRs adding the AGENTS.md pointer to the standards in SAM_OCCT, SAM_OpenStudio, SAM_Tas, SAM_Tas_Grasshopper and SAM_Psychrometrics (Sonnet, medium, new session, Build mode).
+
 ## Q4 GH component standards and validator acceptance closeout - 2026-10-15
 
 - **PR/status:** [SAM-BIM/SAM#204](https://github.com/SAM-BIM/SAM/pull/204) complete, merged into `sow/2026-Q4` as `a99083a73b107609d1fbc3b4a39266a9a05686f9` (base parent `6b12e2a65817556693ba408674211610f4a20dda`, pinned approved head `4a8afbebb186ace81eb5d49aed32deb502120781`). Owner explicitly authorized final acceptance and merging. No comments/reviews/review threads, required reviews or branch protection to bypass. Merge tree equals the accepted head exactly. Repair content `692f35f642db4838c29cda8e820101e2fc90401c`; final head adds only the PR record.
