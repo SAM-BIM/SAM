@@ -32,6 +32,21 @@ Before making significant changes:
 Prefer small, safe, targeted changes consistent with existing conventions.
 Avoid unrelated refactoring unless it is required for the task.
 
+## Engineering standards (mandatory reading)
+
+Cross-repository standards live in this repository's `docs/`. Read the applicable one before you change
+the matching code, in any SAM-BIM repository:
+
+- Diagnostics (any `Diagnostic`/`Diagnostics`, severity, detail level, `Diagnostics`/`log` output, or an adapter
+  around a producer's own messages): `docs/DIAGNOSTICS_STANDARD.md`.
+- Grasshopper components (names, GUIDs, parameters, descriptions, versions, diagnostic inputs/outputs):
+  `docs/GH_COMPONENT_STANDARDS.md` (section K is the new-versus-legacy quick reference for input/output
+  naming, `Name` versus `NickName`, descriptions and compatibility).
+
+Both describe implemented behaviour; where they and the code disagree, the code wins and the document needs a fix.
+A producer's authoritative severity is preserved, Warnings and Errors survive filtering, and detail never changes
+an engineering result.
+
 ## Grasshopper components
 
 `docs/GH_COMPONENT_STANDARDS.md` is the canonical SAM-BIM standard for Grasshopper component
