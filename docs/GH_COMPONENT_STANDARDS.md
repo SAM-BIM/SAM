@@ -1,6 +1,6 @@
 # SAM-BIM Grasshopper Component Engineering Standard
 
-**Status:** proposed canonical specification in draft PR #204 into `sow/2026-Q4`, not merged.
+**Status:** canonical; merged via [SAM#204](https://github.com/SAM-BIM/SAM/pull/204) into `sow/2026-Q4`.
 Revised 2026-10-15 after two independent reviews. The validator certifies a deliberately bounded
 source subset; incomplete extraction or discovery blocks compatibility acceptance.
 **Owner:** SAM-BIM. Changes to this document go through a reviewed PR in `SAM-BIM/SAM`.
@@ -181,7 +181,24 @@ the parameter description while applying the fallback in code.
 VALIDATED (forbidden).** Those three are published behaviour. Changing one is a behavioural change
 (section H) and is not a formatting fix.
 
-### `ParamVisibility` semantics — VALIDATED
+### GH-B7 — Execution triggers are inputs, not a fourth marker — **VALIDATED (observed), PROPOSED for new components**
+
+An execution trigger is a Boolean input that makes the component do its work (or not). It uses the same
+marker as any input, according to whether the component works without it. Observed in the source (counts are
+`Name = "…"` initializers under `SAM/Grasshopper` and the SAM_OCCT, SAM_Tas_Grasshopper and SAM_OpenStudio
+Grasshopper folders):
+
+| Spelling | Meaning in practice | Example |
+|---|---|---|
+| `_run` (278 initializers) | Required trigger. `Param_Boolean`, `ParamVisibility.Binding`, persistent `false`: nothing runs until the user connects a toggle. | `SAMAnalyticalCheck`: Description "Connect a boolean toggle to run."; `SolveInstance` does `IndexOfInputParam("_run")` and returns when it is false |
+| `run_` (8) | Optional trigger. `Optional = true`; when unset the component still returns something (usually its input). | `SAMAnalyticalMergeSpacesByZones`: "If boolean set to false input Analytical Object will be return" |
+| `_run_` (2) | Trigger with a defined default. | `GeometryPolycurveLoop2D` |
+
+Rules: a trigger is never counted as an engineering input in a description, its description says what happens
+when it is false, and for a new component that is cheap to compute prefer no trigger at all. An existing trigger is never
+renamed to fit a spelling: `_run` is a published `Name` (section F). The markers `_`/`_x_`/`x_` of GH-B still apply
+and are as unenforced as for any input (GH-B3).
+
 
 `ParamVisibility` is a `[Flags]` enum (`Grasshopper/SAM.Core.Grasshopper/Enums/ParamVisibility.cs`)
 evaluated by `GH_SAMVariableOutputParameterComponent`:
@@ -272,6 +289,9 @@ bump (section H) so the *Update component* offer becomes visible.
 
 ## E. Engineering Diagnostics
 
+The canonical Diagnostics specification is [DIAGNOSTICS_STANDARD.md](DIAGNOSTICS_STANDARD.md) (API, severity and
+detail semantics, adapters, testing). This section keeps only the Grasshopper-facing contract questions.
+
 ### E1 — What is implemented today — **VALIDATED**
 
 Three layers exist and are committed:
@@ -330,8 +350,8 @@ regression.
 
 ### GH-E6 — Scope limit — **OPEN**
 
-The unified Diagnostics architecture is under active development (Phase 4, OpenStudio/TAS adapters, is
-not started). This document describes what exists and the direction for new work. It does not
+The unified Diagnostics roadmap (SAM#201, SAM#202, SAM_OCCT#78, SAM_OpenStudio#28, SAM_Tas#101) is complete;
+the OpenStudio and TAS adapters are library API and added no Grasshopper input. This document describes what exists and the direction for new work. It does not
 authorise a Diagnostics redesign, and nothing here should be read as describing a capability that is
 not in the code above.
 
@@ -584,6 +604,25 @@ the name behaviour has, so:
 - **do not** change a nickname as a way to change what a person sees while claiming the name is
   untouched, without stating the compatibility reasoning in the PR.
 
+### GH-I3a — `Name` versus `NickName`: what each is for — **VALIDATED (Name), OPEN (NickName)**
+
+Both are properties of the Grasshopper parameter (`IGH_Param.Name`, `IGH_Param.NickName`) and both are written
+into the saved `ParameterData` chunk beside `Description`, `Optional`, `Access` and persistent data
+(`SAM_Psychrometrics/docs/GH-Component-Metadata-Standard.md` §2, measured in Rhino 8).
+
+| | `Name` | `NickName` |
+|---|---|---|
+| Grasshopper role | the parameter's full name (tooltip, identity-like label) | the short label drawn on the canvas; a user can edit it on an instance |
+| SAM use | the lookup key: `Params.IndexOfInputParam("…")` / `IndexOfOutputParam("…")` in `SolveInstance`; the SAM updater (`Modify.DuplicateComponent`) recovers wires and values by name | display; the SAM lookups inspected (`SolveInstance`, `Modify.DuplicateComponent`) use `Name`, not `NickName` |
+| On reopen | the file's name wins over the class's declared name; a renamed declaration silently returns -1 and the component reports Invalid data | also restored from the file; effect of changing it on an existing definition **not independently measured** (GH-I3) |
+| SAM-BIM convention | published, frozen | equal to `Name` for every new parameter; every inspected component sets `Name == NickName` (for example `_run`, `_relativeHumidity_`) |
+
+Consequences: for a **new** component set `NickName = Name`, so a person sees the same text that code looks up. For an
+**existing** parameter change neither; a differing nickname is an intentional legacy value, kept. A user editing a
+nickname on the canvas is harmless to SAM because lookups use `Name`; a code change to `Name` is not. Any `Name`
+change needs the migration of section G, a saved `.gh`/`.ghx` roundtrip test, and a check that `SolveInstance` still
+resolves every parameter after reopening (GH-G7).
+
 ### GH-I4 — Order is identity-adjacent — **VALIDATED**
 
 Order is asserted by the contract and by the runtime tests. Appending a new voluntary parameter at the
@@ -667,6 +706,24 @@ finding. This is deliberate: it is better to report `partial` than to certify a 
 did not actually read. The regression suite proves this with cases that must fail — a missing output
 set, a parameter name that is not a literal, a parameter registered outside the declaration, a
 parameter whose type cannot be determined, and a baseline that is missing or itself incomplete.
+
+---
+
+## K. Quick reference — new components versus legacy components
+
+The detailed rules and their status labels are in sections A to J; this table only separates what is required of a
+**newly created** component from what is a **recommendation for, or a freeze on,** a legacy one.
+
+| Topic | New component | Legacy component |
+|---|---|---|
+| Input names (GH-B1, B7) | camelCase with the marker that matches the design: `_x` required, `_x_` optional with default, `x_` optional without default, `_run` / `run_` trigger | keep the published name; never rename to fit |
+| Requiredness (GH-B4, B6) | decided by `Optional`, `ParamVisibility`, registered default and code fallback; the marker records intent | frozen: never change `Optional`, visibility or default |
+| Output names (GH-C1, C2) | capitalised, PascalCase, no underscores: `Panels`, `AnalyticalModel`, `Diagnostics` | camelCase outputs stay until an approved migration (GH-C3) |
+| NickName (GH-A2, I3a) | `NickName = Name` | keep; do not overwrite blindly |
+| Descriptions (GH-D) | purpose, SI units, defaults and fallbacks, optional behaviour, limitations, mutual exclusions | improve freely as a metadata change with a patch version bump (GH-D, H) |
+| GUID, Name, order, access, type (GH-A5, I1, I4) | choose once; append new optional inputs last | frozen |
+| Renaming a published `Name` | not applicable | only with a declared `ParameterRename`, saved `.gh`/`.ghx` roundtrip tests and a `SolveInstance` check (G, GH-G7) |
+| Diagnostics output / input | follow [DIAGNOSTICS_STANDARD.md](DIAGNOSTICS_STANDARD.md); whether to add `diagnosticDetail_` / `_diagnosticDetail_` is a per-component decision (GH-E3) | add nothing universally |
 
 ---
 
