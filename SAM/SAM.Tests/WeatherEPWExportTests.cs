@@ -162,6 +162,99 @@ namespace SAM.Tests
         }
 
         /// <summary>
+        /// How often the Rayleigh-atmosphere bound on direct normal binds, and what it removes, against
+        /// the same conversion without the bound. The writer's own hour geometry is read back from the
+        /// export (extraterrestrial horizontal / extraterrestrial normal = hour-mean cos zenith), so
+        /// "bound" means exactly the hours the bound changed (more than 1 %, above the 2-decimal
+        /// rounding of the fields). Beam stated in hours where the sun is below the horizon all hour is
+        /// a separate rule (direct normal 0) and is counted separately. Facade beam uses the independent
+        /// incidence geometry for both variants. The statistics are written to the test output (PR
+        /// record evidence).
+        /// </summary>
+        [Theory]
+        [MemberData(nameof(References))]
+        public void RayleighBound_BindsOnlyAtGrazingSun_AndRemovesLittleEnergy(string name)
+        {
+            List<string> lines = ReadReference(name).Split('\n').Select(x => x.TrimEnd('\r')).ToList();
+            List<EpwRow> reference = Rows(lines);
+            WeatherData weatherData = Weather.Convert.ToSAM(lines);
+            List<EpwRow> exported = Rows(Weather.Convert.ToEPW(weatherData).Split('\n'));
+            double timeZone = Core.Query.Double(Core.Query.UTC(weatherData.GetValue<string>(WeatherDataParameter.TimeZone)));
+
+            int beamHours = 0, boundHours = 0, sunDownBeamHours = 0, momentaryHours = 0;
+            double sunDownBeam = 0, maximumCosZenithBound = 0, maximumUnbounded = 0;
+            double directNormalBounded = 0, directNormalUnbounded = 0;
+            double beamBounded = 0, beamUnbounded = 0;
+            double[] facadeBounded = new double[4], facadeUnbounded = new double[4];
+            for (int i = 0; i < reference.Count; i++)
+            {
+                EpwRow r = reference[i];
+                EpwRow e = exported[i];
+
+                double beam = System.Math.Max(0, r.GlobalHorizontal - r.DiffuseHorizontal);
+                if (beam <= 0)
+                    continue;
+
+                beamHours++;
+                if (e.ExtraterrestrialDirectNormal > 0 && e.ExtraterrestrialHorizontal <= 0)
+                {
+                    // Sun up for about a minute: the extraterrestrial horizontal rounds to 0.00, so the
+                    // geometry cannot be read back; the beam is far beyond any atmosphere and is bounded.
+                    momentaryHours++;
+                    boundHours++;
+                    continue;
+                }
+
+                double meanCosZenith = e.ExtraterrestrialDirectNormal > 0 ? e.ExtraterrestrialHorizontal / e.ExtraterrestrialDirectNormal : 0;
+                if (meanCosZenith <= 0)
+                {
+                    sunDownBeamHours++;
+                    sunDownBeam += beam;
+                    Assert.Equal(0, e.DirectNormal);
+                    continue;
+                }
+
+                double unbounded = beam / meanCosZenith;
+                if (e.DirectNormal < 0.99 * unbounded)
+                {
+                    boundHours++;
+                    maximumCosZenithBound = System.Math.Max(maximumCosZenithBound, meanCosZenith);
+                    maximumUnbounded = System.Math.Max(maximumUnbounded, unbounded);
+                }
+
+                AlmanacSun.HourGeometry geometry = AlmanacSun.Hour(2018, r.Month, r.Day, r.Hour, weatherData.Latitude, weatherData.Longitude, timeZone, 0, 120);
+                directNormalBounded += e.DirectNormal;
+                directNormalUnbounded += unbounded;
+                beamBounded += e.DirectNormal * meanCosZenith;
+                beamUnbounded += beam;
+                for (int k = 0; k < 4; k++)
+                {
+                    facadeBounded[k] += e.DirectNormal * geometry.MeanCosIncidence[k];
+                    facadeUnbounded[k] += unbounded * geometry.MeanCosIncidence[k];
+                }
+            }
+
+            static string Change(double bounded, double unbounded) => unbounded > 0 ? $"{(bounded / unbounded - 1) * 100:+0.00;-0.00;0.00} %" : "n/a";
+
+            output.WriteLine($"{name}: bound binds in {boundHours} of {beamHours} beam hours ({100.0 * boundHours / beamHours:F2} %), all with hour-mean cos zenith <= {maximumCosZenithBound:F3} (sun below ~{System.Math.Asin(maximumCosZenithBound) * 180 / System.Math.PI:F1} deg); largest unbounded DNI {maximumUnbounded:F0} W/m2");
+            output.WriteLine($"  beam with the sun below the horizon all hour (DNI 0 by rule): {sunDownBeamHours} hours, {sunDownBeam / 1000:F2} kWh/m2");
+            output.WriteLine($"  of the bound hours, {momentaryHours} have the sun up for only about a minute (geometry not read back; excluded from the energy sums)");
+            output.WriteLine($"  annual DNI: unbounded {directNormalUnbounded / 1000:F1}, bounded {directNormalBounded / 1000:F1} kWh/m2 ({Change(directNormalBounded, directNormalUnbounded)})");
+            output.WriteLine($"  annual horizontal beam: stated {beamUnbounded / 1000:F1}, exported {beamBounded / 1000:F1} kWh/m2 ({Change(beamBounded, beamUnbounded)})");
+            for (int k = 0; k < 4; k++)
+                output.WriteLine($"  facade {AlmanacSun.FacadeNames[k]} annual beam: unbounded {facadeUnbounded[k] / 1000:F1}, bounded {facadeBounded[k] / 1000:F1} kWh/m2 ({Change(facadeBounded[k], facadeUnbounded[k])})");
+
+            // Never for a self-consistent dataset; otherwise rare, only with the sun low, and a
+            // negligible share of the beam on the horizontal.
+            if (!name.StartsWith("HUN_") && !name.StartsWith("USA_AZ_"))
+                Assert.Equal(0, boundHours);
+
+            Assert.InRange(boundHours, 0, beamHours / 10);
+            Assert.InRange(maximumCosZenithBound, 0, 0.4);
+            Assert.InRange(beamBounded / beamUnbounded, 0.99, 1.0005);
+        }
+
+        /// <summary>
         /// The F1 incident hours (SAM_UI PR #239): the embedded-weather export wrote global horizontal 0
         /// and the horizontal beam (global - diffuse) into the direct-normal field.
         /// </summary>
@@ -580,9 +673,9 @@ namespace SAM.Tests
 
             output.WriteLine($"{name}: lat {weatherData.Latitude}, lon {weatherData.Longitude}, tz {timeZone}");
             output.WriteLine($"  reference closure |DNI*cosZ - (GHI-DHI)|: {result.ReferenceClosureError * 100:F2} % (geometry 30 min earlier: {result.ReferenceClosureErrorShifted * 100:F2} %)");
-            output.WriteLine($"  annual DNI: reference {result.ReferenceDirectNormal / 1000:F1}, exported {result.ExportedDirectNormal / 1000:F1} kWh/m2 ({(result.ExportedDirectNormal / result.ReferenceDirectNormal - 1) * 100:+0.00;-0.00} %)");
-            output.WriteLine($"  annual horizontal beam: GHI-DHI {result.HorizontalBeam / 1000:F1}, exported DNI*cosZ {result.ExportedBeamOnHorizontal / 1000:F1} kWh/m2 ({(result.ExportedBeamOnHorizontal / result.HorizontalBeam - 1) * 100:+0.00;-0.00} %)");
-            output.WriteLine($"  sun-up hours n={relativeErrors.Count}: median DNI error {result.MedianRelativeError * 100:+0.00;-0.00} %, 90th percentile |error| {result.Percentile90AbsoluteRelativeError * 100:F2} %");
+            output.WriteLine($"  annual DNI: reference {result.ReferenceDirectNormal / 1000:F1}, exported {result.ExportedDirectNormal / 1000:F1} kWh/m2 ({(result.ExportedDirectNormal / result.ReferenceDirectNormal - 1) * 100:+0.00;-0.00;0.00} %)");
+            output.WriteLine($"  annual horizontal beam: GHI-DHI {result.HorizontalBeam / 1000:F1}, exported DNI*cosZ {result.ExportedBeamOnHorizontal / 1000:F1} kWh/m2 ({(result.ExportedBeamOnHorizontal / result.HorizontalBeam - 1) * 100:+0.00;-0.00;0.00} %)");
+            output.WriteLine($"  sun-up hours n={relativeErrors.Count}: median DNI error {result.MedianRelativeError * 100:+0.00;-0.00;0.00} %, 90th percentile |error| {result.Percentile90AbsoluteRelativeError * 100:F2} %");
             for (int k = 0; k < 4; k++)
                 output.WriteLine($"  facade {AlmanacSun.FacadeNames[k]} annual beam: reference {result.ReferenceFacadeBeam[k] / 1000:F1}, exported {result.ExportedFacadeBeam[k] / 1000:F1} kWh/m2");
 
