@@ -46,7 +46,7 @@ SAM_UI `4ee45fef`, SAM_Tas `a34a298d`); recheck them before starting a task.
 
 | ID | Task | Repository | Scope | Related | Acceptance criterion | Status |
 |---|---|---|---|---|---|---|
-| S00 | Roadmap and PR #239 evidence consolidation | SAM, SAM_UI | This file; reconcile the SAM_UI#239 record and description (supersede pre-F1 embedded-weather evidence, freeze C6-C8). Documentation only. | SAM#206, SAM_UI#227, SAM_UI#239, SAM#212 | Roadmap reviewed by the owner; #239 states what is superseded, frozen and kept, and links here. | Active |
+| S00 | Roadmap and PR #239 evidence consolidation | SAM, SAM_UI | This file; reconcile the SAM_UI#239 record and description (supersede pre-F1 embedded-weather evidence, freeze C6-C8). Documentation only. | SAM#206, SAM_UI#227, SAM_UI#239, SAM#212 | Roadmap reviewed by the owner; #239 states what is superseded, frozen and kept, and links here. | Done: SAM#213 `b4e68148`, SAM_UI#239 `d5aa34b2` |
 | S01 | Tas silent-failure detection | SAM_Tas (detection), SAM_UI (reporting) | `Modify/Simulate.cs` (lines 82 and 144) discards the `TBDDocument.simulate` return code (-1 ran, 0 refused). A refusal still writes a small stub TSD, so the outcome is decided by `WaitToUnlock(path_TSD)`. Detect refusal and an empty or stub TSD, and carry the failure to Energy Simulation, Run Simulation and B1a. | SAM#92 (merged PR where the refusal was diagnosed) | A Tas refusal or empty TSD is reported as failed, with the Tas return code and log path, in every entry point and never as Success; a successful run is unchanged (persisted-value baseline comparison as in the #237 acceptance). | Next; SAM_Tas write access needs owner confirmation (see decisions) |
 | S02 | Shared simulation concurrency guard | SAM_UI | `AnalyticalWindow` has separate `openStudioSimulationRunning` and `engineComparisonRunning` flags; Energy Simulation / Run Simulation > Tas (`SimulateTas`) has none. One guard for all simulation entry points. Not parallel execution. | SAM_UI#234 (design context only) | While any simulation runs for a model, no other simulation can start from any entry point; the guard is released on success, failure, exception and cancel (tests per entry point). | Not started |
 | S03 | Run settings and version traceability | SAM_UI, SAM_Validation if the schema changes | Every run records the app commit (today `SAM_COMMIT` is set by hand), producer executable versions and hashes, Tas and OpenStudio/EnergyPlus versions, weather source (embedded or explicit, hash) and design-day source, and the run options in the run manifest. | SAM_UI#228 (G0 traceability), B1a provenance | Each Tas, OpenStudio and Both run manifest contains every item without manual environment variables; an unavailable item is written as unknown with a reason, never blank. | Not started |
@@ -77,7 +77,7 @@ from local licensed runs; a check blocked by a missing licence or executable is 
 
 ## Owner decisions outstanding
 
-1. Approval of this roadmap and of the Phase C freeze (S00).
+1. ~~Approval of this roadmap and of the Phase C freeze (S00).~~ Approved by the owner on 2026-10-19 (S00 merged).
 2. SAM_Tas was recorded as read-only while the HVAC conversion is in progress (SAM_UI#239). Confirm whether S01, S08
    and S10 may change SAM_Tas now, or whether S01 starts after that work lands.
 3. Multizone fixture: HungaryHouse (`HungaryHouse.json`, sha256 `e16ccbd2…`) is machine-local and not committed.
@@ -86,13 +86,11 @@ from local licensed runs; a check blocked by a missing licence or executable is 
 4. Whether the trackers SAM#206 and SAM_UI#227 are updated to point here (not done by S00).
 5. F2, F8 and F9 semantics (S07), and the S07 tolerances (SAM#206 says tolerances are owner-confirmed).
 
-## S00 record (remove or condense when S00 merges)
+## Task log
 
-- **Branch/base:** `docs/simulation-roadmap-q4` from `sow/2026-Q4` `a2069103`. Companion change: SAM_UI#239
-  (`validation/licensed-tas-openstudio-e2e-q4`) record and description reconciled to this roadmap in SAM_UI commit
-  `d57dab70` (record only; licensed-run evidence unchanged).
-- **Inspected:** SAM#206 and its checklist comments, SAM_UI#227, SAM_UI#228-#239 states (#237/#238 merged, #239 open,
-  the others open), SAM#207-#212 (#212 merged), SAM_OpenStudio#30 (open), SAM and SAM_UI `PROJECT_PROGRESS.md` latest
-  Q4 closeouts, the SAM_UI#239 record and description, the code references cited in the register.
-- **Not done (out of scope):** no code, simulation, issue creation or change, merge or S01 start.
-- **Next step:** owner review of this PR and SAM_UI#239. After approval and merge, the owner decides whether S01 starts.
+- **S00 (Done, 2026-10-19):** SAM#213 merged `b4e681485702b92abafc2b80f893065c6e62a822` (head `bc58f4e0`);
+  SAM_UI#239 merged `d5aa34b29b9a01af76bb0dc457021b83cb5adc7a` (head `d57dab70`). Documentation only; no code,
+  simulation, issue change or S01 start. This status update was committed directly to `sow/2026-Q4` with the
+  post-merge closeout under a narrow owner exception ("Close S00 in the roadmap", 2026-10-19); later roadmap changes
+  go through a reviewed PR.
+- **No task is active.** S01 is the next candidate and needs an explicit owner start (and decision 2 above).
