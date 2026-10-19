@@ -82,6 +82,10 @@
     <None Include="Golden\GenOpt\*.tsv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- TMYx reference EPWs, gzip-compressed (see Resources\Weather\README.md and WeatherEPWExportTests). -->
+    <None Include="Resources\Weather\*.epw.gz;Resources\Weather\SHA256SUMS.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

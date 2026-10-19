@@ -1,0 +1,45 @@
+SGP_SG_Changi.Intl.AP.486980_TMYx.2004-2018.epw.gz: lat 1.35, lon 103.994, tz 8
+  reference closure |DNI*cosZ - (GHI-DHI)|: 0.54 % (geometry 30 min earlier: 7.78 %)
+  annual DNI: reference 466.8, exported 468.1 kWh/m2 (+0.28 %)
+  annual horizontal beam: GHI-DHI 360.5, exported DNI*cosZ 360.4 kWh/m2 (-0.01 %)
+  sun-up hours n=631: median DNI error +0.27 %, 90th percentile |error| 0.57 %
+  facade N annual beam: reference 48.1, exported 48.2 kWh/m2
+  facade E annual beam: reference 90.5, exported 90.8 kWh/m2
+  facade S annual beam: reference 68.5, exported 68.7 kWh/m2
+  facade W annual beam: reference 127.0, exported 127.4 kWh/m2
+USA_AK_Fairbanks.Intl.AP.702610_TMYx.2004-2018.epw.gz: lat 64.804, lon -147.876, tz -9
+  reference closure |DNI*cosZ - (GHI-DHI)|: 1.32 % (geometry 30 min earlier: 6.07 %)
+  annual DNI: reference 384.3, exported 385.2 kWh/m2 (+0.23 %)
+  annual horizontal beam: GHI-DHI 184.7, exported DNI*cosZ 185.3 kWh/m2 (+0.30 %)
+  sun-up hours n=661: median DNI error +0.17 %, 90th percentile |error| 0.61 %
+  facade N annual beam: reference 4.9, exported 4.9 kWh/m2
+  facade E annual beam: reference 108.6, exported 108.9 kWh/m2
+  facade S annual beam: reference 217.7, exported 218.4 kWh/m2
+  facade W annual beam: reference 87.1, exported 87.2 kWh/m2
+AUS_NSW_Sydney.Intl.AP.947670_TMYx.2004-2018.epw.gz: lat -33.946, lon 151.177, tz 10
+  reference closure |DNI*cosZ - (GHI-DHI)|: 0.40 % (geometry 30 min earlier: 8.15 %)
+  annual DNI: reference 1479.4, exported 1482.6 kWh/m2 (+0.22 %)
+  annual horizontal beam: GHI-DHI 951.8, exported DNI*cosZ 952.0 kWh/m2 (+0.02 %)
+  sun-up hours n=2186: median DNI error +0.24 %, 90th percentile |error| 0.59 %
+  facade N annual beam: reference 592.5, exported 594.1 kWh/m2
+  facade E annual beam: reference 345.1, exported 345.8 kWh/m2
+  facade S annual beam: reference 15.1, exported 15.1 kWh/m2
+  facade W annual beam: reference 373.6, exported 374.4 kWh/m2
+USA_AZ_Phoenix-Sky.Harbor.Intl.AP.722780_TMYx.2004-2018.epw.gz: lat 33.43333, lon -112.0167, tz -7
+  reference closure |DNI*cosZ - (GHI-DHI)|: 8.85 % (geometry 30 min earlier: 2.34 %)
+  annual DNI: reference 2632.0, exported 2807.3 kWh/m2 (+6.66 %)
+  annual horizontal beam: GHI-DHI 1620.1, exported DNI*cosZ 1613.9 kWh/m2 (-0.38 %)
+  sun-up hours n=3243: median DNI error -1.49 %, 90th percentile |error| 19.96 %
+  facade N annual beam: reference 49.6, exported 68.1 kWh/m2
+  facade E annual beam: reference 598.2, exported 535.9 kWh/m2
+  facade S annual beam: reference 952.6, exported 973.4 kWh/m2
+  facade W annual beam: reference 796.6, exported 1011.4 kWh/m2
+HUN_BU_Budapest.Met.Center.128400_TMYx.epw.gz: lat 47.517, lon 19.033, tz 1
+  reference closure |DNI*cosZ - (GHI-DHI)|: 9.31 % (geometry 30 min earlier: 4.26 %)
+  annual DNI: reference 1304.6, exported 1496.2 kWh/m2 (+14.69 %)
+  annual horizontal beam: GHI-DHI 735.2, exported DNI*cosZ 733.3 kWh/m2 (-0.25 %)
+  sun-up hours n=2505: median DNI error -1.36 %, 90th percentile |error| 20.91 %
+  facade N annual beam: reference 16.5, exported 31.5 kWh/m2
+  facade E annual beam: reference 324.7, exported 302.2 kWh/m2
+  facade S annual beam: reference 613.0, exported 637.5 kWh/m2
+  facade W annual beam: reference 345.1, exported 479.1 kWh/m2

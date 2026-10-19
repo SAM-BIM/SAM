@@ -1,0 +1,3 @@
+embedded-before      n=8760 DBT 10.321 DPT 5.638 ETRH 0.0 kWh  IR 0.0 kWh (missing 0 h)  GHI 0.0  DNI 735.2  DHI 541.2 kWh/m2  sky tot 0.58 opq 0.00 tenths
+embedded-corrected   n=8760 DBT 10.321 DPT 5.638 ETRH 2601.4 kWh  IR 0.0 kWh (missing 8760 h)  GHI 1276.4  DNI 1496.2  DHI 541.2 kWh/m2  sky tot 5.80 opq 5.80 tenths
+explicit-Budapest    n=8760 DBT 10.321 DPT 5.638 ETRH 2598.6 kWh  IR 2719.8 kWh (missing 0 h)  GHI 1276.4  DNI 1304.6  DHI 541.2 kWh/m2  sky tot 5.80 opq 6.56 tenths
