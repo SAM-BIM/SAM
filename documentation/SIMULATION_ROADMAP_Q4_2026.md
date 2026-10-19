@@ -89,7 +89,8 @@ from local licensed runs; a check blocked by a missing licence or executable is 
 ## S00 record (remove or condense when S00 merges)
 
 - **Branch/base:** `docs/simulation-roadmap-q4` from `sow/2026-Q4` `a2069103`. Companion change: SAM_UI#239
-  (`validation/licensed-tas-openstudio-e2e-q4`) record and description reconciled to this roadmap.
+  (`validation/licensed-tas-openstudio-e2e-q4`) record and description reconciled to this roadmap in SAM_UI commit
+  `d57dab70` (record only; licensed-run evidence unchanged).
 - **Inspected:** SAM#206 and its checklist comments, SAM_UI#227, SAM_UI#228-#239 states (#237/#238 merged, #239 open,
   the others open), SAM#207-#212 (#212 merged), SAM_OpenStudio#30 (open), SAM and SAM_UI `PROJECT_PROGRESS.md` latest
   Q4 closeouts, the SAM_UI#239 record and description, the code references cited in the register.
