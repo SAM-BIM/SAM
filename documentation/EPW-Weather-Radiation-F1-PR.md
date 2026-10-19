@@ -154,6 +154,15 @@ It compares against the same conversion without the bound. Facade beam uses the 
 - East facades are unaffected (0.00 %): the binding hours are afternoon and sunset hours.
 - Separately, by rule, beam stated while the sun is below the horizon all hour becomes DNI 0. That is 163 hours and
   0.51 kWh/m2 in Budapest, and none elsewhere.
+- **What the -51.9 % means:** it compares Budapest's exported DNI with the same conversion *without* the bound
+  (3109 kWh/m2). That unbounded total is inflated by grazing-sun hours in which a few W/m2 of beam is divided by a
+  near-zero cosine. It is **not** a change against the source data: the exported annual DNI (1495 kWh/m2) is
+  +14.7 % against the file's own DNI (1305), and the stated horizontal beam is kept within 0.18 %.
+- **The bound is a physical safeguard, not a correction of the half-hour mismatch.** It never shifts, rescales or
+  redistributes radiation in time. It only limits an hour's DNI to what a pure Rayleigh atmosphere can transmit at
+  that sun position. The mismatch itself is not corrected, and it remains in the exported DNI as the east/west
+  asymmetry recorded in "Independent verification". The source `WeatherData` is never modified: the writer only
+  reads it through side-effect-free getters, and the stated global and diffuse are written unchanged.
 - **Conclusion:** the bound is inert for physically consistent data and removes only physically impossible beam
   from inconsistent data. Accepted.
 
