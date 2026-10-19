@@ -1,0 +1,11 @@
+﻿environments=1 hours=61320
+Environment,Site Outdoor Air Dewpoint Temperature [C] | n=8760 | mean=5.636 | max=28.583 @h5030
+Environment,Site Sky Temperature [C] | n=8760 | mean=-4.834 | max=19.811 @h4382
+Environment,Site Horizontal Infrared Radiation Rate per Area [W/m2] | n=8760 | mean=296.384 | max=417.637 @h4382
+Environment,Site Diffuse Solar Radiation Rate per Area [W/m2] | n=8760 | mean=61.176 | max=454.167 @h4594
+Environment,Site Direct Solar Radiation Rate per Area [W/m2] | n=8760 | mean=83.616 | max=735.250 @h4690
+SAM_SPACE_OFFICE_CB68BED1,Enclosure Windows Total Transmitted Solar Radiation Energy [J] | n=8760 | sum=2592.6255 kWh | max=1531.90 W @h2316
+SAM_IDEALLOADS_OFFICE_CB68BED1,Zone Ideal Loads Supply Air Sensible Heating Energy [J] | n=8760 | sum=2810.0183 kWh | max=3343.73 W @h919
+SAM_IDEALLOADS_OFFICE_CB68BED1,Zone Ideal Loads Supply Air Total Heating Energy [J] | n=8760 | sum=2810.0183 kWh | max=3343.73 W @h919
+SAM_IDEALLOADS_OFFICE_CB68BED1,Zone Ideal Loads Supply Air Sensible Cooling Energy [J] | n=8760 | sum=3432.5972 kWh | max=3335.32 W @h4381
+SAM_IDEALLOADS_OFFICE_CB68BED1,Zone Ideal Loads Supply Air Total Cooling Energy [J] | n=8760 | sum=3832.5030 kWh | max=5206.16 W @h5029

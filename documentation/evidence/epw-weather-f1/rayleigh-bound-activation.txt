@@ -1,0 +1,39 @@
+HUN_BU_Budapest.Met.Center.128400_TMYx.epw.gz: bound binds in 170 of 4217 beam hours (4.03 %), all with hour-mean cos zenith <= 0.082 (sun below ~4.7 deg); largest unbounded DNI 471630 W/m2
+  beam with the sun below the horizon all hour (DNI 0 by rule): 163 hours, 0.51 kWh/m2
+  of the bound hours, 2 have the sun up for only about a minute (geometry not read back; excluded from the energy sums)
+  annual DNI: unbounded 3108.8, bounded 1495.2 kWh/m2 (-51.91 %)
+  annual horizontal beam: stated 734.6, exported 733.3 kWh/m2 (-0.18 %)
+  facade N annual beam: unbounded 41.0, bounded 31.5 kWh/m2 (-23.14 %)
+  facade E annual beam: unbounded 302.2, bounded 302.2 kWh/m2 (0.00 %)
+  facade S annual beam: unbounded 667.6, bounded 637.5 kWh/m2 (-4.50 %)
+  facade W annual beam: unbounded 567.2, bounded 479.0 kWh/m2 (-15.54 %)
+SGP_SG_Changi.Intl.AP.486980_TMYx.2004-2018.epw.gz: bound binds in 0 of 3685 beam hours (0.00 %), all with hour-mean cos zenith <= 0.000 (sun below ~0.0 deg); largest unbounded DNI 0 W/m2
+  beam with the sun below the horizon all hour (DNI 0 by rule): 0 hours, 0.00 kWh/m2
+  of the bound hours, 0 have the sun up for only about a minute (geometry not read back; excluded from the energy sums)
+  annual DNI: unbounded 468.1, bounded 468.1 kWh/m2 (0.00 %)
+  annual horizontal beam: stated 360.5, exported 360.5 kWh/m2 (0.00 %)
+  facade N annual beam: unbounded 48.2, bounded 48.2 kWh/m2 (0.00 %)
+  facade E annual beam: unbounded 90.8, bounded 90.8 kWh/m2 (0.00 %)
+  facade S annual beam: unbounded 68.7, bounded 68.7 kWh/m2 (0.00 %)
+  facade W annual beam: unbounded 127.4, bounded 127.4 kWh/m2 (0.00 %)
+AUS_NSW_Sydney.Intl.AP.947670_TMYx.2004-2018.epw.gz: bound binds in 0 of 3819 beam hours (0.00 %), all with hour-mean cos zenith <= 0.000 (sun below ~0.0 deg); largest unbounded DNI 0 W/m2
+  annual DNI: unbounded 1482.6, bounded 1482.6 kWh/m2 (0.00 %)
+  annual horizontal beam: stated 951.8, exported 951.8 kWh/m2 (0.00 %)
+  facade N annual beam: unbounded 594.1, bounded 594.1 kWh/m2 (0.00 %)
+  facade E annual beam: unbounded 345.8, bounded 345.8 kWh/m2 (0.00 %)
+  facade S annual beam: unbounded 15.1, bounded 15.1 kWh/m2 (0.00 %)
+  facade W annual beam: unbounded 374.4, bounded 374.4 kWh/m2 (0.00 %)
+USA_AK_Fairbanks.Intl.AP.702610_TMYx.2004-2018.epw.gz: bound binds in 0 of 2428 beam hours (0.00 %), all with hour-mean cos zenith <= 0.000 (sun below ~0.0 deg); largest unbounded DNI 0 W/m2
+  annual DNI: unbounded 385.2, bounded 385.2 kWh/m2 (0.00 %)
+  annual horizontal beam: stated 184.7, exported 184.7 kWh/m2 (0.00 %)
+  facade N annual beam: unbounded 4.9, bounded 4.9 kWh/m2 (0.00 %)
+  facade E annual beam: unbounded 108.9, bounded 108.9 kWh/m2 (0.00 %)
+  facade S annual beam: unbounded 218.4, bounded 218.4 kWh/m2 (0.00 %)
+  facade W annual beam: unbounded 87.2, bounded 87.2 kWh/m2 (0.00 %)
+USA_AZ_Phoenix-Sky.Harbor.Intl.AP.722780_TMYx.2004-2018.epw.gz: bound binds in 251 of 4217 beam hours (5.95 %), all with hour-mean cos zenith <= 0.353 (sun below ~20.7 deg); largest unbounded DNI 2450 W/m2
+  annual DNI: unbounded 2911.3, bounded 2807.3 kWh/m2 (-3.57 %)
+  annual horizontal beam: stated 1620.1, exported 1613.9 kWh/m2 (-0.38 %)
+  facade N annual beam: unbounded 77.3, bounded 68.1 kWh/m2 (-11.93 %)
+  facade E annual beam: unbounded 535.9, bounded 535.9 kWh/m2 (0.00 %)
+  facade S annual beam: unbounded 987.1, bounded 973.4 kWh/m2 (-1.38 %)
+  facade W annual beam: unbounded 1078.9, bounded 1011.4 kWh/m2 (-6.25 %)

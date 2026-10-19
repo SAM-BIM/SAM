@@ -34,3 +34,10 @@
   listing comments and termination text. It has no GenOpt banner, copyright header, console transcript or code.
 - Distribution: no GenOpt code, `genopt.jar` or Java runtime is included in this repository or its builds. The oracle
   tool `SAM/SAM.Tests.GenOptOracle` runs a locally supplied `genopt.jar`, which is never committed.
+
+## TMYx weather files (test fixtures only)
+- Files: `SAM/SAM.Tests/Resources/Weather/*.epw.gz`, five TMYx EPW files from https://climate.onebuilding.org/,
+  gzip-compressed without modification. The SHA-256 of each original `.epw` is in `SHA256SUMS.txt` next to them, and
+  provenance per file is in that folder's `README.md`.
+- License: free to use with attribution: "Climatic data provided by climate.onebuilding.org".
+- Use: reference data for the EPW writer tests (`WeatherEPWExportTests`). They are not part of any build output.
