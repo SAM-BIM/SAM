@@ -1,10 +1,12 @@
 # EPW writer: physically correct radiation and sky fields (F1)
 
-PR record. Branch `fix/epw-weather-radiation-q4`, base `sow/2026-Q4` (`618db819`). Tested content SHA: `b721c5f4`
-(the commits after it change only this record). Draft PR; not merged.
+PR record. PR https://github.com/SAM-BIM/SAM/pull/212, branch `fix/epw-weather-radiation-q4`, base `sow/2026-Q4`
+(`618db819`). Tested content SHA: `a2cb16cf`. Production code is unchanged since `b721c5f4`: `a2cb16cf` adds one
+test and evidence, and the commits after it change only this record. Not merged.
 
 ## Status
-The fix is implemented and tested locally. The draft PR waits for owner review. TAS was not re-run (see Risks).
+Final review complete (2026-10-19, see "Final review"). No blocking issues; recommended for owner approval and
+merge. TAS was not re-run (see Risks).
 
 ## Defect (SAM_UI PR #239, finding F1)
 `SAM.Weather.Query.DataString`, which `Convert.ToEPW` and SAM_OpenStudio `EmbeddedAnnualWeatherPath` use, wrote:
@@ -128,21 +130,81 @@ Reproduce: run `energyplus.exe -w <weather>.epw -d . in.idf` in each `C:\TasOut\
 folder, then `eso-summary.ps1 -Eso eplusout.eso` (PR #239 tool). These are machine-local. Copy that folder and
 `C:\TasOut\licensed-e2e-20261019` to continue elsewhere.
 
+## Final review (2026-10-19)
+
+### 1. Rayleigh bound: how often it binds and what it changes
+Test `RayleighBound_BindsOnlyAtGrazingSun_AndRemovesLittleEnergy`, evidence
+`documentation/evidence/epw-weather-f1/rayleigh-bound-activation.txt`. It reads the writer's own hour geometry back
+from the export (ETR horizontal / ETR normal), so "binds" counts exactly the hours the bound changed (more than 1 %).
+It compares against the same conversion without the bound. Facade beam uses the independent incidence geometry.
+
+| Reference | Hours bound / beam hours | Highest sun when bound | Annual DNI | Horizontal beam | Facade beam N / E / S / W |
+|---|---|---|---|---|---|
+| Sydney, Singapore, Fairbanks | **0** | - | 0.00 % | 0.00 % | 0.00 % on all four |
+| Budapest | 170 / 4217 (4.0 %) | ~4.7 deg | -51.9 % | -0.18 % | -23.1 / 0.0 / -4.5 / -15.5 % |
+| Phoenix | 251 / 4217 (6.0 %) | ~20.7 deg | -3.6 % | -0.38 % | -11.9 / 0.0 / -1.4 / -6.3 % |
+
+- For the three self-consistent datasets the bound never binds, so the exported DNI is the unbounded energy-consistent
+  value. The test asserts this.
+- It binds only for the two files whose DNI and GHI/DHI are half an hour apart. There, the stated beam at low sun
+  implies impossible DNI: up to 2450 W/m2 at ~21 deg in Phoenix, where a pure Rayleigh atmosphere allows about
+  1080 W/m2, and up to 4.7e5 W/m2 in Budapest in the minutes after sunrise. Without the bound, Budapest's annual DNI
+  would be 3109 instead of 1495 kWh/m2, and its west facade beam 567 instead of 479 kWh/m2 (the dataset's own DNI
+  gives 345). The bound removes at most 0.38 % of the stated horizontal beam.
+- East facades are unaffected (0.00 %): the binding hours are afternoon and sunset hours.
+- Separately, by rule, beam stated while the sun is below the horizon all hour becomes DNI 0. That is 163 hours and
+  0.51 kWh/m2 in Budapest, and none elsewhere.
+- **Conclusion:** the bound is inert for physically consistent data and removes only physically impossible beam
+  from inconsistent data. Accepted.
+
+### 2. Opaque-sky-cover stand-in
+The stand-in is documented in the code (`DataString` remarks), in "Decisions and assumptions" above and in the PR
+description. It was isolated with two more EnergyPlus box runs (`eplus-box-corrected-refopaque.txt`,
+`eplus-box-corrected-refIR.txt`): the corrected export with the reference file's real opaque cover, and with the
+reference file's own IR column.
+
+| Box, annual | Stand-in (opaque = total) | Real opaque cover | Dataset IR | Explicit EPW |
+|---|---|---|---|---|
+| Horizontal IR, mean [W/m2] | 319.6 | 322.2 | 310.5 | 310.5 |
+| Sky temperature, mean [C] | 0.28 | 0.88 | -1.87 | -1.87 |
+| Heating [kWh] | 2081.9 | 2066.9 (-0.7 %) | 2101.1 (+0.9 %) | 2173.9 |
+| Sensible cooling [kWh] | 4311.7 | 4327.9 (+0.4 %) | 4238.4 (-1.7 %) | 4140.8 |
+
+- Using the stand-in instead of the real opaque cover changes IR by 2.6 W/m2 and loads by less than 1 %. In this
+  ERA5-based file the opaque cover is on average larger than the total (6.56 against 5.80 tenths), so the "real"
+  value is itself unreliable.
+- EnergyPlus's Clark-Allen IR against the dataset's IR column is a larger effect (9 W/m2, up to 1.7 % of loads), and
+  it is EnergyPlus's documented behaviour for a missing IR.
+- With the dataset's IR the residual against the explicit EPW is -3.4 % heating and +2.4 % cooling. That is the
+  solar part, from the file's half-hour DNI inconsistency.
+- **Conclusion:** documented, small, and better than the alternatives (opaque 0 means a clear sky; 99 means an
+  unknown EnergyPlus substitute). Accepted.
+
+### 3. CI, tests and mergeability
+- PR #212 at `90822fac`: GitHub `build (Release)`, `test (Release)` and `spdx` pass. Mergeable, state CLEAN, base
+  `618db819` unchanged, no reviews or comments, ready for review. The final head's checks are in the PR description.
+- Local at `a2cb16cf`: `SAM.Tests` 3726/3726 in Release and in Debug, which includes the 43 `WeatherEPWExportTests`
+  cases. Production code is identical to `b721c5f4`, whose sandboxed `SAM.sln` Release rebuild had 0 errors.
+
+**Blocking issues: none.** Recommended for owner approval and merge.
+
 ## Files
 - `SAM/SAM.Weather/Query/DataString.cs`: field mapping, missing codes and location overloads.
 - `SAM/SAM.Weather/Query/EPWSolarGeometry.cs` (new): hour-mean geometry, Rayleigh bound, dew point and time zone.
-- `SAM/SAM.Tests/WeatherEPWExportTests.cs` (new, 38 tests) and `SAM/SAM.Tests/SAM.Tests.csproj` (copies fixtures).
+- `SAM/SAM.Tests/WeatherEPWExportTests.cs` (new, 43 test cases) and `SAM/SAM.Tests/SAM.Tests.csproj` (copies fixtures).
 - `SAM/SAM.Tests/Resources/Weather/` (new): 5 `.epw.gz`, `SHA256SUMS.txt` and `README.md`.
 - `THIRD_PARTY.md`: TMYx attribution.
 - `documentation/evidence/epw-weather-f1/` (new) and this record.
 
-## Validation (local, Windows, .NET 8 SDK; tested SHA `b721c5f4`)
-- `dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release`: **3721/3721** passed. With `-c Debug`: 3721/3721.
-- `MSBuild SAM.sln /t:Restore;Rebuild /p:Configuration=Release /m:1 /p:UseSharedCompilation=false`: 0 errors.
-  It ran with `APPDATA`/`USERPROFILE` redirected to a sandbox so the Grasshopper post-build copies could not
-  touch the installed SAM.
+## Validation (local, Windows, .NET 8 SDK)
+- At `a2cb16cf`: `dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release`: **3726/3726** passed. With `-c Debug`:
+  3726/3726.
+- At `b721c5f4` (same production code): `dotnet test` gave 3721/3721 in Release and Debug, before the bound test was
+  added. `MSBuild SAM.sln /t:Restore;Rebuild /p:Configuration=Release /m:1 /p:UseSharedCompilation=false`: 0 errors.
+  It ran with `APPDATA`/`USERPROFILE` redirected to a sandbox so the Grasshopper post-build copies could not touch
+  the installed SAM.
 - `git diff --check` is clean, and the new `.cs` files carry the SPDX header.
-- GitHub checks: see the PR description for the final head.
+- GitHub checks: green at `90822fac`; see the PR description for the final head.
 
 ## Unresolved issues and risks
 - **Consumers see changed weather.** Embedded-weather OpenStudio and Both runs get more solar and a warmer sky.
@@ -163,7 +225,10 @@ folder, then `eso-summary.ps1 -Eso eplusout.eso` (PR #239 tool). These are machi
   but assert no radiation fields. They were not run here, because they need the OpenStudio SDK.
 
 ## Recommended next step
-Owner review of the draft PR, in particular the opaque-sky proxy and the Rayleigh bound. After merge, re-run
-the PR #239 box and HungaryHouse embedded-weather comparisons with a licensed TAS, and record the new
-embedded-vs-explicit residuals. Suggested settings: Opus 5.5, High effort, a new session in Build mode,
-because it is a licensed validation run.
+1. Owner approval and merge of PR #212. Then the `PROJECT_PROGRESS.md` closeout with the merge SHA, and cleanup
+   of the task branch.
+2. F2 (EPW culture and missing-code correctness for the other fields and the importer), in the same session, on a
+   new branch from the merged `sow/2026-Q4`.
+3. Later: re-run the PR #239 box and HungaryHouse embedded-weather comparisons with a licensed TAS, and record
+   the new embedded-vs-explicit residuals. Suggested settings: Opus 5.5, High effort, a new session in Build mode,
+   because it is a licensed validation run.
