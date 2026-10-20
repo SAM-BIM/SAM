@@ -1,5 +1,14 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 simulation roadmap Phase A status (#214) closeout - 2026-10-20
+
+- **PR/status:** [SAM-BIM/SAM#214](https://github.com/SAM-BIM/SAM/pull/214) complete (documentation only), merged into `sow/2026-Q4` as `572dd7e6e43110a6970ed8c8a59d49585ba15735`; parents base `62b54156` and approved head `5c36d26cdd2447bc2be55494eb6caddd2f5b224d` (`--match-head-commit`; merge tree equals that head). Owner authorisation in chat, 2026-10-20 (S03/S04/S05 closeout session).
+- **Completed:** `documentation/SIMULATION_ROADMAP_Q4_2026.md` records S01-S05 Done (SAM_Tas#103 `e483877c`; SAM_UI#240 `5b379191`, #241 `49eebe13`, #242 `1e460bbe`, #243 `307cb0e3`, #245 `9acce829`; preflight #244 `46a43d8d`), S06 Next, the Phase A gate as not yet passed (S06), owner decision 6 (`SAM_COMMIT` until S06) and the S05 multizone fixture (SAM_OpenStudio's committed two-cell model).
+- **Validation:** hosted final head Build (Release) `39379747697`, test (Release) `39379747684` and SPDX `39379747688` PASS.
+- **Cleanup:** remote and local `docs/roadmap-phase-a-status` deleted (lease on `5c36d26c`).
+- **Unresolved:** owner decisions 2 (SAM_Tas for S08/S10), 3 (Phase B multizone fixture), 4 (trackers), 5 (F2/F8/F9, S07 tolerances). Local note: this laptop's `SAM\build` was pre-F1 until the 2026-10-20 rebuild (see SAM_UI #245 record).
+- **Next step:** S06 (early SAM_Deploy smoke candidate) after an explicit owner start: new session, Claude Opus 5.5, effort High, Build mode.
+
 ## Q4 simulation roadmap (S00) closeout - 2026-10-19
 
 - **PR/status:** [SAM-BIM/SAM#213](https://github.com/SAM-BIM/SAM/pull/213) complete, merged into `sow/2026-Q4` as `b4e681485702b92abafc2b80f893065c6e62a822` (parents base `a2069103` and approved head `bc58f4e06108a750c615a07539058fda0dfae192`; merge tree equals that head). Companion [SAM-BIM/SAM_UI#239](https://github.com/SAM-BIM/SAM_UI/pull/239) merged as `d5aa34b29b9a01af76bb0dc457021b83cb5adc7a` (closeout in SAM_UI `PROJECT_PROGRESS.md`). The owner approved both after the pre-merge checks.
