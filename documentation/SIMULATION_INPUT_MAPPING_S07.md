@@ -45,9 +45,12 @@ Names not established from code or reliable documentation are marked **UNVERIFIE
   Running S08 on the contract route therefore needs either a later, separately approved integration task, or an S08 harness that selects Direct explicitly. **S07 implies no production switch.**
 - **Future production default (owner, 2026-10-20; owner decision 7 in [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md#owner-decisions-outstanding)):**
   - First approval: "Change the Tas production default to SAM → T3D → TBD, T3DRoute.Direct, UseWidths=false."
-  - Revised later the same day: "Record Direct T3D with UseWidths=true as the owner-preferred candidate default." Production defaults change only after independent verification, on the approved fixtures, that the native areas and volumes match the intended panel convention (§4.1). `UseWidths=false` stays available as an explicit option. Any fallback must be reported with its reason and the actual setting, never applied silently.
+  - Revised later the same day: "Record Direct T3D with UseWidths=true as the owner-preferred candidate default." Production defaults change only after independent verification, on the approved fixtures, that the native areas and volumes match the intended panel convention (§4.1). `UseWidths=false` stays available as an explicit option. Any fallback must be reported with its reason and the actual setting, never applied silently. Owner fallback direction: if candidate validation fails, the proposed widths setting reverts to `false` and the reason is reported (§4.1).
   - Neither statement is implemented. Neither authorises a code change in S07 or starts S08. The three defaults above stay gbXML until a separate integration PR lands against the criteria of roadmap decision 7.
-  - **Conflicting evidence, recorded:** at the SAM_Tas pin, the direct-route record measured that SAM panel polygons are **not** centre lines. For all 9 spaces of a real model, widths OFF reproduced SAM's shell volume exactly and widths ON shrank it by 11.9 % (`MA/DIRECT_T3D_ROUTE.md:131-136,258-286`). A widths-ON Direct run gets a workflow note saying SAM panels are the physical inner surfaces (`MA/Classes/WorkflowCalculator.cs:618-621`). Widths ON can only match a fixture whose declared panel convention is centre-line (mid-surface); §4.1 decides this per fixture.
+  - **Panel convention and what the measurements show:** Recorded measurements establish how widths change native geometry. They do not independently establish the source model's panel convention. SAM supports mid-surface panels, including PanelsBySolid output carrying PhysicalThickness. The fixture's provenance and declared convention determine whether width offsets are intended.
+    - **Measured, original scope:** one real model at the SAM_Tas pin, 9 spaces. Widths OFF reproduced SAM's shell volume exactly (3544.0 m³ in total); widths ON reduced it by 11.9 % (3121.4 m³) (`MA/DIRECT_T3D_ROUTE.md:131-136,258-286`). These figures show what widths do to native geometry for that model, not which convention its panels follow.
+    - **Mid-surface support in code:** `Create.PanelsBySolid` turns a closed solid of thin building elements into analytical mid-surface panels (`SA/Create/PanelsBySolid.cs:15-25`) and sets `PanelSourceParameter.PhysicalThickness` on each panel (L404). The direct converter uses that thickness as the element width when it is finite and > 0, and gives each thickness its own element (`MA/Query/T3DImportPlan.cs:513-520,550-565,901-910`).
+    - **Source wording not relied on:** the SAM_Tas direct-route record (`MA/DIRECT_T3D_ROUTE.md:133,284`) and the widths-ON workflow note (`MA/Classes/WorkflowCalculator.cs:618-621`) describe SAM panels as inner surfaces. SAM_Tas already records that wording as misleading for mid-surface panels (SAM_Tas repository root, `PROJECT_PROGRESS.md:44`). This document does not change those sources.
   - At the SAM_Tas pin, a failed Direct conversion stops the run with an error rather than falling back to another route (`MA/Classes/WorkflowCalculator.cs:632-640`). SAM_UI and Both-producer fallback behaviour was not checked.
 - **Contract-route facts from evidence:**
   - **Geometry:** with widths OFF, T3D = TBD = SAM shell area and volume. This was measured on a real model (`MA/DIRECT_T3D_ROUTE.md:258-275`). S08 re-verifies it per fixture.
@@ -123,7 +126,7 @@ The Tas native read-back uses a SAM_Tas reader. It is independent of the writer 
 ## 4. Geometric reference (F9 basis)
 - **Independent geometric floor area:** the sum of the authored floor-panel polygon areas (`SA/Query/FloorArea.cs:73`, `GeometricalFloorPanels` at L123). It is computed directly, not via `CalculatedArea`, which prefers the stored Area.
 - **Independent geometric volume:** `shell.Volume()` of the closed shell of the space's authored panel polygons. It is computed directly, not via `Query.Volume` / `CalculatedVolume`, which prefer the stored Volume.
-- **Panel convention:** recorded per fixture (inner-face or mid-surface). On the contract route (`UseWidths=false`) both engines are expected to use the polygons as given, so the convention does not alter the engine comparison. It only interprets what the geometric volume represents.
+- **Panel convention:** recorded per fixture (inner-face or mid-surface), from the fixture's provenance and declared convention. It is not inferred from engine measurements (§1). On the contract route (`UseWidths=false`) both engines are expected to use the polygons as given, so the convention does not alter the engine comparison. It only interprets what the geometric volume represents.
 - **The three volumes:**
   - **geometric** (the engine-comparison reference);
   - **stored** `SpaceParameter.Volume` (reported; used for Tas `ticV` ACH and `CalculatedInfiltrationAirFlow`);
@@ -135,7 +138,7 @@ The contract route (§1, D-ROUTE) stays `UseWidths=false`, and the §4 reference
 - **What TAS does with widths ON (measured on two geometries only):** TAS treats every input polygon as a centre line and offsets each zone surface inwards by half its building-element width; on the direct route this includes floors and roofs (`MA/Classes/ToT3DOptions.cs:13-24`; `MA/DIRECT_T3D_ROUTE.md:131-136,280-283`).
   - Box 5 × 4 × 3 m with walls 0.30, roof 0.35 and floor 0.40 m: floor 17.39 m², volume 45.649 m³. Widths OFF gives 20 m² and 60 m³.
   - Real-model zone: height 4 − (0.3335 + 0.4127) / 2 = 3.627 m.
-- **Element width:** the panel's physical thickness when it has one; otherwise the construction's `DefaultThickness` when non-zero and not NaN; otherwise the sum of its layers; 0 when none applies (`MA/Query/T3DImportPlan.cs:550-564`). S08 recomputes it from raw SAM parameters (§3 independence rule) and never calls the converter.
+- **Element width:** the panel's `PanelSourceParameter.PhysicalThickness` when it is finite and > 0 (not used for a ghost, i.e. air, element: L517); otherwise the construction's `DefaultThickness` when non-zero and not NaN; otherwise the sum of its layers; 0 when none applies. Panels of one construction at different physical thicknesses get separate elements (`MA/Query/T3DImportPlan.cs:513-520,550-565,901-910`). S08 recomputes the width from raw SAM parameters (§3 independence rule) and never calls the converter.
 - **The fixture's declared panel convention decides the expected value** (D-FIX already requires a recorded convention):
   - **centre-line (mid-surface) panels:** offsets are intended. Expected floor area and volume come from the solid bounded by each bounding panel's plane moved into the space by half its element width. An internal partition contributes half its width to each zone it bounds. Expected surface areas are the faces on the moved planes, clipped by the neighbouring moved planes;
   - **inner-face panels:** offsets are not intended. The expected value stays the §4 polygon geometry, so a widths-ON native result outside tolerance is FAIL: the candidate default does not fit that fixture's geometry;
@@ -146,10 +149,10 @@ The contract route (§1, D-ROUTE) stays `UseWidths=false`, and the §4 reference
   - surface and opening areas under widths ON (whether TAS keeps, shifts or clips the aperture polygons);
   - a panel whose two zones would assign different widths; zero-width (air) panels; ground floors;
   - identity mapping. With widths ON every surface is offset from its panel, and the post-export steps match by identity first and by a half-width offset test second (`MA/DIRECT_T3D_ROUTE.md:122`). S08 read-back must confirm the identity mapping still holds.
+- **Owner fallback direction (recorded):** if candidate validation fails, the proposed widths setting reverts to `false` and the reason is reported. This governs the default proposed for the integration and is decided before implementation. It does **not** authorise a silent or automatic runtime fallback: every run reports its actual setting and any fallback reason (roadmap decision 7).
 - **Open owner decisions:**
   - **OD-W1:** approve this reference. Also decide whether the widths-ON verification runs inside S08, as an extra configuration with its own approval, or in the default-switch integration task. It is not added to S08 by default.
   - **OD-W2:** which volume D-F9 C compares the stored `SpaceParameter.Volume` with under widths ON.
-  - **OD-W3:** if the verification fails on an approved fixture, whether the integration goes ahead with Direct and `UseWidths=false` (the first approval) or stops.
 
 ---
 
@@ -296,7 +299,7 @@ The Tas hour labels (`hourlyValues[1]`, yearly index 1), the first OS fixed-inte
 
 ## 8. Owner decisions
 
-D-ROUTE, D-F2 (V0/V1/V2), D-F8, D-F9 (A + C) and D-FIX below: approved by the owner, 2026-10-20 (S07 plan revision 3). The Recommendation column records the approved choice. Open: OD-G1 to OD-G3 (§6.1) and OD-W1 to OD-W3 (§4.1).
+D-ROUTE, D-F2 (V0/V1/V2), D-F8, D-F9 (A + C) and D-FIX below: approved by the owner, 2026-10-20 (S07 plan revision 3). The Recommendation column records the approved choice. Open: OD-G1 to OD-G3 (§6.1) and OD-W1, OD-W2 (§4.1).
 
 | ID | Alternatives / content | Recommendation |
 |---|---|---|
@@ -339,10 +342,10 @@ Nothing below is changed by S07. Each item is evidence for a later, separately a
 Task S07 of [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md). Documentation only; no behaviour change.
 
 - **Status:** In review: [SAM#216](https://github.com/SAM-BIM/SAM/pull/216), base `sow/2026-Q4` (`6836595d`), branch
-  `docs/s07-physical-input-mapping`. Revision 2 follows the independent review of head `c3327dcb`. Not merged; merge
-  needs explicit owner approval. Validated content SHAs: revision 1 `32d519b8ce07eba9cfc4d0bb2e547ad2211ae676`;
-  revision 2 `03794f428680fb67af383a615c19d2d895a74b5a` (the commit the local checks below ran on; a record-only
-  commit follows it). Final PR head and checks: in the PR description.
+  `docs/s07-physical-input-mapping`. Revision 2 followed the independent review of head `c3327dcb`; revision 3 follows
+  the review of head `c7461845`. Not merged; merge needs explicit owner approval. Validated content SHAs: revision 1
+  `32d519b8ce07eba9cfc4d0bb2e547ad2211ae676`; revision 2 `03794f428680fb67af383a615c19d2d895a74b5a`; revision 3 is
+  recorded by the record-only commit that follows it. Final PR head and checks: in the PR description.
 - **Work completed:**
   - revision 1: this document (plan revision 3, sections 1-8, owner choices recorded, evidence pins re-checked); the
     roadmap updated for the S07 row, decision items 3 and 5, and the contract-route note;
@@ -351,18 +354,26 @@ Task S07 of [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md). Docu
     drafts fail-closed handling for the three gate gaps (OD-G1 to OD-G3); the owner's approval of Direct as the future
     production default recorded (§1, §8, roadmap decision 7) with acceptance criteria for its integration, including the
     owner's later revision to `UseWidths=true` as the preferred candidate; §4.1 adds the widths-ON reference that the
-    candidate is verified against (OD-W1 to OD-W3); the roadmap's stale closing line replaced.
+    candidate is verified against; the roadmap's stale closing line replaced;
+  - revision 3: the widths measurements are no longer read as proof of the panel convention (§1, §4, §4.1, roadmap
+    decision 7). They show how widths change native geometry; the fixture's provenance and declared convention decide
+    whether offsets are intended. SAM's mid-surface `PanelsBySolid` output with `PhysicalThickness` is cited, and the
+    measured figures keep their original single-model scope. The owner's fallback direction is recorded (if candidate
+    validation fails, the proposed widths setting reverts to `false` and the reason is reported; no silent or automatic
+    runtime fallback), and OD-W3 is removed.
 - **Decisions:** D-ROUTE, D-F2 (V0/V1/V2), D-F8, D-F9 (A + C), D-FIX, the film convention and every tolerance are
   approved by the owner, 2026-10-20 (S07 plan revision 3); the owner can amend any of them during review. The owner also
   approved, 2026-10-20, Direct as the future Tas production default. The approval was first given with
-  `UseWidths=false`, then revised to `UseWidths=true` as the owner-preferred candidate. The candidate is conditional on
-  the §4.1 verification on the approved fixtures; `UseWidths=false` stays an explicit option; there is no silent
-  fallback. None of this is implemented: current production stays gbXML and the contract route stays `UseWidths=false`.
-  OD-G1 to OD-G3 and OD-W1 to OD-W3 are open. The two equivalence fixtures are not yet selected (D-FIX).
+  `UseWidths=false`, then revised to `UseWidths=true` as the owner-preferred candidate, pending independent verification
+  against the intended geometry (§4.1) on the approved fixtures. `UseWidths=false` stays an explicit option. If
+  validation fails, the proposed widths setting reverts to `false` with the reason reported. None of this is
+  implemented: current production stays gbXML and the contract route stays `UseWidths=false`. OD-G1 to OD-G3, OD-W1 and
+  OD-W2 are open; neither this revision nor passing CI approves them. The two equivalence fixtures are not yet selected
+  (D-FIX).
 - **Files changed:** `documentation/SIMULATION_INPUT_MAPPING_S07.md` (new), `documentation/SIMULATION_ROADMAP_Q4_2026.md`.
 - **Checks (local documentation checks; no native-engine validation and no GitHub result implied):**
-  - the seven `sow/2026-Q4` tips were re-read with `git ls-remote` on 2026-10-20 (revision 1 and again for revision 2)
-    and equal the pins above;
+  - the seven `sow/2026-Q4` tips were re-read with `git ls-remote` on 2026-10-20 (for each revision) and equal the pins
+    above;
   - every file citation in this document resolves at its pinned SHA and every line range lies inside its file; each
     native name used was found in the pinned code or is marked UNVERIFIED / *(translator)*. Reproduce one citation with
     `git -C <repo> show <sha>:<path> | sed -n '<a>,<b>p'`;
@@ -371,27 +382,31 @@ Task S07 of [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md). Docu
     `MA/Classes/WorkflowCalculator.cs:613`, `SA/Classes/Aperture.cs:119-198,262-281`,
     `SA/Classes/ApertureConstruction.cs:143-157,180-183`, `SAM/SAM.Geometry/Geometry/Base/Classes/Face.cs:135-148`,
     `OS/InternalCondition.cs:155-157`; for §1 and §4.1, `MA/Classes/ToT3DOptions.cs:13-24`,
-    `MA/Query/T3DImportPlan.cs:550-564`, `MA/Classes/WorkflowCalculator.cs:618-621,632-640` and
-    `MA/DIRECT_T3D_ROUTE.md:122,131-136,258-286`; and, for roadmap decision 7, `MA/Classes/WorkflowSettings.cs:20-32,189-192,360`
-    and `SAM_UI/SAM.Analytical.UI/Classes/TBDConversionOptions.cs:25,34,173,242`;
+    `MA/Classes/WorkflowCalculator.cs:618-621,632-640` and `MA/DIRECT_T3D_ROUTE.md:122,131-136,258-286`; and, for roadmap
+    decision 7, `MA/Classes/WorkflowSettings.cs:20-32,189-192,360` and
+    `SAM_UI/SAM.Analytical.UI/Classes/TBDConversionOptions.cs:25,34,173,242`;
+  - revision 3 semantic checks: `SA/Create/PanelsBySolid.cs:15-25,404`, `MA/Query/T3DImportPlan.cs:513-520,550-565,901-910`,
+    `MA/DIRECT_T3D_ROUTE.md:133,284` and SAM_Tas `PROJECT_PROGRESS.md:44`;
   - revision 1 evidence corrections: the OpenStudio, Tas and SAM path prefixes; the benchmark producer, SAM_UI and
     `PROJECT_PROGRESS.md` paths; `freshAirRate` at `MA/Modify/UpdateInternalCondition.cs:141`; the older
     `ToTBD(AnalyticalModel, …)` chain `MA/Convert/ToTBD/Building.cs:47` -> `MA/Modify/Update.cs:612,623`;
     `GeometricalFloorPanels` at `SA/Query/FloorArea.cs:123`; bare file names expanded to prefixed paths;
   - §5 has all ten categories, each with SAM, Tas and OS fields, a rule, per-unit tolerances (or a stated reason) and
-    evidence; no tolerance changed in revision 2;
+    evidence; no tolerance changed in revisions 2 or 3;
   - the §6 gate was checked as an allow-list: only MATCH, WITHIN-TOLERANCE, verified ACCEPTED-TRANSFORMATION or proven
     NOT-APPLICABLE give PASS; every §6.1 proposal ends at rank 1, 3 or 5, never PASS;
   - relative links resolve and every link targets `github.com/SAM-BIM/*`; S08-S12 read "Not started" and Phase C
     "Frozen" in the roadmap; the diff against the base touches only the two `documentation/*.md` files.
 - **GitHub checks:** build, test, spdx: see the PR description for the final head.
-- **Risks and open items:** OD-G1 to OD-G3 (§6.1); OD-W1 to OD-W3 (§4.1); the owner-preferred `UseWidths=true` conflicts
-  with the SAM_Tas measurement that SAM panels are inner surfaces (§1), so it can pass §4.1 only on a fixture declared
-  centre-line (with non-zero element widths); the four Tas T-FRAME native uncertainties (§5) and schedule hour labels and
-  leap-year handling (§7) stay UNVERIFIED until S08/S09 read-back; the Tas design-day reader may need a
-  raw-field read (§3); the equivalence fixtures are not selected (D-FIX); the approved Direct default is not implemented.
-- **Next step:** independent review of revision 2 and the owner's merge decision. After merge: the known-SHA
-  `PROJECT_PROGRESS.md` closeout on `sow/2026-Q4` and guarded branch cleanup. S08 does not start automatically: it needs
-  an explicit owner start, a separate SAM_Tas write approval (roadmap decision 2) and owner-selected or cleared
-  equivalence fixtures with provenance, hashes and the D-FIX criteria. The Direct default switch is a separate
-  integration PR (roadmap decision 7), not part of S08; where its widths-ON verification runs is OD-W1.
+- **Risks and open items:** OD-G1 to OD-G3 (§6.1); OD-W1 and OD-W2 (§4.1); the equivalence fixtures are not selected,
+  and the widths-ON candidate can be verified only once each has a provenance-backed, declared panel convention (D-FIX,
+  §4.1); the SAM_Tas "inner surfaces" wording that conflicts with mid-surface sources stays in its source documents (not
+  changed here); the four Tas T-FRAME native uncertainties (§5) and schedule hour labels and leap-year handling (§7) stay
+  UNVERIFIED until S08/S09 read-back; the Tas design-day reader may need a raw-field read (§3); the approved Direct
+  default is not implemented.
+- **Next step:** independent review of revision 3 and the owner's merge decision. After merge: the known-SHA
+  `PROJECT_PROGRESS.md` closeout on `sow/2026-Q4` and guarded branch cleanup. S08 does not start automatically: it is
+  Plan-first and needs an explicit owner start, a separate SAM_Tas write approval (roadmap decision 2) and
+  owner-selected or cleared equivalence fixtures with provenance, hashes and the D-FIX criteria. The Direct default
+  switch is a separate integration PR (roadmap decision 7), not part of S08; where its widths-ON verification runs is
+  OD-W1.

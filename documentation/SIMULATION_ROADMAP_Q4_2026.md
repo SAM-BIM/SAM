@@ -110,15 +110,19 @@ from local licensed runs; a check blocked by a missing licence or executable is 
    - **Not implemented.** This records the intended default; it authorises no code change in S07 and does not start S08.
      Today `WorkflowSettings.T3DRoute` is `GbXML`, SAM_UI's `DirectT3D` is false and the Both producer builds gbXML; they
      stay so until a separate integration PR lands. That PR needs its own owner start; it is not part of S08.
-   - Evidence to weigh: the SAM_Tas direct-route record measured that SAM panels are inner surfaces, not centre lines,
-     and that widths ON shrinks a real model's zones by 11.9 %
-     ([SIMULATION_INPUT_MAPPING_S07.md](SIMULATION_INPUT_MAPPING_S07.md#1-contract-route-and-current-production-behaviour-d-route) §1).
-     The widths-ON reference is §4.1 of that document; its open decisions are OD-W1 to OD-W3.
+   - Fallback direction (owner): if candidate validation fails, the proposed widths setting reverts to `false` and the
+     reason is reported. This is not authorisation for a silent or automatic runtime fallback.
+   - Panel convention: recorded measurements establish how widths change native geometry. They do not independently
+     establish the source model's panel convention. SAM supports mid-surface panels, including PanelsBySolid output
+     carrying PhysicalThickness. The fixture's provenance and declared convention determine whether width offsets are
+     intended. The measured single-model figures (widths ON 11.9 % below widths OFF over 9 spaces) keep their original
+     scope ([SIMULATION_INPUT_MAPPING_S07.md](SIMULATION_INPUT_MAPPING_S07.md#1-contract-route-and-current-production-behaviour-d-route) §1).
+     The widths-ON reference is §4.1 of that document; its open decisions are OD-W1 and OD-W2.
    - **Acceptance criteria for the integration PR:**
      - the widths-ON candidate passes the §4.1 verification (native floor areas, surface areas and volumes against the
        reference for each fixture's declared panel convention) on the owner-approved equivalence fixtures, within the
-       existing S07 tolerances, before any default changes. If it does not, the default is not changed until the owner
-       decides (OD-W3);
+       existing S07 tolerances, before any default changes. If it does not, the proposed widths setting reverts to
+       `false` and the integration evidence states the reason;
      - new and unconfigured Tas workflows then default to Direct with the verified widths setting, consistently through
        SAM_Tas, SAM_UI and the Both producer;
      - `UseWidths=false` and an explicit gbXML selection stay available and are honoured;
