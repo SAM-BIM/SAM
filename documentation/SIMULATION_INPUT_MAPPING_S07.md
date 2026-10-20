@@ -268,8 +268,8 @@ Nothing below is changed by S07. Each item is evidence for a later, separately a
 
 Task S07 of [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md). Documentation only; no behaviour change.
 
-- **Status:** In review: SAM#(number pending), base `sow/2026-Q4` (`6836595d`), branch `docs/s07-physical-input-mapping`.
-  Not merged; merge needs explicit owner approval. Validated content SHA: (pending). Final PR head and checks: in the PR
+- **Status:** In review: [SAM#216](https://github.com/SAM-BIM/SAM/pull/216), base `sow/2026-Q4` (`6836595d`), branch `docs/s07-physical-input-mapping`.
+  Not merged; merge needs explicit owner approval. Validated content SHA: `32d519b8ce07eba9cfc4d0bb2e547ad2211ae676` (the commit the local checks below ran on; this record-only commit follows it). Final PR head and checks: in the PR
   description.
 - **Work completed:** this document (plan revision 3, sections 1-8, owner choices recorded, evidence pins re-checked); the
   roadmap updated for the S07 row, decision items 3 and 5, and the contract-route note.
