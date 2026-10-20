@@ -1,5 +1,27 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 simulation roadmap S06 closeout (#215) - 2026-10-20
+
+- **PR/status:** [SAM-BIM/SAM#215](https://github.com/SAM-BIM/SAM/pull/215) is complete (documentation only).
+  - Merged into `sow/2026-Q4` as `d8c33f8da07b929646ddaedfa5db4b8363205415`. Parents: base `df27563b` and approved head `90cf9a5ee9a3b2003ebf65ee5c93f77e637c9bb8`, pinned with `--match-head-commit`. The merge tree equals that head.
+  - The owner authorised the merge in chat ("merge the roadmap PR when checks pass", 2026-10-20). Immediately before the merge: not draft, MERGEABLE/CLEAN, no reviews or comments, `sow/2026-Q4` unprotected.
+- **Completed:** `documentation/SIMULATION_ROADMAP_Q4_2026.md` records **S06 Done**:
+  - SAM_Deploy#66 `1657bb53`, SAM_OpenStudio#32 `a9429f7c`, SAM_Validation#16 `e9a83df0`;
+  - closeouts SAM_Deploy `3b7edb0`, SAM_OpenStudio `7f21665`, SAM_Validation `2a3acfa`.
+
+  It also records:
+  - **The genuine-installer acceptance:** the hosted installer run #227 installed into an isolated profile; Tas, OpenStudio and Both PASS from the real ribbon, numerically the same as S05. OpenStudio's raw `exactMatch: false` comes only from run-generated subsurface names, mapped 1:1 through their host-panel references.
+  - **The repinned build:** installer run #228 at `b3b8e9e`, payload-equivalent to #227 with 0 drift, so the licensed evidence carries forward.
+  - **Provenance check 9:** **Not PASS, accepted limitation** (owner, 2026-10-20). Installed producers report the SAM_Deploy build revision as `samCommit`/`runnerCommit`; recover the repository revisions from that commit's gitlinks. Owner decision 6 now records this S06 outcome.
+  - **Phase A gate met, with that explicit exception.** "No task is active. S07 is the next candidate and needs an explicit owner start."
+- **Validation:**
+  - Hosted PR-head checks on `90cf9a5e`: Build (Release) [39415452427](https://github.com/SAM-BIM/SAM/actions/runs/39415452427), test (Release) [39415452550](https://github.com/SAM-BIM/SAM/actions/runs/39415452550) and SPDX [39415452429](https://github.com/SAM-BIM/SAM/actions/runs/39415452429), all PASS.
+  - Post-merge Q4: Build (Windows) [39416082276](https://github.com/SAM-BIM/SAM/actions/runs/39416082276) and Test [39416082362](https://github.com/SAM-BIM/SAM/actions/runs/39416082362) PASS on `d8c33f8d`.
+  - Diff scope: the roadmap file only (+31/-6), and `git diff --check` is clean.
+- **Not changed:** no code, schema, workflow, gitlink or tracker change. No S07 start, no F2/F8/F9 or tolerance decision, no Phase C change, no release, tag or deployment.
+- **Cleanup:** remote `docs/roadmap-s06-closeout` was deleted with a lease on `90cf9a5e`, after confirming it was fully merged and that no open PR used it. The checkout was fast-forwarded to Q4 and the local branch deleted. The untracked local folders `600-*` in the SAM checkout are unrelated and were left untouched.
+- **Exact next step:** none for S06. S07 (minimal Phase B physical-input mapping) needs an explicit owner start. Any release is a separate owner decision.
+
 ## Q4 simulation roadmap Phase A status (#214) closeout - 2026-10-20
 
 - **PR/status:** [SAM-BIM/SAM#214](https://github.com/SAM-BIM/SAM/pull/214) complete (documentation only), merged into `sow/2026-Q4` as `572dd7e6e43110a6970ed8c8a59d49585ba15735`; parents base `62b54156` and approved head `5c36d26cdd2447bc2be55494eb6caddd2f5b224d` (`--match-head-commit`; merge tree equals that head). Owner authorisation in chat, 2026-10-20 (S03/S04/S05 closeout session).
