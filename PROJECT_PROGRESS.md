@@ -1,5 +1,47 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 simulation roadmap S07 closeout (#216) - 2026-10-20
+
+- **PR/status:** [SAM-BIM/SAM#216](https://github.com/SAM-BIM/SAM/pull/216) is complete (documentation only).
+  - Merged into `sow/2026-Q4` as `68b602571c90e21d0bbd70609cbe4fc884b97a53`. Parents: base `6836595d` and approved head `d11e92ad34aecc7d780bd011237b84ff7771529c`, pinned with `--match-head-commit`. The merge tree equals that head.
+  - The owner authorised the merge in chat ("I approve merging SAM#216 at head d11e92ad…", 2026-10-20). Immediately before the merge: head and base unchanged, not draft, MERGEABLE/CLEAN, no reviews or comments, final-head checks PASS.
+- **Completed:** `documentation/SIMULATION_INPUT_MAPPING_S07.md` (new) is the S07 Phase B physical-input mapping contract, in three revisions.
+  - Tested content SHAs: `32d519b8`, `03794f42` and `dee6f7f0`; each was followed by a record-only commit.
+  - **Approved by the owner, 2026-10-20 (S07 plan revision 3):**
+    - D-ROUTE: contract route Direct T3D with `UseWidths=false`;
+    - D-F2: ventilation V0/V1/V2, with requirement separated from delivery;
+    - D-F8: window opening;
+    - D-F9 (A + C): zone volume;
+    - D-FIX: fixture criteria;
+    - the film convention and every §5 tolerance.
+  - The §6 gate is a strict PASS allow-list. Rank 3 covers only an unaccepted DOCUMENTED-DEFAULT on a gated quantity; an accepted one is rank 5, Not PASS.
+  - Tas T-FRAME is derived from pinned source; four native uncertainties are left for S08 read-back.
+  - **Proposed, not approved:** §6.1 fail-closed handling of the three gate gaps (OD-G1 to OD-G3) and the §4.1 widths-ON reference (OD-W1, OD-W2).
+  - `documentation/SIMULATION_ROADMAP_Q4_2026.md`: S07 row and closing line ("S07 In review"); decisions 3 and 5 updated; new owner decision 7.
+- **Owner decision 7 (recorded, not implemented):**
+  - Direct is the future Tas production default. It was first approved with `UseWidths=false`, then revised the same day to `UseWidths=true` as the owner-preferred candidate.
+  - The candidate needs independent verification against the intended geometry on the approved fixtures. `UseWidths=false` stays an explicit option.
+  - If candidate validation fails, the proposed widths setting reverts to `false` with the reason reported. No silent or automatic runtime fallback.
+  - Panel convention comes from the fixture's provenance and declaration, not from engine measurements. SAM supports mid-surface panels, e.g. `PanelsBySolid` with `PhysicalThickness`.
+  - Production (`WorkflowSettings`, SAM_UI, the Both producer) stays gbXML until a separate integration PR, against the decision 7 criteria.
+- **Validation:**
+  - **Local documentation checks only; no simulation or native-engine validation.** The seven Q4 pins equal the `ls-remote` tips. All 111 S07 citations and line ranges resolve at the pinned SHAs. Links and anchors resolve, and every URL is `github.com/SAM-BIM/*`. `git diff --check` is clean, and the diff touches the two documentation files only (+458/-4 against `6836595d`).
+  - **Hosted final-head checks on `d11e92ad`, all PASS:** Build (Windows) [39437732754](https://github.com/SAM-BIM/SAM/actions/runs/39437732754), Test [39437732848](https://github.com/SAM-BIM/SAM/actions/runs/39437732848) and SPDX [39437732816](https://github.com/SAM-BIM/SAM/actions/runs/39437732816).
+  - **Post-merge Q4:** Build (Windows) [39439028018](https://github.com/SAM-BIM/SAM/actions/runs/39439028018) and Test [39439028013](https://github.com/SAM-BIM/SAM/actions/runs/39439028013) on `68b60257` were in progress when this was written.
+- **Not changed:** no code, schema, workflow, fixture, gitlink or tracker change. No simulation, no tolerance change, no route or default switch, no S08 start, no Phase C change.
+- **Known stale record:** the roadmap's S07 row and closing line still read "In review". Only a reviewed PR may change the roadmap, so mark S07 Done (`68b60257`) in the next roadmap PR. This closeout does not change it.
+- **Cleanup:** remote `docs/s07-physical-input-mapping` was deleted with a lease on `d11e92ad`.
+  - Checked first: the remote head was the approved head; it was fully merged into `sow/2026-Q4`; no open PR used it as head or base; no worktree used it.
+  - No same-named branch exists in SAM_Tas, SAM_UI, SAM_OpenStudio or SAM_Validation, so no downstream CI resolution is shadowed.
+  - The checkout was fast-forwarded to Q4 and the local branch deleted. Other SAM worktrees and unrelated untracked folders were left untouched.
+- **Exact next step:** none for S07. S08 (Tas independent native-input read-back) is Plan-first and needs:
+  - an explicit owner start;
+  - a separate SAM_Tas write approval (roadmap decision 2);
+  - owner-selected or cleared equivalence fixtures with provenance, hashes, a declared panel convention and the D-FIX criteria;
+  - owner answers to OD-G1 to OD-G3 and OD-W1/OD-W2 before the S08/S09 gate.
+
+  Recommended: a new Claude Code session, Claude Opus 5.5, High effort, Plan mode, attaching SAM, SAM_Tas and SAM_UI. The Direct default switch is separate integration work, not part of S08.
+
 ## Q4 simulation roadmap S06 closeout (#215) - 2026-10-20
 
 - **PR/status:** [SAM-BIM/SAM#215](https://github.com/SAM-BIM/SAM/pull/215) is complete (documentation only).
