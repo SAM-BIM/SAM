@@ -52,7 +52,7 @@ SAM_UI `4ee45fef`, SAM_Tas `a34a298d`); recheck them before starting a task.
 | S03 | Run settings and version traceability | SAM_UI, SAM_Validation if the schema changes | Every run records the app commit (today `SAM_COMMIT` is set by hand), producer executable versions and hashes, Tas and OpenStudio/EnergyPlus versions, weather source (embedded or explicit, hash) and design-day source, and the run options in the run manifest. | SAM_UI#228 (G0 traceability), B1a provenance | Each Tas, OpenStudio and Both run manifest contains every item without manual environment variables; an unavailable item is written as unknown with a reason, never blank. | Done: SAM_UI#242 `1e460bbe` (Both with developer-built producers still needs `SAM_COMMIT`: accepted until S06) |
 | S04 | Stable canonical simulation snapshot | SAM_UI (snapshot), SAM_Validation (canonical hash) | Finding F7: the canonical model hash includes the UI-only `SAM.Analytical.UI` ParameterSet, whose GUIDs are regenerated on each load. | SAM_UI#239 F7 | The same saved model loaded twice gives the same canonical hash; an engineering edit changes it; same-run provenance unchanged. | Done: SAM_UI#243 `307cb0e3` |
 | S05 | Licensed Phase A GUI acceptance | SAM_UI (record only) | Licensed runs from the real UI on the S01-S04 content: Tas only, OpenStudio only and Both; box with embedded (post-F1) and explicit EPW; one multizone model; injected Tas refusal; cancel; concurrent-start attempt. | SAM_UI#228, SAM_UI#239 (prior evidence) | Each case reports PASS / FAIL / NOT RUN / BLOCKED; every reported status, output file and failure message matches what the engines did; no numerical agreement required. | Done: SAM_UI#245 `9acce829` (all nine cases PASS; preflight SAM_UI#244 `46a43d8d`) |
-| S06 | Early SAM_Deploy smoke candidate | SAM_Deploy | Payload the Benchmark producers, SAM_Validation and the OpenStudio dependencies, so an installed candidate (not a developer build) can run the workflows. Avoids the stale `deps.json` state seen in #239. | SAM_UI 2026-10-18 closeout (producers not in BuildAll payload) | An installed candidate runs Tas, OpenStudio and Both on the box model on a licensed machine. Candidate build only; any release needs separate owner approval. | Next; needs an owner start |
+| S06 | Early SAM_Deploy smoke candidate | SAM_Deploy | Payload the Benchmark producers, SAM_Validation and the OpenStudio dependencies, so an installed candidate (not a developer build) can run the workflows. Avoids the stale `deps.json` state seen in #239. | SAM_UI 2026-10-18 closeout (producers not in BuildAll payload) | An installed candidate runs Tas, OpenStudio and Both on the box model on a licensed machine. Candidate build only; any release needs separate owner approval. | Done: SAM_Deploy#66 `1657bb53`, SAM_OpenStudio#32 `a9429f7c`, SAM_Validation#16 `e9a83df0` (provenance labelling: Not PASS, accepted limitation) |
 | S07 | Minimal Phase B physical-input mapping | SAM (this documentation), SAM_Validation | The minimal set of physical inputs whose conversion is checked (areas, volumes, U and g, gains, setpoints, schedules, infiltration, ventilation, weather and design days), the native field each engine uses, and the tolerances. Records the owner decisions on F2 (ventilation semantics), F8 (window opening) and F9 (zone volume); does not implement them. | SAM#206 input-equivalence table, SAM#209, SAM_UI#232 | Owner-approved mapping table with tolerances and an owner decision recorded for F2, F8 and F9. | Not started |
 | S08 | Tas independent native-input read-back | SAM_Tas, SAM_UI | Read the generated TBD independently of the SAM writer and produce the Tas input manifest for the S07 quantities. | SAM#208, SAM_UI#230 | For the box and the multizone model, every S07 quantity read back from the TBD equals SAM within the S07 tolerance or is listed as a mapping difference. | Not started |
 | S09 | OpenStudio independent native-input read-back | SAM_OpenStudio, SAM_UI | Same for the generated OSM/IDF: the OpenStudio input manifest. | SAM_OpenStudio#30 | As S08, for OpenStudio. | Not started |
@@ -60,7 +60,7 @@ SAM_UI `4ee45fef`, SAM_Tas `a34a298d`); recheck them before starting a task.
 | S11 | OpenStudio results round-trip validation | SAM_OpenStudio | SAM-imported results and B1a against an independent SQL/ESO read; label total versus sensible cooling (F3). | SAM_UI#239 F3 | Model and space results equal the SQL/ESO values; metric definitions documented. | Not started |
 | S12 | Final integrated release acceptance | SAM_Deploy, all producers | Phase A and Phase B evidence repeated on an installed release candidate. | All above | Final installation gate passes on a licensed machine. Release needs owner approval. | Not started |
 
-S01-S05 are complete (task log below). No input manifest or independent result read-back exists yet (Phase B).
+S01-S06 are complete (task log below). No input manifest or independent result read-back exists yet (Phase B).
 
 ## Acceptance gates
 
@@ -69,8 +69,10 @@ from local licensed runs; a check blocked by a missing licence or executable is 
 
 - **Phase A gate:** S01-S04 merged with green final-head CI; S05 PASS for every case on a licensed machine; S06 PASS on
   an installed candidate. No case may report Success for a run that did not complete.
-  Status 2026-10-20: S01-S04 merged with green final-head CI; S05 PASS for all nine cases; S06 not started. The gate is
-  therefore not yet passed.
+  Status 2026-10-20: S01-S04 merged with green final-head CI; S05 PASS for all nine cases; S06 PASS on a genuinely
+  installed candidate (Tas, OpenStudio and Both from the real ribbon on a licensed machine). **The gate is met, with one
+  owner-accepted, documented exception:** the S06 provenance-labelling check is Not PASS (accepted limitation; see S06 in
+  the task log). Phase B starts only with an owner start of S07.
 - **Phase B gate:** S07 approved; S08-S11 PASS on the box and one multizone model whose fixture provenance is cleared.
   Engine output differences are recorded, not gated.
 - **Final installation gate (S12):** on an installed release candidate on a licensed machine, the S05 cases and the
@@ -90,7 +92,11 @@ from local licensed runs; a check blocked by a missing licence or executable is 
 5. F2, F8 and F9 semantics (S07), and the S07 tolerances (SAM#206 says tolerances are owner-confirmed).
 6. Decided 2026-10-20: `SAM_COMMIT` remains a temporary requirement for developer-built producers in Both runs until
    S06 (stamped producers). A value set by hand must be the SAM commit the producers were built from; it does not prove
-   packaged-app provenance.
+   packaged-app provenance. S06 outcome (owner decision 2026-10-20): an installed build needs no `SAM_COMMIT`, but its
+   producers report the **SAM_Deploy build revision** in `samCommit` and `runnerCommit`. This is accepted as a documented
+   limitation, not PASS, and no new stamping was added. The repository revisions come from that SAM_Deploy commit's gitlinks
+   (`git ls-tree <revision> SAM SAM_Tas SAM_OpenStudio`). Existing developer records keep their meaning (SAM_Validation#16,
+   `docs/benchmark/SCHEMA.md`).
 
 ## Task log
 
@@ -109,4 +115,23 @@ from local licensed runs; a check blocked by a missing licence or executable is 
   All nine cases PASS from the real ribbon on a fresh build of S01-S04. The rebuild found that the laptop's local SAM build
   predated F1, so the earlier overnight evidence and the preflight (SAM_UI#244) used the pre-F1 EPW writer. The S05
   embedded-weather run exported exactly SAM#212's corrected EPW.
-- **No task is active.** S06 is the next candidate and needs an explicit owner start.
+- **S06 (Done, 2026-10-20):** SAM_Deploy#66 merged `1657bb53c7b1d1a82f0c5d9c57c7d7a02705cd31`. Supporting PRs: SAM_OpenStudio#32 merged
+  `a9429f7cea975a8f660bac4407779c3828e86627` (the OpenStudio CLI that matches the SDK is preferred) and SAM_Validation#16
+  merged `e9a83df0c2e1162d0a22eb1e010a508044117e12` (installed-build revision fields documented). The record is
+  `SAM_Deploy/DEPLOY_S06_SMOKE_CANDIDATE.md`, with evidence in `SAM_Deploy/evidence/s06-20261020/`.
+  - **Payload:** self-contained Benchmark producers, gated by `installer.yml`; `BuildAll_Release` builds the solutions in
+    their listed order; 24 gitlinks change (23 Q4 tips plus SAM_OpenStudio at #32's merge).
+  - **Acceptance:** the hosted installer EXE (run #227, `717533c`) was genuinely installed into an isolated profile and
+    uninstalled cleanly; the owner's installation was not touched. From it, Tas, OpenStudio and Both ran from the real
+    ribbon on a licensed laptop: all PASS, numerically the same as S05. OpenStudio's raw comparison reports
+    `exactMatch: false`; its only differences are 4 run-generated subsurface names, which map 1:1 through their
+    host-panel references, with equal values. The SDK-matching 3.10 CLI was selected with OpenStudio 3.11 first on
+    `PATH`; no `SAM_COMMIT` or `SAM_BENCHMARK_*` was set.
+  - **Repinned build:** run #228 at `b3b8e9e` passed Validate, the producer gates and H12. Its installed payload
+    equals #227's apart from expected stamps and debug symbols (0 drift), so the licensed evidence carries forward.
+  - **Accepted limitation (owner, 2026-10-20):** provenance check 9 is Not PASS. Installed producers report the
+    SAM_Deploy build revision as `samCommit`/`runnerCommit`; recover the repository revisions from that commit's
+    gitlinks.
+  - **Not covered:** Rhino, Grasshopper and Revit were installed but not started; explicit CLI-path override is
+    unit-tested only; no release, tag or deployment.
+- **No task is active.** S07 is the next candidate and needs an explicit owner start.
