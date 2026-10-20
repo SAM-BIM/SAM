@@ -43,10 +43,16 @@ Names not established from code or reliable documentation are marked **UNVERIFIE
   - The Both benchmark producer prepares a shared gbXML and builds `WorkflowSettings` with no route, i.e. gbXML (SAM_Tas repository root, `benchmark/SAM.Analytical.Tas.Benchmark.Cli/Program.cs:17,128-160`). It also sets `AddIZAMs = true`.
 
   Running S08 on the contract route therefore needs either a later, separately approved integration task, or an S08 harness that selects Direct explicitly. **S07 implies no production switch.**
+- **Future production default (owner, 2026-10-20; owner decision 7 in [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md#owner-decisions-outstanding)):**
+  - First approval: "Change the Tas production default to SAM → T3D → TBD, T3DRoute.Direct, UseWidths=false."
+  - Revised later the same day: "Record Direct T3D with UseWidths=true as the owner-preferred candidate default." Production defaults change only after independent verification, on the approved fixtures, that the native areas and volumes match the intended panel convention (§4.1). `UseWidths=false` stays available as an explicit option. Any fallback must be reported with its reason and the actual setting, never applied silently.
+  - Neither statement is implemented. Neither authorises a code change in S07 or starts S08. The three defaults above stay gbXML until a separate integration PR lands against the criteria of roadmap decision 7.
+  - **Conflicting evidence, recorded:** at the SAM_Tas pin, the direct-route record measured that SAM panel polygons are **not** centre lines. For all 9 spaces of a real model, widths OFF reproduced SAM's shell volume exactly and widths ON shrank it by 11.9 % (`MA/DIRECT_T3D_ROUTE.md:131-136,258-286`). A widths-ON Direct run gets a workflow note saying SAM panels are the physical inner surfaces (`MA/Classes/WorkflowCalculator.cs:618-621`). Widths ON can only match a fixture whose declared panel convention is centre-line (mid-surface); §4.1 decides this per fixture.
+  - At the SAM_Tas pin, a failed Direct conversion stops the run with an error rather than falling back to another route (`MA/Classes/WorkflowCalculator.cs:632-640`). SAM_UI and Both-producer fallback behaviour was not checked.
 - **Contract-route facts from evidence:**
   - **Geometry:** with widths OFF, T3D = TBD = SAM shell area and volume. This was measured on a real model (`MA/DIRECT_T3D_ROUTE.md:258-275`). S08 re-verifies it per fixture.
   - **Floor-area flag:** `element.zoneFloorArea` (`MA/Convert/ToT3D/T3DDocument.cs:269`).
-  - **Frame:** `window.frameWidth`, `isPercFrame = true`, `framePerc` (`MA/Convert/ToT3D/T3DDocument.cs:308-314`).
+  - **Frame:** `window.frameWidth` (written when the spec value is not NaN), `isPercFrame = true` and `framePerc` (written when the frame percentage is not NaN) (`MA/Convert/ToT3D/T3DDocument.cs:306-314`). The rule is T-FRAME in §5.
   - **Aperture identity:** `MA/Modify/UpdateIds.cs:12` stamps SAM identities on the TBD. Apertures are matched by `MA/Query/Match.cs`, `MA/Query/PaneStampMatch.cs` and `MA/Query/ApertureByElementName.cs`. S08 keys every comparison on these identities, not on names.
   - **Layer orientation:**
     - TAS chooses the reversed side of a partition, and `reverseElement` has no effect.
@@ -123,6 +129,28 @@ The Tas native read-back uses a SAM_Tas reader. It is independent of the writer 
   - **stored** `SpaceParameter.Volume` (reported; used for Tas `ticV` ACH and `CalculatedInfiltrationAirFlow`);
   - **net-air** (no SAM use found; out of scope, UNVERIFIED).
 
+### 4.1 Widths-ON reference (candidate default `UseWidths=true`; drafted at the owner's request 2026-10-20, detail for owner review)
+The contract route (§1, D-ROUTE) stays `UseWidths=false`, and the §4 reference above is unchanged for it. This subsection defines the reference used **only** to verify the owner-preferred candidate default before any production change. Tolerances are those of rows 1a, 1b, 2, 7b and 8b, unchanged.
+
+- **What TAS does with widths ON (measured on two geometries only):** TAS treats every input polygon as a centre line and offsets each zone surface inwards by half its building-element width; on the direct route this includes floors and roofs (`MA/Classes/ToT3DOptions.cs:13-24`; `MA/DIRECT_T3D_ROUTE.md:131-136,280-283`).
+  - Box 5 × 4 × 3 m with walls 0.30, roof 0.35 and floor 0.40 m: floor 17.39 m², volume 45.649 m³. Widths OFF gives 20 m² and 60 m³.
+  - Real-model zone: height 4 − (0.3335 + 0.4127) / 2 = 3.627 m.
+- **Element width:** the panel's physical thickness when it has one; otherwise the construction's `DefaultThickness` when non-zero and not NaN; otherwise the sum of its layers; 0 when none applies (`MA/Query/T3DImportPlan.cs:550-564`). S08 recomputes it from raw SAM parameters (§3 independence rule) and never calls the converter.
+- **The fixture's declared panel convention decides the expected value** (D-FIX already requires a recorded convention):
+  - **centre-line (mid-surface) panels:** offsets are intended. Expected floor area and volume come from the solid bounded by each bounding panel's plane moved into the space by half its element width. An internal partition contributes half its width to each zone it bounds. Expected surface areas are the faces on the moved planes, clipped by the neighbouring moved planes;
+  - **inner-face panels:** offsets are not intended. The expected value stays the §4 polygon geometry, so a widths-ON native result outside tolerance is FAIL: the candidate default does not fit that fixture's geometry;
+  - **convention not recorded:** MODEL-INTERPRETATION-REQUIRED (rank 3).
+- **Dependent rows:** under widths ON, the "geometric V" of rows 7b and 8b means the volume expected by this subsection. D-F9 C (stored ≈ geometric) is not redefined here; see OD-W2.
+- **UNVERIFIED until read-back (rank 4 while readable):**
+  - TAS's offset for non-orthogonal or non-convex zones;
+  - surface and opening areas under widths ON (whether TAS keeps, shifts or clips the aperture polygons);
+  - a panel whose two zones would assign different widths; zero-width (air) panels; ground floors;
+  - identity mapping. With widths ON every surface is offset from its panel, and the post-export steps match by identity first and by a half-width offset test second (`MA/DIRECT_T3D_ROUTE.md:122`). S08 read-back must confirm the identity mapping still holds.
+- **Open owner decisions:**
+  - **OD-W1:** approve this reference. Also decide whether the widths-ON verification runs inside S08, as an extra configuration with its own approval, or in the default-switch integration task. It is not added to S08 by default.
+  - **OD-W2:** which volume D-F9 C compares the stored `SpaceParameter.Volume` with under widths ON.
+  - **OD-W3:** if the verification fails on an approved fixture, whether the integration goes ahead with Direct and `UseWidths=false` (the first approval) or stops.
+
 ---
 
 ## 5. Mapping contract (tolerances per quantity and unit)
@@ -188,7 +216,22 @@ Engine-reported U and g remain informational because each engine uses its own fi
   **DDY source:** S03 file hash; names and parameters identical to the DDY object.
 - **T-FRAME:**
   - OS: subsurface = pane polygon; frame width = `DefaultFrameWidth`, else frame thickness; conductance = 1/Σ(t/λ) (`OS/Aperture.cs:100-130,153-283`).
-  - Tas: `frameWidth`, `framePerc` from the import plan (`MA/Convert/ToT3D/T3DDocument.cs:308-314`). The derivation rule is to be written from `MA/Query/T3DImportPlan.cs`; until then T-FRAME is UNVERIFIED on the Tas side.
+  - Tas, **writer behaviour (verified in code at the pins):**
+    - **Frame percentage:** `FramePercent = aperture.GetFrameFactor() × 100` when `GetFrameFactor()` is not NaN, otherwise NaN (`MA/Query/T3DImportPlan.cs:743-748`).
+      - It is rounded to one decimal only when `ToT3DOptions.SharedWindowTypes = true`. That option defaults to false (`MA/Classes/ToT3DOptions.cs:33-52`), and the Direct route sets only `UseWidths` (`MA/Classes/WorkflowCalculator.cs:613`). On the contract route the percentage is therefore not rounded.
+      - `GetFrameFactor()` (`SA/Classes/Aperture.cs:262-281`) returns 0 when the frame area is 0 or NaN, 1 when the pane area is 0 or NaN, and otherwise A_frame / (A_frame + A_pane). The areas are net face areas (outer edge minus holes, `SAM/SAM.Geometry/Geometry/Base/Classes/Face.cs:135-148`) of the parts built by `Aperture.GetFace3Ds` (`SA/Classes/Aperture.cs:119-198`):
+        - no frame construction layers: the pane is the whole aperture face and there is no frame (L133-145);
+        - authored holes: the frame is the face with holes, and the panes are the holes (L147, L185-193);
+        - no holes and a frame thickness > 0: the panes are the face offset inwards by `DefaultFrameWidth` when it is present, non-zero and not NaN, otherwise by the frame thickness (L150-182). If the offset gives no pane, or the frame thickness is 0 or NaN, there is no frame.
+      - It never returns NaN at the SAM pin. So on the contract route `framePerc` is always written and `isPercFrame` is always true, including 0 % for an aperture without frame layers. The writer's NaN branch is not reachable from the SAM pin.
+    - **Frame width:** with an `ApertureConstruction`, `DefaultFrameWidth` is assigned first when present and not NaN; `GetFrameThickness()` then overrides it when not NaN (`MA/Query/T3DImportPlan.cs:836-847`). `GetFrameThickness()` is the sum of the frame layer thicknesses, and 0 when there are no frame layers (`SA/Classes/ApertureConstruction.cs:143-157,180-183`). `DefaultFrameWidth` therefore reaches the writer only when the frame thickness is NaN. With no `ApertureConstruction` the spec keeps its NaN default (`MA/Classes/T3DImportPlan.cs:109,112`).
+    - **Write:** `window.frameWidth` only when the spec width is not NaN; `window.isPercFrame = true` and `window.framePerc` only when the spec percentage is not NaN (`MA/Convert/ToT3D/T3DDocument.cs:306-314`).
+  - Tas, **expected values (computed per §3 from raw SAM data):** the frame percentage is 100 × A_frame / (A_frame + A_pane) from the aperture geometry by the rule above, with 0 and 100 at its edge cases; `Aperture.GetFrameFactor()` is a cross-check only. The written frame width is the frame layer thickness sum when not NaN, else `DefaultFrameWidth`, else none.
+  - Tas, **native interpretation (UNVERIFIED until S08 read-back; rank 4 while readable and unresolved):**
+    1. whether TAS makes the frame zone surface `framePerc` % of the opening polygon area (the opening polygon is the aperture's outer edge, `MA/Query/T3DImportPlan.cs:693`) and the pane surface the rest. S08 compares both TBD surface areas, by identity, with A_frame and A_pane (row 1b);
+    2. whether `frameWidth` has any geometric or thermal effect when `isPercFrame = true`;
+    3. what TAS builds for `framePerc` = 0 (no frame surface, or one with zero area) and for 100;
+    4. whether `isPercFrame`, `framePerc` and `frameWidth` can be read back from the TBD, or only from the T3D.
   - Tolerance: 0.5 % area; 1e-5 conductance.
 - **T-OMIT0:** OS omits a gain when the SAM total ≤ 0. Verified only when no object of that type exists for the zone.
 - **T-OA-SYS:** OS Ideal-Loads outdoor air (system load) versus Tas `ticV` (zone-entering air). Only **flow-rate** equality is accepted.
@@ -212,12 +255,36 @@ Absence is never compared numerically, and `abs` never turns a missing or zeroed
 |---|---|---|
 | 1 | **FAIL** | EXPORT-DEFECT; out of tolerance without a contract explanation |
 | 2 | **BLOCKED** (technical blocker named) | INPUT-INVALID; UNVERIFIED that cannot be read (licence, executable or field unavailable) |
-| 3 | **BLOCKED** (owner decision named) | unaccepted UNSUPPORTED-MAPPING or MAPPING-DIFFERENCE; DOCUMENTED-DEFAULT on a gated quantity; MODEL-INTERPRETATION-REQUIRED not recorded |
+| 3 | **BLOCKED** (owner decision named) | unaccepted UNSUPPORTED-MAPPING or MAPPING-DIFFERENCE; **unaccepted** DOCUMENTED-DEFAULT on a gated quantity; MODEL-INTERPRETATION-REQUIRED not recorded |
 | 4 | **NOT RUN** (quantities named) | UNVERIFIED that is readable but not yet resolved, including §7 schedule alignment |
-| 5 | **Not PASS — accepted limitation** (items named) | only owner-accepted UNSUPPORTED-MAPPING / MAPPING-DIFFERENCE / DOCUMENTED-DEFAULT remain. Accepted per quantity and per fixture, as with S06. **Never PASS.** |
+| 5 | **Not PASS — accepted limitation** (items named) | only owner-accepted UNSUPPORTED-MAPPING / MAPPING-DIFFERENCE / DOCUMENTED-DEFAULT remain. An owner-accepted DOCUMENTED-DEFAULT belongs here, not in rank 3. Accepted per quantity and per fixture, as with S06. **Never PASS.** |
 | 6 | **PASS** | all MATCH / WITHIN-TOLERANCE / verified ACCEPTED-TRANSFORMATION / NOT-APPLICABLE (proven SAM absence) |
 
 "INCOMPLETE" in revision 2 is replaced by ranks 3–4.
+
+PASS stays a strict allow-list. An unsupported, unresolved or unverified item, and an owner-accepted limitation, never gives PASS.
+
+### 6.1 Gate completeness: proposed fail-closed handling (for owner review; not approved)
+
+Three cases are not decided by the approved rules above. None of them can reach PASS, but their status is not stated. The handling below is a **draft for the owner**. It accepts no limitation, adds no PASS route and changes no tolerance.
+
+**Gated quantity (proposed definition, needed by rank 3 and G2):** every §5 quantity with a tolerance, **except** the ones §5 or the film convention marks as informational, not gated, diagnostic only or outside S07: engine-reported U and g (3b, 3c); derived g (3c); DNI and ground temperature (9); ground and adiabatic element U (film convention F-OPQ); exhaust (8c); IZAM/TPD delivery and air-panel mixing (8e). Stored floor area and volume are governed by D-F9, not by this definition.
+
+| Case | Situation | Proposed outcome | Resulting rank |
+|---|---|---|---|
+| **G1** | S-UNSPEC; native object present with value 0 | DOCUMENTED-DEFAULT when 0 is the contract-listed default for that quantity (e.g. the OS equipment radiant-fraction fallback 0, `OS/InternalCondition.cs:155-157`). Otherwise **UNLISTED-DEFAULT**, handled as an unaccepted DOCUMENTED-DEFAULT. Never NOT-APPLICABLE (that needs native absence) and never MATCH: zero does not mean absence for every quantity (a 0 °C setpoint is not "no setpoint"). | as DOCUMENTED-DEFAULT: rank 3 when gated and unaccepted; rank 5 when accepted; G2 when not gated |
+| **G1-NaN** | S-UNSPEC; native object present with value NaN | EXPORT-DEFECT, as G3 | 1 (FAIL) |
+| **G2** | Unaccepted DOCUMENTED-DEFAULT on a quantity that is not gated | Reported by name; the fixture is BLOCKED until the owner accepts it (then rank 5) | 3 (owner decision named) |
+| **G3** | S-VALUE; native field present and read as NaN | EXPORT-DEFECT: NaN is not a comparable value, and neither `abs` nor `rel` can pass it. A listed UNSUPPORTED-MAPPING or MAPPING-DIFFERENCE does not cover it, because those describe a missing or a known different value, not an invalid one. | 1 (FAIL) |
+
+S-ZERO with a native NaN is already EXPORT-DEFECT under "otherwise". **Reader precondition (G1-NaN, G3):** the S08/S09 readers report "field unreadable" separately from "read as NaN". An unreadable field is UNVERIFIED (rank 2 or 4), never a NaN value.
+
+**Until the owner decides:** a fixture showing any G case reports the proposed outcome, labelled "proposed", and its status is the higher-ranked of (a) the status from the approved rules and (b) BLOCKED, with the owner decision named as the open G case. It is never PASS.
+
+**New owner decisions (open):**
+- **OD-G1:** approve G1 and the UNLISTED-DEFAULT outcome, or choose another fail-closed handling.
+- **OD-G2:** approve the gated-quantity definition and G2. Alternative: allow a non-gated quantity's default to be accepted once for all fixtures, instead of per quantity and per fixture as rank 5 requires.
+- **OD-G3:** approve G1-NaN, G3 and the reader precondition. Not proposed: treating a native field that S08/S09 prove uses NaN for "not set" as native absence for S-UNSPEC. That would need per-field read-back evidence and its own owner approval.
 
 ## 7. Schedule time alignment
 The Tas hour labels (`hourlyValues[1]`, yearly index 1), the first OS fixed-interval value and leap-year handling are UNVERIFIED. Until S08/S09 verify them by read-back:
@@ -229,11 +296,11 @@ The Tas hour labels (`hourlyValues[1]`, yearly index 1), the first OS fixed-inte
 
 ## 8. Owner decisions
 
-D-ROUTE, D-F2 (V0/V1/V2), D-F8, D-F9 (A + C) and D-FIX below: approved by the owner, 2026-10-20 (S07 plan revision 3). The Recommendation column records the approved choice.
+D-ROUTE, D-F2 (V0/V1/V2), D-F8, D-F9 (A + C) and D-FIX below: approved by the owner, 2026-10-20 (S07 plan revision 3). The Recommendation column records the approved choice. Open: OD-G1 to OD-G3 (§6.1) and OD-W1 to OD-W3 (§4.1).
 
 | ID | Alternatives / content | Recommendation |
 |---|---|---|
-| **D-ROUTE** | Contract = Direct T3D with `UseWidths=false` (§1). Production (SAM_UI, the Both producer) stays gbXML until a separately approved integration. S08 either uses a harness selecting Direct, or waits for that integration. | Approve the contract route; production switch out of S07 |
+| **D-ROUTE** | Contract = Direct T3D with `UseWidths=false` (§1). Production (SAM_UI, the Both producer) stays gbXML until a separately approved integration. S08 either uses a harness selecting Direct, or waits for that integration. Later the same day the owner approved Direct as the **future** production default, first with `UseWidths=false` and then with `UseWidths=true` as the owner-preferred candidate. The candidate is subject to the §4.1 verification, and `UseWidths=false` stays an explicit option (§1). It is implemented only by that separate integration PR, against the criteria in roadmap owner decision 7. The contract route stays `UseWidths=false`. | Approve the contract route; production switch out of S07 |
 | **D-F2 ventilation** | **Requirement and delivery are separate quantities.** Requirements are preserved for MEP sizing and later IZAM/TPD work, and never activate thermal ventilation by themselves. States:<br>**V0** no requirement.<br>**V1** requirement only, no delivery selected: Tas no `ticV` = MATCH with intent; OS unscheduled DSOA delivery = **MAPPING-DIFFERENCE** (reported; any OS change is a separate decision with compatibility consequences).<br>**V2** Building Simulator delivery **explicitly selected** (Ventilation profile): supported in both, compared on 8b with T-OA-SYS. The selection, not the building type, defines V2.<br>IZAM/TPD delivery is outside S07. Exhaust is UNSUPPORTED in both, with no balance or thermal assumption.<br>Rejected: P1 (missing profile = constant delivery; reverses the Tas design and test); P2 (missing profile = invalid; contradicts V1). | **V0/V1/V2 as stated.** Recorded, not fixed: `ticV` + AHU IZAM `fromOutside` on the same zone; space DSOA replacing the SpaceType DSOA; the Both producer's `AddIZAMs = true`. |
 | **D-F8 window opening** | Tas read-back of 8d. OS: converter limitation (EnergyPlus supports opening airflow via AirflowNetwork; the SAM converter does not map `OpeningProperties`), reported. Common equivalence fixtures are closed-window (no `OpeningProperties`). No natural-ventilation implementation. | **As stated** |
 | **D-F9 volume** | A: engine reference = §4 geometric; stored reported. C: fixtures have stored ≈ geometric within 0.5 %, or a recorded interpretation (convention, intended volume). The difference is MODEL-INTERPRETATION-REQUIRED (rank 3 until recorded), not a defect. A recorded interpretation **never waives** a native-vs-geometric FAIL; it only fixes how 7b and 8b are reported. | **A + C** |
@@ -259,46 +326,71 @@ Nothing below is changed by S07. Each item is evidence for a later, separately a
   panels.
 - §8 D-F2: `ticV` plus an AHU IZAM `fromOutside` on the same zone; a space DSOA replacing the SpaceType DSOA; the Both
   producer's `AddIZAMs = true`.
-- §6 completeness (found while checking this document; none of them can reach PASS, because PASS is an allow-list of
-  resolved outcomes, but the resulting status is not stated): (1) S-UNSPEC with a native object present at zero or NaN;
-  (2) an unaccepted DOCUMENTED-DEFAULT on a quantity that is not gated; (3) a native value that is present but NaN for an
-  S-VALUE input. The approved gate text is unchanged; the owner can decide a rank for each during review.
+- §6 completeness: the three gaps found while checking this document (S-UNSPEC with a native zero or NaN; an unaccepted
+  DOCUMENTED-DEFAULT on a non-gated quantity; S-VALUE with a native NaN) now have proposed fail-closed handling in §6.1,
+  awaiting owner decisions OD-G1 to OD-G3.
+- T-FRAME (§5): the direct writer's frame width (the frame layer thickness, `DefaultFrameWidth` only when that is NaN;
+  `MA/Query/T3DImportPlan.cs:836-847`) uses the opposite precedence to SAM's own frame geometry (`DefaultFrameWidth`
+  first; `SA/Classes/Aperture.cs:150-168`). `Aperture.GetFace3Ds` reads `Type.FrameConstructionLayers` without a null
+  check (`SA/Classes/Aperture.cs:133-134`).
 
 ## PR record
 
 Task S07 of [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md). Documentation only; no behaviour change.
 
-- **Status:** In review: [SAM#216](https://github.com/SAM-BIM/SAM/pull/216), base `sow/2026-Q4` (`6836595d`), branch `docs/s07-physical-input-mapping`.
-  Not merged; merge needs explicit owner approval. Validated content SHA: `32d519b8ce07eba9cfc4d0bb2e547ad2211ae676` (the commit the local checks below ran on; this record-only commit follows it). Final PR head and checks: in the PR
-  description.
-- **Work completed:** this document (plan revision 3, sections 1-8, owner choices recorded, evidence pins re-checked); the
-  roadmap updated for the S07 row, decision items 3 and 5, and the contract-route note.
+- **Status:** In review: [SAM#216](https://github.com/SAM-BIM/SAM/pull/216), base `sow/2026-Q4` (`6836595d`), branch
+  `docs/s07-physical-input-mapping`. Revision 2 follows the independent review of head `c3327dcb`. Not merged; merge
+  needs explicit owner approval. Validated content SHAs: revision 1 `32d519b8ce07eba9cfc4d0bb2e547ad2211ae676`;
+  revision 2 is recorded by the record-only commit that follows it. Final PR head and checks: in the PR description.
+- **Work completed:**
+  - revision 1: this document (plan revision 3, sections 1-8, owner choices recorded, evidence pins re-checked); the
+    roadmap updated for the S07 row, decision items 3 and 5, and the contract-route note;
+  - revision 2: §6 rank 3 limited to unaccepted DOCUMENTED-DEFAULT on gated quantities (accepted ones are rank 5);
+    Tas T-FRAME written from the pinned writer and SAM source, with four bounded native uncertainties for S08; §6.1
+    drafts fail-closed handling for the three gate gaps (OD-G1 to OD-G3); the owner's approval of Direct as the future
+    production default recorded (§1, §8, roadmap decision 7) with acceptance criteria for its integration, including the
+    owner's later revision to `UseWidths=true` as the preferred candidate; §4.1 adds the widths-ON reference that the
+    candidate is verified against (OD-W1 to OD-W3); the roadmap's stale closing line replaced.
 - **Decisions:** D-ROUTE, D-F2 (V0/V1/V2), D-F8, D-F9 (A + C), D-FIX, the film convention and every tolerance are
-  approved by the owner, 2026-10-20 (S07 plan revision 3); the owner can amend any of them during review. Production
-  stays gbXML. The two equivalence fixtures are not yet selected (D-FIX: the owner selects or clears them before the
-  S08/S09 gate).
+  approved by the owner, 2026-10-20 (S07 plan revision 3); the owner can amend any of them during review. The owner also
+  approved, 2026-10-20, Direct as the future Tas production default. The approval was first given with
+  `UseWidths=false`, then revised to `UseWidths=true` as the owner-preferred candidate. The candidate is conditional on
+  the §4.1 verification on the approved fixtures; `UseWidths=false` stays an explicit option; there is no silent
+  fallback. None of this is implemented: current production stays gbXML and the contract route stays `UseWidths=false`.
+  OD-G1 to OD-G3 and OD-W1 to OD-W3 are open. The two equivalence fixtures are not yet selected (D-FIX).
 - **Files changed:** `documentation/SIMULATION_INPUT_MAPPING_S07.md` (new), `documentation/SIMULATION_ROADMAP_Q4_2026.md`.
-- **Checks (local, no GitHub result implied):**
-  - the seven `sow/2026-Q4` tips were re-read with `git ls-remote` on 2026-10-20 and equal the pins above;
-  - every file citation in this document (83 distinct) resolves at its pinned SHA, line ranges lie inside the file, and
-    each native name used was found in the pinned code or is marked UNVERIFIED / *(translator)*. Reproduce with
+- **Checks (local documentation checks; no native-engine validation and no GitHub result implied):**
+  - the seven `sow/2026-Q4` tips were re-read with `git ls-remote` on 2026-10-20 (revision 1 and again for revision 2)
+    and equal the pins above;
+  - every file citation in this document resolves at its pinned SHA and every line range lies inside its file; each
+    native name used was found in the pinned code or is marked UNVERIFIED / *(translator)*. Reproduce one citation with
     `git -C <repo> show <sha>:<path> | sed -n '<a>,<b>p'`;
-  - evidence corrections made while checking: the OpenStudio, Tas and SAM path prefixes; the benchmark producer, SAM_UI
-    and `PROJECT_PROGRESS.md` paths; `freshAirRate` is written at `MA/Modify/UpdateInternalCondition.cs:141`; the older
-    `ToTBD(AnalyticalModel, …)` reaches its `zone.volume` / `zone.floorArea` writes through
-    `MA/Convert/ToTBD/Building.cs:47` and `MA/Modify/Update.cs:612,623`; `GeometricalFloorPanels` is used at
-    `SA/Query/FloorArea.cs:123`; bare file names were expanded to prefixed paths;
+  - revision 2 semantic checks against the pinned code: `MA/Query/T3DImportPlan.cs:743-748,836-847`,
+    `MA/Convert/ToT3D/T3DDocument.cs:306-314`, `MA/Classes/ToT3DOptions.cs:33-52`, `MA/Classes/T3DImportPlan.cs:109,112`,
+    `MA/Classes/WorkflowCalculator.cs:613`, `SA/Classes/Aperture.cs:119-198,262-281`,
+    `SA/Classes/ApertureConstruction.cs:143-157,180-183`, `SAM/SAM.Geometry/Geometry/Base/Classes/Face.cs:135-148`,
+    `OS/InternalCondition.cs:155-157`; for §1 and §4.1, `MA/Classes/ToT3DOptions.cs:13-24`,
+    `MA/Query/T3DImportPlan.cs:550-564`, `MA/Classes/WorkflowCalculator.cs:618-621,632-640` and
+    `MA/DIRECT_T3D_ROUTE.md:122,131-136,258-286`; and, for roadmap decision 7, `MA/Classes/WorkflowSettings.cs:20-32,189-192,360`
+    and `SAM_UI/SAM.Analytical.UI/Classes/TBDConversionOptions.cs:25,34,173,242`;
+  - revision 1 evidence corrections: the OpenStudio, Tas and SAM path prefixes; the benchmark producer, SAM_UI and
+    `PROJECT_PROGRESS.md` paths; `freshAirRate` at `MA/Modify/UpdateInternalCondition.cs:141`; the older
+    `ToTBD(AnalyticalModel, …)` chain `MA/Convert/ToTBD/Building.cs:47` -> `MA/Modify/Update.cs:612,623`;
+    `GeometricalFloorPanels` at `SA/Query/FloorArea.cs:123`; bare file names expanded to prefixed paths;
   - §5 has all ten categories, each with SAM, Tas and OS fields, a rule, per-unit tolerances (or a stated reason) and
-    evidence;
-  - the §6 gate was checked as an allow-list: no outcome other than MATCH, WITHIN-TOLERANCE, verified
-    ACCEPTED-TRANSFORMATION or proven NOT-APPLICABLE can give PASS (completeness gaps listed above);
-  - relative links resolve and no link targets a repository outside `SAM-BIM`; S08-S12 still read "Not started" in the
-    roadmap.
-- **GitHub checks:** (pending: build, test, spdx; see the PR).
-- **Risks and open items:** T-FRAME on the Tas side stays UNVERIFIED (its inputs are built at
-  `MA/Query/T3DImportPlan.cs:720-847`, but the derivation rule is not yet written); schedule hour labels and leap-year
-  handling stay UNVERIFIED until S08/S09 read them back (§7); the Tas design-day reader may need a raw-field read (§3); the
-  §6 completeness gaps above; the roadmap's closing line "No task is active. S07 is the next candidate" was left unchanged
-  by instruction and is stale once this merges.
-- **Next step:** owner start of S08 (Tas independent native-input read-back). Switching the production route from gbXML to
-  Direct is separate integration work and needs its own approval.
+    evidence; no tolerance changed in revision 2;
+  - the §6 gate was checked as an allow-list: only MATCH, WITHIN-TOLERANCE, verified ACCEPTED-TRANSFORMATION or proven
+    NOT-APPLICABLE give PASS; every §6.1 proposal ends at rank 1, 3 or 5, never PASS;
+  - relative links resolve and every link targets `github.com/SAM-BIM/*`; S08-S12 read "Not started" and Phase C
+    "Frozen" in the roadmap; the diff against the base touches only the two `documentation/*.md` files.
+- **GitHub checks:** build, test, spdx: see the PR description for the final head.
+- **Risks and open items:** OD-G1 to OD-G3 (§6.1); OD-W1 to OD-W3 (§4.1); the owner-preferred `UseWidths=true` conflicts
+  with the SAM_Tas measurement that SAM panels are inner surfaces (§1), so it can pass §4.1 only on a fixture declared
+  centre-line (with non-zero element widths); the four Tas T-FRAME native uncertainties (§5) and schedule hour labels and
+  leap-year handling (§7) stay UNVERIFIED until S08/S09 read-back; the Tas design-day reader may need a
+  raw-field read (§3); the equivalence fixtures are not selected (D-FIX); the approved Direct default is not implemented.
+- **Next step:** independent review of revision 2 and the owner's merge decision. After merge: the known-SHA
+  `PROJECT_PROGRESS.md` closeout on `sow/2026-Q4` and guarded branch cleanup. S08 does not start automatically: it needs
+  an explicit owner start, a separate SAM_Tas write approval (roadmap decision 2) and owner-selected or cleared
+  equivalence fixtures with provenance, hashes and the D-FIX criteria. The Direct default switch is a separate
+  integration PR (roadmap decision 7), not part of S08; where its widths-ON verification runs is OD-W1.

@@ -94,7 +94,7 @@ from local licensed runs; a check blocked by a missing licence or executable is 
 5. ~~F2, F8 and F9 semantics (S07), and the S07 tolerances (SAM#206 says tolerances are owner-confirmed).~~ Decided by
    the owner on 2026-10-20 (S07 plan revision 3) and recorded in
    [SIMULATION_INPUT_MAPPING_S07.md](SIMULATION_INPUT_MAPPING_S07.md). The contract Tas route is Direct T3D with
-   `UseWidths = false`; production stays gbXML, and switching it is a later, separately approved task.
+   `UseWidths = false`; production stays gbXML, and switching it is a later, separately approved task (decision 7).
 6. Decided 2026-10-20: `SAM_COMMIT` remains a temporary requirement for developer-built producers in Both runs until
    S06 (stamped producers). A value set by hand must be the SAM commit the producers were built from; it does not prove
    packaged-app provenance. S06 outcome (owner decision 2026-10-20): an installed build needs no `SAM_COMMIT`, but its
@@ -102,6 +102,38 @@ from local licensed runs; a check blocked by a missing licence or executable is 
    limitation, not PASS, and no new stamping was added. The repository revisions come from that SAM_Deploy commit's gitlinks
    (`git ls-tree <revision> SAM SAM_Tas SAM_OpenStudio`). Existing developer records keep their meaning (SAM_Validation#16,
    `docs/benchmark/SCHEMA.md`).
+7. **Tas production default: Direct.** Owner, 2026-10-20, during the S07 review:
+   - First approval: "Change the Tas production default to SAM → T3D → TBD, T3DRoute.Direct, UseWidths=false."
+   - Revised later the same day: "Record Direct T3D with UseWidths=true as the owner-preferred candidate default." Before
+     production defaults change, it must be verified independently that its native areas and volumes match the
+     intended panel convention on the approved fixtures. `UseWidths=false` stays an explicit option.
+   - **Not implemented.** This records the intended default; it authorises no code change in S07 and does not start S08.
+     Today `WorkflowSettings.T3DRoute` is `GbXML`, SAM_UI's `DirectT3D` is false and the Both producer builds gbXML; they
+     stay so until a separate integration PR lands. That PR needs its own owner start; it is not part of S08.
+   - Evidence to weigh: the SAM_Tas direct-route record measured that SAM panels are inner surfaces, not centre lines,
+     and that widths ON shrinks a real model's zones by 11.9 %
+     ([SIMULATION_INPUT_MAPPING_S07.md](SIMULATION_INPUT_MAPPING_S07.md#1-contract-route-and-current-production-behaviour-d-route) §1).
+     The widths-ON reference is §4.1 of that document; its open decisions are OD-W1 to OD-W3.
+   - **Acceptance criteria for the integration PR:**
+     - the widths-ON candidate passes the §4.1 verification (native floor areas, surface areas and volumes against the
+       reference for each fixture's declared panel convention) on the owner-approved equivalence fixtures, within the
+       existing S07 tolerances, before any default changes. If it does not, the default is not changed until the owner
+       decides (OD-W3);
+     - new and unconfigured Tas workflows then default to Direct with the verified widths setting, consistently through
+       SAM_Tas, SAM_UI and the Both producer;
+     - `UseWidths=false` and an explicit gbXML selection stay available and are honoured;
+     - existing explicit saved route and widths choices are preserved;
+     - missing, invalid and legacy serialized settings get an explicit, owner-reviewed migration policy before
+       implementation. At the pins, both writers always serialize the route (`WorkflowSettings` `T3DRoute`;
+       SAM_UI `DirectT3D`), so a saved default cannot be told apart from an explicit choice. A missing or unrecognised
+       `T3DRoute` reads as `GbXML`;
+     - any fallback (route or widths) is reported in the run with its reason and the actual setting, and is never
+       applied silently;
+     - the actual route and widths setting are identifiable in the run evidence (S03 manifest);
+     - targeted settings and serialization tests, plus a licensed acceptance, show the selected route and S07 input
+       fidelity;
+     - no Tas/EnergyPlus numerical-agreement requirement, tolerance relaxation, ventilation reinterpretation or IZAM/TPD
+       expansion.
 
 ## Task log
 
@@ -139,4 +171,5 @@ from local licensed runs; a check blocked by a missing licence or executable is 
     gitlinks.
   - **Not covered:** Rhino, Grasshopper and Revit were installed but not started; explicit CLI-path override is
     unit-tested only; no release, tag or deployment.
-- **No task is active.** S07 is the next candidate and needs an explicit owner start.
+- **S07 (In review):** [SAM#216](https://github.com/SAM-BIM/SAM/pull/216), documentation only; not merged. S08-S12 are
+  Not started and Phase C stays frozen. S08 needs its own explicit owner start after S07 is merged and closed out.
