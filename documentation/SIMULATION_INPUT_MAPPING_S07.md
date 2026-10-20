@@ -341,7 +341,8 @@ Task S07 of [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md). Docu
 - **Status:** In review: [SAM#216](https://github.com/SAM-BIM/SAM/pull/216), base `sow/2026-Q4` (`6836595d`), branch
   `docs/s07-physical-input-mapping`. Revision 2 follows the independent review of head `c3327dcb`. Not merged; merge
   needs explicit owner approval. Validated content SHAs: revision 1 `32d519b8ce07eba9cfc4d0bb2e547ad2211ae676`;
-  revision 2 is recorded by the record-only commit that follows it. Final PR head and checks: in the PR description.
+  revision 2 `03794f428680fb67af383a615c19d2d895a74b5a` (the commit the local checks below ran on; a record-only
+  commit follows it). Final PR head and checks: in the PR description.
 - **Work completed:**
   - revision 1: this document (plan revision 3, sections 1-8, owner choices recorded, evidence pins re-checked); the
     roadmap updated for the S07 row, decision items 3 and 5, and the contract-route note;
