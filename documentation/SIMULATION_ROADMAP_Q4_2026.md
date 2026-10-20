@@ -53,7 +53,7 @@ SAM_UI `4ee45fef`, SAM_Tas `a34a298d`); recheck them before starting a task.
 | S04 | Stable canonical simulation snapshot | SAM_UI (snapshot), SAM_Validation (canonical hash) | Finding F7: the canonical model hash includes the UI-only `SAM.Analytical.UI` ParameterSet, whose GUIDs are regenerated on each load. | SAM_UI#239 F7 | The same saved model loaded twice gives the same canonical hash; an engineering edit changes it; same-run provenance unchanged. | Done: SAM_UI#243 `307cb0e3` |
 | S05 | Licensed Phase A GUI acceptance | SAM_UI (record only) | Licensed runs from the real UI on the S01-S04 content: Tas only, OpenStudio only and Both; box with embedded (post-F1) and explicit EPW; one multizone model; injected Tas refusal; cancel; concurrent-start attempt. | SAM_UI#228, SAM_UI#239 (prior evidence) | Each case reports PASS / FAIL / NOT RUN / BLOCKED; every reported status, output file and failure message matches what the engines did; no numerical agreement required. | Done: SAM_UI#245 `9acce829` (all nine cases PASS; preflight SAM_UI#244 `46a43d8d`) |
 | S06 | Early SAM_Deploy smoke candidate | SAM_Deploy | Payload the Benchmark producers, SAM_Validation and the OpenStudio dependencies, so an installed candidate (not a developer build) can run the workflows. Avoids the stale `deps.json` state seen in #239. | SAM_UI 2026-10-18 closeout (producers not in BuildAll payload) | An installed candidate runs Tas, OpenStudio and Both on the box model on a licensed machine. Candidate build only; any release needs separate owner approval. | Done: SAM_Deploy#66 `1657bb53`, SAM_OpenStudio#32 `a9429f7c`, SAM_Validation#16 `e9a83df0` (provenance labelling: Not PASS, accepted limitation) |
-| S07 | Minimal Phase B physical-input mapping | SAM (this documentation), SAM_Validation | The minimal set of physical inputs whose conversion is checked (areas, volumes, U and g, gains, setpoints, schedules, infiltration, ventilation, weather and design days), the native field each engine uses, and the tolerances. Records the owner decisions on F2 (ventilation semantics), F8 (window opening) and F9 (zone volume); does not implement them. | SAM#206 input-equivalence table, SAM#209, SAM_UI#232 | Owner-approved mapping table with tolerances and an owner decision recorded for F2, F8 and F9. | Not started |
+| S07 | Minimal Phase B physical-input mapping | SAM (this documentation), SAM_Validation | The minimal set of physical inputs whose conversion is checked (areas, volumes, U and g, gains, setpoints, schedules, infiltration, ventilation, weather and design days), the native field each engine uses, and the tolerances. Records the owner decisions on F2 (ventilation semantics), F8 (window opening) and F9 (zone volume); does not implement them. | SAM#206 input-equivalence table, SAM#209, SAM_UI#232 | Owner-approved mapping table with tolerances and an owner decision recorded for F2, F8 and F9. | In review: [SAM#216](https://github.com/SAM-BIM/SAM/pull/216) |
 | S08 | Tas independent native-input read-back | SAM_Tas, SAM_UI | Read the generated TBD independently of the SAM writer and produce the Tas input manifest for the S07 quantities. | SAM#208, SAM_UI#230 | For the box and the multizone model, every S07 quantity read back from the TBD equals SAM within the S07 tolerance or is listed as a mapping difference. | Not started |
 | S09 | OpenStudio independent native-input read-back | SAM_OpenStudio, SAM_UI | Same for the generated OSM/IDF: the OpenStudio input manifest. | SAM_OpenStudio#30 | As S08, for OpenStudio. | Not started |
 | S10 | Tas results round-trip validation | SAM_Tas | SAM-imported results and B1a against an independent TSD read. Includes F4 (1-based `peakHour`), F5 (governing instead of annual peak) and F6 (zero-peak hour). | SAM_UI#239 F4-F6 | Model and space results in SAM and B1a equal the TSD values; hour and peak definitions are documented; F4-F6 fixed or explicitly accepted. | Not started |
@@ -87,9 +87,14 @@ from local licensed runs; a check blocked by a missing licence or executable is 
    Its provenance and redistribution permission are not established; do not commit it as a fixture until the owner
    confirms. S05 used SAM_OpenStudio's committed two-cell model
    (`tests/resources/models/rawModel-WindowsWeatherDataDDYAdiabaticAirPanel.sam`, provenance in that folder's README).
-   Phase B still needs an owner-chosen multizone fixture.
+   Phase B still needs an owner-chosen multizone fixture. The box and one multizone model remain the required
+   equivalence fixtures; the criteria a fixture must meet are in
+   [SIMULATION_INPUT_MAPPING_S07.md](SIMULATION_INPUT_MAPPING_S07.md#8-owner-decisions) (D-FIX).
 4. Whether the trackers SAM#206 and SAM_UI#227 are updated to point here (not done by S00).
-5. F2, F8 and F9 semantics (S07), and the S07 tolerances (SAM#206 says tolerances are owner-confirmed).
+5. ~~F2, F8 and F9 semantics (S07), and the S07 tolerances (SAM#206 says tolerances are owner-confirmed).~~ Decided by
+   the owner on 2026-10-20 (S07 plan revision 3) and recorded in
+   [SIMULATION_INPUT_MAPPING_S07.md](SIMULATION_INPUT_MAPPING_S07.md). The contract Tas route is Direct T3D with
+   `UseWidths = false`; production stays gbXML, and switching it is a later, separately approved task (decision 7).
 6. Decided 2026-10-20: `SAM_COMMIT` remains a temporary requirement for developer-built producers in Both runs until
    S06 (stamped producers). A value set by hand must be the SAM commit the producers were built from; it does not prove
    packaged-app provenance. S06 outcome (owner decision 2026-10-20): an installed build needs no `SAM_COMMIT`, but its
@@ -97,6 +102,42 @@ from local licensed runs; a check blocked by a missing licence or executable is 
    limitation, not PASS, and no new stamping was added. The repository revisions come from that SAM_Deploy commit's gitlinks
    (`git ls-tree <revision> SAM SAM_Tas SAM_OpenStudio`). Existing developer records keep their meaning (SAM_Validation#16,
    `docs/benchmark/SCHEMA.md`).
+7. **Tas production default: Direct.** Owner, 2026-10-20, during the S07 review:
+   - First approval: "Change the Tas production default to SAM → T3D → TBD, T3DRoute.Direct, UseWidths=false."
+   - Revised later the same day: "Record Direct T3D with UseWidths=true as the owner-preferred candidate default." Before
+     production defaults change, it must be verified independently that its native areas and volumes match the
+     intended panel convention on the approved fixtures. `UseWidths=false` stays an explicit option.
+   - **Not implemented.** This records the intended default; it authorises no code change in S07 and does not start S08.
+     Today `WorkflowSettings.T3DRoute` is `GbXML`, SAM_UI's `DirectT3D` is false and the Both producer builds gbXML; they
+     stay so until a separate integration PR lands. That PR needs its own owner start; it is not part of S08.
+   - Fallback direction (owner): if candidate validation fails, the proposed widths setting reverts to `false` and the
+     reason is reported. This is not authorisation for a silent or automatic runtime fallback.
+   - Panel convention: recorded measurements establish how widths change native geometry. They do not independently
+     establish the source model's panel convention. SAM supports mid-surface panels, including PanelsBySolid output
+     carrying PhysicalThickness. The fixture's provenance and declared convention determine whether width offsets are
+     intended. The measured single-model figures (widths ON 11.9 % below widths OFF over 9 spaces) keep their original
+     scope ([SIMULATION_INPUT_MAPPING_S07.md](SIMULATION_INPUT_MAPPING_S07.md#1-contract-route-and-current-production-behaviour-d-route) §1).
+     The widths-ON reference is §4.1 of that document; its open decisions are OD-W1 and OD-W2.
+   - **Acceptance criteria for the integration PR:**
+     - the widths-ON candidate passes the §4.1 verification (native floor areas, surface areas and volumes against the
+       reference for each fixture's declared panel convention) on the owner-approved equivalence fixtures, within the
+       existing S07 tolerances, before any default changes. If it does not, the proposed widths setting reverts to
+       `false` and the integration evidence states the reason;
+     - new and unconfigured Tas workflows then default to Direct with the verified widths setting, consistently through
+       SAM_Tas, SAM_UI and the Both producer;
+     - `UseWidths=false` and an explicit gbXML selection stay available and are honoured;
+     - existing explicit saved route and widths choices are preserved;
+     - missing, invalid and legacy serialized settings get an explicit, owner-reviewed migration policy before
+       implementation. At the pins, both writers always serialize the route (`WorkflowSettings` `T3DRoute`;
+       SAM_UI `DirectT3D`), so a saved default cannot be told apart from an explicit choice. A missing or unrecognised
+       `T3DRoute` reads as `GbXML`;
+     - any fallback (route or widths) is reported in the run with its reason and the actual setting, and is never
+       applied silently;
+     - the actual route and widths setting are identifiable in the run evidence (S03 manifest);
+     - targeted settings and serialization tests, plus a licensed acceptance, show the selected route and S07 input
+       fidelity;
+     - no Tas/EnergyPlus numerical-agreement requirement, tolerance relaxation, ventilation reinterpretation or IZAM/TPD
+       expansion.
 
 ## Task log
 
@@ -134,4 +175,5 @@ from local licensed runs; a check blocked by a missing licence or executable is 
     gitlinks.
   - **Not covered:** Rhino, Grasshopper and Revit were installed but not started; explicit CLI-path override is
     unit-tested only; no release, tag or deployment.
-- **No task is active.** S07 is the next candidate and needs an explicit owner start.
+- **S07 (In review):** [SAM#216](https://github.com/SAM-BIM/SAM/pull/216), documentation only; not merged. S08-S12 are
+  Not started and Phase C stays frozen. S08 needs its own explicit owner start after S07 is merged and closed out.
