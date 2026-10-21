@@ -1,5 +1,52 @@
 # Project Progress - SAM (2026-Q4)
 
+## Q4 S07 amendment L1 closeout (#217, lighting split) - 2026-10-21
+
+- **PR/status:** [SAM-BIM/SAM#217](https://github.com/SAM-BIM/SAM/pull/217) is complete (documentation only).
+  - Merged into `sow/2026-Q4` as `113873a0ba376c7b18c3cd6d3556193553b829a9`. Parents: base `ee377167` and approved head
+    `1bf94c491ac5b81029dcf16d56a71e7a947b6fd7`, pinned with `--match-head-commit`. The merge tree equals that head.
+  - The owner authorised the merge in chat (2026-10-21). Immediately before the merge: head and base unchanged,
+    MERGEABLE/CLEAN, final-head checks PASS. The independent review (Revise, R1-R5) was addressed in revision 1, and
+    the owner reviewed revision 1 in the same session. There are no GitHub reviews or comments on the PR.
+- **Completed:** amendment L1 to `documentation/SIMULATION_INPUT_MAPPING_S07.md` (record: section "Amendment L1 PR record").
+  - The row 4c identity between `LightingViewCoefficient` and EnergyPlus `Fraction Visible` is withdrawn. SAM
+    `LightingRadiantProportion` is the total radiant share p, split for OS as F_V = p·s, F_R = p·(1 − s), F_RA 0,
+    with F_C = 1 − p in both engines (T-LIGHT-SPLIT, §5.1).
+  - **Approved (D-LIGHT, 2026-10-21):** reference category suspended LED office lighting; p₀ = 0.576,
+    s = 0.2415 / 0.576 at full precision (F_R 0.3345, F_V 0.2415, F_C 0.424), a midpoint-derived reference from IEA
+    SHC Task 61 D1 Table 6 (RP-1681, secondary); authored p, including 0, preserved; one absent-value fallback with
+    diagnostics.
+  - **Revision 1:** T-LIGHT-SPLIT applies to an authored p only; an absent or NaN p is DOCUMENTED-DEFAULT, needing
+    owner acceptance per quantity and fixture, never PASS. A-Tas Theory Manual p. 52 (eq 9-7, 9-8, 9-11) is cited
+    with the qualification that its applicability to installed Tas 9.5.7 remains unconfirmed. Regulatory, NCM,
+    TM59 and template category limits are stated. EDSL spectrum factors are corrected.
+  - Content SHAs: `eb7e3ff7` (original) and `48e7a8dc` (revision 1), each followed by a record-only commit.
+- **Open owner decision OD-L1 (§8):** whether p₀ suits cases outside its category, and whether a writer may replace a
+  prescribed NCM or template value with it. Also still open: OD-G1 to OD-G3, OD-W1/OD-W2, the LED view coefficient.
+- **Validation:**
+  - **Local documentation checks only; no simulation, sizing or native-engine run.** Citations resolve at the pinned
+    SHAs (SAM `6836595d`, SAM_Tas `e84aeff6` and `c50e9169`, SAM_OpenStudio `7f216657`, SAM_LadybugTools
+    `0ffbaecf`); split arithmetic and spectrum factors recomputed; `git diff --check` clean; the diff touches only the
+    mapping document (+361/-4 against `ee377167`).
+  - **Hosted final-head checks on `1bf94c49`, all PASS:** Build (Windows) [39665103737](https://github.com/SAM-BIM/SAM/actions/runs/39665103737),
+    Test [39665103708](https://github.com/SAM-BIM/SAM/actions/runs/39665103708) and SPDX [39665103716](https://github.com/SAM-BIM/SAM/actions/runs/39665103716).
+  - **Post-merge Q4:** Build (Windows) [39667707679](https://github.com/SAM-BIM/SAM/actions/runs/39667707679) and Test
+    [39667707673](https://github.com/SAM-BIM/SAM/actions/runs/39667707673) on `113873a0` were in progress when this was written.
+- **Not changed:** no code, fixture, model, workflow or roadmap change. No writer is implemented: until the
+  downstream changes land, the pinned OS, Tas and Ladybug writers keep the behaviour recorded in §2 item 2.
+- **Known stale records (not fixed here):** the roadmap S08 entry still says PR-B/PR-C are not started although
+  SAM_Tas#106 merged; the S09 row says "Not started" while SAM_OpenStudio#33 is open; the roadmap log does not record
+  amendment L1. Only a reviewed roadmap PR (or an owner exception) may change them.
+- **Cleanup:** remote `docs/s07-lighting-split` deleted with a lease on `1bf94c49` after checking that it was the
+  approved head, fully merged into `sow/2026-Q4`, and used by no open PR or other worktree. No same-named branch
+  exists in SAM_Tas, SAM_UI, SAM_OpenStudio, SAM_Validation or SAM_LadybugTools. The checkout was fast-forwarded to
+  Q4 and the local branch deleted; other SAM worktrees were left untouched.
+- **Exact next step:** revise SAM_OpenStudio#33 (branch `feature/s09-openstudio-input-readback`) to §5.1: writer
+  lighting block, importer, mapping and coverage documents, S09 read-back rows, expected vectors and negatives, with
+  its own review. Recommended: Claude Opus 5.5, High effort, existing #33 work in a new session, Plan mode first,
+  attaching SAM_OpenStudio and SAM. The SAM_Tas fallback and S08 read-back change needs OD-L1 and a separate owner
+  write approval; the SAM_LadybugTools change is a separate task.
+
 ## Q4 simulation roadmap S07 closeout (#216) - 2026-10-20
 
 - **PR/status:** [SAM-BIM/SAM#216](https://github.com/SAM-BIM/SAM/pull/216) is complete (documentation only).
