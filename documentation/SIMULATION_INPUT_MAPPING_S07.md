@@ -620,7 +620,7 @@ Task S07 of [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md). Docu
 The "PR record" above is the historical record of SAM#216, which merged as `68b60257` (closeout in `PROJECT_PROGRESS.md`).
 This section records the documentation-only amendment.
 
-- **Status:** draft, for owner review. PR: (recorded in the next record-only commit). Base `sow/2026-Q4` (`ee377167`),
+- **Status:** draft, for owner review: [SAM#217](https://github.com/SAM-BIM/SAM/pull/217). Base `sow/2026-Q4` (`ee377167`),
   branch `docs/s07-lighting-split`. Not merged; merging needs explicit owner approval.
 - **Work completed:**
   - the row 4c lighting identity is replaced by §5.1 and T-LIGHT-SPLIT;
@@ -636,8 +636,30 @@ This section records the documentation-only amendment.
   - the Tas 0.30 / 0.49 values are labelled template and observed values, without proven factory provenance.
 - **Files changed:** `documentation/SIMULATION_INPUT_MAPPING_S07.md` only. No code, fixture, roadmap or
   `PROJECT_PROGRESS.md` change.
-- **Checks:** local documentation checks only; no simulation, sizing, Tas or EnergyPlus execution. Validated content
-  SHA and results: recorded in the next record-only commit.
+- **Checks:** local documentation checks only; no simulation, sizing, Tas or EnergyPlus execution.
+  - The validated content SHA is `eb7e3ff71df7762c0a3a4dc18877a8aa60ef6973`. A record-only commit follows it.
+  - **Citations:** every new prefixed citation resolves at its pin, and its line ranges lie inside the file.
+    Reproduce with `git -C <repo> show <sha>:<path> | sed -n '<a>,<b>p'`. Semantically checked:
+    - `OS/InternalCondition.cs:125-136,314-327`;
+    - SAM_OpenStudio `SAM_OpenStudio/SAM.Analytical.OpenStudio/Convert/ToSAM/InternalCondition.cs:236-237` at
+      `7f216657`;
+    - `MA/Modify/UpdateInternalCondition.cs:96-99` and `MA/Modify/UpdateInternalConditionTemplate.cs:78-81`;
+    - `SA/Create/InternalCondition.cs:81-87`;
+    - `LB/ToLadybugTools/ProgramType.cs:110-118` and `LB/ToSAM/InternalCondition.cs:59-60`.
+  - **Pinned files:**
+    - SAM_LadybugTools `0ffbaecf` equals `git ls-remote origin refs/heads/sow/2026-Q4` on 2026-10-21;
+    - the NCM v6.1.b template blob at `e84aeff6` has sha256 `509fc55d5064…`;
+    - neither SAM internal-condition library at `6836595d` contains a radiant proportion.
+  - **Arithmetic:** the split values are recomputed at full precision (s = 0.4192708333…), for example
+    `awk 'BEGIN{s=0.2415/0.576; print 0.37*s, 0.37*(1-s)}'`. The midpoints were recomputed from IEA Table 6.
+  - **Links:**
+    - relative links resolve;
+    - the GitHub, EDSL, EnergyPlus 25.1 and IEA DOI links return HTTP 200;
+    - the T&F DOI returns 403 to scripted requests (paywalled publisher).
+  - `git diff --check` is clean. The diff against the base touches only this file.
+  - **Machine-local, not needed elsewhere:** the IEA PDF read for Table 6, and the read-only decode of the NCM
+    template.
+  - **GitHub checks:** see the PR for the final head.
 - **Not covered by this PR:**
   - the SAM_OpenStudio#33 revision, the SAM_Tas change and the SAM_LadybugTools change (§5.1). Until they land, the
     pinned writers keep the behaviour recorded in §2 item 2;
