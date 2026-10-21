@@ -677,8 +677,23 @@ Task S07 of [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md). Docu
 The "PR record" above is the historical record of SAM#216, which merged as `68b60257` (closeout in `PROJECT_PROGRESS.md`).
 This section records the documentation-only amendment.
 
-- **Status:** draft, for owner review: [SAM#217](https://github.com/SAM-BIM/SAM/pull/217). Base `sow/2026-Q4` (`ee377167`),
-  branch `docs/s07-lighting-split`. Not merged; merging needs explicit owner approval.
+- **Status:** draft, revision 1, for independent re-review and owner review: [SAM#217](https://github.com/SAM-BIM/SAM/pull/217).
+  Base `sow/2026-Q4` (`ee377167`), branch `docs/s07-lighting-split`. Not merged; merging needs explicit owner approval.
+- **Revision 1 (2026-10-21), from an independent review that returned Revise (findings R1-R5) and owner corrections:**
+  - R1: T-LIGHT-SPLIT applies to an authored p only. An absent or NaN p is S-UNSPEC with listed defaults, and its
+    outcome is DOCUMENTED-DEFAULT, needing owner acceptance per quantity and fixture, never PASS.
+  - R2: the SAM_Tas downstream change adds the merged S08 read-back listed default, tests and the 4c catalogue
+    label.
+  - R3: EDSL spectrum factors (0.948 tabulated, 0.9425 by its formula) and the unlabelled ceiling formula.
+  - R4: the fallback diagnostic is Info at Summary detail.
+  - R5: fixture wording and the p > 0.51 threshold.
+  - Owner corrections:
+    - Tas conclusions are qualified: "the A-Tas manual describes area × emissivity distribution and no separate
+      short-wave transmission path. Applicability to installed Tas 9.5.7 remains unconfirmed";
+    - applicability of the fallback outside its category is open owner decision OD-L1, and the SAM_Tas change stays
+      separately gated;
+    - authored p = 0 is preserved explicitly, and the zero-visible negative is scoped to a positive authored p.
+  - Category limits, including regulatory, NCM, TM59 and template cases.
 - **Work completed:**
   - the row 4c lighting identity is replaced by §5.1 and T-LIGHT-SPLIT;
   - §2 item 2 is corrected, with the pinned writer, importer and Tas behaviours that conflict with §5.1;
@@ -687,14 +702,29 @@ This section records the documentation-only amendment.
   - §6.1 gated exclusions, the §8 D-LIGHT row and the recorded findings;
   - a SAM_LadybugTools evidence pin.
 - **Decisions:** owner approval of 2026-10-21, as listed in the "Amendment L1" note at the top and in D-LIGHT.
+  Open: OD-L1 (§8). D-LIGHT text is unchanged by revision 1.
 - **Assumptions:**
   - s is a declared assumption, not SAM data;
   - the baseline is a midpoint-derived reference from cited historical ranges, read through a secondary source;
-  - the Tas 0.30 / 0.49 values are labelled template and observed values, without proven factory provenance.
+  - the Tas 0.30 / 0.49 values are labelled template and observed values, without proven factory provenance;
+  - the A-Tas Theory Manual is cited as documented behaviour; its applicability to installed Tas 9.5.7 is
+    unconfirmed (EDSL Tas for Engineers 9.5.7 per the Windows uninstall registry of the review machine).
 - **Files changed:** `documentation/SIMULATION_INPUT_MAPPING_S07.md` only. No code, fixture, roadmap or
   `PROJECT_PROGRESS.md` change.
 - **Checks:** local documentation checks only; no simulation, sizing, Tas or EnergyPlus execution.
-  - The validated content SHA is `eb7e3ff71df7762c0a3a4dc18877a8aa60ef6973`. A record-only commit follows it.
+  - The validated content SHA is `48e7a8dce52930f134bf767866f0b27196897a0f` (revision 1). A record-only commit follows
+    it. The original content SHA was `eb7e3ff71df7762c0a3a4dc18877a8aa60ef6973`.
+  - **Revision 1 checks** (on `48e7a8dc`):
+    - SAM_Tas `c50e9169`: `SAM_Tas/SAM.Analytical.Tas.DirectT3D.Validation/ReadBack/ReadBackComparison.cs:859,870-874`
+      (identity on `lightingRadProp`; Unspecified "not authored" with no listed default) and
+      `benchmark/SAM.Analytical.InputEquivalence/Classes/QuantityDefinition.cs:103` ("Radiant and visible fraction");
+    - `Documentation/TAS_Theory.pdf` blob `76f8e202`, sha256 `fa6af80b…1000a17c`. With `pdftotext -layout -f 58 -l 58`,
+      PDF page 58 is printed p. 52 (page 57 ends "Casual Gains 51") and shows eq 9-7, 9-8 ("area x emissivity"),
+      9-11 and "used solely";
+    - `awk`: s = 0.4192708333; F_s 0.9425 (p_s 0.313), 0.9796 (p_s 0.111), 0.9230 (baseline s); p₀ gives F_V 0.2415 and
+      F_R 0.3345. EDSL's 0.948 / 0.980 were read on the cited EDSL page;
+    - IEA Table 6 linear-pendant values re-read from the report text (Gentile and Osterhaus, October 2021);
+    - `DIAGNOSTICS_STANDARD.md` §2.5 resolves.
   - **Citations:** every new prefixed citation resolves at its pin, and its line ranges lie inside the file.
     Reproduce with `git -C <repo> show <sha>:<path> | sed -n '<a>,<b>p'`. Semantically checked:
     - `OS/InternalCondition.cs:125-136,314-327`;
@@ -715,7 +745,7 @@ This section records the documentation-only amendment.
     - the T&F DOI returns 403 to scripted requests (paywalled publisher).
   - `git diff --check` is clean. The diff against the base touches only this file.
   - **Machine-local, not needed elsewhere:** the IEA PDF read for Table 6, and the read-only decode of the NCM
-    template.
+    template. The Tas Theory PDF is committed in SAM_Tas; `pdftotext` came with Git for Windows.
   - **GitHub checks:** see the PR for the final head.
 - **Not covered by this PR:**
   - the SAM_OpenStudio#33 revision, the SAM_Tas change and the SAM_LadybugTools change (§5.1). Until they land, the
@@ -723,9 +753,17 @@ This section records the documentation-only amendment.
   - the LED view coefficient;
   - the original RP-1681 per-fitting values;
   - the separate findings: opaque single-sided optics (OS-MAT-SINGLE-SIDED, S09 record), reversed glazing, and the
-    duplicate view-coefficient default.
+    duplicate view-coefficient default;
+  - OD-L1, and any measurement of Tas 9.5.7 lighting radiation distribution.
+- **Recorded separately, not addressed (process gaps):**
+  - the roadmap S08 entry still says PR-B and PR-C are not started, although SAM_Tas#106 has merged; the S09 row says
+    "Not started" while SAM_OpenStudio#33 is open;
+  - the roadmap log does not record amendment L1 (roadmap changes need a reviewed PR or an owner exception);
+  - this document now cites SAM_Tas at two SHAs (`e84aeff6` pin for `MA/`, `c50e9169` for the S08 paths and the Tas
+    Theory copy).
 - **Next step:**
-  1. Owner review and merge decision.
-  2. After merge: the known-SHA `PROJECT_PROGRESS.md` closeout and guarded branch cleanup.
-  3. Then revise SAM_OpenStudio#33 to §5.1, with its own review.
-  4. The SAM_Tas absent-value change needs a separate owner write approval.
+  1. Independent re-review of revision 1 at the final PR head.
+  2. Owner review, OD-L1 decision or deferral, and merge decision.
+  3. After merge: the known-SHA `PROJECT_PROGRESS.md` closeout and guarded branch cleanup.
+  4. Then revise SAM_OpenStudio#33 to §5.1, with its own review.
+  5. The SAM_Tas absent-value change needs OD-L1 and a separate owner write approval.
