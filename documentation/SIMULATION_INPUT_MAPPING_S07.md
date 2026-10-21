@@ -10,6 +10,15 @@ Phase A is met ([SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md)).
 in this document are **approved by the owner, 2026-10-20 (S07 plan revision 3)**. The owner can amend any of them during
 review of the pull request that introduces this document.
 
+**Amendment L1 (lighting, 2026-10-21).** The owner approved replacing the revision 1-3 identity between the Tas lighting
+view coefficient and the EnergyPlus `Fraction Visible` with the lighting energy-split convention in §5.1:
+- the reference category and the baseline p₀ = 0.576 with s = 0.2415 / 0.576;
+- preservation of authored radiant proportions;
+- one absent-value fallback for both engines;
+- T-LIGHT-SPLIT as an ACCEPTED-TRANSFORMATION for conformance to that declared input convention.
+
+The amendment establishes no engine-physics equivalence. Implementing it in the writers is downstream work (§5.1).
+
 ## Evidence pins
 
 Local = `git ls-remote origin refs/heads/sow/2026-Q4`, checked 2026-10-20; every remote is `github.com/SAM-BIM/*`. Each
@@ -24,6 +33,7 @@ prefix is a path inside that repository at the pinned SHA, and the aliases below
 | [SAM_UI](https://github.com/SAM-BIM/SAM_UI) | `45263ff0d13381a9baf95b03a51a8e758b20a9e1` | |
 | [SAM_Validation](https://github.com/SAM-BIM/SAM_Validation) | `2a3acfafb3919b4a0b81d67ef16a4b9d1e222f5d` | |
 | [SAM_gbXML](https://github.com/SAM-BIM/SAM_gbXML) | `43b5d018ac7a8a14f332e8bcde9cb0d613bf1efb` | |
+| [SAM_LadybugTools](https://github.com/SAM-BIM/SAM_LadybugTools) (added by amendment L1, checked 2026-10-21) | `0ffbaecf1097a33de2044ee919c963eaeb0a0da2` | `LB/` = `SAM_LadybugTools/SAM_LadybugTools.Analytical/Convert/` |
 
 Names not established from code or reliable documentation are marked **UNVERIFIED**; IDF names produced only by the OpenStudio translator are marked *(translator)*.
 
@@ -66,7 +76,16 @@ Names not established from code or reliable documentation are marked **UNVERIFIE
 1. **U and g are engine-derived in both engines.** Both receive layers (`MA/Modify/UpdateMaterial.cs:167-240`, `MA/Modify/UpdateConstruction.cs:9-66`; `OS/Construction.cs`, `OS/Material.cs`, `OS/Aperture.cs:153-283`). Only the OS no-pane-layer fallback writes U and SHGC directly (`OS/Construction.cs:85-172`).
 2. **Gain densities:**
    - Both engines compute SAM total W ÷ stored `SpaceParameter.Area` (`MA/Modify/UpdateInternalCondition.cs:94-271`; `OS/InternalCondition.cs:45-190`).
-   - OS uses the authored radiant and visible fractions, falling back to 0.3 / 0.32 / 0.25 / 0 only when a value is absent or NaN (`OS/InternalCondition.cs:81-160`). The latent-equipment radiant fraction is 0 (L183).
+   - OS uses the authored occupancy and equipment radiant fractions, falling back to 0.3 / 0 only when a value is absent or NaN (`OS/InternalCondition.cs:81-160`). The latent-equipment radiant fraction is 0 (L183).
+   - **Lighting (amendment L1):**
+     - SAM `LightingRadiantProportion` is the **total** radiant share (long-wave plus short-wave) of the lighting gain entering the room, as in Tas.
+     - `LightingViewCoefficient` is a Tas comfort coefficient, not an energy fraction. It has no EnergyPlus input.
+     - Pinned behaviour:
+       - the OS writer writes the view coefficient as `Fraction Visible`, with fallbacks 0.32 / 0.25 (`OS/InternalCondition.cs:125-136`);
+       - the OS importer stores `Fraction Visible` in the view coefficient (SAM_OpenStudio repository root, `SAM_OpenStudio/SAM.Analytical.OpenStudio/Convert/ToSAM/InternalCondition.cs:236-237`);
+       - the Tas writer leaves an absent radiant proportion to the TBD's value (`MA/Modify/UpdateInternalCondition.cs:96-99`).
+
+       All three conflict with §5.1, and the required changes are listed there.
 3. **Ventilation:**
    - **Tas:** the four SAM airflow bases are a requirement, and the Ventilation profile is the delivery selection (`MA/Modify/UpdateInternalCondition.cs:273-290`; `SAM_Tas/SAM.Analytical.Tas.TM59.Tests/VentilationRequirementMetadataTests.cs:181`). The requirement crosses in `TBD.zone.description` `[SAM_META_V1]=` (`MA/Classes/SAMZoneMetadata.cs:45-94`). `freshAirRate` (`MA/Modify/UpdateInternalCondition.cs:141`) does not supply the zone.
    - **OS:** always delivers through `DesignSpecificationOutdoorAir` "Sum", unscheduled when there is no profile (`OS/InternalCondition.cs:261-293`). A per-space `OutsideSupplyAirFlow` DSOA replaces the SpaceType DSOA (`OS/AnalyticalModel.cs:292-298`).
@@ -172,7 +191,7 @@ Numeric test, used only when both values are present: `d = |n − s|`. A value i
 | 3c | Glazing layers (τ, ρ, ε –; gas m); SimpleGlazing U (W/m²·K), g (–); derived U, g | pane layers, or `ThermalTransmittance` + `TotalSolarEnergyTransmittance` | transparent `TBD.material.*` | `StandardGlazing` / `Gas`; `SimpleGlazing` → `WindowMaterial:SimpleGlazingSystem`; `WindowProperty:FrameAndDivider` | layers identity; SimpleGlazing direct; derived U with F-GLZ-U, derived g with F-GLZ-g (informational) | 1e-5; SG 0.1 %; derived 1 % | 1e-6; 0.005; 0.001 | `OS/Construction.cs:59-172`; `SA/Classes/Glazing.cs:179-186` | — |
 | 4a | Gain density: occupancy S/L, lighting, equipment S/L (W/m²); people (p/m²) | raw parameters per §3 | `ticOSG/ticOLG/ticLG/ticESG/ticELG` `profile.factor` | `People` / `Lights` / `ElectricEquipment` definitions (+ latent instance) | density identity | 0.1 % | 0.001 W/m²; 1e-5 p/m² | `MA/Modify/UpdateInternalCondition.cs:94-271`; `OS/InternalCondition.cs:71-190` | — |
 | 4b | Zone gain total (W) | SAM total | density × `zone.floorArea` | density × geometric floor | vs SAM | 0.5 % | 0.1 W | as 4a | area basis reported |
-| 4c | Radiant / visible fraction (–) | authored | `lightingRadProp`, `occupantRadProp`, `equipmentRadProp` | `setFractionRadiant` / `setFractionVisible` | identity | — | 0.001 | `OS/InternalCondition.cs:81-160` | absent → DOCUMENTED-DEFAULT |
+| 4c | Radiant fraction of the sensible gain (–): occupancy, lighting, equipment | authored `OccupancyRadiantProportion`, `LightingRadiantProportion` (p: total radiant share of the room gain, §5.1), `EquipmentRadiantProportion` | `occupantRadProp`, `lightingRadProp`, `equipmentRadProp` | `People` / `ElectricEquipment` `Fraction Radiant`; `Lights` per T-LIGHT-SPLIT (`Return Air Fraction`, `Fraction Radiant`, `Fraction Visible`) | identity; lighting per T-LIGHT-SPLIT | — | 0.001 | `OS/InternalCondition.cs:81-160`; §5.1 | absent → DOCUMENTED-DEFAULT (lighting: the §5.1 common default); lighting `Return Air Fraction` ≠ 0 → EXPORT-DEFECT; view coefficients are not compared (§5.1) |
 | 5 | Setpoints (°C); humidistat (%RH) | heating/cooling/humidity profiles | `Thermostat` `ticLL/ticUL/ticHLL/ticHUL` | `ThermostatSetpointDualSetpoint`; `ZoneControlHumidistat` | hourly (alignment per §7) | — | 0.01 K; 0.1 %RH | `MA/Modify/UpdateInternalCondition.cs:338-390`; `OS/Thermostat.cs:21-77` | OS thermostat dropped if heating > cooling → EXPORT-DEFECT |
 | 6 | Schedule hourly value; EFLH (h) | `Profile` → 8760 | value / hourly / yearly profile | `ScheduleFixedInterval` | per hour after alignment; EFLH summary | EFLH 0.1 % | 1e-4 (fraction); 0.01 K | `MA/Modify/Update.cs:16-81`; `OS/Profile.cs:26-307` | Tas weekday sub-profiles → UNSUPPORTED-MAPPING |
 | 7a | Infiltration (1/h) | ACH + profile | `ticI` factor | `ZoneInfiltration:DesignFlowRate` | identity | 0.1 % | 1e-4 1/h | `MA/Modify/UpdateInternalCondition.cs:149-158`; `OS/InternalCondition.cs:192-259` | Tas skips without a profile → EXPORT-DEFECT |
@@ -238,6 +257,181 @@ Engine-reported U and g remain informational because each engine uses its own fi
   - Tolerance: 0.5 % area; 1e-5 conductance.
 - **T-OMIT0:** OS omits a gain when the SAM total ≤ 0. Verified only when no object of that type exists for the zone.
 - **T-OA-SYS:** OS Ideal-Loads outdoor air (system load) versus Tas `ticV` (zone-entering air). Only **flow-rate** equality is accepted.
+- **T-LIGHT-SPLIT** (amendment L1; OS `Lights`). The symbols are defined in §5.1: p is the SAM `LightingRadiantProportion`, or p₀ when absent; s = 0.2415 / 0.576 at full precision.
+
+  | Native quantity | Expected value | Tolerance |
+  |---|---|---|
+  | `Return Air Fraction` F_RA (blank reads as 0) | 0 | exact |
+  | `Fraction Radiant` + `Fraction Visible` | p | 0.001 |
+  | `Fraction Visible` F_V | p·s | 0.001 |
+  | `Fraction Radiant` F_R | p·(1 − s) | 0.001 |
+  | convective 1 − F_RA − F_R − F_V | 1 − p (Tas: 1 − `lightingRadProp`) | 0.001 |
+
+  - When verified, the outcome is ACCEPTED-TRANSFORMATION for conformance to the declared input convention of §5.1.
+  - It establishes no engine-physics equivalence (see "Scope" in §5.1).
+  - The Tas side of row 4c stays identity on `lightingRadProp`.
+
+### 5.1 Lighting energy split and view coefficients (amendment L1, approved by the owner 2026-10-21)
+
+These quantities have different physical meanings. None of them is substituted for another.
+
+| Symbol | Meaning | Denominator | Fields | Source |
+|---|---|---|---|---|
+| p | Total radiant share (long-wave plus short-wave) of the lighting gain entering the room. Tas injects the convective remainder into the zone air and distributes the radiant part among the zone surfaces. | lighting gain entering the room | SAM `LightingRadiantProportion`; Tas `lightingRadProp` | [EDSL, Internal Conditions](https://docs.edsl.net/tbd/CoreConcepts/Internal%20Conditions.html) (Radiant Proportion); [EDSL help, Specifying the Internal Conditions](https://www.edsl.net/htmlhelp/Building_Simulator/Modelling_Internal_Conditions.htm) |
+| s | Short-wave share of the emitter's radiant output. EDSL publishes tungsten 0.111 and fluorescent 0.313 and uses s only in the comfort spectrum factor. | radiant output | none: no SAM or TBD field; a declared contract constant here | EDSL, Internal Conditions (Ceiling/Floor Emitters) |
+| F_RA, F_R, F_V, F_C | Return air; long-wave, absorbed by surface area × thermal absorptance; short-wave (visible), combined with diffuse solar and absorbed by area × solar absorptance, with the glazing-transmitted part leaving the zone; convective, F_C = 1 − F_RA − F_R − F_V. A sum above 1 is an input error. | total lighting electric input | EnergyPlus `Lights` | [EnergyPlus 25.1 I/O Reference, Lights](https://bigladdersoftware.com/epx/docs/25-1/input-output-reference/group-internal-gains-people-lights-other.html); [Engineering Reference, Zone Internal Gains](https://bigladdersoftware.com/epx/docs/25-1/engineering-reference/zone-internal-gains.html) |
+| C | View coefficient: how much the emitter's radiation contributes to the occupants' perceived mean radiant and resultant temperature. Not an energy fraction. | – | SAM `LightingViewCoefficient`; Tas `lightingViewCoefficient`; no EnergyPlus input | EDSL, Internal Conditions (View Coefficient); [EDSL help, Calculation of View Coefficients](https://www.edsl.net/htmlhelp/Building_Simulator/GuidetotheCalculationofViewCoefficients.htm) |
+
+**Convention.** SAM and Tas have no luminaire-return allocation, so:
+- F_RA = 0
+- F_V = p·s
+- F_R = p·(1 − s)
+- F_C = 1 − p
+
+s is a declared assumption, not SAM data, and it is not derivable from lm/W.
+
+Arithmetic check only (not a default): the EDSL fluorescent values p 0.48, s 0.313 give F_V 0.15024, F_R 0.32976 and
+F_C 0.52.
+
+**Reference category and baseline.**
+- **Category:** suspended LED office lighting. The whole gain enters the conditioned room, with no separate
+  luminaire-return allocation.
+- **Baseline:**
+  - p₀ = 0.576;
+  - s = 0.2415 / 0.576 (0.4192708…). This is retained at full calculation precision and never rounded.
+  - The fractions of lighting electric input are F_R 0.3345, F_V 0.2415, F_C 0.424, F_RA 0.
+
+**Derivation: a midpoint-derived reference from cited historical ranges.**
+
+| Source | Content used | Kind |
+|---|---|---|
+| IEA SHC Task 61 / EBC Annex 77, Technical Report D1 "Literature Review" (eds. Gentile and Osterhaus, October 2021, doi [10.18777/ieashc-task61-2021-0013](https://doi.org/10.18777/ieashc-task61-2021-0013)), Table 6, printed p. 59 | Linear pendant LED (min/max), as % of lighting power: conditioned-space fraction 100; long-wave 31.5–35.4; short-wave 19.3–29.0; total radiative 54.7–60.5; total convective 39.5–45.3. Rated efficacy 86 lm/W. | secondary reproduction of a published range |
+| Liu, Zhou, Lochhead, Zhong, Huynh and Maxwell (2017), "Low-energy LED lighting heat gain distribution in buildings, part II: LED luminaire selection and test results", *Science and Technology for the Built Environment* 23(4), 688–708, doi [10.1080/23744731.2016.1250563](https://doi.org/10.1080/23744731.2016.1250563) (ASHRAE RP-1681) | the original study that Table 6 cites | **not read**: paywalled |
+| ASHRAE Handbook—Fundamentals 2017 (SI), Ch. 18, Table 3 | Linear pendant LED fixture: space fraction 1.0, radiative fraction 0.55–0.60, with the note to use middle values in most cases. The table cites Zhou et al. (2016). | published range; cross-check of p₀ |
+
+- **Per-component midpoints:**
+  - long-wave (31.5 + 35.4) / 2 = 33.45 %;
+  - short-wave (19.3 + 29.0) / 2 = 24.15 %;
+  - their sum, 57.6 %, equals the midpoint of the total-radiative range;
+  - convective 42.4 %.
+- p₀ lies inside the ASHRAE range. No per-fitting pair is published in the sources read, and none is constructed
+  here.
+- **Limitations:**
+  - The values rest on a secondary reproduction.
+  - The original study's per-fitting values and uncertainties are not verified. The paper is paywalled, and the
+    related M.S. thesis (Zhong, Iowa State University, 2016) was not accessible.
+  - The baseline is not universal, not manufacturer-certified and not current-market typical. It derives from
+    luminaires tested about 2016 (Table 6: 86 lm/W).
+- **Applicability:**
+  - Suspended (pendant) LED with the whole fitting in the conditioned room.
+  - ASHRAE Table 3 conditions: about 5 L/(s·m²) supply air at 15–16.7 °C, room air at 22–24 °C, 9.7–28 W/m².
+    ASHRAE advises the lower bounds at higher power densities.
+- **Not applicable to:**
+  - recessed troffers, downlights and retrofit kits. Their space fraction is below 1 in ASHRAE Table 3, and that
+    luminaire-return share cannot be represented in SAM;
+  - high-bays;
+  - non-LED lamps.
+
+**Default resolution, common to both engines.**
+1. **Authored p, including 0, is preserved.** Tas receives `lightingRadProp = p`; OS receives T-LIGHT-SPLIT. A NaN
+   is treated as absent.
+2. **Absent p resolves to p₀ in both writers.**
+   - Each writer emits an information diagnostic per [DIAGNOSTICS_STANDARD](../docs/DIAGNOSTICS_STANDARD.md) that
+     names p₀, s, the reference category and this section.
+   - Neither engine inherits a template value silently.
+   - This is a common case: the SAM internal-condition libraries (`files/resources/Analytical/SAM_InternalConditionLibrary.JSON`,
+     `SAM_InternalConditionLibrary_TM59.JSON`) store no radiant proportion.
+3. **Runtime applicability and spectral assumptions stay visible.** Whenever p₀ or s is applied, the run diagnostics
+   and the S08/S09 reports state:
+   - the reference category;
+   - the values;
+   - the source;
+   - the applicability limits.
+4. **Outcomes under §6:**
+   - An absent p with the native at p₀ (OS: F_R and F_V by s) is DOCUMENTED-DEFAULT, accepted per quantity and
+     fixture.
+   - Until the SAM_Tas change below lands, Tas keeps the TBD value for an absent p. That is "other non-zero", so it
+     is EXPORT-DEFECT.
+   - The committed S08/S09 equivalence fixtures author p and are not affected.
+5. **Imports (OS → SAM, Ladybug → SAM):**
+   - p ← F_R + F_V, and the view coefficient is not set.
+   - An information diagnostic is raised when the imported F_V / (F_R + F_V) differs from s.
+   - A warning is raised when F_RA > 0: that share becomes a convective room gain.
+   - SAM files imported under the previous mapping hold F_R in p and F_V in the view coefficient. They cannot be
+     identified and are not migrated.
+6. **Unchanged:** `SA/Create/InternalCondition.cs:81,85` writes p = 0.3 and C = 0.49 as authored values. They are
+   preserved in both engines; changing them is a separate decision.
+
+**Tas values observed (labelled; factory provenance not proven).**
+- All 296 internal gains of the NCM v6.1.b template carry radiant proportion 0.30 and view coefficient 0.49. The
+  template is SAM_Tas repository root, `files/resources/Analytical/Tas/NCMActivities_v6.1.b (Part L 2021).tic`,
+  sha256 `509fc55d5064…`; it was decoded read-only.
+- One machine-local gain created through Tas 9.5.7 COM shows the same values.
+- EDSL documents no source for 0.30. Its documented typical lighting values are fluorescent 0.48 and tungsten 0.80.
+
+**View coefficient (separate quantity).**
+- C enters no energy fraction and is never substituted for one. It has no OS input.
+- It is outside S07 input equivalence: it is not compared and not gated (§6.1). The OS writer reports an authored C
+  with SAM-OS-IC-001 information.
+- **EDSL tabulation:** for a 5 × 5 m room with observer-to-emitter-plane distance e = 1.3 m, fluorescent ceiling
+  lighting has C = 0.490 (formula 6.4-1), with spectrum factor F_s = (α/ε)·s + 1 − s = 0.943 at s = 0.313 and
+  α/ε = 0.8 / 0.98. The 0.49 above is therefore a fluorescent ceiling-lighting value.
+- **Unresolved: the LED comfort coefficient.**
+  - At the baseline s, F_s = 0.923.
+  - A pendant lies below the ceiling plane, so the tabulated geometry does not hold, and formula 6.4-1 needs the
+    actual room and mounting geometry.
+  - No LED value is defined. An authored C passes to Tas; an absent C keeps the TBD value.
+- Its effect through a Tas thermostat that controls on resultant temperature is UNVERIFIED. SAM writes no thermostat
+  radiant proportion.
+
+**Scope.** T-LIGHT-SPLIT verifies conformance to this declared input convention only.
+- The engines distribute the radiant part differently:
+  - EnergyPlus distributes F_V by solar absorptance, including glazing transmission, and F_R by thermal absorptance;
+  - Tas's distribution is UNVERIFIED.
+- Matching fractions are not evidence of identical surface absorption or zone response.
+- S10/S11 validate result round trips; they do not establish engine-physics equivalence.
+
+**Required downstream changes (not implemented by this amendment).** Every one preserves authored inputs and keeps
+the applied values visible (default-resolution item 3).
+
+- **SAM_OpenStudio#33** (continue the existing PR, branch `feature/s09-openstudio-input-readback`):
+  - **Writer lighting block** (`OS/InternalCondition.cs:125-136`):
+    - F_R = p·(1 − s), F_V = p·s; leave F_RA unset (0);
+    - absent p → p₀ with the diagnostic;
+    - never read C for `Lights`;
+    - report C with SAM-OS-IC-001, next to the occupancy and equipment messages (L314-327). Correct their
+      "no visible-fraction field" reason at the same time.
+  - **Importer:** SAM_OpenStudio repository root, `SAM_OpenStudio/SAM.Analytical.OpenStudio/Convert/ToSAM/InternalCondition.cs:236-237`,
+    per default-resolution item 5.
+  - The mapping and coverage documents and their manifests.
+  - **S09 read-back:**
+    - rows for F_RA, F_R + F_V, F_V, F_R and the convective remainder, with expected values from raw SAM p and the
+      §5.1 constants only;
+    - remove the view-coefficient `lighting.visible` comparison and its DocumentedDefault exception.
+  - **Expected vectors** (tolerance 0.001):
+
+    | p | F_V | F_R | F_C |
+    |---|---|---|---|
+    | 0.37 | 0.155130 | 0.214870 | 0.63 |
+    | 0.34 | 0.142552 | 0.197448 | 0.66 |
+    | 0.41 | 0.171901 | 0.238099 | 0.59 |
+    | p₀ | 0.2415 | 0.3345 | 0.424 |
+
+  - **Negatives:**
+    - F_V = 0.25 with p authored (the previous behaviour);
+    - F_V = 0;
+    - F_R = p with F_V > 0;
+    - F_RA = 0.1;
+    - F_R and F_V swapped.
+
+    A copy with C authored must leave every lighting row unchanged.
+- **SAM_Tas**, a separate PR needing its own owner write approval:
+  - absent-p fallback to p₀, with the diagnostic and NaN treated as absent, in `MA/Modify/UpdateInternalCondition.cs:96-99`
+    (no NaN guard at the pin) and `MA/Modify/UpdateInternalConditionTemplate.cs:78-81`;
+  - this changes Tas production results for gains without an authored p (0.30 → 0.576);
+  - no change to C or to an authored p.
+- **SAM_LadybugTools**, a separate task: the same convention for `LB/ToLadybugTools/ProgramType.cs:110-118` and
+  `LB/ToSAM/InternalCondition.cs:59-60`.
 
 ---
 
@@ -271,7 +465,7 @@ PASS stays a strict allow-list. An unsupported, unresolved or unverified item, a
 
 Three cases are not decided by the approved rules above. None of them can reach PASS, but their status is not stated. The handling below is a **draft for the owner**. It accepts no limitation, adds no PASS route and changes no tolerance.
 
-**Gated quantity (proposed definition, needed by rank 3 and G2):** every §5 quantity with a tolerance, **except** the ones §5 or the film convention marks as informational, not gated, diagnostic only or outside S07: engine-reported U and g (3b, 3c); derived g (3c); DNI and ground temperature (9); ground and adiabatic element U (film convention F-OPQ); exhaust (8c); IZAM/TPD delivery and air-panel mixing (8e). Stored floor area and volume are governed by D-F9, not by this definition.
+**Gated quantity (proposed definition, needed by rank 3 and G2):** every §5 quantity with a tolerance, **except** the ones §5 or the film convention marks as informational, not gated, diagnostic only or outside S07: engine-reported U and g (3b, 3c); derived g (3c); DNI and ground temperature (9); ground and adiabatic element U (film convention F-OPQ); exhaust (8c); IZAM/TPD delivery and air-panel mixing (8e); the lighting, occupancy and equipment view coefficients (§5.1, amendment L1). Stored floor area and volume are governed by D-F9, not by this definition.
 
 | Case | Situation | Proposed outcome | Resulting rank |
 |---|---|---|---|
@@ -299,7 +493,7 @@ The Tas hour labels (`hourlyValues[1]`, yearly index 1), the first OS fixed-inte
 
 ## 8. Owner decisions
 
-D-ROUTE, D-F2 (V0/V1/V2), D-F8, D-F9 (A + C) and D-FIX below: approved by the owner, 2026-10-20 (S07 plan revision 3). The Recommendation column records the approved choice. Open: OD-G1 to OD-G3 (§6.1) and OD-W1, OD-W2 (§4.1).
+D-ROUTE, D-F2 (V0/V1/V2), D-F8, D-F9 (A + C) and D-FIX below: approved by the owner, 2026-10-20 (S07 plan revision 3). The Recommendation column records the approved choice. D-LIGHT: approved by the owner, 2026-10-21 (amendment L1). Open: OD-G1 to OD-G3 (§6.1) and OD-W1, OD-W2 (§4.1).
 
 | ID | Alternatives / content | Recommendation |
 |---|---|---|
@@ -308,6 +502,7 @@ D-ROUTE, D-F2 (V0/V1/V2), D-F8, D-F9 (A + C) and D-FIX below: approved by the ow
 | **D-F8 window opening** | Tas read-back of 8d. OS: converter limitation (EnergyPlus supports opening airflow via AirflowNetwork; the SAM converter does not map `OpeningProperties`), reported. Common equivalence fixtures are closed-window (no `OpeningProperties`). No natural-ventilation implementation. | **As stated** |
 | **D-F9 volume** | A: engine reference = §4 geometric; stored reported. C: fixtures have stored ≈ geometric within 0.5 %, or a recorded interpretation (convention, intended volume). The difference is MODEL-INTERPRETATION-REQUIRED (rank 3 until recorded), not a defect. A recorded interpretation **never waives** a native-vs-geometric FAIL; it only fixes how 7b and 8b are reported. | **A + C** |
 | **D-FIX fixtures** | Roadmap box + multizone requirement **retained**. The committed two-cell model has non-zero supply and exhaust and no Ventilation profile: it is kept as **divergence evidence** (V1 MAPPING-DIFFERENCE; exhaust unsupported), not as an equivalence fixture. The box and HungaryHouse are machine-local. | The owner selects or clears both equivalence fixtures before the S08/S09 gate, against the criteria below. S07 creates none. |
+| **D-LIGHT lighting split** (amendment L1) | The revision 1-3 identity `LightingViewCoefficient` ↔ `Fraction Visible` is withdrawn: the two quantities differ physically (§5.1). SAM `LightingRadiantProportion` is the total radiant share p, split for OS by s under T-LIGHT-SPLIT, so the convective remainder is 1 − p in both engines. The reference category is suspended LED office lighting with the whole gain entering the room. Baseline: p₀ = 0.576, s = 0.2415 / 0.576 at full precision, giving F_R 0.3345, F_V 0.2415, F_C 0.424. It is a midpoint-derived reference from cited historical ranges, with the §5.1 limitations. Authored p, including 0, is preserved. One absent-value fallback (p₀) applies to both engines, with diagnostics and source and applicability records. The view coefficient is kept separate, and its LED value is unresolved. | **Approved 2026-10-21.** T-LIGHT-SPLIT may be ACCEPTED-TRANSFORMATION for conformance to the declared input convention; it does not establish engine-physics equivalence. Writer changes are downstream (§5.1): SAM_OpenStudio#33 and a separate, separately approved SAM_Tas PR. |
 
 **Fixture criteria:**
 - committed, with provenance and a hash;
@@ -336,6 +531,15 @@ Nothing below is changed by S07. Each item is evidence for a later, separately a
   `MA/Query/T3DImportPlan.cs:836-847`) uses the opposite precedence to SAM's own frame geometry (`DefaultFrameWidth`
   first; `SA/Classes/Aperture.cs:150-168`). `Aperture.GetFace3Ds` reads `Type.FrameConstructionLayers` without a null
   check (`SA/Classes/Aperture.cs:133-134`).
+- **Amendment L1 (lighting).** These items are recorded, not fixed:
+  - The revision 1-3 row 4c identity `LightingViewCoefficient` ↔ `Fraction Visible` was a physical-meaning error.
+    With the SAM code defaults (p 0.3, C 0.49) the pinned OS writer gives a convective share of 0.21, where Tas
+    gives 0.70. With p ≥ 0.52 and C 0.49 the EnergyPlus fractions sum above 1.
+  - SAM_LadybugTools carries the same mapping (`LB/ToLadybugTools/ProgramType.cs:110-118`,
+    `LB/ToSAM/InternalCondition.cs:59-60`).
+  - `SA/Create/InternalCondition.cs:86-87` sets `OccupancyViewCoefficient` twice (0.227, then 0.372) and never sets
+    `EquipmentViewCoefficient`. This is a separate finding.
+  - `MA/Modify/UpdateInternalCondition.cs:96-99` has no NaN guard for `LightingRadiantProportion`.
 
 ## PR record
 
@@ -410,3 +614,39 @@ Task S07 of [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md). Docu
   owner-selected or cleared equivalence fixtures with provenance, hashes and the D-FIX criteria. The Direct default
   switch is a separate integration PR (roadmap decision 7), not part of S08; where its widths-ON verification runs is
   OD-W1.
+
+## Amendment L1 PR record (lighting split)
+
+The "PR record" above is the historical record of SAM#216, which merged as `68b60257` (closeout in `PROJECT_PROGRESS.md`).
+This section records the documentation-only amendment.
+
+- **Status:** draft, for owner review. PR: (recorded in the next record-only commit). Base `sow/2026-Q4` (`ee377167`),
+  branch `docs/s07-lighting-split`. Not merged; merging needs explicit owner approval.
+- **Work completed:**
+  - the row 4c lighting identity is replaced by §5.1 and T-LIGHT-SPLIT;
+  - §2 item 2 is corrected, with the pinned writer, importer and Tas behaviours that conflict with §5.1;
+  - new: the common absent-value policy, runtime-visibility requirement, view-coefficient separation, the unresolved LED
+    comfort coefficient, and the required downstream SAM_OpenStudio#33, SAM_Tas and SAM_LadybugTools changes;
+  - §6.1 gated exclusions, the §8 D-LIGHT row and the recorded findings;
+  - a SAM_LadybugTools evidence pin.
+- **Decisions:** owner approval of 2026-10-21, as listed in the "Amendment L1" note at the top and in D-LIGHT.
+- **Assumptions:**
+  - s is a declared assumption, not SAM data;
+  - the baseline is a midpoint-derived reference from cited historical ranges, read through a secondary source;
+  - the Tas 0.30 / 0.49 values are labelled template and observed values, without proven factory provenance.
+- **Files changed:** `documentation/SIMULATION_INPUT_MAPPING_S07.md` only. No code, fixture, roadmap or
+  `PROJECT_PROGRESS.md` change.
+- **Checks:** local documentation checks only; no simulation, sizing, Tas or EnergyPlus execution. Validated content
+  SHA and results: recorded in the next record-only commit.
+- **Not covered by this PR:**
+  - the SAM_OpenStudio#33 revision, the SAM_Tas change and the SAM_LadybugTools change (§5.1). Until they land, the
+    pinned writers keep the behaviour recorded in §2 item 2;
+  - the LED view coefficient;
+  - the original RP-1681 per-fitting values;
+  - the separate findings: opaque single-sided optics (OS-MAT-SINGLE-SIDED, S09 record), reversed glazing, and the
+    duplicate view-coefficient default.
+- **Next step:**
+  1. Owner review and merge decision.
+  2. After merge: the known-SHA `PROJECT_PROGRESS.md` closeout and guarded branch cleanup.
+  3. Then revise SAM_OpenStudio#33 to §5.1, with its own review.
+  4. The SAM_Tas absent-value change needs a separate owner write approval.
