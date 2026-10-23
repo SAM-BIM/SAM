@@ -53,15 +53,16 @@ SAM_UI `4ee45fef`, SAM_Tas `a34a298d`); recheck them before starting a task.
 | S04 | Stable canonical simulation snapshot | SAM_UI (snapshot), SAM_Validation (canonical hash) | Finding F7: the canonical model hash includes the UI-only `SAM.Analytical.UI` ParameterSet, whose GUIDs are regenerated on each load. | SAM_UI#239 F7 | The same saved model loaded twice gives the same canonical hash; an engineering edit changes it; same-run provenance unchanged. | Done: SAM_UI#243 `307cb0e3` |
 | S05 | Licensed Phase A GUI acceptance | SAM_UI (record only) | Licensed runs from the real UI on the S01-S04 content: Tas only, OpenStudio only and Both; box with embedded (post-F1) and explicit EPW; one multizone model; injected Tas refusal; cancel; concurrent-start attempt. | SAM_UI#228, SAM_UI#239 (prior evidence) | Each case reports PASS / FAIL / NOT RUN / BLOCKED; every reported status, output file and failure message matches what the engines did; no numerical agreement required. | Done: SAM_UI#245 `9acce829` (all nine cases PASS; preflight SAM_UI#244 `46a43d8d`) |
 | S06 | Early SAM_Deploy smoke candidate | SAM_Deploy | Payload the Benchmark producers, SAM_Validation and the OpenStudio dependencies, so an installed candidate (not a developer build) can run the workflows. Avoids the stale `deps.json` state seen in #239. | SAM_UI 2026-10-18 closeout (producers not in BuildAll payload) | An installed candidate runs Tas, OpenStudio and Both on the box model on a licensed machine. Candidate build only; any release needs separate owner approval. | Done: SAM_Deploy#66 `1657bb53`, SAM_OpenStudio#32 `a9429f7c`, SAM_Validation#16 `e9a83df0` (provenance labelling: Not PASS, accepted limitation) |
-| S07 | Minimal Phase B physical-input mapping | SAM (this documentation), SAM_Validation | The minimal set of physical inputs whose conversion is checked (areas, volumes, U and g, gains, setpoints, schedules, infiltration, ventilation, weather and design days), the native field each engine uses, and the tolerances. Records the owner decisions on F2 (ventilation semantics), F8 (window opening) and F9 (zone volume); does not implement them. | SAM#206 input-equivalence table, SAM#209, SAM_UI#232 | Owner-approved mapping table with tolerances and an owner decision recorded for F2, F8 and F9. | Done: [SAM#216](https://github.com/SAM-BIM/SAM/pull/216) `68b60257` (OD-G1 to OD-G3 and OD-W1/OD-W2 still open) |
-| S08 | Tas independent native-input read-back | SAM_Tas, SAM_UI | Read the generated TBD independently of the SAM writer and produce the Tas input manifest for the S07 quantities. | SAM#208, SAM_UI#230 | For the box and the multizone model, every S07 quantity read back from the TBD equals SAM within the S07 tolerance or is listed as a mapping difference. | In progress: PR-A merged (SAM_Tas#104 `d08916ca`, licence-free evaluation core only); PR-B (native reader) and PR-C (fixtures and acceptance) not started |
-| S09 | OpenStudio independent native-input read-back | SAM_OpenStudio, SAM_UI | Same for the generated OSM/IDF: the OpenStudio input manifest. | SAM_OpenStudio#30 | As S08, for OpenStudio. | Not started |
+| S07 | Minimal Phase B physical-input mapping | SAM (this documentation), SAM_Validation | The minimal set of physical inputs whose conversion is checked (areas, volumes, U and g, gains, setpoints, schedules, infiltration, ventilation, weather and design days), the native field each engine uses, and the tolerances. Records the owner decisions on F2 (ventilation semantics), F8 (window opening) and F9 (zone volume); does not implement them. | SAM#206 input-equivalence table, SAM#209, SAM_UI#232 | Owner-approved mapping table with tolerances and an owner decision recorded for F2, F8 and F9. | Done: [SAM#216](https://github.com/SAM-BIM/SAM/pull/216) `68b60257`; L1 SAM#217 `113873a0`, U1 SAM#218 `b06dbe8c`. OD-G1 to OD-G3 approved during S08; OD-W1/OD-W2 and OD-L1 remain open |
+| S08 | Tas independent native-input read-back | SAM_Tas, SAM_UI | Read the generated TBD independently of the SAM writer and produce the Tas input manifest for the S07 quantities. | SAM#208, SAM_UI#230 | For the box and the multizone model, every S07 quantity read back from the TBD equals SAM within the S07 tolerance or is listed as a mapping difference. | Done: SAM_Tas#104 `d08916ca`, #105 `fb9041c1`, #106 `61eb0d37`; signed-off box PASS 353/353 and two-zone PASS 623/623 on the contract route |
+| S09 | OpenStudio independent native-input read-back | SAM_OpenStudio, SAM_UI | Same for the generated OSM/IDF: the OpenStudio input manifest. | SAM_OpenStudio#30 | As S08, for OpenStudio. | In progress: SAM_OpenStudio#33 open at `d26665bd`; revision 12 independently reviewed, both fixtures PASS scoped native-input conformance. Acceptance-pack refresh recommended; owner merge and closeout pending |
 | S10 | Tas results round-trip validation | SAM_Tas | SAM-imported results and B1a against an independent TSD read. Includes F4 (1-based `peakHour`), F5 (governing instead of annual peak) and F6 (zero-peak hour). | SAM_UI#239 F4-F6 | Model and space results in SAM and B1a equal the TSD values; hour and peak definitions are documented; F4-F6 fixed or explicitly accepted. | Not started |
 | S11 | OpenStudio results round-trip validation | SAM_OpenStudio | SAM-imported results and B1a against an independent SQL/ESO read; label total versus sensible cooling (F3). | SAM_UI#239 F3 | Model and space results equal the SQL/ESO values; metric definitions documented. | Not started |
 | S12 | Final integrated release acceptance | SAM_Deploy, all producers | Phase A and Phase B evidence repeated on an installed release candidate. | All above | Final installation gate passes on a licensed machine. Release needs owner approval. | Not started |
 
-S01-S07 are complete (task log below). S08 is in progress: its licence-free evaluation core (PR-A) is merged, but no native
-input read-back, input manifest or independent result read-back exists yet (Phase B).
+S01-S08 are complete (task log below). S09 is implemented and independently reviewed on the signed-off fixtures, but its
+PR is still open; refresh the acceptance pack, then obtain the owner's merge decision and complete the closeout.
+S10-S12 have not started. Phase B is not complete: independent result round-trip validation (S10/S11) remains outstanding.
 
 ## Acceptance gates
 
@@ -82,15 +83,15 @@ from local licensed runs; a check blocked by a missing licence or executable is 
 ## Owner decisions outstanding
 
 1. ~~Approval of this roadmap and of the Phase C freeze (S00).~~ Approved by the owner on 2026-10-19 (S00 merged).
-2. SAM_Tas was recorded as read-only while the HVAC conversion is in progress (SAM_UI#239). ~~S01~~ changed SAM_Tas with
-   owner approval (SAM_Tas#103). S08 PR-A (SAM_Tas#104) was authorised and merged the same way (2026-10-20). Confirm
-   separately for S08 PR-B and PR-C, and for S10.
+2. SAM_Tas was recorded as read-only while the HVAC conversion is in progress (SAM_UI#239). S01 and S08 PR-A/PR-B/PR-C
+   were separately authorised and merged (SAM_Tas#103-106). S10 still needs a separate owner start.
 3. Multizone fixture: HungaryHouse (`HungaryHouse.json`, sha256 `e16ccbd2…`) is machine-local and not committed.
    Its provenance and redistribution permission are not established; do not commit it as a fixture until the owner
    confirms. S05 used SAM_OpenStudio's committed two-cell model
    (`tests/resources/models/rawModel-WindowsWeatherDataDDYAdiabaticAirPanel.sam`, provenance in that folder's README).
-   Phase B still needs an owner-chosen multizone fixture. The box and one multizone model remain the required
-   equivalence fixtures; the criteria a fixture must meet are in
+   Resolved for S08/S09: the owner signed off the committed synthetic `s08-fix-box` V2 (`45524172...`) and
+   `s08-fix-two` V1/V1 (`20da9b58...`) fixtures on 2026-10-21 (SAM_Tas#106). HungaryHouse remains outside this acceptance.
+   The box and one multizone model remain the required equivalence fixtures; the criteria a fixture must meet are in
    [SIMULATION_INPUT_MAPPING_S07.md](SIMULATION_INPUT_MAPPING_S07.md#8-owner-decisions) (D-FIX).
 4. Whether the trackers SAM#206 and SAM_UI#227 are updated to point here (not done by S00).
 5. ~~F2, F8 and F9 semantics (S07), and the S07 tolerances (SAM#206 says tolerances are owner-confirmed).~~ Decided by
@@ -195,3 +196,22 @@ from local licensed runs; a check blocked by a missing licence or executable is 
   owner exception ("for SAM you can commit directly to branch sow/2026-Q4 without PR to update roadmap"), as for S00. It
   changes only the S07 and S08 rows, the summary line under the table, decision 2 and this log; later roadmap changes go
   through a reviewed PR unless the owner says otherwise.
+
+- **Roadmap reconciliation (2026-10-23, narrow owner-authorised direct Q4 update):** the owner explicitly authorised
+  updating this roadmap directly on `sow/2026-Q4` in chat. This documentation-only checkpoint updates the current S07-S09
+  rows, summary and related authorisation/fixture decisions; dated earlier task-log entries remain historical snapshots.
+  - **S08 complete:** PR-B SAM_Tas#105 merged `fb9041c18299a23d30b4443501fc47a2ee8ba8d1`; PR-C #106 merged
+    `61eb0d37af62dc2142248ddea30f0b043797e75f`. The committed SAM_Tas closeout records licensed acceptance on
+    Direct/UseWidths=false/Sizing=false/Simulate=false: box PASS 353/353, two-zone PASS 623/623, complete coverage,
+    all 7 negatives FAIL, reader/writer controls unchanged. Fixture provenance and OD-G1 to OD-G3 were owner-approved.
+    Sources: `SAM_Tas/PROJECT_PROGRESS.md` and `Documentation/S08-PRC-FixturesAcceptance-PR.md` in that repository.
+  - **S09 in progress:** SAM_OpenStudio#33 is OPEN at `d26665bd2e397d011cd1dda382c3e93004e1c231`, base `7f216657`.
+    Revision-12 code `8edf793a` implements approved S07 U1. Independent review found no blocking U1 defect;
+    local Release x64 S09 120/120 and non-simulation benchmark 51/51 passed. Both fixtures PASS, with coverage
+    319/319 and 592/592; unused-face optics remain visible as informational rows (105/216, differing 69/138).
+    Final-head hosted Build `39934532092` and SPDX `39934532259` passed. Writer/importer 471 passed / 2 skipped is
+    the implementation agent's recorded local evidence, not rerun by the reviewer. Record and evidence are in
+    `SAM_OpenStudio/documentation/S09-OpenStudio-InputReadBack-PR.md` and its `revision-12` evidence folder.
+  - **Next step:** refresh the S09 acceptance/negative pack (the main committed pack predates L1/U1), obtain the owner's
+    merge decision, then add the known-merge-SHA OpenStudio closeout and reconcile this roadmap's S09 row again.
+    This checkpoint does not accept S09 as closed, merge any PR, start S10, relax Phase B gates or unfreeze Phase C.
