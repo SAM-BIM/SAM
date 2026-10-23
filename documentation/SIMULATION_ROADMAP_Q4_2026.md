@@ -56,13 +56,15 @@ SAM_UI `4ee45fef`, SAM_Tas `a34a298d`); recheck them before starting a task.
 | S07 | Minimal Phase B physical-input mapping | SAM (this documentation), SAM_Validation | The minimal set of physical inputs whose conversion is checked (areas, volumes, U and g, gains, setpoints, schedules, infiltration, ventilation, weather and design days), the native field each engine uses, and the tolerances. Records the owner decisions on F2 (ventilation semantics), F8 (window opening) and F9 (zone volume); does not implement them. | SAM#206 input-equivalence table, SAM#209, SAM_UI#232 | Owner-approved mapping table with tolerances and an owner decision recorded for F2, F8 and F9. | Done: [SAM#216](https://github.com/SAM-BIM/SAM/pull/216) `68b60257`; L1 SAM#217 `113873a0`, U1 SAM#218 `b06dbe8c`. OD-G1 to OD-G3 approved during S08; OD-W1/OD-W2 and OD-L1 remain open |
 | S08 | Tas independent native-input read-back | SAM_Tas, SAM_UI | Read the generated TBD independently of the SAM writer and produce the Tas input manifest for the S07 quantities. | SAM#208, SAM_UI#230 | For the box and the multizone model, every S07 quantity read back from the TBD equals SAM within the S07 tolerance or is listed as a mapping difference. | Done: SAM_Tas#104 `d08916ca`, #105 `fb9041c1`, #106 `61eb0d37`; signed-off box PASS 353/353 and two-zone PASS 623/623 on the contract route |
 | S09 | OpenStudio independent native-input read-back | SAM_OpenStudio, SAM_UI | Same for the generated OSM/IDF: the OpenStudio input manifest. | SAM_OpenStudio#30 | As S08, for OpenStudio. | Complete (2026-10-23): SAM_OpenStudio#33 merged `81acb8e7`, closeout `ec204cbb`; both fixtures PASS scoped native-input conformance (S07 §5.2 U1), 21/21 negatives FAIL. Not a Phase B PASS |
-| S10 | Tas results round-trip validation | SAM_Tas | SAM-imported results and B1a against an independent TSD read. Includes F4 (1-based `peakHour`), F5 (governing instead of annual peak) and F6 (zero-peak hour). | SAM_UI#239 F4-F6 | Model and space results in SAM and B1a equal the TSD values; hour and peak definitions are documented; F4-F6 fixed or explicitly accepted. | Not started |
+| S10 | Tas results round-trip validation | SAM_Tas | SAM-imported results and B1a against an independent TSD read. Includes F4 (1-based `peakHour`), F5 (governing instead of annual peak) and F6 (zero-peak hour). | SAM_UI#239 F4-F6 | Model and space results in SAM and B1a equal the TSD values; hour and peak definitions are documented; F4-F6 fixed or explicitly accepted. | Accepted with one declared validation limitation (2026-10-23): SAM_Tas#107 merged `1d61ab05`, closeout `922044fa`; F4-F6 fixed; box PASS 59/59; two-zone 94 PASS / 0 FAIL / 1 BLOCKED, FixB Heating `designDayPeak.hourOfDay` (no independent heating time signal) stays BLOCKED as an owner-accepted limitation. Not an unqualified full PASS |
 | S11 | OpenStudio results round-trip validation | SAM_OpenStudio | SAM-imported results and B1a against an independent SQL/ESO read; label total versus sensible cooling (F3). | SAM_UI#239 F3 | Model and space results equal the SQL/ESO values; metric definitions documented. | Not started |
 | S12 | Final integrated release acceptance | SAM_Deploy, all producers | Phase A and Phase B evidence repeated on an installed release candidate. | All above | Final installation gate passes on a licensed machine. Release needs owner approval. | Not started |
 
 S01-S09 are complete (task log below). S09 is scoped native-input conformance on the signed-off fixtures, merged in
 SAM_OpenStudio#33.
-S10-S12 have not started. Phase B is not complete: independent result round-trip validation (S10/S11) remains outstanding.
+S10 is accepted with one declared validation limitation (SAM_Tas#107; the FixB heating design-day hour of day stays
+BLOCKED). S11-S12 have not started. Phase B is not complete: S11 remains outstanding, and S10's limitation must be
+carried into the Phase B and release evidence.
 
 ## Acceptance gates
 
@@ -84,7 +86,8 @@ from local licensed runs; a check blocked by a missing licence or executable is 
 
 1. ~~Approval of this roadmap and of the Phase C freeze (S00).~~ Approved by the owner on 2026-10-19 (S00 merged).
 2. SAM_Tas was recorded as read-only while the HVAC conversion is in progress (SAM_UI#239). S01 and S08 PR-A/PR-B/PR-C
-   were separately authorised and merged (SAM_Tas#103-106). S10 still needs a separate owner start.
+   were separately authorised and merged (SAM_Tas#103-106). S10 was separately owner-started on 2026-10-23 and merged
+   as SAM_Tas#107.
 3. Multizone fixture: HungaryHouse (`HungaryHouse.json`, sha256 `e16ccbd2…`) is machine-local and not committed.
    Its provenance and redistribution permission are not established; do not commit it as a fixture until the owner
    confirms. S05 used SAM_OpenStudio's committed two-cell model
@@ -227,3 +230,25 @@ from local licensed runs; a check blocked by a missing licence or executable is 
   - **Scope:** scoped native-input conformance under S07 §5.2 (U1). Not simulation equivalence and not a Phase B PASS:
     the Phase B gates (S08-S11 PASS) are unchanged, S10-S12 have not started, Phase C stays frozen. The existing S08
     completion record above is unchanged.
+- **S10 (Accepted with one declared validation limitation, 2026-10-23; narrow owner-authorised direct Q4 update):**
+  [SAM_Tas#107](https://github.com/SAM-BIM/SAM_Tas/pull/107) merged into `sow/2026-Q4` as
+  `1d61ab052157fac868ef7beeae53054ff6c75c66`. The approved head was `662977a6ace1fa0ca27e189c66080739ad575daa`, with base
+  `c50e9169`. The docs-only closeout is `922044fa9ca35062979689f4e359ea85bee577dd` in SAM_Tas.
+  - **Work:** B1a annual peaks, with F4-F6 fixed. An independent TSD/TBD reference and comparison, with 52 negative
+    controls. A receipt-verified, stop-on-failure licensed runner.
+  - **Evidence:** licensed attempt 2 at `C:\TasOut\s10\acc2` (machine-local); pack committed as
+    `SAM_Tas/Documentation/S10-Results-evidence/`.
+    - Box: PASS 59/59, with 52/52 negatives as intended.
+    - Two-zone: 94 PASS / 0 FAIL / 1 BLOCKED, with 51/52 negatives as intended. The only miss is the unmutated control,
+      which is blocked by the same row.
+    - Final-head hosted Build and SPDX green; the independent reviews accepted the execution and the evidence.
+  - **Declared limitation (owner-accepted 2026-10-23):** `SAM|FixB|Heating|designDayPeak.hourOfDay` stays BLOCKED, and
+    S10-C9 stays unresolved for heating.
+    - Cause: no independent signal places the heating design day in time. The heating gains are constant zero, the TBD
+      heating dry bulb is constant, and FixB's load is not a full-day tie.
+    - Still checked: FixB's design load, its native peak index, and its annual and B1a values all pass.
+    - Unchanged: no code, tolerance, fixture or status was changed, and unsupported heating design-day hours still
+      BLOCK in general.
+  - **Scope:** not an unqualified full PASS. The Phase B gate text (S08-S11 PASS) is unchanged, and how this limitation
+    is treated at Phase B acceptance is an owner decision at that gate. S11-S12 have not started; Phase C stays frozen.
+    The source records are `SAM_Tas/PROJECT_PROGRESS.md` and `Documentation/S10-TasResultsRoundTrip-PR.md`.
