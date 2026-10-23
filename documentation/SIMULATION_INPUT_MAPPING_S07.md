@@ -827,3 +827,33 @@ This section records the documentation-only amendment.
   3. After merge: the known-SHA `PROJECT_PROGRESS.md` closeout and guarded branch cleanup.
   4. Then revise SAM_OpenStudio#33 to §5.1, with its own review.
   5. The SAM_Tas absent-value change needs OD-L1 and a separate owner write approval.
+
+## Amendment U1 PR record (opaque optical face scope, OpenStudio)
+
+- **Status:** draft, revision 0, for independent review and owner review. Base `sow/2026-Q4` (`ba686d24`), branch
+  `docs/s07-opaque-face-scope`. Not merged; merging needs explicit owner approval, and merging is the owner's approval
+  of the amendment itself.
+- **Authorisation (owner, 2026-10-23, in substance):** Option B of the S09 owner-gate brief; prepare this separate SAM
+  contract PR for review, preserving the stated safeguards. No downstream S09 implementation, merge, closeout or S10.
+- **Work completed:** §5.2, the OUT-OF-ENGINE-SCOPE outcome and PASS allow-list line in §6, the row 3a pointer, the
+  D-FACE decision row and the header note.
+- **Decisions and assumptions:**
+  - OUT-OF-ENGINE-SCOPE is a new informational outcome. It is not NOT-APPLICABLE (§6 reserves that for proven SAM
+    absence; these values are authored) and not an accepted limitation.
+  - Premise, not re-verified here: EnergyPlus 25.1 uses only zone-bounding and outdoor faces. Source: the S09 record
+    (SAM_OpenStudio#33, revision 8 optics table). The reviewer should confirm it against the EnergyPlus 25.1 reference.
+  - No engine run is required by this amendment; the simulation effect of the writer's variants stays unmeasured.
+- **Evidence (S09, SAM_OpenStudio#33 draft head `adcad2f4`, code `4ea2e6c2`):** both fixtures BLOCKED owner, exit 12,
+  complete coverage (319/319, 592/592); the only remaining non-PASS rows are the 69 / 138 unused-face rows. Hosted S09
+  97/97 and benchmark 51/51; independent local review: writer/importer 471 passed, 2 existing SQL skips.
+- **Files changed:** `documentation/SIMULATION_INPUT_MAPPING_S07.md` only. No code, test, fixture, roadmap or
+  `PROJECT_PROGRESS.md` change.
+- **Checks:** documentation only; local `git diff --check` clean; the diff touches only this file. No build, test,
+  simulation, sizing or engine run. Validated content SHA `ff89b9bdef5e99f0f2e9f2e50f3ca109fe222934`; a record-only
+  commit follows it. GitHub checks: see the PR for the final head.
+- **Unresolved / not covered:** OD-L1 and the Tas fallback (unchanged, separately gated); OD-G1 to OD-G3 and OD-W1/W2
+  (unchanged); the roadmap S09 row (roadmap edits need their own reviewed PR); the S09 implementation, its tests and
+  independent review; merge and closeout of #33; S10.
+- **Next step:** independent review of this PR, including the EnergyPlus-use premise; owner decision on merge. Only
+  after merge and a separate approval: revise SAM_OpenStudio#33 to §5.2 (Claude Code, Opus, high effort, existing S09
+  session, Build mode, because the change is bounded to the comparator and its negatives), then its own review.
