@@ -21,6 +21,13 @@ The amendment establishes no engine-physics equivalence. Implementing it in the 
 Revision 1 (review follow-up, 2026-10-21) keeps an absent p fail-closed, adds the A-Tas Theory evidence and the
 category limits, and records the applicability of the fallback outside its category as open owner decision OD-L1 (§8).
 
+**Amendment U1 (opaque optical face scope, OpenStudio only; proposed, 2026-10-23).** The owner authorised preparing this
+amendment for review (Option B of the S09 owner-gate brief). It is **not approved until the owner merges this PR**. It
+would limit the OpenStudio gate on row 3a *absorptance and emissivity* to the faces EnergyPlus uses, and report the
+other authored values in a non-gated informational outcome, OUT-OF-ENGINE-SCOPE (§5.2, §6). Thickness, λ, ρ, c, the
+used-face optics, malformed or undeterminable face roles, every Tas row and S08 are unchanged. It is not a general
+relaxation and accepts nothing; PASS stays a strict allow-list (§6). Implementing it in S09 is downstream work (§5.2).
+
 ## Evidence pins
 
 Local = `git ls-remote origin refs/heads/sow/2026-Q4`, checked 2026-10-20; every remote is `github.com/SAM-BIM/*`. Each
@@ -188,7 +195,7 @@ Numeric test, used only when both values are present: `d = |n − s|`. A value i
 | 1a | Zone floor area (m²) | §4 geometric; stored reported | `TBD.zone.floorArea` (TAS-computed from `element.zoneFloorArea`) | geometric; IDF `Zone` *(translator)* | native vs geometric | 0.5 % | 0.01 m² | `MA/Convert/ToT3D/T3DDocument.cs:269`; `MA/DIRECT_T3D_ROUTE.md:258-275` | Air panels as virtual floor: UNVERIFIED |
 | 1b | Surface gross area; pane and frame area (m²) | `Face3D.GetArea()`; `Query.Area(aperture, out pane, out frame)` | TBD surface area keyed by `UpdateIds` identity; `framePerc` | `Surface` / `SubSurface` (`OS/Panel.cs`, `OS/Aperture.cs:100-130`) | per panel and opening by identity | 0.5 % | 0.01 m² | `MA/Modify/UpdateIds.cs:12`; `MA/Query/Match.cs`, `MA/Query/PaneStampMatch.cs` | OS hole drop → EXPORT-DEFECT; frame → T-FRAME |
 | 2 | Zone volume (m³) | §4 geometric; stored reported | `TBD.zone.volume` (measured = SAM shell, widths OFF) | geometric; IDF `Zone` *(translator)* | native vs geometric; stored vs geometric per D-F9 | 0.5 % | 0.01 m³ | `MA/DIRECT_T3D_ROUTE.md:258-275`; `OS/Space.cs:16-37` | — |
-| 3a | Opaque layers: thickness (m), λ (W/m·K), ρ (kg/m³), c (J/kg·K), absorptance and emissivity (–) | `ConstructionLayers` + `MaterialLibrary` | `TBD.material.*`, `Construction.materialWidth[i]`; side per `UpdateReversed` | `StandardOpaqueMaterial` → `Material`; `Material:AirGap` R = 1/h | layer by layer, per zone side | 1e-5 | 1e-6 (unit) | `MA/Modify/UpdateMaterial.cs:167-240`; `MA/Modify/UpdateReversed.cs:25`; `OS/Material.cs:77-118,221-259` | missing material → EXPORT-DEFECT |
+| 3a | Opaque layers: thickness (m), λ (W/m·K), ρ (kg/m³), c (J/kg·K), absorptance and emissivity (–) | `ConstructionLayers` + `MaterialLibrary` | `TBD.material.*`, `Construction.materialWidth[i]`; side per `UpdateReversed` | `StandardOpaqueMaterial` → `Material`; `Material:AirGap` R = 1/h | layer by layer, per zone side | 1e-5 | 1e-6 (unit) | `MA/Modify/UpdateMaterial.cs:167-240`; `MA/Modify/UpdateReversed.cs:25`; `OS/Material.cs:77-118,221-259` | missing material → EXPORT-DEFECT. OS absorptance and emissivity: gated on engine-used faces only, other faces OUT-OF-ENGINE-SCOPE (§5.2, amendment U1, proposed) |
 | 3b | Derived U, opaque (W/m²·K) | recompute from SAM layers with films F-OPQ | — (`GetUValue()` informational) | — (E+ report informational) | independent recompute from native layers vs from SAM layers | 1 % | 0.005 | `MA/Query/ThermalTransmittance.cs` | engine films differ by design |
 | 3c | Glazing layers (τ, ρ, ε –; gas m); SimpleGlazing U (W/m²·K), g (–); derived U, g | pane layers, or `ThermalTransmittance` + `TotalSolarEnergyTransmittance` | transparent `TBD.material.*` | `StandardGlazing` / `Gas`; `SimpleGlazing` → `WindowMaterial:SimpleGlazingSystem`; `WindowProperty:FrameAndDivider` | layers identity; SimpleGlazing direct; derived U with F-GLZ-U, derived g with F-GLZ-g (informational) | 1e-5; SG 0.1 %; derived 1 % | 1e-6; 0.005; 0.001 | `OS/Construction.cs:59-172`; `SA/Classes/Glazing.cs:179-186` | — |
 | 4a | Gain density: occupancy S/L, lighting, equipment S/L (W/m²); people (p/m²) | raw parameters per §3 | `ticOSG/ticOLG/ticLG/ticESG/ticELG` `profile.factor` | `People` / `Lights` / `ElectricEquipment` definitions (+ latent instance) | density identity | 0.1 % | 0.001 W/m²; 1e-5 p/m² | `MA/Modify/UpdateInternalCondition.cs:94-271`; `OS/InternalCondition.cs:71-190` | — |
@@ -483,6 +490,55 @@ the applied values visible (default-resolution item 3).
 - **SAM_LadybugTools**, a separate task: the same convention for `LB/ToLadybugTools/ProgramType.cs:110-118` and
   `LB/ToSAM/InternalCondition.cs:59-60`.
 
+### 5.2 Opaque optical face scope, OpenStudio (amendment U1; proposed, owner approval = merge of this PR)
+
+**Problem.** Row 3a compares absorptance and emissivity layer by layer on both SAM faces. EnergyPlus reads one value
+set per `Material`, and only the faces that bound a zone or the outdoors matter. After S09 revision 8 every
+engine-used face matches on both fixtures. What remains (69 box, 138 two-zone rows) is on faces the engine does not
+use: authored values that are present, so §6 cannot call them NOT-APPLICABLE (proven SAM absence only).
+
+**Rule (OpenStudio native comparison only).**
+- *Engine-used optical faces* (gated exactly as today): for an outdoor surface, the zone face of its zone-side layer
+  and the outdoor face of its outermost layer; for an interzone panel, the zone face on each side (each side's
+  zone-side layer); for a ground or adiabatic surface, the zone face.
+- *Not used*: every other face of an opaque layer (buried layer faces, the outer face of a ground or adiabatic
+  surface, the face of a single-valued material that no zone or outdoor boundary reads).
+- Used faces are derived independently from raw SAM data, panel orientation and boundary type, never from the writer's
+  face selector (as S09 does today). Which faces EnergyPlus 25.1 uses is the premise of this amendment and is
+  documented in the S09 record (revision 8, optics table); this PR does not re-verify it against the EnergyPlus
+  reference, and the reviewer should.
+
+**Outcome OUT-OF-ENGINE-SCOPE** (informational, non-gated; new). It applies only to a row on a not-used optical face of
+an opaque layer in row 3a, OpenStudio, where both values are valid and comparable. It is *not* NOT-APPLICABLE: the SAM
+value is authored and present. It is not MATCH, and not an accepted limitation.
+- **Reporting.** Every such row stays in the report with the SAM value, the native value, the difference and the scope
+  reason (for example "buried layer face" or "ground surface outer face"). The count per outcome and the 69 / 138 style
+  totals stay visible, and the report names the amendment.
+- **Gate.** It triggers no rank 1-5 outcome and is not an unresolved item. It is added to the PASS allow-list for
+  those rows only (§6).
+
+**Stays gated (no general relaxation).**
+- Absorptance and emissivity on every engine-used face: a wrong value is EXPORT-DEFECT or out of tolerance as today,
+  including a swapped zone face.
+- Thickness, λ, ρ and c of every layer, on all layers and both sides, as per-layer checks.
+- Rows that are not valid and comparable stay as today: S-INVALID, native NaN (G1-NaN, G3), an unreadable field, a
+  missing native object.
+- A face whose role cannot be determined (unknown construction use, unresolved boundary, malformed, unknown or
+  contradictory layer or face metadata) is **not** excluded. It stays gated, and an uninterpretable configuration is
+  BLOCKED technical (rank 2).
+- Glazing (3c), every other row, and Tas.
+
+**Scope limits.** OpenStudio 3.10 / EnergyPlus 25.1 only. Tas (S08) and its rows are unchanged. The amendment does not
+change OD-L1, any tolerance, the roadmap Phase B gate (S08-S11 PASS; no exception) or the effect of the writer's
+construction-aware variants on results (unmeasured; this amendment adds no engine-run requirement). A later engine
+version or setting that reads other faces (for example a variable-absorptance property) needs a new decision.
+
+**Downstream, not authorised here** (each needs its own approval and review): S09 (SAM_OpenStudio#33) classifies rows
+by the independently derived used faces, prints the informational rows and counts, and adds tests: a wrong used-face
+value FAILs; a wrong thickness or conductivity FAILs; a malformed or undeterminable face role stays gated; a NaN or
+unreadable unused-face value is not excluded; the 69 / 138 rows report OUT-OF-ENGINE-SCOPE. Whether the fixtures then
+reach PASS depends on every other rank trigger.
+
 ---
 
 ## 6. Input states, outcomes and gate
@@ -494,6 +550,9 @@ the applied values visible (default-resolution item 3).
 | S-VALUE | valid non-zero | compared; missing native → EXPORT-DEFECT, unless listed UNSUPPORTED-MAPPING or MAPPING-DIFFERENCE |
 
 Absence is never compared numerically, and `abs` never turns a missing or zeroed native object into a pass.
+**OUT-OF-ENGINE-SCOPE** (amendment U1, §5.2; proposed): informational, non-gated. Only for valid, comparable OpenStudio row-3a
+absorptance or emissivity values on faces the engine does not use. Distinct from NOT-APPLICABLE (proven SAM absence).
+Always reported with both values and the scope reason.
 **MAPPING-DIFFERENCE** is a known converter behaviour that conflicts with the stated SAM intent (D-F2 V1 in OS). It is reported and gated like UNSUPPORTED-MAPPING.
 
 **Gate per engine per fixture, in the roadmap vocabulary.** Every applicable quantity must be resolved. The highest-ranked trigger decides the status. The report lists the count per outcome and every non-PASS quantity, so coexisting items stay visible.
@@ -505,11 +564,11 @@ Absence is never compared numerically, and `abs` never turns a missing or zeroed
 | 3 | **BLOCKED** (owner decision named) | unaccepted UNSUPPORTED-MAPPING or MAPPING-DIFFERENCE; **unaccepted** DOCUMENTED-DEFAULT on a gated quantity; MODEL-INTERPRETATION-REQUIRED not recorded |
 | 4 | **NOT RUN** (quantities named) | UNVERIFIED that is readable but not yet resolved, including §7 schedule alignment |
 | 5 | **Not PASS — accepted limitation** (items named) | only owner-accepted UNSUPPORTED-MAPPING / MAPPING-DIFFERENCE / DOCUMENTED-DEFAULT remain. An owner-accepted DOCUMENTED-DEFAULT belongs here, not in rank 3. Accepted per quantity and per fixture, as with S06. **Never PASS.** |
-| 6 | **PASS** | all MATCH / WITHIN-TOLERANCE / verified ACCEPTED-TRANSFORMATION / NOT-APPLICABLE (proven SAM absence) |
+| 6 | **PASS** | all MATCH / WITHIN-TOLERANCE / verified ACCEPTED-TRANSFORMATION / NOT-APPLICABLE (proven SAM absence) / OUT-OF-ENGINE-SCOPE (§5.2 rows only) |
 
 "INCOMPLETE" in revision 2 is replaced by ranks 3–4.
 
-PASS stays a strict allow-list. An unsupported, unresolved or unverified item, and an owner-accepted limitation, never gives PASS.
+PASS stays a strict allow-list. An unsupported, unresolved or unverified item, and an owner-accepted limitation, never gives PASS. OUT-OF-ENGINE-SCOPE is listed for §5.2 rows only; it never covers an invalid, unreadable, undeterminable or engine-used value.
 
 ### 6.1 Gate completeness: proposed fail-closed handling (for owner review; not approved)
 
@@ -560,6 +619,7 @@ decides, the SAM_Tas fallback change stays unimplemented and separately gated (�
 | **D-F9 volume** | A: engine reference = §4 geometric; stored reported. C: fixtures have stored ≈ geometric within 0.5 %, or a recorded interpretation (convention, intended volume). The difference is MODEL-INTERPRETATION-REQUIRED (rank 3 until recorded), not a defect. A recorded interpretation **never waives** a native-vs-geometric FAIL; it only fixes how 7b and 8b are reported. | **A + C** |
 | **D-FIX fixtures** | Roadmap box + multizone requirement **retained**. The committed two-cell model has non-zero supply and exhaust and no Ventilation profile: it is kept as **divergence evidence** (V1 MAPPING-DIFFERENCE; exhaust unsupported), not as an equivalence fixture. The box and HungaryHouse are machine-local. | The owner selects or clears both equivalence fixtures before the S08/S09 gate, against the criteria below. S07 creates none. |
 | **D-LIGHT lighting split** (amendment L1) | The revision 1-3 identity `LightingViewCoefficient` ↔ `Fraction Visible` is withdrawn: the two quantities differ physically (§5.1). SAM `LightingRadiantProportion` is the total radiant share p, split for OS by s under T-LIGHT-SPLIT, so the convective remainder is 1 − p in both engines. The reference category is suspended LED office lighting with the whole gain entering the room. Baseline: p₀ = 0.576, s = 0.2415 / 0.576 at full precision, giving F_R 0.3345, F_V 0.2415, F_C 0.424. It is a midpoint-derived reference from cited historical ranges, with the §5.1 limitations. Authored p, including 0, is preserved. One absent-value fallback (p₀) applies to both engines, with diagnostics and source and applicability records. The view coefficient is kept separate, and its LED value is unresolved. | **Approved 2026-10-21.** T-LIGHT-SPLIT may be ACCEPTED-TRANSFORMATION for conformance to the declared input convention; it does not establish engine-physics equivalence. Writer changes are downstream (§5.1): SAM_OpenStudio#33 and a separate, separately approved SAM_Tas PR. |
+| **D-FACE** (amendment U1; proposed) | Row 3a optical values (absorptance, emissivity) in the OpenStudio comparison are gated on engine-used faces; other authored values are reported as OUT-OF-ENGINE-SCOPE (§5.2). Alternative (Option A of the S09 brief): accept those rows per fixture as a rank 5 limitation, never PASS. | **Option B proposed.** The owner authorised preparing this PR on 2026-10-23; the amendment takes effect only if the owner merges it. |
 
 **Fixture criteria:**
 - committed, with provenance and a hash;
