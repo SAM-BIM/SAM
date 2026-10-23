@@ -4,7 +4,7 @@ Persistent, concise handoff between sessions for the Q4 2026 simulation work. Th
 [SIMULATION_ROADMAP_Q4_2026.md](SIMULATION_ROADMAP_Q4_2026.md); this file records progress and outstanding work only.
 It authorises nothing. Update entries in place; do not append session transcripts.
 
-**Last updated:** 2026-10-23 (handoff established after S09 completion; S10 readiness review only)
+**Last updated:** 2026-10-23 (S10 merged and accepted with one declared validation limitation)
 
 Committed directly to `sow/2026-Q4` under the owner's narrow exception (2026-10-23).
 
@@ -22,12 +22,14 @@ Committed directly to `sow/2026-Q4` under the owner's narrow exception (2026-10-
 
 | Item | State |
 |---|---|
-| Current stage | **S10 Tas results round-trip validation: Next, NOT authorised** |
+| Current stage | **S11 OpenStudio results round-trip validation: Next, NOT authorised** |
+| Last completed | S10, accepted with one declared validation limitation (not an unqualified full PASS) |
 | Phase A | Gate met (one owner-accepted exception: S06 provenance labelling Not PASS) |
-| Phase B | Not accepted. S08 and S09 PASS; S10 and S11 outstanding |
+| Phase B | Not accepted. S08 and S09 PASS; S10 accepted with one declared limitation; S11 outstanding |
 | Phase C | Frozen |
 
-S10 needs a separate owner start, including SAM_Tas write scope (roadmap owner decision 2).
+S11 needs a separate owner start. How S10's limitation is treated at Phase B acceptance is an owner decision at that gate;
+the Phase B gate text is unchanged.
 
 ## 3. Completed stages and evidence
 
@@ -36,62 +38,76 @@ S10 needs a separate owner start, including SAM_Tas write scope (roadmap owner d
 | S00-S07 | Roadmap rows and task log (merge SHAs recorded there) |
 | S08 | SAM_Tas#104 `d08916ca`, #105 `fb9041c1`, #106 `61eb0d37`; closeout `c50e9169`; box 353/353, two-zone 623/623 |
 | S09 | SAM_OpenStudio#33 merged `81acb8e794efa0f05f973e27f226b4d64c02c2e2` (head `39a6c90c`); closeout `ec204cbb`; roadmap `38681f7f5c994eebf4e58eb05dca15c54a9cf3d7` |
+| S10 | SAM_Tas#107 merged `1d61ab052157fac868ef7beeae53054ff6c75c66` (head `662977a6`); closeout `922044fa`; roadmap `4583e60e0a1a86596ba1b39a1fdb5ea9007773cc`; box 59/59, two-zone 94/0/1 |
 
 S09 detail: both fixtures PASS scoped native-input conformance under S07 §5.2 U1 (coverage 319/319 and 592/592),
 21/21 negatives FAIL by intended mechanism; final-head hosted Build and SPDX green at `39a6c90`; local S09 120/120,
 benchmark 51/51. Pack: `SAM_OpenStudio/documentation/S09-OpenStudio-InputReadBack-evidence/acceptance-2026-10-23/`.
 Not simulation equivalence and not a Phase B PASS.
 
-## 4. Repository state (verified 2026-10-23, local = origin `sow/2026-Q4`)
+S10 detail:
+- **Work:**
+  - B1a annual peaks, with F4-F6 fixed;
+  - an independent TSD/TBD reference and comparison, which does not reuse the SAM import path, with 52 negative
+    controls;
+  - a receipt-verified licensed runner (`Build-S10-Receipt.ps1`, `Run-S10-Results.ps1`) that stops on infrastructure
+    failure.
+- **Licensed attempt 2:** run at `C:\TasOut\s10\acc2` (machine-local) on the signed-off S08 fixtures.
+  - Box: PASS 59/59, with 52/52 negatives as intended.
+  - Two-zone: 94 PASS / 0 FAIL / 1 BLOCKED, with 51/52 negatives as intended. The only miss is the unmutated control,
+    which is blocked by the same row.
+- **Final-head checks:** hosted Build and SPDX green at `662977a6`. Totals: producer 40, core 258, read-back 249, TM59
+  1249, GenOpt 432.
+- **Evidence and record:** pack `SAM_Tas/Documentation/S10-Results-evidence/` (with a README); record
+  `SAM_Tas/Documentation/S10-TasResultsRoundTrip-PR.md`.
+
+## 4. Repository state (verified 2026-10-23, origin `sow/2026-Q4`)
 
 | Repository | HEAD | Open PRs |
 |---|---|---|
-| SAM | `38681f7f` | none |
-| SAM_Tas | `c50e9169` | none |
+| SAM | this handoff commit (parent `4583e60e`) | none |
+| SAM_Tas | `922044fa` | none |
 | SAM_OpenStudio | `ec204cbb` | none |
 | SAM_UI | `45263ff0` | none |
 | SAM_Validation | `2a3acfaf` | none |
 
-No S10 branch or Draft PR exists.
+No S11 branch or Draft PR exists.
 
 ## 5. Local build and test results
 
-None this session (readiness review, documentation only). Last recorded: S09 local results in section 3.
+Last recorded (S10, SAM_Tas content `9871f437`): controlled receipt build exit 0; producer 40/40, core 258/258,
+read-back 249/249. The full record is in the S10 PR record.
 
 ## 6. Hosted CI
 
-No S10 CI. Last authoritative final-head CI: SAM_OpenStudio#33 at `39a6c90` (Build and SPDX green).
+Last authoritative final-head CI: SAM_Tas#107 at `662977a6`, Build `40010831380` and SPDX `40010831293`, both green.
 
-## 7. S10 readiness, open blockers and known limitations
+## 7. Open limitations and known gaps
 
-S10 scope (roadmap): SAM-imported Tas results and B1a against an independent TSD read; F4-F6 fixed or explicitly
-accepted; hour and peak definitions documented. Defect descriptions:
-`SAM_UI/documentation/Licensed-TasOpenStudio-Validation-Q4.md` (F4-F6, lines ~383-392).
-
-Code check at SAM_Tas `c50e9169`:
-- **F4 still present:** `benchmark/SAM.Analytical.Tas.Benchmark/Modify/ToBenchmark.cs:184-193` maps space `PeakHour`
-  from `SpaceSimulationResultParameter.LoadIndex` (raw 1-based Tas index), while model hours are 0-based.
-- **F5:** mapping unchanged since diagnosis (space `Load` taken as governing peak; per
-  `Licensed-TasOpenStudio-Validation-Q4.md`); not re-verified in `Convert/ToSAM/Results.cs`.
-- **F6:** the `Peak()` coupling (lines 231-239) treats a measured-zero peak with hour 0 as valid; zero-peak hour
-  semantics still need a fix or explicit acceptance.
-- Goldens encode the current mapping (`benchmark/SAM.Analytical.Tas.Benchmark.Tests/BenchmarkFixture.cs:190,197`);
-  a fix changes Tas golden values.
-
-Blockers before implementation:
-1. Owner start of S10 with SAM_Tas write scope (SAM_Tas was recorded read-only during HVAC conversion).
-2. Owner decision on F4-F6: fix (proposed: 0-based annual-peak hour from `AnnualPeak`, design values in `designLoad`,
-   no hour for an all-zero profile) or explicit acceptance.
-3. Independent TSD reader design: must not reuse the SAM import path being validated (as S08 did for TBD).
-4. Licensed Tas machine for TSD generation and acceptance; fixtures are the signed-off S08 `s08-fix-box` V2 and
-   `s08-fix-two` V1/V1 (HungaryHouse excluded). Tas availability on the current machine not verified this session.
-5. Comparison tolerances for results are not defined in S07 (input contract); any result tolerance needs owner approval.
+- **S10 declared validation limitation (owner-accepted 2026-10-23):** `SAM|FixB|Heating|designDayPeak.hourOfDay` on
+  `s08-fix-two` stays BLOCKED, and S10-C9 stays unresolved for heating.
+  - Cause: no independent signal places the heating design day in time. The heating gains are constant zero, the TBD
+    heating dry bulb is constant, and FixB's load is not a full-day tie.
+  - Still checked and passing: FixB's design load, its native peak index, and its annual and B1a values.
+  - **This must stay visible in Phase B and release evidence (S12).** Closing it needs independent heating timing
+    evidence and separately authorised work.
+- **S10 other limits:**
+  - the calendar design-day layout is measured on two fixtures only;
+  - libraries from other repositories and third parties are pinned by hash in the build receipt, not source-bound;
+  - `Pack-S10-Evidence.ps1` still uses `Get-FileHash`.
+- **Follow-ups recorded in SAM_Tas:** the SAM_Validation `METRICS.md` Tas column; the `designDaySource` label; the
+  OpenStudio zero-peak rule (S11).
+- **S11 scope (roadmap):** SAM-imported OpenStudio results and B1a against an independent SQL/ESO read, labelling total
+  versus sensible cooling (F3, SAM_UI#239). Like S10, it needs an independent reader, owner-approved result tolerances
+  and the signed-off fixtures.
 
 ## 8. Pending independent review decisions
 
-None open. S09 review closed with merge. S10 plan will need independent review before implementation.
+None open. S10 reviews closed with merge. An S11 plan will need independent review before implementation.
 
 ## 9. Next recommended action (exactly one)
 
-Owner decides whether to authorise S10 planning (Plan mode, no code): a written S10 plan covering the independent TSD
-reader, F4-F6 decisions, result tolerances and fixtures, for GPT-6 review before any branch is created.
+Owner decides whether to authorise S11 planning (Plan mode, no code): a written S11 plan covering the independent
+SQL/ESO reader, F3 labelling, result tolerances and fixtures, for independent review before any branch is created.
+Recommended: Claude Opus 5.5, effort High, new session, Plan mode, because the reader independence and tolerances
+need careful design.
