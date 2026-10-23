@@ -55,13 +55,13 @@ SAM_UI `4ee45fef`, SAM_Tas `a34a298d`); recheck them before starting a task.
 | S06 | Early SAM_Deploy smoke candidate | SAM_Deploy | Payload the Benchmark producers, SAM_Validation and the OpenStudio dependencies, so an installed candidate (not a developer build) can run the workflows. Avoids the stale `deps.json` state seen in #239. | SAM_UI 2026-10-18 closeout (producers not in BuildAll payload) | An installed candidate runs Tas, OpenStudio and Both on the box model on a licensed machine. Candidate build only; any release needs separate owner approval. | Done: SAM_Deploy#66 `1657bb53`, SAM_OpenStudio#32 `a9429f7c`, SAM_Validation#16 `e9a83df0` (provenance labelling: Not PASS, accepted limitation) |
 | S07 | Minimal Phase B physical-input mapping | SAM (this documentation), SAM_Validation | The minimal set of physical inputs whose conversion is checked (areas, volumes, U and g, gains, setpoints, schedules, infiltration, ventilation, weather and design days), the native field each engine uses, and the tolerances. Records the owner decisions on F2 (ventilation semantics), F8 (window opening) and F9 (zone volume); does not implement them. | SAM#206 input-equivalence table, SAM#209, SAM_UI#232 | Owner-approved mapping table with tolerances and an owner decision recorded for F2, F8 and F9. | Done: [SAM#216](https://github.com/SAM-BIM/SAM/pull/216) `68b60257`; L1 SAM#217 `113873a0`, U1 SAM#218 `b06dbe8c`. OD-G1 to OD-G3 approved during S08; OD-W1/OD-W2 and OD-L1 remain open |
 | S08 | Tas independent native-input read-back | SAM_Tas, SAM_UI | Read the generated TBD independently of the SAM writer and produce the Tas input manifest for the S07 quantities. | SAM#208, SAM_UI#230 | For the box and the multizone model, every S07 quantity read back from the TBD equals SAM within the S07 tolerance or is listed as a mapping difference. | Done: SAM_Tas#104 `d08916ca`, #105 `fb9041c1`, #106 `61eb0d37`; signed-off box PASS 353/353 and two-zone PASS 623/623 on the contract route |
-| S09 | OpenStudio independent native-input read-back | SAM_OpenStudio, SAM_UI | Same for the generated OSM/IDF: the OpenStudio input manifest. | SAM_OpenStudio#30 | As S08, for OpenStudio. | In progress: SAM_OpenStudio#33 open at `d26665bd`; revision 12 independently reviewed, both fixtures PASS scoped native-input conformance. Acceptance-pack refresh recommended; owner merge and closeout pending |
+| S09 | OpenStudio independent native-input read-back | SAM_OpenStudio, SAM_UI | Same for the generated OSM/IDF: the OpenStudio input manifest. | SAM_OpenStudio#30 | As S08, for OpenStudio. | Complete (2026-10-23): SAM_OpenStudio#33 merged `81acb8e7`, closeout `ec204cbb`; both fixtures PASS scoped native-input conformance (S07 §5.2 U1), 21/21 negatives FAIL. Not a Phase B PASS |
 | S10 | Tas results round-trip validation | SAM_Tas | SAM-imported results and B1a against an independent TSD read. Includes F4 (1-based `peakHour`), F5 (governing instead of annual peak) and F6 (zero-peak hour). | SAM_UI#239 F4-F6 | Model and space results in SAM and B1a equal the TSD values; hour and peak definitions are documented; F4-F6 fixed or explicitly accepted. | Not started |
 | S11 | OpenStudio results round-trip validation | SAM_OpenStudio | SAM-imported results and B1a against an independent SQL/ESO read; label total versus sensible cooling (F3). | SAM_UI#239 F3 | Model and space results equal the SQL/ESO values; metric definitions documented. | Not started |
 | S12 | Final integrated release acceptance | SAM_Deploy, all producers | Phase A and Phase B evidence repeated on an installed release candidate. | All above | Final installation gate passes on a licensed machine. Release needs owner approval. | Not started |
 
-S01-S08 are complete (task log below). S09 is implemented and independently reviewed on the signed-off fixtures, but its
-PR is still open; refresh the acceptance pack, then obtain the owner's merge decision and complete the closeout.
+S01-S09 are complete (task log below). S09 is scoped native-input conformance on the signed-off fixtures, merged in
+SAM_OpenStudio#33.
 S10-S12 have not started. Phase B is not complete: independent result round-trip validation (S10/S11) remains outstanding.
 
 ## Acceptance gates
@@ -215,3 +215,15 @@ from local licensed runs; a check blocked by a missing licence or executable is 
   - **Next step:** refresh the S09 acceptance/negative pack (the main committed pack predates L1/U1), obtain the owner's
     merge decision, then add the known-merge-SHA OpenStudio closeout and reconcile this roadmap's S09 row again.
     This checkpoint does not accept S09 as closed, merge any PR, start S10, relax Phase B gates or unfreeze Phase C.
+- **S09 completion (2026-10-23, narrow owner-authorised direct Q4 update):** SAM_OpenStudio#33 merged into
+  `sow/2026-Q4` as `81acb8e794efa0f05f973e27f226b4d64c02c2e2` (approved head `39a6c90c24b31e82d26f44ed9fefaf0037d41726`,
+  base `7f216657`); the docs-only closeout is `ec204cbb0dbfedbcd5ea18428d24382fd0429b87` in SAM_OpenStudio. This
+  supersedes the "in progress" S09 entry above (kept as a historical snapshot).
+  - **Evidence:** independent review accepted the code and final evidence. Acceptance pack at `d26665bd`
+    (`SAM_OpenStudio/documentation/S09-OpenStudio-InputReadBack-evidence/acceptance-2026-10-23/`): both fixtures PASS
+    (coverage 319/319 and 592/592), 21/21 negatives FAIL by intended mechanism, 24 packed reports match raw reports.
+    Final-head hosted Build and SPDX green at `39a6c90`; local S09 120/120, benchmark 51/51. The acceptance run is local
+    only.
+  - **Scope:** scoped native-input conformance under S07 §5.2 (U1). Not simulation equivalence and not a Phase B PASS:
+    the Phase B gates (S08-S11 PASS) are unchanged, S10-S12 have not started, Phase C stays frozen. The existing S08
+    completion record above is unchanged.
