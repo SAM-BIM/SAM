@@ -1,12 +1,14 @@
 # F-S11-2: fractional `SpaceSimulationResult` unmet hours (SAM)
 
 Branch `fix/s11-fractional-unmet-hours` → base `sow/2026-Q4` (cut from `b7c2c36a`). Draft PR: SAM-BIM/SAM#219.
-Record date: 2026-10-24. Tested content SHA: `47cc5dd8` (this record is added by a later record-only commit).
+Record date: 2026-10-24. Tested content SHA: `47cc5dd8`. Every later commit is record-only: `eadffe50` added this
+record; the owner-deferral update that follows changes only this file. The PR description names the final head.
 
 ## Current status
 
-Draft, **not merged, not Ready**. Waiting for final-head CI and an independent review. No engine run, no merge, no
-SAM_OpenStudio#34 integration, no installer/release work is authorised by this PR.
+Draft, **not merged, not Ready**. An independent review **accepted the core fix** at `eadffe50`, and verified Build, Test
+and SPDX passing there. The owner **deferred Revit compatibility** (finding 1, below). Waiting for owner merge approval.
+No engine run, no merge, no SAM_OpenStudio#34 integration, no installer/release work is authorised by this PR.
 
 ## Why
 
@@ -54,7 +56,10 @@ parameter, no schema version, no migration of saved files.
 
 ## Findings for the owner / reviewer
 
-1. **SAM_Revit export — risk, not verified, not changed (outside this PR's write scope).** `SAM_Revit`
+1. **SAM_Revit export — DEFERRED by the owner (2026-10-24).** Owner decision, given in chat: Revit is unavailable and
+   its shared-parameter definitions can be changed later, so no Revit fix is made now; SAM keeps fractional unmet
+   hours. The risk below stays open as a known, accepted follow-up, not a blocker for this PR. Original analysis:
+   risk, not verified, not changed (outside this PR's write scope). `SAM_Revit`
    `ActiveSetting` maps `UnmetHours` to Revit Space parameters `SAM_UnmetHoursCooling` / `SAM_UnmetHoursHeating`, and
    `Core.Revit.Modify.SetValues` passes the stored object to `Modify.SetValue(Parameter, object)`. `SetValue_Integer`
    accepts `int`, `string`, `bool`, `IntegerId`, `LongId`, **not `double`**; `SetValue_Double` accepts any numeric. The
@@ -62,7 +67,7 @@ parameter, no schema version, no migration of saved files.
    not in any SAM-BIM repository, so it could not be checked. If those parameters are **Integer**, results set after this
    change (now `double`, including Tas whole hours) would silently stop being written to Revit; if they are **Number**,
    nothing changes. Old models loaded from JSON still hold `Int32` and are unaffected until re-simulated.
-   Proposed dependency fix (separate SAM_Revit PR, needs owner approval before editing): in
+   Possible later fix, **not authorised now** (a separate SAM_Revit PR, or a change to the shared-parameter definitions): in
    `SAM.Core.Revit/Modify/SetValue.cs` `SetValue_Integer`, add a branch for a finite whole-number `double` within `int`
    range → `parameter.Set((int)value)`; leave fractional doubles refused (no silent rounding into an Integer parameter).
    Or confirm the two parameters are Number type, in which case nothing is needed.
@@ -113,7 +118,13 @@ Base SAM `b7c2c36a` → `SAM.Analytical.dll` `017370d9…`; tested SAM `47cc5dd8
   produced and no EnergyPlus/OpenStudio process was running. Its log is kept as evidence; the reported results above
   come from the rerun with the CI filter in a short path.
 - SAM_Revit cannot be built or exercised here (Revit API); finding 1 is from source reading only.
-- Hosted CI: see the PR description for the final head.
+- Hosted CI: below; the PR description names the final head and its checks.
+
+**Hosted checks at `eadffe50`** (record-only on top of tested `47cc5dd8`), all SUCCESS, also verified by the
+independent review: Build (Windows) [40112883313](https://github.com/SAM-BIM/SAM/actions/runs/40112883313), Test
+[40112883328](https://github.com/SAM-BIM/SAM/actions/runs/40112883328) (synthetic merge `dfeadc3` of `eadffe50` into
+`b7c2c36a`; 3738/3738 passed, including the 12 new tests), SPDX
+[40112883247](https://github.com/SAM-BIM/SAM/actions/runs/40112883247).
 
 **Provenance of probe dependencies (machine-local copies).** SAM_SQLite `build/` from the local checkout at `ec2eb86`
 (`SAM.Core.SQLite.dll` `ba9400e9…`); SAM_Validation `build/` from the local checkout at Q4 `2a3acfaf`
@@ -149,11 +160,11 @@ workspaces).
 
 ## Next step
 
-1. Independent review of this Draft PR at its final head (recommended: another model or a fresh Claude Opus 5.5
-   session, High effort, new session, Plan mode, read-only — a fresh reader checks the compatibility argument without
-   this session's assumptions).
-2. Owner decisions: finding 1 (confirm the Revit parameter type, or approve the small SAM_Revit `SetValue_Integer`
-   change as its own PR) and finding 2 (accept NaN behaviour or ask for a guard).
-3. After owner approval and merge: known-SHA `PROJECT_PROGRESS.md` closeout on SAM `sow/2026-Q4`; then, as a separate
-   reviewed step, integrate into SAM_OpenStudio#34 and reconcile its pinned F-S11-2 expected-failure test (left untouched
-   here).
+1. Owner merge approval at the final head named in the PR description, after its checks pass. Finding 1 is deferred;
+   finding 2 (NaN) is unchanged and stays a recorded note. Recommended executor once approved: Claude Code, Claude
+   Sonnet 5.5, Medium effort, existing session, Build mode. It is a mechanical guarded merge plus closeout, with the
+   context already here.
+2. After merge: known-SHA `PROJECT_PROGRESS.md` closeout on SAM `sow/2026-Q4` (docs-only, `[skip ci]`), carrying the Revit
+   deferral; guarded cleanup of `fix/s11-fractional-unmet-hours`.
+3. Then, as a separate reviewed step, integrate into SAM_OpenStudio#34 and reconcile its pinned F-S11-2 expected-failure
+   test (left untouched here). The Revit follow-up waits for its own owner decision.
