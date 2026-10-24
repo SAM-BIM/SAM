@@ -45,7 +45,9 @@ namespace SAM.Analytical
         [ParameterProperties("Max Dry Bulb Temperature Index", "Maximal Dry Bulb Temperature Index"), DoubleParameterValue(0, 8759)] MaxDryBulbTemperatureIndex,
         [ParameterProperties("Min Dry Bulb Temperature Index", "Minimal Dry Bulb Temperature Index"), DoubleParameterValue(0, 8759)] MinDryBulbTemperatureIndex,
 
-        [ParameterProperties("Unmet Hours", "Unmet Hours"), IntegerParameterValue(0, 8760)] UnmetHours,
+        //Double: EnergyPlus reports fractional unmet time (e.g. 14.5 h); Tas whole-hour counts and integer values in
+        //older saved results read back unchanged.
+        [ParameterProperties("Unmet Hours", "Unmet Hours"), DoubleParameterValue(0, 8760)] UnmetHours,
         [ParameterProperties("Unmet Hour First Index", "Unmet Hour First Index"), IntegerParameterValue(0, 8760)] UnmetHourFirstIndex,
         [ParameterProperties("Occupied Unmet Hours", "Occupied Unmet Hours"), IntegerParameterValue(0, 8760)] OccupiedUnmetHours,
 
