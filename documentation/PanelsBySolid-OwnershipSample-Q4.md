@@ -1,8 +1,10 @@
 # PanelsBySolid: a face pair's material sampled at its deepest point — Q4 (2026-10-25)
 
-Status: implemented locally on `fix/panels-by-solid-ownership-sample-q4` (base `sow/2026-Q4` at `457defbb`). Not pushed;
-no PR yet (owner go-ahead needed, and the owner decides whether this is a separate PR or joins SAM-BIM/SAM#221).
-Tested content `5750cd24`; later commits change this record only. Step 1 of the Softhouse "SAM model from solids" part 2.
+Status: branch `fix/panels-by-solid-ownership-sample-q4`, rebased on `sow/2026-Q4` at `81a781ab` (after the merges of
+SAM-BIM/SAM#220 `626a23e5`, #222 `924fec52` and #221 `945eea51`). Separate PR into `sow/2026-Q4` (owner go-ahead
+2026-10-25). Tested content `755bcef9` (first tested as `5750cd24` on `457defbb`); later commits change this record
+only, and the PR description holds the final head and hosted checks. Step 1 of the Softhouse "SAM model from solids"
+part 2.
 
 ## Problem
 
@@ -33,21 +35,26 @@ not in a jamb; a real cross-cut (the wall under a window sill) still lies inside
   `PanelsBySolid_SillUnderWindowCrossCut_IsStillPartOfTheWall` (guard: cross-cuts still removed at ratio 100)
 - this record
 
-## Validation (local, machine `michal`; tested content `5750cd24`)
+## Validation (local, machine `michal`; tested content `755bcef9` on base `81a781ab`)
 
 ```powershell
-# deploy-safe build: APPDATA/USERPROFILE redirected (the GH PostBuild copies to %APPDATA%\SAM)
+# deploy-safe builds: APPDATA/USERPROFILE redirected (the GH PostBuild copies to %APPDATA%\SAM); SolutionDir set
+# for the PostBuild xcopy; run the two test projects one after the other (two in-process Rhino starts fail)
+dotnet build Grasshopper/SAM.Core.Grasshopper.Tests/SAM.Core.Grasshopper.Tests.csproj -c Release -p:SolutionDir=<repo>\
 dotnet build SAM/SAM.Tests/SAM.Tests.csproj -c Release
 dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release --no-build
+dotnet test Grasshopper/SAM.Core.Grasshopper.Tests/SAM.Core.Grasshopper.Tests.csproj -c Release --no-build
 ```
 
-- SAM.Tests on this branch: 3740 / 3740 passed (sow/2026-Q4 3738 + 2 new). The new #385 test failed before the change.
-- Local integration branch `local/softhouse-integration-q4` (with SAM#220/#221/#222 and this branch, never pushed):
-  SAM.Tests 3756 / 3756.
-- Softhouse (headless `pipe`, inputs `solids_panels_392.3dm` + `windows_201.3dm`, minThickness 0.04, Clean3D/Extend3D):
-  #385 is now kept (PanelsBySolids pieces 55 -> 56, skipped solids 26 -> 25: "Created 1 panel, 0.45 m thick. Filled 1
-  hole for apertures."); the ray probe from Dining 1 no longer leaks (0.1 % -> 0 %). Space count unchanged (70; GF 27).
-- SAM_OCCT (`SAM_OCCT-wt-clean3d-degenerate`, SAM DLLs of the integration build swapped into the test output):
+- SAM.Tests 3763 / 3763 (base + 2 new); SAM.Core.Grasshopper.Tests 87 / 87. The new #385 test failed before the change.
+  (On `457defbb`, before the rebase: 3740 / 3740.)
+- Softhouse (headless `pipe`, inputs `solids_panels_392.3dm` + `windows_201.3dm`, minThickness 0.04, Clean3D/Extend3D;
+  local test-only branch `local/softhouse-integration-q4-2` = `81a781ab` + this branch + the AperturesBySolids units
+  branch): #385 is kept ("Created 1 panel, 0.45 m thick. Filled 1 hole for apertures."; on `457defbb` + SAM#221 it was
+  the difference between 25 and 26 skipped solids); the ray probe from Dining 1 no longer leaks (0.1 % -> 0 %). Spaces
+  unchanged: 70 (GF 27 / 1F 22 / 2F 21). OCCT assemblies in that run: the SAM_OCCT#83 build before its R2 correction.
+- SAM_OCCT, run before the rebase (`SAM_OCCT-wt-clean3d-degenerate` at SAM_OCCT#83's pre-R2 head, with the SAM DLLs
+  of a local build of `457defbb` + SAM#220/#221 (pre-R1)/#222 + this branch + the units branch swapped into its test output):
   unit 1038 / 1038; integration 469 passed, 25 failed, 2 skipped: the same 25 failures as recorded before this change
   (`SAM-BIM/.evidence-softhouse-20261025/occt-integration-final-non-passing.txt`). Machine-local evidence:
   `SAM-BIM/.evidence-softhouse-20261025-part2/`.
@@ -56,8 +63,7 @@ dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release --no-build
 
 - Generic fix in the sampling, not a special rule ("a thin claimant may not remove a much thicker plane"): the sample
   should represent the pair's material; the deepest point does, for any outline.
-- Kept separate from SAM#221 (that PR is the cross-solid fragment pass; this is the single-solid ownership step, and it
-  stands alone on `sow/2026-Q4`). Owner to confirm: separate PR, or cherry-pick into SAM#221.
+- Separate PR (SAM#221 merged first; this is the single-solid ownership step and stands alone on `sow/2026-Q4`).
 
 ## Unresolved: Dining 1 is still not a space (second cause)
 
@@ -75,5 +81,5 @@ slices as one 0.45 m east-west wall). Both affect every model.
 
 ## Next step
 
-Owner: review; decide separate PR vs SAM#221, and whether to pursue (a)/(b) for the Dining 1 corner. On go-ahead:
-push the branch and open the PR into `sow/2026-Q4` with this record.
+Owner: review the PR and its hosted checks; merge only on approval, then the PROJECT_PROGRESS.md closeout on
+`sow/2026-Q4`. Separately decide whether to pursue (a) or (b) for the Dining 1 corner (a new task and branch).
