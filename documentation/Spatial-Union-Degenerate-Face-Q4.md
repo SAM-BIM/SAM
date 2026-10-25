@@ -46,4 +46,4 @@ robust for any other producer of such faces.
 
 ## Next step
 
-Owner review; then push and open the PR into `sow/2026-Q4`.
+Owner review of the PR and its hosted checks; merge only on owner approval, then the PROJECT_PROGRESS.md closeout on `sow/2026-Q4`.
