@@ -165,8 +165,9 @@ namespace SAM.Core.Grasshopper.Tests
         [Test]
         public void ComponentVersions_AreBumped_AndTheOutputsAreStillNamedLog()
         {
-            // 1.1.0: pieces of fragmented elements are kept (Create.PanelsBySolids), a geometry change.
-            Assert.Equal("1.1.0", new SAMAnalyticalCreatePanelsBySolids().LatestComponentVersion);
+            // 1.1.0: pieces of fragmented elements are kept (Create.PanelsBySolids); 1.2.0: a face pair's material is
+            // sampled at the deepest point of its overlap (Create.PanelsBySolid). Both change the geometry result.
+            Assert.Equal("1.2.0", new SAMAnalyticalCreatePanelsBySolids().LatestComponentVersion);
             Assert.Equal("1.0.2", new SAMAnalyticalCreateAperturesBySolids().LatestComponentVersion);
             Assert.Equal("log", new SAMAnalyticalCreatePanelsBySolids().Params.Output.Last().Name);
             Assert.Equal("log", new SAMAnalyticalCreateAperturesBySolids().Params.Output.Last().Name);
