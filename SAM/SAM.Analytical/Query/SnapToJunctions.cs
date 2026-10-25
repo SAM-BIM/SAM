@@ -36,7 +36,7 @@ namespace SAM.Analytical
         /// <param name="diagnostics">How many edges were extended or trimmed.</param>
         /// <param name="snapDistance">Maximum edge move [m]; zero returns copies of the input.</param>
         /// <param name="tolerance_Distance">Distance tolerance [m].</param>
-        /// <returns>New panels (same Guids, constructions and parameters) with snapped outer edges.</returns>
+        /// <returns>New panels (same Guids, constructions and parameters) with snapped outer edges, without the collapsed ones.</returns>
         public static List<Panel> SnapToJunctions(this IEnumerable<Panel> panels, out List<string> diagnostics, double snapDistance = 0.3, double tolerance_Distance = Tolerance.Distance)
         {
             Core.Diagnostics diagnostics_Structured = new Core.Diagnostics(DiagnosticDetail.Detailed);
@@ -47,7 +47,9 @@ namespace SAM.Analytical
 
         /// <summary>
         /// <see cref="SnapToJunctions(IEnumerable{Panel}, out List{string}, double, double)"/> with structured diagnostics:
-        /// one Summary Info record (<see cref="BySolidsDiagnosticCode.SnapChecked"/>, Value = snap distance [m]). The panels do not depend on the detail level.
+        /// one Summary Info record (<see cref="BySolidsDiagnosticCode.SnapChecked"/>, Value = snap distance [m]), and a Warning
+        /// (<see cref="BySolidsDiagnosticCode.SnapCollapsed"/>) for each panel snapping trimmed to nothing, which is dropped.
+        /// The panels do not depend on the detail level.
         /// </summary>
         /// <param name="panels">Mid-surface panels, in metres.</param>
         /// <param name="diagnostics">Collection the record is appended to. Null collects nothing.</param>
@@ -82,6 +84,7 @@ namespace SAM.Analytical
 
             int extended = 0, trimmed = 0;
             List<Panel> result = new List<Panel>();
+            List<Panel> collapsed = new List<Panel>();
             foreach (Panel panel in panels_Temp)
             {
                 SnapTarget self = targets.Find(x => x.Guid == panel.Guid);
@@ -199,13 +202,28 @@ namespace SAM.Analytical
                     snapped.Add(linePoints[j].GetMoved(lineDirections[j] * s));
                 }
 
-                Face2D face2D = Geometry.Planar.Create.Face2D(new Polygon2D(snapped), self.Face2D.InternalEdge2Ds);
+                // Opposite edges trimmed onto one junction (or past each other): the panel lies within its neighbours'
+                // thickness and nothing of it is left. Dropped, never returned as a zero-area face.
+                Polygon2D polygon2D = new Polygon2D(snapped);
+                if (polygon2D.GetArea() <= tolerance_Distance || polygon2D.GetOrientation() != Geometry.Orientation.CounterClockwise)
+                {
+                    collapsed.Add(panel);
+                    continue;
+                }
+
+                Face2D face2D = Geometry.Planar.Create.Face2D(polygon2D, self.Face2D.InternalEdge2Ds);
                 Face3D face3D = face2D == null ? null : self.Plane.Convert(face2D);
                 Panel snappedPanel = face3D == null || !face3D.IsValid() ? null : Create.Panel(panel.Guid, panel, face3D, null, false);
                 result.Add(snappedPanel ?? Create.Panel(panel));
             }
 
             diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Summary, null, () => string.Format(System.Globalization.CultureInfo.InvariantCulture, "Checked {0} for junctions: extended {1} and trimmed {2} (snap distance {3:0.###} m).", Core.Query.Plural(result.Count, "panel"), Core.Query.Plural(extended, "edge"), Core.Query.Plural(trimmed, "edge"), snapDistance), BySolidsDiagnosticCode.SnapChecked, null, snapDistance, null, "m");
+            foreach (Panel panel in collapsed)
+            {
+                string name = panel.TryGetValue(PanelSourceParameter.SourceName, out string sourceName) && !string.IsNullOrWhiteSpace(sourceName) ? sourceName : panel.Guid.ToString();
+                diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, string.Format("Panel '{0}'", name), string.Format(System.Globalization.CultureInfo.InvariantCulture, "Dropped. Snapping its edges to the junctions left nothing of it ({0:0.###} m2 before): it lies within the thickness of the elements it meets.", panel.GetArea()), BySolidsDiagnosticCode.SnapCollapsed, null, panel.GetArea(), null, "m2"));
+            }
+
             return result;
         }
 

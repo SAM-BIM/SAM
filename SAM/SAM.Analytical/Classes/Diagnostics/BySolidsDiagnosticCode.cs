@@ -8,7 +8,7 @@ namespace SAM.Analytical
     /// <see cref="Query.SnapToJunctions(System.Collections.Generic.IEnumerable{Panel}, Core.Diagnostics, double, double)"/> and
     /// <see cref="Create.AperturesBySolids(System.Collections.Generic.IEnumerable{ApertureSolid}, Core.Diagnostics, out System.Collections.Generic.List{int}, System.Collections.Generic.IEnumerable{ApertureConstruction}, double, double, double, double)"/>.
     /// Codes starting <c>PBS</c> belong to panels, <c>SNP</c> to snapping and <c>AGS</c> to apertures; <c>1xx</c> are
-    /// Standard Info, <c>2xx</c> Detailed Info, and the rest Warnings. Callers should branch on the code rather than on message text.
+    /// Standard Info (except <see cref="PanelsContinuation"/>, Summary), <c>2xx</c> Detailed Info, and the rest Warnings. Callers should branch on the code rather than on message text.
     /// </summary>
     public static class BySolidsDiagnosticCode
     {
@@ -39,6 +39,13 @@ namespace SAM.Analytical
         /// <summary>Standard Info: panels created from an element plane. Value is its thickness [m].</summary>
         public const string PanelsCreated = "PBS102";
 
+        /// <summary>
+        /// Summary Info (the one 1xx code at Summary: it keeps input the threshold alone would skip): a solid skipped as
+        /// not panel-like is kept by <see cref="Create.PanelsBySolids"/> because an element plane continues a Panel of
+        /// another solid. Value is thickness over smallest extent [-], Limit is maxThicknessRatio [-].
+        /// </summary>
+        public const string PanelsContinuation = "PBS103";
+
         /// <summary>Detailed Info: other face-pair planes ignored as not panel-like.</summary>
         public const string PanelsIgnoredNotPanelLike = "PBS201";
 
@@ -56,6 +63,9 @@ namespace SAM.Analytical
 
         /// <summary>Summary Info: junction snapping. Value is the snap distance [m].</summary>
         public const string SnapChecked = "SNP001";
+
+        /// <summary>Warning: snapping trimmed a panel to nothing (opposite edges onto one junction), so it was dropped. Value is its area before snapping [m2].</summary>
+        public const string SnapCollapsed = "SNP002";
 
         /// <summary>Warning: a member is not a closed solid or a planar face.</summary>
         public const string AperturesNotClosed = "AGS001";
