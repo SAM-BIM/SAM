@@ -200,10 +200,12 @@ namespace SAM.Geometry.Spatial
                     continue;
                 }
 
-                List<Face3D> face3Ds_Coplanar = new List<Face3D>();
+                // The seed always belongs to its own group: a sliver without an internal point would otherwise leave the
+                // group empty and fail the union of every face.
+                List<Face3D> face3Ds_Coplanar = new List<Face3D>() { face3D_Temp };
                 foreach (Face3D face3D_Temp_Temp in face3Ds_Temp)
                 {
-                    if (!plane.Coplanar(face3D_Temp_Temp?.GetPlane(), tolerance))
+                    if (ReferenceEquals(face3D_Temp_Temp, face3D_Temp) || !plane.Coplanar(face3D_Temp_Temp?.GetPlane(), tolerance))
                     {
                         continue;
                     }
