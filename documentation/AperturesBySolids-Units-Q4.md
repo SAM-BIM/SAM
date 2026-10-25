@@ -150,6 +150,19 @@ dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release --no-build --filter "Fully
 - `git diff --check` clean.
 - Independent reviewer evidence (separate from the above): `.review-pr223-224-20261025/` and `revision2/`.
 
+## Integration with SAM#223 (2026-10-25)
+
+- SAM#223 merged into `sow/2026-Q4` as `0c9c5894` (parents `81a781ab`, `c46cb554`). `origin/sow/2026-Q4` was merged
+  into this branch (merge commit, no rebase). The only conflict was the adjacent-line assertions in
+  `Grasshopper/SAM.Core.Grasshopper.Tests/BySolidsDiagnosticDetailTests.cs`; resolved by keeping both:
+  `CreatePanelsBySolids` 1.2.0 and `CreateAperturesBySolids` 1.1.0, with their comments. No other production,
+  parameter, GUID, default, fixture or tolerance change.
+- Local validation of the merged content (APPDATA redirected to a scratch profile; suites run one after the other):
+  SAM.Tests **3785 / 0 / 0** (3783 + the two #223 tests); SAM.Core.Grasshopper.Tests **87 / 0 / 0** (a first attempt
+  with USERPROFILE and LOCALAPPDATA also redirected hung at Rhino start-up and was aborted by the hang timeout; the
+  rerun with only APPDATA redirected passed). `git diff --check` clean. Machine-local evidence:
+  `SAM-BIM/.evidence-pr223-224-integration/` (`tests/full.trx`, `tests/gh.trx`). The hosted result is on the PR.
+
 ## Decisions and assumptions
 
 - A unit needs geometric evidence in the outer member's plane frame; when the evidence is missing, mutual
@@ -170,7 +183,7 @@ dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release --no-build --filter "Fully
 
 ## Next step
 
-Independent review of the revised head and its hosted checks; owner merge decision. After merge: the
+Owner-authorised guarded merge at the validated integration head. After merge: the
 PROJECT_PROGRESS.md closeout on `sow/2026-Q4`. When both this PR and SAM#223 merge, the second one meets an
 adjacent-line conflict in the version guard: keep both assertions (CreatePanelsBySolids 1.2.0, CreateAperturesBySolids
 1.1.0) and test the merged content.
