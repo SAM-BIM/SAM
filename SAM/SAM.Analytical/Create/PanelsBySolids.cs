@@ -17,8 +17,9 @@ namespace SAM.Analytical
         /// <para>
         /// Models rebuilt from other tools split one wall or slab into pieces: piers between windows, pieces between
         /// junctions, slab patches. A piece can fail <paramref name="maxThicknessRatio"/> on its own (a 0.45 m wall 2.1 m
-        /// long) although the element it belongs to is panel-like. Here a solid skipped only as not panel-like is kept
-        /// when one of its element planes is part of a panel-like element:
+        /// long) although the element it belongs to is panel-like. Here a skipped solid is kept when one of its element
+        /// planes rejected as not panel-like (whatever reason the solid's warning gives: a wall around a large opening is
+        /// reported by its thin jambs) is part of a panel-like element:
         /// </para>
         /// <list type="number">
         /// <item><b>Pieces of one element:</b> element planes of different solids (the skipped ones and the Panels created)
@@ -37,7 +38,7 @@ namespace SAM.Analytical
         /// <param name="shells">Closed solids, in metres. A null entry is reported as not a closed solid.</param>
         /// <param name="diagnostics">Collection the records are appended to, solid by solid in input order. A kept
         /// solid's records are a Summary Info (<see cref="BySolidsDiagnosticCode.PanelsContinuation"/>) and those of its
-        /// kept plane, instead of its not-panel-like Warning. Null collects nothing.</param>
+        /// kept plane, instead of its skip Warning. Null collects nothing.</param>
         /// <param name="sourceNames">Source name per solid (optional, index-aligned).</param>
         /// <param name="sourceIds">Source identifier per solid (optional, index-aligned).</param>
         /// <param name="sourceLayers">Source layer per solid (optional, index-aligned).</param>
@@ -86,9 +87,10 @@ namespace SAM.Analytical
                     }
                 }
 
-                // Only a solid skipped for being not panel-like. Never a plane thinner than minThickness, a sliver, or a plane
+                // Any skipped solid with a plane rejected as not panel-like, whatever reason its warning gives (a wall around a
+                // large opening is reported by its thin jambs). Never a plane thinner than minThickness, a sliver, or a plane
                 // thicker than it is wide (the top and bottom of a pier, which would join every pier of a storey).
-                if (panels.Count != 0 || !records_Solid.Any(x => x.Code == BySolidsDiagnosticCode.PanelsNotPanelLike))
+                if (panels.Count != 0 || notPanelLike.Count == 0)
                 {
                     continue;
                 }

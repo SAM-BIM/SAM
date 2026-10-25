@@ -48,6 +48,28 @@ namespace SAM.Tests
         }
 
         [Fact]
+        public void PanelsBySolids_WallAroundLargeOpeningReportedTooThin_IsKeptAsPieceOfTheWall()
+        {
+            // Arrange: a 0.45 m wall, and next to it a 1.844 m piece of it that is mostly a 1.818 x 2.87 m opening, leaving
+            // 13 mm jambs. Its largest face pair is a jamb, so on its own it is reported below minThickness, while its own
+            // 0.45 m plane is only not panel-like (0.45 / 1.844 = 0.244).
+            Shell piece = Prism(XZ, Rectangle(6, 0, 7.844, 3.35), new List<IList<(double U, double V)>> { Rectangle(6.013, 0.001, 7.831, 2.871) }, 0, 0.45);
+            List<Shell> shells = new List<Shell> { Box(0, 0, 0, 6, 0.45, 3.35), piece };
+            Core.Diagnostics single = new Core.Diagnostics();
+            Assert.Empty(piece.PanelsBySolid(single, minThickness: 0.04));
+            Assert.Contains(single, x => x.Code == BySolidsDiagnosticCode.PanelsBelowMinThickness);
+
+            // Act
+            Core.Diagnostics diagnostics = new Core.Diagnostics(DiagnosticDetail.Detailed);
+            List<List<Panel>> panels = shells.PanelsBySolids(diagnostics, minThickness: 0.04);
+
+            // Assert
+            Assert.Contains(panels[1], x => x.PanelType == PanelType.Wall);
+            Assert.True(Kept(diagnostics, 1));
+            Assert.DoesNotContain(diagnostics, x => x.SourceIndex == 1 && x.Code == BySolidsDiagnosticCode.PanelsBelowMinThickness);
+        }
+
+        [Fact]
         public void PanelsBySolids_KeptPiece_RecordsSummaryInfoWithRatioAndLimit()
         {
             // Arrange
