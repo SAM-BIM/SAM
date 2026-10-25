@@ -1,7 +1,7 @@
 # AperturesBySolids: framed windows in a row stay separate apertures — Q4 (2026-10-25)
 
 Status: branch `fix/apertures-by-solids-units-q4`, rebased on `sow/2026-Q4` at `81a781ab` (after the merges of
-SAM-BIM/SAM#220, #222 and #221 `945eea51`). PR into `sow/2026-Q4` (owner go-ahead 2026-10-25). Tested content
+SAM-BIM/SAM#220, #222 and #221 `945eea51`). PR SAM-BIM/SAM#224 into `sow/2026-Q4` (owner go-ahead 2026-10-25). Tested content
 `d17d9b84` (first tested as `22569e21` on `457defbb`); later commits change this record only, and the PR description
 holds the final head and hosted checks. Step 2 of the Softhouse "SAM model from solids" part 2 ("windows - apertures
 were more detail").
