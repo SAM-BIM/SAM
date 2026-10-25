@@ -28,7 +28,7 @@ namespace SAM.Tests
     //One test below temporarily replaces ActiveSetting's default aperture construction library to prove
     //the refusal it drives, so every test class that reads that library names this collection: xUnit runs
     //collections in parallel and the classes within one collection in sequence, and the swap must never be
-    //observable from another test. QuadraticScanRegressionTests is the only other reader.
+    //observable from another test. QuadraticScanRegressionTests and AperturesBySolidsTests are the other readers.
     [Collection("SAM.Analytical.ActiveSetting default aperture construction library")]
     public class PartFTransferAirDoorTests
     {

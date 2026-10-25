@@ -17,6 +17,10 @@ namespace SAM.Tests
     /// assemblies, door frames with leaves, stick frames, groups, non-planar assemblies and hosting with
     /// <see cref="Analytical.Modify.AddAperturesByApertures"/>.
     /// </summary>
+    //Without apertureConstructions every aperture takes its construction from ActiveSetting's default aperture
+    //construction library, which PartFTransferAirDoorTests temporarily replaces with an empty one; sharing its
+    //collection keeps the two classes from running at the same time.
+    [Collection("SAM.Analytical.ActiveSetting default aperture construction library")]
     public class AperturesBySolidsTests
     {
         // A 2 x 1.2 m window in a wall at y 0..0.25: 0.06 m frame ring (y 0.09..0.16) around 0.01 m glass (y 0.12..0.13).

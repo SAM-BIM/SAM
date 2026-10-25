@@ -19,7 +19,7 @@ namespace SAM.Tests
     /// </summary>
     //MergeOverlapPanels_KeepsApertureFromRedundantPanel reads ActiveSetting's default aperture construction
     //library, and PartFTransferAirDoorTests temporarily replaces it to prove a refusal. Sharing a collection
-    //keeps the two classes from running at the same time; nothing else in the suite reads that library.
+    //keeps the classes from running at the same time; AperturesBySolidsTests, the other reader, shares it too.
     [Collection("SAM.Analytical.ActiveSetting default aperture construction library")]
     public class QuadraticScanRegressionTests
     {
