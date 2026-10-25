@@ -1,7 +1,6 @@
 # Rhino converters without an active document: UnitScale NaN fallback — Q4 (2026-10-25)
 
-Status: implemented locally on `fix/rhino-unitscale-no-doc-q4` (base `sow/2026-Q4` at `457defbb`). Not pushed; no PR yet
-(owner go-ahead required). Step A of the Softhouse "SAM model from solids" task.
+Status: implemented locally on `fix/rhino-unitscale-no-doc-q4` (base `sow/2026-Q4` at `457defbb`). PR SAM-BIM/SAM#220 into `sow/2026-Q4` (opened 2026-10-25 on owner go-ahead). Tested content `5335314f`; later commits change this record only, and the PR description holds the final head and hosted checks. Step A of the Softhouse "SAM model from solids" task.
 
 ## Problem
 
