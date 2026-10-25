@@ -21,6 +21,12 @@ namespace SAM.Analytical
         /// whose surfaces are within <paramref name="maxGap"/> of each other (a glass pane inside its frame, a leaf in
         /// its door frame, frame members meeting at a corner) join the same assembly; members with different group keys
         /// are never merged. Each frame member is therefore not assumed to be an aperture of its own.</item>
+        /// <item><b>Units:</b> a member without a group key that encloses others without one (a frame around its glass,
+        /// a door frame around its leaf: thinnest across parallel planes, within its depth and its projected convex hull,
+        /// each within <paramref name="maxGap"/>) is a window or door unit with them, as if they were grouped. Units that
+        /// only touch (a row of windows sharing frame jambs) therefore stay separate apertures. Units are decided from
+        /// all pairs at once, independently of the input order; a member enclosed by no outermost member, or by several,
+        /// and members neither around nor inside another (the bars of a stick frame) still join by proximity.</item>
         /// <item><b>Type:</b> an assembly with any Door member is a Door (e.g. a door frame given as window geometry
         /// with its leaf), otherwise a Window.</item>
         /// <item><b>Plane:</b> the member face normal along which the whole assembly is thinnest; the aperture lies
@@ -118,6 +124,109 @@ namespace SAM.Analytical
             int[] parents = Enumerable.Range(0, members.Count).ToArray();
             string[] keys = members.ConvertAll(x => string.IsNullOrWhiteSpace(x.Solid.GroupKey) ? null : x.Solid.GroupKey).ToArray();
 
+            // Units: an ungrouped member enclosed by exactly one outermost ungrouped member (a frame around its glass, a
+            // door frame around its leaf) is keyed with it like a group, so that two complete windows touching each other
+            // are not merged. Enclosure is decided for every pair before any key is given, so units do not depend on the
+            // input order. Where a unit cannot be justified its members keep the proximity rule, as without units:
+            // - a member enclosed by no outermost member (enclosure within maxGap is not transitive) gets no unit key;
+            // - a member enclosed by several outermost members dissolves all of those competing units;
+            // - ungrouped members touching each other that touch two or more different keys dissolve the inferred ones
+            //   among them (repeated until nothing changes), so they never join one unit or another by input order.
+            // Explicit group keys are never removed.
+            double cosAngle = System.Math.Cos(tolerance_Angle);
+            int count = members.Count;
+            bool[,] encloses = new bool[count, count];
+            for (int j = 0; j < count; j++)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    encloses[j, i] = i != j && keys[i] == null && keys[j] == null && members[j].Encloses(members[i], maxGap, cosAngle, tolerance_Distance);
+                }
+            }
+
+            bool[] outermost = Enumerable.Range(0, count)
+                .Select(j => Enumerable.Range(0, count).Any(i => encloses[j, i]) && !Enumerable.Range(0, count).Any(k => encloses[k, j]))
+                .ToArray();
+
+            List<List<int>> containers = Enumerable.Range(0, count).Select(i => Enumerable.Range(0, count).Where(j => outermost[j] && encloses[j, i]).ToList()).ToList();
+            HashSet<int> competing = new HashSet<int>(containers.Where(x => x.Count > 1).SelectMany(x => x));
+
+            string[] unitKeys = new string[count];
+            for (int i = 0; i < count; i++)
+            {
+                if (containers[i].Count == 1 && !competing.Contains(containers[i][0]))
+                {
+                    unitKeys[i] = unitKeys[containers[i][0]] = UnitKey(members[containers[i][0]].Index);
+                }
+            }
+
+            List<(int, int)> near = new List<(int, int)>();
+            for (int i = 0; i < count; i++)
+            {
+                for (int j = i + 1; j < count; j++)
+                {
+                    if (members[i].BoundingBox3D.InRange(members[j].BoundingBox3D, maxGap) && (members[i].Near(members[j], maxGap, tolerance_Distance) || members[j].Near(members[i], maxGap, tolerance_Distance)))
+                    {
+                        near.Add((i, j));
+                    }
+                }
+            }
+
+            bool dissolved = true;
+            while (dissolved)
+            {
+                dissolved = false;
+                string[] keys_Current = Enumerable.Range(0, count).Select(i => keys[i] ?? unitKeys[i]).ToArray();
+                int[] component = Enumerable.Range(0, count).ToArray();
+                bool merged = true;
+                while (merged)
+                {
+                    merged = false;
+                    foreach ((int i, int j) in near)
+                    {
+                        if (keys_Current[i] == null && keys_Current[j] == null && component[i] != component[j])
+                        {
+                            component[i] = component[j] = System.Math.Min(component[i], component[j]);
+                            merged = true;
+                        }
+                    }
+                }
+
+                Dictionary<int, HashSet<string>> touched = new Dictionary<int, HashSet<string>>();
+                foreach ((int i, int j) in near)
+                {
+                    foreach ((int free, int keyed) in new[] { (i, j), (j, i) })
+                    {
+                        if (keys_Current[free] == null && keys_Current[keyed] != null)
+                        {
+                            if (!touched.TryGetValue(component[free], out HashSet<string> keys_Touched))
+                            {
+                                touched[component[free]] = keys_Touched = new HashSet<string>();
+                            }
+
+                            keys_Touched.Add(keys_Current[keyed]);
+                        }
+                    }
+                }
+
+                foreach (HashSet<string> keys_Touched in touched.Values.Where(x => x.Count > 1))
+                {
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (unitKeys[i] != null && keys_Touched.Contains(unitKeys[i]))
+                        {
+                            unitKeys[i] = null;
+                            dissolved = true;
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                keys[i] = keys[i] ?? unitKeys[i];
+            }
+
             int Find(int i)
             {
                 while (parents[i] != i)
@@ -159,20 +268,9 @@ namespace SAM.Analytical
                 }
             }
 
-            for (int i = 0; i < members.Count; i++)
+            foreach ((int i, int j) in near)
             {
-                for (int j = i + 1; j < members.Count; j++)
-                {
-                    if (Find(i) == Find(j) || !members[i].BoundingBox3D.InRange(members[j].BoundingBox3D, maxGap))
-                    {
-                        continue;
-                    }
-
-                    if (members[i].Near(members[j], maxGap, tolerance_Distance) || members[j].Near(members[i], maxGap, tolerance_Distance))
-                    {
-                        Union(i, j);
-                    }
-                }
+                Union(i, j);
             }
 
             List<List<ApertureMember>> assemblies = members
@@ -211,29 +309,7 @@ namespace SAM.Analytical
             outcome = default;
 
             // Plane: the candidate face normal (largest faces first) along which the assembly is thinnest.
-            List<Point3D> point3Ds = assembly.SelectMany(x => x.Point3Ds).ToList();
-            double cosAngle = System.Math.Cos(tolerance_Angle);
-            Plane plane_Best = null;
-            double depth = double.MaxValue, depthMin = 0;
-            foreach (Face3D face3D in assembly.SelectMany(x => x.Face3Ds).OrderByDescending(x => x.GetArea()))
-            {
-                Plane plane = face3D.GetPlane();
-                if (plane_Best != null && System.Math.Abs(plane.Normal.DotProduct(plane_Best.Normal)) >= cosAngle)
-                {
-                    continue;
-                }
-
-                Vector3D normal = plane.Normal;
-                List<double> offsets = point3Ds.ConvertAll(x => normal.DotProduct(new Vector3D(plane.Origin, x)));
-                double depth_Plane = offsets.Max() - offsets.Min();
-                if (depth_Plane < depth - tolerance_Distance)
-                {
-                    depth = depth_Plane;
-                    depthMin = offsets.Min();
-                    plane_Best = plane;
-                }
-            }
-
+            Plane plane_Best = ThinnestPlane(assembly.SelectMany(x => x.Face3Ds), assembly.SelectMany(x => x.Point3Ds).ToList(), System.Math.Cos(tolerance_Angle), tolerance_Distance, out double depth, out double depthMin);
             if (plane_Best == null)
             {
                 outcome = new AssemblyOutcome(BySolidsDiagnosticCode.AperturesNoPlanarFaces, "It has no planar faces");
@@ -355,6 +431,45 @@ namespace SAM.Analytical
         }
 
         /// <summary>
+        /// The plane of the candidate face normal (largest faces first) along which the points are thinnest, with that
+        /// depth and the points' smallest offset from the plane. Null without faces.
+        /// </summary>
+        private static Plane ThinnestPlane(IEnumerable<Face3D> face3Ds, List<Point3D> point3Ds, double cosAngle, double tolerance_Distance, out double depth, out double depthMin)
+        {
+            Plane result = null;
+            depth = double.MaxValue;
+            depthMin = 0;
+            foreach (Face3D face3D in face3Ds.OrderByDescending(x => x.GetArea()))
+            {
+                Plane plane = face3D.GetPlane();
+                if (result != null && System.Math.Abs(plane.Normal.DotProduct(result.Normal)) >= cosAngle)
+                {
+                    continue;
+                }
+
+                Vector3D normal = plane.Normal;
+                List<double> offsets = point3Ds.ConvertAll(x => normal.DotProduct(new Vector3D(plane.Origin, x)));
+                double depth_Plane = offsets.Max() - offsets.Min();
+                if (depth_Plane < depth - tolerance_Distance)
+                {
+                    depth = depth_Plane;
+                    depthMin = offsets.Min();
+                    result = plane;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Group key of the unit around a member; the leading NUL keeps it apart from any user group key.
+        /// </summary>
+        private static string UnitKey(int index)
+        {
+            return "\0unit " + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
         /// Outer outlines (holes dropped) of the union of the given faces.
         /// </summary>
         private static List<Face2D> Outlines(List<Face2D> face2Ds, double tolerance_Distance)
@@ -409,6 +524,11 @@ namespace SAM.Analytical
 
             public BoundingBox3D BoundingBox3D { get; private set; }
 
+            // Thinnest plane (with depth and smallest offset) and convex hull on it, computed once when needed.
+            private Plane plane_Thinnest;
+            private double depth_Thinnest, depthMin_Thinnest;
+            private Polygon2D hull;
+
             public static ApertureMember Create(int index, ApertureSolid apertureSolid, double tolerance_Distance)
             {
                 Shell shell = apertureSolid?.Geometry as Shell;
@@ -438,6 +558,99 @@ namespace SAM.Analytical
                     Point3Ds = point3Ds,
                     BoundingBox3D = new BoundingBox3D(point3Ds),
                 };
+            }
+
+            /// <summary>
+            /// True when this member strictly encloses the other (a frame its pane, a door frame its leaf), judged in this
+            /// member's own plane frame, so independently of how the two are placed in the world:
+            /// <list type="bullet">
+            /// <item>candidates only: the other's world bounding box lies within this one's grown by 2 x maxGap (a point
+            /// within maxGap of this member's depth and hull is within that box whatever the rotation);</item>
+            /// <item>both are thinnest across parallel planes;</item>
+            /// <item>every vertex of the other lies within this member's depth along its plane and, projected on that
+            /// plane, inside this member's convex hull, each within maxGap;</item>
+            /// <item>and not the other way round: when this member also lies within the other's depth range and
+            /// projected hull (each within maxGap) the two are equivalent and neither encloses the other.</item>
+            /// </list>
+            /// </summary>
+            public bool Encloses(ApertureMember other, double maxGap, double cosAngle, double tolerance_Distance)
+            {
+                if (!Inside(other.BoundingBox3D, BoundingBox3D, 2 * maxGap))
+                {
+                    return false;
+                }
+
+                Plane plane = GetPlane(cosAngle, tolerance_Distance, out double depth, out double depthMin);
+                Plane plane_Other = other.GetPlane(cosAngle, tolerance_Distance, out _, out _);
+                if (plane == null || plane_Other == null || System.Math.Abs(plane.Normal.DotProduct(plane_Other.Normal)) < cosAngle)
+                {
+                    return false;
+                }
+
+                if (hull == null)
+                {
+                    hull = Hull(Point3Ds, plane);
+                }
+
+                if (hull == null || !Within(other.Point3Ds, plane, depthMin, depthMin + depth, hull, maxGap, tolerance_Distance))
+                {
+                    return false;
+                }
+
+                List<double> offsets_Other = other.Point3Ds.ConvertAll(x => plane.Normal.DotProduct(new Vector3D(plane.Origin, x)));
+                Polygon2D hull_Other = Hull(other.Point3Ds, plane);
+                return hull_Other == null || !Within(Point3Ds, plane, offsets_Other.Min(), offsets_Other.Max(), hull_Other, maxGap, tolerance_Distance);
+            }
+
+            /// <summary>
+            /// True when every point lies between the offsets depthMin and depthMax from the plane and, projected on it,
+            /// inside the hull, each within maxGap.
+            /// </summary>
+            private static bool Within(List<Point3D> point3Ds, Plane plane, double depthMin, double depthMax, Polygon2D hull, double maxGap, double tolerance_Distance)
+            {
+                foreach (Point3D point3D in point3Ds)
+                {
+                    double offset = plane.Normal.DotProduct(new Vector3D(plane.Origin, point3D));
+                    if (offset < depthMin - maxGap || offset > depthMax + maxGap)
+                    {
+                        return false;
+                    }
+
+                    Point2D point2D = plane.Convert(point3D);
+                    if (!hull.Inside(point2D, tolerance_Distance) && hull.Distance(point2D) > maxGap)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// Convex hull of the points projected on the plane; null when it has no area.
+            /// </summary>
+            private static Polygon2D Hull(List<Point3D> point3Ds, Plane plane)
+            {
+                List<Point2D> point2Ds = point3Ds.ConvertAll(x => plane.Convert(x)).ConvexHull();
+                return point2Ds == null || point2Ds.Count < 3 ? null : new Polygon2D(point2Ds);
+            }
+
+            private Plane GetPlane(double cosAngle, double tolerance_Distance, out double depth, out double depthMin)
+            {
+                if (plane_Thinnest == null)
+                {
+                    plane_Thinnest = ThinnestPlane(Face3Ds, Point3Ds, cosAngle, tolerance_Distance, out depth_Thinnest, out depthMin_Thinnest);
+                }
+
+                depth = depth_Thinnest;
+                depthMin = depthMin_Thinnest;
+                return plane_Thinnest;
+            }
+
+            private static bool Inside(BoundingBox3D inner, BoundingBox3D outer, double margin)
+            {
+                return inner.Min.X >= outer.Min.X - margin && inner.Min.Y >= outer.Min.Y - margin && inner.Min.Z >= outer.Min.Z - margin
+                    && inner.Max.X <= outer.Max.X + margin && inner.Max.Y <= outer.Max.Y + margin && inner.Max.Z <= outer.Max.Z + margin;
             }
 
             /// <summary>
