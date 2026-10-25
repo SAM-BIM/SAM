@@ -1,7 +1,6 @@
 # PanelsBySolids: fragments of elements kept as parts of their element, and collapsed snaps dropped — Q4 (2026-10-25)
 
-Status: implemented locally on `fix/panels-by-solids-continuation-q4` (base `sow/2026-Q4` at `457defbb`). Not pushed; no
-PR yet (owner go-ahead required). Step B of the Softhouse "SAM model from solids" task.
+Status: implemented locally on `fix/panels-by-solids-continuation-q4` (base `sow/2026-Q4` at `457defbb`). PR SAM-BIM/SAM#221 into `sow/2026-Q4` (opened 2026-10-25 on owner go-ahead). Tested content `5c169cef`; later commits change this record only, and the PR description holds the final head and hosted checks. Step B of the Softhouse "SAM model from solids" task.
 
 Owner decisions (2026-10-25): keep the `maxThicknessRatio_` default 0.2; recover fragments in a cross-solid pass. The
 owner then authorised a more generic approach than "coplanar and touching" ("extend this solution to a more generic
