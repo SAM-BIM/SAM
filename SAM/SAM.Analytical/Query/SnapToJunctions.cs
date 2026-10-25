@@ -203,9 +203,12 @@ namespace SAM.Analytical
                 }
 
                 // Opposite edges trimmed onto one junction (or past each other): the panel lies within its neighbours'
-                // thickness and nothing of it is left. Dropped, never returned as a zero-area face.
+                // thickness and nothing of it is left. Dropped, never returned as a degenerate face. Collapsed means its mean
+                // width (twice the area over the perimeter, a length) is within the distance tolerance, or the outline is
+                // turned inside out; a small but real face is many tolerances wide and is kept.
                 Polygon2D polygon2D = new Polygon2D(snapped);
-                if (polygon2D.GetArea() <= tolerance_Distance || polygon2D.GetOrientation() != Geometry.Orientation.CounterClockwise)
+                double perimeter = polygon2D.Perimeter();
+                if (!(perimeter > 0) || 2 * polygon2D.GetArea() / perimeter <= tolerance_Distance || polygon2D.GetOrientation() != Geometry.Orientation.CounterClockwise)
                 {
                     collapsed.Add(panel);
                     continue;
@@ -217,11 +220,11 @@ namespace SAM.Analytical
                 result.Add(snappedPanel ?? Create.Panel(panel));
             }
 
-            diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Summary, null, () => string.Format(System.Globalization.CultureInfo.InvariantCulture, "Checked {0} for junctions: extended {1} and trimmed {2} (snap distance {3:0.###} m).", Core.Query.Plural(result.Count, "panel"), Core.Query.Plural(extended, "edge"), Core.Query.Plural(trimmed, "edge"), snapDistance), BySolidsDiagnosticCode.SnapChecked, null, snapDistance, null, "m");
+            diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Summary, null, () => string.Format(System.Globalization.CultureInfo.InvariantCulture, "Checked {0} for junctions: extended {1} and trimmed {2} (snap distance {3:0.###} m).", Core.Query.Plural(panels_Temp.Count, "panel"), Core.Query.Plural(extended, "edge"), Core.Query.Plural(trimmed, "edge"), snapDistance), BySolidsDiagnosticCode.SnapChecked, null, snapDistance, null, "m");
             foreach (Panel panel in collapsed)
             {
                 string name = panel.TryGetValue(PanelSourceParameter.SourceName, out string sourceName) && !string.IsNullOrWhiteSpace(sourceName) ? sourceName : panel.Guid.ToString();
-                diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, string.Format("Panel '{0}'", name), string.Format(System.Globalization.CultureInfo.InvariantCulture, "Dropped. Snapping its edges to the junctions left nothing of it ({0:0.###} m2 before): it lies within the thickness of the elements it meets.", panel.GetArea()), BySolidsDiagnosticCode.SnapCollapsed, null, panel.GetArea(), null, "m2"));
+                diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, string.Format("Panel '{0}'", name), string.Format(System.Globalization.CultureInfo.InvariantCulture, "Dropped. Snapping its edges to the junctions closed it up (no wider than the distance tolerance, or turned inside out): it lies within the thickness of the elements it meets. Area before snapping: {0:G4} m2.", panel.GetArea()), BySolidsDiagnosticCode.SnapCollapsed, null, panel.GetArea(), null, "m2"));
             }
 
             return result;

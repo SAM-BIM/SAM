@@ -132,29 +132,34 @@ namespace SAM.Analytical
             double cosAngle = System.Math.Cos(tolerance_Angle);
             double minOpeningArea = System.Math.Max(tolerance_Snap * tolerance_Snap, tolerance_Distance);
 
-            // Repeat while solids are kept: their Panels join further pieces and frame further gaps.
+            // Repeat while solids are kept: their Panels join further pieces and frame further gaps on the next pass.
             bool changed = true;
             while (changed)
             {
                 changed = false;
-                List<Piece> candidates = pieces.FindAll(x => x.ElementPlane != null);
+
+                // Every decision of a pass reads one immutable snapshot of the pieces; the pieces change only after all
+                // solids of the pass are decided, so no decision depends on the order of the solids.
+                List<Piece> snapshot = new List<Piece>(pieces);
+                List<Piece> candidates = snapshot.FindAll(x => x.ElementPlane != null);
                 if (candidates.Count == 0)
                 {
                     return;
                 }
 
-                List<Piece> panelPieces = pieces.FindAll(x => x.ElementPlane == null);
+                List<Piece> panelPieces = snapshot.FindAll(x => x.ElementPlane == null);
                 Dictionary<Piece, List<Face2D>> openings = candidates.ToDictionary(x => x, x => ApertureFootprints(apertureGeometries, x.Plane, x.Thickness, tolerance_Snap));
 
-                // Join every candidate with the pieces of its element (union-find over the piece list).
-                int[] parent = Enumerable.Range(0, pieces.Count).ToArray();
+                // Join every candidate with the pieces of its element: union-find over the snapshot, membership by piece.
+                int[] parent = Enumerable.Range(0, snapshot.Count).ToArray();
                 int Find(int x) => parent[x] == x ? x : parent[x] = Find(parent[x]);
+                Dictionary<Piece, int> positions = Enumerable.Range(0, snapshot.Count).ToDictionary(i => snapshot[i], i => i);
                 foreach (Piece candidate in candidates)
                 {
-                    int index = pieces.IndexOf(candidate);
-                    for (int j = 0; j < pieces.Count; j++)
+                    int index = positions[candidate];
+                    for (int j = 0; j < snapshot.Count; j++)
                     {
-                        Piece piece = pieces[j];
+                        Piece piece = snapshot[j];
                         if (piece.Index == candidate.Index || Find(j) == Find(index) || System.Math.Abs(piece.Thickness - candidate.Thickness) > tolerance || !IsParallel(candidate.Plane, piece.Plane, cosAngle) || System.Math.Abs(Offset(candidate.Plane, piece.Plane)) > tolerance)
                         {
                             continue;
@@ -167,8 +172,11 @@ namespace SAM.Analytical
                     }
                 }
 
-                Dictionary<int, List<Piece>> elements = Enumerable.Range(0, pieces.Count).GroupBy(Find).ToDictionary(x => x.Key, x => x.Select(i => pieces[i]).ToList());
-                foreach (int solid in candidates.Select(x => x.Index).Distinct().ToList())
+                Dictionary<int, List<Piece>> roots = Enumerable.Range(0, snapshot.Count).GroupBy(Find).ToDictionary(x => x.Key, x => x.Select(i => snapshot[i]).ToList());
+                Dictionary<Piece, List<Piece>> elements = snapshot.ToDictionary(x => x, x => roots[Find(positions[x])]);
+
+                List<(int Solid, ElementPlane ElementPlane, List<Piece> Element, double Slenderness)> decisions = new List<(int, ElementPlane, List<Piece>, double)>();
+                foreach (int solid in candidates.Select(x => x.Index).Distinct().OrderBy(x => x).ToList())
                 {
                     // A piece is kept when its element is panel-like (thickness over the smallest extent of all its pieces
                     // together), or when it closes a gap: every edge abuts a crossing Panel or an opening.
@@ -182,7 +190,7 @@ namespace SAM.Analytical
                             continue;
                         }
 
-                        List<Piece> element = elements[Find(pieces.IndexOf(candidate))];
+                        List<Piece> element = elements[candidate];
                         if (element.Count >= 2)
                         {
                             List<Point2D> point2Ds = element.SelectMany(x => x.Faces).SelectMany(x => (candidate.Plane.Convert(x)?.ExternalEdge2D as ISegmentable2D)?.GetPoints() ?? new List<Point2D>()).ToList();
@@ -208,7 +216,12 @@ namespace SAM.Analytical
                     }
 
                     (Piece piece, List<Piece> element_Kept, double slenderness_Element) = kept.OrderBy(x => x.Piece.ElementPlane.Slenderness).First();
-                    ElementPlane elementPlane = piece.ElementPlane;
+                    decisions.Add((solid, piece.ElementPlane, element_Kept, slenderness_Element));
+                }
+
+                // Apply the pass: Panels of the kept solids, which take part as Panels from the next pass on.
+                foreach ((int solid, ElementPlane elementPlane, List<Piece> element_Kept, double slenderness_Element) in decisions)
+                {
                     elementPlane.MidPlane = Oriented(elementPlane.MidPlane, tolerance_Angle);
 
                     string subject = SolidSubject(Item(sourceNames, solid), solid);

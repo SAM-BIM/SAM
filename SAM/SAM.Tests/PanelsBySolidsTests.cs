@@ -249,8 +249,30 @@ namespace SAM.Tests
             Assert.Contains(diagnostics, x => x.SourceIndex == 0 && x.Code == BySolidsDiagnosticCode.PanelsNotClosed && x.Severity == DiagnosticSeverity.Warning);
         }
 
-        [Fact]
-        public void SnapToJunctions_PanelWithinCrossingWall_IsDroppedWithWarning()
+        [Theory]
+        [InlineData(0.02, 0.001)]
+        [InlineData(0.0005, Tolerance.Distance)]
+        public void SnapToJunctions_LoneSmallFace_IsKeptWithoutWarning(double size, double tolerance)
+        {
+            // Arrange: a valid small square (20 mm at 1 mm, 0.5 mm at 1e-6 m) with nothing to snap to. Its area (4e-4 and
+            // 2.5e-7 m2) is below the distance tolerance read as a number, yet it is many tolerances wide.
+            Face3D face3D = new Face3D(new Polygon3D(new List<Point3D> { new Point3D(0, 0, 0), new Point3D(size, 0, 0), new Point3D(size, 0, size), new Point3D(0, 0, size) }));
+            Panel panel = Analytical.Create.Panel(null, PanelType.Wall, face3D);
+            Core.Diagnostics diagnostics = new Core.Diagnostics();
+
+            // Act
+            List<Panel> result = new List<Panel> { panel }.SnapToJunctions(diagnostics, 0.3, tolerance);
+
+            // Assert
+            Panel kept = Assert.Single(result);
+            Assert.Equal(size * size, kept.GetArea(), 12);
+            Assert.DoesNotContain(diagnostics, x => x.Code == BySolidsDiagnosticCode.SnapCollapsed);
+        }
+
+        [Theory]
+        [InlineData(Tolerance.Distance)]
+        [InlineData(0.001)]
+        public void SnapToJunctions_PanelWithinCrossingWall_IsDroppedWithWarning(double tolerance)
         {
             // Arrange: a 0.1 m long wall panel lying across a crossing wall's mid-plane, nothing else near its ends:
             // both ends trim back onto the crossing wall and nothing is left.
@@ -260,7 +282,7 @@ namespace SAM.Tests
             Core.Diagnostics diagnostics = new Core.Diagnostics();
 
             // Act
-            List<Panel> result = panels.SnapToJunctions(diagnostics, 0.3);
+            List<Panel> result = panels.SnapToJunctions(diagnostics, 0.3, tolerance);
 
             // Assert: no zero-area panel comes back; the drop is a Warning.
             Panel kept = Assert.Single(result);
