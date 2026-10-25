@@ -463,6 +463,138 @@ namespace SAM.Tests
             }
         }
 
+        // Review R4: two touching slim framed windows (2 x 1 m, frames 0.024 m deep, panes inset 0.012 m at the jambs and
+        // 0.005 m at head and sill, 0.001 m in depth). At 45 degrees the frame's 12 mm reach beyond the pane is below
+        // maxGap in both world axes, so a world bounding box test sees the two as equal.
+        private static List<ApertureSolid> SlimFramedRow(double angle)
+        {
+            Func<double, double, double, Point3D> xz = Rigid(XZ, angle);
+            List<ApertureSolid> result = new List<ApertureSolid>();
+            foreach ((double start, string name) in new[] { (0.0, "A"), (2.0, "B") })
+            {
+                IList<(double U, double V)> pane = Rectangle(start + 0.012, 0.005, start + 1.988, 0.995);
+                result.Add(Solid(Prism(xz, Rectangle(start, 0, start + 2, 1), new List<IList<(double U, double V)>> { pane }, 0, 0.024), ApertureType.Window, name + " frame"));
+                result.Add(Solid(Prism(xz, pane, null, 0.001, 0.023), ApertureType.Window, name + " glass"));
+            }
+
+            return result;
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(13)]
+        [InlineData(45)]
+        [InlineData(90)]
+        [InlineData(137)]
+        public void AperturesBySolids_SlimFramedRow_StaysTwoWindowsForEveryRotationAndOrder(double angle)
+        {
+            foreach (List<ApertureSolid> order in Permutations(SlimFramedRow(angle)))
+            {
+                // Act
+                List<Aperture> apertures = order.AperturesBySolids(out _, out List<int> excluded);
+
+                // Assert
+                Assert.Equal(2, apertures.Count);
+                Assert.Empty(excluded);
+                Assert.Equal(new[] { "A frame", "A glass" }, Members(apertures.Single(x => Members(x).Contains("A frame"))));
+                Assert.Equal(new[] { "B frame", "B glass" }, Members(apertures.Single(x => Members(x).Contains("B frame"))));
+                Assert.All(apertures, x => Assert.Equal(2.0, x.GetArea(), 6));
+                Assert.All(apertures, x => Assert.Equal(0.024, x.GetValue<double>(ApertureSourceParameter.SourceThickness), 6));
+                Assert.All(apertures.SelectMany(x => ((ISegmentable3D)x.GetFace3D().GetExternalEdge3D()).GetPoints()), x => Assert.Equal(0.012, Unmoved(x, angle).Y, 6));
+            }
+        }
+
+        // Review R5: two overlapping outer members, each holding a unique inner member, both holding a shared one.
+        private static List<ApertureSolid> SharedInnerOfTwoContainers(double angle)
+        {
+            Func<double, double, double, Point3D> xz = Rigid(XZ, angle);
+            return new List<ApertureSolid>
+            {
+                Solid(Prism(xz, Rectangle(0, 0, 2, 2), null, 0, 0.1), ApertureType.Window, "left outer"),
+                Solid(Prism(xz, Rectangle(1, 0, 3, 2), null, 0, 0.1), ApertureType.Window, "right outer"),
+                Solid(Prism(xz, Rectangle(0.2, 0.5, 0.8, 1.5), null, 0.02, 0.08), ApertureType.Window, "left inner"),
+                Solid(Prism(xz, Rectangle(2.2, 0.5, 2.8, 1.5), null, 0.02, 0.08), ApertureType.Window, "right inner"),
+                Solid(Prism(xz, Rectangle(1.2, 0.5, 1.8, 1.5), null, 0.02, 0.08), ApertureType.Window, "shared inner"),
+            };
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(45)]
+        public void AperturesBySolids_SharedInnerOfTwoContainers_FallsBackToOneApertureForEveryOrder(double angle)
+        {
+            foreach (List<ApertureSolid> order in Permutations(SharedInnerOfTwoContainers(angle)))
+            {
+                // Act
+                List<Aperture> apertures = order.AperturesBySolids(out _, out List<int> excluded);
+
+                // Assert: no unit can be justified, so the five join by proximity as without units: one 6 m2 aperture,
+                // never two overlapping ones.
+                Aperture aperture = Assert.Single(apertures);
+                Assert.Equal(new[] { "left inner", "left outer", "right inner", "right outer", "shared inner" }, Members(aperture));
+                Assert.Equal(6.0, aperture.GetArea(), 6);
+                Assert.Equal(0.1, aperture.GetValue<double>(ApertureSourceParameter.SourceThickness), 6);
+                Assert.All(((ISegmentable3D)aperture.GetFace3D().GetExternalEdge3D()).GetPoints(), x => Assert.Equal(0.05, Unmoved(x, angle).Y, 6));
+                Assert.Empty(excluded);
+            }
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(45)]
+        public void AperturesBySolids_MullionTouchingTwoFramedWindows_FallsBackToOneApertureForEveryOrder(double angle)
+        {
+            // Arrange: framed windows at x 1..3 and 3.5..5.5 and an ungrouped mullion bar between them touching both
+            // frames; the bar belongs to neither unit.
+            Func<double, double, double, Point3D> xz = Rigid(XZ, angle);
+            List<ApertureSolid> solids = new List<ApertureSolid>();
+            foreach ((double x0, double x1, string name) in new[] { (1.0, 3.0, "A"), (3.5, 5.5, "B") })
+            {
+                solids.Add(Solid(Prism(xz, Rectangle(x0, 0.9, x1, 2.1), new List<IList<(double U, double V)>> { Rectangle(x0 + 0.06, 0.96, x1 - 0.06, 2.04) }, 0.09, 0.16), ApertureType.Window, name + " frame"));
+                solids.Add(Solid(Prism(xz, Rectangle(x0 + 0.06, 0.96, x1 - 0.06, 2.04), null, 0.12, 0.13), ApertureType.Window, name + " glass"));
+            }
+
+            solids.Add(Solid(Prism(xz, Rectangle(3, 0.9, 3.5, 2.1), null, 0.09, 0.16), ApertureType.Window, "mullion"));
+
+            foreach (List<ApertureSolid> order in Permutations(solids))
+            {
+                // Act
+                List<Aperture> apertures = order.AperturesBySolids(out _, out _);
+
+                // Assert: as without units, the five join by proximity (2 x 2.4 + 0.5 x 1.2 m2).
+                Aperture aperture = Assert.Single(apertures);
+                Assert.Equal(new[] { "A frame", "A glass", "B frame", "B glass", "mullion" }, Members(aperture));
+                Assert.Equal(5.4, aperture.GetArea(), 6);
+            }
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(45)]
+        public void AperturesBySolids_NearlyEqualMembers_AreNoUnitAndJoinByProximity(double angle)
+        {
+            // Arrange: a frame and a panel covering its outline to within 5 mm (less than maxGap) on every side and in
+            // depth: each lies within the other, so neither encloses the other.
+            Func<double, double, double, Point3D> xz = Rigid(XZ, angle);
+            List<ApertureSolid> solids = new List<ApertureSolid>
+            {
+                Solid(Prism(xz, Rectangle(1, 0.9, 3, 2.1), new List<IList<(double U, double V)>> { Rectangle(1.06, 0.96, 2.94, 2.04) }, 0.09, 0.16), ApertureType.Window, "frame"),
+                Solid(Prism(xz, Rectangle(1.005, 0.905, 2.995, 2.095), null, 0.095, 0.155), ApertureType.Window, "cover"),
+            };
+
+            foreach (List<ApertureSolid> order in Permutations(solids))
+            {
+                // Act
+                List<Aperture> apertures = order.AperturesBySolids(out _, out _);
+
+                // Assert
+                Aperture aperture = Assert.Single(apertures);
+                Assert.Equal(new[] { "cover", "frame" }, Members(aperture));
+                Assert.Equal(2.4, aperture.GetArea(), 6);
+                Assert.Equal(0.07, aperture.GetValue<double>(ApertureSourceParameter.SourceThickness), 6);
+            }
+        }
+
         [Fact]
         public void AperturesBySolids_CornerWindowAcrossTwoWalls_SkippedAsNotPlanar()
         {
