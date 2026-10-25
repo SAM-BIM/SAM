@@ -1,8 +1,10 @@
 # AperturesBySolids: framed windows in a row stay separate apertures — Q4 (2026-10-25)
 
-Status: implemented locally on `fix/apertures-by-solids-units-q4` (base `sow/2026-Q4` at `457defbb`). Not pushed; no
-PR yet (owner go-ahead needed). Tested content `22569e21`; later commits change this record only. Step 2 of the
-Softhouse "SAM model from solids" part 2 ("windows - apertures were more detail").
+Status: branch `fix/apertures-by-solids-units-q4`, rebased on `sow/2026-Q4` at `81a781ab` (after the merges of
+SAM-BIM/SAM#220, #222 and #221 `945eea51`). PR into `sow/2026-Q4` (owner go-ahead 2026-10-25). Tested content
+`d17d9b84` (first tested as `22569e21` on `457defbb`); later commits change this record only, and the PR description
+holds the final head and hosted checks. Step 2 of the Softhouse "SAM model from solids" part 2 ("windows - apertures
+were more detail").
 
 ## Problem (Softhouse numbers)
 
@@ -35,9 +37,9 @@ members that are neither around nor inside another (stick-frame bars) still join
 win. The key carries a leading NUL so it cannot clash with a user key. XML docs: new "Units" item.
 
 `SAMAnalytical.CreateAperturesBySolids` 1.0.2 -> **1.1.0** (minor: the geometry result changes; GUID, parameters and
-defaults unchanged); description says framed windows in a row stay separate. Note: SAM#221's version guard edits the
-adjacent line of `BySolidsDiagnosticDetailTests.ComponentVersions_AreBumped_AndTheOutputsAreStillNamedLog`, so the two
-branches conflict there (resolve to both 1.1.0, as on the local integration branch).
+defaults unchanged); description says framed windows in a row stay separate. The version guard
+`BySolidsDiagnosticDetailTests.ComponentVersions_AreBumped_AndTheOutputsAreStillNamedLog` now pins both BySolids
+components at 1.1.0 (CreatePanelsBySolids from SAM#221; the rebase resolved the adjacent-line conflict).
 
 ## Files changed
 
@@ -49,18 +51,21 @@ branches conflict there (resolve to both 1.1.0, as on the local integration bran
 - `Grasshopper/SAM.Core.Grasshopper.Tests/BySolidsDiagnosticDetailTests.cs` (version pin 1.1.0)
 - this record
 
-## Validation (local, machine `michal`; tested content `22569e21`)
+## Validation (local, machine `michal`; tested content `d17d9b84` on base `81a781ab`)
 
 ```powershell
-# deploy-safe builds: APPDATA/USERPROFILE redirected; SolutionDir set for the GH PostBuild xcopy
+# deploy-safe builds: APPDATA/USERPROFILE redirected; SolutionDir set for the GH PostBuild xcopy; run the two test
+# projects one after the other (two in-process Rhino starts fail)
 dotnet build SAM/SAM.Tests/SAM.Tests.csproj -c Release
 dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release --no-build
 dotnet build Grasshopper/SAM.Core.Grasshopper.Tests/SAM.Core.Grasshopper.Tests.csproj -c Release -p:SolutionDir=<repo>\
 dotnet test Grasshopper/SAM.Core.Grasshopper.Tests/SAM.Core.Grasshopper.Tests.csproj -c Release --no-build
 ```
 
-- SAM.Tests 3740 / 3740 (2 new); SAM.Core.Grasshopper.Tests 84 / 84 (failed 1 before the version pin was updated).
-- Softhouse, headless `pipe` and headless GH (`ghrun`, `%APPDATA%\SAM` = local integration build): **101 apertures
+- SAM.Tests 3763 / 3763 (base + 2 new); SAM.Core.Grasshopper.Tests 87 / 87. (On `457defbb`, before the rebase: 3740 / 3740
+  and 84 / 84; the GH guard failed once before the version pin was updated.)
+- Softhouse, headless `pipe` (local test-only branch `local/softhouse-integration-q4-2` = `81a781ab` + this branch +
+  the PanelsBySolid ownership-sample branch) and, before the rebase, headless GH (`ghrun`): **101 apertures
   (100 + the internal screen), 96 hosted** (was 45 / 41). SAM Check unchanged (the 6 known "not enclosed (1e-6)"
   warnings). Comparison listings: `SAM_daily/2026-10-25-Softthouse/handover/evidence/2026-10-25-part2/aperture_comparison_*.txt`.
 - SAM_OCCT does not use `AperturesBySolids`; its suites against the integration SAM DLLs: see the ownership-sample record.
@@ -74,5 +79,5 @@ dotnet test Grasshopper/SAM.Core.Grasshopper.Tests/SAM.Core.Grasshopper.Tests.cs
 
 ## Next step
 
-Owner: review; on go-ahead push and open the PR into `sow/2026-Q4` with this record (independent of SAM#220-#222;
-resolve the test-line conflict with SAM#221 when the second of the two merges).
+Owner: review the PR and its hosted checks; merge only on approval, then the PROJECT_PROGRESS.md closeout on
+`sow/2026-Q4`. Independent of the PanelsBySolid ownership-sample PR.
