@@ -1,7 +1,7 @@
 # PanelsBySolid: a face pair's material sampled at its deepest point — Q4 (2026-10-25)
 
 Status: branch `fix/panels-by-solid-ownership-sample-q4`, rebased on `sow/2026-Q4` at `81a781ab` (after the merges of
-SAM-BIM/SAM#220 `626a23e5`, #222 `924fec52` and #221 `945eea51`). Separate PR into `sow/2026-Q4` (owner go-ahead
+SAM-BIM/SAM#220 `626a23e5`, #222 `924fec52` and #221 `945eea51`). PR SAM-BIM/SAM#223 into `sow/2026-Q4` (owner go-ahead
 2026-10-25). Tested content `755bcef9` (first tested as `5750cd24` on `457defbb`); later commits change this record
 only, and the PR description holds the final head and hosted checks. Step 1 of the Softhouse "SAM model from solids"
 part 2.
