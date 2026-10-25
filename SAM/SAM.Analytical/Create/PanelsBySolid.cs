@@ -432,7 +432,8 @@ namespace SAM.Analytical
         /// <item><b>Ownership:</b> material belongs to the element in which it is most panel-like (lowest thickness over
         /// smallest extent). Planes are taken in that order, and a pair whose material lies inside an accepted, non-parallel element (e.g. the wall
         /// under a window sill, cut horizontally by the sill and the wall's base) is a cross-cut of that element, not
-        /// an element of its own.</item>
+        /// an element of its own. A pair's material is tested at the point of its overlap farthest from the overlap's
+        /// edges, so a thin element at the edge of a frame-shaped overlap (a jamb) does not take the whole pair.</item>
         /// <item><b>Panel-like:</b> a plane whose thickness exceeds <paramref name="maxThicknessRatio"/> of its smallest
         /// in-plane extent is returned in <paramref name="rejected"/>.</item>
         /// <item><b>One element, several thicknesses:</b> a parallel plane whose slab contains, or lies within, the
@@ -485,7 +486,7 @@ namespace SAM.Analytical
                         continue;
                     }
 
-                    Point3D point3D = plane_i.Convert(overlap.OrderByDescending(x => x.GetArea()).First())?.GetInternalPoint3D(tolerance_Distance);
+                    Point3D point3D = plane_i.Convert(DeepestPoint(overlap.OrderByDescending(x => x.GetArea()).First(), tolerance_Distance, tolerance_Snap));
                     if (!HasMaterialBetween(shell, point3D, normal, offset, tolerance_Distance, tolerance_Snap))
                     {
                         continue;
@@ -601,6 +602,28 @@ namespace SAM.Analytical
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The point of <paramref name="face2D"/> farthest from its edges (the centre of its largest inscribed circle,
+        /// to <paramref name="tolerance_Snap"/>): the point that stands for a pair's material. In a frame-shaped overlap
+        /// (a wall around a large opening) it lies in the head, not in a 13 mm jamb that a thinner element owns. Falls
+        /// back to any internal point.
+        /// </summary>
+        private static Point2D DeepestPoint(Face2D face2D, double tolerance_Distance, double tolerance_Snap)
+        {
+            Point2D result = null;
+            try
+            {
+                NetTopologySuite.Geometries.Point center = NetTopologySuite.Algorithm.Construct.MaximumInscribedCircle.GetCenter(face2D.ToNTS(), tolerance_Snap);
+                result = center == null || center.IsEmpty ? null : new Point2D(center.X, center.Y);
+            }
+            catch (System.Exception)
+            {
+                result = null;
+            }
+
+            return result != null && face2D.Inside(result, tolerance_Distance) ? result : face2D.GetInternalPoint2D(tolerance_Distance);
         }
 
         private static bool IsParallel(Plane plane_1, Plane plane_2, double cosAngle)

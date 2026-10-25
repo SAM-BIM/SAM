@@ -413,5 +413,75 @@ namespace SAM.Tests
             Assert.Equal(length * height, panel.GetArea(), 3);
             Assert.Contains(diagnostics, x => x.StartsWith("Info: ") && x.Contains("Created 1 panel,"));
         }
+
+        /// <summary>
+        /// Softhouse solid #385, face by face as it comes from Rhino: a 0.45 m wall (x -7.6251..-7.1751), 1.844 m long and
+        /// 3.35 m high, that is mostly a 1.8 x 2.87 m opening, leaving jambs of 13.4 mm and 30.8 mm, a 0.479 m head and a
+        /// 1 mm sill.
+        /// </summary>
+        private static Shell WallAroundLargeOpening()
+        {
+            Polygon3D Loop(params double[] xyz)
+            {
+                List<Point3D> point3Ds = new List<Point3D>();
+                for (int i = 0; i < xyz.Length; i += 3)
+                {
+                    point3Ds.Add(new Point3D(xyz[i], xyz[i + 1], xyz[i + 2]));
+                }
+
+                return new Polygon3D(point3Ds);
+            }
+
+            List<Face3D> face3Ds = new List<Face3D>
+            {
+                Face3D.Create(new List<IClosedPlanar3D> { Loop(-7.1751, -2.5267, 0.05, -7.1751, -0.6825, 0.05, -7.1751, -0.6825, 3.4, -7.1751, -2.5267, 3.4), Loop(-7.1751, -2.5133, 2.921, -7.1751, -0.7133, 2.921, -7.1751, -0.7133, 0.051, -7.1751, -2.5133, 0.051) }),
+                new Face3D(Loop(-7.1751, -2.5267, 0.05, -7.6251, -2.5267, 0.05, -7.6251, -0.6825, 0.05, -7.1751, -0.6825, 0.05)),
+                new Face3D(Loop(-7.1751, -0.6825, 0.05, -7.6251, -0.6825, 0.05, -7.6251, -0.6825, 3.4, -7.1751, -0.6825, 3.4)),
+                new Face3D(Loop(-7.1751, -0.6825, 3.4, -7.6251, -0.6825, 3.4, -7.6251, -2.5267, 3.4, -7.1751, -2.5267, 3.4)),
+                Face3D.Create(new List<IClosedPlanar3D> { Loop(-7.6251, -0.6825, 3.4, -7.6251, -0.6825, 0.05, -7.6251, -2.5267, 0.05, -7.6251, -2.5267, 3.4), Loop(-7.6251, -0.7133, 0.051, -7.6251, -0.7133, 2.921, -7.6251, -2.5133, 2.921, -7.6251, -2.5133, 0.051) }),
+                new Face3D(Loop(-7.6251, -0.7133, 0.051, -7.1751, -0.7133, 0.051, -7.1751, -0.7133, 2.921, -7.6251, -0.7133, 2.921)),
+                new Face3D(Loop(-7.6251, -0.7133, 2.921, -7.1751, -0.7133, 2.921, -7.1751, -2.5133, 2.921, -7.6251, -2.5133, 2.921)),
+                new Face3D(Loop(-7.1751, -0.7133, 0.051, -7.6251, -0.7133, 0.051, -7.6251, -2.5133, 0.051, -7.1751, -2.5133, 0.051)),
+                new Face3D(Loop(-7.6251, -2.5267, 0.05, -7.1751, -2.5267, 0.05, -7.1751, -2.5267, 3.4, -7.6251, -2.5267, 3.4)),
+                new Face3D(Loop(-7.6251, -2.5133, 0.051, -7.6251, -2.5133, 2.921, -7.1751, -2.5133, 2.921, -7.1751, -2.5133, 0.051)),
+            };
+
+            return new Shell(face3Ds);
+        }
+
+        [Fact]
+        public void PanelsBySolid_WallAroundLargeOpening_ThinJambDoesNotRemoveTheWallPlane()
+        {
+            // Arrange: the 0.45 m plane is not panel-like at the default ratio (0.45 / 1.844 = 0.244), so a ratio of 0.3
+            // shows whether it survives the ownership step. A 13 mm jamb (below minThickness) claims the material at its
+            // own end of the frame only; the wall's material is mostly the 0.479 m head.
+            Shell wall = WallAroundLargeOpening();
+
+            // Act
+            List<Panel> panels = wall.PanelsBySolid(out List<string> diagnostics, minThickness: 0.04, maxThicknessRatio: 0.3);
+
+            // Assert
+            Panel panel = Assert.Single(panels, x => x.PanelType == PanelType.Wall);
+            Assert.Equal(0.45, panel.GetValue<double>(PanelSourceParameter.PhysicalThickness), 3);
+            Assert.All(((ISegmentable3D)panel.GetFace3D().GetExternalEdge3D()).GetPoints(), x => Assert.Equal(-7.4001, x.X, 4));
+            Assert.Equal(1.844 * 3.35 - 1.8 * 2.87, panel.GetArea(), 2);
+        }
+
+        [Fact]
+        public void PanelsBySolid_SillUnderWindowCrossCut_IsStillPartOfTheWall()
+        {
+            // Arrange: a 0.25 m wall with a 1.2 x 1.2 m window opening (sill at 0.9 m). The wall under the sill is a
+            // horizontal face pair (0.9 m apart) whose material lies inside the wall: a cross-cut, not a second element,
+            // even with a ratio that would accept it on its own. The same holds for the head and the jamb-to-end pairs.
+            Shell wall = Prism(XZ, Rectangle(0, 0, 4, 3), new List<IList<(double U, double V)>> { Rectangle(1.4, 0.9, 2.6, 2.1) }, 0, 0.25);
+
+            // Act
+            List<Panel> panels = wall.PanelsBySolid(out _, airForUnclaimedOpenings: false, maxThicknessRatio: 100);
+
+            // Assert
+            Panel panel = Assert.Single(panels);
+            Assert.Equal(PanelType.Wall, panel.PanelType);
+            Assert.Equal(12 - 1.44, panel.GetArea(), 3);
+        }
     }
 }
