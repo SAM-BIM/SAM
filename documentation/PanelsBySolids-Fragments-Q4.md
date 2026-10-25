@@ -104,4 +104,4 @@ this pass); nothing is invented.
 
 ## Next step
 
-Owner review; then push and open the PR into `sow/2026-Q4`. Independent of the Rhino UnitScale and Face3D Union branches.
+Owner review of the PR and its hosted checks; merge only on owner approval, then the PROJECT_PROGRESS.md closeout on `sow/2026-Q4`. Independent of the Rhino UnitScale and Face3D Union branches.
