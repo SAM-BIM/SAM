@@ -1,10 +1,10 @@
 # PanelsBySolid: a face pair's material sampled at its deepest point — Q4 (2026-10-25)
 
-Status: branch `fix/panels-by-solid-ownership-sample-q4`, rebased on `sow/2026-Q4` at `81a781ab` (after the merges of
-SAM-BIM/SAM#220 `626a23e5`, #222 `924fec52` and #221 `945eea51`). PR SAM-BIM/SAM#223 into `sow/2026-Q4` (owner go-ahead
-2026-10-25). Tested content `755bcef9` (first tested as `5750cd24` on `457defbb`); later commits change this record
-only, and the PR description holds the final head and hosted checks. Step 1 of the Softhouse "SAM model from solids"
-part 2.
+Status: branch `fix/panels-by-solid-ownership-sample-q4` on `sow/2026-Q4` at `81a781ab` (after the merges of
+SAM-BIM/SAM#220 `626a23e5`, #222 `924fec52` and #221 `945eea51`). PR SAM-BIM/SAM#223 into `sow/2026-Q4`. Independent
+review 2026-10-25 of head `c9633bea`: core correction accepted; REVISE for R3 (component version), done. Tested content
+`b8afc8c7` (core change `755bcef9`; first tested as `5750cd24` on `457defbb`); later commits change this record only,
+and the PR description holds the final head and hosted checks. Step 1 of the Softhouse "SAM model from solids" part 2.
 
 ## Problem
 
@@ -25,29 +25,57 @@ farthest from the overlap's edges: the centre of its largest inscribed circle (N
 `MaximumInscribedCircle`, accuracy `tolerance_Snap`), falling back to the old internal point. It is used for both the
 material test (`HasMaterialBetween`) and ownership (`ElementPlane.Owns`). In a frame the deepest point is in the head,
 not in a jamb; a real cross-cut (the wall under a window sill) still lies inside the element that holds it. XML docs of
-`ElementPlanes` updated. No API, parameter or component change (no GH version bump).
+`ElementPlanes` updated. No public API change.
+
+`SAMAnalytical.CreatePanelsBySolids` calls `PanelsBySolid`, so its geometry result changes: **1.1.0 -> 1.2.0** (minor,
+GH_COMPONENT_STANDARDS GH-F2/GH-H2; saved definitions at 1.1.0 now get the update indication). GUID, parameter names,
+order, types, access, optionality, visibility and defaults unchanged. The version guard pins 1.2.0.
+
+## Review (independent review of `c9633bea`)
+
+- The bounded core correction is accepted: the reviewer's serialized #385 fixture gives the expected 0.45 m wall
+  (1.01207 m2) on this branch and no wall on `81a781ab`. The material sample remains a heuristic (one deepest point per
+  overlap), not a whole-volume proof.
+- **R3 (P2): changed GH geometry was not versioned.** The earlier record said no GH bump was needed because no
+  component code changed; that was wrong, the component's computed result changes. Fixed by the 1.2.0 bump above.
+- **Inherited limits, not changed here:** in the reviewer's replay, translated, rotated and face-reversed variants of
+  the #385 wall and rotated slab controls fail on `81a781ab` and on this branch alike (identical outputs in
+  `.review-pr223-224-20261025/probe-base-output.txt` and `probe223-output.txt`: rotated by 90 or 137 degrees, or with
+  reversed faces at 0 degrees, no wall; at 13 or 45 degrees an extra 5.166 m2 wall over the opening). Their cause is in the
+  existing method chain and was not located; this PR claims no rotational or face-order robustness and no full room
+  recovery. Door-notch controls pass the sampled transformations on both.
 
 ## Files changed
 
 - `SAM/SAM.Analytical/Create/PanelsBySolid.cs`
+- `Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalCreatePanelsBySolids.cs` (version 1.2.0)
 - `SAM/SAM.Tests/PanelsBySolidTests.cs`: fixture `WallAroundLargeOpening` (#385 face by face, as converted from Rhino),
   `PanelsBySolid_WallAroundLargeOpening_ThinJambDoesNotRemoveTheWallPlane` (fails before: no wall panel),
   `PanelsBySolid_SillUnderWindowCrossCut_IsStillPartOfTheWall` (guard: cross-cuts still removed at ratio 100)
+- `Grasshopper/SAM.Core.Grasshopper.Tests/BySolidsDiagnosticDetailTests.cs` (version pin 1.2.0)
 - this record
 
-## Validation (local, machine `michal`; tested content `755bcef9` on base `81a781ab`)
+## Validation (local, machine `michal`; tested content `b8afc8c7` on base `81a781ab`; core content `755bcef9` as before)
 
 ```powershell
-# deploy-safe builds: APPDATA/USERPROFILE redirected (the GH PostBuild copies to %APPDATA%\SAM); SolutionDir set
-# for the PostBuild xcopy; run the two test projects one after the other (two in-process Rhino starts fail)
+# deploy-safe builds: APPDATA and USERPROFILE redirected to a scratch profile (the GH PostBuild copies DLLs to
+# %APPDATA%\SAM); SolutionDir set for the PostBuild xcopy. Run the two test projects one after the other: two
+# in-process Rhino starts at once fail with COMException in OneTimeSetUp.
 dotnet build Grasshopper/SAM.Core.Grasshopper.Tests/SAM.Core.Grasshopper.Tests.csproj -c Release -p:SolutionDir=<repo>\
 dotnet build SAM/SAM.Tests/SAM.Tests.csproj -c Release
 dotnet test SAM/SAM.Tests/SAM.Tests.csproj -c Release --no-build
 dotnet test Grasshopper/SAM.Core.Grasshopper.Tests/SAM.Core.Grasshopper.Tests.csproj -c Release --no-build
 ```
 
-- SAM.Tests 3763 / 3763 (base + 2 new); SAM.Core.Grasshopper.Tests 87 / 87. The new #385 test failed before the change.
-  (On `457defbb`, before the rebase: 3740 / 3740.)
+- SAM.Tests **3763 passed, 0 failed, 0 skipped**; SAM.Core.Grasshopper.Tests **87 / 0 / 0**. The #385 wall test (failed before the core
+  change: no wall panel) and the sill cross-cut guard pass. TRX and logs: `SAM-BIM/.evidence-pr223-224-corrections/pr223-*`
+  (machine-local). Before the review: 3763 / 3763 and 87 / 87 at `755bcef9`; 3740 / 3740 on `457defbb`.
+- GH metadata audit (not `--check`; SAM has no approved baseline): `design/grasshopper-icons/tools/param_contract.py`
+  inventory mode, run with Rhino 8's Python 3.13, manifests written outside the repository for a full export of
+  `81a781ab` and for this branch, compared by component GUID: 460 components each, none added or removed; only
+  `SAMAnalytical.CreatePanelsBySolids` (`8b0f5f2c-...`) differs, in `latestComponentVersion` 1.1.0 -> 1.2.0. Its
+  extraction status is `partial` on the base and this branch alike (constructor defaults of `GooPanelParam` are outside
+  the validator's source subset). Evidence `contract-*.json`, `contract-audit.txt`. `git diff --check` clean.
 - Softhouse (headless `pipe`, inputs `solids_panels_392.3dm` + `windows_201.3dm`, minThickness 0.04, Clean3D/Extend3D;
   local test-only branch `local/softhouse-integration-q4-2` = `81a781ab` + this branch + the AperturesBySolids units
   branch): #385 is kept ("Created 1 panel, 0.45 m thick. Filled 1 hole for apertures."; on `457defbb` + SAM#221 it was
@@ -81,5 +109,7 @@ slices as one 0.45 m east-west wall). Both affect every model.
 
 ## Next step
 
-Owner: review the PR and its hosted checks; merge only on approval, then the PROJECT_PROGRESS.md closeout on
-`sow/2026-Q4`. Separately decide whether to pursue (a) or (b) for the Dining 1 corner (a new task and branch).
+Independent review of the corrected head and its hosted checks; owner merge decision. After merge: the
+PROJECT_PROGRESS.md closeout on `sow/2026-Q4`. When both this PR and SAM#224 merge, the second one meets an
+adjacent-line conflict in the version guard: keep both assertions (CreatePanelsBySolids 1.2.0, CreateAperturesBySolids
+1.1.0). Separately: the owner's choice of (a) or (b) for the Dining 1 corner (a new task and branch).
