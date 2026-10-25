@@ -19,7 +19,8 @@ nothing and still return it as a zero-area face (about 1e-14 m wide). One such f
 ## Change
 
 1. **`Create.PanelsBySolids`** (new, `SAM/SAM.Analytical/Create/PanelsBySolids.cs`): `PanelsBySolid` on every solid, then
-   a pass over the solids skipped only as not panel-like. Their element planes ("pieces") are judged as parts of their
+   a pass over every skipped solid that has element planes rejected as not panel-like (whatever reason its warning
+   gives: a wall around a large opening is reported by its 13 mm jambs). Those planes ("pieces") are judged as parts of their
    element. A piece is kept when either:
    - **its element is panel-like.** Pieces of different solids (skipped ones and created Panels) join when parallel, on
      the same mid-plane and of the same thickness (within `tolerance_Continuation`, default 0.01 m), and joined:
@@ -34,7 +35,7 @@ nothing and still return it as a zero-area face (about 1e-14 m wide). One such f
    lying within the thickness of a crossing Panel (a strip at slab level over a wall: it would enclose a sliver of
    space). The pass repeats until nothing more is kept, so kept pieces join and frame further ones. From each kept
    solid the most panel-like such plane gives the Panels.
-2. **Diagnostics**: a kept solid's not-panel-like Warning is replaced by Summary Info `PBS103` (`PanelsContinuation`,
+2. **Diagnostics**: a kept solid's skip Warning is replaced by Summary Info `PBS103` (`PanelsContinuation`,
    Value = its own ratio, Limit = maxThicknessRatio), naming the other pieces or saying it closes a gap, followed by
    the kept plane's own records. Summary, not Standard: it keeps input the threshold alone would skip (standard 2.5).
 3. **`Query.SnapToJunctions`**: a panel whose snapped outline collapses (area at most the tolerance, or inverted) is
@@ -50,11 +51,11 @@ nothing and still return it as a zero-area face (about 1e-14 m wide). One such f
 - `SAM/SAM.Analytical/Create/PanelsBySolids.cs` (new), `Create/PanelsBySolid.cs`, `Query/SnapToJunctions.cs`,
   `Classes/Diagnostics/BySolidsDiagnosticCode.cs` (PBS103, SNP002)
 - `Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalCreatePanelsBySolids.cs`
-- `SAM/SAM.Tests/PanelsBySolidsTests.cs` (new, 13 tests), `Grasshopper/SAM.Core.Grasshopper.Tests/BySolidsDiagnosticDetailTests.cs`
+- `SAM/SAM.Tests/PanelsBySolidsTests.cs` (new, 14 tests), `Grasshopper/SAM.Core.Grasshopper.Tests/BySolidsDiagnosticDetailTests.cs`
   (version pin 1.1.0, one behaviour test)
 - this record
 
-## Validation (local, content of this commit)
+## Validation (local; validated content `5c169cef`, this record follows it)
 
 ```powershell
 dotnet build SAM.sln -c Release -p:SolutionDir=<repo>\
@@ -63,11 +64,12 @@ dotnet build Grasshopper/SAM.Core.Grasshopper.Tests/SAM.Core.Grasshopper.Tests.c
 dotnet test Grasshopper/SAM.Core.Grasshopper.Tests/SAM.Core.Grasshopper.Tests.csproj -c Release --no-build
 ```
 
-- `SAM.Tests`: 3750 / 3751. The one failure, `QueryWaitToUnlockTests.WaitToUnlock_FileUnlockedWhileWaiting_ReturnsTrue`,
-  is a file-lock timing test: it passed 7 / 7 three times when run alone; not related to this change.
-- `PanelsBySolidsTests` 13 / 13. Mutations, each caught by its own test: no framing, no embedded-strip guard, no
-  opening join, no junction join, no sliver/slenderness filter, no collapse drop.
-- `SAM.Core.Grasshopper.Tests` (headless Rhino 8, not CI): 85 / 85.
+- `SAM.Tests`: 3752 / 3752 on `5c169cef`. (On `57a3970c` one run failed
+  `QueryWaitToUnlockTests.WaitToUnlock_FileUnlockedWhileWaiting_ReturnsTrue`, a file-lock timing test that passed 7 / 7
+  three times alone; not related.)
+- `PanelsBySolidsTests` 14 / 14. Mutations, each caught by its own test: no framing, no embedded-strip guard, no
+  opening join, no junction join, no sliver/slenderness filter, no collapse drop, candidates limited to PBS003 solids.
+- `SAM.Core.Grasshopper.Tests` (headless Rhino 8, not CI): 85 / 85 on `57a3970c` (no Grasshopper change since).
 - Build worktrees with `APPDATA`/`USERPROFILE` redirected: the SAM Grasshopper projects' PostBuild deploys to
   `%APPDATA%\SAM`.
 
@@ -79,14 +81,22 @@ SAMOCCT Clean3D -> Extend3D (inputAlreadyClean, directionalCapGrow, bucketBetwee
 
 | | panels / skipped solids | Clean3D | spaces (GF / 1F / 2F) | hosted windows |
 | --- | --- | --- | --- | --- |
-| before, minThickness 0.08 | 270 / 122 | 270 -> 83 | 30 (0 / 15 / 15) | 22 |
+| before, minThickness 0.08 | 270 / 122 | 270 -> 83 | 30 (0 / 12 / 18) | 22 |
 | before, minThickness 0.04 | 324 / 81 | 324 -> 324, OCCT rejected | 0 | - |
 | this branch, minThickness 0.04 | 379 / 26 | 370 -> 83 (9 collapsed dropped) | 62 (25 / 18 / 19) | 46 |
+| + SAM_OCCT `fix/occt-chain-degenerate-robustness-q4` | 379 / 26 | 370 -> 83 | 70 (27 / 22 / 21), direct rebuild | 41 |
 
-Reference gbXML: 70 rooms (28 / 22 / 20). Remaining differences are rooms the source leaves open (open-plan
-kitchen/circulation, double-height kitchen voids into the 1F, carports): see the task report.
+Reference gbXML: 70 rooms (28 / 22 / 20). With both branches 69 of 70 reference rooms lie inside a model space; 9 spaces
+hold two reference rooms each (open-plan kitchen + circulation, double-height kitchen voids into the 1F: no element
+separates them in the source). Carports close from source elements (walls with garage-door openings, piers kept by
+this pass); nothing is invented.
 
-## Risks
+## Risks and limits
+
+- Known miss: Softhouse #385, a 0.45 m wall that is mostly a 1.8 x 2.87 m opening (13 mm jambs). Its 0.45 m face pair
+  is dropped inside `ElementPlanes` before it can be rejected: the ownership step samples one point of the frame-shaped
+  overlap, the point falls in a jamb, and the thin jamb plane claims it. Dining 1 (house D) stays open because of it.
+  A fix belongs in the ownership sampling of `PanelsBySolid` (all models), so it was left for a separate change.
 
 - The rules are geometric heuristics: a coplanar same-thickness non-building piece joined to a wall would be kept. No
   such case seen; the stair, free-edge stub, sliver and separated-pier tests stay skipped.
