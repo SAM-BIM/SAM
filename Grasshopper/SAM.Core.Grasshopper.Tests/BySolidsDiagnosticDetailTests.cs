@@ -167,7 +167,8 @@ namespace SAM.Core.Grasshopper.Tests
         {
             // 1.1.0: pieces of fragmented elements are kept (Create.PanelsBySolids), a geometry change.
             Assert.Equal("1.1.0", new SAMAnalyticalCreatePanelsBySolids().LatestComponentVersion);
-            Assert.Equal("1.0.2", new SAMAnalyticalCreateAperturesBySolids().LatestComponentVersion);
+            // 1.1.0: framed windows in a row stay separate apertures (Create.AperturesBySolids), a geometry change.
+            Assert.Equal("1.1.0", new SAMAnalyticalCreateAperturesBySolids().LatestComponentVersion);
             Assert.Equal("log", new SAMAnalyticalCreatePanelsBySolids().Params.Output.Last().Name);
             Assert.Equal("log", new SAMAnalyticalCreateAperturesBySolids().Params.Output.Last().Name);
         }
