@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.3";
+        public override string LatestComponentVersion => "1.1.0";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -43,7 +43,7 @@ namespace SAM.Analytical.Grasshopper
               "Create SAM Analytical Panels from closed Rhino solids of planar building elements: walls, floors, slabs, ceilings, roofs and gables.\n" +
               "Each pair of opposite parallel faces with material between them is one element side pair: its distance is the element's thickness and its mid-plane carries the Panel. A solid may hold several elements (a ring of walls, a roof with two pitches); each element plane gives its own Panels. Panel type follows the mid-plane: vertical = Wall, horizontal = Floor, sloped = Roof. The measured thickness is stored as PhysicalThickness, independent of the construction.\n" +
               "Openings occupied by apertureGeometries_ (windows, doors) are filled so Apertures can be added later; other holes (e.g. stair voids) become Air Panels. Nothing is invented: missing walls, floors or ceilings stay missing.\n" +
-              "A Solid is skipped, with a Warning, when it is thinner than minThickness_ (a thickness in metres) or not panel-like by maxThicknessRatio_ (e.g. a stair). log gives the reason and the value that would keep it. Warnings are always given in full; diagnosticDetail_ sets how much Info log adds (0 Summary, 1 Standard: one line per Solid, 2 Detailed).\n" +
+              "A Solid is skipped, with a Warning, when it is thinner than minThickness_ (a thickness in metres) or not panel-like by maxThicknessRatio_ (e.g. a stair). log gives the reason and the value that would keep it. A Solid that is not panel-like on its own is kept (Info in log) when it is a piece of a larger element: a pier, patch or stub on the same mid-plane and of the same thickness as other pieces, joined to them directly, across a junction or across an opening, which together are panel-like; or a short wall or slab whose every edge meets another Panel or an opening. Warnings are always given in full; diagnosticDetail_ sets how much Info log adds (0 Summary, 1 Standard: one line per Solid, 2 Detailed).\n" +
               "Outer edges are snapped onto neighbouring mid-planes (snap_). Rhino units must be metres. Feed the Panels to SAMOCCT.CreateAdjacencyCluster.",
               "SAM", "Analytical01")
         {
@@ -177,16 +177,12 @@ namespace SAM.Analytical.Grasshopper
             }
 
             global::Rhino.RhinoDoc rhinoDoc = global::Rhino.RhinoDoc.ActiveDoc;
-            List<Panel> panels = [];
-            List<int> excluded = [];
-            Core.Diagnostics diagnostics = new(diagnosticDetail);
-            List<string> notPanelLike = [];
-            List<string> tooThin = [];
-            List<string> otherSkipped = [];
+            List<Shell> shells = [];
+            List<string> sourceNames = [], sourceIds = [], sourceLayers = [], names = [];
             for (int i = 0; i < solids.Count; i++)
             {
                 GH_Brep solid = solids[i];
-                Shell shell = solid?.ToSAM(true)?.OfType<Shell>().FirstOrDefault();
+                shells.Add(solid?.ToSAM(true)?.OfType<Shell>().FirstOrDefault());
 
                 string sourceName = null, sourceId = null, sourceLayer = null;
                 if (solid != null && solid.IsReferencedGeometry)
@@ -201,40 +197,51 @@ namespace SAM.Analytical.Grasshopper
                 }
 
                 // Deterministic identification: the input position, then the Rhino name when there is one.
-                string name = string.IsNullOrWhiteSpace(sourceName) ? string.Format("#{0}", i) : string.Format("#{0} '{1}'", i, sourceName);
-                if (shell == null)
+                names.Add(string.IsNullOrWhiteSpace(sourceName) ? string.Format("#{0}", i) : string.Format("#{0} '{1}'", i, sourceName));
+                sourceNames.Add(string.IsNullOrWhiteSpace(sourceName) ? string.Format("#{0}", i) : sourceName);
+                sourceIds.Add(sourceId);
+                sourceLayers.Add(sourceLayer);
+            }
+
+            // Every solid on its own, then the pieces of fragmented elements (piers, patches, stubs) judged as parts of
+            // their element: see Create.PanelsBySolids.
+            Core.Diagnostics diagnostics = new(diagnosticDetail);
+            List<List<Panel>> panels_Solids = shells.PanelsBySolids(diagnostics, apertureGeometries, minThickness, maxThicknessRatio, airForOpenings, sourceNames, sourceIds, sourceLayers);
+
+            List<Panel> panels = [];
+            List<int> excluded = [];
+            List<string> notPanelLike = [];
+            List<string> tooThin = [];
+            List<string> otherSkipped = [];
+            List<string> kept = [];
+            for (int i = 0; i < solids.Count; i++)
+            {
+                // By code, not by message text and not by Info: the reason is a Warning and is kept at every detail level.
+                List<Core.Diagnostic> records = diagnostics.Where(x => x.SourceIndex == i).ToList();
+                if (panels_Solids[i].Count != 0)
                 {
-                    excluded.Add(i);
-                    otherSkipped.Add(name);
-                    diagnostics.Add(new Core.Diagnostic(Core.DiagnosticSeverity.Warning, DiagnosticDetail.Summary, "Solid " + name, "Skipped. It is not a closed solid.", BySolidsDiagnosticCode.PanelsNotClosed, i));
+                    panels.AddRange(panels_Solids[i]);
+                    if (records.Exists(x => x.Code == BySolidsDiagnosticCode.PanelsContinuation))
+                    {
+                        kept.Add(names[i]);
+                    }
+
                     continue;
                 }
 
-                int recordCount = diagnostics.Count;
-                List<Panel> panels_Solid = shell.PanelsBySolid(diagnostics, apertureGeometries, minThickness, maxThicknessRatio, airForOpenings, string.IsNullOrWhiteSpace(sourceName) ? string.Format("#{0}", i) : sourceName, sourceId, sourceLayer, sourceIndex: i);
-                if (panels_Solid == null || panels_Solid.Count == 0)
+                excluded.Add(i);
+                if (records.Exists(x => x.Code == BySolidsDiagnosticCode.PanelsBelowMinThickness))
                 {
-                    excluded.Add(i);
-
-                    // By code, not by message text and not by Info: the reason is a Warning and is kept at every detail level.
-                    List<Core.Diagnostic> records = diagnostics.Skip(recordCount).ToList();
-                    if (records.Exists(x => x.Code == BySolidsDiagnosticCode.PanelsBelowMinThickness))
-                    {
-                        tooThin.Add(name);
-                    }
-                    else if (records.Exists(x => x.Code == BySolidsDiagnosticCode.PanelsNotPanelLike))
-                    {
-                        notPanelLike.Add(name);
-                    }
-                    else
-                    {
-                        otherSkipped.Add(name);
-                    }
-
-                    continue;
+                    tooThin.Add(names[i]);
                 }
-
-                panels.AddRange(panels_Solid);
+                else if (records.Exists(x => x.Code == BySolidsDiagnosticCode.PanelsNotPanelLike))
+                {
+                    notPanelLike.Add(names[i]);
+                }
+                else
+                {
+                    otherSkipped.Add(names[i]);
+                }
             }
 
             if (snap > 0 && panels.Count != 0)
@@ -242,13 +249,15 @@ namespace SAM.Analytical.Grasshopper
                 panels = panels.SnapToJunctions(diagnostics, snap);
             }
 
+            int collapsed = diagnostics.Count(x => x.Code == BySolidsDiagnosticCode.SnapCollapsed);
+
             List<Panel> airPanels = panels.FindAll(x => x.PanelType == PanelType.Air);
 
             // The totals come first, then an invalid diagnosticDetail_, then everything the solids and the snapping recorded.
             Core.Diagnostics log = new(diagnosticDetail);
             log.Add(DiagnosticSeverity.Info, DiagnosticDetail.Summary, null, () => string.Format("Created {0} ({1}) from {2}. {3}",
                 Core.Query.Plural(panels.Count, "panel"), Core.Query.Plural(airPanels.Count, "Air Panel"), Core.Query.Plural(solids.Count, "solid"),
-                excluded.Count == 0 ? "No solids were skipped." : string.Format("Skipped {0}.", Core.Query.Plural(excluded.Count, "solid"))), BySolidsDiagnosticCode.PanelsSummary);
+                (kept.Count == 0 ? string.Empty : string.Format("Kept {0} as pieces of larger elements. ", Core.Query.Plural(kept.Count, "solid"))) + (excluded.Count == 0 ? "No solids were skipped." : string.Format("Skipped {0}.", Core.Query.Plural(excluded.Count, "solid")))), BySolidsDiagnosticCode.PanelsSummary);
             if (invalidDetail != null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, invalidDetail);
@@ -275,6 +284,11 @@ namespace SAM.Analytical.Grasshopper
             if (otherSkipped.Count != 0)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Skipped {0} (not closed, or no usable pair of opposite faces): {1}. See log.", Core.Query.Plural(otherSkipped.Count, "solid"), string.Join(", ", otherSkipped)));
+            }
+
+            if (collapsed != 0)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Dropped {0} that snapping to junctions trimmed to nothing: each lies within the thickness of the elements it meets. See log.", Core.Query.Plural(collapsed, "panel")));
             }
 
             index = Params.IndexOfOutputParam("panels");

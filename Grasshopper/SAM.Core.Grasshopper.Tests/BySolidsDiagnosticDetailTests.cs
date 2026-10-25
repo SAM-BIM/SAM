@@ -165,7 +165,8 @@ namespace SAM.Core.Grasshopper.Tests
         [Test]
         public void ComponentVersions_AreBumped_AndTheOutputsAreStillNamedLog()
         {
-            Assert.Equal("1.0.3", new SAMAnalyticalCreatePanelsBySolids().LatestComponentVersion);
+            // 1.1.0: pieces of fragmented elements are kept (Create.PanelsBySolids), a geometry change.
+            Assert.Equal("1.1.0", new SAMAnalyticalCreatePanelsBySolids().LatestComponentVersion);
             Assert.Equal("1.0.2", new SAMAnalyticalCreateAperturesBySolids().LatestComponentVersion);
             Assert.Equal("log", new SAMAnalyticalCreatePanelsBySolids().Params.Output.Last().Name);
             Assert.Equal("log", new SAMAnalyticalCreateAperturesBySolids().Params.Output.Last().Name);
@@ -274,6 +275,18 @@ namespace SAM.Core.Grasshopper.Tests
             int panelCount = component.Params.Output[component.Params.IndexOfOutputParam("panels")].VolatileData.AllData(true).Count();
             List<string> warnings = component.RuntimeMessages(GH_RuntimeMessageLevel.Warning).ToList();
             return (log, panelCount, warnings);
+        }
+
+        [Test]
+        public void Solve_PierOfAWall_IsKeptAndReportedAtSummaryWithoutWarning()
+        {
+            // A 0.45 m wall and a 1.5 m pier of it (0.3, above the default maxThicknessRatio_ 0.2).
+            var result = Solve(0, new GH_Brep(Brep.CreateFromBox(new BoundingBox(0, 0, 0, 6, 0.45, 3))), new GH_Brep(Brep.CreateFromBox(new BoundingBox(6, 0, 0, 7.5, 0.45, 3))));
+
+            Assert.Equal(2, result.PanelCount);
+            Assert.True(result.Log[0].StartsWith("Info: Created 2 panels (0 Air Panels) from 2 solids. Kept 1 solid as pieces of larger elements. No solids were skipped."));
+            Assert.True(result.Log.Any(x => x.StartsWith("Info: Solid #1: Kept although not panel-like on its own")));
+            Assert.Empty(result.Warnings);
         }
 
         [Test]

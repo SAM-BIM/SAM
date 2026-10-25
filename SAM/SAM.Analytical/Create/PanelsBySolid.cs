@@ -104,9 +104,19 @@ namespace SAM.Analytical
             double tolerance_Snap = Tolerance.MacroDistance,
             int? sourceIndex = null)
         {
+            return PanelsBySolid(shell, diagnostics, apertureGeometries, minThickness, maxThicknessRatio, airForUnclaimedOpenings, sourceName, sourceId, sourceLayer, tolerance_Angle, tolerance_Distance, tolerance_Snap, sourceIndex, out List<ElementPlane> _);
+        }
+
+        /// <summary>
+        /// The structured overload, also returning the element planes rejected as not panel-like (for
+        /// <see cref="PanelsBySolids"/>).
+        /// </summary>
+        private static List<Panel> PanelsBySolid(Shell shell, Core.Diagnostics diagnostics, IEnumerable<ISAMGeometry3D> apertureGeometries, double minThickness, double maxThicknessRatio, bool airForUnclaimedOpenings, string sourceName, string sourceId, string sourceLayer, double tolerance_Angle, double tolerance_Distance, double tolerance_Snap, int? sourceIndex, out List<ElementPlane> rejectedNotPanelLike)
+        {
             diagnostics = diagnostics ?? new Core.Diagnostics();
             List<Panel> result = new List<Panel>();
             string subject = SolidSubject(sourceName, sourceIndex);
+            rejectedNotPanelLike = new List<ElementPlane>();
 
             List<Face3D> face3Ds = shell?.Face3Ds?.Where(x => x != null && x.GetPlane() != null && !double.IsNaN(x.GetArea())).ToList();
             if (face3Ds == null || face3Ds.Count < 4)
@@ -118,6 +128,7 @@ namespace SAM.Analytical
             List<ElementPlane> elementPlanes = ElementPlanes(shell, face3Ds, minThickness, maxThicknessRatio, tolerance_Angle, tolerance_Distance, tolerance_Snap, out List<ElementPlane> rejected);
             List<ElementPlane> thin = rejected.FindAll(x => x.TooThin);
             List<ElementPlane> notPanelLike = rejected.FindAll(x => !x.TooThin);
+            rejectedNotPanelLike = notPanelLike;
             if (elementPlanes.Count == 0)
             {
                 // The reason given is that of the element's main plane (the largest overlap): for a 0.15 m wall below
