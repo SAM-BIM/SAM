@@ -209,6 +209,46 @@ namespace SAM.Tests
         }
 
         [Fact]
+        public void AperturesBySolids_RowOfTouchingFramedWindows_StaysOneAperturePerWindow()
+        {
+            // Arrange: three frame-and-glass windows in a row, each frame sharing a jamb face with the next (as the
+            // Softhouse ribbons of doors and windows), no group keys.
+            List<ApertureSolid> solids = new List<ApertureSolid>();
+            foreach ((double x0, double x1, string name) in new[] { (1.0, 3.0, "A"), (3.0, 5.0, "B"), (5.0, 7.0, "C") })
+            {
+                solids.Add(Solid(WindowGlass(x0, x1), ApertureType.Window, name + " glass"));
+                solids.Add(Solid(WindowFrame(x0, x1), ApertureType.Window, name + " frame"));
+            }
+
+            // Act
+            List<Aperture> apertures = solids.AperturesBySolids(out _, out List<int> excluded);
+
+            // Assert
+            Assert.Equal(3, apertures.Count);
+            Assert.All(apertures, x => Assert.Equal(2.4, x.GetArea(), 6));
+            Assert.Equal(new[] { "A glass; A frame", "B glass; B frame", "C glass; C frame" }, apertures.ConvertAll(x => x.GetValue<string>(ApertureSourceParameter.SourceName)));
+            Assert.Empty(excluded);
+        }
+
+        [Fact]
+        public void AperturesBySolids_SashInsideFrame_IsOneWindowWithItsGlass()
+        {
+            // Arrange: an outer frame, a sash ring inside it and the glass inside the sash.
+            Shell frame = WindowFrame();
+            Shell sash = Prism(XZ, Rectangle(1.06, 0.96, 2.94, 2.04), new List<IList<(double U, double V)>> { Rectangle(1.1, 1.0, 2.9, 2.0) }, 0.1, 0.15);
+            Shell glass = Box(1.1, 0.12, 1.0, 2.9, 0.13, 2.0);
+            List<ApertureSolid> solids = new List<ApertureSolid> { Solid(glass, ApertureType.Window, "glass"), Solid(sash, ApertureType.Window, "sash"), Solid(frame, ApertureType.Window, "frame") };
+
+            // Act
+            List<Aperture> apertures = solids.AperturesBySolids(out _, out _);
+
+            // Assert
+            Aperture aperture = Assert.Single(apertures);
+            Assert.Equal(2.4, aperture.GetArea(), 6);
+            Assert.Equal("glass; sash; frame", aperture.GetValue<string>(ApertureSourceParameter.SourceName));
+        }
+
+        [Fact]
         public void AperturesBySolids_CornerWindowAcrossTwoWalls_SkippedAsNotPlanar()
         {
             // Arrange: two frames on perpendicular walls overlapping at the corner.

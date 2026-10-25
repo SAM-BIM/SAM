@@ -21,6 +21,10 @@ namespace SAM.Analytical
         /// whose surfaces are within <paramref name="maxGap"/> of each other (a glass pane inside its frame, a leaf in
         /// its door frame, frame members meeting at a corner) join the same assembly; members with different group keys
         /// are never merged. Each frame member is therefore not assumed to be an aperture of its own.</item>
+        /// <item><b>Units:</b> a member without a group key whose bounding box holds other members without one (a frame
+        /// around its glass, a door frame around its leaf) is a window or door unit with them, as if they were grouped.
+        /// Units that only touch (a row of windows sharing frame jambs) therefore stay separate apertures. Members that
+        /// are neither around nor inside another (the bars of a stick frame) still join by proximity.</item>
         /// <item><b>Type:</b> an assembly with any Door member is a Door (e.g. a door frame given as window geometry
         /// with its leaf), otherwise a Window.</item>
         /// <item><b>Plane:</b> the member face normal along which the whole assembly is thinnest; the aperture lies
@@ -117,6 +121,41 @@ namespace SAM.Analytical
             // Assemblies: explicit group keys first, then proximity; never merge two different keys.
             int[] parents = Enumerable.Range(0, members.Count).ToArray();
             string[] keys = members.ConvertAll(x => string.IsNullOrWhiteSpace(x.Solid.GroupKey) ? null : x.Solid.GroupKey).ToArray();
+
+            // Units: an ungrouped member and the ungrouped members inside its box (the outermost box holding them) are
+            // keyed like a group, so that two complete windows touching each other are not merged.
+            string[] unitKeys = new string[members.Count];
+            for (int i = 0; i < members.Count; i++)
+            {
+                if (keys[i] != null)
+                {
+                    continue;
+                }
+
+                int container = -1;
+                for (int j = 0; j < members.Count; j++)
+                {
+                    if (j == i || keys[j] != null || !members[i].Within(members[j], maxGap))
+                    {
+                        continue;
+                    }
+
+                    if (container == -1 || members[container].Within(members[j], maxGap))
+                    {
+                        container = j;
+                    }
+                }
+
+                if (container != -1)
+                {
+                    unitKeys[i] = unitKeys[container] = UnitKey(members[container].Index);
+                }
+            }
+
+            for (int i = 0; i < members.Count; i++)
+            {
+                keys[i] = keys[i] ?? unitKeys[i];
+            }
 
             int Find(int i)
             {
@@ -355,6 +394,14 @@ namespace SAM.Analytical
         }
 
         /// <summary>
+        /// Group key of the unit around a member; the leading NUL keeps it apart from any user group key.
+        /// </summary>
+        private static string UnitKey(int index)
+        {
+            return "\0unit " + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
         /// Outer outlines (holes dropped) of the union of the given faces.
         /// </summary>
         private static List<Face2D> Outlines(List<Face2D> face2Ds, double tolerance_Distance)
@@ -438,6 +485,21 @@ namespace SAM.Analytical
                     Point3Ds = point3Ds,
                     BoundingBox3D = new BoundingBox3D(point3Ds),
                 };
+            }
+
+            /// <summary>
+            /// True when this member's bounding box lies within the other's (grown by maxGap) and not the other way
+            /// round: a pane in its frame, a leaf in its door frame.
+            /// </summary>
+            public bool Within(ApertureMember other, double maxGap)
+            {
+                return Inside(BoundingBox3D, other.BoundingBox3D, maxGap) && !Inside(other.BoundingBox3D, BoundingBox3D, maxGap);
+            }
+
+            private static bool Inside(BoundingBox3D inner, BoundingBox3D outer, double margin)
+            {
+                return inner.Min.X >= outer.Min.X - margin && inner.Min.Y >= outer.Min.Y - margin && inner.Min.Z >= outer.Min.Z - margin
+                    && inner.Max.X <= outer.Max.X + margin && inner.Max.Y <= outer.Max.Y + margin && inner.Max.Z <= outer.Max.Z + margin;
             }
 
             /// <summary>

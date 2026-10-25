@@ -30,7 +30,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.0.2";
+        public override string LatestComponentVersion => "1.1.0";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -40,7 +40,7 @@ namespace SAM.Analytical.Grasshopper
         public SAMAnalyticalCreateAperturesBySolids()
           : base("SAMAnalytical.CreateAperturesBySolids", "SAMAnalytical.CreateAperturesBySolids",
               "Create SAM Analytical Apertures (Windows and Doors) from closed Rhino solids of window and door members: frames, frame members, glass and door leaves.\n" +
-              "Solids that touch (within maxGap_) or share a Rhino group form one assembly, which gives one Aperture: the full opening including the frame, on the assembly's mid-plane. An assembly with any door member is a Door. The assembly depth is stored as SourceThickness.\n" +
+              "Solids that touch (within maxGap_) or share a Rhino group form one assembly, which gives one Aperture: the full opening including the frame, on the assembly's mid-plane. A solid around others (a frame around its glass, a door frame around its leaf) is one window or door with them, so framed windows in a row that touch stay separate Apertures. An assembly with any door member is a Door. The assembly depth is stored as SourceThickness.\n" +
               "A Solid or assembly is skipped, with a Warning, when it is not closed or not planar (depth over smallest extent above 0.5). log gives the reason. Warnings are always given in full; diagnosticDetail_ sets how much Info log adds (0 Summary, 1 Standard: one line per assembly, 2 Detailed).\n" +
               "The Apertures are not hosted: give the same solids to SAMAnalytical.CreatePanelsBySolids (apertureGeometries_) so their openings are filled, then connect them to SAMAnalytical.AddAperturesByAperture. Rhino units must be metres.",
               "SAM", "Analytical01")
