@@ -1,7 +1,6 @@
 # Face3D Union with a degenerate face — Q4 (2026-10-25)
 
-Status: implemented locally on `fix/spatial-union-degenerate-face-q4` (base `sow/2026-Q4` at `457defbb`). Not pushed; no
-PR yet (owner go-ahead required). Found during the Softhouse "SAM model from solids" task.
+Status: implemented locally on `fix/spatial-union-degenerate-face-q4` (base `sow/2026-Q4` at `457defbb`). PR SAM-BIM/SAM#222 into `sow/2026-Q4` (opened 2026-10-25 on owner go-ahead). Tested content `149fbeaf`; later commits change this record only, and the PR description holds the final head and hosted checks. Found during the Softhouse "SAM model from solids" task.
 
 ## Problem
 
