@@ -1,7 +1,7 @@
 # PanelsBySolids: junction blocks shorter than the wall thickness close their junction — Q4 (2026-10-26)
 
-Status: branch `fix/panels-by-solids-junctions-q4` on `sow/2026-Q4` at `fe5bbce4`, local only (not pushed). Draft PR not
-yet opened (owner to confirm). Tested content `cbf3f520`; later commits change this record only. Part of the Softhouse room recovery after SAM_OCCT draft PR SAM-BIM/SAM_OCCT#84
+Status: draft PR SAM-BIM/SAM#225, branch `fix/panels-by-solids-junctions-q4` on `sow/2026-Q4` at `fe5bbce4`, opened
+2026-10-27 on owner approval; not for merge yet. Tested content `cbf3f520`; later commits change this record only. Part of the Softhouse room recovery after SAM_OCCT draft PR SAM-BIM/SAM_OCCT#84
 (Extend3D no longer invents walls), which exposed extraction defects the invented walls had hidden. The combined
 Softhouse room chain (this branch + the Clean3D kink fix + SAM_OCCT#84) is run by the coordinating session, not here.
 
@@ -146,4 +146,6 @@ safebuild.sh test SAM/SAM.Tests/SAM.Tests.csproj -c Release
 
 ## Next step
 
-Owner: decide whether to open the draft PR; then the coordinating session runs the combined Softhouse chain.
+Check the first GitHub run of #225, including SAM.Core.Grasshopper.Tests, which was not run locally. Then the
+coordinating session runs the combined Softhouse chain. It confirms the 48 good rooms are kept, checks house D
+(#361, #370, #386, #390) and accepts or revises this change.
