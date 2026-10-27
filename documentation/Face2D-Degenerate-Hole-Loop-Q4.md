@@ -107,10 +107,13 @@ USERPROFILE redirected to `sroot\profile`). Evidence: `SAM_daily\2026-10-25-Soft
 - **What they are.** Every cell keeps the same panels (type, construction, area, centroid, adjacency, apertures). The 5
   reversed normals are internal panels between the same two cells, reversed symmetrically (equivalent two-sided
   interfaces). The +/-0.00625 m3 is a **volume-computation artefact**: the two cells share a 0.001447 m2 sliver triangle
-  that is the same triangle with the same oriented normal in both runs, but with a different vertex winding, and
-  `Shell.Volume()` integrates the triangulation, so its contribution flips sign (+/-0.003123 m3 each side). A
-  winding-independent volume gives the same value in both runs (36.17269 / 36.172689 and 31.242939 m3), equal to the
-  baseline's `Shell.Volume()`. Geometry and attribution are unchanged.
+  that is the same triangle with the same oriented normal in both runs, but with a different vertex winding. In the
+  corrected run its raw winding is inconsistent with the shell's other faces, and `Shell.Volume()` sums the raw
+  triangles (its intended per-triangle reversal is a no-op, see Unresolved), so its contribution flips sign
+  (+/-0.003123 m3 each side). A winding-independent volume gives the same value in both runs (36.17269 / 36.172689 and
+  31.242939 m3) and agrees with the baseline's `Shell.Volume()` within 6e-6 m3, so the corrected run's two
+  `Shell.Volume()` values are the ones in error. Ten other cells differ between the runs by up to 8e-6 m3
+  (floating-point). Geometry and attribution are unchanged.
 - Reproduce (Git Bash, E = the evidence folder): `sh $E/scripts/run.sh fix reorder $E/closeout/reorder A=<pr84-R
   panels_extended.json> B=<pr84fix-R panels_extended.json> OUT=<file>`, then `sh $E/scripts/closeout-replay.sh`, then
   probe modes `incidence`, `volumes`, `faces` (`probe/Closeout.cs`); details in `closeout/README.md`. Machine-local:
@@ -150,8 +153,11 @@ USERPROFILE redirected to `sroot\profile`). Evidence: `SAM_daily\2026-10-25-Soft
   related to the `AxisX` exact-zero frame selection noted in the checklist.
 - OCCT/AdjacencyCluster output depends on panel order (shown above); belongs to the #84 presentation-independent
   free-edge measurement design task. No sorting added, no expectation rebaselined.
-- SAM `Shell.Volume()` integrates each oriented face's triangulation, so a sliver whose vertex winding contradicts its
-  normal gives a signed error (here +/-0.006 m3). Existing; separate defect.
+- SAM `Shell.Volume()` (`Spatial/Query/Volume.cs`) reverses a triangle whose winding disagrees with its face normal, but
+  `Triangle3D.Reverse()` calls `points.Reverse()` on a `Point3D[]`, which binds to LINQ `Enumerable.Reverse` and
+  discards the result: a no-op. The volume therefore depends on raw triangle winding, and a face whose winding is
+  inconsistent with the rest of the shell gives a signed error (here +/-0.006 m3). Existing; separate defect, found in
+  the R1 closeout review, not changed here.
 - Full Softhouse acceptance is not claimed: R still retains 44 / 48 (extraction differences, #84 blockers); the gate is
   the same 48 reference identities passing on F and R.
 
