@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.3.0";
+        public override string LatestComponentVersion => "1.4.0";
 
         /// <summary>
         /// Provides an Icon for the component.

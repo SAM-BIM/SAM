@@ -42,8 +42,9 @@ namespace SAM.Analytical
         /// <summary>
         /// Summary Info (the one 1xx code at Summary: it keeps input the threshold alone would skip): a skipped solid is kept
         /// by <see cref="Create.PanelsBySolids"/> because one of its element planes, not panel-like on its own, is a piece of
-        /// a panel-like element or closes a gap between other elements. Value is that plane's thickness over smallest extent
-        /// [-], Limit is maxThicknessRatio [-].
+        /// a panel-like element, closes a gap between other elements, or bridges walls of its thickness as a junction block.
+        /// The same record reports a solid whose first reading (a jamb or a slice) is replaced by such a plane. Value is
+        /// that plane's thickness over smallest extent [-], Limit is maxThicknessRatio [-].
         /// </summary>
         public const string PanelsContinuation = "PBS103";
 

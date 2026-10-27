@@ -167,8 +167,10 @@ namespace SAM.Core.Grasshopper.Tests
         {
             // 1.1.0: pieces of fragmented elements are kept (Create.PanelsBySolids); 1.2.0: a face pair's material is
             // sampled at the deepest point of its overlap (Create.PanelsBySolid); 1.3.0: a panel that snapping drops is not
-            // a junction for any other panel (Query.SnapToJunctions). Each changes the geometry result.
-            Assert.Equal("1.3.0",new SAMAnalyticalCreatePanelsBySolids().LatestComponentVersion);
+            // a junction for any other panel (Query.SnapToJunctions); 1.4.0: junction blocks shorter than the wall thickness,
+            // facade blocks at a thick wall's end and jamb or slice readings are resolved (Create.PanelsBySolids). Each changes
+            // the geometry result.
+            Assert.Equal("1.4.0", new SAMAnalyticalCreatePanelsBySolids().LatestComponentVersion);
             // 1.1.0: framed windows in a row stay separate apertures (Create.AperturesBySolids), a geometry change.
             Assert.Equal("1.1.0", new SAMAnalyticalCreateAperturesBySolids().LatestComponentVersion);
             Assert.Equal("log", new SAMAnalyticalCreatePanelsBySolids().Params.Output.Last().Name);
