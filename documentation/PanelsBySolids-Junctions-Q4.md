@@ -1,9 +1,11 @@
 # PanelsBySolids: junction blocks shorter than the wall thickness close their junction — Q4 (2026-10-26)
 
-Status: draft PR SAM-BIM/SAM#225, branch `fix/panels-by-solids-junctions-q4` on `sow/2026-Q4` at `fe5bbce4`, opened
-2026-10-27 on owner approval; not for merge yet. Tested content `cbf3f520`; later commits change this record only. Part of the Softhouse room recovery after SAM_OCCT draft PR SAM-BIM/SAM_OCCT#84
-(Extend3D no longer invents walls), which exposed extraction defects the invented walls had hidden. The combined
-Softhouse room chain (this branch + the Clean3D kink fix + SAM_OCCT#84) is run by the coordinating session, not here.
+Status: draft PR SAM-BIM/SAM#225, branch `fix/panels-by-solids-junctions-q4`, opened 2026-10-27 on owner approval; not
+for merge yet. **Rebased 2026-10-27 (owner-authorised) onto `sow/2026-Q4` `1f46f7ab`** (the merge of SAM-BIM/SAM#226,
+SnapToJunctions dropped targets). Tested content is now `7763fd03`, which is `cbf3f520` rebased with `CreatePanelsBySolids`
+moved to **1.4.0**, because #226 took 1.3.0; later commits change this record only. The original head was `cb11d6c4`, on
+`fe5bbce4`. Part of the Softhouse room recovery after SAM_OCCT draft PR SAM-BIM/SAM_OCCT#84 (Extend3D no longer invents
+walls), which exposed extraction defects the invented walls had hidden.
 
 ## Problem
 
@@ -56,8 +58,10 @@ Mechanisms, reproduced on the real input and in minimal synthetic cases (tests b
 - No public API change. Reused: `Joined`, `Gap`, `Abuts`, `Embeds`, `Framed` (now with optional coplanar continuations),
   `ElementPlane.Owns`, `Geometry.Planar.Query.Union`; tolerances `tolerance_Continuation`, `tolerance_Angle`,
   `tolerance_Distance`. No fixture-specific branches or coordinates.
-- `SAMAnalytical.CreatePanelsBySolids` result changes: **1.2.0 -> 1.3.0** (minor, GH_COMPONENT_STANDARDS GH-F2/GH-H2,
-  as for SAM#223); version pin in `BySolidsDiagnosticDetailTests`. GUID and parameters unchanged.
+- `SAMAnalytical.CreatePanelsBySolids` result changes: **1.3.0 -> 1.4.0** (minor, GH_COMPONENT_STANDARDS GH-F2/GH-H2,
+  as for SAM#223). The branch first took 1.2.0 -> 1.3.0; SAM#226 merged first with 1.3.0, so the rebase moved it to 1.4.0.
+  The version pin in `BySolidsDiagnosticDetailTests` keeps the 1.3.0 (#226) comment and adds 1.4.0. GUID and
+  parameters unchanged.
 
 ## Softhouse extraction, base `fe5bbce4` vs this branch (all 392 solids, managed probe)
 
@@ -91,7 +95,7 @@ reads its neighbour #5 as a wall then); fixed by not counting pieces within the 
 
 - `SAM/SAM.Analytical/Create/PanelsBySolids.cs`, `SAM/SAM.Analytical/Create/PanelsBySolid.cs`
 - `SAM/SAM.Analytical/Classes/Diagnostics/BySolidsDiagnosticCode.cs` (PBS103 doc)
-- `Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalCreatePanelsBySolids.cs` (1.3.0)
+- `Grasshopper/SAM.Analytical.Grasshopper/Component/SAMAnalyticalCreatePanelsBySolids.cs` (1.4.0)
 - `Grasshopper/SAM.Core.Grasshopper.Tests/BySolidsDiagnosticDetailTests.cs` (version pin)
 - `SAM/SAM.Tests/PanelsBySolidsJunctionTests.cs` (new, 13 tests)
 - this record
@@ -107,7 +111,34 @@ facades of another thickness; a single slice against a wall end; the pier alone;
 block with facade on one side only. Existing guards still pass: pier tops (`PiersWithoutWindowBetween_StaySkipped`), strip
 within slab thickness, sliver, stair, stub with one free edge, column order tests.
 
-## Validation (local, machine `michal`)
+## Validation after the rebase onto `1f46f7ab` (local, machine `michal`, 2026-10-27; tested content `7763fd03`)
+
+- **Rebase:** `git range-diff fe5bbce4..cb11d6c4 1f46f7ab..HEAD`. The fix commit changes only in the version string,
+  the pin and its comment. `PanelsBySolids.cs`, `PanelsBySolid.cs`, `BySolidsDiagnosticCode.cs` (auto-merged next to
+  #226's SNP003) and the tests are otherwise unchanged. There was one conflict, in the pin, resolved by hand. The
+  `SAM/` tree of `git archive 7763fd03` is byte-identical to the round-2 combined build of #226 (`cbf3f520` + `ba6365bd`,
+  `cv28\SAM_comb2`).
+- **SAM.Tests** (Release, `--no-build` after a `safebuild.sh` build): **3808 / 3808**, 0 skipped. That is the 3795 of
+  `1f46f7ab` plus the 13 new tests.
+- **SAM.Core.Grasshopper.Tests** (Release, `--no-build`, normal profile): **87 / 87**, 0 skipped, including the 1.4.0 pin.
+  This closes the earlier gap: the previous run did not complete because of an idle Rhino under the redirected profile.
+- **Combined Softhouse F** (unchanged `tools-2026-10-27-combined/scripts/softhouse.sh`, one process at a time): SAM
+  `7763fd03` (`cv28\SAM_225r`, SAM.Analytical `4E6B107D`) + SAM_OCCT#84 `a77ef7d`.
+  - **No-kink (acceptance, the PR contents):** 384 panels, 19 skipped solids, Clean3D 371 -> 80, 58 spaces, 100 hosted
+    apertures. 48 good of 70: **Carpark 2 C109 and Bed 4 C203 good, 47 / 48 baseline-good retained**. Dining 4 A107 is
+    lost, inherited from SAM_OCCT#84.
+  - **Kink (comparison):** 57 spaces, 50 good, 47 / 48.
+  - Both runs give `good.tsv`, `v2_rooms.tsv` and `v2_spaces.tsv` byte-identical to #226's `comb2-*-F` runs.
+    `panels_extracted.json` and `panels_extended.json` are identical apart from Guids, so the Extend3D growth (no
+    invented walls) is as recorded for #226.
+  - All SAM.* assemblies loaded from `cv27`/`cv28` builds; none from `%APPDATA%` or McNeel.
+- **The 48/48 gate is not met** in the combined chain while A107 (SAM_OCCT#84) stays lost. R was not rerun; it is
+  0 spaces from the separate #37 Clean3D slab drop.
+- `%APPDATA%\SAM`: all 2125 files byte-identical before and after.
+- Evidence (machine-local): `SAM_daily/2026-10-25-Softthouse/handover/evidence/2026-10-27-pr225-rebase/` (README,
+  `scripts/tests.sh`, `scripts/run-chains.sh`, `tests/`, `runs/`, `provenance/`).
+
+## Validation of the original content `cbf3f520` (local, machine `michal`, 2026-10-26)
 
 Builds with APPDATA/USERPROFILE redirected (`handover/tools-2026-10-26-r3/scripts/safebuild.sh`); nothing deployed to
 `%APPDATA%\SAM`.
@@ -133,8 +164,8 @@ safebuild.sh test SAM/SAM.Tests/SAM.Tests.csproj -c Release
 
 ## Open issues and risks
 
-- Room-level effect not run here (by design): the coordinating session runs the combined chain against the frozen
-  baseline (48 good reference rooms, no invented walls, original and reversed face order).
+- Full Softhouse acceptance (48/48 in both face orders) is not met. In F, A107 is lost through SAM_OCCT#84. In R, the
+  run gives 0 spaces through #37. Neither is owned by this PR.
 - #361 (house D 1F facade y -2.887) and #370 are recovered by the same mechanisms but were not in the attribution; the
   base had no facade wall there.
 - #362/#386/#390 become 0.175 m reveal walls through the existing "closes a gap" rule, as base already does for #338 and
@@ -142,10 +173,13 @@ safebuild.sh test SAM/SAM.Tests/SAM.Tests.csproj -c Release
   house D corner.
 - Pre-existing face-order sensitivity of `PanelsBySolid` (#341, #87, #21, #5) is not addressed; it now also affects
   #370/#362 through #87.
-- Another open SAM PR that bumps `CreatePanelsBySolids` would conflict on the version (1.3.0).
+- The version collision with SAM#226 is resolved (1.4.0). Any other open PR that bumps `CreatePanelsBySolids` must take
+  the next minor.
+- Reveal blocks #362/#386/#390 no longer move their neighbours, because SAM#226 removed the dropped-target pull that
+  flipped the first-floor datum. The LevelFrame single-cap datum margin is still only 1.7 % (SAM_OCCT, out of scope).
 
 ## Next step
 
-Check the first GitHub run of #225, including SAM.Core.Grasshopper.Tests, which was not run locally. Then the
-coordinating session runs the combined Softhouse chain. It confirms the 48 good rooms are kept, checks house D
-(#361, #370, #386, #390) and accepts or revises this change.
+Check the hosted Build/SPDX/Test of #225 at its rebased head. Then the owner reviews #225 for merge (it is still a
+draft) and decides on the house D additions (#361, #370, #386, #390). Merge is not authorised. Recommended: Claude
+Opus 5.5, medium effort, the existing coordinating session, Build mode, because the evidence and context are there.
