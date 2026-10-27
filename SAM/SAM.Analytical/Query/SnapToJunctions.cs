@@ -28,6 +28,13 @@ namespace SAM.Analytical
         /// wins (a trim back to the neighbour's mid-plane, e.g. a wall running past a corner).
         /// </para>
         /// <para>
+        /// A panel whose edges snap together (it lies within the thickness of the elements it meets) is dropped, and a
+        /// dropped panel is not a junction for any other panel. The dropped set is found by repeated passes: every panel
+        /// is snapped against the panels not dropped so far, and the dropped set becomes the panels that close up. This
+        /// stops when the set no longer changes, so a panel that closed up only on a dropped panel is kept. The result
+        /// does not depend on the input order.
+        /// </para>
+        /// <para>
         /// Holes are left untouched. Air panels are neither moved nor used as targets. Final junction resolution
         /// remains the 3D solver's job (SAMOCCT.Solve3D).
         /// </para>
@@ -47,8 +54,10 @@ namespace SAM.Analytical
 
         /// <summary>
         /// <see cref="SnapToJunctions(IEnumerable{Panel}, out List{string}, double, double)"/> with structured diagnostics:
-        /// one Summary Info record (<see cref="BySolidsDiagnosticCode.SnapChecked"/>, Value = snap distance [m]), and a Warning
-        /// (<see cref="BySolidsDiagnosticCode.SnapCollapsed"/>) for each panel snapping trimmed to nothing, which is dropped.
+        /// one Summary Info record (<see cref="BySolidsDiagnosticCode.SnapChecked"/>, Value = snap distance [m]; its edge
+        /// counts are those of the final pass), and a Warning (<see cref="BySolidsDiagnosticCode.SnapCollapsed"/>) for each
+        /// panel snapping trimmed to nothing, which is dropped. If the dropped set does not settle within the pass limit,
+        /// the last pass is returned with a Warning (<see cref="BySolidsDiagnosticCode.SnapNotSettled"/>).
         /// The panels do not depend on the detail level.
         /// </summary>
         /// <param name="panels">Mid-surface panels, in metres.</param>
@@ -57,6 +66,15 @@ namespace SAM.Analytical
         /// <param name="tolerance_Distance">Distance tolerance [m].</param>
         /// <returns>New panels (same Guids, constructions and parameters) with snapped outer edges.</returns>
         public static List<Panel> SnapToJunctions(this IEnumerable<Panel> panels, Core.Diagnostics diagnostics, double snapDistance = 0.3, double tolerance_Distance = Tolerance.Distance)
+        {
+            return SnapToJunctions(panels, diagnostics, snapDistance, tolerance_Distance, SnapPasses);
+        }
+
+        /// <summary>
+        /// <see cref="SnapToJunctions(IEnumerable{Panel}, Core.Diagnostics, double, double)"/> with at most
+        /// <paramref name="passes"/> passes to settle the dropped set.
+        /// </summary>
+        internal static List<Panel> SnapToJunctions(IEnumerable<Panel> panels, Core.Diagnostics diagnostics, double snapDistance, double tolerance_Distance, int passes)
         {
             diagnostics = diagnostics ?? new Core.Diagnostics();
             List<Panel> panels_Temp = panels?.Where(x => x != null && x.GetFace3D() != null).ToList() ?? new List<Panel>();
@@ -82,16 +100,16 @@ namespace SAM.Analytical
                 }
             }
 
-            int extended = 0, trimmed = 0;
-            List<Panel> result = new List<Panel>();
-            List<Panel> collapsed = new List<Panel>();
-            foreach (Panel panel in panels_Temp)
+            // Each panel's own target and counter-clockwise outer edge; a panel without them is copied unchanged.
+            int count = panels_Temp.Count;
+            SnapTarget[] selves = new SnapTarget[count];
+            Polygon2D[] externals = new Polygon2D[count];
+            for (int i = 0; i < count; i++)
             {
-                SnapTarget self = targets.Find(x => x.Guid == panel.Guid);
+                SnapTarget self = targets.Find(x => x.Guid == panels_Temp[i].Guid);
                 Polygon2D external = (self?.Face2D.ExternalEdge2D as ISegmentable2D)?.GetPoints() is List<Point2D> point2Ds && point2Ds.Count >= 3 ? new Polygon2D(point2Ds) : null;
                 if (self == null || external == null)
                 {
-                    result.Add(Create.Panel(panel));
                     continue;
                 }
 
@@ -100,128 +118,78 @@ namespace SAM.Analytical
                     external.Reverse();
                 }
 
-                List<Point2D> points = external.GetPoints();
-                int count = points.Count;
-                Point2D[] linePoints = new Point2D[count];
-                Vector2D[] lineDirections = new Vector2D[count];
-                for (int k = 0; k < count; k++)
+                selves[i] = self;
+                externals[i] = external;
+            }
+
+            // A dropped panel is not a junction for any other panel. Snap every panel against the targets outside the
+            // dropped set, make the panels that close up the new dropped set, and repeat until it no longer changes. The
+            // set is re-evaluated, not only grown: a panel that closed up only on a dropped target is kept again.
+            HashSet<System.Guid> dropped = new HashSet<System.Guid>();
+            Polygon2D[] snapped = new Polygon2D[count];
+            int extended = 0, trimmed = 0, pass = 0, changed = 0;
+            bool settled = false;
+            while (true)
+            {
+                pass++;
+                List<SnapTarget> targets_Pass = targets.FindAll(x => !dropped.Contains(x.Guid));
+                HashSet<System.Guid> collapsed = new HashSet<System.Guid>();
+                extended = 0;
+                trimmed = 0;
+                for (int i = 0; i < count; i++)
                 {
-                    Point2D a = points[k], b = points[(k + 1) % count];
-                    Vector2D direction = new Vector2D(a, b).Unit;
-                    Vector2D outward = new Vector2D(direction.Y, -direction.X);
-                    Point2D middle = new Point2D((a.X + b.X) / 2, (a.Y + b.Y) / 2);
-
-                    Point3D middle3D = self.Plane.Convert(middle);
-                    Vector3D direction3D = new Vector3D(self.Plane.Convert(a), self.Plane.Convert(b)).Unit;
-                    Vector3D outward3D = new Vector3D(middle3D, self.Plane.Convert(middle.GetMoved(outward))).Unit;
-
-                    double ahead = 0, behind = double.NegativeInfinity;
-                    foreach (SnapTarget target in targets)
+                    snapped[i] = selves[i] == null ? null : Snap(externals[i], selves[i], targets_Pass, snapDistance, tolerance_Distance, ref extended, ref trimmed);
+                    if (selves[i] != null && snapped[i] == null)
                     {
-                        if (target.Guid == panel.Guid)
-                        {
-                            continue;
-                        }
-
-                        Vector3D normal = target.Plane.Normal;
-                        if (System.Math.Abs(direction3D.DotProduct(normal)) > 1e-3)
-                        {
-                            continue; // the edge must run parallel to the target plane
-                        }
-
-                        double denominator = outward3D.DotProduct(normal);
-                        if (System.Math.Abs(denominator) < 0.05)
-                        {
-                            continue;
-                        }
-
-                        double t = new Vector3D(middle3D, target.Plane.Origin).DotProduct(normal) / denominator;
-                        if (System.Math.Abs(t) <= tolerance_Distance || System.Math.Abs(t) > snapDistance)
-                        {
-                            continue;
-                        }
-
-                        // A real junction: the target's face is near the moved edge somewhere along it, not only at its
-                        // middle (a slab with a void at the facade still meets the wall at both ends of its edge).
-                        bool junction = false;
-                        foreach (double factor in EdgeSamples)
-                        {
-                            Point3D sample = self.Plane.Convert(new Point2D(a.X + (b.X - a.X) * factor, a.Y + (b.Y - a.Y) * factor));
-                            Point3D moved = new Point3D(sample.X + outward3D.X * t, sample.Y + outward3D.Y * t, sample.Z + outward3D.Z * t);
-                            if (target.Face2D.Distance(target.Plane.Convert(moved), tolerance_Distance) <= snapDistance)
-                            {
-                                junction = true;
-                                break;
-                            }
-                        }
-
-                        if (!junction)
-                        {
-                            continue; // no real junction there: the target's face is not near this edge
-                        }
-
-                        if (t > 0)
-                        {
-                            ahead = System.Math.Max(ahead, t);
-                        }
-                        else
-                        {
-                            behind = System.Math.Max(behind, t);
-                        }
+                        collapsed.Add(panels_Temp[i].Guid);
                     }
-
-                    double best = ahead > 0 ? ahead : (double.IsNegativeInfinity(behind) ? 0 : behind);
-                    if (best > 0)
-                    {
-                        extended++;
-                    }
-                    else if (best < 0)
-                    {
-                        trimmed++;
-                    }
-
-                    linePoints[k] = middle.GetMoved(outward * best);
-                    lineDirections[k] = direction;
                 }
 
-                List<Point2D> snapped = new List<Point2D>();
-                for (int k = 0; k < count; k++)
+                if (collapsed.SetEquals(dropped))
                 {
-                    int j = (k - 1 + count) % count;
-                    double cross = lineDirections[j].X * lineDirections[k].Y - lineDirections[j].Y * lineDirections[k].X;
-                    if (System.Math.Abs(cross) < 1e-9)
-                    {
-                        // Collinear neighbours: keep the vertex, moved onto line k.
-                        Vector2D offset = new Vector2D(points[k], linePoints[k]);
-                        double along = offset.X * lineDirections[k].X + offset.Y * lineDirections[k].Y;
-                        snapped.Add(linePoints[k].GetMoved(lineDirections[k] * -along));
-                        continue;
-                    }
-
-                    double s = ((linePoints[k].X - linePoints[j].X) * lineDirections[k].Y - (linePoints[k].Y - linePoints[j].Y) * lineDirections[k].X) / cross;
-                    snapped.Add(linePoints[j].GetMoved(lineDirections[j] * s));
+                    settled = true;
+                    break;
                 }
 
-                // Opposite edges trimmed onto one junction (or past each other): the panel lies within its neighbours'
-                // thickness and nothing of it is left. Dropped, never returned as a degenerate face. Collapsed means its mean
-                // width (twice the area over the perimeter, a length) is within the distance tolerance, or the outline is
-                // turned inside out; a small but real face is many tolerances wide and is kept.
-                Polygon2D polygon2D = new Polygon2D(snapped);
-                double perimeter = polygon2D.Perimeter();
-                if (!(perimeter > 0) || 2 * polygon2D.GetArea() / perimeter <= tolerance_Distance || polygon2D.GetOrientation() != Geometry.Orientation.CounterClockwise)
+                if (pass >= passes)
                 {
-                    collapsed.Add(panel);
+                    changed = collapsed.Count(x => !dropped.Contains(x)) + dropped.Count(x => !collapsed.Contains(x));
+                    break;
+                }
+
+                dropped = collapsed;
+            }
+
+            List<Panel> result = new List<Panel>();
+            List<Panel> collapsed_Panels = new List<Panel>();
+            for (int i = 0; i < count; i++)
+            {
+                Panel panel = panels_Temp[i];
+                if (selves[i] == null)
+                {
+                    result.Add(Create.Panel(panel));
                     continue;
                 }
 
-                Face2D face2D = Geometry.Planar.Create.Face2D(polygon2D, self.Face2D.InternalEdge2Ds);
-                Face3D face3D = face2D == null ? null : self.Plane.Convert(face2D);
+                if (snapped[i] == null)
+                {
+                    collapsed_Panels.Add(panel);
+                    continue;
+                }
+
+                Face2D face2D = Geometry.Planar.Create.Face2D(snapped[i], selves[i].Face2D.InternalEdge2Ds);
+                Face3D face3D = face2D == null ? null : selves[i].Plane.Convert(face2D);
                 Panel snappedPanel = face3D == null || !face3D.IsValid() ? null : Create.Panel(panel.Guid, panel, face3D, null, false);
                 result.Add(snappedPanel ?? Create.Panel(panel));
             }
 
             diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Summary, null, () => string.Format(System.Globalization.CultureInfo.InvariantCulture, "Checked {0} for junctions: extended {1} and trimmed {2} (snap distance {3:0.###} m).", Core.Query.Plural(panels_Temp.Count, "panel"), Core.Query.Plural(extended, "edge"), Core.Query.Plural(trimmed, "edge"), snapDistance), BySolidsDiagnosticCode.SnapChecked, null, snapDistance, null, "m");
-            foreach (Panel panel in collapsed)
+            if (!settled)
+            {
+                diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, null, string.Format(System.Globalization.CultureInfo.InvariantCulture, "The panels dropped by snapping did not settle within {0}: {1} still changed between the last two passes. The last pass is returned, so a dropped panel may have moved its neighbours' edges.", Core.Query.Plural(passes, "pass", "passes"),Core.Query.Plural(changed, "panel")), BySolidsDiagnosticCode.SnapNotSettled, null, changed, passes, null));
+            }
+
+            foreach (Panel panel in collapsed_Panels)
             {
                 string name = panel.TryGetValue(PanelSourceParameter.SourceName, out string sourceName) && !string.IsNullOrWhiteSpace(sourceName) ? sourceName : panel.Guid.ToString();
                 diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, string.Format("Panel '{0}'", name), string.Format(System.Globalization.CultureInfo.InvariantCulture, "Dropped. Snapping its edges to the junctions closed it up (no wider than the distance tolerance, or turned inside out): it lies within the thickness of the elements it meets. Area before snapping: {0:G4} m2.", panel.GetArea()), BySolidsDiagnosticCode.SnapCollapsed, null, panel.GetArea(), null, "m2"));
@@ -231,9 +199,138 @@ namespace SAM.Analytical
         }
 
         /// <summary>
+        /// One panel's outer edge (counter-clockwise in its own plane) with every edge moved onto its junction among
+        /// <paramref name="targets"/>, or null when the edges close up and nothing of the panel is left. Counts the
+        /// extended and trimmed edges.
+        /// </summary>
+        private static Polygon2D Snap(Polygon2D external, SnapTarget self, IEnumerable<SnapTarget> targets, double snapDistance, double tolerance_Distance, ref int extended, ref int trimmed)
+        {
+            List<Point2D> points = external.GetPoints();
+            int count = points.Count;
+            Point2D[] linePoints = new Point2D[count];
+            Vector2D[] lineDirections = new Vector2D[count];
+            for (int k = 0; k < count; k++)
+            {
+                Point2D a = points[k], b = points[(k + 1) % count];
+                Vector2D direction = new Vector2D(a, b).Unit;
+                Vector2D outward = new Vector2D(direction.Y, -direction.X);
+                Point2D middle = new Point2D((a.X + b.X) / 2, (a.Y + b.Y) / 2);
+
+                Point3D middle3D = self.Plane.Convert(middle);
+                Vector3D direction3D = new Vector3D(self.Plane.Convert(a), self.Plane.Convert(b)).Unit;
+                Vector3D outward3D = new Vector3D(middle3D, self.Plane.Convert(middle.GetMoved(outward))).Unit;
+
+                double ahead = 0, behind = double.NegativeInfinity;
+                foreach (SnapTarget target in targets)
+                {
+                    if (target.Guid == self.Guid)
+                    {
+                        continue;
+                    }
+
+                    Vector3D normal = target.Plane.Normal;
+                    if (System.Math.Abs(direction3D.DotProduct(normal)) > 1e-3)
+                    {
+                        continue; // the edge must run parallel to the target plane
+                    }
+
+                    double denominator = outward3D.DotProduct(normal);
+                    if (System.Math.Abs(denominator) < 0.05)
+                    {
+                        continue;
+                    }
+
+                    double t = new Vector3D(middle3D, target.Plane.Origin).DotProduct(normal) / denominator;
+                    if (System.Math.Abs(t) <= tolerance_Distance || System.Math.Abs(t) > snapDistance)
+                    {
+                        continue;
+                    }
+
+                    // A real junction: the target's face is near the moved edge somewhere along it, not only at its
+                    // middle (a slab with a void at the facade still meets the wall at both ends of its edge).
+                    bool junction = false;
+                    foreach (double factor in EdgeSamples)
+                    {
+                        Point3D sample = self.Plane.Convert(new Point2D(a.X + (b.X - a.X) * factor, a.Y + (b.Y - a.Y) * factor));
+                        Point3D moved = new Point3D(sample.X + outward3D.X * t, sample.Y + outward3D.Y * t, sample.Z + outward3D.Z * t);
+                        if (target.Face2D.Distance(target.Plane.Convert(moved), tolerance_Distance) <= snapDistance)
+                        {
+                            junction = true;
+                            break;
+                        }
+                    }
+
+                    if (!junction)
+                    {
+                        continue; // no real junction there: the target's face is not near this edge
+                    }
+
+                    if (t > 0)
+                    {
+                        ahead = System.Math.Max(ahead, t);
+                    }
+                    else
+                    {
+                        behind = System.Math.Max(behind, t);
+                    }
+                }
+
+                double best = ahead > 0 ? ahead : (double.IsNegativeInfinity(behind) ? 0 : behind);
+                if (best > 0)
+                {
+                    extended++;
+                }
+                else if (best < 0)
+                {
+                    trimmed++;
+                }
+
+                linePoints[k] = middle.GetMoved(outward * best);
+                lineDirections[k] = direction;
+            }
+
+            List<Point2D> snapped = new List<Point2D>();
+            for (int k = 0; k < count; k++)
+            {
+                int j = (k - 1 + count) % count;
+                double cross = lineDirections[j].X * lineDirections[k].Y - lineDirections[j].Y * lineDirections[k].X;
+                if (System.Math.Abs(cross) < 1e-9)
+                {
+                    // Collinear neighbours: keep the vertex, moved onto line k.
+                    Vector2D offset = new Vector2D(points[k], linePoints[k]);
+                    double along = offset.X * lineDirections[k].X + offset.Y * lineDirections[k].Y;
+                    snapped.Add(linePoints[k].GetMoved(lineDirections[k] * -along));
+                    continue;
+                }
+
+                double s = ((linePoints[k].X - linePoints[j].X) * lineDirections[k].Y - (linePoints[k].Y - linePoints[j].Y) * lineDirections[k].X) / cross;
+                snapped.Add(linePoints[j].GetMoved(lineDirections[j] * s));
+            }
+
+            // Opposite edges trimmed onto one junction (or past each other): the panel lies within its neighbours'
+            // thickness and nothing of it is left. Dropped, never returned as a degenerate face. Collapsed means its mean
+            // width (twice the area over the perimeter, a length) is within the distance tolerance, or the outline is
+            // turned inside out; a small but real face is many tolerances wide and is kept.
+            Polygon2D polygon2D = new Polygon2D(snapped);
+            double perimeter = polygon2D.Perimeter();
+            if (!(perimeter > 0) || 2 * polygon2D.GetArea() / perimeter <= tolerance_Distance || polygon2D.GetOrientation() != Geometry.Orientation.CounterClockwise)
+            {
+                return null;
+            }
+
+            return polygon2D;
+        }
+
+        /// <summary>
         /// Where along an outer edge (start 0, end 1) a junction with a target face is looked for.
         /// </summary>
         private static readonly double[] EdgeSamples = { 0.5, 0, 1, 0.25, 0.75 };
+
+        /// <summary>
+        /// Most passes <see cref="SnapToJunctions(IEnumerable{Panel}, Core.Diagnostics, double, double)"/> takes to settle
+        /// the dropped set (a building model typically needs two or three).
+        /// </summary>
+        private const int SnapPasses = 10;
 
         private sealed class SnapTarget
         {

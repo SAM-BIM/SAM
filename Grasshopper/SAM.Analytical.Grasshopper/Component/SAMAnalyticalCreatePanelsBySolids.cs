@@ -31,7 +31,7 @@ namespace SAM.Analytical.Grasshopper
         /// <summary>
         /// The latest version of this component
         /// </summary>
-        public override string LatestComponentVersion => "1.2.0";
+        public override string LatestComponentVersion => "1.3.0";
 
         /// <summary>
         /// Provides an Icon for the component.
@@ -289,6 +289,11 @@ namespace SAM.Analytical.Grasshopper
             if (collapsed != 0)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Dropped {0} that snapping to junctions trimmed to nothing: each lies within the thickness of the elements it meets. See log.", Core.Query.Plural(collapsed, "panel")));
+            }
+
+            foreach (Core.Diagnostic diagnostic in diagnostics.Where(x => x.Code == BySolidsDiagnosticCode.SnapNotSettled))
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, diagnostic.Message);
             }
 
             index = Params.IndexOfOutputParam("panels");

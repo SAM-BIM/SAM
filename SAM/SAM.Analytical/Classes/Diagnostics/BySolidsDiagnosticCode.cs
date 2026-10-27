@@ -68,6 +68,12 @@ namespace SAM.Analytical
         /// <summary>Warning: snapping trimmed a panel to nothing (opposite edges onto one junction), so it was dropped. Value is its area before snapping [m2].</summary>
         public const string SnapCollapsed = "SNP002";
 
+        /// <summary>
+        /// Warning: the set of panels dropped by snapping did not settle within the pass limit, so the last pass is returned.
+        /// Value is the number of panels still changing between the last two passes, Limit is the pass limit.
+        /// </summary>
+        public const string SnapNotSettled = "SNP003";
+
         /// <summary>Warning: a member is not a closed solid or a planar face.</summary>
         public const string AperturesNotClosed = "AGS001";
 
