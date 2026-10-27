@@ -1,0 +1,37 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using SAM.Analytical;
+using SAM.Geometry.Spatial;
+
+// Read-only: loads saved models, never writes them. args: label modelPath
+class P
+{
+    // Winding-independent volume: (1/3) * sum(area * n.p) over the oriented faces of the shell as Shell.Volume() orients it.
+    static double Independent(Shell shell)
+    {
+        Shell t = new Shell(shell);
+        t.OrientNormals(false, SAM.Core.Tolerance.MacroDistance, SAM.Core.Tolerance.Distance);
+        double v = 0;
+        foreach (Face3D f in t.Face3Ds)
+        {
+            Plane pl = f.GetPlane(); var n = pl.Normal.GetNormalized(); var o = pl.Origin;
+            v += f.GetArea() * (n.X * o.X + n.Y * o.Y + n.Z * o.Z) / 3.0;
+        }
+        return Math.Abs(v);
+    }
+
+    static void Main(string[] a)
+    {
+        var model = SAM.Core.Convert.ToSAM<AnalyticalModel>(a[1]).First();
+        var ac = model.AdjacencyCluster;
+        Console.WriteLine("space\tShell.Volume\tindependent\tdelta");
+        foreach (var s in ac.GetSpaces().OrderBy(x => x.Location.Z).ThenBy(x => x.Location.X).ThenBy(x => x.Location.Y))
+        {
+            var shell = ac.Shell(s);
+            double v = shell.Volume(), i = Independent(shell);
+            Console.WriteLine($"({s.Location.X:0.000},{s.Location.Y:0.000},{s.Location.Z:0.000})\t{v:0.######}\t{i:0.######}\t{v - i:0.######}");
+        }
+    }
+}
