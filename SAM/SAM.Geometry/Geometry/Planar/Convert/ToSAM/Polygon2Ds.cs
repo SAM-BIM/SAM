@@ -14,8 +14,12 @@ namespace SAM.Geometry.Planar
             if (geometry == null)
                 return null;
 
+            // A ring that converts to null (fewer than 3 distinct points) bounds no loop and is left out.
             if (geometry is LinearRing)
-                return new List<Polygon2D>() { ((LinearRing)geometry).ToSAM(tolerance) };
+            {
+                Polygon2D polygon2D = ((LinearRing)geometry).ToSAM(tolerance);
+                return polygon2D == null ? new List<Polygon2D>() : new List<Polygon2D>() { polygon2D };
+            }
             else if (geometry is MultiLineString)
             {
                 MultiLineString multiLineString = (MultiLineString)geometry;
@@ -30,7 +34,11 @@ namespace SAM.Geometry.Planar
                     if (linearRing == null)
                         continue;
 
-                    polygon2Ds.Add(linearRing.ToSAM(tolerance));
+                    Polygon2D polygon2D = linearRing.ToSAM(tolerance);
+                    if (polygon2D == null)
+                        continue;
+
+                    polygon2Ds.Add(polygon2D);
                 }
                 return polygon2Ds;
             }

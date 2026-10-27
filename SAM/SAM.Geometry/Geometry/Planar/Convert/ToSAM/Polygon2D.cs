@@ -37,6 +37,15 @@ namespace SAM.Geometry.Planar
                 point2Ds = point2Ds_Temp;
             }
 
+            // Polygon2D drops an exact closing point, so count the points it keeps: a ring the conversion above collapsed
+            // to fewer than 3 distinct points (A, B, A) would otherwise become an invalid 2-point loop.
+            int count = point2Ds.Count;
+            if (point2Ds[count - 1].Equals(point2Ds[0]))
+                count--;
+
+            if (count < 3)
+                return null;
+
             Polygon2D result = new Polygon2D(point2Ds);
             return result;
         }
