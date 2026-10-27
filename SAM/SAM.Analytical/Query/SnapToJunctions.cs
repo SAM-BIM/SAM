@@ -31,8 +31,9 @@ namespace SAM.Analytical
         /// A panel whose edges snap together (it lies within the thickness of the elements it meets) is dropped, and a
         /// dropped panel is not a junction for any other panel. The dropped set is found by repeated passes: every panel
         /// is snapped against the panels not dropped so far, and the dropped set becomes the panels that close up. This
-        /// stops when the set no longer changes, so a panel that closed up only on a dropped panel is kept. The result
-        /// does not depend on the input order.
+        /// stops when the set no longer changes, so a panel that closed up only on a dropped panel is kept. If the set does
+        /// not settle (a set repeats, or the pass limit is reached), snapping is not applied and the panels are returned
+        /// unsnapped with an Error. The result does not depend on the input order.
         /// </para>
         /// <para>
         /// Holes are left untouched. Air panels are neither moved nor used as targets. Final junction resolution
@@ -55,9 +56,11 @@ namespace SAM.Analytical
         /// <summary>
         /// <see cref="SnapToJunctions(IEnumerable{Panel}, out List{string}, double, double)"/> with structured diagnostics:
         /// one Summary Info record (<see cref="BySolidsDiagnosticCode.SnapChecked"/>, Value = snap distance [m]; its edge
-        /// counts are those of the final pass), and a Warning (<see cref="BySolidsDiagnosticCode.SnapCollapsed"/>) for each
-        /// panel snapping trimmed to nothing, which is dropped. If the dropped set does not settle within the pass limit,
-        /// the last pass is returned with a Warning (<see cref="BySolidsDiagnosticCode.SnapNotSettled"/>).
+        /// counts are those of the final pass, zero when snapping is not applied), and a Warning
+        /// (<see cref="BySolidsDiagnosticCode.SnapCollapsed"/>) for each panel snapping trimmed to nothing, which is dropped.
+        /// If the dropped set does not settle (a set repeats, or the pass limit is reached), no pass is a valid result:
+        /// snapping is not applied, the panels are returned unsnapped (as with a zero snap distance) and an Error
+        /// (<see cref="BySolidsDiagnosticCode.SnapNotSettled"/>) names the unsettled panels.
         /// The panels do not depend on the detail level.
         /// </summary>
         /// <param name="panels">Mid-surface panels, in metres.</param>
@@ -72,7 +75,7 @@ namespace SAM.Analytical
 
         /// <summary>
         /// <see cref="SnapToJunctions(IEnumerable{Panel}, Core.Diagnostics, double, double)"/> with at most
-        /// <paramref name="passes"/> passes to settle the dropped set.
+        /// <paramref name="passes"/> passes to settle the dropped set (a repeated set ends it earlier).
         /// </summary>
         internal static List<Panel> SnapToJunctions(IEnumerable<Panel> panels, Core.Diagnostics diagnostics, double snapDistance, double tolerance_Distance, int passes)
         {
@@ -126,9 +129,11 @@ namespace SAM.Analytical
             // dropped set, make the panels that close up the new dropped set, and repeat until it no longer changes. The
             // set is re-evaluated, not only grown: a panel that closed up only on a dropped target is kept again.
             HashSet<System.Guid> dropped = new HashSet<System.Guid>();
+            List<HashSet<System.Guid>> states = new List<HashSet<System.Guid>> { dropped };
+            HashSet<System.Guid> unsettled = null;
+            int repeat = -1;
             Polygon2D[] snapped = new Polygon2D[count];
-            int extended = 0, trimmed = 0, pass = 0, changed = 0;
-            bool settled = false;
+            int extended = 0, trimmed = 0, pass = 0;
             while (true)
             {
                 pass++;
@@ -147,17 +152,44 @@ namespace SAM.Analytical
 
                 if (collapsed.SetEquals(dropped))
                 {
-                    settled = true;
                     break;
                 }
 
-                if (pass >= passes)
+                // A dropped set seen before is a cycle: no set is consistent (a panel is dropped only while another is a
+                // junction, and that one only while the first is not). Unsettled are the panels dropped in some of its
+                // states but not all. Without a repeat, the pass limit leaves those changing between the last two passes.
+                repeat = states.FindIndex(x => x.SetEquals(collapsed));
+                if (repeat != -1 || pass >= passes)
                 {
-                    changed = collapsed.Count(x => !dropped.Contains(x)) + dropped.Count(x => !collapsed.Contains(x));
+                    List<HashSet<System.Guid>> cycle = repeat != -1 ? states.GetRange(repeat, states.Count - repeat) : new List<HashSet<System.Guid>> { dropped, collapsed };
+                    unsettled = new HashSet<System.Guid>(cycle.SelectMany(x => x));
+                    unsettled.RemoveWhere(x => cycle.TrueForAll(y => y.Contains(x)));
                     break;
                 }
 
+                states.Add(collapsed);
                 dropped = collapsed;
+            }
+
+            if (unsettled != null)
+            {
+                extended = 0;
+                trimmed = 0;
+            }
+
+            diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Summary, null, () => string.Format(System.Globalization.CultureInfo.InvariantCulture, "Checked {0} for junctions: extended {1} and trimmed {2} (snap distance {3:0.###} m).", Core.Query.Plural(panels_Temp.Count, "panel"), Core.Query.Plural(extended, "edge"), Core.Query.Plural(trimmed, "edge"), snapDistance), BySolidsDiagnosticCode.SnapChecked, null, snapDistance, null, "m");
+
+            // Not settled: no pass is a valid result, as each still lets a dropped panel move its neighbours. Snapping is
+            // not applied (the panels come back unsnapped, as with a zero snap distance), and the run reports an Error.
+            if (unsettled != null)
+            {
+                List<string> names = panels_Temp.FindAll(x => unsettled.Contains(x.Guid)).ConvertAll(SnapName).Distinct().OrderBy(x => x, System.StringComparer.Ordinal).ToList();
+                string list = string.Join(", ", names.Take(10).Select(x => string.Format("'{0}'", x))) + (names.Count > 10 ? string.Format(" and {0} more", names.Count - 10) : string.Empty);
+                string reason = repeat != -1
+                    ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "the set of panels it drops repeats after {0} without settling: {1} are dropped or kept depending on which of them are junctions", Core.Query.Plural(pass, "pass", "passes"), list)
+                    : string.Format(System.Globalization.CultureInfo.InvariantCulture, "the set of panels it drops did not settle within {0}: {1} still changed in the last pass", Core.Query.Plural(passes, "pass", "passes"), list);
+                diagnostics.Add(new Diagnostic(DiagnosticSeverity.Error, DiagnosticDetail.Summary, null, string.Format(System.Globalization.CultureInfo.InvariantCulture, "Snapping to junctions was not applied: {0}. The panels are returned unsnapped (as with snap distance 0).", reason), BySolidsDiagnosticCode.SnapNotSettled, null, unsettled.Count, passes, null));
+                return panels_Temp.ConvertAll(x => Create.Panel(x));
             }
 
             List<Panel> result = new List<Panel>();
@@ -183,19 +215,20 @@ namespace SAM.Analytical
                 result.Add(snappedPanel ?? Create.Panel(panel));
             }
 
-            diagnostics.Add(DiagnosticSeverity.Info, DiagnosticDetail.Summary, null, () => string.Format(System.Globalization.CultureInfo.InvariantCulture, "Checked {0} for junctions: extended {1} and trimmed {2} (snap distance {3:0.###} m).", Core.Query.Plural(panels_Temp.Count, "panel"), Core.Query.Plural(extended, "edge"), Core.Query.Plural(trimmed, "edge"), snapDistance), BySolidsDiagnosticCode.SnapChecked, null, snapDistance, null, "m");
-            if (!settled)
-            {
-                diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, null, string.Format(System.Globalization.CultureInfo.InvariantCulture, "The panels dropped by snapping did not settle within {0}: {1} still changed between the last two passes. The last pass is returned, so a dropped panel may have moved its neighbours' edges.", Core.Query.Plural(passes, "pass", "passes"),Core.Query.Plural(changed, "panel")), BySolidsDiagnosticCode.SnapNotSettled, null, changed, passes, null));
-            }
-
             foreach (Panel panel in collapsed_Panels)
             {
-                string name = panel.TryGetValue(PanelSourceParameter.SourceName, out string sourceName) && !string.IsNullOrWhiteSpace(sourceName) ? sourceName : panel.Guid.ToString();
-                diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, string.Format("Panel '{0}'", name), string.Format(System.Globalization.CultureInfo.InvariantCulture, "Dropped. Snapping its edges to the junctions closed it up (no wider than the distance tolerance, or turned inside out): it lies within the thickness of the elements it meets. Area before snapping: {0:G4} m2.", panel.GetArea()), BySolidsDiagnosticCode.SnapCollapsed, null, panel.GetArea(), null, "m2"));
+                diagnostics.Add(new Diagnostic(DiagnosticSeverity.Warning, DiagnosticDetail.Summary, string.Format("Panel '{0}'", SnapName(panel)), string.Format(System.Globalization.CultureInfo.InvariantCulture, "Dropped. Snapping its edges to the junctions closed it up (no wider than the distance tolerance, or turned inside out): it lies within the thickness of the elements it meets. Area before snapping: {0:G4} m2.", panel.GetArea()), BySolidsDiagnosticCode.SnapCollapsed, null, panel.GetArea(), null, "m2"));
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// A panel's name in snapping diagnostics: its source name, else its Guid.
+        /// </summary>
+        private static string SnapName(Panel panel)
+        {
+            return panel.TryGetValue(PanelSourceParameter.SourceName, out string sourceName) && !string.IsNullOrWhiteSpace(sourceName) ? sourceName : panel.Guid.ToString();
         }
 
         /// <summary>

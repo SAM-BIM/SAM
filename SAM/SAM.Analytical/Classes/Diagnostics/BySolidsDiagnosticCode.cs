@@ -8,7 +8,7 @@ namespace SAM.Analytical
     /// <see cref="Query.SnapToJunctions(System.Collections.Generic.IEnumerable{Panel}, Core.Diagnostics, double, double)"/> and
     /// <see cref="Create.AperturesBySolids(System.Collections.Generic.IEnumerable{ApertureSolid}, Core.Diagnostics, out System.Collections.Generic.List{int}, System.Collections.Generic.IEnumerable{ApertureConstruction}, double, double, double, double)"/>.
     /// Codes starting <c>PBS</c> belong to panels, <c>SNP</c> to snapping and <c>AGS</c> to apertures; <c>1xx</c> are
-    /// Standard Info (except <see cref="PanelsContinuation"/>, Summary), <c>2xx</c> Detailed Info, and the rest Warnings. Callers should branch on the code rather than on message text.
+    /// Standard Info (except <see cref="PanelsContinuation"/>, Summary), <c>2xx</c> Detailed Info, and the rest Warnings (except <see cref="SnapNotSettled"/>, an Error). Callers should branch on the code rather than on message text.
     /// </summary>
     public static class BySolidsDiagnosticCode
     {
@@ -69,8 +69,9 @@ namespace SAM.Analytical
         public const string SnapCollapsed = "SNP002";
 
         /// <summary>
-        /// Warning: the set of panels dropped by snapping did not settle within the pass limit, so the last pass is returned.
-        /// Value is the number of panels still changing between the last two passes, Limit is the pass limit.
+        /// Error: the set of panels dropped by snapping does not settle (a set repeats, or the pass limit is reached), so
+        /// snapping was not applied and the panels are returned unsnapped. Value is the number of panels whose drop does not
+        /// settle, Limit is the pass limit.
         /// </summary>
         public const string SnapNotSettled = "SNP003";
 

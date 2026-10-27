@@ -293,7 +293,7 @@ namespace SAM.Analytical.Grasshopper
 
             foreach (Core.Diagnostic diagnostic in diagnostics.Where(x => x.Code == BySolidsDiagnosticCode.SnapNotSettled))
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, diagnostic.Message);
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, diagnostic.Message);
             }
 
             index = Params.IndexOfOutputParam("panels");

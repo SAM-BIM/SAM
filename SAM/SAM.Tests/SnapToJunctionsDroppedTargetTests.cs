@@ -248,8 +248,85 @@ namespace SAM.Tests
             AssertSame(result, panels.SnapToJunctions(out List<string> _, Snap));
         }
 
+        /// <summary>
+        /// Two panels whose drops depend on each other, beside a 0.2 m crossing wall C (mid-plane x 0.1). Pier B (y 0,
+        /// x 0.05..0.15) trims both ends back onto C and closes up, unless stub A (x 0.3, y -0.05..0.05) is a junction
+        /// ahead of its east end. A trims both ends onto B's mid-plane and closes up only while B is a junction. No dropped
+        /// set is consistent: {} -> {A} -> {A, B} -> {B} -> {}.
+        /// </summary>
+        private static List<Panel> MutualCycle()
+        {
+            return new List<Panel>
+            {
+                WallX("C", 0.1, -1, 1, 0, 3),
+                WallY("B", 0, 0.05, 0.15, 0, 3),
+                WallX("A", 0.3, -0.05, 0.05, 0, 3),
+            };
+        }
+
+        /// <summary>The panels come back unsnapped (same Guids and outlines as the input) with one SnapNotSettled Error.</summary>
+        private static Diagnostic AssertUnsnapped(List<Panel> input, List<Panel> result, Core.Diagnostics diagnostics)
+        {
+            Assert.Equal(input.Count, result.Count);
+            foreach (Panel panel in input)
+            {
+                Assert.True(Same(panel, Assert.Single(result, x => x.Guid == panel.Guid)), $"panel {Name(panel)} was moved");
+            }
+
+            Assert.DoesNotContain(diagnostics, x => x.Code == BySolidsDiagnosticCode.SnapCollapsed);
+            Assert.StartsWith("Checked " + input.Count + " panels for junctions: extended 0 edges and trimmed 0 edges", Assert.Single(diagnostics, x => x.Code == BySolidsDiagnosticCode.SnapChecked).Message);
+            Diagnostic error = Assert.Single(diagnostics, x => x.Code == BySolidsDiagnosticCode.SnapNotSettled);
+            Assert.Equal(DiagnosticSeverity.Error, error.Severity);
+            return error;
+        }
+
         [Fact]
-        public void SnapToJunctions_DroppedSetNotSettledWithinPassLimit_ReportsWarning()
+        public void SnapToJunctions_MutuallyDependentDrops_AreReturnedUnsnappedWithError()
+        {
+            // Arrange
+            List<Panel> panels = MutualCycle();
+            Core.Diagnostics diagnostics = new Core.Diagnostics(DiagnosticDetail.Summary);
+
+            // Act
+            List<Panel> result = panels.SnapToJunctions(diagnostics, Snap);
+
+            // Assert: the repeated set is detected (after 4 passes, well inside the limit of 10); no pass is published.
+            Diagnostic error = AssertUnsnapped(panels, result, diagnostics);
+            Assert.Equal(2, error.Value.Value);
+            Assert.Equal(10, error.Limit.Value);
+            Assert.Equal("Snapping to junctions was not applied: the set of panels it drops repeats after 4 passes without settling: 'A', 'B' are dropped or kept depending on which of them are junctions. The panels are returned unsnapped (as with snap distance 0).", error.Message);
+        }
+
+        [Fact]
+        public void SnapToJunctions_MutuallyDependentDrops_DoNotDependOnOrderOrDetail()
+        {
+            // Arrange
+            List<Panel> panels = MutualCycle();
+            Core.Diagnostics diagnostics_Expected = new Core.Diagnostics(DiagnosticDetail.Detailed);
+            List<Panel> expected = panels.SnapToJunctions(diagnostics_Expected, Snap);
+            string message = AssertUnsnapped(panels, expected, diagnostics_Expected).Message;
+
+            // Act and assert: every order of the three panels, at every detail level, gives the same panels and Error.
+            int[][] orders = { new[] { 0, 1, 2 }, new[] { 0, 2, 1 }, new[] { 1, 0, 2 }, new[] { 1, 2, 0 }, new[] { 2, 0, 1 }, new[] { 2, 1, 0 } };
+            foreach (int[] order in orders)
+            {
+                List<Panel> reordered = order.Select(x => panels[x]).ToList();
+                foreach (DiagnosticDetail detail in new[] { DiagnosticDetail.Summary, DiagnosticDetail.Standard, DiagnosticDetail.Detailed })
+                {
+                    Core.Diagnostics diagnostics = new Core.Diagnostics(detail);
+                    List<Panel> result = reordered.SnapToJunctions(diagnostics, Snap);
+                    AssertSame(expected, result);
+                    Assert.Equal(message, AssertUnsnapped(panels, result, diagnostics).Message);
+                }
+
+                AssertSame(expected, reordered.SnapToJunctions((Core.Diagnostics)null, Snap));
+                AssertSame(expected, reordered.SnapToJunctions(out List<string> lines, Snap));
+                Assert.Contains(lines, x => x.StartsWith("Error: Snapping to junctions was not applied"));
+            }
+        }
+
+        [Fact]
+        public void SnapToJunctions_DroppedSetNotSettledWithinPassLimit_IsReturnedUnsnappedWithError()
         {
             // Arrange: the corner needs two passes (the block drops in the first and the dropped set is confirmed in the
             // second); a limit of one pass cannot confirm it.
@@ -260,13 +337,11 @@ namespace SAM.Tests
             // Act
             List<Panel> result = Analytical.Query.SnapToJunctions(panels, diagnostics, Snap, Tolerance.Distance, 1);
 
-            // Assert: the last pass is returned (the block is dropped, the step still pulled onto it) and the run says so.
-            Assert.Equal(4, result.Count);
-            Diagnostic warning = Assert.Single(diagnostics, x => x.Code == BySolidsDiagnosticCode.SnapNotSettled);
-            Assert.Equal(DiagnosticSeverity.Warning, warning.Severity);
-            Assert.Equal(1, warning.Value.Value);
-            Assert.Equal(1, warning.Limit.Value);
-            Assert.Single(diagnostics, x => x.Code == BySolidsDiagnosticCode.SnapCollapsed);
+            // Assert: the first pass (which still pulls the slab step onto the block) is not published.
+            Diagnostic error = AssertUnsnapped(panels, result, diagnostics);
+            Assert.Equal(1, error.Value.Value);
+            Assert.Equal(1, error.Limit.Value);
+            Assert.Contains("did not settle within 1 pass: 'R' still changed in the last pass", error.Message);
         }
     }
 }
