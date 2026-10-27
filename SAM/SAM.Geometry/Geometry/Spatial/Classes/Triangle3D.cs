@@ -138,7 +138,7 @@ namespace SAM.Geometry.Spatial
 
         public void Reverse()
         {
-            points.Reverse();
+            Array.Reverse(points);
         }
 
         public Point3D this[int index]
