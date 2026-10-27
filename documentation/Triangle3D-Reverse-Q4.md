@@ -90,7 +90,7 @@ against the pre-fix `SAM.Geometry.dll` (`558D2B86`) and the fixed one (`EF2B5D4E
 | --- | --- | ---: | ---: | ---: |
 | (12.159, 6.705, 4.975) | baseline | 31.242936 | 31.242936 | 31.242939 |
 | (12.159, 6.705, 4.975) | corrected | **31.23669** | **31.242936** | 31.242939 |
-| (12.853, 4.891, 7.963) | baseline | 36.172684 | 36.17268 | 36.17269 |
+| (12.853, 4.891, 7.963) | baseline | 36.172684 | 36.172684 | 36.17269 |
 | (12.853, 4.891, 7.963) | corrected | **36.178925** | **36.17268** | 36.172689 |
 
 - Before the fix the probe reproduces the saved defect exactly (31.23669 and 36.178925, the ±0.006 m3 of the R1
