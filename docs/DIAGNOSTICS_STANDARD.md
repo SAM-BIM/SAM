@@ -63,7 +63,7 @@ Enum values are published. Never renumber or reorder them.
 - `Subject` identifies the source deterministically (`Solid #3 'Name'`). `SourceIndex` is the index in the
   producer's own input or record list so a structured record maps back to its legacy line.
 - `Code` is stable and machine-readable. Released codes are never renamed, reused or renumbered; new codes may be added.
-  Existing families: `PBS###` / `AGS###` / `SNP###` / `BYS###` (`SAM.Analytical.BySolidsDiagnosticCode`, where, for BySolids, 00x are Warnings,
+  Existing families: `PBS###` / `AGS###` / `SNP###` / `BYS###` (`SAM.Analytical.BySolidsDiagnosticCode`, where, for BySolids, 00x are Warnings (`SNP003` is an Error),
   x00 totals, 1xx Standard Info and 2xx Detailed Info), `SAM-OS-*` / `SAM-OSI-*` (OpenStudio), `TAS-*`
   (`TasDiagnosticCodes`), `OPT###` (optimisation), OCCT `DiagnosticCode` names.
 - `Value` / `Limit` / `Unit` carry the measured number, the threshold and the unit when a comparison produced the
