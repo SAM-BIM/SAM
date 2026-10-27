@@ -39,7 +39,10 @@ closing-point trimming was added.
 
 What C1 means, precisely: it rejects a loop that the existing conversion has already made degenerate. It does not prove
 that the source ring enclosed no area (the seed-400 sliver had 1.25e-6 m2 before `AlmostEquals` merged two of its
-points), and 3 retained points are not a general proof of loop validity.
+points), and 3 retained points are not a general proof of loop validity. Nor does this change guarantee that every
+physically genuine opening survives conversion: the existing filters still apply (an opening whose ring the conversion
+collapses, or one below the `GetArea() < tolerance` filter, is still dropped). The tests show only that the tested
+1 mm and thin-triangle openings are kept and that C1 + C2 remove no additional opening.
 
 ## Affected callers (behaviour changes only where the output was invalid or lost)
 
@@ -87,9 +90,31 @@ USERPROFILE redirected to `sroot\profile`). Evidence: `SAM_daily\2026-10-25-Soft
 | 2000-seed synthetic (exact + noisy = 4000 runs, `synth/`) | raw union: base 12 slabs lost, fix **0**; Q4 Clean3D guard: base 18 `CoplanarMergeRecovered` Warnings, fix **0**; raw-union boundaries bit-identical in the other 3988 runs; Clean3D slab areas identical in all 4000 |
 | SAM_OCCT companion on both SAM versions | see the SAM_OCCT record `documentation/Coplanar-Merge-Guard-SAM-Independent-Q4.md` |
 | Unchanged SAM_OCCT `sow/2026-Q4` unit tests on the fix | 1049 / 1052: exactly the three #85 rows fail, each only at the Warning assertion (the slab and sources hold): the reason for the companion |
-| Softhouse chains, SAM_OCCT#84 `26ddbaf` no kink, frozen native `438089F8` | F: every stage SAME, tables identical (58 spaces, 48 good, 47 / 48). R: 59 / 45 / 44 on both; current SAM needs 1 recovery Warning, the fix 0. Clean and extended panels SAME (<= 1e-9 m); the 2F cap is the same face but at index 3 instead of appended at 77, so the OCCT model differs by order only: 329 SAME, 16 within 1e-6 m (hd <= 1.3e-7 m), 5 internal (two-sided) panels with flipped normals, two adjacent spaces exchange 0.006 m3, rooms and good classification identical except the "Cell n" labels |
+| Softhouse chains, SAM_OCCT#84 `26ddbaf` no kink, frozen native `438089F8` | F: every stage SAME, tables identical (58 spaces, 48 good, 47 / 48). R: 59 spaces / 45 good / 44 of 48 on both (partial recovery, unchanged); current SAM needs 1 recovery Warning, the fix 0. Clean and extended panels are the same panels (see "R model differences" below); the OCCT model is **not** identical: of 347 paired panels 329 SAME, 16 differ by <= 1.3e-7 m, 5 internal two-sided panels are reversed (3 of them among the 16), and two cells report `Shell.Volume()` +/-0.006 m3; rooms, matched reference identities and good classification are identical apart from "Cell n" labels |
 | Consumer builds vs the fix (frozen SAM + fixed SAM.Geometry) | SAM_SolarCalculator `277a3a4`, SAM_gbXML `43b5d01`, SAM_IFC `77046be`: build OK. SolarCalculator tests: base and fix both **564 passed / 1 skipped** (fix run loaded SAM.Geometry `188DA1F6`). SAM_Systems, SAM_Validation (SAM_Mollier sibling not provisioned), SAM_Building `0907ee2` (legacy RhinoCommon 6 packages.config) and SAM_Tas (COM references need .NET Framework MSBuild): **the same failures against the unmodified SAM**, so infrastructure, not this change |
 | `%APPDATA%\SAM` | 2125 files byte-identical before and after (`provenance/appdata-sam-*.sha256`) |
+
+## R model differences: cause and classification (review finding R1, evidence `closeout/`)
+
+- **Same input panels, different order.** The saved corrected R extended panels pair one-to-one with the baseline's by
+  complete loop correspondence: 78 / 78, every loop bit-equal from the same start vertex, panel JSON equal apart from
+  Guids. Only the order differs: the 2F cap is index 3 (union order) instead of 77 (appended by the #85 guard).
+- **Causal control.** The corrected panels written in the baseline order (a verified permutation, nothing else changed)
+  and replayed through only the native stage (OCCT AdjacencyCluster, apertures, Rooms2, good; same frozen runtime and
+  options) reproduce the **baseline model byte-for-byte** (Guid-masked JSON) and identical tables, on either SAM runtime.
+  The two saved runs replay exactly as controls. So the model differences are caused by panel order alone: an existing
+  OCCT/AdjacencyCluster presentation sensitivity, not by geometry from this change. No sorting was added.
+- **What they are.** Every cell keeps the same panels (type, construction, area, centroid, adjacency, apertures). The 5
+  reversed normals are internal panels between the same two cells, reversed symmetrically (equivalent two-sided
+  interfaces). The +/-0.00625 m3 is a **volume-computation artefact**: the two cells share a 0.001447 m2 sliver triangle
+  that is the same triangle with the same oriented normal in both runs, but with a different vertex winding, and
+  `Shell.Volume()` integrates the triangulation, so its contribution flips sign (+/-0.003123 m3 each side). A
+  winding-independent volume gives the same value in both runs (36.17269 / 36.172689 and 31.242939 m3), equal to the
+  baseline's `Shell.Volume()`. Geometry and attribution are unchanged.
+- Reproduce (Git Bash, E = the evidence folder): `sh $E/scripts/run.sh fix reorder $E/closeout/reorder A=<pr84-R
+  panels_extended.json> B=<pr84fix-R panels_extended.json> OUT=<file>`, then `sh $E/scripts/closeout-replay.sh`, then
+  probe modes `incidence`, `volumes`, `faces` (`probe/Closeout.cs`); details in `closeout/README.md`. Machine-local:
+  needs `%TEMP%\sroot\occt` (frozen builds, native `438089F8`), the saved chain outputs and Rhino 8.
 
 ## Decisions and assumptions
 
@@ -97,11 +122,11 @@ USERPROFILE redirected to `sroot\profile`). Evidence: `SAM_daily\2026-10-25-Soft
 - Tolerances, `AxisX`, the area-vs-length filter, solver, kink and extraction rules are untouched.
 - The corrected SAM.Geometry was tested by swapping only that DLL into frozen builds, so every other loaded binary is
   the frozen one (hashes in the evidence `assemblies*.txt`).
-- **Grasshopper versions: recommend no bump** (owner decision). No component code, parameter or GUID changes. A
-  component version cannot gate this behaviour: every component, old or updated, calls the same library at run time, so
-  a bump would only offer an *Update component* that changes nothing. The results that change were invalid or lost
-  before (a defect correction, not a new contract). Precedent: SAM#222 (`Union.cs`) bumped nothing. GH-H2 lists "a
-  different geometry result" as minor or major by impact and the reviewing owner, so the owner decides; components
+- **Grasshopper versions: recommend no bump** (owner decision under GH-H2). No component code, parameter or GUID
+  changes, and the results that change were invalid or lost before (a defect correction, not a new contract).
+  Precedent: SAM#222 (`Union.cs`) bumped nothing. That a component version cannot gate shared library behaviour is
+  context, not an exemption from GH-H2, and this recommendation is not a rule for future library changes. GH-H2 lists
+  "a different geometry result" as minor or major by impact and the reviewing owner, so the owner decides; components
   whose output can change indirectly: `SAMAnalyticalPanelsIntersection`, `GeometryModifyUnion`, `CreatePanelsBySolids`,
   `CreateAperturesBySolids`, and SAM_OCCT `Clean3D`/`Extend3D`/`Solve3D`.
 
@@ -123,10 +148,15 @@ USERPROFILE redirected to `sroot\profile`). Evidence: `SAM_daily\2026-10-25-Soft
   difficulty is not evidence it is unneeded.
 - Frame-dependent merge completeness: in two frames the union leaves a 1 um seam open (45 + 81 m2). Not a loss;
   related to the `AxisX` exact-zero frame selection noted in the checklist.
-- Full Softhouse acceptance is not claimed: R still retains 44 / 48 (extraction differences, #84 blockers).
+- OCCT/AdjacencyCluster output depends on panel order (shown above); belongs to the #84 presentation-independent
+  free-edge measurement design task. No sorting added, no expectation rebaselined.
+- SAM `Shell.Volume()` integrates each oriented face's triangulation, so a sliver whose vertex winding contradicts its
+  normal gives a signed error (here +/-0.006 m3). Existing; separate defect.
+- Full Softhouse acceptance is not claimed: R still retains 44 / 48 (extraction differences, #84 blockers); the gate is
+  the same 48 reference identities passing on F and R.
 
 ## Next step
 
-Owner review of both draft PRs and their hosted checks; merge the SAM_OCCT companion first, then this PR, only on owner
-approval. Recommended for the merge/closeout session: Claude Opus 5.5, medium effort, this session, Build mode (the
+Independent re-review of this closeout (finding R1) and the final heads; then the PRs can be marked ready for review
+(not a merge authorisation). Merge the SAM_OCCT companion first, then this PR, only on owner approval. Recommended for the merge/closeout session: Claude Opus 5.5, medium effort, this session, Build mode (the
 evidence and context are here).
