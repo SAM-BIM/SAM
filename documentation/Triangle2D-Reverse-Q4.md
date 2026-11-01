@@ -1,7 +1,10 @@
 # Triangle2D.Reverse no-op — Q4 (2026-11-01)
 
-Status: local branch `fix/triangle2d-reverse-q4` (base `sow/2026-Q4` `15d8c909`), pilot LOOP-1. No PR yet. The tested
-SHA is recorded by the controller test step and added to this record in a record-only commit; nothing is merged.
+Status: Draft PR from `fix/triangle2d-reverse-q4` into `sow/2026-Q4` (base `15d8c9097360ffd2580ef3b82239e70c3b646c94`),
+pilot LOOP-1. Not merged. Tested content SHA: `914be22451da79dcc9b0aedf0f02e70496781245`. This record-only commit follows
+it and changes only this file. The PR number, final head and GitHub checks are in the PR description.
+
+This delivery does not close F2, the tamper promise, teardown, continuity, S-09 or Phase 1a.
 
 ## Problem
 
@@ -30,18 +33,34 @@ stored vertex order is reversed). One line. Unchanged: public signatures, JSON s
 - `Reverse_Twice_RestoresOriginalOrder`
 - `Reverse_KeepsAreaAndPerimeter` (6 and 12 for the 3-4-5 triangle)
 
-## Validation (developer-local, informational; machine `michal`, 2026-11-01)
+## Validation at `914be224` (local, 2026-11-01; GitHub checks are in the PR description)
 
-| Check | Result |
-| --- | --- |
-| `dotnet build SAM/SAM.Tests/SAM.Tests.csproj -m:1 -nodeReuse:false -p:UseSharedCompilation=false -p:NuGetAudit=false` | succeeded, 0 errors |
-| `dotnet test ... --no-build -m:1 --filter <the two PartOBaselineReferenceTests exclusions>` (Debug) | 3978 passed, 0 failed, 0 skipped |
+| Check | Where | Result |
+| --- | --- | --- |
+| `dotnet build SAM/SAM.Tests/SAM.Tests.csproj -m:1 -nodeReuse:false -p:UseSharedCompilation=false -p:NuGetAudit=false` | Controller test step, isolated checkout, MXC profile G | exit 0, 20.5 s |
+| `dotnet test SAM/SAM.Tests/SAM.Tests.csproj --no-build -m:1 --filter <fixed filter>` (Debug) | Same | **Filtered run:** 3978 passed, 0 failed, 0 skipped, 196.6 s |
+| The two excluded tests, by name (Debug) | Scratch clone, outside MXC, extra check | Both passed |
+| Fail-first control: the new tests with the unfixed `Triangle2D.cs` | Scratch clone, outside MXC | `Reverse_ReversesStoredVertexOrder`, `Reverse_FlipsOrientation` and `Reverse_ThroughIReversible_ReversesStoredVertexOrder` failed. `Reverse_Twice_RestoresOriginalOrder` and `Reverse_KeepsAreaAndPerimeter` passed, as expected of a no-op |
+| `samctl spdx` | Local | Pass, 2 files |
+| Developer run, same commands | Developer worktree | 3978 passed, 0 failed, 0 skipped (informational) |
+| Independent review, Codex `gpt-6.1-sol` High, MXC profile G, at the tested SHA | Local | ACCEPT, round 1 of 3, no findings |
+| Controller acceptance gate | Local | Passed |
 
-The run is **filtered, not the full suite**: it excludes `SAM.Tests.PartOBaselineReferenceTests.ARenamedDesign_IsFoundByIdentity`
+The controller run is **filtered, not the full suite**: it excludes exactly `SAM.Tests.PartOBaselineReferenceTests.ARenamedDesign_IsFoundByIdentity`
 and `SAM.Tests.PartOBaselineReferenceTests.ARuntimeHint_FindsADesignTheLocatorCannot_AndIsNotPersisted` (owner direction 29;
-they fail under MXC profile G on `File.Move` access denied). The fail-first control, the controller test step, local
-`samctl spdx` and the Release CI job log are not part of this developer run. `SAM.Core.Grasshopper.Tests` was not run
-(needs Rhino). The developer TRX is informational; the tested SHA is set only by the controller test step.
+they fail under MXC profile G on `File.Move` access denied and pass outside it). The tested SHA is set only by the
+controller test step.
+
+Machine-local evidence, not in this repository: `tasks/phase1a/evidence/loop-1/` on the `SAM_Workspace` branch
+`phase1a/build`, which is local only.
+
+## Unresolved
+
+- Release CI must still show a `Passed` line for both excluded tests and all five new tests. A green build alone is
+  insufficient.
+- `SAM.Core.Grasshopper.Tests` was not run (needs Rhino).
+- The controller test step runs Debug only. Release is covered by CI.
+- The `IReversible` test covers the interface route; no test builds a `Face` with a `Triangle2D` edge.
 
 ## Compatibility
 
@@ -50,6 +69,5 @@ only for callers that reverse a `Triangle2D`, which now gets the reversed vertex
 
 ## Next step
 
-Lead: run the controller test step, fail-first control and `samctl spdx`; review; then the record-only commit with the
-tested SHA, push and Draft PR if the owner allows. Release CI must show a `Passed` line for both excluded tests and all
-five new tests before merge.
+Lead: verify CI at the final head, including the named Release tests, then stop for the owner's exact approval line.
+Marking the PR Ready and merging need that line. After merge, add the `PROJECT_PROGRESS.md` closeout with the merge SHA.
