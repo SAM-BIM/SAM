@@ -59,6 +59,21 @@ namespace SAM.Tests
         }
 
         [Fact]
+        public void Reverse_ThroughFace2D_ReversesTriangleExternalEdge()
+        {
+            Face2D face2D = new Triangle2D(A, B, C);
+
+            face2D.Reverse();
+
+            Triangle2D externalEdge2D = Assert.IsType<Triangle2D>(face2D.ExternalEdge2D);
+            List<Point2D> point2Ds = externalEdge2D.GetPoints();
+            AssertSame(C, point2Ds[0]);
+            AssertSame(B, point2Ds[1]);
+            AssertSame(A, point2Ds[2]);
+            Assert.Equal(Orientation.Clockwise, externalEdge2D.GetOrientation());
+        }
+
+        [Fact]
         public void Reverse_Twice_RestoresOriginalOrder()
         {
             Triangle2D triangle2D = new Triangle2D(A, B, C);
