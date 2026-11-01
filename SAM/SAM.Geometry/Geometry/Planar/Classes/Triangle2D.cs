@@ -204,7 +204,7 @@ namespace SAM.Geometry.Planar
 
         public void Reverse()
         {
-            points.Reverse();
+            Array.Reverse(points);
         }
 
         public override JsonObject ToJsonObject()
