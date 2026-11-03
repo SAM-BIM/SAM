@@ -31,6 +31,13 @@ namespace SAM.Analytical
         /// Planar Boundary 3D of Panel
         /// </summary>
         private PlanarBoundary3D planarBoundary3D;
+
+        /// <summary>
+        /// What was proved about the source element (see <see cref="Analytical.SourceEvidence"/>), if anything. Never modified in
+        /// place, so copies of a panel share it.
+        /// </summary>
+        private SourceEvidence sourceEvidence;
+
         /// <summary>
         /// Creates new instance of panel based on another panel
         /// </summary>
@@ -40,6 +47,7 @@ namespace SAM.Analytical
         {
             planarBoundary3D = new PlanarBoundary3D(panel.planarBoundary3D);
             panelType = panel.panelType;
+            sourceEvidence = panel.sourceEvidence;
 
             if (panel.apertures != null)
                 apertures = new List<Aperture>(panel.apertures.ConvertAll(x => new Aperture(x)));
@@ -50,6 +58,7 @@ namespace SAM.Analytical
         {
             planarBoundary3D = new PlanarBoundary3D(panel.planarBoundary3D);
             panelType = panel.panelType;
+            sourceEvidence = panel.sourceEvidence;
 
             if (panel.apertures != null)
                 apertures = new List<Aperture>(panel.apertures.ConvertAll(x => new Aperture(x)));
@@ -65,6 +74,7 @@ namespace SAM.Analytical
         {
             planarBoundary3D = new PlanarBoundary3D(panel.planarBoundary3D);
             panelType = panel.panelType;
+            sourceEvidence = panel.sourceEvidence;
 
             if (panel.apertures != null)
                 apertures = new List<Aperture>(panel.apertures.ConvertAll(x => new Aperture(x)));
@@ -80,6 +90,7 @@ namespace SAM.Analytical
         {
             planarBoundary3D = new PlanarBoundary3D(panel.planarBoundary3D);
             this.panelType = panelType;
+            sourceEvidence = panel.sourceEvidence;
 
             if (panel.apertures != null)
                 apertures = new List<Aperture>(panel.apertures.ConvertAll(x => new Aperture(x)));
@@ -113,6 +124,7 @@ namespace SAM.Analytical
             : base(guid, panel)
         {
             panelType = panel.panelType;
+            sourceEvidence = panel.sourceEvidence;
             planarBoundary3D = new PlanarBoundary3D(face);
 
             List<Aperture> apertures_All = new List<Aperture>();
@@ -147,6 +159,7 @@ namespace SAM.Analytical
             : base(guid, panel)
         {
             panelType = panel.panelType;
+            sourceEvidence = panel.sourceEvidence;
             this.planarBoundary3D = planarBoundary3D;
         }
 
@@ -256,6 +269,27 @@ namespace SAM.Analytical
             }
         }
 
+        /// <summary>
+        /// What <see cref="Create.PanelsBySolid(Shell, out List{string}, IEnumerable{ISAMGeometry3D}, double, double, bool, string, string, string, double, double, double, int?)"/>
+        /// proved about the panel's source element, or null. It is carried by every copy of the panel and saved with it, but it
+        /// is evidence only while <see cref="Query.ValidSourceEvidence(Panel, double)"/> accepts it: use that, not this, to decide.
+        /// </summary>
+        public SourceEvidence SourceEvidence
+        {
+            get
+            {
+                return sourceEvidence;
+            }
+        }
+
+        /// <summary>
+        /// Sets or clears (null) the record. Internal: only an evidence-aware SAM tool may bind a record to a footprint.
+        /// </summary>
+        internal void SetSourceEvidence(SourceEvidence sourceEvidence)
+        {
+            this.sourceEvidence = sourceEvidence != null && sourceEvidence.IsComplete ? sourceEvidence : null;
+        }
+
         public bool AddAperture(Aperture aperture, double tolerance_Angle = Tolerance.Angle, double tolerance_Distance = Tolerance.Distance)
         {
             if (aperture == null)
@@ -310,6 +344,11 @@ namespace SAM.Analytical
 
             if (jsonObject["Apertures"] is JsonArray aperturesArray)
                 apertures = Core.Create.IJSAMObjects<Aperture>(aperturesArray);
+
+            // A record that is not complete is no evidence: it is not kept.
+            sourceEvidence = null;
+            if (jsonObject["SourceEvidence"] is JsonObject sourceEvidenceJson)
+                SetSourceEvidence(new SourceEvidence(sourceEvidenceJson));
 
             return true;
         }
@@ -701,6 +740,9 @@ namespace SAM.Analytical
                 }
                 jsonObject["Apertures"] = aperturesArray;
             }
+
+            if (sourceEvidence?.ToJsonObject() is JsonObject sourceEvidenceJson)
+                jsonObject["SourceEvidence"] = sourceEvidenceJson;
 
             return jsonObject;
         }
