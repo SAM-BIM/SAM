@@ -737,5 +737,82 @@ namespace SAM.Tests
             // Assert
             Assert.All(copies, x => Assert.NotNull(x.ValidSourceEvidence()));
         }
+
+        // ---------------------------------------------------------------------------------------------------------------
+        // Panels and their copies share one record, so nothing a caller can reach may change it.
+
+        private static void AssertIntact(Panel panel)
+        {
+            SourceEvidence evidence = panel.SourceEvidence;
+            Assert.NotNull(evidence);
+            Assert.Equal(0.25, evidence.GuaranteedThickness, 6);
+            Assert.Equal(12.0, Area(evidence.Support), 6);
+            Assert.Equal(12.0, Area(evidence.Origin), 6);
+            Assert.Equal(12.0, Area(evidence.BoundFootprint), 6);
+            Assert.NotNull(panel.ValidSourceEvidence());
+        }
+
+        [Fact]
+        public void SourceEvidence_OverwrittenThroughTheJsonReader_ChangesNeitherThePanelNorItsCopy()
+        {
+            // Arrange: a forged record with a larger thickness and no support.
+            Panel panel = Host(Box(0, 0, 0, 4, 0.25, 3));
+            Panel copy = AnalyticalCreate.Panel(panel);
+            JsonObject forged = panel.SourceEvidence.ToJsonObject();
+            forged["GuaranteedThickness"] = 5.0;
+            forged["Support"] = new JsonArray();
+
+            // Act: through the panel's record and through the one the validity query returns.
+            bool viaPanel = ((IJSAMObject)panel.SourceEvidence).FromJsonObject(forged);
+            bool viaValidity = ((IJSAMObject)panel.ValidSourceEvidence()).FromJsonObject(forged);
+            bool viaCopy = ((IJSAMObject)copy.SourceEvidence).FromJsonObject(forged);
+
+            // Assert
+            Assert.False(viaPanel);
+            Assert.False(viaValidity);
+            Assert.False(viaCopy);
+            AssertIntact(panel);
+            AssertIntact(copy);
+        }
+
+        [Fact]
+        public void SourceEvidence_RegionsAndFrameReturnedToTheCaller_AreCopies()
+        {
+            // Arrange
+            Panel panel = Host(Box(0, 0, 0, 4, 0.25, 3));
+            Panel copy = AnalyticalCreate.Panel(panel);
+            SourceEvidence evidence = panel.ValidSourceEvidence();
+
+            // Act: move and empty everything the record hands out.
+            foreach (List<Face2D> regions in new[] { evidence.Support, evidence.Origin, evidence.BoundFootprint })
+            {
+                regions.ForEach(x => x.Move(new Vector2D(10, 10)));
+                regions.Clear();
+            }
+
+            Plane plane = evidence.Plane;
+            plane.Move(new Vector3D(10, 10, 10));
+
+            // Assert
+            AssertIntact(panel);
+            AssertIntact(copy);
+            Assert.True(evidence.Plane.Origin.Distance(panel.Plane.Origin) <= 1e-9);
+        }
+
+        [Fact]
+        public void SourceEvidence_ReadFromJson_IsBuiltByItsConstructor()
+        {
+            // Arrange
+            Panel panel = Host(Box(0, 0, 0, 4, 0.25, 3));
+
+            // Act
+            SourceEvidence read = Core.Create.IJSAMObject<SourceEvidence>(Core.Convert.ToString(panel.SourceEvidence));
+
+            // Assert
+            Assert.NotNull(read);
+            Assert.Equal(0.25, read.GuaranteedThickness, 6);
+            Assert.Equal(12.0, Area(read.Support), 6);
+            Assert.True(read.IsComplete);
+        }
     }
 }

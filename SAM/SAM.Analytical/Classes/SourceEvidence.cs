@@ -28,7 +28,9 @@ namespace SAM.Analytical
     /// </para>
     /// <para>
     /// All regions are <see cref="Face2D"/>s in the frame <see cref="Plane"/>, inner loops kept. The record is stored on the
-    /// panel and saved with it.
+    /// panel and saved with it. The record is <b>immutable once constructed</b>: panels and their copies share one instance, so it
+    /// has no public way to change a field (the regions and frame it returns are copies, and <see cref="IJSAMObject.FromJsonObject"/>
+    /// is implemented explicitly and always refuses); a changed record is a new one, made by <see cref="WithBoundFootprint"/>.
     /// </para>
     /// </summary>
     public class SourceEvidence : IAnalyticalObject
@@ -63,7 +65,7 @@ namespace SAM.Analytical
 
         public SourceEvidence(JsonObject jsonObject)
         {
-            FromJsonObject(jsonObject);
+            Read(jsonObject);
         }
 
         /// <summary>
@@ -138,20 +140,28 @@ namespace SAM.Analytical
             return new SourceEvidence(plane, GuaranteedThickness, support, origin, boundFootprint);
         }
 
-        public bool FromJsonObject(JsonObject jsonObject)
+        /// <summary>
+        /// Always false, and nothing changes. A record is immutable once constructed: panels and their copies share one instance,
+        /// so overwriting it would change the certified thickness or support of every one of them without going through the
+        /// rebinding check. Read a record with <see cref="SourceEvidence(JsonObject)"/>.
+        /// </summary>
+        bool IJSAMObject.FromJsonObject(JsonObject jsonObject)
+        {
+            return false;
+        }
+
+        private void Read(JsonObject jsonObject)
         {
             if (jsonObject == null)
             {
-                return false;
+                return;
             }
 
             plane = jsonObject["Plane"] is JsonObject planeJson ? new Plane(planeJson) : null;
             GuaranteedThickness = jsonObject["GuaranteedThickness"] is JsonValue jsonValue && jsonValue.TryGetValue(out double value) ? value : double.NaN;
-            support = Read(jsonObject["Support"]);
-            origin = Read(jsonObject["Origin"]);
-            boundFootprint = Read(jsonObject["BoundFootprint"]);
-
-            return true;
+            support = ReadRegions(jsonObject["Support"]);
+            origin = ReadRegions(jsonObject["Origin"]);
+            boundFootprint = ReadRegions(jsonObject["BoundFootprint"]);
         }
 
         public JsonObject ToJsonObject()
@@ -183,7 +193,7 @@ namespace SAM.Analytical
             return face2Ds?.Where(x => x != null).Select(x => new Face2D(x.ToJsonObject())).ToList();
         }
 
-        private static List<Face2D> Read(JsonNode jsonNode)
+        private static List<Face2D> ReadRegions(JsonNode jsonNode)
         {
             if (jsonNode is not JsonArray jsonArray)
             {
