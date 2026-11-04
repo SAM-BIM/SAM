@@ -234,6 +234,12 @@ namespace SAM.Analytical
             List<Face2D> apertureFootprints = ApertureFootprints(apertureGeometries, midPlane, thickness, tolerance_Snap);
             List<Face2D> pairFootprints = elementPlane.Footprints.ConvertAll(x => midPlane.Convert(x)).FindAll(x => x != null);
 
+            // What the solid proves about the element's material, certified at most once per element plane and only when a host
+            // panel needs it. No evidence is the answer for any solid that cannot be proved (the panel is then as it always was).
+            double halfThickness = GuaranteedHalfThickness(elementPlane);
+            List<Face2D> evidenceSupport = null;
+            bool evidenceChecked = false;
+
             int filledHoles = 0, openHoles = 0, airHoles = 0, filledNotches = 0, keptNotches = 0, crossSections = 0, failedRegions = 0;
             foreach (Face3D section in sections)
             {
@@ -341,6 +347,14 @@ namespace SAM.Analytical
                 if (panel != null)
                 {
                     StampSource(panel, sourceName, sourceId, sourceLayer, thickness, null);
+
+                    if (!evidenceChecked)
+                    {
+                        evidenceChecked = true;
+                        TryCertifyMaterial(shell, midPlane, halfThickness, tolerance_Angle, tolerance_Distance, tolerance_Snap, out evidenceSupport, out string _);
+                    }
+
+                    panel.SetSourceEvidence(SourceEvidenceOf(panel, elementPlane, halfThickness, evidenceSupport, tolerance_Snap));
                     result.Add(panel);
                 }
 

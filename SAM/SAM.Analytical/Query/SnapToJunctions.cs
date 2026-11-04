@@ -212,6 +212,11 @@ namespace SAM.Analytical
                 Face2D face2D = Geometry.Planar.Create.Face2D(snapped[i], selves[i].Face2D.InternalEdge2Ds);
                 Face3D face3D = face2D == null ? null : selves[i].Plane.Convert(face2D);
                 Panel snappedPanel = face3D == null || !face3D.IsValid() ? null : Create.Panel(panel.Guid, panel, face3D, null, false);
+                if (snappedPanel != null)
+                {
+                    RebindSourceEvidence(panel, snappedPanel, tolerance_Distance);
+                }
+
                 result.Add(snappedPanel ?? Create.Panel(panel));
             }
 
@@ -221,6 +226,31 @@ namespace SAM.Analytical
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Binds the <see cref="SourceEvidence"/> of <paramref name="input"/> to the footprint snapping has just written onto
+        /// <paramref name="snapped"/>. Snapping is the one SAM tool that legitimately changes a footprint, so it is the one that
+        /// rebinds. Only a record that is valid on the input panel (frame and footprint as bound) is rebound, and only if it is
+        /// valid on the result; any other record, including a stale one that the snapped face happens to match again, is
+        /// dropped, so stale evidence never becomes valid by snapping.
+        /// </summary>
+        private static void RebindSourceEvidence(Panel input, Panel snapped, double tolerance_Distance)
+        {
+            if (input.SourceEvidence == null)
+            {
+                return;
+            }
+
+            SourceEvidence sourceEvidence = input.ValidSourceEvidence(tolerance_Distance);
+            Face2D footprint = sourceEvidence == null ? null : sourceEvidence.Plane.Convert(snapped.GetFace3D());
+            snapped.SetSourceEvidence(footprint == null ? null : sourceEvidence.WithBoundFootprint(new List<Face2D> { footprint }));
+
+            // The rebound record has to describe the panel it is on; if it does not, there is no evidence.
+            if (snapped.SourceEvidence != null && snapped.ValidSourceEvidence(tolerance_Distance) == null)
+            {
+                snapped.SetSourceEvidence(null);
+            }
         }
 
         /// <summary>
