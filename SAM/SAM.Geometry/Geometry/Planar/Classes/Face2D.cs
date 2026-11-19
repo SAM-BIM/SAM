@@ -164,6 +164,14 @@ namespace SAM.Geometry.Planar
                         List<Polygon2D> polygon2Ds = segmentable2Ds.ConvertAll(x => new Polygon2D(x.GetPoints())).Union(tolerance);
                         if (polygon2Ds != null && polygon2Ds.Count != 0)
                         {
+                            // The union returns its loops in its own (clockwise) winding. Re-apply the orientation the caller
+                            // asked for (Opposite / Similar relative to the external edge) exactly as for single holes;
+                            // Undefined keeps the union output as it is.
+                            if (edgeOrientationMethod != EdgeOrientationMethod.Undefined && orientation != Orientation.Undefined && externalEdge is Polygon2D)
+                            {
+                                polygon2Ds.ForEach(x => x.SetOrientation(orientation));
+                            }
+
                             segmentable2Ds.ForEach(x => result.internalEdge2Ds.Remove((IClosed2D)x));
                             result.internalEdge2Ds.AddRange(polygon2Ds);
                         }
