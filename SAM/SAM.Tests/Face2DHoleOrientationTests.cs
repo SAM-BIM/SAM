@@ -143,6 +143,31 @@ namespace SAM.Tests
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
+        public void PanelReload_TwoHoles_GetFace3DWindsHolesOppositeToOuter(bool outerCounterClockwise)
+        {
+            // Arrange: a panel (saved to JSON and reloaded) whose face has a 10 x 10 outer loop and two 2 x 2 holes on a -z plane.
+            // Panel.GetFace3D() rebuilds the face through Face2D.Create from the stored loops, so a saved panel gets the
+            // requested winding on every reload.
+            Geometry.Spatial.Plane plane = new Geometry.Spatial.Plane(new Geometry.Spatial.Point3D(0, 0, 3.475), new Geometry.Spatial.Vector3D(0, 0, -1));
+            Polygon2D external = Square(0, 0, 10, outerCounterClockwise);
+            Geometry.Spatial.Face3D face3D = Geometry.Spatial.Face3D.Create(plane, external, new List<IClosed2D> { Square(2, 2, 2, true), Square(6, 6, 2, true) });
+            Analytical.Panel panel = Analytical.Create.Panel(new Analytical.Construction("test"), Analytical.PanelType.Floor, face3D);
+
+            // Act
+            Analytical.Panel reloaded = new Analytical.Panel(panel.ToJsonObject());
+            Geometry.Spatial.Face3D face = reloaded.GetFace3D();
+
+            // Assert
+            Assert.NotNull(face);
+            Assert.Equal(2, face.GetInternalEdge3Ds().Count);
+            Assert.Equal(92.0, face.GetArea(), 9);
+            Orientation outer = OrientationOf(face.ExternalEdge2D);
+            Assert.All(face.InternalEdge2Ds, x => Assert.Equal(Opposite(outer), OrientationOf(x)));
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
         public void Face2D_SingleHole_StillHonoursOrientation(bool outerCounterClockwise)
         {
             // Arrange: the single-hole path (no union) is unchanged.
