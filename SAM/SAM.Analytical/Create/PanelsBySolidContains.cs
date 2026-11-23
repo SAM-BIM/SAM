@@ -19,8 +19,7 @@ namespace SAM.Analytical
         private static bool Contains(Shell shell, Point3D point3D, double silverSpacing, double tolerance)
         {
             BoundingBox3D boundingBox3D = shell?.GetBoundingBox();
-            List<Face3D> face3Ds = shell?.Face3Ds;
-            if (point3D == null || boundingBox3D == null || face3Ds == null || face3Ds.Count == 0)
+            if (point3D == null || boundingBox3D == null)
             {
                 return false;
             }
@@ -54,6 +53,13 @@ namespace SAM.Analytical
             if (parity.HasValue)
             {
                 return parity.Value;
+            }
+
+            // Only now read the faces (the getter copies every face): one ray towards each.
+            List<Face3D> face3Ds = shell.Face3Ds;
+            if (face3Ds == null || face3Ds.Count == 0)
+            {
+                return false;
             }
 
             // Stop as soon as the rays left cannot change the majority: the answer is the same in any face order.
