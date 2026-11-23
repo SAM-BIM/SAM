@@ -1,8 +1,10 @@
 # PanelsBySolid material test independent of face order — Q4 (2026-11-23)
 
 Status: local feature branch `fix/panels-by-solid-face-order-q4` from `sow/2026-Q4` `aa1cb777` (merged base; SAM#231,
-the separate hole-winding fix, is not included). **Tested content `242ec07f`** (code and tests). Not pushed, no PR opened,
-no merge authorised: push, the draft PR and merge are for owner direction. Later commits change this record only.
+the separate hole-winding fix, is not included). **Tested content `170a2906`** (fix and tests `242ec07f`; `170a2906` reads
+the solid's faces only once the diagonal ray is inconclusive). Draft PR for owner review; push and draft PR authorised by
+the owner, merge not authorised. Later commits change this record only; the PR description holds the final head and
+hosted checks.
 
 ## Problem
 
@@ -30,7 +32,8 @@ So a point-in-solid answer, and from it a panel and a room, depended on the orde
 decides when it meets no edge (as `Shell.Inside`); otherwise one ray towards each face and the parity of the rays that
 meet no edge decide by majority (a tie or no such ray is not inside, as `Shell.Inside` returns when no ray is clean). It
 stops as soon as the remaining rays cannot change the majority, so the answer is the same in any face order. On a
-watertight solid every clean ray agrees, so the answer equals `Shell.Inside`.
+watertight solid every clean ray agrees, so the answer equals `Shell.Inside`. The faces (`Shell.Face3Ds` copies each one)
+are read only when the diagonal ray does not decide; a solid without faces is not inside, as before.
 
 Used by the three material checks of the extraction: the pair material test (`HasMaterialBetween`), the section-region
 filter (`PanelsByElementPlane`) and the source-evidence layers (`TryCertifyMaterial`). `Shell.Inside` itself and every
@@ -56,7 +59,8 @@ block and the controls' slab with it). With the change 3 / 3 pass.
 | Check | Result |
 | --- | --- |
 | `SAM.Tests` full, Release, `aa1cb777` | 4020 / 4020 |
-| `SAM.Tests` full, Release, tested content | 4023 / 4023; per test identical to base except the 3 new tests |
+| `SAM.Tests` full, Release, `242ec07f` | 4023 / 4023; per test identical to base except the 3 new tests |
+| `SAM.Tests` focused / full, Release, `170a2906` | 3 / 3; 4023 / 4023, per test identical to `242ec07f` |
 | Fail-first | 3 / 3 fail on base call sites, 3 / 3 pass with the change |
 
 ### Softhouse chain (merged Q4, both face orders)
@@ -64,8 +68,9 @@ block and the controls' slab with it). With the change 3 / 3 pass.
 Setup: the saved harness `tools-2026-10-27-combined` (`softhouse.sh`: PanelsBySolids 0.04 / 0.2 / continuation 0.01,
 SnapToJunctions 0.3, Clean3D, Extend3D, OCCT AdjacencyCluster, Rooms2, good classification), inputs
 `solids_panels_392.3dm` `4c51b625`, `windows_201.3dm` `00b31a93`, gbXML `softhouse3.xml` `e77e7ca4`. SAM `aa1cb777`
-Release (`SAM.Analytical` `e18f0e22`) and the tested content (`40858b4c`; only `SAM.Analytical` and the three assemblies
-referencing it differ), each first in `SAMDIRS`, then the stock adapter (SAM_OCCT merged Q4 `4425901` content, built in
+Release (`SAM.Analytical` `e18f0e22`), `242ec07f` content (`40858b4c`; only `SAM.Analytical` and the three assemblies
+referencing it differ) and `170a2906` (`b6265916`; every assembly differs from the earlier builds only because SourceLink
+embeds the HEAD commit), each first in `SAMDIRS`, then the stock adapter (SAM_OCCT merged Q4 `4425901` content, built in
 `_kink_build/SAM_OCCT_bvfinal4`: `SAM.Geometry.OCCT.Solver` `cc43d447`, `SAM.Analytical.OCCT.Solver` `0a9d2857`) and the
 pinned native `438089f8` (TKBO `1fa732fe`). Isolated `APPDATA`; 0 `FALLBACK` lines in every loaded-assembly log;
 `%APPDATA%\SAM` unchanged (2125 files, newest 2026-11-16). One native process at a time; no native rebuild, no deploy.
@@ -78,6 +83,8 @@ pinned native `438089f8` (TKBO `1fa732fe`). Isolated `APPDATA`; 0 `FALLBACK` lin
 | frozen 48 GOOD | 47 | 47 | 45 | 45 |
 | Kitchen 1 z3.5 + Circulation 9 D206 | closed cell 79.389 m3 | same | no space | **closed cell 79.389 m3** |
 
+- "fixed" is `242ec07f`; `170a2906` replayed F and R give byte-identical `good.tsv`, `v2_spaces.tsv`, `v2_rooms.tsv`,
+  gates and D206-cell panels (`runs/fix2-*`, `runs/fix2-vs-fix.txt`): 59 / 58 spaces, the closed 79.389 m3 cell in both.
 - Base F and base R reproduce the merged bend-veto controls (`2026-11-19-bend-veto-impl/r4/chains/bv-{F,R}`)
   byte-for-byte (`good.tsv`, `v2_spaces.tsv`, `v2_rooms.tsv`). Fixed F is byte-identical to base F.
 - Fixed R recovers the cell: 15 faces, 0 naked segments, closed, volume valid, 79.389 m3, box (-6.64,-2.887,3.475)-
@@ -98,8 +105,8 @@ Evidence (machine-local, copy before switching machines):
 `C:\Users\michal\Documents\SAM_daily\2026-10-25-Softthouse\handover\evidence\2026-11-23-solid-face-order\` (`README.md`;
 `trace/` first-differing-decision logs and the instrumentation diff; `probe/` standalone PanelsBySolids probe; `runs/`
 per run `chain.log`, `assemblies*.txt`, `gates.txt`, `good.tsv`, `v2_*.tsv`, `d206-cell.txt`, and `rooms-all.tsv` /
-`rooms-diff.txt`; `suites/` TRX and logs; `provenance/hashes.txt`; `scripts/`). Reproduce: `sh scripts/replay.sh base`,
-`sh scripts/replay.sh fix`, `sh scripts/rooms.sh`, `sh scripts/full-suites.sh` (needs `_kink_build` with
+`rooms-diff.txt`; `suites/` and `r2/suites/` TRX and logs; `provenance/hashes.txt`; `scripts/`). Reproduce: `sh
+scripts/replay.sh base`, `sh scripts/replay.sh fix` (or `fix2`), `sh scripts/rooms.sh`, `sh scripts/full-suites.sh` (needs `_kink_build` with
 `SAM_OCCT_bvfinal4/build`, `SAM/build`, `native-frozen/`, `profile/`).
 
 ## Decisions and assumptions
@@ -123,7 +130,7 @@ per run `chain.log`, `assemblies*.txt`, `gates.txt`, `good.tsv`, `v2_*.tsv`, `d2
 
 ## Next step
 
-Owner review of the branch and this record; on approval push the branch and open the draft PR into `sow/2026-Q4`
-(description prepared in the evidence folder), then hosted CI at the final head. Merge only on owner approval, followed by
+Owner review of the draft PR (code, tests and the evidence above) and of the hosted checks at the final head. Merge only
+on owner approval, followed by
 the `PROJECT_PROGRESS.md` closeout on `sow/2026-Q4` with the merge SHA. Recommended: Claude Opus 5.5, medium effort, this
 session, Build mode (the evidence and harness are already loaded).
