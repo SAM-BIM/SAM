@@ -245,7 +245,7 @@ namespace SAM.Analytical
             {
                 // The section also returns the voids themselves as faces; keep only regions of material.
                 Point3D internalPoint = section?.GetInternalPoint3D(tolerance_Distance);
-                if (internalPoint == null || !shell.Inside(internalPoint, tolerance_Snap, tolerance_Distance))
+                if (internalPoint == null || !Contains(shell, internalPoint, tolerance_Snap, tolerance_Distance))
                 {
                     continue;
                 }
@@ -620,7 +620,7 @@ namespace SAM.Analytical
             foreach (double factor in new[] { 0.25, 0.5, 0.75 })
             {
                 double t = offset * factor;
-                if (!shell.Inside(new Point3D(point3D.X + normal.X * t, point3D.Y + normal.Y * t, point3D.Z + normal.Z * t), tolerance_Snap, tolerance_Distance))
+                if (!Contains(shell, new Point3D(point3D.X + normal.X * t, point3D.Y + normal.Y * t, point3D.Z + normal.Z * t), tolerance_Snap, tolerance_Distance))
                 {
                     return false;
                 }

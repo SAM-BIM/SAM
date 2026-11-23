@@ -107,7 +107,7 @@ namespace SAM.Analytical
                 foreach (Face3D section_Face3D in sections)
                 {
                     Point3D internalPoint = section_Face3D?.GetInternalPoint3D(tolerance_Distance);
-                    if (internalPoint == null || !shell.Inside(internalPoint, tolerance_Snap, tolerance_Distance))
+                    if (internalPoint == null || !Contains(shell, internalPoint, tolerance_Snap, tolerance_Distance))
                     {
                         continue;
                     }
